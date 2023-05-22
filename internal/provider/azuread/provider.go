@@ -15,7 +15,7 @@ import (
 
 type providerConfig struct {
 	authority string   `env:"OAUTH2_AZURE_AD_AUTHORITY" envDefault:"https://login.microsoftonline.com/${OAUTH2_AZURE_AD_TENANT_ID}" envExpand:"true"`
-	tenantId  string   `env:"OAUTH2_AZURE_AD_TENANT_ID"`
+	tenantId  string   `env:"OAUTH2_AZURE_AD_TENANT_ID"` //nolint:unused
 	clientId  string   `env:"OAUTH2_AZURE_AD_CLIENT_ID"`
 	scopes    []string `env:"OAUTH2_AZURE_AD_TOKEN_SCOPES" envSeparator:" "`
 
