@@ -8,8 +8,8 @@ of connecting users against OAuth2 endpoints like Azure AD or Keycloak.
 
 ## Version requirements
 
-Server: 2.6.2 or later
-Client: 2.6.0 or later
+- Server: 2.6.2 or later
+- Client: 2.6.0 or later
 
 ## Tested environment
 
