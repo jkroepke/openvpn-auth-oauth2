@@ -53,8 +53,12 @@ func main() {
 		log.Fatalf("Can't read config: %v", err)
 	}
 
-	if commonName, ok := os.LookupEnv(openvpn.EnvVarCommonName); ok && slices.Contains(conf.OAuthOpenVpnBypassAuthCn, commonName) {
+	if commonName, ok := os.LookupEnv(openvpn.EnvVarCommonName); ok && slices.Contains(conf.CnBypassAuth, commonName) {
 		log.Printf("skip azure ad authentification")
+	}
+
+	if err := openvpn.ValidateWebAuthCompatibility(); err != nil {
+		log.Fatal(err)
 	}
 
 	var authProvider provider.Provider
@@ -76,14 +80,11 @@ func main() {
 	defer cancel()
 
 	if _, ok := os.LookupEnv(envVarPendingAuth); ok {
-		deviceCodeUrl, err := authProvider.StartAuthentication(ctx)
-		if err != nil {
+		if err := startPendingAuthentication(ctx, authProvider, conf); err != nil {
 			openvpn.AuthFailedReason(err.Error())
 		}
-
-		fmt.Println(deviceCodeUrl)
 	} else {
-		if err := authProvider.ValidateAuthentication(ctx); err != nil {
+		if err := authProvider.ValidateDeviceAuthorization(ctx); err != nil {
 			log.Fatal(err)
 		}
 
@@ -91,21 +92,19 @@ func main() {
 	}
 }
 
-func startPendingAuthentication(conf config.Config) error {
-	deviceCode, err := startDeviceCodeAuthProcess()
-
+func startPendingAuthentication(ctx context.Context, authProvider provider.Provider, conf config.Config) error {
+	deviceCodeResponse, err := authProvider.StartDeviceAuthorization(ctx)
 	if err != nil {
 		return fmt.Errorf("error starting pending auth process: %v", err)
 	}
 
-	if ivSso, ok := os.LookupEnv(openvpn.IvSso); !ok {
-		return fmt.Errorf("can't find IV_SSO environment variable. Client doesn't support SSO login")
-	} else if !strings.Contains(ivSso, "webauth") {
-		return fmt.Errorf("client doesn't support 'webauth'")
+	openUrl := deviceCodeResponse.VerificationURIComplete
+
+	if openUrl != "" {
+		openUrl = fmt.Sprintf("%s?url=%s&code=%s", conf.UrlHelper.String(), deviceCodeResponse.VerificationURI, deviceCodeResponse.UserCode)
 	}
 
-	openUrl := fmt.Sprintf("WEB_AUTH::%s?code=%s", conf.UrlHelper.String(), deviceCode)
-	err = openvpn.WriteAuthPending(conf.AuthTimeout, "webauth", openUrl)
+	err = openvpn.WriteAuthPending(conf.AuthTimeout, "webauth", fmt.Sprintf("WEB_AUTH::%s", openUrl))
 
 	if err != nil {
 		return fmt.Errorf("error writing content to auth pending file: %v", err)

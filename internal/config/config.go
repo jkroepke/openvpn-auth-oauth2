@@ -14,7 +14,7 @@ const (
 type Config struct {
 	Provider     string   `env:"OAUTH2_PROVIDER" envDefault:"generic"`
 	AuthTimeout  int      `env:"OAUTH2_AUTH_TIMEOUT" envDefault:"300"`
-	UrlHelper    url.URL  `env:"OAUTH2_URL_HELPER" envDefault:"https://jkroepke.github.io/openvpn-auth-azure-ad/"`
+	UrlHelper    url.URL  `env:"OAUTH2_URL_HELPER" envDefault:"https://jkroepke.github.io/openvpn-auth-oauth2/"`
 	CnBypassAuth []string `env:"OAUTH2_CN_BYPASS_AUTH" envDefault:"" envSeparator:","`
 }
 

@@ -63,3 +63,21 @@ func WriteAuthPending(timeout int, method, extra string) error {
 	}
 	return nil
 }
+
+func GetClientCommonName() (string, error) {
+	if commonName, ok := os.LookupEnv(EnvVarCommonName); ok {
+		return commonName, nil
+	}
+
+	return "", fmt.Errorf("can't find %s environment variable", EnvVarCommonName)
+}
+
+func ValidateWebAuthCompatibility() error {
+	if ivSso, ok := os.LookupEnv(IvSso); !ok {
+		return fmt.Errorf("can't find IV_SSO environment variable. Client doesn't support SSO login")
+	} else if !strings.Contains(ivSso, "webauth") {
+		return fmt.Errorf("client doesn't support 'webauth'")
+	}
+
+	return nil
+}
