@@ -52,11 +52,7 @@ func WriteAuthControl(status int) error {
 
 func WriteAuthPending(timeout int, method, extra string) error {
 	content := fmt.Sprintf("%d\n%s\n%s\n", timeout, method, extra)
-	err := os.WriteFile(os.Getenv(EnvVarAuthPending), []byte(content), 0600)
-	if err != nil {
-		return err
-	}
-	return nil
+	return os.WriteFile(os.Getenv(EnvVarAuthPending), []byte(content), 0600)
 }
 
 func GetClientCommonName() (string, error) {

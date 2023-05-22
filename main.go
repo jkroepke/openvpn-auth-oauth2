@@ -84,6 +84,10 @@ func startDeviceCodeAuthentication(conf config.Config) error {
 	defer cancel()
 
 	deviceCodeResponse, err := authProvider.StartDeviceAuthorization(ctx)
+	if err != nil {
+		return err
+	}
+
 	openUrl := deviceCodeResponse.VerificationURIComplete
 
 	if openUrl != "" {
@@ -117,9 +121,7 @@ func startPendingAuthentication(conf config.Config) error {
 		return fmt.Errorf("error starting pending auth process: %v", err)
 	}
 
-	err = openvpn.WriteAuthPending(conf.AuthTimeout, "webauth", fmt.Sprintf("WEB_AUTH::%s", verificationUrl))
-
-	if err != nil {
+	if err = openvpn.WriteAuthPending(conf.AuthTimeout, "webauth", fmt.Sprintf("WEB_AUTH::%s", verificationUrl)); err != nil {
 		return fmt.Errorf("error writing content to auth pending file: %v", err)
 	}
 
