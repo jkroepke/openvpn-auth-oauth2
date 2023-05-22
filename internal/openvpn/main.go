@@ -31,28 +31,23 @@ func CheckEnv() error {
 func AuthFailedReason(reason string) {
 	reason = strings.TrimSpace(reason)
 
-	WriteAuthFailedReason(reason)
-	WriteAuthControl(ControlCodeAuthFailed)
-	log.Fatalf("%s:%s [%s] openvpn-auth-azure-ad: %s",
-		os.Getenv(EnvVarClientIp),
-		os.Getenv(EnvVarClientPort),
-		os.Getenv(EnvVarCommonName),
-		reason,
-	)
+	if err := WriteAuthFailedReason(reason); err != nil {
+		log.Println(err)
+	}
+
+	if err := WriteAuthControl(ControlCodeAuthFailed); err != nil {
+		log.Println(err)
+	}
+
+	log.Fatal(reason)
 }
 
-func WriteAuthFailedReason(reason string) {
-	err := os.WriteFile(os.Getenv(EnvVarAuthFailedReason), []byte(reason), 0600)
-	if err != nil {
-		log.Fatal(err)
-	}
+func WriteAuthFailedReason(reason string) error {
+	return os.WriteFile(os.Getenv(EnvVarAuthFailedReason), []byte(reason), 0600)
 }
 
-func WriteAuthControl(status int) {
-	err := os.WriteFile(os.Getenv(EnvVarAuthControlFile), []byte(strconv.Itoa(status)), 0600)
-	if err != nil {
-		log.Fatal(err)
-	}
+func WriteAuthControl(status int) error {
+	return os.WriteFile(os.Getenv(EnvVarAuthControlFile), []byte(strconv.Itoa(status)), 0600)
 }
 
 func WriteAuthPending(timeout int, method, extra string) error {

@@ -61,30 +61,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	var authProvider provider.Provider
-
-	switch conf.Provider {
-	case config.ProviderGeneric:
-		authProvider, err = generic.New()
-		if err != nil {
-			log.Fatal(err)
-		}
-	case config.ProviderAzureAd:
-		authProvider, err = azuread.New()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(conf.AuthTimeout)*time.Second)
-	defer cancel()
-
 	if _, ok := os.LookupEnv(envVarPendingAuth); ok {
-		if err := startPendingAuthentication(ctx, authProvider, conf); err != nil {
+		if err := startDeviceCodeAuthentication(conf); err != nil {
 			openvpn.AuthFailedReason(err.Error())
 		}
 	} else {
-		if err := authProvider.ValidateDeviceAuthorization(ctx); err != nil {
+		if err := startPendingAuthentication(conf); err != nil {
 			log.Fatal(err)
 		}
 
@@ -92,19 +74,50 @@ func main() {
 	}
 }
 
-func startPendingAuthentication(ctx context.Context, authProvider provider.Provider, conf config.Config) error {
-	deviceCodeResponse, err := authProvider.StartDeviceAuthorization(ctx)
+func startDeviceCodeAuthentication(conf config.Config) error {
+	authProvider, err := getAuthProvider(conf)
 	if err != nil {
-		return fmt.Errorf("error starting pending auth process: %v", err)
+		return err
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(conf.AuthTimeout)*time.Second)
+	defer cancel()
+
+	deviceCodeResponse, err := authProvider.StartDeviceAuthorization(ctx)
 	openUrl := deviceCodeResponse.VerificationURIComplete
 
 	if openUrl != "" {
 		openUrl = fmt.Sprintf("%s?url=%s&code=%s", conf.UrlHelper.String(), deviceCodeResponse.VerificationURI, deviceCodeResponse.UserCode)
 	}
 
-	err = openvpn.WriteAuthPending(conf.AuthTimeout, "webauth", fmt.Sprintf("WEB_AUTH::%s", openUrl))
+	fmt.Println(openUrl)
+
+	err = authProvider.ValidateDeviceAuthorization(ctx)
+	if err != nil {
+		return err
+	}
+
+	return openvpn.WriteAuthControl(openvpn.ControlCodeAuthSuccess)
+}
+
+func getAuthProvider(conf config.Config) (provider.Provider, error) {
+	switch conf.Provider {
+	case config.ProviderGeneric:
+		return generic.New()
+	case config.ProviderAzureAd:
+		return azuread.New()
+	}
+
+	return nil, fmt.Errorf("unknown provider %s", conf.Provider)
+}
+
+func startPendingAuthentication(conf config.Config) error {
+	verificationUrl, err := startDeviceCodeAuthProcess()
+	if err != nil {
+		return fmt.Errorf("error starting pending auth process: %v", err)
+	}
+
+	err = openvpn.WriteAuthPending(conf.AuthTimeout, "webauth", fmt.Sprintf("WEB_AUTH::%s", verificationUrl))
 
 	if err != nil {
 		return fmt.Errorf("error writing content to auth pending file: %v", err)
