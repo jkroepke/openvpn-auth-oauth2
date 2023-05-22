@@ -6,7 +6,7 @@ require (
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.0.0
 	github.com/caarlos0/env/v8 v8.0.0
 	github.com/zitadel/oidc/v2 v2.6.0
-	golang.org/x/exp v0.0.0-20230519143937-03e91628a987
+	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1
 )
 
 require (
