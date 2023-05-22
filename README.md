@@ -91,7 +91,7 @@ None
 | `OAUTH2_PROVIDER`       | OAuth2 provide. `generic` or `azuread                                 | `generic`                                         |
 | `OAUTH2_AUTH_TIMEOUT`   | Time for the user to authenticate in seconds                          | `300`                                             |
 | `OAUTH2_URL_HELPER`     | URL for helping user to initiate the device code login flow.          | `https://jkroepke.github.io/openvpn-auth-oauth2/` |
-| `OAUTH2_CN_BYPASS_AUTH` | Bypass AzureAD authentication for common names. Comma separated list. | ``                                                |
+| `OAUTH2_CN_BYPASS_AUTH` | Bypass AzureAD authentication for common names. Comma separated list. | `""`                                                |
 
 ### Provider generic
 
