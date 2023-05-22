@@ -62,8 +62,8 @@ References:
 # Required for AzureAD
 setenv OAUTH2_PROVIDER "generic"
 setenv OAUTH2_GENERIC_ISSUER "https://auth.example.com/realms/openvpn"
-setenv OAUTH2_AZURE_AD_CLIENT_ID "client-id"
-setenv OAUTH2_AZURE_AD_CLIENT_SECRET "client-secret"
+setenv OAUTH2_GENERIC_CLIENT_ID "client-id"
+setenv OAUTH2_GENERIC_CLIENT_SECRET "client-secret" #optional
 
 # Required for AzureAD
 setenv OAUTH2_PROVIDER "azuread"
