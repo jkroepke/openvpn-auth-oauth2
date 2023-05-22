@@ -3,7 +3,7 @@
 
 # openvpn-auth-oauth2
 
-openvpn-auth-oauth2 is an executable binary that gets executed by openvpn server and handles the authentication
+openvpn-auth-oauth2 is an executable binary that gets executed by openvpn server via auth-user-pass-verify interace and handles the authentication
 of connecting users against OAuth2 endpoints like Azure AD or Keycloak.
 
 ## Version requirements
