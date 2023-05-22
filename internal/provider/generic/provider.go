@@ -42,6 +42,7 @@ func New() (*Provider, error) {
 
 	return &Provider{
 		client: client,
+		config: conf,
 	}, nil
 }
 
