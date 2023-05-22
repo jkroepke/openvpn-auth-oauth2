@@ -1,0 +1,33 @@
+name: Push to GH Wiki
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - docs/**
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
+        with:
+          repository: ${{ github.repository }}.wiki
+          path: wiki
+
+      - name: sync wiki
+        run: rsync -av --delete --exclude=ARGOCD.md --exclude=README.md --exclude=.git wiki/ wiki/
+
+      - name: remove header line
+        run: sed -i '1d' wiki/*.md
+
+      - name: Commit files
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .
+          git diff-index --quiet HEAD || git commit -m "Automatically publish wiki" && git push
+        working-directory: wiki
