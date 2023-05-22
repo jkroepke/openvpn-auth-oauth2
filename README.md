@@ -110,7 +110,7 @@ None
 |----------------------------------------------|-------------------------------------------------------------------|------------------------------------------------------------------|
 | `OAUTH2_AZURE_AD_TENANT_ID`                  | Tenant ID off the App Registration                                | -                                                                |
 | `OAUTH2_AZURE_AD_CLIENT_ID`                  | Client ID off the App Registration                                | -                                                                |
-| `OAUTH2_AZURE_AD_AUTHORITY`                  | Custom token authority                                            | `https://login.microsoftonline.com/${OAUTH2_AZURE_AD_TENANT_ID}` |
+| `OAUTH2_AZURE_AD_AUTHORITY`                  | Custom token authority                                            | <details><summary>Show</summary> `https://login.microsoftonline.com/${OAUTH2_AZURE_AD_TENANT_ID}` </details> |
 | `OAUTH2_AZURE_AD_TOKEN_SCOPES`               | Ask for additional token scopes. Space separated list             | ``                                                               |
 | `OAUTH2_AZURE_AD_MATCH_USERNAME_CLIENT_CN`   | Validate, if client common name matches token username.           | `true`                                                           |
 | `OAUTH2_AZURE_AD_MATCH_USERNAME_TOKEN_FIELD` | Use a custom token field to the common name validation.           | `PreferredUsername`                                              |
