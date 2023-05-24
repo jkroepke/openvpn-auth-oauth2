@@ -31,6 +31,8 @@ github.com/sirupsen/logrus v1.9.0 h1:trlNQbNUG3OdDrDil03MCb1H2o9nJ1x4/5LYw7byDE0
 github.com/stretchr/testify v1.8.2 h1:+h33VjcLVPDHtOdpUCuF+7gSuG3yGIftsP1YvFihtJ8=
 github.com/zitadel/oidc/v2 v2.6.0 h1:5Be3N72NWFFKZqoEe2YlFHNOu4Mf2Ao5CtjKPgWiaws=
 github.com/zitadel/oidc/v2 v2.6.0/go.mod h1:iCyw28lFEx3s+3s/IH8CJdph6zDvXreu0DTtHaXZAgQ=
+github.com/zitadel/oidc/v2 v2.6.1 h1:NIW4/KPi9Q2Pae6MKEhrSl+DSC5W4574GlboHildroc=
+github.com/zitadel/oidc/v2 v2.6.1/go.mod h1:vsFNrYCj2x0it0pYmIRVZ12HJ1VGaMVyGl7HLqw5p+Y=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.7.0 h1:AvwMYaRytfdeVt3u6mLaxYtErKYjxA2OXjJ1HHq6t3A=
 golang.org/x/crypto v0.7.0/go.mod h1:pYwdfH91IfpZVANVyUOhSIPZaFoJGxTFbZhFTx+dXZU=
