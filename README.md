@@ -26,6 +26,7 @@ of connecting users against OAuth2 endpoints like Azure AD or Keycloak.
 #### Non-Working
 
 - [Tunnelblick](https://tunnelblick.net/) - See https://github.com/Tunnelblick/Tunnelblick/issues/676
+- [network-manager-openvpn-gnome](https://gitlab.gnome.org/GNOME/NetworkManager-openvpn) - See https://gitlab.gnome.org/GNOME/NetworkManager-openvpn/-/issues/124
 
 # Installation
 
