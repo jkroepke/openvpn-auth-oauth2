@@ -1,4 +1,4 @@
-package main
+package script
 
 import (
 	"bufio"
@@ -11,22 +11,20 @@ import (
 	"syscall"
 	"time"
 
+	commonConfig "github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/lib/script/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/provider"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/provider/azuread"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/provider/generic"
 	"golang.org/x/exp/slices"
-
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 )
 
 const (
 	envVarPendingAuth = "__OPENVPN_AUTH_OAUTH2__START_PENDING_AUTH"
 )
 
-var version = "unknown"
-
-func main() {
+func Run() {
 	log.SetPrefix(
 		fmt.Sprintf("%s:%s [%s] openvpn-auth-oauth2: ",
 			os.Getenv(openvpn.EnvVarClientIp),
@@ -34,11 +32,6 @@ func main() {
 			os.Getenv(openvpn.EnvVarCommonName),
 		),
 	)
-
-	if len(os.Args) == 2 && os.Args[1] == "--version" {
-		fmt.Println(version)
-		os.Exit(0)
-	}
 
 	if err := openvpn.CheckEnv(); err != nil {
 		log.Fatalf(err.Error())
@@ -72,6 +65,8 @@ func main() {
 
 		os.Exit(openvpn.ExitCodeAuthPending)
 	}
+
+	os.Exit(0)
 }
 
 func startDeviceCodeAuthentication(conf config.Config) error {
@@ -106,9 +101,9 @@ func startDeviceCodeAuthentication(conf config.Config) error {
 
 func getAuthProvider(conf config.Config) (provider.Provider, error) {
 	switch conf.Provider {
-	case config.ProviderGeneric:
+	case commonConfig.ProviderGeneric:
 		return generic.New()
-	case config.ProviderAzureAd:
+	case commonConfig.ProviderAzureAd:
 		return azuread.New()
 	}
 

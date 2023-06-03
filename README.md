@@ -61,15 +61,15 @@ References:
 ```
 
 # Required for AzureAD
-setenv OAUTH2_PROVIDER "generic"
-setenv OAUTH2_GENERIC_ISSUER "https://auth.example.com/realms/openvpn"
-setenv OAUTH2_GENERIC_CLIENT_ID "client-id"
-setenv OAUTH2_GENERIC_CLIENT_SECRET "client-secret" #optional
+setenv OPENVPN_AUTH_OAUTH2_PROVIDER "generic"
+setenv OPENVPN_AUTH_OAUTH2_GENERIC_ISSUER "https://auth.example.com/realms/openvpn"
+setenv OPENVPN_AUTH_OAUTH2_GENERIC_CLIENT_ID "client-id"
+setenv OPENVPN_AUTH_OAUTH2_GENERIC_CLIENT_SECRET "client-secret" #optional
 
 # Required for AzureAD
-setenv OAUTH2_PROVIDER "azuread"
-setenv OAUTH2_AZURE_AD_TENANT_ID "tenant-id"
-setenv OAUTH2_AZURE_AD_CLIENT_ID "client-id"
+setenv OPENVPN_AUTH_OAUTH2_PROVIDER "azuread"
+setenv OPENVPN_AUTH_OAUTH2_AZURE_AD_TENANT_ID "tenant-id"
+setenv OPENVPN_AUTH_OAUTH2_AZURE_AD_CLIENT_ID "client-id"
 
 script-security 3
 auth-user-pass-verify /usr/local/bin/openvpn-auth-oauth2 via-file
@@ -87,35 +87,35 @@ None
 
 ### Common
 
-| Environment Variable    | Description                                                           | Default                                           |
-|-------------------------|-----------------------------------------------------------------------|---------------------------------------------------|
-| `OAUTH2_PROVIDER`       | OAuth2 provide. `generic` or `azuread                                 | `generic`                                         |
-| `OAUTH2_AUTH_TIMEOUT`   | Time for the user to authenticate in seconds                          | `300`                                             |
-| `OAUTH2_URL_HELPER`     | URL for helping user to initiate the device code login flow.          | `https://jkroepke.github.io/openvpn-auth-oauth2/` |
-| `OAUTH2_CN_BYPASS_AUTH` | Bypass AzureAD authentication for common names. Comma separated list. | `""`                                                |
+| Environment Variable                 | Description                                                           | Default                                           |
+|--------------------------------------|-----------------------------------------------------------------------|---------------------------------------------------|
+| `OPENVPN_AUTH_OAUTH2_PROVIDER`       | OAuth2 provide. `generic` or `azuread                                 | `generic`                                         |
+| `OPENVPN_AUTH_OAUTH2_AUTH_TIMEOUT`   | Time for the user to authenticate in seconds                          | `300`                                             |
+| `OPENVPN_AUTH_OAUTH2_URL_HELPER`     | URL for helping user to initiate the device code login flow.          | `https://jkroepke.github.io/openvpn-auth-oauth2/` |
+| `OPENVPN_AUTH_OAUTH2_CN_BYPASS_AUTH` | Bypass AzureAD authentication for common names. Comma separated list. | `""`                                              |
 
 ### Provider generic
 
-| Environment Variable                        | Description                                             | Default |
-|---------------------------------------------|---------------------------------------------------------|---------|
-| `OAUTH2_GENERIC_ISSUER`                     | OIDC issuer                                             | -       |
-| `OAUTH2_GENERIC_CLIENT_ID`                  | Client ID of the OIDC client                            | -       |
-| `OAUTH2_GENERIC_CLIENT_SECRET`              | Client Secret of the OIDC client                        | `""`    |
-| `OAUTH2_GENERIC_TOKEN_SCOPES`               | Ask for additional token scopes. Space separated list   | `""`      |
-| `OAUTH2_GENERIC_MATCH_USERNAME_CLIENT_CN`   | Validate, if client common name matches token username. | `true`  |
-| `OAUTH2_GENERIC_MATCH_USERNAME_TOKEN_FIELD` | Use a custom token field to the common name validation. | `sub`   |
+| Environment Variable                                     | Description                                             | Default |
+|----------------------------------------------------------|---------------------------------------------------------|---------|
+| `OPENVPN_AUTH_OAUTH2_GENERIC_ISSUER`                     | OIDC issuer                                             | -       |
+| `OPENVPN_AUTH_OAUTH2_GENERIC_CLIENT_ID`                  | Client ID of the OIDC client                            | -       |
+| `OPENVPN_AUTH_OAUTH2_GENERIC_CLIENT_SECRET`              | Client Secret of the OIDC client                        | `""`    |
+| `OPENVPN_AUTH_OAUTH2_GENERIC_TOKEN_SCOPES`               | Ask for additional token scopes. Space separated list   | `""`    |
+| `OPENVPN_AUTH_OAUTH2_GENERIC_MATCH_USERNAME_CLIENT_CN`   | Validate, if client common name matches token username. | `true`  |
+| `OPENVPN_AUTH_OAUTH2_GENERIC_MATCH_USERNAME_TOKEN_FIELD` | Use a custom token field to the common name validation. | `sub`   |
 
 ### Provider azuread
 
-| Environment Variable                         | Description                                                       | Default                                                          |
-|----------------------------------------------|-------------------------------------------------------------------|------------------------------------------------------------------|
-| `OAUTH2_AZURE_AD_TENANT_ID`                  | Tenant ID off the App Registration                                | -                                                                |
-| `OAUTH2_AZURE_AD_CLIENT_ID`                  | Client ID off the App Registration                                | -                                                                |
-| `OAUTH2_AZURE_AD_AUTHORITY`                  | Custom token authority                                            | <details><summary>Show</summary> `https://login.microsoftonline.com/${OAUTH2_AZURE_AD_TENANT_ID}` </details> |
-| `OAUTH2_AZURE_AD_TOKEN_SCOPES`               | Ask for additional token scopes. Space separated list             | `""`                                                               |
-| `OAUTH2_AZURE_AD_MATCH_USERNAME_CLIENT_CN`   | Validate, if client common name matches token username.           | `true`                                                           |
-| `OAUTH2_AZURE_AD_MATCH_USERNAME_TOKEN_FIELD` | Use a custom token field to the common name validation.           | `PreferredUsername`                                              |
-| `OAUTH2_AZURE_AD_MATCH_CLIENT_IP`            | Validate, if client ip from OpenVPN and Azure AD login are equal. | `true`                                                           |
+| Environment Variable                                      | Description                                                       | Default                                                                                                      |
+|-----------------------------------------------------------|-------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------|
+| `OPENVPN_AUTH_OAUTH2_AZURE_AD_TENANT_ID`                  | Tenant ID off the App Registration                                | -                                                                                                            |
+| `OPENVPN_AUTH_OAUTH2_AZURE_AD_CLIENT_ID`                  | Client ID off the App Registration                                | -                                                                                                            |
+| `OPENVPN_AUTH_OAUTH2_AZURE_AD_AUTHORITY`                  | Custom token authority                                            | <details><summary>Show</summary> `https://login.microsoftonline.com/${OAUTH2_AZURE_AD_TENANT_ID}` </details> |
+| `OPENVPN_AUTH_OAUTH2_AZURE_AD_TOKEN_SCOPES`               | Ask for additional token scopes. Space separated list             | `""`                                                                                                         |
+| `OPENVPN_AUTH_OAUTH2_AZURE_AD_MATCH_USERNAME_CLIENT_CN`   | Validate, if client common name matches token username.           | `true`                                                                                                       |
+| `OPENVPN_AUTH_OAUTH2_AZURE_AD_MATCH_USERNAME_TOKEN_FIELD` | Use a custom token field to the common name validation.           | `PreferredUsername`                                                                                          |
+| `OPENVPN_AUTH_OAUTH2_AZURE_AD_MATCH_CLIENT_IP`            | Validate, if client ip from OpenVPN and Azure AD login are equal. | `true`                                                                                                       |
 
 All environment variables can be set through OpenVPN server configuration with `setenv` directive.
 

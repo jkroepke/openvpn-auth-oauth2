@@ -14,12 +14,12 @@ import (
 )
 
 type providerConfig struct {
-	issuer                  string   `env:"OAUTH2_GENERIC_ISSUER"`
-	clientId                string   `env:"OAUTH2_GENERIC_CLIENT_ID"`
-	clientSecret            string   `env:"OAUTH2_GENERIC_CLIENT_SECRET" envDefault:""`
-	scopes                  []string `env:"OAUTH2_GENERIC_TOKEN_SCOPES" envSeparator:" "`
-	matchUsernameClientCn   bool     `env:"OAUTH2_GENERIC_MATCH_USERNAME_CLIENT_CN" envDefault:"true"`
-	matchUsernameTokenField string   `env:"OAUTH2_GENERIC_MATCH_USERNAME_TOKEN_FIELD" envDefault:"sub"`
+	issuer                  string   `env:"OPENVPN_OAUTH2_GENERIC_ISSUER"`
+	clientId                string   `env:"OPENVPN_OAUTH2_GENERIC_CLIENT_ID"`
+	clientSecret            string   `env:"OPENVPN_OAUTH2_GENERIC_CLIENT_SECRET" envDefault:""`
+	scopes                  []string `env:"OPENVPN_OAUTH2_GENERIC_TOKEN_SCOPES" envSeparator:" "`
+	matchUsernameClientCn   bool     `env:"OPENVPN_OAUTH2_GENERIC_MATCH_USERNAME_CLIENT_CN" envDefault:"true"`
+	matchUsernameTokenField string   `env:"OPENVPN_OAUTH2_GENERIC_MATCH_USERNAME_TOKEN_FIELD" envDefault:"sub"`
 }
 
 type Provider struct {

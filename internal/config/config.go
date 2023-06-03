@@ -1,8 +1,6 @@
 package config
 
 import (
-	"net/url"
-
 	"github.com/caarlos0/env/v8"
 )
 
@@ -12,10 +10,8 @@ const (
 )
 
 type Config struct {
-	Provider     string   `env:"OAUTH2_PROVIDER" envDefault:"generic"`
-	AuthTimeout  int      `env:"OAUTH2_AUTH_TIMEOUT" envDefault:"300"`
-	UrlHelper    url.URL  `env:"OAUTH2_URL_HELPER" envDefault:"https://jkroepke.github.io/openvpn-auth-oauth2/"`
-	CnBypassAuth []string `env:"OAUTH2_CN_BYPASS_AUTH" envDefault:"" envSeparator:","`
+	Provider     string   `env:"OPENVPN_OAUTH2_PROVIDER" envDefault:"generic"`
+	CnBypassAuth []string `env:"OPENVPN_OAUTH2_CN_BYPASS_AUTH" envDefault:"" envSeparator:","`
 }
 
 func LoadConfig() (Config, error) {
