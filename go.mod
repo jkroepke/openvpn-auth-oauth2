@@ -3,14 +3,14 @@ module github.com/jkroepke/openvpn-auth-oauth2
 go 1.20
 
 require (
-	github.com/AzureAD/microsoft-authentication-library-for-go v1.0.0
+	github.com/AzureAD/microsoft-authentication-library-for-go v1.2.0
 	github.com/caarlos0/env/v8 v8.0.0
 	github.com/zitadel/oidc/v2 v2.6.2
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
 )
 
 require (
-	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
+	github.com/golang-jwt/jwt/v5 v5.0.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/schema v1.2.0 // indirect
