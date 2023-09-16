@@ -20,10 +20,7 @@ import (
 var k = koanf.New(".")
 
 func Execute() {
-	zapConfig := zap.NewProductionConfig()
-	zapConfig.Level = zap.NewAtomicLevel()
-	logger, _ := zapConfig.Build()
-	defer logger.Sync() //nolint:errcheck
+	logger, _ := zap.NewProduction()
 
 	f := config.FlagSet()
 	if err := f.Parse(os.Args[1:]); err != nil {
@@ -68,7 +65,15 @@ func Execute() {
 	if err != nil {
 		logger.Fatal(fmt.Sprintf("invalid log level: %v", err))
 	}
-	zapConfig.Level.SetLevel(level.Level())
+
+	_ = logger.Sync()
+
+	zapConfig := zap.NewProductionConfig()
+	zapConfig.Level = level
+	zapConfig.Encoding = conf.Log.Format
+	logger, _ = zapConfig.Build()
+	defer logger.Sync() //nolint:errcheck
+
 	sugaredLogger := logger.Sugar()
 
 	oidcClient, err := oauth2.Configure(&conf)
