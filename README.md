@@ -44,13 +44,23 @@ Go to https://github.com/jkroepke/openvpn-auth-oauth2/releases/latest and downlo
 2. Open [App registrations](https://aad.portal.azure.com/#blade/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/RegisteredApps) in Azure AD admin center
 3. Click new registration
 4. Pick a name, chose a "Supported account types"-option. Leave the default value, if you are not sure.
-5. Let the redirect uri blank and click register.
-6. Copy the tenant-id and client-id. You need the both as configuration option for `openvpn-auth-oauth2`.
-7. After creation, select Token configuration on the left side.
-8. Add optional claim
-9. On the right panel, select `ID` as token type
-10. Select `ipaddr` from the list of claims.
-11. Select Add.
+5. For redirect uri, enter the public endpoint of `openvpn-auth-oauth2`, for example `https://openvpn-auth-oauth2.example.com/oauth2/callback`.
+6. Click register.
+7. Copy the tenant-id and client-id. You need the both as configuration option for `openvpn-auth-oauth2`.
+8. After creation, select `Certificates & secrets` on the left side.
+9. Select the tab `Client secrets` and create a new client secret.
+10. Copy the client-secret. Need it as configuration option for `openvpn-auth-oauth2`.
+11. Then, select Token configuration on the left side.
+12. Add optional claim
+13. On the right panel, select `ID` as token type
+14. Select `ipaddr` from the list of claims.
+15. Select Add.
+
+### Configuration
+
+- `--oauth2.issuer https://login.microsoftonline.com/$TENANT_ID/v2.0`
+- `--oauth2.client.id $CLIENT_ID`
+- `--oauth2.client.secret $CLIENT_SECRET`
 
 References:
 - https://docs.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app
