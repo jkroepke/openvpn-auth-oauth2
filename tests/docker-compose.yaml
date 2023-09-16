@@ -71,18 +71,13 @@ services:
         user nobody
         group nogroup
 
-
-        setenv AZURE_AD_TENANT_ID 1fddafa2-fa6b-4646-908e-4c09c45471d7
-        setenv AZURE_AD_CLIENT_ID 85c96f2c-08a0-4818-a22a-1d3c711a4500
+        management 0.0.0.0 8081
+        management-hold
+        management-client-auth
+        #auth-gen-token 0 external-auth
 
         reneg-sec 60
-        script-security 3
-        #auth-user-pass-verify "/bin/env" via-env
-        auth-user-pass-verify /usr/local/bin/openvpn-auth-azure-ad via-file
         auth-user-pass-optional
-        auth-gen-token 300 120
-        auth-token-user YXV0aC10b2tlbg==
-        push "auth-token-user YXV0aC10b2tlbg=="
         EOF
 
         cat > "/etc/openvpn/${UPN}.ovpn" <<EOF

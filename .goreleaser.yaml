@@ -1,7 +1,5 @@
 builds:
-  - id: "management"
-    main: ./cmd/management
-    binary: openvpn-auth-oauth2-management-client
+  - binary: openvpn-auth-oauth2
     env:
       - CGO_ENABLED=0
     goos:
@@ -11,16 +9,3 @@ builds:
       - arm64
     mod_timestamp: '{{ .CommitTimestamp }}'
     no_unique_dist_dir: true
-  - id: "user-pass-verify"
-    main: ./cmd/management
-    binary: openvpn-auth-oauth2-script
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - linux
-    goarch:
-      - amd64
-      - arm64
-    mod_timestamp: '{{ .CommitTimestamp }}'
-    no_unique_dist_dir: true
-
