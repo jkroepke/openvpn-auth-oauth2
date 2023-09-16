@@ -31,8 +31,13 @@ type Log struct {
 }
 
 type OpenVpn struct {
-	Addr     string `koanf:"addr"`
-	Password string `koanf:"password"`
+	Addr     string        `koanf:"addr"`
+	Password string        `koanf:"password"`
+	Bypass   OpenVpnBypass `koanf:"bypass"`
+}
+
+type OpenVpnBypass struct {
+	CommonNames []string `koanf:"cn"`
 }
 
 type OAuth2 struct {
@@ -49,9 +54,11 @@ type OAuth2Client struct {
 }
 
 type OAuth2Validate struct {
-	Groups []string `koanf:"groups"`
-	Roles  []string `koanf:"roles"`
-	IpAddr bool     `koanf:"ipaddr"`
+	Groups     []string `koanf:"groups"`
+	Roles      []string `koanf:"roles"`
+	IpAddr     bool     `koanf:"ipaddr"`
+	Issuer     bool     `koanf:"issuer"`
+	CommonName string   `koanf:"commonname"`
 }
 
 func FlagSet() *flag.FlagSet {
@@ -71,13 +78,16 @@ func FlagSet() *flag.FlagSet {
 	f.String("http.cert", "", "Path to tls server certificate. (env: CONFIG_HTTP_CERT)")
 	f.String("openvpn.addr", "127.0.0.1:54321", "openvpn management interface addr. (env: CONFIG_OPENVPN_ADDR)")
 	f.String("openvpn.password", "", "openvpn management interface password. (env: CONFIG_OPENVPN_PASSWORD)")
+	f.StringSlice("oauth2.bypass.cn", []string{}, "bypass oauth authentication for CNs. (env: CONFIG_OAUTH2_BYPASS_CN)")
 	f.String("oauth2.issuer", "", "oauth2 issuer. (env: CONFIG_OAUTH2_ISSUER)")
 	f.String("oauth2.client.id", "", "oauth2 client id. (env: CONFIG_OAUTH2_CLIENT_ID)")
 	f.String("oauth2.client.secret", "", "oauth2 client secret. (env: CONFIG_OAUTH2_CLIENT_SECRET)")
 	f.StringSlice("oauth2.validate.groups", []string{}, "oauth2 required user groups. (env: CONFIG_OAUTH2_VALIDATE_GROUPS)")
 	f.StringSlice("oauth2.validate.roles", []string{}, "oauth2 required user roles. (env: CONFIG_OAUTH2_VALIDATE_ROLES)")
 	f.Bool("oauth2.validate.ipaddr", false, "validate client ipaddr between VPN and OIDC token. (env: CONFIG_OAUTH2_VALIDATE_IPADDR)")
-	f.StringSlice("oauth2.scopes", []string{"openid", "offline_access"}, "oauth2 token scopes. (env: CONFIG_OAUTH2_SCOPES)")
+	f.Bool("oauth2.validate.issuer", true, "validate issuer from oidc discovery. (env: CONFIG_OAUTH2_VALIDATE_ISSUER)")
+	f.String("oauth2.validate.commonname", "", "validate common_name from OpenVPN with IDToken claim. (env: CONFIG_OAUTH2_VALIDATE_COMMONNAME)")
+	f.StringSlice("oauth2.scopes", []string{"openid", "profile", "offline_access"}, "oauth2 token scopes. (env: CONFIG_OAUTH2_SCOPES)")
 
 	return f
 }
