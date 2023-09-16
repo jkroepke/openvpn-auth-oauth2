@@ -2,11 +2,10 @@ package oauth2
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/encrypt"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/zitadel/oidc/v2/pkg/client/rp"
 	"github.com/zitadel/oidc/v2/pkg/oidc"
 	"go.uber.org/zap"
@@ -28,8 +27,6 @@ func oauth2Start(logger *zap.SugaredLogger, oidcClient *rp.RelyingParty) http.Ha
 			return
 		}
 
-		logger.Info(state)
-
 		rp.AuthURLHandler(func() string {
 			return state
 		}, *oidcClient).ServeHTTP(w, r)
@@ -40,18 +37,25 @@ func oauth2Callback(
 	logger *zap.SugaredLogger, oidcClient *rp.RelyingParty, conf *config.Config, openvpnClient *openvpn.Client) http.Handler {
 
 	return rp.CodeExchangeHandler(func(w http.ResponseWriter, r *http.Request, tokens *oidc.Tokens[*oidc.IDTokenClaims], encryptedState string, rp rp.RelyingParty) {
-		logger.Info(encryptedState)
-		state, err := encrypt.Decrypt(encryptedState, conf.Http.SessionSecret)
-
-		if err != nil {
-			logger.Warnf("Invalid state: %v", err.Error())
+		session := state.NewEncoded(encryptedState)
+		if err := session.Decode(conf.Http.SessionSecret); err != nil {
+			logger.Warnf(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		ids := strings.Split(state, "|")
+		if err := validateToken(conf, session, tokens); err != nil {
+			logger.Warnw(err.Error(),
+				"cid", session.Cid,
+				"kid", session.Kid,
+			)
 
-		openvpnClient.SendCommand("client-auth-nt %s %s", ids[0], ids[1])
+			openvpnClient.SendCommand("client-deny %d %d \"%s\"", session.Cid, session.Kid, err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		openvpnClient.SendCommand("client-auth-nt %d %d", session.Cid, session.Kid)
 
 		/*
 

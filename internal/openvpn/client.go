@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/encrypt"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"go.uber.org/zap"
 )
 
@@ -162,14 +162,12 @@ func (c *Client) processClient(client *ClientConnection) error {
 			return nil
 		}
 
-		state, err := encrypt.Encrypt(fmt.Sprintf("%d|%d", client.Cid, client.Kid), c.conf.Http.SessionSecret)
-		if err != nil {
+		session := state.New(client.Cid, client.Kid, client.Env["untrusted_ip"])
+		if err := session.Encode(c.conf.Http.SessionSecret); err != nil {
 			return err
 		}
 
-		c.logger.Info(state)
-
-		sessionUrl := fmt.Sprintf("%s/oauth2/start?state=%s", c.conf.Http.BaseUrl, url.QueryEscape(state))
+		sessionUrl := fmt.Sprintf("%s/oauth2/start?state=%s", c.conf.Http.BaseUrl, url.QueryEscape(session.Encoded))
 		c.logger.Infow("start pending auth",
 			"cid", client.Cid,
 			"kid", client.Kid,

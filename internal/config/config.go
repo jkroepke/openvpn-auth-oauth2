@@ -36,10 +36,11 @@ type OpenVpn struct {
 }
 
 type OAuth2 struct {
-	Issuer string       `koanf:"issuer"`
-	Client OAuth2Client `koanf:"client"`
-	Scopes []string     `koanf:"scopes"`
-	Pkce   bool         `koanf:"pkce"`
+	Issuer   string         `koanf:"issuer"`
+	Client   OAuth2Client   `koanf:"client"`
+	Scopes   []string       `koanf:"scopes"`
+	Pkce     bool           `koanf:"pkce"`
+	Validate OAuth2Validate `koanf:"validate"`
 }
 
 type OAuth2Client struct {
@@ -47,10 +48,17 @@ type OAuth2Client struct {
 	Secret string `koanf:"secret"`
 }
 
+type OAuth2Validate struct {
+	Groups []string `koanf:"groups"`
+	Roles  []string `koanf:"roles"`
+	IpAddr bool     `koanf:"ipaddr"`
+}
+
 func FlagSet() *flag.FlagSet {
-	f := flag.NewFlagSet("config", flag.ContinueOnError)
+	f := flag.NewFlagSet("openvpn-auth-oauth2", flag.ContinueOnError)
 	f.Usage = func() {
-		fmt.Println(f.FlagUsages())
+		fmt.Fprintln(os.Stderr, "Usage of openvpn-auth-oauth2:")
+		f.PrintDefaults()
 		os.Exit(0)
 	}
 
@@ -66,7 +74,10 @@ func FlagSet() *flag.FlagSet {
 	f.String("oauth2.issuer", "", "oauth2 issuer. (env: CONFIG_OAUTH2_ISSUER)")
 	f.String("oauth2.client.id", "", "oauth2 client id. (env: CONFIG_OAUTH2_CLIENT_ID)")
 	f.String("oauth2.client.secret", "", "oauth2 client secret. (env: CONFIG_OAUTH2_CLIENT_SECRET)")
-	f.StringSlice("oauth2.scopes", []string{"openid", "offline_access"}, "oauth2 token scopes. (env: CONFIG_OAUTH2_CLIENT_SECRET)")
+	f.StringSlice("oauth2.validate.groups", []string{}, "oauth2 required user groups. (env: CONFIG_OAUTH2_VALIDATE_GROUPS)")
+	f.StringSlice("oauth2.validate.roles", []string{}, "oauth2 required user roles. (env: CONFIG_OAUTH2_VALIDATE_ROLES)")
+	f.Bool("oauth2.validate.ipaddr", false, "validate client ipaddr between VPN and OIDC token. (env: CONFIG_OAUTH2_VALIDATE_IPADDR)")
+	f.StringSlice("oauth2.scopes", []string{"openid", "offline_access"}, "oauth2 token scopes. (env: CONFIG_OAUTH2_SCOPES)")
 
 	return f
 }
