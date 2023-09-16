@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"slices"
 	"strings"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
@@ -149,6 +150,19 @@ func (c *Client) processClient(client *ClientConnection) error {
 			"username", client.Env["username"],
 		)
 
+		if slices.Contains(c.conf.OpenVpn.Bypass.CommonNames, client.Env["common_name"]) {
+			c.logger.Infow("client bypass authentication",
+				"cid", client.Cid,
+				"kid", client.Kid,
+				"reason", client.Reason,
+				"common_name", client.Env["common_name"],
+				"username", client.Env["username"],
+			)
+
+			c.SendCommand(`client-auth-nt %d %d`, client.Cid, client.Kid)
+			return nil
+		}
+
 		if val, ok := client.Env["IV_SSO"]; !ok || !strings.Contains(val, "webauth") {
 			c.logger.Warnw(ErrorSsoNotSupported,
 				"cid", client.Cid,
@@ -162,7 +176,7 @@ func (c *Client) processClient(client *ClientConnection) error {
 			return nil
 		}
 
-		session := state.New(client.Cid, client.Kid, client.Env["untrusted_ip"])
+		session := state.New(client.Cid, client.Kid, client.Env["untrusted_ip"], client.Env["common_name"])
 		if err := session.Encode(c.conf.Http.SessionSecret); err != nil {
 			return err
 		}
@@ -176,8 +190,6 @@ func (c *Client) processClient(client *ClientConnection) error {
 			"username", client.Env["username"],
 		)
 		c.SendCommand(`client-pending-auth %d %d "WEB_AUTH::%s" %d`, client.Cid, client.Kid, sessionUrl, 600)
-		fallthrough
-
 	case "ESTABLISHED":
 		c.logger.Warnw("client established",
 			"cid", client.Cid,

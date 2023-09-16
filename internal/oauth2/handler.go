@@ -13,22 +13,35 @@ import (
 
 func Handler(logger *zap.SugaredLogger, oidcClient *rp.RelyingParty, conf *config.Config, openvpnClient *openvpn.Client) *http.ServeMux {
 	mux := http.NewServeMux()
-	mux.Handle("/oauth2/start", oauth2Start(logger, oidcClient))
+	mux.Handle("/oauth2/start", oauth2Start(logger, oidcClient, conf))
 	mux.Handle("/oauth2/callback", oauth2Callback(logger, oidcClient, conf, openvpnClient))
 
 	return mux
 }
 
-func oauth2Start(logger *zap.SugaredLogger, oidcClient *rp.RelyingParty) http.Handler {
+func oauth2Start(logger *zap.SugaredLogger, oidcClient *rp.RelyingParty, conf *config.Config) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		state := r.URL.Query().Get("state")
-		if state == "" {
+		sessionState := r.URL.Query().Get("state")
+		if sessionState == "" {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
+		session := state.NewEncoded(sessionState)
+		if err := session.Decode(conf.Http.SessionSecret); err != nil {
+			logger.Warnf("invalid state: %s", sessionState)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		logger.Infow("initialize authorization via oauth2",
+			"common_name", session.CommonName,
+			"cid", session.Cid,
+			"kid", session.Kid,
+		)
+
 		rp.AuthURLHandler(func() string {
-			return state
+			return sessionState
 		}, *oidcClient).ServeHTTP(w, r)
 	})
 }
@@ -39,13 +52,19 @@ func oauth2Callback(
 	return rp.CodeExchangeHandler(func(w http.ResponseWriter, r *http.Request, tokens *oidc.Tokens[*oidc.IDTokenClaims], encryptedState string, rp rp.RelyingParty) {
 		session := state.NewEncoded(encryptedState)
 		if err := session.Decode(conf.Http.SessionSecret); err != nil {
-			logger.Warnf(err.Error())
+			logger.Warnw(err.Error(),
+				"subject", tokens.IDTokenClaims.Subject,
+				"preferred_username", tokens.IDTokenClaims.PreferredUsername,
+			)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		if err := validateToken(conf, session, tokens); err != nil {
 			logger.Warnw(err.Error(),
+				"subject", tokens.IDTokenClaims.Subject,
+				"preferred_username", tokens.IDTokenClaims.PreferredUsername,
+				"common_name", session.CommonName,
 				"cid", session.Cid,
 				"kid", session.Kid,
 			)
@@ -54,6 +73,14 @@ func oauth2Callback(
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		logger.Infow("successful authorization via oauth2",
+			"subject", tokens.IDTokenClaims.Subject,
+			"preferred_username", tokens.IDTokenClaims.PreferredUsername,
+			"common_name", session.CommonName,
+			"cid", session.Cid,
+			"kid", session.Kid,
+		)
 
 		openvpnClient.SendCommand("client-auth-nt %d %d", session.Cid, session.Kid)
 

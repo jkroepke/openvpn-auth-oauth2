@@ -18,6 +18,9 @@ func validateToken(conf *config.Config, session *state.State, tokens *oidc.Token
 	if err := validateRoles(conf, tokens); err != nil {
 		return err
 	}
+	if err := validateCommonName(conf, session, tokens); err != nil {
+		return err
+	}
 	if err := validateIpAddr(conf, session, tokens); err != nil {
 		return err
 	}
@@ -62,6 +65,22 @@ func validateRoles(conf *config.Config, tokens *oidc.Tokens[*oidc.IDTokenClaims]
 		if !slices.Contains(tokenRolesList, role) {
 			return fmt.Errorf("missing required role %s", role)
 		}
+	}
+
+	return nil
+}
+func validateCommonName(conf *config.Config, session *state.State, tokens *oidc.Tokens[*oidc.IDTokenClaims]) error {
+	if conf.Oauth2.Validate.CommonName == "" {
+		return nil
+	}
+
+	tokenCommonName, ok := tokens.IDTokenClaims.Claims[conf.Oauth2.Validate.CommonName]
+	if !ok {
+		return fmt.Errorf("missing %s claim", conf.Oauth2.Validate.CommonName)
+	}
+
+	if tokenCommonName != session.CommonName {
+		return fmt.Errorf("common_name mismatch: openvpn client: %s - oidc token: %s", tokenCommonName, session.CommonName)
 	}
 
 	return nil
