@@ -1,5 +1,5 @@
 builds:
-  - binary: openvpn-auth-oauth2-management-client
+  - binary: openvpn-auth-oauth2
     env:
       - CGO_ENABLED=0
     goos:

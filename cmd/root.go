@@ -23,7 +23,7 @@ func Execute() {
 	zapConfig := zap.NewProductionConfig()
 	zapConfig.Level = zap.NewAtomicLevel()
 	logger, _ := zapConfig.Build()
-	defer logger.Sync()
+	defer logger.Sync() //nolint:errcheck
 
 	f := config.FlagSet()
 	if err := f.Parse(os.Args[1:]); err != nil {
