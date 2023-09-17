@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"strings"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
@@ -38,7 +37,7 @@ func validateGroups(conf *config.Config, tokens *oidc.Tokens[*oidc.IDTokenClaims
 		return errors.New("missing groups claim")
 	}
 
-	tokenGroupsList := strings.Split(fmt.Sprintf("%v", tokenGroups), ",")
+	tokenGroupsList := castToSlice[string](tokenGroups)
 
 	for _, group := range conf.Oauth2.Validate.Groups {
 		if !slices.Contains(tokenGroupsList, group) {
@@ -59,7 +58,7 @@ func validateRoles(conf *config.Config, tokens *oidc.Tokens[*oidc.IDTokenClaims]
 		return errors.New("missing roles claim")
 	}
 
-	tokenRolesList := strings.Split(fmt.Sprintf("%v", tokenRoles), ",")
+	tokenRolesList := castToSlice[string](tokenRoles)
 
 	for _, role := range conf.Oauth2.Validate.Roles {
 		if !slices.Contains(tokenRolesList, role) {
@@ -100,4 +99,13 @@ func validateIpAddr(conf *config.Config, session *state.State, tokens *oidc.Toke
 	}
 
 	return nil
+}
+
+func castToSlice[T any](tokenGroups any) []T {
+	tokenGroupsInterfaceList := tokenGroups.([]any)
+	tokenGroupsList := make([]T, len(tokenGroupsInterfaceList))
+	for i, v := range tokenGroupsInterfaceList {
+		tokenGroupsList[i] = v.(T)
+	}
+	return tokenGroupsList
 }
