@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/url"
 	"slices"
@@ -11,14 +12,13 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
-	"go.uber.org/zap"
 )
 
 type Client struct {
 	conf   *config.Config
 	conn   net.Conn
 	reader *bufio.Reader
-	logger *zap.SugaredLogger
+	logger *slog.Logger
 
 	clients         chan *ClientConnection
 	commandResponse chan string
@@ -27,7 +27,7 @@ type Client struct {
 	shutdown        chan struct{}
 }
 
-func NewClient(logger *zap.SugaredLogger, conf *config.Config) *Client {
+func NewClient(logger *slog.Logger, conf *config.Config) *Client {
 	return &Client{
 		conf:   conf,
 		logger: logger,
@@ -142,7 +142,7 @@ func (c *Client) processClient(client *ClientConnection) error {
 	case "CONNECT":
 		fallthrough
 	case "REAUTH":
-		c.logger.Infow("new client connection",
+		c.logger.Info("new client connection",
 			"cid", client.Cid,
 			"kid", client.Kid,
 			"reason", client.Reason,
@@ -151,7 +151,7 @@ func (c *Client) processClient(client *ClientConnection) error {
 		)
 
 		if slices.Contains(c.conf.OpenVpn.Bypass.CommonNames, client.Env["common_name"]) {
-			c.logger.Infow("client bypass authentication",
+			c.logger.Info("client bypass authentication",
 				"cid", client.Cid,
 				"kid", client.Kid,
 				"reason", client.Reason,
@@ -164,7 +164,7 @@ func (c *Client) processClient(client *ClientConnection) error {
 		}
 
 		if val, ok := client.Env["IV_SSO"]; !ok || !strings.Contains(val, "webauth") {
-			c.logger.Warnw(ErrorSsoNotSupported,
+			c.logger.Warn(ErrorSsoNotSupported,
 				"cid", client.Cid,
 				"kid", client.Kid,
 				"reason", client.Reason,
@@ -182,7 +182,7 @@ func (c *Client) processClient(client *ClientConnection) error {
 		}
 
 		sessionUrl := fmt.Sprintf("%s/oauth2/start?state=%s", c.conf.Http.BaseUrl, url.QueryEscape(session.Encoded))
-		c.logger.Infow("start pending auth",
+		c.logger.Info("start pending auth",
 			"cid", client.Cid,
 			"kid", client.Kid,
 			"reason", client.Reason,
@@ -191,14 +191,14 @@ func (c *Client) processClient(client *ClientConnection) error {
 		)
 		c.SendCommand(`client-pending-auth %d %d "WEB_AUTH::%s" %d`, client.Cid, client.Kid, sessionUrl, 600)
 	case "ESTABLISHED":
-		c.logger.Warnw("client established",
+		c.logger.Warn("client established",
 			"cid", client.Cid,
 			"reason", client.Reason,
 			"common_name", client.Env["common_name"],
 			"username", client.Env["username"],
 		)
 	case "DISCONNECT":
-		c.logger.Warnw("client disconnected",
+		c.logger.Warn("client disconnected",
 			"cid", client.Cid,
 			"reason", client.Reason,
 			"common_name", client.Env["common_name"],

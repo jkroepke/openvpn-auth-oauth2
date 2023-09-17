@@ -27,7 +27,8 @@ type Http struct {
 }
 
 type Log struct {
-	Level string `koanf:"level"`
+	Format string `koanf:"format"`
+	Level  string `koanf:"level"`
 }
 
 type OpenVpn struct {
@@ -70,6 +71,8 @@ func FlagSet() *flag.FlagSet {
 	}
 
 	f.String("configfile", "", "path to one .yaml config files. (env: CONFIG_CONFIGFILE)")
+	f.String("log.format", "json", "log format. json or console (env: CONFIG_LOG_FORMAT)")
+	f.String("log.level", "info", "log level. (env: CONFIG_LOG_LEVEL)")
 	f.String("http.listen", ":9000", "listen addr for client listener. (env: CONFIG_HTTP_LISTEN)")
 	f.Bool("http.tls", false, "enable TLS listener. (env: CONFIG_HTTP_TLS)")
 	f.String("http.baseurl", "http://localhost:9000", "listen addr for client listener. (env: CONFIG_HTTP_BASEURL)")

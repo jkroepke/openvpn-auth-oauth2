@@ -11,6 +11,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/zitadel/oidc/v2 v2.11.0
 	go.uber.org/zap v1.26.0
+	go.uber.org/zap/exp v0.2.0
 )
 
 require (
