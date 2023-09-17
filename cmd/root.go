@@ -21,13 +21,17 @@ import (
 
 var k = koanf.New(".")
 
-func Execute() {
+func Execute(version, commit, date string) {
 	logger, _ := zap.NewProduction()
 	defer logger.Sync() //nolint:errcheck
 
 	f := config.FlagSet()
 	if err := f.Parse(os.Args[1:]); err != nil {
 		logger.Fatal(fmt.Sprintf("error parsing cli args: %v", err))
+	}
+
+	if versionFlag, _ := f.GetBool("version"); versionFlag {
+		fmt.Printf("version: %s commit: %s date: %s", version, commit, date)
 	}
 
 	configFile, _ := f.GetString("configfile")

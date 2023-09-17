@@ -87,6 +87,7 @@ None
 Usage of openvpn-auth-oauth2:
       --configfile string                    path to one .yaml config files. (env: CONFIG_CONFIGFILE)
       --http.baseUrl string                  listen addr for client listener. (env: CONFIG_HTTP_BASEURL) (default "http://localhost:9000")
+      --http.callbackTemplatePath string     Path to a HTML file which is displayed at the end of the screen. (env: CONFIG_HTTP_CALLBACKTEMPLATEPATH)
       --http.cert string                     Path to tls server certificate. (env: CONFIG_HTTP_CERT)
       --http.key string                      Path to tls server key. (env: CONFIG_HTTP_KEY)
       --http.listen string                   listen addr for client listener. (env: CONFIG_HTTP_LISTEN) (default ":9000")

@@ -107,6 +107,7 @@ func FlagSet() *flag.FlagSet {
 	f.Bool("oauth2.validate.issuer", true, "validate issuer from oidc discovery. (env: CONFIG_OAUTH2_VALIDATE_ISSUER)")
 	f.String("oauth2.validate.common_name", "", "validate common_name from OpenVPN with IDToken claim. (env: CONFIG_OAUTH2_VALIDATE_COMMON_NAME)")
 	f.StringSlice("oauth2.scopes", []string{"openid", "profile"}, "oauth2 token scopes. (env: CONFIG_OAUTH2_SCOPES)")
+	f.Bool("version", false, "shows versions")
 
 	return f
 }
