@@ -1,5 +1,8 @@
 [![CI](https://github.com/jkroepke/openvpn-auth-oauth2/workflows/CI/badge.svg)](https://github.com/jkroepke/openvpn-auth-oauth2/actions?query=workflow%3ACI)
 [![GitHub license](https://img.shields.io/github/license/jkroepke/openvpn-auth-oauth2)](https://github.com/jkroepke/openvpn-auth-oauth2/blob/master/LICENSE.txt)
+[![Current Release](https://img.shields.io/github/release/jkroepke/openvpn-auth-oauth2.svg)](https://github.com/jkroepke/openvpn-auth-oauth2/releases/latest)
+[![GitHub all releases](https://img.shields.io/github/downloads/jkroepke/openvpn-auth-oauth2/total?logo=github)](https://github.com/jkroepke/openvpn-auth-oauth2/releases/latest)
+[![codecov](https://codecov.io/gh/jkroepke/openvpn-auth-oauth2/graph/badge.svg?token=66VT000UYO)](https://codecov.io/gh/jkroepke/openvpn-auth-oauth2)
 
 # openvpn-auth-oauth2
 
@@ -121,6 +124,6 @@ Usage of openvpn-auth-oauth2:
 
 # Copyright and license
 
-© [2023 Jan-Otto Kröpke (jkroepke)](https://github.com/jkroepke/helm-secrets)
+© [2023 Jan-Otto Kröpke (jkroepke)](https://github.com/jkroepke/openvpn-auth-oauth2)
 
 Licensed under the [MIT License](LICENSE.txt)
