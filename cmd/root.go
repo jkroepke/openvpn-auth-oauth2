@@ -85,6 +85,8 @@ func Execute(version, commit, date string) {
 		os.Exit(1)
 	}
 
+	oidcClient.OAuthConfig()
+
 	openvpnClient := openvpn.NewClient(sl, &conf)
 
 	go func() {
