@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"runtime"
 	"strings"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
@@ -31,7 +32,7 @@ func Execute(version, commit, date string) {
 	}
 
 	if versionFlag, _ := f.GetBool("version"); versionFlag {
-		fmt.Printf("version: %s commit: %s date: %s", version, commit, date)
+		fmt.Printf("version: %s\ncommit: %s\ndate: %s\ngo: %s\n", version, commit, date, runtime.Version())
 		os.Exit(0)
 	}
 
