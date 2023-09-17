@@ -26,7 +26,8 @@ jobs:
           go-version-file: 'go.mod'
 
       - run: go build
-      - run: go test ./...
+      - run: go test ./... -race -covermode=atomic -coverprofile=coverage.out
+      - uses: codecov/codecov-action@v3
 
   lint:
     name: lint
