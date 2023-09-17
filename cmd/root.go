@@ -32,6 +32,7 @@ func Execute(version, commit, date string) {
 
 	if versionFlag, _ := f.GetBool("version"); versionFlag {
 		fmt.Printf("version: %s commit: %s date: %s", version, commit, date)
+		os.Exit(0)
 	}
 
 	configFile, _ := f.GetString("configfile")
