@@ -26,6 +26,7 @@ jobs:
           go-version-file: 'go.mod'
 
       - run: go build
+      - run: go test ./...
 
   lint:
     name: lint
