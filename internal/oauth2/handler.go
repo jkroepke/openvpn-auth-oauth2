@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
+	"strings"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
@@ -13,9 +15,12 @@ import (
 )
 
 func Handler(logger *slog.Logger, oidcClient *rp.RelyingParty, conf *config.Config, openvpnClient *openvpn.Client) *http.ServeMux {
+	baseUrl, _ := url.Parse(conf.Http.BaseUrl)
+
 	mux := http.NewServeMux()
-	mux.Handle("/oauth2/start", oauth2Start(logger, oidcClient, conf))
-	mux.Handle("/oauth2/callback", oauth2Callback(logger, oidcClient, conf, openvpnClient))
+	mux.Handle("/", http.NotFoundHandler())
+	mux.Handle(strings.TrimSuffix(baseUrl.Path, "/")+"/oauth2/start", oauth2Start(logger, oidcClient, conf))
+	mux.Handle(strings.TrimSuffix(baseUrl.Path, "/")+"/oauth2/callback", oauth2Callback(logger, oidcClient, conf, openvpnClient))
 
 	return mux
 }
@@ -29,7 +34,7 @@ func oauth2Start(logger *slog.Logger, oidcClient *rp.RelyingParty, conf *config.
 		}
 
 		session := state.NewEncoded(sessionState)
-		if err := session.Decode(conf.Http.SessionSecret); err != nil {
+		if err := session.Decode(conf.Http.Secret); err != nil {
 			logger.Warn(fmt.Sprintf("invalid state: %s", sessionState))
 			w.WriteHeader(http.StatusBadRequest)
 			return
@@ -51,7 +56,7 @@ func oauth2Callback(logger *slog.Logger, oidcClient *rp.RelyingParty, conf *conf
 
 	return rp.CodeExchangeHandler(func(w http.ResponseWriter, r *http.Request, tokens *oidc.Tokens[*oidc.IDTokenClaims], encryptedState string, rp rp.RelyingParty) {
 		session := state.NewEncoded(encryptedState)
-		if err := session.Decode(conf.Http.SessionSecret); err != nil {
+		if err := session.Decode(conf.Http.Secret); err != nil {
 			logger.Warn(err.Error(),
 				"subject", tokens.IDTokenClaims.Subject,
 				"preferred_username", tokens.IDTokenClaims.PreferredUsername,
@@ -105,6 +110,12 @@ func oauth2Callback(logger *slog.Logger, oidcClient *rp.RelyingParty, conf *conf
 		   			openvpnClient.SendCommand("client-auth %s %s\npush \"auth-token-user %s\"\npush \"auth-token %s\"\nEND", ids[0], ids[1], username, tokens.RefreshToken)
 		   		}
 		*/
-		_, _ = w.Write([]byte(callbackHtml))
+
+		if conf.Http.CallbackTemplate == nil {
+			_, _ = w.Write([]byte(callbackHtml))
+		} else if err := conf.Http.CallbackTemplate.Execute(w, map[string]string{}); err != nil {
+			logger.Error("executing template:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 	}, *oidcClient)
 }

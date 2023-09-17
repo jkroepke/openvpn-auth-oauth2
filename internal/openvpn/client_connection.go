@@ -18,7 +18,10 @@ func NewClientConnection(message string) (*ClientConnection, error) {
 	}
 
 	for _, line := range strings.Split(strings.TrimSpace(message), "\r\n") {
-		if strings.HasPrefix(line, ">CLIENT:CONNECT") || strings.HasPrefix(line, ">CLIENT:REAUTH") || strings.HasPrefix(line, ">CLIENT:DISCONNECT") || strings.HasPrefix(line, ">CLIENT:ESTABLISHED") {
+		if strings.HasPrefix(line, ">CLIENT:CONNECT") ||
+			strings.HasPrefix(line, ">CLIENT:REAUTH") ||
+			strings.HasPrefix(line, ">CLIENT:DISCONNECT") ||
+			strings.HasPrefix(line, ">CLIENT:ESTABLISHED") {
 			clientInfo := strings.Split(strings.TrimSpace(line), ",")
 			clientConnection.Reason = strings.Replace(clientInfo[0], ">CLIENT:", "", 1)
 

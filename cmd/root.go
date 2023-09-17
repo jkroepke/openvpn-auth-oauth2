@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"runtime"
 	"strings"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
@@ -21,13 +22,18 @@ import (
 
 var k = koanf.New(".")
 
-func Execute() {
+func Execute(version, commit, date string) {
 	logger, _ := zap.NewProduction()
 	defer logger.Sync() //nolint:errcheck
 
 	f := config.FlagSet()
 	if err := f.Parse(os.Args[1:]); err != nil {
 		logger.Fatal(fmt.Sprintf("error parsing cli args: %v", err))
+	}
+
+	if versionFlag, _ := f.GetBool("version"); versionFlag {
+		fmt.Printf("version: %s\ncommit: %s\ndate: %s\ngo: %s\n", version, commit, date, runtime.Version())
+		os.Exit(0)
 	}
 
 	configFile, _ := f.GetString("configfile")
@@ -56,12 +62,8 @@ func Execute() {
 	}
 
 	var conf config.Config
-	if err := k.UnmarshalWithConf("", &conf, koanf.UnmarshalConf{}); err != nil {
+	if err := k.Unmarshal("", &conf); err != nil {
 		logger.Fatal(fmt.Sprintf("error loading config: %v", err))
-	}
-
-	if err := config.Validate(&conf); err != nil {
-		logger.Fatal(fmt.Sprintf("error validating config: %v", err))
 	}
 
 	logger, err := configureLogger(&conf)
@@ -72,7 +74,12 @@ func Execute() {
 
 	sl := slog.New(zapslog.NewHandler(logger.Core(), nil))
 
-	oidcClient, err := oauth2.Configure(&conf)
+	if err := config.Validate(&conf); err != nil {
+		sl.Error(fmt.Sprintf("error validating config: %v", err))
+		os.Exit(1)
+	}
+
+	oidcClient, err := oauth2.NewProvider(sl, &conf)
 	if err != nil {
 		sl.Error(err.Error())
 		os.Exit(1)

@@ -20,11 +20,11 @@ type Client struct {
 	reader *bufio.Reader
 	logger *slog.Logger
 
-	clients         chan *ClientConnection
-	commandResponse chan string
-	commands        chan string
-	errors          chan error
-	shutdown        chan struct{}
+	clientsCh         chan *ClientConnection
+	commandResponseCh chan string
+	commandsCh        chan string
+	errCh             chan error
+	shutdownCh        chan struct{}
 }
 
 func NewClient(logger *slog.Logger, conf *config.Config) *Client {
@@ -32,18 +32,18 @@ func NewClient(logger *slog.Logger, conf *config.Config) *Client {
 		conf:   conf,
 		logger: logger,
 
-		errors:          make(chan error),
-		clients:         make(chan *ClientConnection, 10),
-		commandResponse: make(chan string, 10),
-		commands:        make(chan string, 10),
-		shutdown:        make(chan struct{}),
+		errCh:             make(chan error),
+		clientsCh:         make(chan *ClientConnection, 10),
+		commandResponseCh: make(chan string, 10),
+		commandsCh:        make(chan string, 10),
+		shutdownCh:        make(chan struct{}),
 	}
 }
 
 func (c *Client) Connect() error {
 	uri, err := url.Parse(c.conf.OpenVpn.Addr)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to parse openvpn addr as URI: %v", err)
 	}
 
 	c.conn, err = net.Dial(uri.Scheme, uri.Host)
@@ -64,9 +64,12 @@ func (c *Client) Connect() error {
 			return err
 		}
 
-		if line, err := c.readMessage(); err != nil {
+		line, err := c.readMessage()
+		if err != nil {
 			return err
-		} else if !strings.HasPrefix(line, "SUCCESS: password is correct") {
+		}
+
+		if !strings.HasPrefix(line, "SUCCESS: password is correct") {
 			return errors.New("wrong openvpn management interface password")
 		}
 	}
@@ -77,40 +80,31 @@ func (c *Client) Connect() error {
 		for {
 			message, err := c.readMessage()
 			if err != nil {
-				c.errors <- err
+				c.errCh <- err
 				return
 			}
+
 			if strings.HasPrefix(message, ">CLIENT:") {
 				client, err := NewClientConnection(message)
 				if err != nil {
-					c.errors <- err
+					c.errCh <- err
 					return
 				}
 
-				c.clients <- client
-			} else if strings.HasPrefix(message, ">HOLD:") {
-				if err := c.rawCommand("hold release"); err != nil {
-					c.errors <- err
-					return
+				c.clientsCh <- client
+			} else if strings.HasPrefix(message, "SUCCESS:") || strings.HasPrefix(message, "ERROR:") || strings.HasPrefix(message, "OpenVPN Version:") {
+				if strings.HasPrefix(message, "ERROR:") {
+					c.logger.Warn(fmt.Sprintf("Error from OpenVPN: %s", message))
 				}
-
-				if line, err := c.readMessage(); err != nil {
-					c.errors <- err
-					return
-				} else if !strings.HasPrefix(line, "SUCCESS:") {
-					c.errors <- fmt.Errorf("invalid openvpn management interface response: %v", line)
-					return
-				}
-			} else {
-				c.commandResponse <- message
+				c.commandResponseCh <- message
 			}
 		}
 	}()
 
 	go func() {
 		for {
-			if err := c.processClient(<-c.clients); err != nil {
-				c.errors <- err
+			if err := c.processClient(<-c.clientsCh); err != nil {
+				c.errCh <- err
 				return
 			}
 		}
@@ -118,19 +112,27 @@ func (c *Client) Connect() error {
 
 	go func() {
 		for {
-			if err := c.rawCommand(<-c.commands); err != nil {
-				c.errors <- err
+			if err := c.rawCommand(<-c.commandsCh); err != nil {
+				c.errCh <- err
 				return
 			}
 		}
 	}()
+
+	if resp := c.SendCommand("hold release"); !strings.HasPrefix(resp, "SUCCESS:") {
+		return fmt.Errorf("invalid openvpn management interface response: %v", line)
+	}
+
+	if version := c.SendCommand("version"); version != "" {
+		c.logger.Info(version)
+	}
 
 	for {
 		select {
-		case err := <-c.errors:
+		case err := <-c.errCh:
 			_ = c.conn.Close()
-			return err
-		case <-c.shutdown:
+			return fmt.Errorf("OpenVPN management error: %v", err)
+		case <-c.shutdownCh:
 			_ = c.conn.Close()
 			return nil
 		}
@@ -177,11 +179,11 @@ func (c *Client) processClient(client *ClientConnection) error {
 		}
 
 		session := state.New(client.Cid, client.Kid, client.Env["untrusted_ip"], client.Env["common_name"])
-		if err := session.Encode(c.conf.Http.SessionSecret); err != nil {
+		if err := session.Encode(c.conf.Http.Secret); err != nil {
 			return err
 		}
 
-		sessionUrl := fmt.Sprintf("%s/oauth2/start?state=%s", c.conf.Http.BaseUrl, url.QueryEscape(session.Encoded))
+		startUrl := fmt.Sprintf("%s/oauth2/start?state=%s", c.conf.Http.BaseUrl, url.QueryEscape(session.Encoded))
 		c.logger.Info("start pending auth",
 			"cid", client.Cid,
 			"kid", client.Kid,
@@ -189,7 +191,7 @@ func (c *Client) processClient(client *ClientConnection) error {
 			"common_name", client.Env["common_name"],
 			"username", client.Env["username"],
 		)
-		c.SendCommand(`client-pending-auth %d %d "WEB_AUTH::%s" %d`, client.Cid, client.Kid, sessionUrl, 600)
+		c.SendCommand(`client-pending-auth %d %d "WEB_AUTH::%s" %d`, client.Cid, client.Kid, startUrl, 600)
 	case "ESTABLISHED":
 		c.logger.Warn("client established",
 			"cid", client.Cid,
@@ -212,8 +214,8 @@ func (c *Client) processClient(client *ClientConnection) error {
 
 // SendCommand passes command to a given connection (adds logging and EOL character) and returns the response
 func (c *Client) SendCommand(format string, a ...any) string {
-	c.commands <- fmt.Sprintf(format, a...)
-	return <-c.commandResponse
+	c.commandsCh <- fmt.Sprintf(format, a...)
+	return <-c.commandResponseCh
 }
 
 // rawCommand passes command to a given connection (adds logging and EOL character)
