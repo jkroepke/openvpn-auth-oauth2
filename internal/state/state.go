@@ -34,7 +34,7 @@ func NewEncoded(state string) *State {
 func (state *State) Decode(secretKey string) error {
 	jsonState, err := crypto.DecryptAES(state.Encoded, secretKey)
 	if err != nil {
-		return fmt.Errorf("invalid state: %v", state.Encoded)
+		return fmt.Errorf("invalid state: %v: %v", state.Encoded, err)
 	}
 
 	if err := json.Unmarshal([]byte(jsonState), &state); err != nil {

@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"net/url"
 	"os"
+	"reflect"
 	"slices"
 
 	flag "github.com/spf13/pflag"
@@ -112,6 +113,27 @@ func FlagSet() *flag.FlagSet {
 }
 
 func Validate(conf *Config) error {
+	for key, value := range map[string]any{
+		"http":    conf.Http,
+		"oauth2":  conf.Oauth2,
+		"openvpn": conf.OpenVpn,
+		"log":     conf.Log,
+	} {
+		if reflect.ValueOf(value).IsNil() {
+			return fmt.Errorf("%s is nil", key)
+		}
+	}
+	for key, value := range map[string]any{
+		"oauth2.client":    conf.Oauth2.Client,
+		"oauth2.endpoints": conf.Oauth2.Endpoints,
+		"oauth2.validate":  conf.Oauth2.Validate,
+		"openvpn.bypass":   conf.OpenVpn.Bypass,
+	} {
+		if reflect.ValueOf(value).IsNil() {
+			return fmt.Errorf("%s is nil", key)
+		}
+	}
+
 	for key, value := range map[string]string{
 		"http.baseurl":     conf.Http.BaseUrl,
 		"http.secret":      conf.Http.Secret,
@@ -145,7 +167,6 @@ func Validate(conf *Config) error {
 		}
 
 		uri, err := url.Parse(value)
-
 		if err != nil {
 			return fmt.Errorf("%s: invalid URL. error: %s", key, err)
 		}
