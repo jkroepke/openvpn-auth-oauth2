@@ -75,7 +75,21 @@ func oauth2Callback(logger *slog.Logger, oidcClient *rp.RelyingParty, conf *conf
 			)
 
 			openvpnClient.SendCommand("client-deny %d %d \"%s\"", session.Cid, session.Kid, err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+
+			if conf.Http.CallbackTemplate == nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			} else {
+				err := conf.Http.CallbackTemplate.Execute(w, map[string]string{
+					"errorDesc": err.Error(),
+					"errorType": "tokenValidation",
+				})
+
+				if err != nil {
+					logger.Error("executing template:", err)
+					w.WriteHeader(http.StatusInternalServerError)
+				}
+			}
+
 			return
 		}
 
@@ -88,28 +102,6 @@ func oauth2Callback(logger *slog.Logger, oidcClient *rp.RelyingParty, conf *conf
 		)
 
 		openvpnClient.SendCommand("client-auth-nt %d %d", session.Cid, session.Kid)
-
-		/*
-
-		   		logger.Info(tokens.AccessToken)
-		   		logger.Info(tokens.IDToken)
-		   		logger.Info(tokens.RefreshToken)
-
-		   		if tokens.RefreshToken != "" {
-		               var tokenUsername string
-		               if tokens.IDTokenClaims.PreferredUsername != "" {
-		                   tokenUsername = tokens.IDTokenClaims.PreferredUsername
-		               } else if tokens.IDTokenClaims.Email != "" {
-		                   tokenUsername = tokens.IDTokenClaims.Email
-		               } else {
-		                   tokenUsername = tokens.IDTokenClaims.Subject
-		               }
-
-		               username := base64.StdEncoding.EncodeToString([]byte(tokenUsername))
-
-		   			openvpnClient.SendCommand("client-auth %s %s\npush \"auth-token-user %s\"\npush \"auth-token %s\"\nEND", ids[0], ids[1], username, tokens.RefreshToken)
-		   		}
-		*/
 
 		if conf.Http.CallbackTemplate == nil {
 			_, _ = w.Write([]byte(callbackHtml))

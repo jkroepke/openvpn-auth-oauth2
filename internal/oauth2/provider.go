@@ -58,10 +58,10 @@ func NewProvider(logger *slog.Logger, conf *config.Config) (rp.RelyingParty, err
 		options = append(options, rp.WithPKCE(cookieHandler))
 	}
 
-	if conf.Oauth2.Endpoints.AuthUrl == "" && conf.Oauth2.Endpoints.TokenUrl == "" {
-		if conf.Oauth2.Endpoints.DiscoveryUrl != "" {
-			logger.Info(fmt.Sprintf("discover OIDC auto configuration for issuer %s with custom discovery url %s", conf.Oauth2.Issuer, conf.Oauth2.Endpoints.DiscoveryUrl))
-			options = append(options, rp.WithCustomDiscoveryUrl(conf.Oauth2.Endpoints.DiscoveryUrl))
+	if conf.Oauth2.Endpoints.Auth == "" && conf.Oauth2.Endpoints.Token == "" {
+		if conf.Oauth2.Endpoints.Discovery != "" {
+			logger.Info(fmt.Sprintf("discover OIDC auto configuration for issuer %s with custom discovery url %s", conf.Oauth2.Issuer, conf.Oauth2.Endpoints.Discovery))
+			options = append(options, rp.WithCustomDiscoveryUrl(conf.Oauth2.Endpoints.Discovery))
 		} else {
 			logger.Info(fmt.Sprintf("discover OIDC auto configuration for issuer %s", conf.Oauth2.Issuer))
 		}
@@ -76,7 +76,7 @@ func NewProvider(logger *slog.Logger, conf *config.Config) (rp.RelyingParty, err
 		)
 	}
 
-	logger.Info(fmt.Sprintf("manually configure oauth2 provider with endpoints %s and %s", conf.Oauth2.Endpoints.AuthUrl, conf.Oauth2.Endpoints.TokenUrl))
+	logger.Info(fmt.Sprintf("manually configure oauth2 provider with endpoints %s and %s", conf.Oauth2.Endpoints.Auth, conf.Oauth2.Endpoints.Token))
 
 	rpConfig := &oauth2.Config{
 		ClientID:     conf.Oauth2.Client.Id,
@@ -84,8 +84,8 @@ func NewProvider(logger *slog.Logger, conf *config.Config) (rp.RelyingParty, err
 		RedirectURL:  redirectURI,
 		Scopes:       conf.Oauth2.Scopes,
 		Endpoint: oauth2.Endpoint{
-			AuthURL:  conf.Oauth2.Endpoints.AuthUrl,
-			TokenURL: conf.Oauth2.Endpoints.TokenUrl,
+			AuthURL:  conf.Oauth2.Endpoints.Auth,
+			TokenURL: conf.Oauth2.Endpoints.Token,
 		},
 	}
 

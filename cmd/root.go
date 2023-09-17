@@ -103,13 +103,13 @@ func Execute(version, commit, date string) {
 		}
 
 		if conf.Http.Tls {
-			sl.Info(fmt.Sprintf("HTTPS server listen on %s", conf.Http.Listen))
+			sl.Info(fmt.Sprintf("HTTPS server listen on %s with base url %s", conf.Http.Listen, conf.Http.BaseUrl))
 			if err := server.ListenAndServeTLS(conf.Http.CertFile, conf.Http.KeyFile); err != nil {
 				sl.Error(err.Error())
 				os.Exit(1)
 			}
 		} else {
-			sl.Info(fmt.Sprintf("HTTP server listen on %s", conf.Http.Listen))
+			sl.Info(fmt.Sprintf("HTTP server listen on %s with base url %s", conf.Http.Listen, conf.Http.BaseUrl))
 			if err := server.ListenAndServe(); err != nil {
 				sl.Error(err.Error())
 				os.Exit(1)
