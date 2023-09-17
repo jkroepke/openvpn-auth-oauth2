@@ -56,7 +56,7 @@ func Execute() {
 	}
 
 	var conf config.Config
-	if err := k.UnmarshalWithConf("", &conf, koanf.UnmarshalConf{}); err != nil {
+	if err := k.Unmarshal("", &conf); err != nil {
 		logger.Fatal(fmt.Sprintf("error loading config: %v", err))
 	}
 

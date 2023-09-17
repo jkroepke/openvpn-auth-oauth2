@@ -39,7 +39,7 @@ func (state *State) Decode(secretKey string) error {
 		return fmt.Errorf("invalid state: %v", state.Encoded)
 	}
 
-	if err := json.Unmarshal([]byte(jsonState), &state); err != nil {
+	if err := json.Unmarshal(jsonState, &state); err != nil {
 		return err
 	}
 
@@ -52,17 +52,15 @@ func (state *State) Encode(secretKey string) error {
 		return err
 	}
 
-	encrypted, err := encrypt(string(jsonState), secretKey)
+	state.Encoded, err = encrypt(jsonState, secretKey)
 	if err != nil {
 		return err
 	}
 
-	state.Encoded = encrypted
-
 	return nil
 }
 
-func encrypt(plaintext, secretKey string) (string, error) {
+func encrypt(plaintext []byte, secretKey string) (string, error) {
 	aes, err := aes.NewCipher([]byte(secretKey))
 	if err != nil {
 		return "", err
@@ -84,25 +82,25 @@ func encrypt(plaintext, secretKey string) (string, error) {
 	// ciphertext here is actually nonce+ciphertext
 	// So that when we decrypt, just knowing the nonce size
 	// is enough to separate it from the ciphertext.
-	ciphertext := gcm.Seal(nonce, nonce, []byte(plaintext), nil)
+	ciphertext := gcm.Seal(nonce, nonce, plaintext, nil)
 
 	return base64.StdEncoding.EncodeToString(ciphertext), nil
 }
 
-func decrypt(b64Ciphertext, secretKey string) (string, error) {
+func decrypt(b64Ciphertext string, secretKey string) ([]byte, error) {
 	ciphertext, err := base64.StdEncoding.DecodeString(b64Ciphertext)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	aes, err := aes.NewCipher([]byte(secretKey))
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	gcm, err := cipher.NewGCM(aes)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// Since we know the ciphertext is actually nonce+ciphertext
@@ -112,8 +110,8 @@ func decrypt(b64Ciphertext, secretKey string) (string, error) {
 
 	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return string(plaintext), nil
+	return plaintext, nil
 }

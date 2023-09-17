@@ -29,7 +29,7 @@ func oauth2Start(logger *slog.Logger, oidcClient *rp.RelyingParty, conf *config.
 		}
 
 		session := state.NewEncoded(sessionState)
-		if err := session.Decode(conf.Http.SessionSecret); err != nil {
+		if err := session.Decode(conf.Http.Secret); err != nil {
 			logger.Warn(fmt.Sprintf("invalid state: %s", sessionState))
 			w.WriteHeader(http.StatusBadRequest)
 			return
@@ -51,7 +51,7 @@ func oauth2Callback(logger *slog.Logger, oidcClient *rp.RelyingParty, conf *conf
 
 	return rp.CodeExchangeHandler(func(w http.ResponseWriter, r *http.Request, tokens *oidc.Tokens[*oidc.IDTokenClaims], encryptedState string, rp rp.RelyingParty) {
 		session := state.NewEncoded(encryptedState)
-		if err := session.Decode(conf.Http.SessionSecret); err != nil {
+		if err := session.Decode(conf.Http.Secret); err != nil {
 			logger.Warn(err.Error(),
 				"subject", tokens.IDTokenClaims.Subject,
 				"preferred_username", tokens.IDTokenClaims.PreferredUsername,

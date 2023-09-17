@@ -17,16 +17,25 @@ func Configure(conf *config.Config) (rp.RelyingParty, error) {
 
 	redirectURI := fmt.Sprintf("%s/oauth2/callback", conf.Http.BaseUrl)
 
-	cookieKey := []byte(conf.Http.SessionSecret)
-	cookieHandler := httphelper.NewCookieHandler(cookieKey, cookieKey,
-		httphelper.WithUnsecure(),
+	cookieKey := []byte(conf.Http.Secret)
+	cookieOpt := []httphelper.CookieHandlerOpt{
 		httphelper.WithMaxAge(1800),
 		httphelper.WithPath("/oauth2"),
 		httphelper.WithDomain(uri.Hostname()),
-	)
+	}
+
+	if uri.Scheme == "http" {
+		cookieOpt = append(cookieOpt, httphelper.WithUnsecure())
+	}
+
+	cookieHandler := httphelper.NewCookieHandler(cookieKey, cookieKey, cookieOpt...)
 
 	options := []rp.Option{
 		rp.WithCookieHandler(cookieHandler),
+	}
+
+	if conf.Oauth2.Endpoints.DiscoveryUrl != "" {
+		options = append(options, rp.WithCustomDiscoveryUrl(conf.Oauth2.Endpoints.DiscoveryUrl))
 	}
 
 	if conf.Oauth2.Pkce {
