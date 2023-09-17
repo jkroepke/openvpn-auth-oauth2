@@ -60,10 +60,6 @@ func Execute() {
 		logger.Fatal(fmt.Sprintf("error loading config: %v", err))
 	}
 
-	if err := config.Validate(&conf); err != nil {
-		logger.Fatal(fmt.Sprintf("error validating config: %v", err))
-	}
-
 	logger, err := configureLogger(&conf)
 	if err != nil {
 		logger.Fatal(fmt.Sprintf("error configure logger: %v", err))
@@ -72,7 +68,12 @@ func Execute() {
 
 	sl := slog.New(zapslog.NewHandler(logger.Core(), nil))
 
-	oidcClient, err := oauth2.Configure(&conf)
+	if err := config.Validate(&conf); err != nil {
+		sl.Error(fmt.Sprintf("error validating config: %v", err))
+		os.Exit(1)
+	}
+
+	oidcClient, err := oauth2.NewProvider(sl, &conf)
 	if err != nil {
 		sl.Error(err.Error())
 		os.Exit(1)

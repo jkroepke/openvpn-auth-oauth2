@@ -92,24 +92,11 @@ func (c *Client) Connect() error {
 				}
 
 				c.clientsCh <- client
-			} else if strings.HasPrefix(line, "SUCCESS:") || strings.HasPrefix(line, "ERROR:") {
+			} else if strings.HasPrefix(message, "SUCCESS:") || strings.HasPrefix(message, "ERROR:") || strings.HasPrefix(message, "OpenVPN Version:") {
+				if strings.HasPrefix(message, "ERROR:") {
+					c.logger.Warn(fmt.Sprintf("Error from OpenVPN: %s", message))
+				}
 				c.commandResponseCh <- message
-			} else if strings.HasPrefix(message, ">HOLD:") {
-				err := c.rawCommand("hold release")
-				if err != nil {
-					c.errCh <- err
-					return
-				}
-
-				line, err := c.readMessage()
-				if err != nil {
-					c.errCh <- err
-					return
-				}
-				if !strings.HasPrefix(line, "SUCCESS:") {
-					c.errCh <- fmt.Errorf("invalid openvpn management interface response: %v", line)
-					return
-				}
 			}
 		}
 	}()
@@ -132,11 +119,19 @@ func (c *Client) Connect() error {
 		}
 	}()
 
+	if resp := c.SendCommand("hold release"); !strings.HasPrefix(resp, "SUCCESS:") {
+		return fmt.Errorf("invalid openvpn management interface response: %v", line)
+	}
+
+	if version := c.SendCommand("version"); version != "" {
+		c.logger.Info(version)
+	}
+
 	for {
 		select {
 		case err := <-c.errCh:
 			_ = c.conn.Close()
-			return err
+			return fmt.Errorf("OpenVPN management error: %v", err)
 		case <-c.shutdownCh:
 			_ = c.conn.Close()
 			return nil

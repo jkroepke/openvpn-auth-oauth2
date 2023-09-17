@@ -61,12 +61,12 @@ func (state *State) Encode(secretKey string) error {
 }
 
 func encrypt(plaintext []byte, secretKey string) (string, error) {
-	aes, err := aes.NewCipher([]byte(secretKey))
+	aesCipher, err := aes.NewCipher([]byte(secretKey))
 	if err != nil {
 		return "", err
 	}
 
-	gcm, err := cipher.NewGCM(aes)
+	gcm, err := cipher.NewGCM(aesCipher)
 	if err != nil {
 		return "", err
 	}
@@ -93,12 +93,12 @@ func decrypt(b64Ciphertext string, secretKey string) ([]byte, error) {
 		return nil, err
 	}
 
-	aes, err := aes.NewCipher([]byte(secretKey))
+	aesCipher, err := aes.NewCipher([]byte(secretKey))
 	if err != nil {
 		return nil, err
 	}
 
-	gcm, err := cipher.NewGCM(aes)
+	gcm, err := cipher.NewGCM(aesCipher)
 	if err != nil {
 		return nil, err
 	}

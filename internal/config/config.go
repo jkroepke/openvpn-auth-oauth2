@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"html/template"
 	"net/url"
 	"os"
 	"slices"
@@ -19,12 +20,14 @@ type Config struct {
 }
 
 type Http struct {
-	Listen   string `koanf:"listen"`
-	CertFile string `koanf:"cert"`
-	KeyFile  string `koanf:"key"`
-	Tls      bool   `koanf:"tls"`
-	BaseUrl  string `koanf:"baseUrl"`
-	Secret   string `koanf:"secret"`
+	Listen               string             `koanf:"listen"`
+	CertFile             string             `koanf:"cert"`
+	KeyFile              string             `koanf:"key"`
+	Tls                  bool               `koanf:"tls"`
+	BaseUrl              string             `koanf:"baseUrl"`
+	Secret               string             `koanf:"secret"`
+	CallbackTemplate     *template.Template `koanf:"callbackTemplate"`
+	CallbackTemplatePath string             `koanf:"callbackTemplatePath"`
 }
 
 type Log struct {
@@ -87,6 +90,7 @@ func FlagSet() *flag.FlagSet {
 	f.String("http.secret", "", "Cookie secret. (env: CONFIG_HTTP_SECRET)")
 	f.String("http.key", "", "Path to tls server key. (env: CONFIG_HTTP_KEY)")
 	f.String("http.cert", "", "Path to tls server certificate. (env: CONFIG_HTTP_CERT)")
+	f.String("http.callbackTemplatePath", "", "Path to a HTML file which is displayed at the end of the screen. (env: CONFIG_HTTP_CALLBACKTEMPLATEPATH)")
 	f.String("openvpn.addr", "tcp://127.0.0.1:54321", "openvpn management interface addr. (env: CONFIG_OPENVPN_ADDR)")
 	f.String("openvpn.password", "", "openvpn management interface password. (env: CONFIG_OPENVPN_PASSWORD)")
 	f.StringSlice("oauth2.bypass.cn", []string{}, "bypass oauth authentication for CNs. (env: CONFIG_OAUTH2_BYPASS_CN)")
@@ -109,10 +113,10 @@ func FlagSet() *flag.FlagSet {
 
 func Validate(conf *Config) error {
 	for key, value := range map[string]string{
-		"http.baseUrl":       conf.Http.BaseUrl,
-		"http.sessionSecret": conf.Http.Secret,
-		"oauth2.issuer":      conf.Oauth2.Issuer,
-		"oauth2.client.id":   conf.Oauth2.Client.Id,
+		"http.baseUrl":     conf.Http.BaseUrl,
+		"http.secret":      conf.Http.Secret,
+		"oauth2.issuer":    conf.Oauth2.Issuer,
+		"oauth2.client.id": conf.Oauth2.Client.Id,
 	} {
 		if value == "" {
 			return fmt.Errorf("%s is required", key)
@@ -154,6 +158,15 @@ func Validate(conf *Config) error {
 	if (conf.Oauth2.Endpoints.TokenUrl != "" && conf.Oauth2.Endpoints.AuthUrl == "") ||
 		(conf.Oauth2.Endpoints.TokenUrl == "" && conf.Oauth2.Endpoints.AuthUrl != "") {
 		return errors.New("both oauth2.endpoints.tokenUrl and oauth2.endpoints.authUrl are required")
+	}
+
+	if conf.Http.CallbackTemplatePath != "" {
+		tmpl, err := template.New("callback").ParseFiles(conf.Http.CallbackTemplatePath)
+		if err != nil {
+			return fmt.Errorf("http.callbackTemplatePath: invalid template: %s", err)
+		}
+
+		conf.Http.CallbackTemplate = tmpl
 	}
 
 	return nil
