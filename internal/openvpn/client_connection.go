@@ -8,18 +8,15 @@ import (
 )
 
 type ClientConnection struct {
-	Kid    int
-	Cid    int
+	Kid    uint64
+	Cid    uint64
 	Reason string
 	Env    map[string]string
 }
 
 func NewClientConnection(message string) (*ClientConnection, error) {
 	clientConnection := &ClientConnection{
-		Kid:    0,
-		Cid:    0,
-		Reason: "",
-		Env:    map[string]string{},
+		Env: map[string]string{},
 	}
 
 	for _, line := range strings.Split(strings.TrimSpace(message), "\r\n") {
@@ -35,14 +32,14 @@ func NewClientConnection(message string) (*ClientConnection, error) {
 
 			clientConnection.Reason = strings.Replace(clientInfo[0], ">CLIENT:", "", 1)
 
-			if cid, err := strconv.Atoi(clientInfo[1]); err != nil {
+			if cid, err := strconv.ParseUint(clientInfo[1], 10, 64); err != nil {
 				return nil, err
 			} else {
 				clientConnection.Cid = cid
 			}
 
 			if clientConnection.Reason != "DISCONNECT" && clientConnection.Reason != "ESTABLISHED" {
-				if kid, err := strconv.Atoi(clientInfo[2]); err != nil {
+				if kid, err := strconv.ParseUint(clientInfo[2], 10, 64); err != nil {
 					return nil, err
 				} else {
 					clientConnection.Kid = kid
@@ -62,10 +59,6 @@ func NewClientConnection(message string) (*ClientConnection, error) {
 
 	if clientConnection.Reason == "" {
 		return nil, errors.New("unable to parse client reason")
-	}
-
-	if clientConnection.Cid == 0 {
-		return nil, errors.New("unable to parse CID")
 	}
 
 	return clientConnection, nil

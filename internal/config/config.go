@@ -48,6 +48,7 @@ type OpenVpnBypass struct {
 
 type OAuth2 struct {
 	Issuer    string           `koanf:"issuer"`
+	Provider  string           `koanf:"provider"`
 	Endpoints *OAuth2Endpoints `koanf:"endpoint"`
 	Client    *OAuth2Client    `koanf:"client"`
 	Scopes    []string         `koanf:"scopes"`
@@ -94,8 +95,9 @@ func FlagSet() *flag.FlagSet {
 	f.String("http.callback_template_path", "", "Path to a HTML file which is displayed at the end of the screen. (env: CONFIG_HTTP_CALLBACK_TEMPLATE_PATH)")
 	f.String("openvpn.addr", "tcp://127.0.0.1:54321", "openvpn management interface addr. (env: CONFIG_OPENVPN_ADDR)")
 	f.String("openvpn.password", "", "openvpn management interface password. (env: CONFIG_OPENVPN_PASSWORD)")
-	f.StringSlice("oauth2.bypass.cn", []string{}, "bypass oauth authentication for CNs. (env: CONFIG_OAUTH2_BYPASS_CN)")
+	f.StringSlice("openvpn.bypass.cn", []string{}, "bypass oauth authentication for CNs. (env: CONFIG_OAUTH2_BYPASS_CN)")
 	f.String("oauth2.issuer", "", "oauth2 issuer. (env: CONFIG_OAUTH2_ISSUER)")
+	f.String("oauth2.provider", "oidc", "oauth2 provider. (env: CONFIG_OAUTH2_PROVIDER)")
 	f.String("oauth2.endpoint.discovery", "", "custom oauth2 discovery url. (env: CONFIG_OAUTH2_ENDPOINT_DISCOVERY)")
 	f.String("oauth2.endpoint.auth", "", "custom oauth2 auth endpoint. (env: CONFIG_OAUTH2_ENDPOINT_AUTH)")
 	f.String("oauth2.endpoint.token", "", "custom oauth2 token endpoint. (env: CONFIG_OAUTH2_ENDPOINT_TOKEN)")
@@ -123,6 +125,7 @@ func Validate(conf *Config) error {
 			return fmt.Errorf("%s is nil", key)
 		}
 	}
+
 	for key, value := range map[string]any{
 		"oauth2.client":    conf.Oauth2.Client,
 		"oauth2.endpoints": conf.Oauth2.Endpoints,

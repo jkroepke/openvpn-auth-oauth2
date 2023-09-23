@@ -1,4 +1,4 @@
-package oauth2
+package oidc
 
 import (
 	"testing"
@@ -23,9 +23,10 @@ func TestValidateToken(t *testing.T) {
 		},
 	}
 
-	err := validateToken(conf, &state.State{}, token)
+	err := NewProvider(conf).Validate(&state.State{}, token)
 	assert.NoError(t, err)
 }
+
 func TestValidateGroups(t *testing.T) {
 	for _, tt := range []struct {
 		name           string
@@ -60,7 +61,8 @@ func TestValidateGroups(t *testing.T) {
 				},
 			}
 
-			err := validateGroups(conf, token)
+			err := NewProvider(conf).ValidateGroups(token)
+
 			if tt.err == "" {
 				assert.NoError(t, err)
 			} else {
@@ -104,7 +106,7 @@ func TestValidateRoles(t *testing.T) {
 				},
 			}
 
-			err := validateRoles(conf, token)
+			err := NewProvider(conf).ValidateRoles(token)
 			if tt.err == "" {
 				assert.NoError(t, err)
 			} else {
@@ -149,7 +151,7 @@ func TestValidateCommonName(t *testing.T) {
 				CommonName: tt.requiredCommonName,
 			}
 
-			err := validateCommonName(conf, session, token)
+			err := NewProvider(conf).ValidateCommonName(session, token)
 			if tt.err == "" {
 				assert.NoError(t, err)
 			} else {
@@ -195,7 +197,7 @@ func TestValidateIpAddr(t *testing.T) {
 				Ipaddr: tt.requiredIpAddr,
 			}
 
-			err := validateIpAddr(conf, session, token)
+			err := NewProvider(conf).ValidateIpAddr(session, token)
 			if tt.err == "" {
 				assert.NoError(t, err)
 			} else {

@@ -48,6 +48,7 @@ func TestNewProvider(t *testing.T) {
 				Http: &config.Http{BaseUrl: "http://localhost/"},
 				Oauth2: &config.OAuth2{
 					Issuer:    svr.URL,
+					Provider:  "oidc",
 					Client:    &config.OAuth2Client{Id: "ID", Secret: "ID"},
 					Endpoints: &config.OAuth2Endpoints{},
 				},
@@ -59,8 +60,9 @@ func TestNewProvider(t *testing.T) {
 			&config.Config{
 				Http: &config.Http{BaseUrl: "http://localhost/"},
 				Oauth2: &config.OAuth2{
-					Issuer: svr.URL,
-					Client: &config.OAuth2Client{Id: "ID", Secret: "ID"},
+					Issuer:   svr.URL,
+					Provider: "oidc",
+					Client:   &config.OAuth2Client{Id: "ID", Secret: "ID"},
 					Endpoints: &config.OAuth2Endpoints{
 						Discovery: svr.URL + "/.well-known/openid-configuration",
 					},
@@ -73,8 +75,9 @@ func TestNewProvider(t *testing.T) {
 			&config.Config{
 				Http: &config.Http{BaseUrl: "http://localhost/"},
 				Oauth2: &config.OAuth2{
-					Issuer: svr.URL,
-					Client: &config.OAuth2Client{Id: "ID", Secret: "ID"},
+					Issuer:   svr.URL,
+					Provider: "oidc",
+					Client:   &config.OAuth2Client{Id: "ID", Secret: "ID"},
 					Endpoints: &config.OAuth2Endpoints{
 						Discovery: svr.URL + "/.well-known/openid-config",
 					},
@@ -87,8 +90,9 @@ func TestNewProvider(t *testing.T) {
 			&config.Config{
 				Http: &config.Http{BaseUrl: "http://localhost/"},
 				Oauth2: &config.OAuth2{
-					Issuer: svr.URL,
-					Client: &config.OAuth2Client{Id: "ID", Secret: "ID"},
+					Issuer:   svr.URL,
+					Provider: "oidc",
+					Client:   &config.OAuth2Client{Id: "ID", Secret: "ID"},
 					Endpoints: &config.OAuth2Endpoints{
 						Discovery: svr.URL + "/.well-known/openid-config",
 						Auth:      svr.URL + "/.well-known/authorize",
@@ -103,8 +107,9 @@ func TestNewProvider(t *testing.T) {
 			&config.Config{
 				Http: &config.Http{BaseUrl: "http://-"},
 				Oauth2: &config.OAuth2{
-					Issuer: svr.URL,
-					Client: &config.OAuth2Client{Id: "ID", Secret: "ID"},
+					Issuer:   svr.URL,
+					Provider: "oidc",
+					Client:   &config.OAuth2Client{Id: "ID", Secret: "ID"},
 					Endpoints: &config.OAuth2Endpoints{
 						Discovery: svr.URL + "/.well-known/openid-config",
 						Auth:      svr.URL + "/.well-known/authorize",
@@ -119,9 +124,10 @@ func TestNewProvider(t *testing.T) {
 			&config.Config{
 				Http: &config.Http{BaseUrl: "http://localhost/"},
 				Oauth2: &config.OAuth2{
-					Issuer: svr.URL,
-					Pkce:   true,
-					Client: &config.OAuth2Client{Id: "ID", Secret: "ID"},
+					Issuer:   svr.URL,
+					Provider: "oidc",
+					Pkce:     true,
+					Client:   &config.OAuth2Client{Id: "ID", Secret: "ID"},
 					Endpoints: &config.OAuth2Endpoints{
 						Discovery: svr.URL + "/.well-known/openid-config",
 						Auth:      svr.URL + "/.well-known/authorize",

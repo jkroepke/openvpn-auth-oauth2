@@ -14,18 +14,18 @@ import (
 	"github.com/zitadel/oidc/v2/pkg/oidc"
 )
 
-func Handler(logger *slog.Logger, oidcClient *rp.RelyingParty, conf *config.Config, openvpnClient *openvpn.Client) *http.ServeMux {
+func Handler(logger *slog.Logger, oidcProvider *Provider, conf *config.Config, openvpnClient *openvpn.Client) *http.ServeMux {
 	baseUrl, _ := url.Parse(conf.Http.BaseUrl)
 
 	mux := http.NewServeMux()
 	mux.Handle("/", http.NotFoundHandler())
-	mux.Handle(strings.TrimSuffix(baseUrl.Path, "/")+"/oauth2/start", oauth2Start(logger, oidcClient, conf))
-	mux.Handle(strings.TrimSuffix(baseUrl.Path, "/")+"/oauth2/callback", oauth2Callback(logger, oidcClient, conf, openvpnClient))
+	mux.Handle(strings.TrimSuffix(baseUrl.Path, "/")+"/oauth2/start", oauth2Start(logger, oidcProvider, conf))
+	mux.Handle(strings.TrimSuffix(baseUrl.Path, "/")+"/oauth2/callback", oauth2Callback(logger, oidcProvider, conf, openvpnClient))
 
 	return mux
 }
 
-func oauth2Start(logger *slog.Logger, oidcClient *rp.RelyingParty, conf *config.Config) http.Handler {
+func oauth2Start(logger *slog.Logger, oidcProvider *Provider, conf *config.Config) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sessionState := r.URL.Query().Get("state")
 		if sessionState == "" {
@@ -48,12 +48,11 @@ func oauth2Start(logger *slog.Logger, oidcClient *rp.RelyingParty, conf *config.
 
 		rp.AuthURLHandler(func() string {
 			return sessionState
-		}, *oidcClient).ServeHTTP(w, r)
+		}, oidcProvider.RelyingParty).ServeHTTP(w, r)
 	})
 }
 
-func oauth2Callback(logger *slog.Logger, oidcClient *rp.RelyingParty, conf *config.Config, openvpnClient *openvpn.Client) http.Handler {
-
+func oauth2Callback(logger *slog.Logger, oidcProvider *Provider, conf *config.Config, openvpnClient *openvpn.Client) http.Handler {
 	return rp.CodeExchangeHandler(func(w http.ResponseWriter, r *http.Request, tokens *oidc.Tokens[*oidc.IDTokenClaims], encryptedState string, rp rp.RelyingParty) {
 		session := state.NewEncoded(encryptedState)
 		if err := session.Decode(conf.Http.Secret); err != nil {
@@ -65,7 +64,7 @@ func oauth2Callback(logger *slog.Logger, oidcClient *rp.RelyingParty, conf *conf
 			return
 		}
 
-		if err := validateToken(conf, session, tokens); err != nil {
+		if err := oidcProvider.TokenValidator.Validate(session, tokens); err != nil {
 			logger.Warn(err.Error(),
 				"subject", tokens.IDTokenClaims.Subject,
 				"preferred_username", tokens.IDTokenClaims.PreferredUsername,
@@ -109,5 +108,5 @@ func oauth2Callback(logger *slog.Logger, oidcClient *rp.RelyingParty, conf *conf
 			logger.Error("executing template:", err)
 			w.WriteHeader(http.StatusInternalServerError)
 		}
-	}, *oidcClient)
+	}, oidcProvider.RelyingParty)
 }
