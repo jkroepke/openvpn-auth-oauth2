@@ -35,12 +35,11 @@ func TestClient(t *testing.T) {
 
 	client := NewClient(logger, conf)
 	wg := sync.WaitGroup{}
+	wg.Add(1)
 
 	go func() {
-		wg.Add(1)
-
 		conn, err := l.Accept()
-		defer conn.Close()
+		defer conn.Close() //nolint:errcheck
 
 		assert.NoError(t, err)
 		reader := bufio.NewReader(conn)
