@@ -1,6 +1,10 @@
 package main
 
-import "github.com/jkroepke/openvpn-auth-oauth2/cmd"
+import (
+	"os"
+
+	"github.com/jkroepke/openvpn-auth-oauth2/cmd"
+)
 
 var (
 	version = "dev"
@@ -9,5 +13,5 @@ var (
 )
 
 func main() {
-	cmd.Execute(version, commit, date)
+	os.Exit(cmd.Execute(version, commit, date))
 }

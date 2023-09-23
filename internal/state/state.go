@@ -8,15 +8,15 @@ import (
 )
 
 type State struct {
-	Cid        int    `json:"cid"`
-	Kid        int    `json:"kid"`
+	Cid        uint64 `json:"cid"`
+	Kid        uint64 `json:"kid"`
 	Ipaddr     string `json:"ipaddr"`
 	CommonName string `json:"common_name"`
 
 	Encoded string
 }
 
-func New(cid, kid int, ipaddr, commonName string) *State {
+func New(cid, kid uint64, ipaddr, commonName string) *State {
 	return &State{
 		Cid:        cid,
 		Kid:        kid,

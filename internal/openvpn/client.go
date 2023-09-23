@@ -152,7 +152,7 @@ func (c *Client) processClient(client *ClientConnection) error {
 			"username", client.Env["username"],
 		)
 
-		if slices.Contains(c.conf.OpenVpn.Bypass.CommonNames, client.Env["common_name"]) {
+		if val, ok := client.Env["common_name"]; ok && slices.Contains(c.conf.OpenVpn.Bypass.CommonNames, val) {
 			c.logger.Info("client bypass authentication",
 				"cid", client.Cid,
 				"kid", client.Kid,
@@ -183,7 +183,7 @@ func (c *Client) processClient(client *ClientConnection) error {
 			return err
 		}
 
-		startUrl := fmt.Sprintf("%s/oauth2/start?state=%s", c.conf.Http.BaseUrl, url.QueryEscape(session.Encoded))
+		startUrl := fmt.Sprintf("%s/oauth2/start?state=%s", strings.TrimSuffix(c.conf.Http.BaseUrl, "/"), url.QueryEscape(session.Encoded))
 		c.logger.Info("start pending auth",
 			"cid", client.Cid,
 			"kid", client.Kid,
@@ -193,14 +193,14 @@ func (c *Client) processClient(client *ClientConnection) error {
 		)
 		c.SendCommand(`client-pending-auth %d %d "WEB_AUTH::%s" %d`, client.Cid, client.Kid, startUrl, 600)
 	case "ESTABLISHED":
-		c.logger.Warn("client established",
+		c.logger.Info("client established",
 			"cid", client.Cid,
 			"reason", client.Reason,
 			"common_name", client.Env["common_name"],
 			"username", client.Env["username"],
 		)
 	case "DISCONNECT":
-		c.logger.Warn("client disconnected",
+		c.logger.Info("client disconnected",
 			"cid", client.Cid,
 			"reason", client.Reason,
 			"common_name", client.Env["common_name"],
@@ -210,6 +210,12 @@ func (c *Client) processClient(client *ClientConnection) error {
 		return fmt.Errorf("unknown client reason: %s", client.Reason)
 	}
 	return nil
+}
+
+// Shutdown shutdowns the client connection
+func (c *Client) Shutdown() {
+	c.logger.Info("shutdown connection")
+	c.shutdownCh <- struct{}{}
 }
 
 // SendCommand passes command to a given connection (adds logging and EOL character) and returns the response

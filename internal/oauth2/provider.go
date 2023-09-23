@@ -8,16 +8,33 @@ import (
 	"strings"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/oidc"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/zitadel/oidc/v2/pkg/client/rp"
 	httphelper "github.com/zitadel/oidc/v2/pkg/http"
+	token "github.com/zitadel/oidc/v2/pkg/oidc"
 	"golang.org/x/oauth2"
 )
 
+type Provider struct {
+	rp.RelyingParty
+	TokenValidator
+}
+
+type TokenValidator interface {
+	Validate(session *state.State, tokens *token.Tokens[*token.IDTokenClaims]) error
+}
+
 // NewProvider returns a [rp.RelyingParty] instance
-func NewProvider(logger *slog.Logger, conf *config.Config) (rp.RelyingParty, error) {
+func NewProvider(logger *slog.Logger, conf *config.Config) (*Provider, error) {
 	baseUrl, err := url.Parse(conf.Http.BaseUrl)
 	if err != nil {
 		return nil, fmt.Errorf("http.baseurl: %v", err)
+	}
+
+	tokenValidator, err := NewTokenValidateProvider(conf)
+	if err != nil {
+		return nil, err
 	}
 
 	redirectURI := fmt.Sprintf("%s/oauth2/callback", strings.TrimSuffix(conf.Http.BaseUrl, "/"))
@@ -66,7 +83,7 @@ func NewProvider(logger *slog.Logger, conf *config.Config) (rp.RelyingParty, err
 			logger.Info(fmt.Sprintf("discover OIDC auto configuration for issuer %s", conf.Oauth2.Issuer))
 		}
 
-		return rp.NewRelyingPartyOIDC(
+		relayingParty, err := rp.NewRelyingPartyOIDC(
 			conf.Oauth2.Issuer,
 			conf.Oauth2.Client.Id,
 			conf.Oauth2.Client.Secret,
@@ -74,6 +91,15 @@ func NewProvider(logger *slog.Logger, conf *config.Config) (rp.RelyingParty, err
 			conf.Oauth2.Scopes,
 			options...,
 		)
+
+		if err != nil {
+			return nil, err
+		}
+
+		return &Provider{
+			RelyingParty:   relayingParty,
+			TokenValidator: tokenValidator,
+		}, nil
 	}
 
 	logger.Info(fmt.Sprintf("manually configure oauth2 provider with endpoints %s and %s", conf.Oauth2.Endpoints.Auth, conf.Oauth2.Endpoints.Token))
@@ -89,5 +115,22 @@ func NewProvider(logger *slog.Logger, conf *config.Config) (rp.RelyingParty, err
 		},
 	}
 
-	return rp.NewRelyingPartyOAuth(rpConfig, options...)
+	relayingParty, err := rp.NewRelyingPartyOAuth(rpConfig, options...)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Provider{
+		RelyingParty:   relayingParty,
+		TokenValidator: tokenValidator,
+	}, nil
+}
+
+func NewTokenValidateProvider(conf *config.Config) (TokenValidator, error) {
+	switch conf.Oauth2.Provider {
+	case "oidc":
+		return oidc.NewProvider(conf), nil
+	default:
+		return nil, fmt.Errorf("unknown oauth2 provider: %s", conf.Oauth2.Provider)
+	}
 }
