@@ -39,9 +39,10 @@ func TestClient(t *testing.T) {
 
 	go func() {
 		conn, err := l.Accept()
+		assert.NoError(t, err)
+
 		defer conn.Close() //nolint:errcheck
 
-		assert.NoError(t, err)
 		reader := bufio.NewReader(conn)
 
 		sendLine(t, conn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info:\r\n")
