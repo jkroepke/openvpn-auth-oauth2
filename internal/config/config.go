@@ -155,6 +155,12 @@ func Validate(conf *Config) error {
 		return errors.New("openvpn.addr: invalid URL. only tcp://addr or unix://addr scheme supported")
 	}
 
+	if uri, err := url.Parse(conf.Http.BaseUrl); err != nil {
+		return fmt.Errorf("http.baseurl: invalid URL. error: %s", err)
+	} else if uri.Host == "" {
+		return errors.New("http.baseurl: invalid URL. empty hostname")
+	}
+
 	for key, value := range map[string]string{
 		"http.baseurl":              conf.Http.BaseUrl,
 		"oauth2.issuer":             conf.Oauth2.Issuer,

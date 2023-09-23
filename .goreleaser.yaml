@@ -9,3 +9,19 @@ builds:
       - arm64
     mod_timestamp: '{{ .CommitTimestamp }}'
     no_unique_dist_dir: true
+nfpms:
+  - id: openvpn-auth-oauth2
+    homepage: https://github.com/jkroepke/openvpn-auth-oauth2
+    maintainer: Jan-Otto Kröpke <github@jkroepke.de>
+    description: |
+      openvpn-auth-oauth2 is a management client for OpenVPN that handles the authentication of connecting users against OIDC providers like Azure AD or Keycloak.
+    license: MIT License
+    formats:
+      - deb
+      - rpm
+    contents:
+      - src: packaging/openvpn-auth-oauth2.service
+        dst: /usr/lib/systemd/system/openvpn-auth-oauth2.service
+      - src: packaging/openvpn-auth-oauth2.sysconfig
+        dst: /etc/sysconfig/openvpn-auth-oauth2
+        type: "config|noreplace"

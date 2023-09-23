@@ -1,0 +1,19 @@
+[Unit]
+Description=OpenVPN authenticator
+Documentation=https://github.com/jkroepke/openvpn-auth-oauth2
+Wants=network-online.target openvpn.service
+After=network-online.target openvpn.service
+
+[Service]
+User=openvpn-auth-oauth2
+ExecStart=/usr/bin/openvpn-auth-oauth2
+EnvironmentFile=/etc/sysconfig/openvpn-auth-oauth2
+ProtectSystem=true
+ProtectHome=true
+PrivateTmp=true
+Restart=always
+RestartSec=5s
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
