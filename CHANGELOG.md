@@ -11,11 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - deb/rpm packages as binary release
 - Added systemd unit file
--
+- Added OAUTH2 provider construct for custom provider handling
 
 ### Fixes
 
-- CLI parameter handling
+- openvpn.bypass is nil
 
 ## [1.2.1] - 2023-09-16
 
