@@ -71,7 +71,7 @@ services:
         user nobody
         group nogroup
 
-        management 0.0.0.0 8081
+        management 0.0.0.0 8081 /etc/openvpn/password.txt
         management-hold
         management-client-auth
         #auth-gen-token 0 external-auth

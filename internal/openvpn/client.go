@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
@@ -51,15 +52,9 @@ func (c *Client) Connect() error {
 		return err
 	}
 	defer c.conn.Close()
-
 	c.reader = bufio.NewReader(c.conn)
 
-	line, err := c.readMessage()
-	if err != nil {
-		return err
-	}
-
-	if strings.HasPrefix(line, "ENTER PASSWORD") {
+	if c.conf.OpenVpn.Password != "" {
 		if err := c.rawCommand(c.conf.OpenVpn.Password); err != nil {
 			return err
 		}
@@ -69,12 +64,10 @@ func (c *Client) Connect() error {
 			return err
 		}
 
-		if !strings.HasPrefix(line, "SUCCESS: password is correct") {
+		if !strings.Contains(line, "SUCCESS: password is correct") {
 			return errors.New("wrong openvpn management interface password")
 		}
 	}
-
-	c.logger.Info("Connection to OpenVPN management interfaced established.")
 
 	go func() {
 		for {
@@ -119,9 +112,20 @@ func (c *Client) Connect() error {
 		}
 	}()
 
-	if resp := c.SendCommand("hold release"); !strings.HasPrefix(resp, "SUCCESS:") {
-		return fmt.Errorf("invalid openvpn management interface response: %v", line)
+	respCh := make(chan string, 1)
+	go func() {
+		respCh <- c.SendCommand("hold release")
+	}()
+	select {
+	case resp := <-respCh:
+		if !strings.HasPrefix(resp, "SUCCESS:") {
+			return fmt.Errorf("invalid openvpn management interface response: %v", resp)
+		}
+	case <-time.After(10 * time.Second):
+		return errors.New("timeout while waiting from openvpn management interface response")
 	}
+
+	c.logger.Info("Connection to OpenVPN management interfaced established.")
 
 	if version := c.SendCommand("version"); version != "" {
 		c.logger.Info(version)
