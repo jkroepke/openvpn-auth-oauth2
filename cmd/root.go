@@ -37,7 +37,7 @@ func Execute(version, commit, date string) int {
 		return 0
 	}
 
-	configFile, _ := f.GetString("configfile")
+	configFile, _ := f.GetString("config")
 	if configFile != "" {
 		if err := k.Load(file.Provider(configFile), yaml.Parser()); err != nil {
 			logger.Error(fmt.Sprintf("error loading config: %v", err))
