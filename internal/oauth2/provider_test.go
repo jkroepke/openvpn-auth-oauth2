@@ -98,6 +98,39 @@ func TestNewProvider(t *testing.T) {
 			},
 			"",
 		},
+		{
+			"with invalid base url",
+			&config.Config{
+				Http: &config.Http{BaseUrl: "http://-"},
+				Oauth2: &config.OAuth2{
+					Issuer: svr.URL,
+					Client: &config.OAuth2Client{Id: "ID", Secret: "ID"},
+					Endpoints: &config.OAuth2Endpoints{
+						Discovery: svr.URL + "/.well-known/openid-config",
+						Auth:      svr.URL + "/.well-known/authorize",
+						Token:     svr.URL + "/.well-known/token",
+					},
+				},
+			},
+			"",
+		},
+		{
+			"with pkce",
+			&config.Config{
+				Http: &config.Http{BaseUrl: "http://localhost/"},
+				Oauth2: &config.OAuth2{
+					Issuer: svr.URL,
+					Pkce:   true,
+					Client: &config.OAuth2Client{Id: "ID", Secret: "ID"},
+					Endpoints: &config.OAuth2Endpoints{
+						Discovery: svr.URL + "/.well-known/openid-config",
+						Auth:      svr.URL + "/.well-known/authorize",
+						Token:     svr.URL + "/.well-known/token",
+					},
+				},
+			},
+			"",
+		},
 	}
 	for _, tt := range configs {
 		t.Run(tt.name, func(t *testing.T) {
