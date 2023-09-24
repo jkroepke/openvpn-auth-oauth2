@@ -116,6 +116,7 @@ func TestHandler(t *testing.T) {
 	if !assert.NoError(t, err) {
 		return
 	}
+
 	resp, err := httpClient.Get(fmt.Sprintf("%s/oauth2/start?state=%s", httpClientListener.URL, sessionState.Encoded))
 	if !assert.NoError(t, err) {
 		return
