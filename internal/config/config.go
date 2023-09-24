@@ -37,9 +37,10 @@ type Log struct {
 }
 
 type OpenVpn struct {
-	Addr     string         `koanf:"addr"`
-	Password string         `koanf:"password"`
-	Bypass   *OpenVpnBypass `koanf:"bypass"`
+	Addr          string         `koanf:"addr"`
+	Password      string         `koanf:"password"`
+	Bypass        *OpenVpnBypass `koanf:"bypass"`
+	AuthTokenUser bool           `koanf:"auth-token-user"`
 }
 
 type OpenVpnBypass struct {
@@ -95,6 +96,7 @@ func FlagSet() *flag.FlagSet {
 	f.String("http.callback_template_path", "", "Path to a HTML file which is displayed at the end of the screen. (env: CONFIG_HTTP_CALLBACK_TEMPLATE_PATH)")
 	f.String("openvpn.addr", "unix:///run/openvpn/server.sock", "openvpn management interface addr. Must start with unix:// or tcp:// (env: CONFIG_OPENVPN_ADDR)")
 	f.String("openvpn.password", "", "openvpn management interface password. (env: CONFIG_OPENVPN_PASSWORD)")
+	f.Bool("openvpn.auth-token-user", true, "Define auth-token-user for all sessions. (env: CONFIG_OPENVPN_AUTH_TOKEN_USER)")
 	f.StringSlice("openvpn.bypass.cn", []string{}, "bypass oauth authentication for CNs. (env: CONFIG_OAUTH2_BYPASS_CN)")
 	f.String("oauth2.issuer", "", "oauth2 issuer. (env: CONFIG_OAUTH2_ISSUER)")
 	f.String("oauth2.provider", "oidc", "oauth2 provider. (env: CONFIG_OAUTH2_PROVIDER)")

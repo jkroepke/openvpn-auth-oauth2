@@ -3,15 +3,17 @@ package state
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/zitadel/oidc/v2/pkg/crypto"
 )
 
 type State struct {
-	Cid        uint64 `json:"cid"`
-	Kid        uint64 `json:"kid"`
-	Ipaddr     string `json:"ipaddr"`
-	CommonName string `json:"common_name"`
+	Cid        uint64    `json:"cid"`
+	Kid        uint64    `json:"kid"`
+	Ipaddr     string    `json:"ipaddr"`
+	CommonName string    `json:"common_name"`
+	Issued     time.Time `json:"issued"`
 
 	Encoded string
 }
@@ -22,6 +24,7 @@ func New(cid, kid uint64, ipaddr, commonName string) *State {
 		Kid:        kid,
 		Ipaddr:     ipaddr,
 		CommonName: commonName,
+		Issued:     time.Now(),
 	}
 }
 
@@ -39,6 +42,14 @@ func (state *State) Decode(secretKey string) error {
 
 	if err := json.Unmarshal([]byte(jsonState), &state); err != nil {
 		return err
+	}
+
+	issuedSince := time.Since(state.Issued)
+
+	if issuedSince >= time.Minute*2 {
+		return fmt.Errorf("state expired after 2 minutes, issued at: %s", state.Issued.String())
+	} else if issuedSince <= time.Second*-5 {
+		return fmt.Errorf("state issued in future, issued at: %s", state.Issued.String())
 	}
 
 	return nil

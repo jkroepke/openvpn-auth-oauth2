@@ -2,6 +2,7 @@ package oauth2
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -37,7 +38,12 @@ func oauth2Start(logger *slog.Logger, oidcProvider *Provider, conf *config.Confi
 
 		session := state.NewEncoded(sessionState)
 		if err := session.Decode(conf.Http.Secret); err != nil {
-			logger.Warn(fmt.Sprintf("invalid state: %s", sessionState))
+			logger.Warn(fmt.Sprintf("invalid state: %s", err.Error()),
+				"common_name", session.CommonName,
+				"cid", session.Cid,
+				"kid", session.Kid,
+			)
+			logger.Debug(sessionState)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -55,16 +61,17 @@ func oauth2Start(logger *slog.Logger, oidcProvider *Provider, conf *config.Confi
 }
 
 func oauth2Callback(logger *slog.Logger, oidcProvider *Provider, conf *config.Config, openvpnClient *openvpn.Client) http.Handler {
-	return rp.CodeExchangeHandler(func(w http.ResponseWriter, r *http.Request, tokens *oidc.Tokens[*oidc.IDTokenClaims], encryptedState string, rp rp.RelyingParty) {
+	return rp.CodeExchangeHandler(func(w http.ResponseWriter, r *http.Request, tokens *oidc.Tokens[*oidc.IDTokenClaims], sessionState string, rp rp.RelyingParty) {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
-		session := state.NewEncoded(encryptedState)
+		session := state.NewEncoded(sessionState)
 		if err := session.Decode(conf.Http.Secret); err != nil {
 			logger.Warn(err.Error(),
 				"subject", tokens.IDTokenClaims.Subject,
 				"preferred_username", tokens.IDTokenClaims.PreferredUsername,
 			)
+			logger.Debug(sessionState)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -117,7 +124,19 @@ func oauth2Callback(logger *slog.Logger, oidcProvider *Provider, conf *config.Co
 			"kid", session.Kid,
 		)
 
-		openvpnClient.SendCommand("client-auth-nt %d %d", session.Cid, session.Kid)
+		if conf.OpenVpn.AuthTokenUser {
+			username := session.CommonName
+			if user.PreferredUsername != "" {
+				username = user.PreferredUsername
+			} else if user.Subject != "" {
+				username = user.Subject
+			}
+
+			b64Username := base64.StdEncoding.EncodeToString([]byte(username))
+			openvpnClient.SendCommand("client-auth %d %d\npush \"auth-token-user %s\"\nEND", session.Cid, session.Kid, b64Username)
+		} else {
+			openvpnClient.SendCommand(`client-auth-nt %d %d`, session.Cid, session.Kid)
+		}
 
 		if conf.Http.CallbackTemplate == nil {
 			_, _ = w.Write([]byte(callbackHtml))
