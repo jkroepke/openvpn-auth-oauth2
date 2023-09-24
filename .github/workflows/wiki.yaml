@@ -7,6 +7,7 @@ on:
       - main
     paths:
       - docs/**
+      - .github/workflows/wiki.yaml
 
 permissions:
   contents: write
@@ -34,4 +35,4 @@ jobs:
           git config --local user.name "GitHub Action"
           git add .
           git diff-index --quiet HEAD || git commit -m "Automatically publish wiki" && git push
-        working-directory: wiki
+        working-directory: wiki.git
