@@ -18,7 +18,9 @@ type userType struct {
 }
 
 func (p *Provider) GetUser(ctx context.Context, tokens *oidc.Tokens[*oidc.IDTokenClaims]) (*types.UserData, error) {
-	u, err := requestApi[userType](ctx, tokens.AccessToken, "/user")
+	var u userType
+
+	_, err := get[userType](ctx, tokens.AccessToken, "https://api.github.com/user", &u)
 	if err != nil {
 		return nil, err
 	}
