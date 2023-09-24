@@ -2,6 +2,7 @@ package openvpn
 
 import (
 	"bufio"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -174,7 +175,12 @@ func (c *Client) processClient(client *ClientConnection) error {
 				"username", client.Env["username"],
 			)
 
-			c.SendCommand(`client-auth-nt %d %d`, client.Cid, client.Kid)
+			if c.conf.OpenVpn.AuthTokenUser {
+				c.SendCommand("client-auth %d %d\npush \"auth-token-user %s\"\nEND", client.Cid, client.Kid, base64.StdEncoding.EncodeToString([]byte(client.Env["common_name"])))
+			} else {
+				c.SendCommand(`client-auth-nt %d %d`, client.Cid, client.Kid)
+			}
+
 			return nil
 		}
 

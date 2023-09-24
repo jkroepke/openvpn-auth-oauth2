@@ -58,8 +58,9 @@ func TestHandler(t *testing.T) {
 			},
 		},
 		OpenVpn: &config.OpenVpn{
-			Addr:   fmt.Sprintf("%s://%s", managementInterface.Addr().Network(), managementInterface.Addr().String()),
-			Bypass: &config.OpenVpnBypass{CommonNames: []string{}},
+			Addr:          fmt.Sprintf("%s://%s", managementInterface.Addr().Network(), managementInterface.Addr().String()),
+			Bypass:        &config.OpenVpnBypass{CommonNames: []string{}},
+			AuthTokenUser: true,
 		},
 	}
 
@@ -82,7 +83,9 @@ func TestHandler(t *testing.T) {
 		assert.Equal(t, "version", readLine(t, reader))
 
 		sendLine(t, conn, "OpenVPN Version: OpenVPN Mock\r\nEND\r\n")
-		assert.Equal(t, "client-auth-nt 0 1", readLine(t, reader))
+		assert.Equal(t, "client-auth 0 1", readLine(t, reader))
+		assert.Equal(t, "push \"auth-token-user aWQx\"", readLine(t, reader))
+		assert.Equal(t, "END", readLine(t, reader))
 		sendLine(t, conn, "SUCCESS: client-auth-nt command succeeded\r\n")
 	}()
 
