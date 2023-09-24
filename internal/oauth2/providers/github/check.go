@@ -19,7 +19,7 @@ type teamType struct {
 	Slug string  `json:"slug"`
 }
 
-func (p *Provider) ValidateUser(ctx context.Context, _ *state.State, _ *types.UserData, tokens *oidc.Tokens[*oidc.IDTokenClaims]) error {
+func (p *Provider) CheckUser(ctx context.Context, _ *state.State, _ *types.UserData, tokens *oidc.Tokens[*oidc.IDTokenClaims]) error {
 	tokens.IDTokenClaims = &oidc.IDTokenClaims{
 		Claims: make(map[string]any),
 	}

@@ -81,7 +81,7 @@ func oauth2Callback(logger *slog.Logger, oidcProvider *Provider, conf *config.Co
 			return
 		}
 
-		if err := oidcProvider.Connector.ValidateUser(ctx, session, user, tokens); err != nil {
+		if err := oidcProvider.Connector.CheckUser(ctx, session, user, tokens); err != nil {
 			logger.Warn(err.Error(),
 				"subject", user.Subject,
 				"preferred_username", user.PreferredUsername,

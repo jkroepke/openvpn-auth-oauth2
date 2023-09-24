@@ -25,7 +25,7 @@ type Provider struct {
 }
 
 type Connector interface {
-	ValidateUser(ctx context.Context, session *state.State, user *types.UserData, tokens *token.Tokens[*token.IDTokenClaims]) error
+	CheckUser(ctx context.Context, session *state.State, user *types.UserData, tokens *token.Tokens[*token.IDTokenClaims]) error
 	GetUser(ctx context.Context, tokens *token.Tokens[*token.IDTokenClaims]) (*types.UserData, error)
 }
 

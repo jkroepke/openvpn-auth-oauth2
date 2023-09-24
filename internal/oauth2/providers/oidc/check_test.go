@@ -1,6 +1,7 @@
 package oidc
 
 import (
+	"context"
 	"testing"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
@@ -10,9 +11,15 @@ import (
 	"github.com/zitadel/oidc/v2/pkg/oidc"
 )
 
-func TestValidateToken(t *testing.T) {
+func TestCheckUser(t *testing.T) {
 	token := &oidc.Tokens[*oidc.IDTokenClaims]{
 		IDTokenClaims: &oidc.IDTokenClaims{
+			TokenClaims: oidc.TokenClaims{
+				Subject: "subnect",
+			},
+			UserInfoProfile: oidc.UserInfoProfile{
+				PreferredUsername: "username",
+			},
 			Claims: map[string]any{},
 		},
 	}
@@ -23,7 +30,12 @@ func TestValidateToken(t *testing.T) {
 		},
 	}
 
-	err := NewProvider(conf).ValidateUser(&state.State{}, token)
+	provider := NewProvider(conf)
+
+	userData, err := provider.GetUser(context.Background(), token)
+	assert.NoError(t, err)
+
+	err = provider.CheckUser(context.Background(), &state.State{}, userData, token)
 	assert.NoError(t, err)
 }
 

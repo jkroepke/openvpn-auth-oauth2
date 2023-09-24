@@ -12,7 +12,7 @@ import (
 	"github.com/zitadel/oidc/v2/pkg/oidc"
 )
 
-func (p *Provider) ValidateUser(_ context.Context, session *state.State, _ *types.UserData, tokens *oidc.Tokens[*oidc.IDTokenClaims]) error {
+func (p *Provider) CheckUser(_ context.Context, session *state.State, _ *types.UserData, tokens *oidc.Tokens[*oidc.IDTokenClaims]) error {
 	if err := p.CheckGroups(tokens); err != nil {
 		return err
 	}
