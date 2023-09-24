@@ -1,6 +1,7 @@
 package oidc
 
 import (
+	"context"
 	"testing"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
@@ -10,9 +11,15 @@ import (
 	"github.com/zitadel/oidc/v2/pkg/oidc"
 )
 
-func TestValidateToken(t *testing.T) {
+func TestCheckUser(t *testing.T) {
 	token := &oidc.Tokens[*oidc.IDTokenClaims]{
 		IDTokenClaims: &oidc.IDTokenClaims{
+			TokenClaims: oidc.TokenClaims{
+				Subject: "subnect",
+			},
+			UserInfoProfile: oidc.UserInfoProfile{
+				PreferredUsername: "username",
+			},
 			Claims: map[string]any{},
 		},
 	}
@@ -23,7 +30,12 @@ func TestValidateToken(t *testing.T) {
 		},
 	}
 
-	err := NewProvider(conf).Validate(&state.State{}, token)
+	provider := NewProvider(conf)
+
+	userData, err := provider.GetUser(context.Background(), token)
+	assert.NoError(t, err)
+
+	err = provider.CheckUser(context.Background(), &state.State{}, userData, token)
 	assert.NoError(t, err)
 }
 
@@ -61,7 +73,7 @@ func TestValidateGroups(t *testing.T) {
 				},
 			}
 
-			err := NewProvider(conf).ValidateGroups(token)
+			err := NewProvider(conf).CheckGroups(token)
 
 			if tt.err == "" {
 				assert.NoError(t, err)
@@ -106,7 +118,7 @@ func TestValidateRoles(t *testing.T) {
 				},
 			}
 
-			err := NewProvider(conf).ValidateRoles(token)
+			err := NewProvider(conf).CheckRoles(token)
 			if tt.err == "" {
 				assert.NoError(t, err)
 			} else {
@@ -151,7 +163,7 @@ func TestValidateCommonName(t *testing.T) {
 				CommonName: tt.requiredCommonName,
 			}
 
-			err := NewProvider(conf).ValidateCommonName(session, token)
+			err := NewProvider(conf).CheckCommonName(session, token)
 			if tt.err == "" {
 				assert.NoError(t, err)
 			} else {
@@ -197,7 +209,7 @@ func TestValidateIpAddr(t *testing.T) {
 				Ipaddr: tt.requiredIpAddr,
 			}
 
-			err := NewProvider(conf).ValidateIpAddr(session, token)
+			err := NewProvider(conf).CheckIpAddress(session, token)
 			if tt.err == "" {
 				assert.NoError(t, err)
 			} else {

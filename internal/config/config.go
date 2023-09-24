@@ -93,7 +93,7 @@ func FlagSet() *flag.FlagSet {
 	f.String("http.key", "", "Path to tls server key. (env: CONFIG_HTTP_KEY)")
 	f.String("http.cert", "", "Path to tls server certificate. (env: CONFIG_HTTP_CERT)")
 	f.String("http.callback_template_path", "", "Path to a HTML file which is displayed at the end of the screen. (env: CONFIG_HTTP_CALLBACK_TEMPLATE_PATH)")
-	f.String("openvpn.addr", "tcp://127.0.0.1:54321", "openvpn management interface addr. (env: CONFIG_OPENVPN_ADDR)")
+	f.String("openvpn.addr", "unix:///run/openvpn/server.sock", "openvpn management interface addr. Must start with unix:// or tcp:// (env: CONFIG_OPENVPN_ADDR)")
 	f.String("openvpn.password", "", "openvpn management interface password. (env: CONFIG_OPENVPN_PASSWORD)")
 	f.StringSlice("openvpn.bypass.cn", []string{}, "bypass oauth authentication for CNs. (env: CONFIG_OAUTH2_BYPASS_CN)")
 	f.String("oauth2.issuer", "", "oauth2 issuer. (env: CONFIG_OAUTH2_ISSUER)")

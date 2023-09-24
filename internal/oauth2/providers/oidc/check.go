@@ -1,45 +1,36 @@
 package oidc
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"slices"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 	"github.com/zitadel/oidc/v2/pkg/oidc"
 )
 
-type Provider struct {
-	conf *config.Config
-}
-
-func NewProvider(conf *config.Config) *Provider {
-	return &Provider{
-		conf: conf,
-	}
-}
-
-func (p *Provider) Validate(session *state.State, tokens *oidc.Tokens[*oidc.IDTokenClaims]) error {
-	if err := p.ValidateGroups(tokens); err != nil {
+func (p *Provider) CheckUser(_ context.Context, session *state.State, _ *types.UserData, tokens *oidc.Tokens[*oidc.IDTokenClaims]) error {
+	if err := p.CheckGroups(tokens); err != nil {
 		return err
 	}
-	if err := p.ValidateRoles(tokens); err != nil {
+	if err := p.CheckRoles(tokens); err != nil {
 		return err
 	}
-	if err := p.ValidateCommonName(session, tokens); err != nil {
+	if err := p.CheckCommonName(session, tokens); err != nil {
 		return err
 	}
-	if err := p.ValidateIpAddr(session, tokens); err != nil {
+	if err := p.CheckIpAddress(session, tokens); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (p *Provider) ValidateGroups(tokens *oidc.Tokens[*oidc.IDTokenClaims]) error {
-	if len(p.conf.Oauth2.Validate.Groups) == 0 {
+func (p *Provider) CheckGroups(tokens *oidc.Tokens[*oidc.IDTokenClaims]) error {
+	if len(p.Conf.Oauth2.Validate.Groups) == 0 {
 		return nil
 	}
 
@@ -50,7 +41,7 @@ func (p *Provider) ValidateGroups(tokens *oidc.Tokens[*oidc.IDTokenClaims]) erro
 
 	tokenGroupsList := utils.CastToSlice[string](tokenGroups)
 
-	for _, group := range p.conf.Oauth2.Validate.Groups {
+	for _, group := range p.Conf.Oauth2.Validate.Groups {
 		if !slices.Contains(tokenGroupsList, group) {
 			return fmt.Errorf("missing required group %s", group)
 		}
@@ -59,8 +50,8 @@ func (p *Provider) ValidateGroups(tokens *oidc.Tokens[*oidc.IDTokenClaims]) erro
 	return nil
 }
 
-func (p *Provider) ValidateRoles(tokens *oidc.Tokens[*oidc.IDTokenClaims]) error {
-	if len(p.conf.Oauth2.Validate.Roles) == 0 {
+func (p *Provider) CheckRoles(tokens *oidc.Tokens[*oidc.IDTokenClaims]) error {
+	if len(p.Conf.Oauth2.Validate.Roles) == 0 {
 		return nil
 	}
 
@@ -71,7 +62,7 @@ func (p *Provider) ValidateRoles(tokens *oidc.Tokens[*oidc.IDTokenClaims]) error
 
 	tokenRolesList := utils.CastToSlice[string](tokenRoles)
 
-	for _, role := range p.conf.Oauth2.Validate.Roles {
+	for _, role := range p.Conf.Oauth2.Validate.Roles {
 		if !slices.Contains(tokenRolesList, role) {
 			return fmt.Errorf("missing required role %s", role)
 		}
@@ -79,14 +70,14 @@ func (p *Provider) ValidateRoles(tokens *oidc.Tokens[*oidc.IDTokenClaims]) error
 
 	return nil
 }
-func (p *Provider) ValidateCommonName(session *state.State, tokens *oidc.Tokens[*oidc.IDTokenClaims]) error {
-	if p.conf.Oauth2.Validate.CommonName == "" {
+func (p *Provider) CheckCommonName(session *state.State, tokens *oidc.Tokens[*oidc.IDTokenClaims]) error {
+	if p.Conf.Oauth2.Validate.CommonName == "" {
 		return nil
 	}
 
-	tokenCommonName, ok := tokens.IDTokenClaims.Claims[p.conf.Oauth2.Validate.CommonName]
+	tokenCommonName, ok := tokens.IDTokenClaims.Claims[p.Conf.Oauth2.Validate.CommonName]
 	if !ok {
-		return fmt.Errorf("missing %s claim", p.conf.Oauth2.Validate.CommonName)
+		return fmt.Errorf("missing %s claim", p.Conf.Oauth2.Validate.CommonName)
 	}
 
 	if tokenCommonName != session.CommonName {
@@ -95,8 +86,8 @@ func (p *Provider) ValidateCommonName(session *state.State, tokens *oidc.Tokens[
 
 	return nil
 }
-func (p *Provider) ValidateIpAddr(session *state.State, tokens *oidc.Tokens[*oidc.IDTokenClaims]) error {
-	if !p.conf.Oauth2.Validate.IpAddr {
+func (p *Provider) CheckIpAddress(session *state.State, tokens *oidc.Tokens[*oidc.IDTokenClaims]) error {
+	if !p.Conf.Oauth2.Validate.IpAddr {
 		return nil
 	}
 

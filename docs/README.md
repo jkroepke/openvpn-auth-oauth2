@@ -1,8 +1,5 @@
-# OPENURL helper for OpenVPN
+# Documentation of openvpn-auth-oauth2
 
-This page acts a wrapper between OpenVPN and MSAL Device Code Flow.
+Please note, all markdown files are synced with the openvpn-auth-oauth2 wiki to improve the readability of the pages.
 
-It extracts the code from the url and display the code and provide a link to
-MSAL device code login page.
-
-See in action:
+https://github.com/jkroepke/openvpn-auth-oauth2/wiki

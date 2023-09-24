@@ -1,11 +1,13 @@
 package oauth2
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
@@ -54,6 +56,9 @@ func oauth2Start(logger *slog.Logger, oidcProvider *Provider, conf *config.Confi
 
 func oauth2Callback(logger *slog.Logger, oidcProvider *Provider, conf *config.Config, openvpnClient *openvpn.Client) http.Handler {
 	return rp.CodeExchangeHandler(func(w http.ResponseWriter, r *http.Request, tokens *oidc.Tokens[*oidc.IDTokenClaims], encryptedState string, rp rp.RelyingParty) {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
 		session := state.NewEncoded(encryptedState)
 		if err := session.Decode(conf.Http.Secret); err != nil {
 			logger.Warn(err.Error(),
@@ -64,16 +69,28 @@ func oauth2Callback(logger *slog.Logger, oidcProvider *Provider, conf *config.Co
 			return
 		}
 
-		if err := oidcProvider.TokenValidator.Validate(session, tokens); err != nil {
-			logger.Warn(err.Error(),
-				"subject", tokens.IDTokenClaims.Subject,
-				"preferred_username", tokens.IDTokenClaims.PreferredUsername,
+		user, err := oidcProvider.Connector.GetUser(ctx, tokens)
+		if err != nil {
+			logger.Error(err.Error(),
 				"common_name", session.CommonName,
 				"cid", session.Cid,
 				"kid", session.Kid,
 			)
 
-			openvpnClient.SendCommand("client-deny %d %d \"%s\"", session.Cid, session.Kid, err.Error())
+			openvpnClient.SendCommand("client-deny %d %d \"%s\"", session.Cid, session.Kid, "unable to fetch user data")
+			return
+		}
+
+		if err := oidcProvider.Connector.CheckUser(ctx, session, user, tokens); err != nil {
+			logger.Warn(err.Error(),
+				"subject", user.Subject,
+				"preferred_username", user.PreferredUsername,
+				"common_name", session.CommonName,
+				"cid", session.Cid,
+				"kid", session.Kid,
+			)
+
+			openvpnClient.SendCommand("client-deny %d %d \"%s\"", session.Cid, session.Kid, "client rejected")
 
 			if conf.Http.CallbackTemplate == nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -93,8 +110,8 @@ func oauth2Callback(logger *slog.Logger, oidcProvider *Provider, conf *config.Co
 		}
 
 		logger.Info("successful authorization via oauth2",
-			"subject", tokens.IDTokenClaims.Subject,
-			"preferred_username", tokens.IDTokenClaims.PreferredUsername,
+			"subject", user.Subject,
+			"preferred_username", user.PreferredUsername,
 			"common_name", session.CommonName,
 			"cid", session.Cid,
 			"kid", session.Kid,
