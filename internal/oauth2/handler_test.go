@@ -88,7 +88,7 @@ func TestHandler(t *testing.T) {
 
 	go func() {
 		defer wg.Done()
-		err = client.Connect()
+		err := client.Connect()
 		if err != nil && !strings.HasSuffix(err.Error(), "EOF") {
 			assert.NoError(t, err)
 		}
