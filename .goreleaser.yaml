@@ -25,3 +25,7 @@ nfpms:
       - src: packaging/openvpn-auth-oauth2.sysconfig
         dst: /etc/sysconfig/openvpn-auth-oauth2
         type: "config|noreplace"
+
+    scripts:
+      postinstall: "packaging/postinstall.sh"
+      preremove: "packaging/preremove.sh"

@@ -1,7 +1,9 @@
-CONFIG_OPENVPN_ADDR=unix:///var/run/openvpn/mgmt.sock
+CONFIG_OPENVPN_ADDR=unix:///run/openvpn/server.sock
 CONFIG_OAUTH2_ISSUER=https://login.microsoftonline.com/<tenant-id>/v2.0
 CONFIG_OAUTH2_CLIENT_ID=
 CONFIG_OAUTH2_CLIENT_SECRET=
 CONFIG_HTTP_LISTEN=:9000
-CONFIG_HTTP_SECRET=  # Define a random value with 16 or 24 chacters
-CONFIG_HTTP_BASEURL=https://  # Define the public http endpoint here.
+# Define a random value with 16 or 24 characters
+CONFIG_HTTP_SECRET=
+# Define the public http endpoint here.
+CONFIG_HTTP_BASEURL=http://localhost:9000

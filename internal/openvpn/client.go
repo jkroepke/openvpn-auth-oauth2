@@ -43,13 +43,22 @@ func NewClient(logger *slog.Logger, conf *config.Config) *Client {
 
 func (c *Client) Connect() error {
 	uri, err := url.Parse(c.conf.OpenVpn.Addr)
+	c.logger.Info(fmt.Sprintf("connect to openvpn management interface %s", uri.String()))
 	if err != nil {
 		return fmt.Errorf("unable to parse openvpn addr as URI: %v", err)
 	}
 
-	c.conn, err = net.Dial(uri.Scheme, uri.Host)
+	switch uri.Scheme {
+	case "tcp":
+		c.conn, err = net.Dial(uri.Scheme, uri.Host)
+	case "unix":
+		c.conn, err = net.Dial(uri.Scheme, uri.Path)
+	default:
+		return fmt.Errorf("unable to connect to openvpn management interface: unknwon protocol %s", uri.Scheme)
+	}
+
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to connect to openvpn management interface %s: %v", uri.String(), err)
 	}
 	defer c.conn.Close()
 	c.reader = bufio.NewReader(c.conn)

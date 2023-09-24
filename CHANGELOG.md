@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixes
 
 - timeout with OpenVPN password protected management interfaces
+- connecting to unix socket
 
 ## [1.3.0] - 2023-09-24
 

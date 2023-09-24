@@ -5,12 +5,18 @@ Wants=network-online.target openvpn.service
 After=network-online.target openvpn.service
 
 [Service]
-User=openvpn-auth-oauth2
+DynamicUser=true
+Group=nogroup
 ExecStart=/usr/bin/openvpn-auth-oauth2
 EnvironmentFile=/etc/sysconfig/openvpn-auth-oauth2
-ProtectSystem=true
+ProtectSystem=strict
 ProtectHome=true
 PrivateTmp=true
+ConfigurationDirectory=openvpn-auth-oauth2
+ReadWritePaths=-/run/openvpn -/run/openvpn-server
+# CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+NoExecPaths=/
+ExecPaths=/usr/bin/openvpn-auth-oauth2
 Restart=always
 RestartSec=5s
 Restart=on-failure
