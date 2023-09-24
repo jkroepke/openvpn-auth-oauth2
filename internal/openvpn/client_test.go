@@ -232,7 +232,7 @@ func TestClientFull(t *testing.T) {
 					assert.Len(t, matches, 2)
 
 					sessionState := state.NewEncoded(matches[1])
-					err = sessionState.Decode(tt.conf.Http.Secret)
+					err := sessionState.Decode(tt.conf.Http.Secret)
 					assert.NoError(t, err)
 
 					assert.Equal(t, uint64(1), sessionState.Cid)
@@ -243,7 +243,7 @@ func TestClientFull(t *testing.T) {
 				client.Shutdown() //nolint:errcheck
 			}()
 
-			err = client.Connect()
+			err := client.Connect()
 			if tt.err != nil {
 				if assert.Error(t, err) {
 					assert.Equal(t, tt.err.Error(), err.Error())
