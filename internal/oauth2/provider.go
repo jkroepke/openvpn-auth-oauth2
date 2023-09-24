@@ -1,6 +1,7 @@
 package oauth2
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -8,8 +9,10 @@ import (
 	"strings"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/github"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/oidc"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/types"
 	"github.com/zitadel/oidc/v2/pkg/client/rp"
 	httphelper "github.com/zitadel/oidc/v2/pkg/http"
 	token "github.com/zitadel/oidc/v2/pkg/oidc"
@@ -18,11 +21,12 @@ import (
 
 type Provider struct {
 	rp.RelyingParty
-	TokenValidator
+	Connector
 }
 
-type TokenValidator interface {
-	Validate(session *state.State, tokens *token.Tokens[*token.IDTokenClaims]) error
+type Connector interface {
+	ValidateUser(ctx context.Context, session *state.State, user *types.UserData, tokens *token.Tokens[*token.IDTokenClaims]) error
+	GetUser(ctx context.Context, tokens *token.Tokens[*token.IDTokenClaims]) (*types.UserData, error)
 }
 
 // NewProvider returns a [rp.RelyingParty] instance
@@ -97,8 +101,8 @@ func NewProvider(logger *slog.Logger, conf *config.Config) (*Provider, error) {
 		}
 
 		return &Provider{
-			RelyingParty:   relayingParty,
-			TokenValidator: tokenValidator,
+			RelyingParty: relayingParty,
+			Connector:    tokenValidator,
 		}, nil
 	}
 
@@ -121,15 +125,17 @@ func NewProvider(logger *slog.Logger, conf *config.Config) (*Provider, error) {
 	}
 
 	return &Provider{
-		RelyingParty:   relayingParty,
-		TokenValidator: tokenValidator,
+		RelyingParty: relayingParty,
+		Connector:    tokenValidator,
 	}, nil
 }
 
-func NewTokenValidateProvider(conf *config.Config) (TokenValidator, error) {
+func NewTokenValidateProvider(conf *config.Config) (Connector, error) {
 	switch conf.Oauth2.Provider {
 	case "oidc":
 		return oidc.NewProvider(conf), nil
+	case "github":
+		return github.NewProvider(conf), nil
 	default:
 		return nil, fmt.Errorf("unknown oauth2 provider: %s", conf.Oauth2.Provider)
 	}
