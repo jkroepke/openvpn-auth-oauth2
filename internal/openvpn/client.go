@@ -33,11 +33,11 @@ func NewClient(logger *slog.Logger, conf *config.Config) *Client {
 		conf:   conf,
 		logger: logger,
 
-		errCh:             make(chan error),
+		errCh:             make(chan error, 1),
 		clientsCh:         make(chan *ClientConnection, 10),
 		commandResponseCh: make(chan string, 10),
 		commandsCh:        make(chan string, 10),
-		shutdownCh:        make(chan struct{}),
+		shutdownCh:        make(chan struct{}, 1),
 	}
 }
 
@@ -184,7 +184,7 @@ func (c *Client) processClient(client *ClientConnection) error {
 
 		session := state.New(client.Cid, client.Kid, client.Env["untrusted_ip"], client.Env["common_name"])
 		if err := session.Encode(c.conf.Http.Secret); err != nil {
-			return err
+			return fmt.Errorf("error encoding state: %s", err)
 		}
 
 		startUrl := fmt.Sprintf("%s/oauth2/start?state=%s", strings.TrimSuffix(c.conf.Http.BaseUrl, "/"), url.QueryEscape(session.Encoded))

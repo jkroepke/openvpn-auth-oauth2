@@ -2,6 +2,7 @@ package openvpn
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -81,6 +82,23 @@ func TestClientFull(t *testing.T) {
 			nil,
 		},
 		{
+			"with invalid state",
+			&config.Config{
+				Http: &config.Http{
+					BaseUrl: "http://localhost/",
+					Secret:  "012345678910111",
+				},
+				OpenVpn: &config.OpenVpn{
+					Addr:     fmt.Sprintf("%s://%s", l.Addr().Network(), l.Addr().String()),
+					Bypass:   &config.OpenVpnBypass{CommonNames: make([]string, 0)},
+					Password: "password",
+				},
+			},
+			">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END\r\n",
+			"",
+			errors.New("OpenVPN management error: error encoding state: crypto/aes: invalid key size 15"),
+		},
+		{
 			"client without IV_SSO",
 			&config.Config{
 				Http: &config.Http{
@@ -148,6 +166,23 @@ func TestClientFull(t *testing.T) {
 			"",
 			nil,
 		},
+		{
+			"client invalid reason",
+			&config.Config{
+				Http: &config.Http{
+					BaseUrl: "http://localhost/",
+					Secret:  "0123456789101112",
+				},
+				OpenVpn: &config.OpenVpn{
+					Addr:     fmt.Sprintf("%s://%s", l.Addr().Network(), l.Addr().String()),
+					Bypass:   &config.OpenVpnBypass{CommonNames: []string{"bypass"}},
+					Password: "password",
+				},
+			},
+			">CLIENT:FOO,0\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END\r\n",
+			"",
+			errors.New("OpenVPN management error: unable to parse client reason"),
+		},
 	}
 
 	for _, tt := range confs {
@@ -177,7 +212,10 @@ func TestClientFull(t *testing.T) {
 
 				sendLine(t, conn, "OpenVPN Version: OpenVPN Mock\r\nEND\r\n")
 				sendLine(t, conn, tt.client)
-				if tt.expect == "" {
+				if tt.err != nil {
+					_, _ = reader.ReadString('\n')
+					return
+				} else if tt.expect == "" {
 					client.Shutdown() //nolint:errcheck
 					return
 				}
@@ -203,9 +241,19 @@ func TestClientFull(t *testing.T) {
 				}
 				client.Shutdown() //nolint:errcheck
 			}()
+
 			err = client.Connect()
-			assert.NoError(t, err)
-			wg.Wait()
+			if tt.err != nil {
+				if assert.Error(t, err) {
+					assert.Equal(t, tt.err.Error(), err.Error())
+				}
+				client.Shutdown()
+			} else {
+				wg.Wait()
+				if err != nil && !strings.HasSuffix(err.Error(), "EOF") {
+					assert.NoError(t, err)
+				}
+			}
 		})
 	}
 }
