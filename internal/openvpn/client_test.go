@@ -131,6 +131,23 @@ func TestClientFull(t *testing.T) {
 			"",
 			nil,
 		},
+		{
+			"client disconnected",
+			&config.Config{
+				Http: &config.Http{
+					BaseUrl: "http://localhost/",
+					Secret:  "0123456789101112",
+				},
+				OpenVpn: &config.OpenVpn{
+					Addr:     fmt.Sprintf("%s://%s", l.Addr().Network(), l.Addr().String()),
+					Bypass:   &config.OpenVpnBypass{CommonNames: []string{"bypass"}},
+					Password: "password",
+				},
+			},
+			">CLIENT:DISCONNECT,0\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END\r\n",
+			"",
+			nil,
+		},
 	}
 
 	for _, tt := range confs {
