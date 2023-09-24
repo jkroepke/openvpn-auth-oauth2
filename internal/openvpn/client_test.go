@@ -186,6 +186,7 @@ func TestClientFull(t *testing.T) {
 	}
 
 	for _, tt := range confs {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			client := NewClient(logger, tt.conf)
 			wg := sync.WaitGroup{}
