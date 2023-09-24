@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
@@ -32,11 +33,11 @@ func NewClient(logger *slog.Logger, conf *config.Config) *Client {
 		conf:   conf,
 		logger: logger,
 
-		errCh:             make(chan error),
+		errCh:             make(chan error, 1),
 		clientsCh:         make(chan *ClientConnection, 10),
 		commandResponseCh: make(chan string, 10),
 		commandsCh:        make(chan string, 10),
-		shutdownCh:        make(chan struct{}),
+		shutdownCh:        make(chan struct{}, 1),
 	}
 }
 
@@ -51,15 +52,9 @@ func (c *Client) Connect() error {
 		return err
 	}
 	defer c.conn.Close()
-
 	c.reader = bufio.NewReader(c.conn)
 
-	line, err := c.readMessage()
-	if err != nil {
-		return err
-	}
-
-	if strings.HasPrefix(line, "ENTER PASSWORD") {
+	if c.conf.OpenVpn.Password != "" {
 		if err := c.rawCommand(c.conf.OpenVpn.Password); err != nil {
 			return err
 		}
@@ -69,12 +64,10 @@ func (c *Client) Connect() error {
 			return err
 		}
 
-		if !strings.HasPrefix(line, "SUCCESS: password is correct") {
+		if !strings.Contains(line, "SUCCESS: password is correct") {
 			return errors.New("wrong openvpn management interface password")
 		}
 	}
-
-	c.logger.Info("Connection to OpenVPN management interfaced established.")
 
 	go func() {
 		for {
@@ -119,9 +112,20 @@ func (c *Client) Connect() error {
 		}
 	}()
 
-	if resp := c.SendCommand("hold release"); !strings.HasPrefix(resp, "SUCCESS:") {
-		return fmt.Errorf("invalid openvpn management interface response: %v", line)
+	respCh := make(chan string, 1)
+	go func() {
+		respCh <- c.SendCommand("hold release")
+	}()
+	select {
+	case resp := <-respCh:
+		if !strings.HasPrefix(resp, "SUCCESS:") {
+			return fmt.Errorf("invalid openvpn management interface response: %v", resp)
+		}
+	case <-time.After(10 * time.Second):
+		return errors.New("timeout while waiting from openvpn management interface response")
 	}
+
+	c.logger.Info("Connection to OpenVPN management interfaced established.")
 
 	if version := c.SendCommand("version"); version != "" {
 		c.logger.Info(version)
@@ -180,7 +184,7 @@ func (c *Client) processClient(client *ClientConnection) error {
 
 		session := state.New(client.Cid, client.Kid, client.Env["untrusted_ip"], client.Env["common_name"])
 		if err := session.Encode(c.conf.Http.Secret); err != nil {
-			return err
+			return fmt.Errorf("error encoding state: %s", err)
 		}
 
 		startUrl := fmt.Sprintf("%s/oauth2/start?state=%s", strings.TrimSuffix(c.conf.Http.BaseUrl, "/"), url.QueryEscape(session.Encoded))
@@ -227,11 +231,8 @@ func (c *Client) SendCommand(format string, a ...any) string {
 // rawCommand passes command to a given connection (adds logging and EOL character)
 func (c *Client) rawCommand(cmd string) error {
 	c.logger.Debug(cmd)
-
-	if _, err := fmt.Fprint(c.conn, cmd+"\n"); err != nil {
-		return err
-	}
-	return nil
+	_, err := fmt.Fprintln(c.conn, cmd)
+	return err
 }
 
 // readMessage .
@@ -249,7 +250,8 @@ func (c *Client) readMessage() (string, error) {
 			strings.Index(line, "SUCCESS:") == 0 ||
 			strings.Index(line, "ERROR:") == 0 ||
 			strings.HasPrefix(line, ">HOLD:") ||
-			strings.HasPrefix(line, ">INFO:") {
+			strings.HasPrefix(line, ">INFO:") ||
+			strings.HasPrefix(line, "ENTER PASSWORD:") {
 
 			c.logger.Debug(result)
 			return result, nil
