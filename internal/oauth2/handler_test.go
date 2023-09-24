@@ -28,40 +28,16 @@ func TestHandler(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
 	managementInterface, err := net.Listen("tcp", "127.0.0.1:0")
-
 	assert.NoError(t, err)
 	defer managementInterface.Close()
+
 	clientListener, err := net.Listen("tcp", "127.0.0.1:0")
 	assert.NoError(t, err)
 	defer clientListener.Close()
 
-	storage.RegisterClients(storage.WebClient("ID", "SECRET", fmt.Sprintf("http://%s/oauth2/callback", clientListener.Addr().String())))
-	opStorage := storage.NewStorage(storage.NewUserStore("http://localhost"))
-	opConfig := &op.Config{
-		CryptoKey:                sha256.Sum256([]byte("test")),
-		DefaultLogoutRedirectURI: "/",
-		CodeMethodS256:           true,
-		AuthMethodPost:           true,
-		AuthMethodPrivateKeyJWT:  true,
-		GrantTypeRefreshToken:    true,
-		RequestObjectSupported:   true,
-		SupportedUILocales:       []language.Tag{language.English},
-	}
-
-	opProvider, err := op.NewDynamicOpenIDProvider("", opConfig, opStorage,
-		op.WithAllowInsecure(),
-	)
-
+	resourceServer, err := setupResourceServer(clientListener)
 	assert.NoError(t, err)
-	router := mux.NewRouter()
-	router.PathPrefix("/login/username").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		err = opStorage.CheckUsernamePassword("test-user@localhost", "verysecure", r.FormValue("authRequestID"))
-		assert.NoError(t, err)
-		http.Redirect(w, r, op.AuthCallbackURL(opProvider)(r.Context(), r.FormValue("authRequestID")), http.StatusFound)
-	})
-	router.PathPrefix("/").Handler(opProvider.HttpHandler())
-
-	svr := httptest.NewServer(router)
+	defer resourceServer.Close()
 
 	conf := &config.Config{
 		Http: &config.Http{
@@ -69,7 +45,7 @@ func TestHandler(t *testing.T) {
 			Secret:  "0123456789101112",
 		},
 		Oauth2: &config.OAuth2{
-			Issuer:    svr.URL,
+			Issuer:    resourceServer.URL,
 			Provider:  "oidc",
 			Client:    &config.OAuth2Client{Id: "ID", Secret: "SECRET"},
 			Endpoints: &config.OAuth2Endpoints{},
@@ -156,6 +132,39 @@ func TestHandler(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+func setupResourceServer(clientListener net.Listener) (*httptest.Server, error) {
+	storage.RegisterClients(storage.WebClient("ID", "SECRET", fmt.Sprintf("http://%s/oauth2/callback", clientListener.Addr().String())))
+	opStorage := storage.NewStorage(storage.NewUserStore("http://localhost"))
+	opConfig := &op.Config{
+		CryptoKey:                sha256.Sum256([]byte("test")),
+		DefaultLogoutRedirectURI: "/",
+		CodeMethodS256:           true,
+		AuthMethodPost:           true,
+		AuthMethodPrivateKeyJWT:  true,
+		GrantTypeRefreshToken:    true,
+		RequestObjectSupported:   true,
+		SupportedUILocales:       []language.Tag{language.English},
+	}
+
+	opProvider, err := op.NewDynamicOpenIDProvider("", opConfig, opStorage,
+		op.WithAllowInsecure(),
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	router := mux.NewRouter()
+	router.PathPrefix("/login/username").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = opStorage.CheckUsernamePassword("test-user@localhost", "verysecure", r.FormValue("authRequestID"))
+		http.Redirect(w, r, op.AuthCallbackURL(opProvider)(r.Context(), r.FormValue("authRequestID")), http.StatusFound)
+	})
+	router.PathPrefix("/").Handler(opProvider.HttpHandler())
+
+	svr := httptest.NewServer(router)
+	return svr, err
 }
 
 func sendLine(t *testing.T, conn net.Conn, msg string, a ...any) {
