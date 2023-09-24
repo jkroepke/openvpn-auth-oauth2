@@ -26,8 +26,11 @@ of connecting users against OIDC providers like Azure AD, GitHub or Keycloak.
 
 - [OpenVPN Community Client for Windows 2.6.0](https://openvpn.net/community-downloads/)
 - [Tunnelblick](https://tunnelblick.net/) [4.0.0beta10+](https://github.com/Tunnelblick/Tunnelblick/issues/676)
-- [OpenVPN Connect v3 for macOS](https://openvpn.net/vpn-server-resources/connecting-to-access-server-with-macos/)
-- OpenVPN 3 on Linux (Issue: Browser does no open on REAUTH)
+
+#### Partial Working
+
+- [OpenVPN Connect v3 for macOS](https://openvpn.net/vpn-server-resources/connecting-to-access-server-with-macos/) ([REAUTH issues](https://github.com/OpenVPN/openvpn3/issues/282))
+- OpenVPN 3 on Linux ([REAUTH issues](https://github.com/OpenVPN/openvpn3/issues/282))
 
 #### Non-Working
 

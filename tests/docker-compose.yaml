@@ -76,7 +76,7 @@ services:
         management-client-auth
         #auth-gen-token 240
 
-        reneg-sec 120
+        reneg-sec 60
         auth-user-pass-optional
         EOF
 
