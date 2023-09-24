@@ -32,7 +32,7 @@ func TestClientInvalidServer(t *testing.T) {
 	client := NewClient(logger, conf)
 	err := client.Connect()
 	assert.Error(t, err)
-	assert.Equal(t, "dial tcp 0.0.0.0:1: connect: connection refused", err.Error())
+	assert.Equal(t, "unable to connect to openvpn management interface tcp://0.0.0.0:1: dial tcp 0.0.0.0:1: connect: connection refused", err.Error())
 }
 
 func TestClientFull(t *testing.T) {
