@@ -258,6 +258,47 @@ func TestClientFull(t *testing.T) {
 	}
 }
 
+func TestClientInvalidPassword(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	assert.NoError(t, err)
+	defer l.Close()
+
+	conf := &config.Config{
+		Http: &config.Http{
+			BaseUrl: "http://localhost/",
+			Secret:  "0123456789101112",
+		},
+		OpenVpn: &config.OpenVpn{
+			Addr:     fmt.Sprintf("%s://%s", l.Addr().Network(), l.Addr().String()),
+			Bypass:   &config.OpenVpnBypass{CommonNames: make([]string, 0)},
+			Password: "invalid",
+		},
+	}
+
+	client := NewClient(logger, conf)
+
+	go func() {
+		conn, err := l.Accept()
+		assert.NoError(t, err)
+
+		defer conn.Close() //nolint:errcheck
+		reader := bufio.NewReader(conn)
+
+		sendLine(t, conn, "ENTER PASSWORD:")
+		assert.Equal(t, conf.OpenVpn.Password, readLine(t, reader))
+		sendLine(t, conn, "ERROR: bad password\r\n")
+
+		_, _ = reader.ReadString('\n')
+	}()
+
+	err = client.Connect()
+	if assert.Error(t, err) {
+		assert.Equal(t, "wrong openvpn management interface password", err.Error())
+	}
+	client.Shutdown()
+}
+
 func sendLine(t *testing.T, conn net.Conn, msg string, a ...any) {
 	_, err := fmt.Fprintf(conn, msg, a...)
 	assert.NoError(t, err)

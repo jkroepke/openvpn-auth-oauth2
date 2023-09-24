@@ -231,11 +231,8 @@ func (c *Client) SendCommand(format string, a ...any) string {
 // rawCommand passes command to a given connection (adds logging and EOL character)
 func (c *Client) rawCommand(cmd string) error {
 	c.logger.Debug(cmd)
-
-	if _, err := fmt.Fprint(c.conn, cmd+"\n"); err != nil {
-		return err
-	}
-	return nil
+	_, err := fmt.Fprintln(c.conn, cmd)
+	return err
 }
 
 // readMessage .
@@ -253,7 +250,8 @@ func (c *Client) readMessage() (string, error) {
 			strings.Index(line, "SUCCESS:") == 0 ||
 			strings.Index(line, "ERROR:") == 0 ||
 			strings.HasPrefix(line, ">HOLD:") ||
-			strings.HasPrefix(line, ">INFO:") {
+			strings.HasPrefix(line, ">INFO:") ||
+			strings.HasPrefix(line, "ENTER PASSWORD:") {
 
 			c.logger.Debug(result)
 			return result, nil
