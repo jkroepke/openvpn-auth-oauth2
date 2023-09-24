@@ -6,6 +6,51 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestFlagSet(t *testing.T) {
+	for _, tt := range []struct {
+		name       string
+		args       []string
+		expectArgs map[string]any
+	}{
+		{
+			"--version",
+			[]string{"--version"},
+			map[string]any{
+				"version": true,
+			},
+		},
+		{
+			"--openvpn.bypass.cn",
+			[]string{"--openvpn.bypass.cn=a,b"},
+			map[string]any{
+				"openvpn.bypass.cn": []string{"a", "b"},
+			},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			flagSet := FlagSet()
+			err := flagSet.Parse(append([]string{"openvpn-auth-oauth2"}, tt.args...))
+			assert.NoError(t, err)
+			for arg, expected := range tt.expectArgs {
+				switch expectedTyped := expected.(type) {
+				case string:
+					value, err := flagSet.GetString(arg)
+					assert.NoError(t, err)
+					assert.Equal(t, expectedTyped, value)
+				case bool:
+					value, err := flagSet.GetBool(arg)
+					assert.NoError(t, err)
+					assert.Equal(t, expectedTyped, value)
+				case []string:
+					value, err := flagSet.GetStringSlice(arg)
+					assert.NoError(t, err)
+					assert.Equal(t, expectedTyped, value)
+				}
+			}
+		})
+
+	}
+}
 func TestValidate(t *testing.T) {
 	for _, tt := range []struct {
 		name   string
