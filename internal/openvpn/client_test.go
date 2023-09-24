@@ -41,8 +41,11 @@ func TestClientFull(t *testing.T) {
 	defer l.Close()
 
 	confs := []struct {
-		name string
-		conf *config.Config
+		name   string
+		conf   *config.Config
+		client string
+		expect string
+		err    error
 	}{
 		{
 			"without password",
@@ -56,6 +59,9 @@ func TestClientFull(t *testing.T) {
 					Bypass: &config.OpenVpnBypass{CommonNames: make([]string, 0)},
 				},
 			},
+			">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END\r\n",
+			"client-pending-auth 1 2 \"WEB_AUTH::",
+			nil,
 		},
 		{
 			"with password",
@@ -70,6 +76,60 @@ func TestClientFull(t *testing.T) {
 					Password: "password",
 				},
 			},
+			">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END\r\n",
+			"client-pending-auth 1 2 \"WEB_AUTH::",
+			nil,
+		},
+		{
+			"client without IV_SSO",
+			&config.Config{
+				Http: &config.Http{
+					BaseUrl: "http://localhost/",
+					Secret:  "0123456789101112",
+				},
+				OpenVpn: &config.OpenVpn{
+					Addr:     fmt.Sprintf("%s://%s", l.Addr().Network(), l.Addr().String()),
+					Bypass:   &config.OpenVpnBypass{CommonNames: make([]string, 0)},
+					Password: "password",
+				},
+			},
+			">CLIENT:CONNECT,0,1\r\n>CLIENT:ENV,daemon=0\r\n>CLIENT:ENV,END\r\n",
+			"client-deny 0 1 \"OpenVPN Client does not support SSO authentication via webauth\" \"OpenVPN Client does not support SSO authentication via webauth",
+			nil,
+		},
+		{
+			"client bypass",
+			&config.Config{
+				Http: &config.Http{
+					BaseUrl: "http://localhost/",
+					Secret:  "0123456789101112",
+				},
+				OpenVpn: &config.OpenVpn{
+					Addr:     fmt.Sprintf("%s://%s", l.Addr().Network(), l.Addr().String()),
+					Bypass:   &config.OpenVpnBypass{CommonNames: []string{"bypass"}},
+					Password: "password",
+				},
+			},
+			">CLIENT:CONNECT,0,1\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END\r\n",
+			"client-auth-nt 0 1",
+			nil,
+		},
+		{
+			"client established",
+			&config.Config{
+				Http: &config.Http{
+					BaseUrl: "http://localhost/",
+					Secret:  "0123456789101112",
+				},
+				OpenVpn: &config.OpenVpn{
+					Addr:     fmt.Sprintf("%s://%s", l.Addr().Network(), l.Addr().String()),
+					Bypass:   &config.OpenVpnBypass{CommonNames: []string{"bypass"}},
+					Password: "password",
+				},
+			},
+			">CLIENT:ESTABLISHED,0\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END\r\n",
+			"",
+			nil,
 		},
 	}
 
@@ -80,6 +140,7 @@ func TestClientFull(t *testing.T) {
 			wg.Add(1)
 
 			go func() {
+				defer wg.Done()
 				conn, err := l.Accept()
 				assert.NoError(t, err)
 
@@ -98,30 +159,32 @@ func TestClientFull(t *testing.T) {
 				assert.Equal(t, "version", readLine(t, reader))
 
 				sendLine(t, conn, "OpenVPN Version: OpenVPN Mock\r\nEND\r\n")
-				sendLine(t, conn, ">CLIENT:CONNECT,0,1\r\n>CLIENT:ENV,daemon=0\r\n>CLIENT:ENV,END\r\n")
-				assert.Equal(t, "client-deny 0 1 \"OpenVPN Client does not support SSO authentication via webauth\" \"OpenVPN Client does not support SSO authentication via webauth\"", readLine(t, reader))
-				sendLine(t, conn, "SUCCESS: client-deny command succeeded\r\n")
-				sendLine(t, conn, ">CLIENT:DISCONNECT,0\r\n>CLIENT:ENV,END\r\n")
+				sendLine(t, conn, tt.client)
+				if tt.expect == "" {
+					client.Shutdown() //nolint:errcheck
+					return
+				}
 
-				sendLine(t, conn, ">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END\r\n")
-				pendingAuth := readLine(t, reader)
-				assert.Contains(t, pendingAuth, "client-pending-auth 1 2 \"WEB_AUTH::")
+				auth := readLine(t, reader)
+				assert.Contains(t, auth, tt.expect)
+				sendLine(t, conn, "SUCCESS: %s command succeeded\r\n", strings.SplitN(auth, " ", 2)[0])
 
-				matches := regexp.MustCompile(`state=(.+)"`).FindStringSubmatch(pendingAuth)
-				assert.Len(t, matches, 2)
+				if strings.Contains(auth, "client-deny") {
+					sendLine(t, conn, ">CLIENT:DISCONNECT,0\r\n>CLIENT:ENV,END\r\n")
+				} else if strings.Contains(auth, "WEB_AUTH::") {
+					matches := regexp.MustCompile(`state=(.+)"`).FindStringSubmatch(auth)
+					assert.Len(t, matches, 2)
 
-				sessionState := state.NewEncoded(matches[1])
-				err = sessionState.Decode(tt.conf.Http.Secret)
-				assert.NoError(t, err)
+					sessionState := state.NewEncoded(matches[1])
+					err = sessionState.Decode(tt.conf.Http.Secret)
+					assert.NoError(t, err)
 
-				assert.Equal(t, uint64(1), sessionState.Cid)
-				assert.Equal(t, uint64(2), sessionState.Kid)
-				assert.Equal(t, "test", sessionState.CommonName)
-				assert.Equal(t, "127.0.0.1", sessionState.Ipaddr)
-
-				client.Shutdown()
-
-				wg.Done()
+					assert.Equal(t, uint64(1), sessionState.Cid)
+					assert.Equal(t, uint64(2), sessionState.Kid)
+					assert.Equal(t, "test", sessionState.CommonName)
+					assert.Equal(t, "127.0.0.1", sessionState.Ipaddr)
+				}
+				client.Shutdown() //nolint:errcheck
 			}()
 			err = client.Connect()
 			assert.NoError(t, err)
@@ -130,8 +193,8 @@ func TestClientFull(t *testing.T) {
 	}
 }
 
-func sendLine(t *testing.T, conn net.Conn, msg string) {
-	_, err := fmt.Fprint(conn, msg)
+func sendLine(t *testing.T, conn net.Conn, msg string, a ...any) {
+	_, err := fmt.Fprintf(conn, msg, a...)
 	assert.NoError(t, err)
 }
 
