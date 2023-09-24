@@ -95,6 +95,9 @@ func TestHandler(t *testing.T) {
 	}()
 
 	provider, err := NewProvider(logger, conf)
+	if !assert.NoError(t, err) {
+		return
+	}
 
 	httpClientListener := httptest.NewUnstartedServer(Handler(logger, provider, conf, client))
 	httpClientListener.Listener.Close()
