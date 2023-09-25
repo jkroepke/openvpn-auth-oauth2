@@ -74,7 +74,7 @@ services:
         management 0.0.0.0 8081 /etc/openvpn/password.txt
         management-hold
         management-client-auth
-        #auth-gen-token 240
+        auth-gen-token 240 120
 
         reneg-sec 60
         auth-user-pass-optional
@@ -89,7 +89,7 @@ services:
         resolv-retry infinite
         tls-cert-profile preferred
         persist-tun
-        verb 3
+        verb 4
         reneg-sec 0
         <key>
         $(cat /etc/openvpn/pki/private/${UPN}.key)
