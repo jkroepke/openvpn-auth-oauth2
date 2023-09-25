@@ -9,7 +9,7 @@ on:
       - unlabeled
 
 jobs:
-  validate:
+  requred-labels-missing:
     runs-on: ubuntu-latest
     steps:
       - name: Required labels missing
@@ -26,3 +26,4 @@ jobs:
           bug
           docs
           chore
+          && exit 1
