@@ -29,3 +29,5 @@ nfpms:
     scripts:
       postinstall: "packaging/postinstall.sh"
       preremove: "packaging/preremove.sh"
+changelog:
+  use: github-native
