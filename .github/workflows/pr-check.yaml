@@ -1,0 +1,26 @@
+name: Validate Pull Request
+on:
+  pull_request:
+    types:
+      - synchronize
+      - labeled
+      - unlabeled
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Required labels missing
+        if: >-
+          !contains(github.event.pull_request.labels.*.name, 'breaking-change')
+          && !contains(github.event.pull_request.labels.*.name, 'enhancement')
+          && !contains(github.event.pull_request.labels.*.name, 'bug')
+          && !contains(github.event.pull_request.labels.*.name, 'docs')
+          && !contains(github.event.pull_request.labels.*.name, 'chore')
+        run: >-
+          echo One of the following labels is missing on this PR:
+          breaking-change
+          enhancement
+          bug
+          docs
+          chore
