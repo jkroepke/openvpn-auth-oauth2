@@ -8,7 +8,7 @@ builds:
       - amd64
       - arm64
     mod_timestamp: '{{ .CommitTimestamp }}'
-    no_unique_dist_dir: true
+    no_unique_dist_dir: false
 nfpms:
   - id: openvpn-auth-oauth2
     homepage: https://github.com/jkroepke/openvpn-auth-oauth2
