@@ -1,0 +1,57 @@
+name: 🐞 Bug
+description: Something is not working as indended.
+labels: [bug]
+body:
+  - type: textarea
+    attributes:
+      label: Current Behavior
+      description: A concise description of what you're experiencing.
+      placeholder: |
+        When I do <X>, <Y> happens and I see the error message attached below:
+        ```...```
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: Expected Behavior
+      description: A concise description of what you expected to happen.
+      placeholder: When I do <X>, <Z> should happen instead.
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: Steps To Reproduce
+      description: Steps to reproduce the behavior.
+      placeholder: |
+        1. In this environment...
+        2. With this config...
+        3. Run '...'
+        4. See error...
+      render: Markdown
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: Environment
+      description: |
+        examples:
+        - **openvpn-auth-oauth2 Version**: 1.5.1
+        - **OpenVPN Server Version**: 2.6.2
+        - **Server OS*: Linux
+        - **OpenVPN Client (flavor, OS)*: Tunnelblick 4.0.0beta10 / MacOD
+      value: |
+        - openvpn-auth-oauth2 Version:
+        - OpenVPN Server Version:
+        - Server OS:
+        - OpenVPN Client (flavor, OS):
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: Anything else?
+      description: |
+        Links? References? Anything that will give us more context about the issue you are encountering!
+
+        Tip: You can attach images or log files by clicking this area to highlight it and then dragging files in.
+    validations:
+      required: false
