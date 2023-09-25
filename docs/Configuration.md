@@ -51,7 +51,7 @@ It's highly recommend to put openvpn-auth-oauth2 behind a reverse proxy which te
 
 ## Setup OIDC Provider
 
-See [Providers](Providers.md) for more information
+See [Providers](Providers) for more information
 
 ## Setup OpenVPN server
 
@@ -59,7 +59,7 @@ See [Providers](Providers.md) for more information
 
 ```
 # /etc/openvpn/password.txt is a password file where the password must be on first line
-management /run/openvpn/server.sock /etc/openvpn/password.txt
+management /run/openvpn/server.sock unix /etc/openvpn/password.txt
 management-hold
 management-client-auth
 ```
