@@ -43,23 +43,19 @@ func NewClient(logger *slog.Logger, conf *config.Config) *Client {
 }
 
 func (c *Client) Connect() error {
-	uri, err := url.Parse(c.conf.OpenVpn.Addr)
-	c.logger.Info(fmt.Sprintf("connect to openvpn management interface %s", uri.String()))
-	if err != nil {
-		return fmt.Errorf("unable to parse openvpn addr as URI: %v", err)
-	}
-
-	switch uri.Scheme {
+	var err error
+	c.logger.Info(fmt.Sprintf("connect to openvpn management interface %s", c.conf.OpenVpn.Addr.String()))
+	switch c.conf.OpenVpn.Addr.Scheme {
 	case "tcp":
-		c.conn, err = net.Dial(uri.Scheme, uri.Host)
+		c.conn, err = net.Dial(c.conf.OpenVpn.Addr.Scheme, c.conf.OpenVpn.Addr.Host)
 	case "unix":
-		c.conn, err = net.Dial(uri.Scheme, uri.Path)
+		c.conn, err = net.Dial(c.conf.OpenVpn.Addr.Scheme, c.conf.OpenVpn.Addr.Path)
 	default:
-		return fmt.Errorf("unable to connect to openvpn management interface: unknwon protocol %s", uri.Scheme)
+		return fmt.Errorf("unable to connect to openvpn management interface: unknwon protocol %s", c.conf.OpenVpn.Addr.Scheme)
 	}
 
 	if err != nil {
-		return fmt.Errorf("unable to connect to openvpn management interface %s: %v", uri.String(), err)
+		return fmt.Errorf("unable to connect to openvpn management interface %s: %v", c.conf.OpenVpn.Addr.String(), err)
 	}
 	defer c.conn.Close()
 	c.reader = bufio.NewReader(c.conn)
@@ -202,7 +198,7 @@ func (c *Client) processClient(client *ClientConnection) error {
 			return fmt.Errorf("error encoding state: %s", err)
 		}
 
-		startUrl := fmt.Sprintf("%s/oauth2/start?state=%s", strings.TrimSuffix(c.conf.Http.BaseUrl, "/"), url.QueryEscape(session.Encoded))
+		startUrl := fmt.Sprintf("%s/oauth2/start?state=%s", strings.TrimSuffix(c.conf.Http.BaseUrl.String(), "/"), url.QueryEscape(session.Encoded))
 		c.logger.Info("start pending auth",
 			"cid", client.Cid,
 			"kid", client.Kid,

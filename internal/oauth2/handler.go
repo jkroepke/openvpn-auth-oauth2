@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
@@ -18,12 +17,10 @@ import (
 )
 
 func Handler(logger *slog.Logger, oidcProvider *Provider, conf *config.Config, openvpnClient *openvpn.Client) *http.ServeMux {
-	baseUrl, _ := url.Parse(conf.Http.BaseUrl)
-
 	mux := http.NewServeMux()
 	mux.Handle("/", http.NotFoundHandler())
-	mux.Handle(strings.TrimSuffix(baseUrl.Path, "/")+"/oauth2/start", oauth2Start(logger, oidcProvider, conf))
-	mux.Handle(strings.TrimSuffix(baseUrl.Path, "/")+"/oauth2/callback", oauth2Callback(logger, oidcProvider, conf, openvpnClient))
+	mux.Handle(strings.TrimSuffix(conf.Http.BaseUrl.Path, "/")+"/oauth2/start", oauth2Start(logger, oidcProvider, conf))
+	mux.Handle(strings.TrimSuffix(conf.Http.BaseUrl.Path, "/")+"/oauth2/callback", oauth2Callback(logger, oidcProvider, conf, openvpnClient))
 
 	return mux
 }
@@ -99,7 +96,7 @@ func oauth2Callback(logger *slog.Logger, oidcProvider *Provider, conf *config.Co
 
 			openvpnClient.SendCommand("client-deny %d %d \"%s\"", session.Cid, session.Kid, "client rejected")
 
-			if conf.Http.CallbackTemplate == nil {
+			if conf.Http.CallbackTemplate == nil || conf.Http.CallbackTemplate.Tree == nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			} else {
 				err := conf.Http.CallbackTemplate.Execute(w, map[string]string{
@@ -138,7 +135,7 @@ func oauth2Callback(logger *slog.Logger, oidcProvider *Provider, conf *config.Co
 			openvpnClient.SendCommand(`client-auth-nt %d %d`, session.Cid, session.Kid)
 		}
 
-		if conf.Http.CallbackTemplate == nil {
+		if conf.Http.CallbackTemplate == nil || conf.Http.CallbackTemplate.Tree == nil {
 			_, _ = w.Write([]byte(callbackHtml))
 		} else if err := conf.Http.CallbackTemplate.Execute(w, map[string]string{}); err != nil {
 			logger.Error("executing template:", err)

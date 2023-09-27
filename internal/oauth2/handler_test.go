@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"sync"
 	"testing"
@@ -39,13 +40,15 @@ func TestHandler(t *testing.T) {
 	assert.NoError(t, err)
 	defer resourceServer.Close()
 
+	resourceServerUrl, _ := url.Parse(resourceServer.URL)
+
 	conf := &config.Config{
 		Http: &config.Http{
-			BaseUrl: fmt.Sprintf("http://%s/", clientListener.Addr().String()),
+			BaseUrl: &url.URL{Scheme: "http", Host: clientListener.Addr().String()},
 			Secret:  "0123456789101112",
 		},
 		Oauth2: &config.OAuth2{
-			Issuer:    resourceServer.URL,
+			Issuer:    resourceServerUrl,
 			Provider:  "oidc",
 			Client:    &config.OAuth2Client{Id: "ID", Secret: "SECRET"},
 			Endpoints: &config.OAuth2Endpoints{},
@@ -58,7 +61,7 @@ func TestHandler(t *testing.T) {
 			},
 		},
 		OpenVpn: &config.OpenVpn{
-			Addr:          fmt.Sprintf("%s://%s", managementInterface.Addr().Network(), managementInterface.Addr().String()),
+			Addr:          &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()},
 			Bypass:        &config.OpenVpnBypass{CommonNames: []string{}},
 			AuthTokenUser: true,
 		},

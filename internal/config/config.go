@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"slices"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 	flag "github.com/spf13/pflag"
 )
 
@@ -21,14 +22,13 @@ type Config struct {
 }
 
 type Http struct {
-	Listen               string `koanf:"listen"`
-	CertFile             string `koanf:"cert"`
-	KeyFile              string `koanf:"key"`
-	Tls                  bool   `koanf:"tls"`
-	BaseUrl              string `koanf:"baseurl"`
-	Secret               string `koanf:"secret"`
-	CallbackTemplate     *template.Template
-	CallbackTemplatePath string `koanf:"callback_template_path"`
+	Listen           string             `koanf:"listen"`
+	CertFile         string             `koanf:"cert"`
+	KeyFile          string             `koanf:"key"`
+	Tls              bool               `koanf:"tls"`
+	BaseUrl          *url.URL           `koanf:"baseurl"`
+	Secret           string             `koanf:"secret"`
+	CallbackTemplate *template.Template `koanf:"callback_template_path"`
 }
 
 type Log struct {
@@ -37,7 +37,7 @@ type Log struct {
 }
 
 type OpenVpn struct {
-	Addr          string         `koanf:"addr"`
+	Addr          *url.URL       `koanf:"addr"`
 	Password      string         `koanf:"password"`
 	Bypass        *OpenVpnBypass `koanf:"bypass"`
 	AuthTokenUser bool           `koanf:"auth-token-user"`
@@ -48,7 +48,7 @@ type OpenVpnBypass struct {
 }
 
 type OAuth2 struct {
-	Issuer    string           `koanf:"issuer"`
+	Issuer    *url.URL         `koanf:"issuer"`
 	Provider  string           `koanf:"provider"`
 	Endpoints *OAuth2Endpoints `koanf:"endpoint"`
 	Client    *OAuth2Client    `koanf:"client"`
@@ -63,9 +63,9 @@ type OAuth2Client struct {
 }
 
 type OAuth2Endpoints struct {
-	Discovery string `koanf:"discovery"`
-	Auth      string `koanf:"auth"`
-	Token     string `koanf:"token"`
+	Discovery *url.URL `koanf:"discovery"`
+	Auth      *url.URL `koanf:"auth"`
+	Token     *url.URL `koanf:"token"`
 }
 
 type OAuth2Validate struct {
@@ -140,12 +140,19 @@ func Validate(conf *Config) error {
 	}
 
 	for key, value := range map[string]string{
-		"http.baseurl":     conf.Http.BaseUrl,
 		"http.secret":      conf.Http.Secret,
-		"oauth2.issuer":    conf.Oauth2.Issuer,
 		"oauth2.client.id": conf.Oauth2.Client.Id,
 	} {
 		if value == "" {
+			return fmt.Errorf("%s is required", key)
+		}
+	}
+
+	for key, value := range map[string]*url.URL{
+		"http.baseurl":  conf.Http.BaseUrl,
+		"oauth2.issuer": conf.Oauth2.Issuer,
+	} {
+		if utils.IsUrlEmpty(value) {
 			return fmt.Errorf("%s is required", key)
 		}
 	}
@@ -154,32 +161,19 @@ func Validate(conf *Config) error {
 		return errors.New("http.secret requires a length of 16, 24 or 32")
 	}
 
-	if uri, err := url.Parse(conf.OpenVpn.Addr); err != nil {
-		return fmt.Errorf("openvpn.addr: invalid URL. error: %s", err)
-	} else if !slices.Contains([]string{"tcp", "unix"}, uri.Scheme) {
+	if !slices.Contains([]string{"tcp", "unix"}, conf.OpenVpn.Addr.Scheme) {
 		return errors.New("openvpn.addr: invalid URL. only tcp://addr or unix://addr scheme supported")
 	}
 
-	if uri, err := url.Parse(conf.Http.BaseUrl); err != nil {
-		return fmt.Errorf("http.baseurl: invalid URL. error: %s", err)
-	} else if uri.Host == "" {
-		return errors.New("http.baseurl: invalid URL. empty hostname")
-	}
-
-	for key, value := range map[string]string{
+	for key, uri := range map[string]*url.URL{
 		"http.baseurl":              conf.Http.BaseUrl,
 		"oauth2.issuer":             conf.Oauth2.Issuer,
 		"oauth2.endpoint.discovery": conf.Oauth2.Endpoints.Discovery,
 		"oauth2.endpoint.token":     conf.Oauth2.Endpoints.Token,
 		"oauth2.endpoint.auth":      conf.Oauth2.Endpoints.Auth,
 	} {
-		if value == "" {
+		if utils.IsUrlEmpty(uri) {
 			continue
-		}
-
-		uri, err := url.Parse(value)
-		if err != nil {
-			return fmt.Errorf("%s: invalid URL. error: %s", key, err)
 		}
 
 		if !slices.Contains([]string{"http", "https"}, uri.Scheme) {
@@ -187,18 +181,9 @@ func Validate(conf *Config) error {
 		}
 	}
 
-	if (conf.Oauth2.Endpoints.Token != "" && conf.Oauth2.Endpoints.Auth == "") ||
-		(conf.Oauth2.Endpoints.Token == "" && conf.Oauth2.Endpoints.Auth != "") {
+	if (!utils.IsUrlEmpty(conf.Oauth2.Endpoints.Token) && utils.IsUrlEmpty(conf.Oauth2.Endpoints.Auth)) ||
+		(utils.IsUrlEmpty(conf.Oauth2.Endpoints.Token) && !utils.IsUrlEmpty(conf.Oauth2.Endpoints.Auth)) {
 		return errors.New("both oauth2.endpoints.tokenUrl and oauth2.endpoints.authUrl are required")
-	}
-
-	if conf.Http.CallbackTemplatePath != "" {
-		tmpl, err := template.New("callback").ParseFiles(conf.Http.CallbackTemplatePath)
-		if err != nil {
-			return fmt.Errorf("http.callbackTemplatePath: invalid template: %s", err)
-		}
-
-		conf.Http.CallbackTemplate = tmpl
 	}
 
 	return nil
