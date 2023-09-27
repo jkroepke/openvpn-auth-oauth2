@@ -46,10 +46,13 @@ func TestHandler(t *testing.T) {
 		Http: &config.Http{
 			BaseUrl: &url.URL{Scheme: "http", Host: clientListener.Addr().String()},
 			Secret:  "0123456789101112",
+			Check: &config.HttpCheck{
+				IpAddr: false,
+			},
 		},
 		Oauth2: &config.OAuth2{
 			Issuer:    resourceServerUrl,
-			Provider:  "oidc",
+			Provider:  "generic",
 			Client:    &config.OAuth2Client{Id: "ID", Secret: "SECRET"},
 			Endpoints: &config.OAuth2Endpoints{},
 			Scopes:    []string{"openid", "profile"},
@@ -89,7 +92,7 @@ func TestHandler(t *testing.T) {
 		assert.Equal(t, "client-auth 0 1", readLine(t, reader))
 		assert.Equal(t, "push \"auth-token-user aWQx\"", readLine(t, reader))
 		assert.Equal(t, "END", readLine(t, reader))
-		sendLine(t, conn, "SUCCESS: client-auth-nt command succeeded\r\n")
+		sendLine(t, conn, "SUCCESS: client-auth command succeeded\r\n")
 	}()
 
 	go func() {

@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"reflect"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -32,11 +33,11 @@ func StringToUrlHookFunc() mapstructure.DecodeHookFunc {
 		}
 
 		if uri.Scheme == "" {
-			return nil, errors.New("invalid URL. empty scheme")
+			return nil, errors.New(utils.StringConcat("invalid URL ", data.(string), ": empty scheme"))
 		}
 
 		if uri.Host == "" && uri.Path == "" {
-			return nil, errors.New("invalid URL. empty hostname")
+			return nil, errors.New(utils.StringConcat("invalid URL ", data.(string), ": empty hostname"))
 		}
 
 		return uri, nil

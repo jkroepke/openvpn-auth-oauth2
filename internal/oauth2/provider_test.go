@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
 	"github.com/stretchr/testify/assert"
 	"github.com/zitadel/oidc/v2/example/server/storage"
 	"github.com/zitadel/oidc/v2/pkg/op"
@@ -51,7 +52,7 @@ func TestNewProvider(t *testing.T) {
 				Http: &config.Http{BaseUrl: &url.URL{Scheme: "http", Host: "localhost"}},
 				Oauth2: &config.OAuth2{
 					Issuer:    svrUrl,
-					Provider:  "oidc",
+					Provider:  generic.Name,
 					Client:    &config.OAuth2Client{Id: "ID", Secret: "ID"},
 					Endpoints: &config.OAuth2Endpoints{},
 				},
@@ -64,7 +65,7 @@ func TestNewProvider(t *testing.T) {
 				Http: &config.Http{BaseUrl: &url.URL{Scheme: "http", Host: "localhost"}},
 				Oauth2: &config.OAuth2{
 					Issuer:   svrUrl,
-					Provider: "oidc",
+					Provider: generic.Name,
 					Client:   &config.OAuth2Client{Id: "ID", Secret: "ID"},
 					Endpoints: &config.OAuth2Endpoints{
 						Discovery: &url.URL{Scheme: svrUrl.Scheme, Host: svrUrl.Host, Path: "/.well-known/openid-configuration"},
@@ -79,7 +80,7 @@ func TestNewProvider(t *testing.T) {
 				Http: &config.Http{BaseUrl: &url.URL{Scheme: "http", Host: "localhost"}},
 				Oauth2: &config.OAuth2{
 					Issuer:   svrUrl,
-					Provider: "oidc",
+					Provider: generic.Name,
 					Client:   &config.OAuth2Client{Id: "ID", Secret: "ID"},
 					Endpoints: &config.OAuth2Endpoints{
 						Discovery: &url.URL{Scheme: svrUrl.Scheme, Host: svrUrl.Host, Path: "/.well-known/openid-config"},
@@ -94,7 +95,7 @@ func TestNewProvider(t *testing.T) {
 				Http: &config.Http{BaseUrl: &url.URL{Scheme: "http", Host: "localhost"}},
 				Oauth2: &config.OAuth2{
 					Issuer:   svrUrl,
-					Provider: "oidc",
+					Provider: generic.Name,
 					Client:   &config.OAuth2Client{Id: "ID", Secret: "ID"},
 					Endpoints: &config.OAuth2Endpoints{
 						Discovery: &url.URL{Scheme: svrUrl.Scheme, Host: svrUrl.Host, Path: "/.well-known/openid-configuration"},
@@ -106,12 +107,28 @@ func TestNewProvider(t *testing.T) {
 			"",
 		},
 		{
+			"with missing custom endpoints",
+			&config.Config{
+				Http: &config.Http{BaseUrl: &url.URL{Scheme: "http", Host: "localhost"}},
+				Oauth2: &config.OAuth2{
+					Issuer:   svrUrl,
+					Provider: generic.Name,
+					Client:   &config.OAuth2Client{Id: "ID", Secret: "ID"},
+					Endpoints: &config.OAuth2Endpoints{
+						Discovery: &url.URL{Scheme: svrUrl.Scheme, Host: svrUrl.Host, Path: "/.well-known/openid-configuration"},
+						Auth:      &url.URL{Scheme: svrUrl.Scheme, Host: svrUrl.Host, Path: "/authorize"},
+					},
+				},
+			},
+			"both oauth2.endpoints.tokenUrl and oauth2.endpoints.authUrl are required",
+		},
+		{
 			"with pkce",
 			&config.Config{
 				Http: &config.Http{BaseUrl: &url.URL{Scheme: "http", Host: "localhost"}},
 				Oauth2: &config.OAuth2{
 					Issuer:   svrUrl,
-					Provider: "oidc",
+					Provider: generic.Name,
 					Pkce:     true,
 					Client:   &config.OAuth2Client{Id: "ID", Secret: "ID"},
 					Endpoints: &config.OAuth2Endpoints{
@@ -127,7 +144,7 @@ func TestNewProvider(t *testing.T) {
 	for _, tt := range configs {
 		t.Run(tt.name, func(t *testing.T) {
 			provider, err := NewProvider(logger, tt.config)
-			if tt.err != "" {
+			if tt.err != "" && assert.Error(t, err) {
 				assert.Equal(t, strings.TrimSpace(err.Error()), tt.err)
 				return
 			}

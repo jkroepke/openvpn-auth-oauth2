@@ -2,9 +2,10 @@ package state
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"time"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 	"github.com/zitadel/oidc/v2/pkg/crypto"
 )
 
@@ -37,7 +38,7 @@ func NewEncoded(state string) *State {
 func (state *State) Decode(secretKey string) error {
 	jsonState, err := crypto.DecryptAES(state.Encoded, secretKey)
 	if err != nil {
-		return fmt.Errorf("invalid state: %v: %v", state.Encoded, err)
+		return errors.New(utils.StringConcat("invalid state: ", state.Encoded, ": ", err.Error()))
 	}
 
 	if err := json.Unmarshal([]byte(jsonState), &state); err != nil {
@@ -47,9 +48,9 @@ func (state *State) Decode(secretKey string) error {
 	issuedSince := time.Since(state.Issued)
 
 	if issuedSince >= time.Minute*2 {
-		return fmt.Errorf("state expired after 2 minutes, issued at: %s", state.Issued.String())
+		return errors.New(utils.StringConcat("state expired after 2 minutes, issued at: ", state.Issued.String()))
 	} else if issuedSince <= time.Second*-5 {
-		return fmt.Errorf("state issued in future, issued at: %s", state.Issued.String())
+		return errors.New(utils.StringConcat("state issued in future, issued at: ", state.Issued.String()))
 	}
 
 	return nil

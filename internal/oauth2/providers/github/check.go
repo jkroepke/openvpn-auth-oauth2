@@ -2,10 +2,10 @@ package github
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 	"github.com/zitadel/oidc/v2/pkg/oidc"
 )
 
@@ -68,7 +68,7 @@ func (p *Provider) CheckUser(ctx context.Context, _ *state.State, _ *types.UserD
 				return err
 			}
 			for _, team := range teams {
-				roles = append(roles, fmt.Sprintf("%s:%s", team.Org.Login, team.Slug))
+				roles = append(roles, utils.StringConcat(team.Org.Login, ":", team.Slug))
 			}
 
 			if apiUrl == "" {

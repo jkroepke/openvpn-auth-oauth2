@@ -22,13 +22,19 @@ type Config struct {
 }
 
 type Http struct {
-	Listen           string             `koanf:"listen"`
-	CertFile         string             `koanf:"cert"`
-	KeyFile          string             `koanf:"key"`
-	Tls              bool               `koanf:"tls"`
-	BaseUrl          *url.URL           `koanf:"baseurl"`
-	Secret           string             `koanf:"secret"`
-	CallbackTemplate *template.Template `koanf:"callback_template_path"`
+	Listen             string             `koanf:"listen"`
+	CertFile           string             `koanf:"cert"`
+	KeyFile            string             `koanf:"key"`
+	Tls                bool               `koanf:"tls"`
+	BaseUrl            *url.URL           `koanf:"baseurl"`
+	Secret             string             `koanf:"secret"`
+	CallbackTemplate   *template.Template `koanf:"callback-template-path"`
+	Check              *HttpCheck         `koanf:"check"`
+	EnableProxyHeaders bool               `koanf:"enable-proxy-headers"`
+}
+
+type HttpCheck struct {
+	IpAddr bool `koanf:"ipaddr"`
 }
 
 type Log struct {
@@ -48,13 +54,14 @@ type OpenVpnBypass struct {
 }
 
 type OAuth2 struct {
-	Issuer    *url.URL         `koanf:"issuer"`
-	Provider  string           `koanf:"provider"`
-	Endpoints *OAuth2Endpoints `koanf:"endpoint"`
-	Client    *OAuth2Client    `koanf:"client"`
-	Scopes    []string         `koanf:"scopes"`
-	Pkce      bool             `koanf:"pkce"`
-	Validate  *OAuth2Validate  `koanf:"validate"`
+	Issuer          *url.URL         `koanf:"issuer"`
+	Provider        string           `koanf:"provider"`
+	AuthorizeParams string           `koanf:"authorize-params"`
+	Endpoints       *OAuth2Endpoints `koanf:"endpoint"`
+	Client          *OAuth2Client    `koanf:"client"`
+	Scopes          []string         `koanf:"scopes"`
+	Pkce            bool             `koanf:"pkce"`
+	Validate        *OAuth2Validate  `koanf:"validate"`
 }
 
 type OAuth2Client struct {
@@ -79,7 +86,7 @@ type OAuth2Validate struct {
 func FlagSet() *flag.FlagSet {
 	f := flag.NewFlagSet("openvpn-auth-oauth2", flag.ContinueOnError)
 	f.Usage = func() {
-		_, _ = fmt.Fprintln(os.Stderr, "Usage of openvpn-auth-oauth2:")
+		fmt.Println("Usage of openvpn-auth-oauth2:")
 		f.PrintDefaults()
 		os.Exit(0)
 	}
@@ -93,13 +100,16 @@ func FlagSet() *flag.FlagSet {
 	f.String("http.secret", "", "Cookie secret. (env: CONFIG_HTTP_SECRET)")
 	f.String("http.key", "", "Path to tls server key. (env: CONFIG_HTTP_KEY)")
 	f.String("http.cert", "", "Path to tls server certificate. (env: CONFIG_HTTP_CERT)")
-	f.String("http.callback_template_path", "", "Path to a HTML file which is displayed at the end of the screen. (env: CONFIG_HTTP_CALLBACK_TEMPLATE_PATH)")
+	f.String("http.callback-template-path", "", "Path to a HTML file which is displayed at the end of the screen. (env: CONFIG_HTTP_CALLBACK_TEMPLATE_PATH)")
+	f.Bool("http.check.ipaddr", false, "Check if client IP in http and VPN is equal. (env: CONFIG_HTTP_CHECK_IPADDR)")
+	f.Bool("http.enable-proxy-headers", false, "Use X-Forward-For http header for client ips. (env: CONFIG_HTTP_ENABLE_PROXY_HEADERS)")
 	f.String("openvpn.addr", "unix:///run/openvpn/server.sock", "openvpn management interface addr. Must start with unix:// or tcp:// (env: CONFIG_OPENVPN_ADDR)")
 	f.String("openvpn.password", "", "openvpn management interface password. (env: CONFIG_OPENVPN_PASSWORD)")
 	f.Bool("openvpn.auth-token-user", true, "Define auth-token-user for all sessions. (env: CONFIG_OPENVPN_AUTH_TOKEN_USER)")
 	f.StringSlice("openvpn.bypass.cn", []string{}, "bypass oauth authentication for CNs. (env: CONFIG_OAUTH2_BYPASS_CN)")
 	f.String("oauth2.issuer", "", "oauth2 issuer. (env: CONFIG_OAUTH2_ISSUER)")
-	f.String("oauth2.provider", "oidc", "oauth2 provider. (env: CONFIG_OAUTH2_PROVIDER)")
+	f.String("oauth2.provider", "generic", "oauth2 provider. (env: CONFIG_OAUTH2_PROVIDER)")
+	f.String("oauth2.authorize-params", "", "additional url query parameter to authorize endpoint. (env: CONFIG_OAUTH2_AUTHORIZE_ENDPOINT)")
 	f.String("oauth2.endpoint.discovery", "", "custom oauth2 discovery url. (env: CONFIG_OAUTH2_ENDPOINT_DISCOVERY)")
 	f.String("oauth2.endpoint.auth", "", "custom oauth2 auth endpoint. (env: CONFIG_OAUTH2_ENDPOINT_AUTH)")
 	f.String("oauth2.endpoint.token", "", "custom oauth2 token endpoint. (env: CONFIG_OAUTH2_ENDPOINT_TOKEN)")
@@ -124,18 +134,19 @@ func Validate(conf *Config) error {
 		"log":     conf.Log,
 	} {
 		if reflect.ValueOf(value).IsNil() {
-			return fmt.Errorf("%s is nil", key)
+			return errors.New(utils.StringConcat(key, " is nil"))
 		}
 	}
 
 	for key, value := range map[string]any{
+		"http.check":       conf.Http.Check,
 		"oauth2.client":    conf.Oauth2.Client,
 		"oauth2.endpoints": conf.Oauth2.Endpoints,
 		"oauth2.validate":  conf.Oauth2.Validate,
 		"openvpn.bypass":   conf.OpenVpn.Bypass,
 	} {
 		if reflect.ValueOf(value).IsNil() {
-			return fmt.Errorf("%s is nil", key)
+			return errors.New(utils.StringConcat(key, " is nil"))
 		}
 	}
 
@@ -144,7 +155,7 @@ func Validate(conf *Config) error {
 		"oauth2.client.id": conf.Oauth2.Client.Id,
 	} {
 		if value == "" {
-			return fmt.Errorf("%s is required", key)
+			return errors.New(utils.StringConcat(key, " is required"))
 		}
 	}
 
@@ -153,7 +164,7 @@ func Validate(conf *Config) error {
 		"oauth2.issuer": conf.Oauth2.Issuer,
 	} {
 		if utils.IsUrlEmpty(value) {
-			return fmt.Errorf("%s is required", key)
+			return errors.New(utils.StringConcat(key, " is required"))
 		}
 	}
 
@@ -177,13 +188,8 @@ func Validate(conf *Config) error {
 		}
 
 		if !slices.Contains([]string{"http", "https"}, uri.Scheme) {
-			return fmt.Errorf("%s: invalid URL. only http:// or https:// scheme supported", key)
+			return errors.New(utils.StringConcat(key, ": invalid URL. only http:// or https:// scheme supported"))
 		}
-	}
-
-	if (!utils.IsUrlEmpty(conf.Oauth2.Endpoints.Token) && utils.IsUrlEmpty(conf.Oauth2.Endpoints.Auth)) ||
-		(utils.IsUrlEmpty(conf.Oauth2.Endpoints.Token) && !utils.IsUrlEmpty(conf.Oauth2.Endpoints.Auth)) {
-		return errors.New("both oauth2.endpoints.tokenUrl and oauth2.endpoints.authUrl are required")
 	}
 
 	return nil

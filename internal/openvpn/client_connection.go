@@ -2,9 +2,10 @@ package openvpn
 
 import (
 	"errors"
-	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
 type ClientConnection struct {
@@ -27,7 +28,7 @@ func NewClientConnection(message string) (*ClientConnection, error) {
 			strings.HasPrefix(line, ">CLIENT:CR_RESPONSE") {
 			clientInfo := strings.Split(strings.TrimSpace(line), ",")
 			if len(clientInfo) == 1 {
-				return nil, fmt.Errorf("unable to parse line %s", line)
+				return nil, errors.New(utils.StringConcat("unable to parse line ", line))
 			}
 
 			clientConnection.Reason = strings.Replace(clientInfo[0], ">CLIENT:", "", 1)
