@@ -109,7 +109,12 @@ func (c *Client) Connect() error {
 
 	go func() {
 		for {
-			if err := c.processClient(<-c.clientsCh); err != nil {
+			client := <-c.clientsCh
+			if client == nil {
+				return
+			}
+
+			if err := c.processClient(client); err != nil {
 				c.errCh <- err
 				return
 			}
@@ -118,7 +123,12 @@ func (c *Client) Connect() error {
 
 	go func() {
 		for {
-			if err := c.rawCommand(<-c.commandsCh); err != nil {
+			command := <-c.commandsCh
+			if command == "" {
+				return
+			}
+
+			if err := c.rawCommand(command); err != nil {
 				c.errCh <- err
 				return
 			}
@@ -160,10 +170,6 @@ func (c *Client) Connect() error {
 }
 
 func (c *Client) processClient(client *ClientConnection) error {
-	if client == nil {
-		return nil
-	}
-
 	switch client.Reason {
 	case "CONNECT":
 		fallthrough
@@ -301,6 +307,7 @@ func (c *Client) readMessage() (string, error) {
 func (c *Client) close() {
 	c.closed = true
 	_ = c.conn.Close()
+	close(c.errCh)
 	close(c.shutdownCh)
 	close(c.clientsCh)
 	close(c.commandsCh)
