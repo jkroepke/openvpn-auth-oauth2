@@ -128,8 +128,10 @@ func (c *Client) Connect() error {
 	}()
 
 	go func() {
+		var client *ClientConnection
+
 		for {
-			client := <-c.clientsCh
+			client = <-c.clientsCh
 			if client == nil {
 				return
 			}
@@ -142,8 +144,9 @@ func (c *Client) Connect() error {
 	}()
 
 	go func() {
+		var command string
 		for {
-			command := <-c.commandsCh
+			command = <-c.commandsCh
 			if command == "" {
 				return
 			}

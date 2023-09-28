@@ -281,7 +281,7 @@ func TestHandler(t *testing.T) {
 				return
 			}
 
-			time.Sleep(time.Millisecond * 300)
+			time.Sleep(time.Millisecond * 100)
 
 			request, err := http.NewRequest("GET", fmt.Sprintf("%s/oauth2/start?state=%s", httpClientListener.URL, sessionState.Encoded), nil)
 			if !assert.NoError(t, err) {
