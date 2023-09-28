@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.6.0] - 2023-09-27
 
+### Added
+
+- Implement client ip check between http client and vpn client
+
 ### Changes
 
 - Provider oidc is now named generic
