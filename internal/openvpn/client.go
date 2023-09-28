@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
@@ -25,6 +26,7 @@ type Client struct {
 	reader *bufio.Reader
 	logger *slog.Logger
 
+	mu     sync.Mutex
 	closed bool
 
 	clientsCh         chan *ClientConnection
@@ -40,6 +42,7 @@ func NewClient(logger *slog.Logger, conf *config.Config) *Client {
 		logger: logger,
 
 		closed: false,
+		mu:     sync.Mutex{},
 
 		errCh:             make(chan error, 1),
 		clientsCh:         make(chan *ClientConnection, 10),
@@ -161,13 +164,12 @@ func (c *Client) Connect() error {
 	for {
 		select {
 		case err := <-c.errCh:
-			c.close()
+			c.Shutdown()
 			if err != nil {
 				return errors.New(utils.StringConcat("OpenVPN management error: ", err.Error()))
 			}
 			return nil
 		case <-c.shutdownCh:
-			c.close()
 			return nil
 		}
 	}
@@ -253,8 +255,14 @@ func (c *Client) processClient(client *ClientConnection) error {
 
 // Shutdown shutdowns the client connection
 func (c *Client) Shutdown() {
-	c.logger.Info("shutdown connection")
-	c.shutdownCh <- struct{}{}
+	c.mu.Lock()
+	if !c.closed {
+		c.closed = true
+		c.logger.Info("shutdown connection")
+		c.shutdownCh <- struct{}{}
+		c.close()
+	}
+	c.mu.Unlock()
 }
 
 // SendCommand passes command to a given connection (adds logging and EOL character) and returns the response
