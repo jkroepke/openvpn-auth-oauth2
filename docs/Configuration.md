@@ -8,7 +8,7 @@ Linux package, use the file `/etc/sysconfig/openvpn-auth-oauth2` to configure op
 ```
 Usage of openvpn-auth-oauth2:
       --config string                        path to one .yaml config files. (env: CONFIG_CONFIG)
-      --http.baseurl string                  listen addr for client listener. (env: CONFIG_HTTP_BASE_URL) (default "http://localhost:9000")
+      --http.baseurl string                  listen addr for client listener. (env: CONFIG_HTTP_BASEURL) (default "http://localhost:9000")
       --http.callback_template_path string   Path to a HTML file which is displayed at the end of the screen. (env: CONFIG_HTTP_CALLBACK_TEMPLATE_PATH)
       --http.cert string                     Path to tls server certificate. (env: CONFIG_HTTP_CERT)
       --http.key string                      Path to tls server key. (env: CONFIG_HTTP_KEY)
