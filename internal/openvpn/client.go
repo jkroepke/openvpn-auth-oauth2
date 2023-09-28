@@ -110,9 +110,6 @@ func (c *Client) Connect() error {
 				return
 			}
 
-			line := buf.String()
-			_ = line
-
 			if bytes.HasPrefix(buf.Bytes(), []byte(">CLIENT:")) {
 				client, err := NewClientConnection(buf.String())
 				if err != nil {
