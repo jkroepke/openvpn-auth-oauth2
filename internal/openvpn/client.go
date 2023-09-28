@@ -256,11 +256,11 @@ func (c *Client) processClient(client *ClientConnection) error {
 // Shutdown shutdowns the client connection
 func (c *Client) Shutdown() {
 	c.mu.Lock()
+	defer c.mu.Unlock()
 	if !c.closed {
 		c.logger.Info("shutdown connection")
 		c.shutdownCh <- struct{}{}
 	}
-	c.mu.Unlock()
 }
 
 // SendCommand passes command to a given connection (adds logging and EOL character) and returns the response
@@ -314,10 +314,10 @@ func (c *Client) readMessage() (string, error) {
 
 func (c *Client) close() {
 	c.mu.Lock()
+	defer c.mu.Unlock()
 	if !c.closed {
 		c.closed = true
 		_ = c.conn.Close()
 		close(c.commandsCh)
 	}
-	c.mu.Unlock()
 }
