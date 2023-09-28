@@ -25,6 +25,8 @@ type Client struct {
 	reader *bufio.Reader
 	logger *slog.Logger
 
+	closed bool
+
 	clientsCh         chan *ClientConnection
 	commandResponseCh chan string
 	commandsCh        chan string
@@ -36,6 +38,8 @@ func NewClient(logger *slog.Logger, conf *config.Config) *Client {
 	return &Client{
 		conf:   conf,
 		logger: logger,
+
+		closed: false,
 
 		errCh:             make(chan error, 1),
 		clientsCh:         make(chan *ClientConnection, 10),
@@ -143,16 +147,23 @@ func (c *Client) Connect() error {
 	for {
 		select {
 		case err := <-c.errCh:
-			_ = c.conn.Close()
-			return errors.New(utils.StringConcat("OpenVPN management error: ", err.Error()))
+			c.close()
+			if err != nil {
+				return errors.New(utils.StringConcat("OpenVPN management error: ", err.Error()))
+			}
+			return nil
 		case <-c.shutdownCh:
-			_ = c.conn.Close()
+			c.close()
 			return nil
 		}
 	}
 }
 
 func (c *Client) processClient(client *ClientConnection) error {
+	if client == nil {
+		return nil
+	}
+
 	switch client.Reason {
 	case "CONNECT":
 		fallthrough
@@ -232,8 +243,10 @@ func (c *Client) processClient(client *ClientConnection) error {
 
 // Shutdown shutdowns the client connection
 func (c *Client) Shutdown() {
-	c.logger.Info("shutdown connection")
-	c.shutdownCh <- struct{}{}
+	if !c.closed {
+		c.logger.Info("shutdown connection")
+		c.shutdownCh <- struct{}{}
+	}
 }
 
 // SendCommand passes command to a given connection (adds logging and EOL character) and returns the response
@@ -283,4 +296,13 @@ func (c *Client) readMessage() (string, error) {
 			return buf.String(), nil
 		}
 	}
+}
+
+func (c *Client) close() {
+	c.closed = true
+	_ = c.conn.Close()
+	close(c.shutdownCh)
+	close(c.clientsCh)
+	close(c.commandsCh)
+	close(c.commandResponseCh)
 }
