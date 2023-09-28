@@ -14,6 +14,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
@@ -279,6 +280,8 @@ func TestHandler(t *testing.T) {
 			if !assert.NoError(t, err) {
 				return
 			}
+
+			time.Sleep(time.Second)
 
 			request, err := http.NewRequest("GET", fmt.Sprintf("%s/oauth2/start?state=%s", httpClientListener.URL, sessionState.Encoded), nil)
 			if !assert.NoError(t, err) {

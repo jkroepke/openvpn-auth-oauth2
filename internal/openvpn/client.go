@@ -307,7 +307,6 @@ func (c *Client) readMessage() (string, error) {
 func (c *Client) close() {
 	c.closed = true
 	_ = c.conn.Close()
-	close(c.errCh)
 	close(c.shutdownCh)
 	close(c.clientsCh)
 	close(c.commandsCh)
