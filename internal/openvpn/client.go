@@ -86,6 +86,8 @@ func (c *Client) Connect() error {
 		for {
 			message, err := c.readMessage()
 			if err != nil {
+				close(c.clientsCh)
+				close(c.commandResponseCh)
 				c.errCh <- err
 				return
 			}
@@ -93,6 +95,8 @@ func (c *Client) Connect() error {
 			if strings.HasPrefix(message, ">CLIENT:") {
 				client, err := NewClientConnection(message)
 				if err != nil {
+					close(c.clientsCh)
+					close(c.commandResponseCh)
 					c.errCh <- err
 					return
 				}
@@ -249,10 +253,8 @@ func (c *Client) processClient(client *ClientConnection) error {
 
 // Shutdown shutdowns the client connection
 func (c *Client) Shutdown() {
-	if !c.closed {
-		c.logger.Info("shutdown connection")
-		c.shutdownCh <- struct{}{}
-	}
+	c.logger.Info("shutdown connection")
+	c.shutdownCh <- struct{}{}
 }
 
 // SendCommand passes command to a given connection (adds logging and EOL character) and returns the response
@@ -305,10 +307,6 @@ func (c *Client) readMessage() (string, error) {
 }
 
 func (c *Client) close() {
-	c.closed = true
 	_ = c.conn.Close()
-	close(c.shutdownCh)
-	close(c.clientsCh)
 	close(c.commandsCh)
-	close(c.commandResponseCh)
 }
