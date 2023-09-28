@@ -96,7 +96,7 @@ func FlagSet() *flag.FlagSet {
 	f.String("log.level", "info", "log level. (env: CONFIG_LOG_LEVEL)")
 	f.String("http.listen", ":9000", "listen addr for client listener. (env: CONFIG_HTTP_LISTEN)")
 	f.Bool("http.tls", false, "enable TLS listener. (env: CONFIG_HTTP_TLS)")
-	f.String("http.baseurl", "http://localhost:9000", "listen addr for client listener. (env: CONFIG_HTTP_BASE_URL)")
+	f.String("http.baseurl", "http://localhost:9000", "listen addr for client listener. (env: CONFIG_HTTP_BASEURL)")
 	f.String("http.secret", "", "Cookie secret. (env: CONFIG_HTTP_SECRET)")
 	f.String("http.key", "", "Path to tls server key. (env: CONFIG_HTTP_KEY)")
 	f.String("http.cert", "", "Path to tls server certificate. (env: CONFIG_HTTP_CERT)")
