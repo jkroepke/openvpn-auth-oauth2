@@ -20,7 +20,7 @@ func NewClientConnection(message string) (*ClientConnection, error) {
 		Env: map[string]string{},
 	}
 
-	for _, line := range strings.Split(strings.TrimSpace(message), "\r\n") {
+	for _, line := range strings.Split(strings.TrimSpace(message), "\n") {
 		if strings.HasPrefix(line, ">CLIENT:CONNECT") ||
 			strings.HasPrefix(line, ">CLIENT:REAUTH") ||
 			strings.HasPrefix(line, ">CLIENT:DISCONNECT") ||

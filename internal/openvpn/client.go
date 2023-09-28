@@ -21,10 +21,10 @@ import (
 )
 
 type Client struct {
-	conf   *config.Config
-	conn   net.Conn
-	reader *bufio.Reader
-	logger *slog.Logger
+	conf    *config.Config
+	conn    net.Conn
+	scanner *bufio.Scanner
+	logger  *slog.Logger
 
 	mu     sync.Mutex
 	closed bool
@@ -35,6 +35,13 @@ type Client struct {
 	errCh             chan error
 	shutdownCh        chan struct{}
 }
+
+var (
+	msgEnd        = []byte("ERROR:")
+	prefixSuccess = []byte("SUCCESS:")
+	prefixEnd     = []byte("END")
+	prefixVersion = []byte("OpenVPN Version:")
+)
 
 func NewClient(logger *slog.Logger, conf *config.Config) *Client {
 	return &Client{
@@ -68,47 +75,57 @@ func (c *Client) Connect() error {
 		return errors.New(utils.StringConcat("unable to connect to openvpn management interface ", c.conf.OpenVpn.Addr.String(), ": ", err.Error()))
 	}
 	defer c.conn.Close()
-	c.reader = bufio.NewReader(c.conn)
+	c.scanner = bufio.NewScanner(c.conn)
+	c.scanner.Split(bufio.ScanLines)
+
+	var buf bytes.Buffer
 
 	if c.conf.OpenVpn.Password != "" {
 		if err := c.rawCommand(utils.StringConcat(c.conf.OpenVpn.Password, "\n")); err != nil {
 			return err
 		}
 
-		line, err := c.readMessage()
-		if err != nil {
+		if err := c.readMessage(&buf); err != nil {
 			return err
 		}
 
-		if !strings.Contains(line, "SUCCESS: password is correct") {
+		if !strings.Contains(buf.String(), "SUCCESS: password is correct") {
 			return errors.New("wrong openvpn management interface password")
 		}
+
+		buf.Reset()
 	}
 
 	go func() {
 		defer close(c.commandResponseCh)
 		defer close(c.clientsCh)
 
+		var buf bytes.Buffer
+
 		for {
-			message, err := c.readMessage()
-			if err != nil {
+			buf.Reset()
+
+			if err := c.readMessage(&buf); err != nil {
 				c.errCh <- err
 				return
 			}
 
-			if strings.HasPrefix(message, ">CLIENT:") {
-				client, err := NewClientConnection(message)
+			line := buf.String()
+			_ = line
+
+			if bytes.HasPrefix(buf.Bytes(), []byte(">CLIENT:")) {
+				client, err := NewClientConnection(buf.String())
 				if err != nil {
 					c.errCh <- err
 					return
 				}
 
 				c.clientsCh <- client
-			} else if strings.HasPrefix(message, "SUCCESS:") || strings.HasPrefix(message, "ERROR:") || strings.HasPrefix(message, "OpenVPN Version:") {
-				if strings.HasPrefix(message, "ERROR:") {
-					c.logger.Warn(fmt.Sprintf("Error from OpenVPN: %s", message))
+			} else if bytes.HasPrefix(buf.Bytes(), prefixSuccess) || bytes.HasPrefix(buf.Bytes(), msgEnd) || bytes.HasPrefix(buf.Bytes(), prefixVersion) {
+				if bytes.HasPrefix(buf.Bytes(), msgEnd) {
+					c.logger.Warn(fmt.Sprintf("Error from OpenVPN: %s", buf.String()))
 				}
-				c.commandResponseCh <- message
+				c.commandResponseCh <- buf.String()
 			}
 		}
 	}()
@@ -284,30 +301,40 @@ func (c *Client) rawCommand(cmd string) error {
 }
 
 // readMessage .
-func (c *Client) readMessage() (string, error) {
-	var buf bytes.Buffer
+func (c *Client) readMessage(buf *bytes.Buffer) error {
+	var line = make([]byte, 256)
+
 	for {
-		line, err := c.reader.ReadBytes('\n')
-		if err != nil {
-			return "", err
+		if ok := c.scanner.Scan(); !ok {
+			return c.scanner.Err()
 		}
+
+		line = c.scanner.Bytes()
 
 		if _, err := buf.Write(line); err != nil {
-			return "", err
+			return err
 		}
 
-		if bytes.HasPrefix(line, []byte(">CLIENT:ENV,END")) ||
-			bytes.Index(line, []byte("END")) == 0 ||
-			bytes.Index(line, []byte("SUCCESS:")) == 0 ||
-			bytes.Index(line, []byte("ERROR:")) == 0 ||
+		if _, err := buf.WriteString("\n"); err != nil {
+			return err
+		}
+
+		// ignore NOTIFY messages
+		if bytes.HasPrefix(line, []byte(">NOTIFY:")) {
+			if c.logger.Enabled(context.Background(), slog.LevelDebug) {
+				c.logger.Debug(buf.String())
+			}
+		} else if bytes.HasPrefix(line, []byte(">CLIENT:ENV,END")) ||
+			bytes.Index(line, prefixEnd) == 0 ||
+			bytes.Index(line, prefixSuccess) == 0 ||
+			bytes.Index(line, msgEnd) == 0 ||
 			bytes.HasPrefix(line, []byte(">HOLD:")) ||
 			bytes.HasPrefix(line, []byte(">INFO:")) ||
-			bytes.HasPrefix(line, []byte(">NOTIFY:")) ||
 			bytes.HasPrefix(line, []byte("ENTER PASSWORD:")) {
 			if c.logger.Enabled(context.Background(), slog.LevelDebug) {
 				c.logger.Debug(buf.String())
 			}
-			return buf.String(), nil
+			return nil
 		}
 	}
 }
