@@ -302,7 +302,7 @@ func (c *Client) rawCommand(cmd string) error {
 
 // readMessage .
 func (c *Client) readMessage(buf *bytes.Buffer) error {
-	var line = make([]byte, 256)
+	var line []byte
 
 	for {
 		if ok := c.scanner.Scan(); !ok {
