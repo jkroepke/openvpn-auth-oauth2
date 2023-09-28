@@ -86,11 +86,12 @@ func (c *Client) Connect() error {
 	}
 
 	go func() {
+		defer close(c.commandResponseCh)
+		defer close(c.clientsCh)
+
 		for {
 			message, err := c.readMessage()
 			if err != nil {
-				close(c.clientsCh)
-				close(c.commandResponseCh)
 				c.errCh <- err
 				return
 			}
@@ -98,8 +99,6 @@ func (c *Client) Connect() error {
 			if strings.HasPrefix(message, ">CLIENT:") {
 				client, err := NewClientConnection(message)
 				if err != nil {
-					close(c.clientsCh)
-					close(c.commandResponseCh)
 					c.errCh <- err
 					return
 				}
@@ -164,12 +163,13 @@ func (c *Client) Connect() error {
 	for {
 		select {
 		case err := <-c.errCh:
-			c.Shutdown()
+			c.close()
 			if err != nil {
 				return errors.New(utils.StringConcat("OpenVPN management error: ", err.Error()))
 			}
 			return nil
 		case <-c.shutdownCh:
+			c.close()
 			return nil
 		}
 	}
@@ -257,10 +257,8 @@ func (c *Client) processClient(client *ClientConnection) error {
 func (c *Client) Shutdown() {
 	c.mu.Lock()
 	if !c.closed {
-		c.closed = true
 		c.logger.Info("shutdown connection")
 		c.shutdownCh <- struct{}{}
-		c.close()
 	}
 	c.mu.Unlock()
 }
@@ -315,6 +313,11 @@ func (c *Client) readMessage() (string, error) {
 }
 
 func (c *Client) close() {
-	_ = c.conn.Close()
-	close(c.commandsCh)
+	c.mu.Lock()
+	if !c.closed {
+		c.closed = true
+		_ = c.conn.Close()
+		close(c.commandsCh)
+	}
+	c.mu.Unlock()
 }
