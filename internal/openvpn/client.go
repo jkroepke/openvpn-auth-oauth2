@@ -2,6 +2,8 @@ package openvpn
 
 import (
 	"bufio"
+	"bytes"
+	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -10,17 +12,22 @@ import (
 	"net/url"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
 type Client struct {
-	conf   *config.Config
-	conn   net.Conn
-	reader *bufio.Reader
-	logger *slog.Logger
+	conf    *config.Config
+	conn    net.Conn
+	scanner *bufio.Scanner
+	logger  *slog.Logger
+
+	mu     sync.Mutex
+	closed bool
 
 	clientsCh         chan *ClientConnection
 	commandResponseCh chan string
@@ -29,10 +36,20 @@ type Client struct {
 	shutdownCh        chan struct{}
 }
 
+var (
+	msgEnd        = []byte("ERROR:")
+	prefixSuccess = []byte("SUCCESS:")
+	prefixEnd     = []byte("END")
+	prefixVersion = []byte("OpenVPN Version:")
+)
+
 func NewClient(logger *slog.Logger, conf *config.Config) *Client {
 	return &Client{
 		conf:   conf,
 		logger: logger,
+
+		closed: false,
+		mu:     sync.Mutex{},
 
 		errCh:             make(chan error, 1),
 		clientsCh:         make(chan *ClientConnection, 10),
@@ -43,70 +60,83 @@ func NewClient(logger *slog.Logger, conf *config.Config) *Client {
 }
 
 func (c *Client) Connect() error {
-	uri, err := url.Parse(c.conf.OpenVpn.Addr)
-	c.logger.Info(fmt.Sprintf("connect to openvpn management interface %s", uri.String()))
-	if err != nil {
-		return fmt.Errorf("unable to parse openvpn addr as URI: %v", err)
-	}
-
-	switch uri.Scheme {
+	var err error
+	c.logger.Info(utils.StringConcat("connect to openvpn management interface ", c.conf.OpenVpn.Addr.String()))
+	switch c.conf.OpenVpn.Addr.Scheme {
 	case "tcp":
-		c.conn, err = net.Dial(uri.Scheme, uri.Host)
+		c.conn, err = net.Dial(c.conf.OpenVpn.Addr.Scheme, c.conf.OpenVpn.Addr.Host)
 	case "unix":
-		c.conn, err = net.Dial(uri.Scheme, uri.Path)
+		c.conn, err = net.Dial(c.conf.OpenVpn.Addr.Scheme, c.conf.OpenVpn.Addr.Path)
 	default:
-		return fmt.Errorf("unable to connect to openvpn management interface: unknwon protocol %s", uri.Scheme)
+		return errors.New(utils.StringConcat("unable to connect to openvpn management interface: unknown protocol ", c.conf.OpenVpn.Addr.Scheme))
 	}
 
 	if err != nil {
-		return fmt.Errorf("unable to connect to openvpn management interface %s: %v", uri.String(), err)
+		return errors.New(utils.StringConcat("unable to connect to openvpn management interface ", c.conf.OpenVpn.Addr.String(), ": ", err.Error()))
 	}
 	defer c.conn.Close()
-	c.reader = bufio.NewReader(c.conn)
+	c.scanner = bufio.NewScanner(c.conn)
+	c.scanner.Split(bufio.ScanLines)
+
+	var buf bytes.Buffer
 
 	if c.conf.OpenVpn.Password != "" {
-		if err := c.rawCommand(c.conf.OpenVpn.Password); err != nil {
+		if err := c.rawCommand(utils.StringConcat(c.conf.OpenVpn.Password, "\n")); err != nil {
 			return err
 		}
 
-		line, err := c.readMessage()
-		if err != nil {
+		if err := c.readMessage(&buf); err != nil {
 			return err
 		}
 
-		if !strings.Contains(line, "SUCCESS: password is correct") {
+		if !strings.Contains(buf.String(), "SUCCESS: password is correct") {
 			return errors.New("wrong openvpn management interface password")
 		}
+
+		buf.Reset()
 	}
 
 	go func() {
+		defer close(c.commandResponseCh)
+		defer close(c.clientsCh)
+
+		var buf bytes.Buffer
+
 		for {
-			message, err := c.readMessage()
-			if err != nil {
+			buf.Reset()
+
+			if err := c.readMessage(&buf); err != nil {
 				c.errCh <- err
 				return
 			}
 
-			if strings.HasPrefix(message, ">CLIENT:") {
-				client, err := NewClientConnection(message)
+			if bytes.HasPrefix(buf.Bytes(), []byte(">CLIENT:")) {
+				client, err := NewClientConnection(buf.String())
 				if err != nil {
 					c.errCh <- err
 					return
 				}
 
 				c.clientsCh <- client
-			} else if strings.HasPrefix(message, "SUCCESS:") || strings.HasPrefix(message, "ERROR:") || strings.HasPrefix(message, "OpenVPN Version:") {
-				if strings.HasPrefix(message, "ERROR:") {
-					c.logger.Warn(fmt.Sprintf("Error from OpenVPN: %s", message))
+			} else if bytes.HasPrefix(buf.Bytes(), prefixSuccess) || bytes.HasPrefix(buf.Bytes(), msgEnd) || bytes.HasPrefix(buf.Bytes(), prefixVersion) {
+				if bytes.HasPrefix(buf.Bytes(), msgEnd) {
+					c.logger.Warn(fmt.Sprintf("Error from OpenVPN: %s", buf.String()))
 				}
-				c.commandResponseCh <- message
+				c.commandResponseCh <- buf.String()
 			}
 		}
 	}()
 
 	go func() {
+		var client *ClientConnection
+
 		for {
-			if err := c.processClient(<-c.clientsCh); err != nil {
+			client = <-c.clientsCh
+			if client == nil {
+				return
+			}
+
+			if err := c.processClient(client); err != nil {
 				c.errCh <- err
 				return
 			}
@@ -114,8 +144,14 @@ func (c *Client) Connect() error {
 	}()
 
 	go func() {
+		var command string
 		for {
-			if err := c.rawCommand(<-c.commandsCh); err != nil {
+			command = <-c.commandsCh
+			if command == "" {
+				return
+			}
+
+			if err := c.rawCommand(command); err != nil {
 				c.errCh <- err
 				return
 			}
@@ -129,7 +165,7 @@ func (c *Client) Connect() error {
 	select {
 	case resp := <-respCh:
 		if !strings.HasPrefix(resp, "SUCCESS:") {
-			return fmt.Errorf("invalid openvpn management interface response: %v", resp)
+			return errors.New(utils.StringConcat("invalid openvpn management interface response: ", resp))
 		}
 	case <-time.After(10 * time.Second):
 		return errors.New("timeout while waiting from openvpn management interface response")
@@ -144,10 +180,13 @@ func (c *Client) Connect() error {
 	for {
 		select {
 		case err := <-c.errCh:
-			_ = c.conn.Close()
-			return fmt.Errorf("OpenVPN management error: %v", err)
+			c.close()
+			if err != nil {
+				return errors.New(utils.StringConcat("OpenVPN management error: ", err.Error()))
+			}
+			return nil
 		case <-c.shutdownCh:
-			_ = c.conn.Close()
+			c.close()
 			return nil
 		}
 	}
@@ -176,9 +215,9 @@ func (c *Client) processClient(client *ClientConnection) error {
 			)
 
 			if c.conf.OpenVpn.AuthTokenUser {
-				c.SendCommand("client-auth %d %d\npush \"auth-token-user %s\"\nEND", client.Cid, client.Kid, base64.StdEncoding.EncodeToString([]byte(client.Env["common_name"])))
+				c.SendCommandf("client-auth %d %d\npush \"auth-token-user %s\"\nEND", client.Cid, client.Kid, base64.StdEncoding.EncodeToString([]byte(client.Env["common_name"])))
 			} else {
-				c.SendCommand(`client-auth-nt %d %d`, client.Cid, client.Kid)
+				c.SendCommandf("client-auth-nt %d %d", client.Cid, client.Kid)
 			}
 
 			return nil
@@ -193,16 +232,16 @@ func (c *Client) processClient(client *ClientConnection) error {
 				"username", client.Env["username"],
 			)
 
-			c.SendCommand(`client-deny %d %d "%s" "%s"`, client.Cid, client.Kid, ErrorSsoNotSupported, ErrorSsoNotSupported)
+			c.SendCommandf(`client-deny %d %d "%s" "%s"`, client.Cid, client.Kid, ErrorSsoNotSupported, ErrorSsoNotSupported)
 			return nil
 		}
 
 		session := state.New(client.Cid, client.Kid, client.Env["untrusted_ip"], client.Env["common_name"])
 		if err := session.Encode(c.conf.Http.Secret); err != nil {
-			return fmt.Errorf("error encoding state: %s", err)
+			return errors.New(utils.StringConcat("error encoding state: ", err.Error()))
 		}
 
-		startUrl := fmt.Sprintf("%s/oauth2/start?state=%s", strings.TrimSuffix(c.conf.Http.BaseUrl, "/"), url.QueryEscape(session.Encoded))
+		startUrl := utils.StringConcat(strings.TrimSuffix(c.conf.Http.BaseUrl.String(), "/"), "/oauth2/start?state=", url.QueryEscape(session.Encoded))
 		c.logger.Info("start pending auth",
 			"cid", client.Cid,
 			"kid", client.Kid,
@@ -210,7 +249,7 @@ func (c *Client) processClient(client *ClientConnection) error {
 			"common_name", client.Env["common_name"],
 			"username", client.Env["username"],
 		)
-		c.SendCommand(`client-pending-auth %d %d "WEB_AUTH::%s" %d`, client.Cid, client.Kid, startUrl, 600)
+		c.SendCommandf(`client-pending-auth %d %d "WEB_AUTH::%s" %d`, client.Cid, client.Kid, startUrl, 600)
 	case "ESTABLISHED":
 		c.logger.Info("client established",
 			"cid", client.Cid,
@@ -233,43 +272,79 @@ func (c *Client) processClient(client *ClientConnection) error {
 
 // Shutdown shutdowns the client connection
 func (c *Client) Shutdown() {
-	c.logger.Info("shutdown connection")
-	c.shutdownCh <- struct{}{}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if !c.closed {
+		c.logger.Info("shutdown connection")
+		c.shutdownCh <- struct{}{}
+	}
 }
 
 // SendCommand passes command to a given connection (adds logging and EOL character) and returns the response
-func (c *Client) SendCommand(format string, a ...any) string {
-	c.commandsCh <- fmt.Sprintf(format, a...)
+func (c *Client) SendCommand(cmd string) string {
+	c.commandsCh <- utils.StringConcat(cmd, "\n")
 	return <-c.commandResponseCh
+}
+
+// SendCommandf passes command to a given connection (adds logging and EOL character) and returns the response
+func (c *Client) SendCommandf(format string, a ...any) string {
+	return c.SendCommand(fmt.Sprintf(format, a...))
 }
 
 // rawCommand passes command to a given connection (adds logging and EOL character)
 func (c *Client) rawCommand(cmd string) error {
-	c.logger.Debug(cmd)
-	_, err := fmt.Fprintln(c.conn, cmd)
+	if c.logger.Enabled(context.Background(), slog.LevelDebug) {
+		c.logger.Debug(cmd)
+	}
+	_, err := c.conn.Write([]byte(cmd))
 	return err
 }
 
 // readMessage .
-func (c *Client) readMessage() (string, error) {
-	result := ""
+func (c *Client) readMessage(buf *bytes.Buffer) error {
+	var line []byte
+
 	for {
-		line, err := c.reader.ReadString('\n')
-		if err != nil {
-			return "", err
+		if ok := c.scanner.Scan(); !ok {
+			return c.scanner.Err()
 		}
 
-		result += line
-		if strings.HasPrefix(line, ">CLIENT:ENV,END") ||
-			strings.Index(line, "END") == 0 ||
-			strings.Index(line, "SUCCESS:") == 0 ||
-			strings.Index(line, "ERROR:") == 0 ||
-			strings.HasPrefix(line, ">HOLD:") ||
-			strings.HasPrefix(line, ">INFO:") ||
-			strings.HasPrefix(line, "ENTER PASSWORD:") {
+		line = c.scanner.Bytes()
 
-			c.logger.Debug(result)
-			return result, nil
+		if _, err := buf.Write(line); err != nil {
+			return err
 		}
+
+		if _, err := buf.WriteString("\n"); err != nil {
+			return err
+		}
+
+		// ignore NOTIFY messages
+		if bytes.HasPrefix(line, []byte(">NOTIFY:")) {
+			if c.logger.Enabled(context.Background(), slog.LevelDebug) {
+				c.logger.Debug(buf.String())
+			}
+		} else if bytes.HasPrefix(line, []byte(">CLIENT:ENV,END")) ||
+			bytes.Index(line, prefixEnd) == 0 ||
+			bytes.Index(line, prefixSuccess) == 0 ||
+			bytes.Index(line, msgEnd) == 0 ||
+			bytes.HasPrefix(line, []byte(">HOLD:")) ||
+			bytes.HasPrefix(line, []byte(">INFO:")) ||
+			bytes.HasPrefix(line, []byte("ENTER PASSWORD:")) {
+			if c.logger.Enabled(context.Background(), slog.LevelDebug) {
+				c.logger.Debug(buf.String())
+			}
+			return nil
+		}
+	}
+}
+
+func (c *Client) close() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if !c.closed {
+		c.closed = true
+		_ = c.conn.Close()
+		close(c.commandsCh)
 	}
 }

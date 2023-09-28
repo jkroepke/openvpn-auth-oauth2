@@ -25,7 +25,7 @@ func TestNewClientConnection(t *testing.T) {
 		{"client invalid reason", []string{">CLIENT:CONNECT", ">CLIENT:ENV,name1=val1", ">CLIENT:ENV,name2", ">CLIENT:ENV,END"}, nil, "unable to parse line >CLIENT:CONNECT"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			message := strings.Join(tt.lines, "\r\n")
+			message := strings.Join(tt.lines, "\n")
 
 			clientConnection, err := NewClientConnection(message)
 			if tt.err == "" {

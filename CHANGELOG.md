@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2023-09-28
+
+### Added
+
+- Implement client ip check between http client and vpn client
+
+### Changes
+
+- Provider oidc is now named generic
+
 ## [1.5.1] - 2023-09-25
 
 ### Fixed
@@ -82,6 +92,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - First release
 
 [Unreleased]: https://github.com/jkroepke/openvpn-auth-oauth2/compare/v1.5.1...HEAD
+[1.6.0]: https://github.com/jkroepke/openvpn-auth-oauth2/releases/tag/v1.6.0
 [1.5.1]: https://github.com/jkroepke/openvpn-auth-oauth2/releases/tag/v1.5.1
 [1.5.0]: https://github.com/jkroepke/openvpn-auth-oauth2/releases/tag/v1.5.0
 [1.4.0]: https://github.com/jkroepke/openvpn-auth-oauth2/releases/tag/v1.4.0

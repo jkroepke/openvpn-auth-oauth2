@@ -3,9 +3,11 @@ package github
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"net/http"
 	"regexp"
+
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
 // Pagination URL patterns
@@ -21,14 +23,14 @@ func get[T any](ctx context.Context, accessToken string, apiUrl string, t *T) (s
 		return "", err
 	}
 
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", accessToken))
+	req.Header.Add("Authorization", utils.StringConcat("Bearer ", accessToken))
 	req.Header.Add("Accept", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "", err
 	} else if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("error from github api %s, http status code: %d", apiUrl, resp.StatusCode)
+		return "", errors.New(utils.StringConcat("error from github api ", apiUrl, ", http status code: ", resp.Status))
 	}
 
 	defer resp.Body.Close()

@@ -2,9 +2,10 @@ package openvpn
 
 import (
 	"errors"
-	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
 type ClientConnection struct {
@@ -19,7 +20,7 @@ func NewClientConnection(message string) (*ClientConnection, error) {
 		Env: map[string]string{},
 	}
 
-	for _, line := range strings.Split(strings.TrimSpace(message), "\r\n") {
+	for _, line := range strings.Split(strings.TrimSpace(message), "\n") {
 		if strings.HasPrefix(line, ">CLIENT:CONNECT") ||
 			strings.HasPrefix(line, ">CLIENT:REAUTH") ||
 			strings.HasPrefix(line, ">CLIENT:DISCONNECT") ||
@@ -27,7 +28,7 @@ func NewClientConnection(message string) (*ClientConnection, error) {
 			strings.HasPrefix(line, ">CLIENT:CR_RESPONSE") {
 			clientInfo := strings.Split(strings.TrimSpace(line), ",")
 			if len(clientInfo) == 1 {
-				return nil, fmt.Errorf("unable to parse line %s", line)
+				return nil, errors.New(utils.StringConcat("unable to parse line ", line))
 			}
 
 			clientConnection.Reason = strings.Replace(clientInfo[0], ">CLIENT:", "", 1)

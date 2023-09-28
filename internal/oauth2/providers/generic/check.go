@@ -1,9 +1,8 @@
-package oidc
+package generic
 
 import (
 	"context"
 	"errors"
-	"fmt"
 	"slices"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
@@ -43,7 +42,7 @@ func (p *Provider) CheckGroups(tokens *oidc.Tokens[*oidc.IDTokenClaims]) error {
 
 	for _, group := range p.Conf.Oauth2.Validate.Groups {
 		if !slices.Contains(tokenGroupsList, group) {
-			return fmt.Errorf("missing required group %s", group)
+			return errors.New(utils.StringConcat("missing required group ", group))
 		}
 	}
 
@@ -64,7 +63,7 @@ func (p *Provider) CheckRoles(tokens *oidc.Tokens[*oidc.IDTokenClaims]) error {
 
 	for _, role := range p.Conf.Oauth2.Validate.Roles {
 		if !slices.Contains(tokenRolesList, role) {
-			return fmt.Errorf("missing required role %s", role)
+			return errors.New(utils.StringConcat("missing required role ", role))
 		}
 	}
 
@@ -75,13 +74,13 @@ func (p *Provider) CheckCommonName(session *state.State, tokens *oidc.Tokens[*oi
 		return nil
 	}
 
-	tokenCommonName, ok := tokens.IDTokenClaims.Claims[p.Conf.Oauth2.Validate.CommonName]
+	tokenCommonName, ok := tokens.IDTokenClaims.Claims[p.Conf.Oauth2.Validate.CommonName].(string)
 	if !ok {
-		return fmt.Errorf("missing %s claim", p.Conf.Oauth2.Validate.CommonName)
+		return errors.New(utils.StringConcat("missing ", p.Conf.Oauth2.Validate.CommonName, " claim"))
 	}
 
 	if tokenCommonName != session.CommonName {
-		return fmt.Errorf("common_name mismatch: openvpn client: %s - oidc token: %s", tokenCommonName, session.CommonName)
+		return errors.New(utils.StringConcat("common_name mismatch: openvpn client: ", tokenCommonName, " - oidc token: ", session.CommonName))
 	}
 
 	return nil
@@ -91,13 +90,13 @@ func (p *Provider) CheckIpAddress(session *state.State, tokens *oidc.Tokens[*oid
 		return nil
 	}
 
-	tokenIpaddr, ok := tokens.IDTokenClaims.Claims["ipaddr"]
+	tokenIpaddr, ok := tokens.IDTokenClaims.Claims["ipaddr"].(string)
 	if !ok {
 		return errors.New("missing ipaddr claim")
 	}
 
 	if tokenIpaddr != session.Ipaddr {
-		return fmt.Errorf("ipaddr mismatch: openvpn client: %s - oidc token: %s", tokenIpaddr, session.Ipaddr)
+		return errors.New(utils.StringConcat("ipaddr mismatch: openvpn client: ", tokenIpaddr, " - oidc token: ", session.Ipaddr))
 	}
 
 	return nil

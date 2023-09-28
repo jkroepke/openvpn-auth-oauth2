@@ -5,17 +5,21 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
 	"runtime"
 	"strings"
+	"syscall"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/providers/posflag"
 	"github.com/knadh/koanf/v2"
+	"github.com/mitchellh/mapstructure"
 	"go.uber.org/zap"
 	"go.uber.org/zap/exp/zapslog"
 )
@@ -28,7 +32,7 @@ func Execute(version, commit, date string) int {
 
 	f := config.FlagSet()
 	if err := f.Parse(os.Args[1:]); err != nil {
-		logger.Error(fmt.Sprintf("error parsing cli args: %v", err))
+		logger.Error(utils.StringConcat("error parsing cli args: ", err.Error()))
 		return 1
 	}
 
@@ -40,13 +44,13 @@ func Execute(version, commit, date string) int {
 	configFile, _ := f.GetString("config")
 	if configFile != "" {
 		if err := k.Load(file.Provider(configFile), yaml.Parser()); err != nil {
-			logger.Error(fmt.Sprintf("error loading config: %v", err))
+			logger.Error(utils.StringConcat("error loading config: ", err.Error()))
 			return 1
 		}
 	}
 
 	if err := k.Load(posflag.Provider(f, ".", k), nil); err != nil {
-		logger.Error(fmt.Sprintf("error loading config: %v", err))
+		logger.Error(utils.StringConcat("error loading config: ", err.Error()))
 		return 1
 	}
 
@@ -61,19 +65,33 @@ func Execute(version, commit, date string) int {
 		// Otherwise, return the plain string.
 		return key, v
 	}), nil); err != nil {
-		logger.Error(fmt.Sprintf("error loading config: %v", err))
+		logger.Error(utils.StringConcat("error loading config: ", err.Error()))
 		return 1
 	}
 
 	var conf config.Config
-	if err := k.Unmarshal("", &conf); err != nil {
-		logger.Error(fmt.Sprintf("error loading config: %v", err))
+	unmarshalConf := koanf.UnmarshalConf{
+		DecoderConfig: &mapstructure.DecoderConfig{
+			DecodeHook: mapstructure.ComposeDecodeHookFunc(
+				mapstructure.StringToTimeDurationHookFunc(),
+				mapstructure.TextUnmarshallerHookFunc(),
+				config.StringToUrlHookFunc(),
+				config.StringToTemplateHookFunc(),
+			),
+			Metadata:         nil,
+			Result:           &conf,
+			WeaklyTypedInput: true,
+		},
+	}
+
+	if err := k.UnmarshalWithConf("", &conf, unmarshalConf); err != nil {
+		logger.Error(utils.StringConcat("error loading config: ", err.Error()))
 		return 1
 	}
 
 	logger, err := configureLogger(&conf)
 	if err != nil {
-		logger.Error(fmt.Sprintf("error configure logger: %v", err))
+		logger.Error(utils.StringConcat("error configure logger: ", err.Error()))
 		return 1
 	}
 	defer logger.Sync() //nolint:errcheck
@@ -81,7 +99,7 @@ func Execute(version, commit, date string) int {
 	sl := slog.New(zapslog.NewHandler(logger.Core(), nil))
 
 	if err := config.Validate(&conf); err != nil {
-		sl.Error(fmt.Sprintf("error validating config: %v", err))
+		sl.Error(utils.StringConcat("error validating config: ", err.Error()))
 		return 1
 	}
 
@@ -108,25 +126,18 @@ func Execute(version, commit, date string) int {
 		}
 
 		if conf.Http.Tls {
-			sl.Info(fmt.Sprintf("HTTPS server listen on %s with base url %s", conf.Http.Listen, conf.Http.BaseUrl))
+			sl.Info(utils.StringConcat("HTTPS server listen on ", conf.Http.Listen, " with base url ", conf.Http.BaseUrl.String()))
 			if err := server.ListenAndServeTLS(conf.Http.CertFile, conf.Http.KeyFile); err != nil {
 				sl.Error(err.Error())
 				done <- 1
 			}
 		} else {
-			sl.Info(fmt.Sprintf("HTTP server listen on %s with base url %s", conf.Http.Listen, conf.Http.BaseUrl))
+			sl.Info(utils.StringConcat("HTTP server listen on ", conf.Http.Listen, " with base url ", conf.Http.BaseUrl.String()))
 			if err := server.ListenAndServe(); err != nil {
 				sl.Error(err.Error())
 				done <- 1
 			}
 		}
-	}()
-
-	sigs := make(chan os.Signal, 1)
-	go func() {
-		sig := <-sigs
-		logger.Info(fmt.Sprintf("reciving signal: %s", sig.String()))
-		openvpnClient.Shutdown()
 	}()
 
 	go func() {
@@ -138,7 +149,17 @@ func Execute(version, commit, date string) int {
 		done <- 0
 	}()
 
-	return <-done
+	termCh := make(chan os.Signal, 1)
+	signal.Notify(termCh, syscall.SIGINT, syscall.SIGTERM)
+
+	select {
+	case returnCode := <-done:
+		return returnCode
+	case sig := <-termCh:
+		sl.Info(utils.StringConcat("receiving signal: ", sig.String()))
+		openvpnClient.Shutdown()
+		return 0
+	}
 }
 
 func configureLogger(conf *config.Config) (*zap.Logger, error) {

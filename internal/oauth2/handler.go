@@ -3,32 +3,30 @@ package oauth2
 import (
 	"context"
 	"encoding/base64"
-	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 	"github.com/zitadel/oidc/v2/pkg/client/rp"
 	"github.com/zitadel/oidc/v2/pkg/oidc"
 )
 
 func Handler(logger *slog.Logger, oidcProvider *Provider, conf *config.Config, openvpnClient *openvpn.Client) *http.ServeMux {
-	baseUrl, _ := url.Parse(conf.Http.BaseUrl)
-
 	mux := http.NewServeMux()
 	mux.Handle("/", http.NotFoundHandler())
-	mux.Handle(strings.TrimSuffix(baseUrl.Path, "/")+"/oauth2/start", oauth2Start(logger, oidcProvider, conf))
-	mux.Handle(strings.TrimSuffix(baseUrl.Path, "/")+"/oauth2/callback", oauth2Callback(logger, oidcProvider, conf, openvpnClient))
+	mux.Handle(strings.TrimSuffix(conf.Http.BaseUrl.Path, "/")+"/oauth2/start", oauth2Start(logger, oidcProvider, conf, openvpnClient))
+	mux.Handle(strings.TrimSuffix(conf.Http.BaseUrl.Path, "/")+"/oauth2/callback", oauth2Callback(logger, oidcProvider, conf, openvpnClient))
 
 	return mux
 }
 
-func oauth2Start(logger *slog.Logger, oidcProvider *Provider, conf *config.Config) http.Handler {
+func oauth2Start(logger *slog.Logger, oidcProvider *Provider, conf *config.Config, openvpnClient *openvpn.Client) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sessionState := r.URL.Query().Get("state")
 		if sessionState == "" {
@@ -38,14 +36,48 @@ func oauth2Start(logger *slog.Logger, oidcProvider *Provider, conf *config.Confi
 
 		session := state.NewEncoded(sessionState)
 		if err := session.Decode(conf.Http.Secret); err != nil {
-			logger.Warn(fmt.Sprintf("invalid state: %s", err.Error()),
-				"common_name", session.CommonName,
-				"cid", session.Cid,
-				"kid", session.Kid,
-			)
+			logger.Warn(utils.StringConcat("invalid state: ", err.Error()))
 			logger.Debug(sessionState)
 			w.WriteHeader(http.StatusBadRequest)
 			return
+		}
+
+		if conf.Http.Check.IpAddr {
+			clientIP, _, err := net.SplitHostPort(r.RemoteAddr)
+			if strings.HasPrefix(r.RemoteAddr, "[") {
+				clientIP = utils.StringConcat("[", clientIP, "]")
+			}
+
+			if err != nil {
+				logger.Warn(err.Error(),
+					"common_name", session.CommonName,
+					"cid", session.Cid,
+					"kid", session.Kid,
+				)
+
+				openvpnClient.SendCommandf(`client-deny %d %d "%s"`, session.Cid, session.Kid, "client rejected")
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			if conf.Http.EnableProxyHeaders {
+				if fwdAddress := r.Header.Get("X-Forwarded-For"); fwdAddress != "" {
+					clientIP = strings.Split(fwdAddress, ", ")[0]
+				}
+			}
+
+			if clientIP != session.Ipaddr {
+				logger.Warn(utils.StringConcat("http client ip ", clientIP, " and vpn ip ", session.Ipaddr, " is different."),
+					"common_name", session.CommonName,
+					"cid", session.Cid,
+					"kid", session.Kid,
+				)
+
+				openvpnClient.SendCommandf(`client-deny %d %d "%s"`, session.Cid, session.Kid, "client rejected")
+
+				w.WriteHeader(http.StatusForbidden)
+				return
+			}
 		}
 
 		logger.Info("initialize authorization via oauth2",
@@ -76,7 +108,7 @@ func oauth2Callback(logger *slog.Logger, oidcProvider *Provider, conf *config.Co
 			return
 		}
 
-		user, err := oidcProvider.Connector.GetUser(ctx, tokens)
+		user, err := oidcProvider.OidcProvider.GetUser(ctx, tokens)
 		if err != nil {
 			logger.Error(err.Error(),
 				"common_name", session.CommonName,
@@ -84,11 +116,12 @@ func oauth2Callback(logger *slog.Logger, oidcProvider *Provider, conf *config.Co
 				"kid", session.Kid,
 			)
 
-			openvpnClient.SendCommand("client-deny %d %d \"%s\"", session.Cid, session.Kid, "unable to fetch user data")
+			openvpnClient.SendCommandf(`client-deny %d %d "%s"`, session.Cid, session.Kid, "unable to fetch user data")
+
 			return
 		}
 
-		if err := oidcProvider.Connector.CheckUser(ctx, session, user, tokens); err != nil {
+		if err := oidcProvider.OidcProvider.CheckUser(ctx, session, user, tokens); err != nil {
 			logger.Warn(err.Error(),
 				"subject", user.Subject,
 				"preferred_username", user.PreferredUsername,
@@ -97,9 +130,9 @@ func oauth2Callback(logger *slog.Logger, oidcProvider *Provider, conf *config.Co
 				"kid", session.Kid,
 			)
 
-			openvpnClient.SendCommand("client-deny %d %d \"%s\"", session.Cid, session.Kid, "client rejected")
+			openvpnClient.SendCommandf(`client-deny %d %d "%s"`, session.Cid, session.Kid, "client rejected")
 
-			if conf.Http.CallbackTemplate == nil {
+			if conf.Http.CallbackTemplate == nil || conf.Http.CallbackTemplate.Tree == nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			} else {
 				err := conf.Http.CallbackTemplate.Execute(w, map[string]string{
@@ -133,12 +166,12 @@ func oauth2Callback(logger *slog.Logger, oidcProvider *Provider, conf *config.Co
 			}
 
 			b64Username := base64.StdEncoding.EncodeToString([]byte(username))
-			openvpnClient.SendCommand("client-auth %d %d\npush \"auth-token-user %s\"\nEND", session.Cid, session.Kid, b64Username)
+			openvpnClient.SendCommandf("client-auth %d %d\npush \"auth-token-user %s\"\nEND", session.Cid, session.Kid, b64Username)
 		} else {
-			openvpnClient.SendCommand(`client-auth-nt %d %d`, session.Cid, session.Kid)
+			openvpnClient.SendCommandf("client-auth-nt %d %d", session.Cid, session.Kid)
 		}
 
-		if conf.Http.CallbackTemplate == nil {
+		if conf.Http.CallbackTemplate == nil || conf.Http.CallbackTemplate.Tree == nil {
 			_, _ = w.Write([]byte(callbackHtml))
 		} else if err := conf.Http.CallbackTemplate.Execute(w, map[string]string{}); err != nil {
 			logger.Error("executing template:", err)
