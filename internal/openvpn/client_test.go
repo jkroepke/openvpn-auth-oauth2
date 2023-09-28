@@ -199,6 +199,8 @@ func TestClientFull(t *testing.T) {
 				assert.NoError(t, err)
 
 				defer conn.Close() //nolint:errcheck
+				defer client.Shutdown()
+
 				reader := bufio.NewReader(conn)
 
 				if tt.conf.OpenVpn.Password != "" {
@@ -218,7 +220,6 @@ func TestClientFull(t *testing.T) {
 					_, _ = reader.ReadString('\n')
 					return
 				} else if tt.expect == "" {
-					client.Shutdown() //nolint:errcheck
 					return
 				}
 
@@ -241,7 +242,6 @@ func TestClientFull(t *testing.T) {
 					assert.Equal(t, "test", sessionState.CommonName)
 					assert.Equal(t, "127.0.0.1", sessionState.Ipaddr)
 				}
-				client.Shutdown() //nolint:errcheck
 			}()
 
 			err := client.Connect()

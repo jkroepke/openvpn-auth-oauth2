@@ -232,8 +232,8 @@ func TestHandler(t *testing.T) {
 			wg := sync.WaitGroup{}
 			wg.Add(2)
 			go func() {
-				defer httpClientListener.Close()
 				defer wg.Done()
+				defer httpClientListener.Close()
 
 				conn, err := managementInterface.Accept()
 				assert.NoError(t, err)
