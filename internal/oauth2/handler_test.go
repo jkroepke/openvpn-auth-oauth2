@@ -233,7 +233,6 @@ func TestHandler(t *testing.T) {
 			wg.Add(2)
 			go func() {
 				defer httpClientListener.Close()
-				defer client.Shutdown()
 				defer wg.Done()
 
 				conn, err := managementInterface.Accept()
