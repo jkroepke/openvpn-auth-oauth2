@@ -12,6 +12,7 @@ import (
 	"strings"
 	"syscall"
 	"testing"
+	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 	"github.com/stretchr/testify/assert"
@@ -77,6 +78,8 @@ func TestExecuteConfigFileFound(t *testing.T) {
 		assert.Equal(t, "version", readLine(t, reader))
 
 		sendLine(t, conn, "OpenVPN Version: OpenVPN Mock\r\nEND\r\n")
+
+		time.Sleep(100 * time.Millisecond)
 
 		p, err := os.FindProcess(os.Getpid())
 		if err != nil {
