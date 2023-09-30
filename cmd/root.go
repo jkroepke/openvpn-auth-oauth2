@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -28,8 +29,10 @@ var k = koanf.New(".")
 func Execute(version, commit, date string, w io.Writer) int {
 	logger := slog.New(slog.NewJSONHandler(w, nil))
 
+	var err error
+
 	f := config.FlagSet()
-	if err := f.Parse(os.Args[1:]); err != nil {
+	if err = f.Parse(os.Args[1:]); err != nil {
 		logger.Error(utils.StringConcat("error parsing cli args: ", err.Error()))
 		return 1
 	}
@@ -47,12 +50,12 @@ func Execute(version, commit, date string, w io.Writer) int {
 		}
 	}
 
-	if err := k.Load(posflag.Provider(f, ".", k), nil); err != nil {
+	if err = k.Load(posflag.Provider(f, ".", k), nil); err != nil {
 		logger.Error(utils.StringConcat("error loading config: ", err.Error()))
 		return 1
 	}
 
-	if err := k.Load(env.ProviderWithValue("CONFIG_", ".", func(s string, v string) (string, interface{}) {
+	err = k.Load(env.ProviderWithValue("CONFIG_", ".", func(s string, v string) (string, interface{}) {
 		key := strings.Replace(strings.ToLower(strings.TrimPrefix(s, "CONFIG_")), "_", ".", -1)
 
 		// If there is a space in the value, split the value into a slice by the space.
@@ -62,7 +65,9 @@ func Execute(version, commit, date string, w io.Writer) int {
 
 		// Otherwise, return the plain string.
 		return key, v
-	}), nil); err != nil {
+	}), nil)
+
+	if err != nil {
 		logger.Error(utils.StringConcat("error loading config: ", err.Error()))
 		return 1
 	}
@@ -82,17 +87,18 @@ func Execute(version, commit, date string, w io.Writer) int {
 		},
 	}
 
-	if err := k.UnmarshalWithConf("", &conf, unmarshalConf); err != nil {
+	if err = k.UnmarshalWithConf("", &conf, unmarshalConf); err != nil {
 		logger.Error(utils.StringConcat("error loading config: ", err.Error()))
 		return 1
 	}
 
-	if err := configureLogger(&conf, logger, w); err != nil {
+	logger, err = configureLogger(&conf, w)
+	if err != nil {
 		logger.Error(utils.StringConcat("error configure logger: ", err.Error()))
 		return 1
 	}
 
-	if err := config.Validate(&conf); err != nil {
+	if err = config.Validate(&conf); err != nil {
 		logger.Error(utils.StringConcat("error validating config: ", err.Error()))
 		return 1
 	}
@@ -115,13 +121,13 @@ func Execute(version, commit, date string, w io.Writer) int {
 
 		if conf.Http.Tls {
 			logger.Info(utils.StringConcat("HTTPS server listen on ", conf.Http.Listen, " with base url ", conf.Http.BaseUrl.String()))
-			if err := server.ListenAndServeTLS(conf.Http.CertFile, conf.Http.KeyFile); err != nil {
+			if err = server.ListenAndServeTLS(conf.Http.CertFile, conf.Http.KeyFile); err != nil {
 				logger.Error(err.Error())
 				done <- 1
 			}
 		} else {
 			logger.Info(utils.StringConcat("HTTP server listen on ", conf.Http.Listen, " with base url ", conf.Http.BaseUrl.String()))
-			if err := server.ListenAndServe(); err != nil {
+			if err = server.ListenAndServe(); err != nil {
 				logger.Error(err.Error())
 				done <- 1
 			}
@@ -130,7 +136,7 @@ func Execute(version, commit, date string, w io.Writer) int {
 
 	go func() {
 		defer openvpnClient.Shutdown()
-		if err := openvpnClient.Connect(); err != nil {
+		if err = openvpnClient.Connect(); err != nil {
 			logger.Error(err.Error())
 			done <- 1
 		}
@@ -150,11 +156,11 @@ func Execute(version, commit, date string, w io.Writer) int {
 	}
 }
 
-func configureLogger(conf *config.Config, logger *slog.Logger, w io.Writer) error {
+func configureLogger(conf *config.Config, w io.Writer) (*slog.Logger, error) {
 	var level slog.Level
 
 	if err := level.UnmarshalText([]byte(conf.Log.Level)); err != nil {
-		return err
+		return nil, err
 	}
 
 	opts := &slog.HandlerOptions{
@@ -164,10 +170,10 @@ func configureLogger(conf *config.Config, logger *slog.Logger, w io.Writer) erro
 
 	switch conf.Log.Format {
 	case "json":
-		logger = slog.New(slog.NewJSONHandler(w, opts))
+		return slog.New(slog.NewJSONHandler(w, opts)), nil
 	case "console":
-		logger = slog.New(slog.NewTextHandler(w, opts))
+		return slog.New(slog.NewTextHandler(w, opts)), nil
+	default:
+		return nil, errors.New(utils.StringConcat("Unknown log format: ", conf.Log.Format))
 	}
-
-	return nil
 }
