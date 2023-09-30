@@ -1,0 +1,7 @@
+oauth2:
+  issuer: http://localhost:9000
+  client:
+    id: SECRET
+    secret: SECRET
+openvpn:
+  auth-token-user: true
