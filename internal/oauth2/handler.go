@@ -17,7 +17,7 @@ import (
 	"github.com/zitadel/oidc/v2/pkg/oidc"
 )
 
-func Handler(logger *slog.Logger, oidcProvider *Provider, conf *config.Config, openvpnClient *openvpn.Client) *http.ServeMux {
+func Handler(logger *slog.Logger, oidcProvider *Provider, conf config.Config, openvpnClient *openvpn.Client) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.Handle("/", http.NotFoundHandler())
 	mux.Handle(strings.TrimSuffix(conf.Http.BaseUrl.Path, "/")+"/oauth2/start", oauth2Start(logger, oidcProvider, conf, openvpnClient))
@@ -26,7 +26,7 @@ func Handler(logger *slog.Logger, oidcProvider *Provider, conf *config.Config, o
 	return mux
 }
 
-func oauth2Start(logger *slog.Logger, oidcProvider *Provider, conf *config.Config, openvpnClient *openvpn.Client) http.Handler {
+func oauth2Start(logger *slog.Logger, oidcProvider *Provider, conf config.Config, openvpnClient *openvpn.Client) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sessionState := r.URL.Query().Get("state")
 		if sessionState == "" {
@@ -92,7 +92,7 @@ func oauth2Start(logger *slog.Logger, oidcProvider *Provider, conf *config.Confi
 	})
 }
 
-func oauth2Callback(logger *slog.Logger, oidcProvider *Provider, conf *config.Config, openvpnClient *openvpn.Client) http.Handler {
+func oauth2Callback(logger *slog.Logger, oidcProvider *Provider, conf config.Config, openvpnClient *openvpn.Client) http.Handler {
 	return rp.CodeExchangeHandler(func(w http.ResponseWriter, r *http.Request, tokens *oidc.Tokens[*oidc.IDTokenClaims], sessionState string, rp rp.RelyingParty) {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()

@@ -26,13 +26,13 @@ type Provider struct {
 
 type OidcProvider interface {
 	CheckUser(ctx context.Context, session *state.State, user *types.UserData, tokens *oidc.Tokens[*oidc.IDTokenClaims]) error
-	GetEndpoints(conf *config.Config) (*oauth2.Endpoint, error)
+	GetEndpoints(conf config.Config) (*oauth2.Endpoint, error)
 	GetName() string
 	GetUser(ctx context.Context, tokens *oidc.Tokens[*oidc.IDTokenClaims]) (*types.UserData, error)
 }
 
 // NewProvider returns a [rp.RelyingParty] instance
-func NewProvider(logger *slog.Logger, conf *config.Config) (*Provider, error) {
+func NewProvider(logger *slog.Logger, conf config.Config) (*Provider, error) {
 	oidcProvider, err := NewOidcProvider(conf)
 	if err != nil {
 		return nil, err
@@ -129,7 +129,7 @@ func NewProvider(logger *slog.Logger, conf *config.Config) (*Provider, error) {
 	}, nil
 }
 
-func NewOidcProvider(conf *config.Config) (OidcProvider, error) {
+func NewOidcProvider(conf config.Config) (OidcProvider, error) {
 	switch conf.Oauth2.Provider {
 	case "generic":
 		return generic.NewProvider(conf), nil

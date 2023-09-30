@@ -30,14 +30,14 @@ func TestHandler(t *testing.T) {
 
 	confs := []struct {
 		name          string
-		conf          *config.Config
+		conf          config.Config
 		ipaddr        string
 		xForwardedFor string
 		allow         bool
 	}{
 		{
 			"default",
-			&config.Config{
+			config.Config{
 				Http: &config.Http{
 					Secret: "0123456789101112",
 					Check: &config.HttpCheck{
@@ -67,7 +67,7 @@ func TestHandler(t *testing.T) {
 		},
 		{
 			"with ipaddr",
-			&config.Config{
+			config.Config{
 				Http: &config.Http{
 					Secret: "0123456789101112",
 					Check: &config.HttpCheck{
@@ -97,7 +97,7 @@ func TestHandler(t *testing.T) {
 		},
 		{
 			"with ipaddr + forwarded-for",
-			&config.Config{
+			config.Config{
 				Http: &config.Http{
 					Secret: "0123456789101112",
 					Check: &config.HttpCheck{
@@ -128,7 +128,7 @@ func TestHandler(t *testing.T) {
 		},
 		{
 			"with ipaddr + disabled forwarded-for",
-			&config.Config{
+			config.Config{
 				Http: &config.Http{
 					Secret: "0123456789101112",
 					Check: &config.HttpCheck{
@@ -159,7 +159,7 @@ func TestHandler(t *testing.T) {
 		},
 		{
 			"with ipaddr + multiple forwarded-for",
-			&config.Config{
+			config.Config{
 				Http: &config.Http{
 					Secret: "0123456789101112",
 					Check: &config.HttpCheck{

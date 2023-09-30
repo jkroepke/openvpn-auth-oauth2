@@ -20,7 +20,7 @@ import (
 
 func TestClientInvalidServer(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	conf := &config.Config{
+	conf := config.Config{
 		Http: &config.Http{
 			BaseUrl: &url.URL{Scheme: "http", Host: "localhost"},
 			Secret:  "0123456789101112",
@@ -44,14 +44,14 @@ func TestClientFull(t *testing.T) {
 
 	confs := []struct {
 		name   string
-		conf   *config.Config
+		conf   config.Config
 		client string
 		expect string
 		err    error
 	}{
 		{
 			"without password",
-			&config.Config{
+			config.Config{
 				Http: &config.Http{
 					BaseUrl: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  "0123456789101112",
@@ -67,7 +67,7 @@ func TestClientFull(t *testing.T) {
 		},
 		{
 			"with password",
-			&config.Config{
+			config.Config{
 				Http: &config.Http{
 					BaseUrl: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  "0123456789101112",
@@ -84,7 +84,7 @@ func TestClientFull(t *testing.T) {
 		},
 		{
 			"with invalid state",
-			&config.Config{
+			config.Config{
 				Http: &config.Http{
 					BaseUrl: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  "012345678910111",
@@ -101,7 +101,7 @@ func TestClientFull(t *testing.T) {
 		},
 		{
 			"client without IV_SSO",
-			&config.Config{
+			config.Config{
 				Http: &config.Http{
 					BaseUrl: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  "0123456789101112",
@@ -118,7 +118,7 @@ func TestClientFull(t *testing.T) {
 		},
 		{
 			"client bypass",
-			&config.Config{
+			config.Config{
 				Http: &config.Http{
 					BaseUrl: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  "0123456789101112",
@@ -135,7 +135,7 @@ func TestClientFull(t *testing.T) {
 		},
 		{
 			"client established",
-			&config.Config{
+			config.Config{
 				Http: &config.Http{
 					BaseUrl: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  "0123456789101112",
@@ -152,7 +152,7 @@ func TestClientFull(t *testing.T) {
 		},
 		{
 			"client disconnected",
-			&config.Config{
+			config.Config{
 				Http: &config.Http{
 					BaseUrl: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  "0123456789101112",
@@ -169,7 +169,7 @@ func TestClientFull(t *testing.T) {
 		},
 		{
 			"client invalid reason",
-			&config.Config{
+			config.Config{
 				Http: &config.Http{
 					BaseUrl: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  "0123456789101112",
@@ -266,7 +266,7 @@ func TestClientInvalidPassword(t *testing.T) {
 	assert.NoError(t, err)
 	defer l.Close()
 
-	conf := &config.Config{
+	conf := config.Config{
 		Http: &config.Http{
 			BaseUrl: &url.URL{Scheme: "http", Host: "localhost"},
 			Secret:  "0123456789101112",

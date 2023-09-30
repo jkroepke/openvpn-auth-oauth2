@@ -92,7 +92,7 @@ func FlagSet() *flag.FlagSet {
 	}
 
 	f.String("config", "", "path to one .yaml config files. (env: CONFIG_CONFIG)")
-	f.String("log.format", "json", "log format. json or console (env: CONFIG_LOG_FORMAT)")
+	f.String("log.format", "console", "log format. json or console (env: CONFIG_LOG_FORMAT)")
 	f.String("log.level", "info", "log level. (env: CONFIG_LOG_LEVEL)")
 	f.String("http.listen", ":9000", "listen addr for client listener. (env: CONFIG_HTTP_LISTEN)")
 	f.Bool("http.tls", false, "enable TLS listener. (env: CONFIG_HTTP_TLS)")
@@ -126,7 +126,7 @@ func FlagSet() *flag.FlagSet {
 	return f
 }
 
-func Validate(conf *Config) error {
+func Validate(conf Config) error {
 	for key, value := range map[string]any{
 		"http":    conf.Http,
 		"oauth2":  conf.Oauth2,

@@ -11,7 +11,7 @@ type Provider struct {
 	*generic.Provider
 }
 
-func NewProvider(conf *config.Config) *Provider {
+func NewProvider(conf config.Config) *Provider {
 	return &Provider{
 		Provider: generic.NewProvider(conf),
 	}

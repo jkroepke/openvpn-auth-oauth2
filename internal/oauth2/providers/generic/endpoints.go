@@ -8,7 +8,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-func (p *Provider) GetEndpoints(conf *config.Config) (*oauth2.Endpoint, error) {
+func (p *Provider) GetEndpoints(conf config.Config) (*oauth2.Endpoint, error) {
 	if utils.IsUrlEmpty(conf.Oauth2.Endpoints.Token) && utils.IsUrlEmpty(conf.Oauth2.Endpoints.Auth) {
 		return nil, nil
 	}

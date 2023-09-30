@@ -22,19 +22,20 @@ import (
 	"github.com/knadh/koanf/providers/posflag"
 	"github.com/knadh/koanf/v2"
 	"github.com/mitchellh/mapstructure"
+	flag "github.com/spf13/pflag"
 )
 
 var k = koanf.New(".")
 
-func Execute(version, commit, date string, w io.Writer) int {
-	logger := slog.New(slog.NewJSONHandler(w, &slog.HandlerOptions{
+func Execute(args []string, w io.Writer, version, commit, date string) int {
+	var err error
+
+	logger := slog.New(slog.NewTextHandler(w, &slog.HandlerOptions{
 		AddSource: false,
 	}))
 
-	var err error
-
 	f := config.FlagSet()
-	if err = f.Parse(os.Args[1:]); err != nil {
+	if err = f.Parse(args[1:]); err != nil {
 		logger.Error(utils.StringConcat("error parsing cli args: ", err.Error()))
 		return 1
 	}
@@ -44,17 +45,115 @@ func Execute(version, commit, date string, w io.Writer) int {
 		return 0
 	}
 
+	conf, err := loadConfig(f)
+	if err != nil {
+		logger.Error(utils.StringConcat("error loading config: ", err.Error()))
+		return 1
+	}
+
+	logger, err = configureLogger(conf, w)
+	if err != nil {
+		logger := slog.New(slog.NewTextHandler(w, &slog.HandlerOptions{
+			AddSource: false,
+		}))
+		logger.Error(utils.StringConcat("error configure logging: ", err.Error()))
+		return 1
+	}
+
+	if err = config.Validate(conf); err != nil {
+		logger.Error(utils.StringConcat("error validating config: ", err.Error()))
+		return 1
+	}
+
+	oidcClient, err := oauth2.NewProvider(logger, conf)
+	if err != nil {
+		logger.Error(err.Error())
+		return 1
+	}
+
+	openvpnClient := openvpn.NewClient(logger, conf)
+	done := make(chan int, 1)
+
+	go func() {
+		if err = startHttpListener(conf, logger, oidcClient, openvpnClient); err != nil {
+			logger.Error(err.Error())
+			done <- 1
+			return
+		}
+		done <- 0
+	}()
+
+	go func() {
+		defer openvpnClient.Shutdown()
+		if err = openvpnClient.Connect(); err != nil {
+			logger.Error(err.Error())
+			done <- 1
+			return
+		}
+		done <- 0
+	}()
+
+	termCh := make(chan os.Signal, 1)
+	signal.Notify(termCh, syscall.SIGINT, syscall.SIGTERM)
+
+	select {
+	case returnCode := <-done:
+		return returnCode
+	case sig := <-termCh:
+		logger.Info(utils.StringConcat("receiving signal: ", sig.String()))
+		openvpnClient.Shutdown()
+		return 0
+	}
+}
+
+func startHttpListener(conf config.Config, logger *slog.Logger, oidcClient *oauth2.Provider, openvpnClient *openvpn.Client) error {
+	server := &http.Server{
+		Addr:     conf.Http.Listen,
+		ErrorLog: slog.NewLogLogger(logger.Handler(), slog.LevelError),
+		Handler:  oauth2.Handler(logger, oidcClient, conf, openvpnClient),
+	}
+
+	if conf.Http.Tls {
+		logger.Info(utils.StringConcat("HTTPS server listen on ", conf.Http.Listen, " with base url ", conf.Http.BaseUrl.String()))
+		return server.ListenAndServeTLS(conf.Http.CertFile, conf.Http.KeyFile)
+	}
+
+	logger.Info(utils.StringConcat("HTTP server listen on ", conf.Http.Listen, " with base url ", conf.Http.BaseUrl.String()))
+	return server.ListenAndServe()
+}
+
+func configureLogger(conf config.Config, w io.Writer) (*slog.Logger, error) {
+	var level slog.Level
+	if err := level.UnmarshalText([]byte(conf.Log.Level)); err != nil {
+		return nil, err
+	}
+
+	opts := &slog.HandlerOptions{
+		AddSource: false,
+		Level:     level,
+	}
+
+	switch conf.Log.Format {
+	case "json":
+		return slog.New(slog.NewJSONHandler(w, opts)), nil
+	case "console":
+		return slog.New(slog.NewTextHandler(w, opts)), nil
+	default:
+		return nil, errors.New(utils.StringConcat("Unknown log format: ", conf.Log.Format))
+	}
+}
+
+func loadConfig(f *flag.FlagSet) (config.Config, error) {
+	var err error
 	configFile, _ := f.GetString("config")
 	if configFile != "" {
 		if err := k.Load(file.Provider(configFile), yaml.Parser()); err != nil {
-			logger.Error(utils.StringConcat("error loading config: ", err.Error()))
-			return 1
+			return config.Config{}, err
 		}
 	}
 
 	if err = k.Load(posflag.Provider(f, ".", k), nil); err != nil {
-		logger.Error(utils.StringConcat("error loading config: ", err.Error()))
-		return 1
+		return config.Config{}, err
 	}
 
 	err = k.Load(env.ProviderWithValue("CONFIG_", ".", func(s string, v string) (string, interface{}) {
@@ -70,8 +169,7 @@ func Execute(version, commit, date string, w io.Writer) int {
 	}), nil)
 
 	if err != nil {
-		logger.Error(utils.StringConcat("error loading config: ", err.Error()))
-		return 1
+		return config.Config{}, err
 	}
 
 	var conf config.Config
@@ -90,94 +188,8 @@ func Execute(version, commit, date string, w io.Writer) int {
 	}
 
 	if err = k.UnmarshalWithConf("", &conf, unmarshalConf); err != nil {
-		logger.Error(utils.StringConcat("error loading config: ", err.Error()))
-		return 1
+		return config.Config{}, err
 	}
 
-	err = configureLogger(&conf, logger, w)
-	if err != nil {
-		logger.Error(utils.StringConcat("error configure logger: ", err.Error()))
-		return 1
-	}
-
-	if err = config.Validate(&conf); err != nil {
-		logger.Error(utils.StringConcat("error validating config: ", err.Error()))
-		return 1
-	}
-
-	oidcClient, err := oauth2.NewProvider(logger, &conf)
-	if err != nil {
-		logger.Error(err.Error())
-		return 1
-	}
-
-	openvpnClient := openvpn.NewClient(logger, &conf)
-	done := make(chan int, 1)
-
-	go func() {
-		server := &http.Server{
-			Addr:     conf.Http.Listen,
-			ErrorLog: slog.NewLogLogger(logger.Handler(), slog.LevelError),
-			Handler:  oauth2.Handler(logger, oidcClient, &conf, openvpnClient),
-		}
-
-		if conf.Http.Tls {
-			logger.Info(utils.StringConcat("HTTPS server listen on ", conf.Http.Listen, " with base url ", conf.Http.BaseUrl.String()))
-			if err = server.ListenAndServeTLS(conf.Http.CertFile, conf.Http.KeyFile); err != nil {
-				logger.Error(err.Error())
-				done <- 1
-			}
-		} else {
-			logger.Info(utils.StringConcat("HTTP server listen on ", conf.Http.Listen, " with base url ", conf.Http.BaseUrl.String()))
-			if err = server.ListenAndServe(); err != nil {
-				logger.Error(err.Error())
-				done <- 1
-			}
-		}
-	}()
-
-	go func() {
-		defer openvpnClient.Shutdown()
-		if err = openvpnClient.Connect(); err != nil {
-			logger.Error(err.Error())
-			done <- 1
-		}
-		done <- 0
-	}()
-
-	termCh := make(chan os.Signal, 1)
-	signal.Notify(termCh, syscall.SIGINT, syscall.SIGTERM)
-
-	select {
-	case returnCode := <-done:
-		return returnCode
-	case sig := <-termCh:
-		logger.Info(utils.StringConcat("receiving signal: ", sig.String()))
-		openvpnClient.Shutdown()
-		return 0
-	}
-}
-
-func configureLogger(conf *config.Config, logger *slog.Logger, w io.Writer) error {
-	var level slog.Level
-
-	if err := level.UnmarshalText([]byte(conf.Log.Level)); err != nil {
-		return err
-	}
-
-	opts := &slog.HandlerOptions{
-		AddSource: false,
-		Level:     level,
-	}
-
-	switch conf.Log.Format {
-	case "json":
-		logger = slog.New(slog.NewJSONHandler(w, opts))
-	case "console":
-		logger = slog.New(slog.NewTextHandler(w, opts))
-	default:
-		return errors.New(utils.StringConcat("Unknown log format: ", conf.Log.Format))
-	}
-
-	return nil
+	return conf, nil
 }

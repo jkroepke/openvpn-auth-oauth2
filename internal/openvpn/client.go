@@ -21,7 +21,7 @@ import (
 )
 
 type Client struct {
-	conf    *config.Config
+	conf    config.Config
 	conn    net.Conn
 	scanner *bufio.Scanner
 	logger  *slog.Logger
@@ -29,7 +29,7 @@ type Client struct {
 	mu     sync.Mutex
 	closed bool
 
-	clientsCh         chan *ClientConnection
+	clientsCh         chan ClientConnection
 	commandResponseCh chan string
 	commandsCh        chan string
 	errCh             chan error
@@ -43,7 +43,7 @@ var (
 	prefixVersion = []byte("OpenVPN Version:")
 )
 
-func NewClient(logger *slog.Logger, conf *config.Config) *Client {
+func NewClient(logger *slog.Logger, conf config.Config) *Client {
 	return &Client{
 		conf:   conf,
 		logger: logger,
@@ -52,7 +52,7 @@ func NewClient(logger *slog.Logger, conf *config.Config) *Client {
 		mu:     sync.Mutex{},
 
 		errCh:             make(chan error, 1),
-		clientsCh:         make(chan *ClientConnection, 10),
+		clientsCh:         make(chan ClientConnection, 10),
 		commandResponseCh: make(chan string, 10),
 		commandsCh:        make(chan string, 10),
 		shutdownCh:        make(chan struct{}, 1),
@@ -117,7 +117,7 @@ func (c *Client) Connect() error {
 					return
 				}
 
-				c.clientsCh <- client
+				c.clientsCh <- *client
 			} else if bytes.HasPrefix(buf.Bytes(), prefixSuccess) || bytes.HasPrefix(buf.Bytes(), msgEnd) || bytes.HasPrefix(buf.Bytes(), prefixVersion) {
 				if bytes.HasPrefix(buf.Bytes(), msgEnd) {
 					c.logger.Warn(fmt.Sprintf("Error from OpenVPN: %s", buf.String()))
@@ -128,11 +128,11 @@ func (c *Client) Connect() error {
 	}()
 
 	go func() {
-		var client *ClientConnection
+		var client ClientConnection
 
 		for {
 			client = <-c.clientsCh
-			if client == nil {
+			if client.Reason == "" {
 				return
 			}
 
@@ -192,7 +192,7 @@ func (c *Client) Connect() error {
 	}
 }
 
-func (c *Client) processClient(client *ClientConnection) error {
+func (c *Client) processClient(client ClientConnection) error {
 	switch client.Reason {
 	case "CONNECT":
 		fallthrough

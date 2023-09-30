@@ -43,12 +43,12 @@ func TestNewProvider(t *testing.T) {
 
 	configs := []struct {
 		name   string
-		config *config.Config
+		config config.Config
 		err    string
 	}{
 		{
 			"default",
-			&config.Config{
+			config.Config{
 				Http: &config.Http{BaseUrl: &url.URL{Scheme: "http", Host: "localhost"}},
 				Oauth2: &config.OAuth2{
 					Issuer:    svrUrl,
@@ -61,7 +61,7 @@ func TestNewProvider(t *testing.T) {
 		},
 		{
 			"with custom discovery",
-			&config.Config{
+			config.Config{
 				Http: &config.Http{BaseUrl: &url.URL{Scheme: "http", Host: "localhost"}},
 				Oauth2: &config.OAuth2{
 					Issuer:   svrUrl,
@@ -76,7 +76,7 @@ func TestNewProvider(t *testing.T) {
 		},
 		{
 			"with invalid custom discovery",
-			&config.Config{
+			config.Config{
 				Http: &config.Http{BaseUrl: &url.URL{Scheme: "http", Host: "localhost"}},
 				Oauth2: &config.OAuth2{
 					Issuer:   svrUrl,
@@ -91,7 +91,7 @@ func TestNewProvider(t *testing.T) {
 		},
 		{
 			"with custom endpoints",
-			&config.Config{
+			config.Config{
 				Http: &config.Http{BaseUrl: &url.URL{Scheme: "http", Host: "localhost"}},
 				Oauth2: &config.OAuth2{
 					Issuer:   svrUrl,
@@ -108,7 +108,7 @@ func TestNewProvider(t *testing.T) {
 		},
 		{
 			"with missing custom endpoints",
-			&config.Config{
+			config.Config{
 				Http: &config.Http{BaseUrl: &url.URL{Scheme: "http", Host: "localhost"}},
 				Oauth2: &config.OAuth2{
 					Issuer:   svrUrl,
@@ -124,7 +124,7 @@ func TestNewProvider(t *testing.T) {
 		},
 		{
 			"with pkce",
-			&config.Config{
+			config.Config{
 				Http: &config.Http{BaseUrl: &url.URL{Scheme: "http", Host: "localhost"}},
 				Oauth2: &config.OAuth2{
 					Issuer:   svrUrl,

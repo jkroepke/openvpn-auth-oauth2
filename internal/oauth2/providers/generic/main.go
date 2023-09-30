@@ -7,10 +7,10 @@ import (
 const Name = "generic"
 
 type Provider struct {
-	Conf *config.Config
+	Conf config.Config
 }
 
-func NewProvider(conf *config.Config) *Provider {
+func NewProvider(conf config.Config) *Provider {
 	return &Provider{
 		Conf: conf,
 	}

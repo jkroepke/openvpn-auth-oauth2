@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"strings"
+	"sync"
 	"syscall"
 	"testing"
 	"time"
@@ -22,12 +23,10 @@ import (
 )
 
 func TestExecuteVersion(t *testing.T) {
-	os.Args = []string{"openvpn-auth-oauth2", "--version"}
-
 	var buf bytes.Buffer
 	_ = io.Writer(&buf)
 
-	returnCode := Execute("version", "commit", "date", &buf)
+	returnCode := Execute([]string{"", "--version"}, &buf, "version", "commit", "date")
 	assert.Equal(t, 0, returnCode, buf.String())
 }
 
@@ -39,29 +38,31 @@ func TestExecuteConfigInvalid(t *testing.T) {
 	}{
 		{
 			"file not exists",
-			[]string{"openvpn-auth-oauth2", "--config=nonexists"},
+			[]string{"", "--config=nonexists"},
 			"error loading config: open nonexists: no such file or directory",
 		},
 		{
 			"invalid log format",
-			[]string{"openvpn-auth-oauth2", "--config=../config.example.yaml", "--log.format=invalid"},
-			"error configure logger: Unknown log format: invalid",
+			[]string{"", "--config=../config.example.yaml", "--log.format=invalid", "--log.level=warn"},
+			"error configure logging: Unknown log format: invalid",
 		},
 		{
 			"invalid log level",
-			[]string{"openvpn-auth-oauth2", "--config=../config.example.yaml", "--log.level=invalid"},
-			`error configure logger: slog: level string \"invalid\": unknown name`,
+			[]string{"", "--config=../config.example.yaml", "--log.format=console", "--log.level=invalid"},
+			`error configure logging: slog: level string \"invalid\": unknown name`,
 		},
 	}
 
+	mu := sync.Mutex{}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			mu.Lock()
+			defer mu.Unlock()
 			var buf bytes.Buffer
 			_ = io.Writer(&buf)
 
-			os.Args = tt.args
-
-			returnCode := Execute("version", "commit", "date", &buf)
+			returnCode := Execute(tt.args, &buf, "version", "commit", "date")
 			assert.Equal(t, 1, returnCode, buf.String())
 			assert.Contains(t, buf.String(), tt.err)
 		})
@@ -117,8 +118,9 @@ func TestExecuteConfigFileFound(t *testing.T) {
 
 	t.Setenv("CONFIG_OPENVPN_ADDR", utils.StringConcat(l.Addr().Network(), "://", l.Addr().String()))
 	t.Setenv("CONFIG_LOG_FORMAT", "console")
+	t.Setenv("CONFIG_LOG_LEVEL", "warn")
 
-	os.Args = []string{
+	args := []string{
 		"openvpn-auth-oauth2",
 		"--config=../config.example.yaml",
 		"--http.secret=0123456789101112",
@@ -129,7 +131,7 @@ func TestExecuteConfigFileFound(t *testing.T) {
 	var buf bytes.Buffer
 	_ = io.Writer(&buf)
 
-	returnCode := Execute("version", "commit", "date", &buf)
+	returnCode := Execute(args, &buf, "version", "commit", "date")
 	assert.Equal(t, 0, returnCode, buf.String())
 }
 
