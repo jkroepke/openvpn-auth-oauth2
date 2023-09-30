@@ -16,7 +16,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gorilla/mux"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
@@ -340,15 +339,14 @@ func setupResourceServer(clientListener net.Listener) (*httptest.Server, error) 
 		return nil, err
 	}
 
-	router := mux.NewRouter()
-	router.PathPrefix("/login/username").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux := http.NewServeMux()
+	mux.Handle("/", opProvider.HttpHandler())
+	mux.Handle("/login/username", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_ = opStorage.CheckUsernamePassword("test-user@localhost", "verysecure", r.FormValue("authRequestID"))
 		http.Redirect(w, r, op.AuthCallbackURL(opProvider)(r.Context(), r.FormValue("authRequestID")), http.StatusFound)
-	})
-	router.PathPrefix("/").Handler(opProvider.HttpHandler())
+	}))
 
-	svr := httptest.NewServer(router)
-	return svr, err
+	return httptest.NewServer(mux), err
 }
 
 func sendLine(t *testing.T, conn net.Conn, msg string, a ...any) {
