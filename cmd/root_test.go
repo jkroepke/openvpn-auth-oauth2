@@ -10,7 +10,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"strings"
-	"sync"
 	"syscall"
 	"testing"
 	"time"
@@ -53,12 +52,8 @@ func TestExecuteConfigInvalid(t *testing.T) {
 		},
 	}
 
-	mu := sync.Mutex{}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mu.Lock()
-			defer mu.Unlock()
 			var buf bytes.Buffer
 			_ = io.Writer(&buf)
 
