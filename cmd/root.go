@@ -94,7 +94,7 @@ func Execute(version, commit, date string, w io.Writer) int {
 		return 1
 	}
 
-	logger, err = configureLogger(&conf, w)
+	err = configureLogger(&conf, logger, w)
 	if err != nil {
 		logger.Error(utils.StringConcat("error configure logger: ", err.Error()))
 		return 1
@@ -158,11 +158,11 @@ func Execute(version, commit, date string, w io.Writer) int {
 	}
 }
 
-func configureLogger(conf *config.Config, w io.Writer) (*slog.Logger, error) {
+func configureLogger(conf *config.Config, logger *slog.Logger, w io.Writer) error {
 	var level slog.Level
 
 	if err := level.UnmarshalText([]byte(conf.Log.Level)); err != nil {
-		return nil, err
+		return err
 	}
 
 	opts := &slog.HandlerOptions{
@@ -172,10 +172,12 @@ func configureLogger(conf *config.Config, w io.Writer) (*slog.Logger, error) {
 
 	switch conf.Log.Format {
 	case "json":
-		return slog.New(slog.NewJSONHandler(w, opts)), nil
+		logger = slog.New(slog.NewJSONHandler(w, opts))
 	case "console":
-		return slog.New(slog.NewTextHandler(w, opts)), nil
+		logger = slog.New(slog.NewTextHandler(w, opts))
 	default:
-		return nil, errors.New(utils.StringConcat("Unknown log format: ", conf.Log.Format))
+		return errors.New(utils.StringConcat("Unknown log format: ", conf.Log.Format))
 	}
+
+	return nil
 }

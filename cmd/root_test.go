@@ -31,14 +31,41 @@ func TestExecuteVersion(t *testing.T) {
 	assert.Equal(t, 0, returnCode, buf.String())
 }
 
-func TestExecuteConfigFileNotFound(t *testing.T) {
-	os.Args = []string{"openvpn-auth-oauth2", "--config", "nonexists"}
+func TestExecuteConfigInvalid(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+		err  string
+	}{
+		{
+			"file not exists",
+			[]string{"openvpn-auth-oauth2", "--config=nonexists"},
+			"error loading config: open nonexists: no such file or directory",
+		},
+		{
+			"invalid log format",
+			[]string{"openvpn-auth-oauth2", "--config=../config.example.yaml", "--log.format=invalid"},
+			"error configure logger: Unknown log format: invalid",
+		},
+		{
+			"invalid log level",
+			[]string{"openvpn-auth-oauth2", "--config=../config.example.yaml", "--log.level=invalid"},
+			`error configure logger: slog: level string \"invalid\": unknown name`,
+		},
+	}
 
-	var buf bytes.Buffer
-	_ = io.Writer(&buf)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			_ = io.Writer(&buf)
 
-	returnCode := Execute("version", "commit", "date", &buf)
-	assert.Equal(t, 1, returnCode, buf.String())
+			os.Args = tt.args
+
+			returnCode := Execute("version", "commit", "date", &buf)
+			assert.Equal(t, 1, returnCode, buf.String())
+			assert.Contains(t, buf.String(), tt.err)
+		})
+	}
 }
 
 func TestExecuteConfigFileFound(t *testing.T) {
@@ -88,13 +115,15 @@ func TestExecuteConfigFileFound(t *testing.T) {
 		_ = p.Signal(syscall.SIGINT)
 	}()
 
+	t.Setenv("CONFIG_OPENVPN_ADDR", utils.StringConcat(l.Addr().Network(), "://", l.Addr().String()))
+	t.Setenv("CONFIG_LOG_FORMAT", "console")
+
 	os.Args = []string{
 		"openvpn-auth-oauth2",
 		"--config=../config.example.yaml",
 		"--http.secret=0123456789101112",
 		"--http.listen=127.0.0.1:0",
 		"--oauth2.issuer", svr.URL,
-		"--openvpn.addr", utils.StringConcat(l.Addr().Network(), "://", l.Addr().String()),
 	}
 
 	var buf bytes.Buffer
