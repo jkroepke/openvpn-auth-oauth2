@@ -27,7 +27,9 @@ import (
 var k = koanf.New(".")
 
 func Execute(version, commit, date string, w io.Writer) int {
-	logger := slog.New(slog.NewJSONHandler(w, nil))
+	logger := slog.New(slog.NewJSONHandler(w, &slog.HandlerOptions{
+		AddSource: false,
+	}))
 
 	var err error
 
@@ -164,7 +166,7 @@ func configureLogger(conf *config.Config, w io.Writer) (*slog.Logger, error) {
 	}
 
 	opts := &slog.HandlerOptions{
-		AddSource: true,
+		AddSource: false,
 		Level:     level,
 	}
 
