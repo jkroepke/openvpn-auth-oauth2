@@ -18,10 +18,12 @@ import (
 )
 
 func Handler(logger *slog.Logger, oidcProvider *Provider, conf config.Config, openvpnClient *openvpn.Client) *http.ServeMux {
+	basePath := strings.TrimSuffix(conf.Http.BaseUrl.Path, "/")
+
 	mux := http.NewServeMux()
 	mux.Handle("/", http.NotFoundHandler())
-	mux.Handle(strings.TrimSuffix(conf.Http.BaseUrl.Path, "/")+"/oauth2/start", oauth2Start(logger, oidcProvider, conf, openvpnClient))
-	mux.Handle(strings.TrimSuffix(conf.Http.BaseUrl.Path, "/")+"/oauth2/callback", oauth2Callback(logger, oidcProvider, conf, openvpnClient))
+	mux.Handle(utils.StringConcat(basePath, "/oauth2/start"), oauth2Start(logger, oidcProvider, conf, openvpnClient))
+	mux.Handle(utils.StringConcat(basePath, "/oauth2/callback"), oauth2Callback(logger, oidcProvider, conf, openvpnClient))
 
 	return mux
 }
