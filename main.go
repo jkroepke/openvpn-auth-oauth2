@@ -13,5 +13,5 @@ var (
 )
 
 func main() {
-	os.Exit(cmd.Execute(version, commit, date))
+	os.Exit(cmd.Execute(version, commit, date, os.Stdout))
 }

@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -20,18 +22,19 @@ import (
 	"github.com/knadh/koanf/providers/posflag"
 	"github.com/knadh/koanf/v2"
 	"github.com/mitchellh/mapstructure"
-	"go.uber.org/zap"
-	"go.uber.org/zap/exp/zapslog"
 )
 
 var k = koanf.New(".")
 
-func Execute(version, commit, date string) int {
-	logger, _ := zap.NewProduction()
-	defer logger.Sync() //nolint:errcheck
+func Execute(version, commit, date string, w io.Writer) int {
+	logger := slog.New(slog.NewJSONHandler(w, &slog.HandlerOptions{
+		AddSource: false,
+	}))
+
+	var err error
 
 	f := config.FlagSet()
-	if err := f.Parse(os.Args[1:]); err != nil {
+	if err = f.Parse(os.Args[1:]); err != nil {
 		logger.Error(utils.StringConcat("error parsing cli args: ", err.Error()))
 		return 1
 	}
@@ -49,12 +52,12 @@ func Execute(version, commit, date string) int {
 		}
 	}
 
-	if err := k.Load(posflag.Provider(f, ".", k), nil); err != nil {
+	if err = k.Load(posflag.Provider(f, ".", k), nil); err != nil {
 		logger.Error(utils.StringConcat("error loading config: ", err.Error()))
 		return 1
 	}
 
-	if err := k.Load(env.ProviderWithValue("CONFIG_", ".", func(s string, v string) (string, interface{}) {
+	err = k.Load(env.ProviderWithValue("CONFIG_", ".", func(s string, v string) (string, interface{}) {
 		key := strings.Replace(strings.ToLower(strings.TrimPrefix(s, "CONFIG_")), "_", ".", -1)
 
 		// If there is a space in the value, split the value into a slice by the space.
@@ -64,7 +67,9 @@ func Execute(version, commit, date string) int {
 
 		// Otherwise, return the plain string.
 		return key, v
-	}), nil); err != nil {
+	}), nil)
+
+	if err != nil {
 		logger.Error(utils.StringConcat("error loading config: ", err.Error()))
 		return 1
 	}
@@ -84,57 +89,48 @@ func Execute(version, commit, date string) int {
 		},
 	}
 
-	if err := k.UnmarshalWithConf("", &conf, unmarshalConf); err != nil {
+	if err = k.UnmarshalWithConf("", &conf, unmarshalConf); err != nil {
 		logger.Error(utils.StringConcat("error loading config: ", err.Error()))
 		return 1
 	}
 
-	logger, err := configureLogger(&conf)
+	logger, err = configureLogger(&conf, w)
 	if err != nil {
 		logger.Error(utils.StringConcat("error configure logger: ", err.Error()))
 		return 1
 	}
-	defer logger.Sync() //nolint:errcheck
 
-	sl := slog.New(zapslog.NewHandler(logger.Core(), nil))
-
-	if err := config.Validate(&conf); err != nil {
-		sl.Error(utils.StringConcat("error validating config: ", err.Error()))
+	if err = config.Validate(&conf); err != nil {
+		logger.Error(utils.StringConcat("error validating config: ", err.Error()))
 		return 1
 	}
 
-	oidcClient, err := oauth2.NewProvider(sl, &conf)
+	oidcClient, err := oauth2.NewProvider(logger, &conf)
 	if err != nil {
-		sl.Error(err.Error())
+		logger.Error(err.Error())
 		return 1
 	}
 
-	openvpnClient := openvpn.NewClient(sl, &conf)
+	openvpnClient := openvpn.NewClient(logger, &conf)
 	done := make(chan int, 1)
 
 	go func() {
-		stdLogger, err := zap.NewStdLogAt(logger, zap.ErrorLevel)
-		if err != nil {
-			sl.Error(err.Error())
-			done <- 1
-		}
-
 		server := &http.Server{
 			Addr:     conf.Http.Listen,
-			ErrorLog: stdLogger,
-			Handler:  oauth2.Handler(sl, oidcClient, &conf, openvpnClient),
+			ErrorLog: slog.NewLogLogger(logger.Handler(), slog.LevelError),
+			Handler:  oauth2.Handler(logger, oidcClient, &conf, openvpnClient),
 		}
 
 		if conf.Http.Tls {
-			sl.Info(utils.StringConcat("HTTPS server listen on ", conf.Http.Listen, " with base url ", conf.Http.BaseUrl.String()))
-			if err := server.ListenAndServeTLS(conf.Http.CertFile, conf.Http.KeyFile); err != nil {
-				sl.Error(err.Error())
+			logger.Info(utils.StringConcat("HTTPS server listen on ", conf.Http.Listen, " with base url ", conf.Http.BaseUrl.String()))
+			if err = server.ListenAndServeTLS(conf.Http.CertFile, conf.Http.KeyFile); err != nil {
+				logger.Error(err.Error())
 				done <- 1
 			}
 		} else {
-			sl.Info(utils.StringConcat("HTTP server listen on ", conf.Http.Listen, " with base url ", conf.Http.BaseUrl.String()))
-			if err := server.ListenAndServe(); err != nil {
-				sl.Error(err.Error())
+			logger.Info(utils.StringConcat("HTTP server listen on ", conf.Http.Listen, " with base url ", conf.Http.BaseUrl.String()))
+			if err = server.ListenAndServe(); err != nil {
+				logger.Error(err.Error())
 				done <- 1
 			}
 		}
@@ -142,8 +138,8 @@ func Execute(version, commit, date string) int {
 
 	go func() {
 		defer openvpnClient.Shutdown()
-		if err := openvpnClient.Connect(); err != nil {
-			sl.Error(err.Error())
+		if err = openvpnClient.Connect(); err != nil {
+			logger.Error(err.Error())
 			done <- 1
 		}
 		done <- 0
@@ -156,21 +152,30 @@ func Execute(version, commit, date string) int {
 	case returnCode := <-done:
 		return returnCode
 	case sig := <-termCh:
-		sl.Info(utils.StringConcat("receiving signal: ", sig.String()))
+		logger.Info(utils.StringConcat("receiving signal: ", sig.String()))
 		openvpnClient.Shutdown()
 		return 0
 	}
 }
 
-func configureLogger(conf *config.Config) (*zap.Logger, error) {
-	level, err := zap.ParseAtomicLevel(conf.Log.Level)
-	if err != nil {
-		return nil, fmt.Errorf("invalid log level: %v", err)
+func configureLogger(conf *config.Config, w io.Writer) (*slog.Logger, error) {
+	var level slog.Level
+
+	if err := level.UnmarshalText([]byte(conf.Log.Level)); err != nil {
+		return nil, err
 	}
 
-	zapConfig := zap.NewProductionConfig()
-	zapConfig.Level = level
-	zapConfig.Encoding = conf.Log.Format
+	opts := &slog.HandlerOptions{
+		AddSource: false,
+		Level:     level,
+	}
 
-	return zapConfig.Build()
+	switch conf.Log.Format {
+	case "json":
+		return slog.New(slog.NewJSONHandler(w, opts)), nil
+	case "console":
+		return slog.New(slog.NewTextHandler(w, opts)), nil
+	default:
+		return nil, errors.New(utils.StringConcat("Unknown log format: ", conf.Log.Format))
+	}
 }
