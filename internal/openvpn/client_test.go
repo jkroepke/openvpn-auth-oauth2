@@ -214,7 +214,7 @@ func TestClientFull(t *testing.T) {
 				sendLine(t, conn, "SUCCESS: hold release succeeded\r\n")
 				assert.Equal(t, "version", readLine(t, reader))
 
-				sendLine(t, conn, "OpenVPN Version: OpenVPN Mock\r\nEND\r\n")
+				sendLine(t, conn, "OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 5\r\nEND\r\n")
 				sendLine(t, conn, tt.client)
 				if tt.err != nil {
 					_, _ = reader.ReadString('\n')

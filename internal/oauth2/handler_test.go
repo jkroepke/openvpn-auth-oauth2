@@ -246,7 +246,7 @@ func TestHandler(t *testing.T) {
 				sendLine(t, conn, "SUCCESS: hold release succeeded\r\n")
 				assert.Equal(t, "version", readLine(t, reader))
 
-				sendLine(t, conn, "OpenVPN Version: OpenVPN Mock\r\nEND\r\n")
+				sendLine(t, conn, "OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 5\r\nEND\r\n")
 
 				if tt.allow {
 					assert.Equal(t, "client-auth 0 1", readLine(t, reader))
