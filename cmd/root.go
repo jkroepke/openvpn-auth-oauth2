@@ -25,8 +25,6 @@ import (
 	flag "github.com/spf13/pflag"
 )
 
-var k = koanf.New(".")
-
 func Execute(args []string, w io.Writer, version, commit, date string) int {
 	var err error
 
@@ -72,6 +70,7 @@ func Execute(args []string, w io.Writer, version, commit, date string) int {
 	}
 
 	openvpnClient := openvpn.NewClient(logger, conf)
+	defer openvpnClient.Shutdown()
 	done := make(chan int, 1)
 
 	go func() {
@@ -84,7 +83,6 @@ func Execute(args []string, w io.Writer, version, commit, date string) int {
 	}()
 
 	go func() {
-		defer openvpnClient.Shutdown()
 		if err = openvpnClient.Connect(); err != nil {
 			logger.Error(err.Error())
 			done <- 1
@@ -101,7 +99,6 @@ func Execute(args []string, w io.Writer, version, commit, date string) int {
 		return returnCode
 	case sig := <-termCh:
 		logger.Info(utils.StringConcat("receiving signal: ", sig.String()))
-		openvpnClient.Shutdown()
 		return 0
 	}
 }
@@ -145,6 +142,9 @@ func configureLogger(conf config.Config, w io.Writer) (*slog.Logger, error) {
 
 func loadConfig(f *flag.FlagSet) (config.Config, error) {
 	var err error
+
+	k := koanf.New(".")
+
 	configFile, _ := f.GetString("config")
 	if configFile != "" {
 		if err := k.Load(file.Provider(configFile), yaml.Parser()); err != nil {

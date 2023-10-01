@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/url"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -74,13 +75,13 @@ func (c *Client) Connect() error {
 	if err != nil {
 		return errors.New(utils.StringConcat("unable to connect to openvpn management interface ", c.conf.OpenVpn.Addr.String(), ": ", err.Error()))
 	}
+
 	defer c.conn.Close()
 	c.scanner = bufio.NewScanner(c.conn)
 	c.scanner.Split(bufio.ScanLines)
 
-	var buf bytes.Buffer
-
 	if c.conf.OpenVpn.Password != "" {
+		var buf bytes.Buffer
 		if err := c.rawCommand(utils.StringConcat(c.conf.OpenVpn.Password, "\n")); err != nil {
 			return err
 		}
@@ -92,8 +93,6 @@ func (c *Client) Connect() error {
 		if !strings.Contains(buf.String(), "SUCCESS: password is correct") {
 			return errors.New("wrong openvpn management interface password")
 		}
-
-		buf.Reset()
 	}
 
 	go func() {
@@ -158,24 +157,28 @@ func (c *Client) Connect() error {
 		}
 	}()
 
-	respCh := make(chan string, 1)
-	go func() {
-		respCh <- c.SendCommand("hold release")
-	}()
-	select {
-	case resp := <-respCh:
-		if !strings.HasPrefix(resp, "SUCCESS:") {
-			return errors.New(utils.StringConcat("invalid openvpn management interface response: ", resp))
-		}
-	case <-time.After(10 * time.Second):
-		return errors.New("timeout while waiting from openvpn management interface response")
+	resp, err := c.SendCommand("hold release")
+	if err != nil {
+		return errors.New(err.Error())
+	} else if !strings.HasPrefix(resp, "SUCCESS:") {
+		return errors.New(utils.StringConcat("invalid response from 'hold release' command: ", resp))
 	}
 
 	c.logger.Info("Connection to OpenVPN management interfaced established.")
 
-	if version := c.SendCommand("version"); version != "" {
-		c.logger.Info(version)
+	resp, err = c.SendCommand("version")
+	if err != nil {
+		return errors.New(err.Error())
+	} else if !strings.HasPrefix(resp, "OpenVPN Version: ") {
+		return errors.New(utils.StringConcat("invalid response from 'version' command: ", resp))
 	}
+
+	version, err := c.checkManagementInterfaceVersion(resp)
+	if err != nil {
+		return err
+	}
+
+	c.logger.Info(version)
 
 	for {
 		select {
@@ -190,6 +193,24 @@ func (c *Client) Connect() error {
 			return nil
 		}
 	}
+}
+
+func (c *Client) checkManagementInterfaceVersion(version string) (string, error) {
+	versionParts := strings.Split(version, "\n")
+
+	if len(versionParts) != 4 {
+		return "", errors.New(utils.StringConcat("unexpected response from version command: ", version))
+	}
+
+	managementInterfaceVersion, err := strconv.Atoi(versionParts[1][len(versionParts[1])-1:])
+	if err != nil {
+		return "", errors.New(utils.StringConcat("unable to parse openvpn management interface version: ", err.Error()))
+	}
+
+	if managementInterfaceVersion < 5 {
+		return "", errors.New("openvpn-auth-oauth2 requires OpenVPN management interface version 5 or higher")
+	}
+	return utils.StringConcat(versionParts[0], " - ", versionParts[1]), nil
 }
 
 func (c *Client) processClient(client ClientConnection) error {
@@ -215,9 +236,15 @@ func (c *Client) processClient(client ClientConnection) error {
 			)
 
 			if c.conf.OpenVpn.AuthTokenUser {
-				c.SendCommandf("client-auth %d %d\npush \"auth-token-user %s\"\nEND", client.Cid, client.Kid, base64.StdEncoding.EncodeToString([]byte(client.Env["common_name"])))
+				_, err := c.SendCommandf("client-auth %d %d\npush \"auth-token-user %s\"\nEND", client.Cid, client.Kid, base64.StdEncoding.EncodeToString([]byte(client.Env["common_name"])))
+				if err != nil {
+					c.logger.Warn(err.Error())
+				}
 			} else {
-				c.SendCommandf("client-auth-nt %d %d", client.Cid, client.Kid)
+				_, err := c.SendCommandf("client-auth-nt %d %d", client.Cid, client.Kid)
+				if err != nil {
+					c.logger.Warn(err.Error())
+				}
 			}
 
 			return nil
@@ -232,7 +259,10 @@ func (c *Client) processClient(client ClientConnection) error {
 				"username", client.Env["username"],
 			)
 
-			c.SendCommandf(`client-deny %d %d "%s" "%s"`, client.Cid, client.Kid, ErrorSsoNotSupported, ErrorSsoNotSupported)
+			_, err := c.SendCommandf(`client-deny %d %d "%s" "%s"`, client.Cid, client.Kid, ErrorSsoNotSupported, ErrorSsoNotSupported)
+			if err != nil {
+				c.logger.Warn(err.Error())
+			}
 			return nil
 		}
 
@@ -249,7 +279,10 @@ func (c *Client) processClient(client ClientConnection) error {
 			"common_name", client.Env["common_name"],
 			"username", client.Env["username"],
 		)
-		c.SendCommandf(`client-pending-auth %d %d "WEB_AUTH::%s" %d`, client.Cid, client.Kid, startUrl, 600)
+		_, err := c.SendCommandf(`client-pending-auth %d %d "WEB_AUTH::%s" %d`, client.Cid, client.Kid, startUrl, 600)
+		if err != nil {
+			c.logger.Warn(err.Error())
+		}
 	case "ESTABLISHED":
 		c.logger.Info("client established",
 			"cid", client.Cid,
@@ -281,13 +314,22 @@ func (c *Client) Shutdown() {
 }
 
 // SendCommand passes command to a given connection (adds logging and EOL character) and returns the response
-func (c *Client) SendCommand(cmd string) string {
+func (c *Client) SendCommand(cmd string) (response string, err error) {
 	c.commandsCh <- utils.StringConcat(cmd, "\n")
-	return <-c.commandResponseCh
+
+	select {
+	case resp := <-c.commandResponseCh:
+		if resp == "" {
+			return "", errors.New(utils.StringConcat("empty response of command: ", strings.SplitN(cmd, "\n", 2)[0]))
+		}
+		return resp, nil
+	case <-time.After(10 * time.Second):
+		return "", errors.New(utils.StringConcat("timeout while waiting from response, command: ", strings.SplitN(cmd, "\n", 2)[0]))
+	}
 }
 
 // SendCommandf passes command to a given connection (adds logging and EOL character) and returns the response
-func (c *Client) SendCommandf(format string, a ...any) string {
+func (c *Client) SendCommandf(format string, a ...any) (response string, err error) {
 	return c.SendCommand(fmt.Sprintf(format, a...))
 }
 

@@ -57,7 +57,11 @@ func oauth2Start(logger *slog.Logger, oidcProvider *Provider, conf config.Config
 					"kid", session.Kid,
 				)
 
-				openvpnClient.SendCommandf(`client-deny %d %d "%s"`, session.Cid, session.Kid, "client rejected")
+				_, err := openvpnClient.SendCommandf(`client-deny %d %d "%s"`, session.Cid, session.Kid, "client rejected")
+				if err != nil {
+					logger.Warn(err.Error())
+				}
+
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
@@ -75,7 +79,10 @@ func oauth2Start(logger *slog.Logger, oidcProvider *Provider, conf config.Config
 					"kid", session.Kid,
 				)
 
-				openvpnClient.SendCommandf(`client-deny %d %d "%s"`, session.Cid, session.Kid, "client rejected")
+				_, err := openvpnClient.SendCommandf(`client-deny %d %d "%s"`, session.Cid, session.Kid, "client rejected")
+				if err != nil {
+					logger.Warn(err.Error())
+				}
 
 				w.WriteHeader(http.StatusForbidden)
 				return
@@ -118,13 +125,17 @@ func oauth2Callback(logger *slog.Logger, oidcProvider *Provider, conf config.Con
 				"kid", session.Kid,
 			)
 
-			openvpnClient.SendCommandf(`client-deny %d %d "%s"`, session.Cid, session.Kid, "unable to fetch user data")
+			_, err := openvpnClient.SendCommandf(`client-deny %d %d "%s"`, session.Cid, session.Kid, "unable to fetch user data")
+			if err != nil {
+				logger.Warn(err.Error())
+			}
 
 			return
 		}
 
-		if err := oidcProvider.OidcProvider.CheckUser(ctx, session, user, tokens); err != nil {
-			logger.Warn(err.Error(),
+		if err = oidcProvider.OidcProvider.CheckUser(ctx, session, user, tokens); err != nil {
+			reason := err.Error()
+			logger.Warn(reason,
 				"subject", user.Subject,
 				"preferred_username", user.PreferredUsername,
 				"common_name", session.CommonName,
@@ -132,13 +143,16 @@ func oauth2Callback(logger *slog.Logger, oidcProvider *Provider, conf config.Con
 				"kid", session.Kid,
 			)
 
-			openvpnClient.SendCommandf(`client-deny %d %d "%s"`, session.Cid, session.Kid, "client rejected")
+			_, err = openvpnClient.SendCommandf(`client-deny %d %d "%s"`, session.Cid, session.Kid, "client rejected")
+			if err != nil {
+				logger.Warn(err.Error())
+			}
 
 			if conf.Http.CallbackTemplate == nil || conf.Http.CallbackTemplate.Tree == nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				http.Error(w, reason, http.StatusInternalServerError)
 			} else {
-				err := conf.Http.CallbackTemplate.Execute(w, map[string]string{
-					"errorDesc": err.Error(),
+				err = conf.Http.CallbackTemplate.Execute(w, map[string]string{
+					"errorDesc": reason,
 					"errorType": "tokenValidation",
 				})
 
@@ -168,9 +182,15 @@ func oauth2Callback(logger *slog.Logger, oidcProvider *Provider, conf config.Con
 			}
 
 			b64Username := base64.StdEncoding.EncodeToString([]byte(username))
-			openvpnClient.SendCommandf("client-auth %d %d\npush \"auth-token-user %s\"\nEND", session.Cid, session.Kid, b64Username)
+			_, err = openvpnClient.SendCommandf("client-auth %d %d\npush \"auth-token-user %s\"\nEND", session.Cid, session.Kid, b64Username)
+			if err != nil {
+				logger.Warn(err.Error())
+			}
 		} else {
-			openvpnClient.SendCommandf("client-auth-nt %d %d", session.Cid, session.Kid)
+			_, err = openvpnClient.SendCommandf("client-auth-nt %d %d", session.Cid, session.Kid)
+			if err != nil {
+				logger.Warn(err.Error())
+			}
 		}
 
 		if conf.Http.CallbackTemplate == nil || conf.Http.CallbackTemplate.Tree == nil {

@@ -6,6 +6,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/cmd"
 )
 
+//nolint:gochecknoglobals
 var (
 	version = "dev"
 	commit  = "none"
