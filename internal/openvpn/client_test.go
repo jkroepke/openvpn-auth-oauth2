@@ -21,13 +21,13 @@ import (
 func TestClientInvalidServer(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	conf := config.Config{
-		Http: &config.Http{
+		Http: config.Http{
 			BaseUrl: &url.URL{Scheme: "http", Host: "localhost"},
 			Secret:  "0123456789101112",
 		},
-		OpenVpn: &config.OpenVpn{
+		OpenVpn: config.OpenVpn{
 			Addr:   &url.URL{Scheme: "tcp", Host: "0.0.0.0:1"},
-			Bypass: &config.OpenVpnBypass{CommonNames: make([]string, 0)},
+			Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
 		},
 	}
 	client := NewClient(logger, conf)
@@ -52,13 +52,13 @@ func TestClientFull(t *testing.T) {
 		{
 			"without password",
 			config.Config{
-				Http: &config.Http{
+				Http: config.Http{
 					BaseUrl: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  "0123456789101112",
 				},
-				OpenVpn: &config.OpenVpn{
+				OpenVpn: config.OpenVpn{
 					Addr:   &url.URL{Scheme: l.Addr().Network(), Host: l.Addr().String()},
-					Bypass: &config.OpenVpnBypass{CommonNames: make([]string, 0)},
+					Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
 				},
 			},
 			">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END\r\n",
@@ -68,13 +68,13 @@ func TestClientFull(t *testing.T) {
 		{
 			"with password",
 			config.Config{
-				Http: &config.Http{
+				Http: config.Http{
 					BaseUrl: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  "0123456789101112",
 				},
-				OpenVpn: &config.OpenVpn{
+				OpenVpn: config.OpenVpn{
 					Addr:     &url.URL{Scheme: l.Addr().Network(), Host: l.Addr().String()},
-					Bypass:   &config.OpenVpnBypass{CommonNames: make([]string, 0)},
+					Bypass:   config.OpenVpnBypass{CommonNames: make([]string, 0)},
 					Password: "password",
 				},
 			},
@@ -85,13 +85,13 @@ func TestClientFull(t *testing.T) {
 		{
 			"with invalid state",
 			config.Config{
-				Http: &config.Http{
+				Http: config.Http{
 					BaseUrl: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  "012345678910111",
 				},
-				OpenVpn: &config.OpenVpn{
+				OpenVpn: config.OpenVpn{
 					Addr:     &url.URL{Scheme: l.Addr().Network(), Host: l.Addr().String()},
-					Bypass:   &config.OpenVpnBypass{CommonNames: make([]string, 0)},
+					Bypass:   config.OpenVpnBypass{CommonNames: make([]string, 0)},
 					Password: "password",
 				},
 			},
@@ -102,13 +102,13 @@ func TestClientFull(t *testing.T) {
 		{
 			"client without IV_SSO",
 			config.Config{
-				Http: &config.Http{
+				Http: config.Http{
 					BaseUrl: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  "0123456789101112",
 				},
-				OpenVpn: &config.OpenVpn{
+				OpenVpn: config.OpenVpn{
 					Addr:     &url.URL{Scheme: l.Addr().Network(), Host: l.Addr().String()},
-					Bypass:   &config.OpenVpnBypass{CommonNames: make([]string, 0)},
+					Bypass:   config.OpenVpnBypass{CommonNames: make([]string, 0)},
 					Password: "password",
 				},
 			},
@@ -119,13 +119,13 @@ func TestClientFull(t *testing.T) {
 		{
 			"client bypass",
 			config.Config{
-				Http: &config.Http{
+				Http: config.Http{
 					BaseUrl: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  "0123456789101112",
 				},
-				OpenVpn: &config.OpenVpn{
+				OpenVpn: config.OpenVpn{
 					Addr:     &url.URL{Scheme: l.Addr().Network(), Host: l.Addr().String()},
-					Bypass:   &config.OpenVpnBypass{CommonNames: []string{"bypass"}},
+					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
 					Password: "password",
 				},
 			},
@@ -136,13 +136,13 @@ func TestClientFull(t *testing.T) {
 		{
 			"client established",
 			config.Config{
-				Http: &config.Http{
+				Http: config.Http{
 					BaseUrl: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  "0123456789101112",
 				},
-				OpenVpn: &config.OpenVpn{
+				OpenVpn: config.OpenVpn{
 					Addr:     &url.URL{Scheme: l.Addr().Network(), Host: l.Addr().String()},
-					Bypass:   &config.OpenVpnBypass{CommonNames: []string{"bypass"}},
+					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
 					Password: "password",
 				},
 			},
@@ -153,13 +153,13 @@ func TestClientFull(t *testing.T) {
 		{
 			"client disconnected",
 			config.Config{
-				Http: &config.Http{
+				Http: config.Http{
 					BaseUrl: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  "0123456789101112",
 				},
-				OpenVpn: &config.OpenVpn{
+				OpenVpn: config.OpenVpn{
 					Addr:     &url.URL{Scheme: l.Addr().Network(), Host: l.Addr().String()},
-					Bypass:   &config.OpenVpnBypass{CommonNames: []string{"bypass"}},
+					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
 					Password: "password",
 				},
 			},
@@ -170,13 +170,13 @@ func TestClientFull(t *testing.T) {
 		{
 			"client invalid reason",
 			config.Config{
-				Http: &config.Http{
+				Http: config.Http{
 					BaseUrl: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  "0123456789101112",
 				},
-				OpenVpn: &config.OpenVpn{
+				OpenVpn: config.OpenVpn{
 					Addr:     &url.URL{Scheme: l.Addr().Network(), Host: l.Addr().String()},
-					Bypass:   &config.OpenVpnBypass{CommonNames: []string{"bypass"}},
+					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
 					Password: "password",
 				},
 			},
@@ -267,13 +267,13 @@ func TestClientInvalidPassword(t *testing.T) {
 	defer l.Close()
 
 	conf := config.Config{
-		Http: &config.Http{
+		Http: config.Http{
 			BaseUrl: &url.URL{Scheme: "http", Host: "localhost"},
 			Secret:  "0123456789101112",
 		},
-		OpenVpn: &config.OpenVpn{
+		OpenVpn: config.OpenVpn{
 			Addr:     &url.URL{Scheme: l.Addr().Network(), Host: l.Addr().String()},
-			Bypass:   &config.OpenVpnBypass{CommonNames: make([]string, 0)},
+			Bypass:   config.OpenVpnBypass{CommonNames: make([]string, 0)},
 			Password: "invalid",
 		},
 	}
@@ -308,13 +308,13 @@ func TestClientInvalidVersion(t *testing.T) {
 	defer l.Close()
 
 	conf := config.Config{
-		Http: &config.Http{
+		Http: config.Http{
 			BaseUrl: &url.URL{Scheme: "http", Host: "localhost"},
 			Secret:  "0123456789101112",
 		},
-		OpenVpn: &config.OpenVpn{
+		OpenVpn: config.OpenVpn{
 			Addr:   &url.URL{Scheme: l.Addr().Network(), Host: l.Addr().String()},
-			Bypass: &config.OpenVpnBypass{CommonNames: make([]string, 0)},
+			Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
 		},
 	}
 

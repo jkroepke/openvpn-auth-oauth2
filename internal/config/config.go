@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"reflect"
 	"slices"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
@@ -56,29 +55,6 @@ func FlagSet() *flag.FlagSet {
 }
 
 func Validate(conf Config) error {
-	for key, value := range map[string]any{
-		"http":    conf.Http,
-		"oauth2":  conf.Oauth2,
-		"openvpn": conf.OpenVpn,
-		"log":     conf.Log,
-	} {
-		if reflect.ValueOf(value).IsNil() {
-			return errors.New(utils.StringConcat(key, " is nil"))
-		}
-	}
-
-	for key, value := range map[string]any{
-		"http.check":       conf.Http.Check,
-		"oauth2.client":    conf.Oauth2.Client,
-		"oauth2.endpoints": conf.Oauth2.Endpoints,
-		"oauth2.validate":  conf.Oauth2.Validate,
-		"openvpn.bypass":   conf.OpenVpn.Bypass,
-	} {
-		if reflect.ValueOf(value).IsNil() {
-			return errors.New(utils.StringConcat(key, " is nil"))
-		}
-	}
-
 	for key, value := range map[string]string{
 		"http.secret":      conf.Http.Secret,
 		"oauth2.client.id": conf.Oauth2.Client.Id,

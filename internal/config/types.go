@@ -6,11 +6,11 @@ import (
 )
 
 type Config struct {
-	ConfigFile string   `koanf:"config"`
-	Log        *Log     `koanf:"log"`
-	Http       *Http    `koanf:"http"`
-	OpenVpn    *OpenVpn `koanf:"openvpn"`
-	Oauth2     *OAuth2  `koanf:"oauth2"`
+	ConfigFile string  `koanf:"config"`
+	Log        Log     `koanf:"log"`
+	Http       Http    `koanf:"http"`
+	OpenVpn    OpenVpn `koanf:"openvpn"`
+	Oauth2     OAuth2  `koanf:"oauth2"`
 }
 
 type Http struct {
@@ -21,7 +21,7 @@ type Http struct {
 	BaseUrl            *url.URL           `koanf:"baseurl"`
 	Secret             string             `koanf:"secret"`
 	CallbackTemplate   *template.Template `koanf:"callback-template-path"`
-	Check              *HttpCheck         `koanf:"check"`
+	Check              HttpCheck          `koanf:"check"`
 	EnableProxyHeaders bool               `koanf:"enable-proxy-headers"`
 }
 
@@ -35,10 +35,10 @@ type Log struct {
 }
 
 type OpenVpn struct {
-	Addr          *url.URL       `koanf:"addr"`
-	Password      string         `koanf:"password"`
-	Bypass        *OpenVpnBypass `koanf:"bypass"`
-	AuthTokenUser bool           `koanf:"auth-token-user"`
+	Addr          *url.URL      `koanf:"addr"`
+	Password      string        `koanf:"password"`
+	Bypass        OpenVpnBypass `koanf:"bypass"`
+	AuthTokenUser bool          `koanf:"auth-token-user"`
 }
 
 type OpenVpnBypass struct {
@@ -46,14 +46,14 @@ type OpenVpnBypass struct {
 }
 
 type OAuth2 struct {
-	Issuer          *url.URL         `koanf:"issuer"`
-	Provider        string           `koanf:"provider"`
-	AuthorizeParams string           `koanf:"authorize-params"`
-	Endpoints       *OAuth2Endpoints `koanf:"endpoint"`
-	Client          *OAuth2Client    `koanf:"client"`
-	Scopes          []string         `koanf:"scopes"`
-	Pkce            bool             `koanf:"pkce"`
-	Validate        *OAuth2Validate  `koanf:"validate"`
+	Issuer          *url.URL        `koanf:"issuer"`
+	Provider        string          `koanf:"provider"`
+	AuthorizeParams string          `koanf:"authorize-params"`
+	Endpoints       OAuth2Endpoints `koanf:"endpoint"`
+	Client          OAuth2Client    `koanf:"client"`
+	Scopes          []string        `koanf:"scopes"`
+	Pkce            bool            `koanf:"pkce"`
+	Validate        OAuth2Validate  `koanf:"validate"`
 }
 
 type OAuth2Client struct {

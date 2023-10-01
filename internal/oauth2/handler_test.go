@@ -38,26 +38,26 @@ func TestHandler(t *testing.T) {
 		{
 			"default",
 			config.Config{
-				Http: &config.Http{
+				Http: config.Http{
 					Secret: "0123456789101112",
-					Check: &config.HttpCheck{
+					Check: config.HttpCheck{
 						IpAddr: false,
 					},
 				},
-				Oauth2: &config.OAuth2{
+				Oauth2: config.OAuth2{
 					Provider:  "generic",
-					Client:    &config.OAuth2Client{Id: "ID", Secret: "SECRET"},
-					Endpoints: &config.OAuth2Endpoints{},
+					Client:    config.OAuth2Client{Id: "ID", Secret: "SECRET"},
+					Endpoints: config.OAuth2Endpoints{},
 					Scopes:    []string{"openid", "profile"},
-					Validate: &config.OAuth2Validate{
+					Validate: config.OAuth2Validate{
 						Groups: make([]string, 0),
 						Roles:  make([]string, 0),
 						Issuer: true,
 						IpAddr: false,
 					},
 				},
-				OpenVpn: &config.OpenVpn{
-					Bypass:        &config.OpenVpnBypass{CommonNames: []string{}},
+				OpenVpn: config.OpenVpn{
+					Bypass:        config.OpenVpnBypass{CommonNames: []string{}},
 					AuthTokenUser: true,
 				},
 			},
@@ -68,26 +68,26 @@ func TestHandler(t *testing.T) {
 		{
 			"with ipaddr",
 			config.Config{
-				Http: &config.Http{
+				Http: config.Http{
 					Secret: "0123456789101112",
-					Check: &config.HttpCheck{
+					Check: config.HttpCheck{
 						IpAddr: true,
 					},
 				},
-				Oauth2: &config.OAuth2{
+				Oauth2: config.OAuth2{
 					Provider:  "generic",
-					Client:    &config.OAuth2Client{Id: "ID", Secret: "SECRET"},
-					Endpoints: &config.OAuth2Endpoints{},
+					Client:    config.OAuth2Client{Id: "ID", Secret: "SECRET"},
+					Endpoints: config.OAuth2Endpoints{},
 					Scopes:    []string{"openid", "profile"},
-					Validate: &config.OAuth2Validate{
+					Validate: config.OAuth2Validate{
 						Groups: make([]string, 0),
 						Roles:  make([]string, 0),
 						Issuer: true,
 						IpAddr: false,
 					},
 				},
-				OpenVpn: &config.OpenVpn{
-					Bypass:        &config.OpenVpnBypass{CommonNames: []string{}},
+				OpenVpn: config.OpenVpn{
+					Bypass:        config.OpenVpnBypass{CommonNames: []string{}},
 					AuthTokenUser: true,
 				},
 			},
@@ -98,27 +98,27 @@ func TestHandler(t *testing.T) {
 		{
 			"with ipaddr + forwarded-for",
 			config.Config{
-				Http: &config.Http{
+				Http: config.Http{
 					Secret: "0123456789101112",
-					Check: &config.HttpCheck{
+					Check: config.HttpCheck{
 						IpAddr: true,
 					},
 					EnableProxyHeaders: true,
 				},
-				Oauth2: &config.OAuth2{
+				Oauth2: config.OAuth2{
 					Provider:  "generic",
-					Client:    &config.OAuth2Client{Id: "ID", Secret: "SECRET"},
-					Endpoints: &config.OAuth2Endpoints{},
+					Client:    config.OAuth2Client{Id: "ID", Secret: "SECRET"},
+					Endpoints: config.OAuth2Endpoints{},
 					Scopes:    []string{"openid", "profile"},
-					Validate: &config.OAuth2Validate{
+					Validate: config.OAuth2Validate{
 						Groups: make([]string, 0),
 						Roles:  make([]string, 0),
 						Issuer: true,
 						IpAddr: false,
 					},
 				},
-				OpenVpn: &config.OpenVpn{
-					Bypass:        &config.OpenVpnBypass{CommonNames: []string{}},
+				OpenVpn: config.OpenVpn{
+					Bypass:        config.OpenVpnBypass{CommonNames: []string{}},
 					AuthTokenUser: true,
 				},
 			},
@@ -129,27 +129,27 @@ func TestHandler(t *testing.T) {
 		{
 			"with ipaddr + disabled forwarded-for",
 			config.Config{
-				Http: &config.Http{
+				Http: config.Http{
 					Secret: "0123456789101112",
-					Check: &config.HttpCheck{
+					Check: config.HttpCheck{
 						IpAddr: true,
 					},
 					EnableProxyHeaders: false,
 				},
-				Oauth2: &config.OAuth2{
+				Oauth2: config.OAuth2{
 					Provider:  "generic",
-					Client:    &config.OAuth2Client{Id: "ID", Secret: "SECRET"},
-					Endpoints: &config.OAuth2Endpoints{},
+					Client:    config.OAuth2Client{Id: "ID", Secret: "SECRET"},
+					Endpoints: config.OAuth2Endpoints{},
 					Scopes:    []string{"openid", "profile"},
-					Validate: &config.OAuth2Validate{
+					Validate: config.OAuth2Validate{
 						Groups: make([]string, 0),
 						Roles:  make([]string, 0),
 						Issuer: true,
 						IpAddr: false,
 					},
 				},
-				OpenVpn: &config.OpenVpn{
-					Bypass:        &config.OpenVpnBypass{CommonNames: []string{}},
+				OpenVpn: config.OpenVpn{
+					Bypass:        config.OpenVpnBypass{CommonNames: []string{}},
 					AuthTokenUser: true,
 				},
 			},
@@ -160,27 +160,27 @@ func TestHandler(t *testing.T) {
 		{
 			"with ipaddr + multiple forwarded-for",
 			config.Config{
-				Http: &config.Http{
+				Http: config.Http{
 					Secret: "0123456789101112",
-					Check: &config.HttpCheck{
+					Check: config.HttpCheck{
 						IpAddr: true,
 					},
 					EnableProxyHeaders: true,
 				},
-				Oauth2: &config.OAuth2{
+				Oauth2: config.OAuth2{
 					Provider:  "generic",
-					Client:    &config.OAuth2Client{Id: "ID", Secret: "SECRET"},
-					Endpoints: &config.OAuth2Endpoints{},
+					Client:    config.OAuth2Client{Id: "ID", Secret: "SECRET"},
+					Endpoints: config.OAuth2Endpoints{},
 					Scopes:    []string{"openid", "profile"},
-					Validate: &config.OAuth2Validate{
+					Validate: config.OAuth2Validate{
 						Groups: make([]string, 0),
 						Roles:  make([]string, 0),
 						Issuer: true,
 						IpAddr: false,
 					},
 				},
-				OpenVpn: &config.OpenVpn{
-					Bypass:        &config.OpenVpnBypass{CommonNames: []string{}},
+				OpenVpn: config.OpenVpn{
+					Bypass:        config.OpenVpnBypass{CommonNames: []string{}},
 					AuthTokenUser: true,
 				},
 			},

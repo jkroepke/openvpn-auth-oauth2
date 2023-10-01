@@ -25,8 +25,8 @@ func TestCheckUser(t *testing.T) {
 	}
 
 	conf := config.Config{
-		Oauth2: &config.OAuth2{
-			Validate: &config.OAuth2Validate{},
+		Oauth2: config.OAuth2{
+			Validate: config.OAuth2Validate{},
 		},
 	}
 
@@ -66,8 +66,8 @@ func TestValidateGroups(t *testing.T) {
 			}
 
 			conf := config.Config{
-				Oauth2: &config.OAuth2{
-					Validate: &config.OAuth2Validate{
+				Oauth2: config.OAuth2{
+					Validate: config.OAuth2Validate{
 						Groups: tt.requiredGroups,
 					},
 				},
@@ -111,8 +111,8 @@ func TestValidateRoles(t *testing.T) {
 			}
 
 			conf := config.Config{
-				Oauth2: &config.OAuth2{
-					Validate: &config.OAuth2Validate{
+				Oauth2: config.OAuth2{
+					Validate: config.OAuth2Validate{
 						Roles: tt.requiredRoles,
 					},
 				},
@@ -152,8 +152,8 @@ func TestValidateCommonName(t *testing.T) {
 			}
 
 			conf := config.Config{
-				Oauth2: &config.OAuth2{
-					Validate: &config.OAuth2Validate{
+				Oauth2: config.OAuth2{
+					Validate: config.OAuth2Validate{
 						CommonName: tt.tokenClaim,
 					},
 				},
@@ -198,8 +198,8 @@ func TestValidateIpAddr(t *testing.T) {
 			}
 
 			conf := config.Config{
-				Oauth2: &config.OAuth2{
-					Validate: &config.OAuth2Validate{
+				Oauth2: config.OAuth2{
+					Validate: config.OAuth2Validate{
 						IpAddr: tt.validateIpAddr,
 					},
 				},
