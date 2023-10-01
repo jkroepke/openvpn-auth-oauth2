@@ -301,6 +301,74 @@ func TestClientInvalidPassword(t *testing.T) {
 	client.Shutdown()
 }
 
+func TestClientInvalidVersion(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	assert.NoError(t, err)
+	defer l.Close()
+
+	conf := config.Config{
+		Http: &config.Http{
+			BaseUrl: &url.URL{Scheme: "http", Host: "localhost"},
+			Secret:  "0123456789101112",
+		},
+		OpenVpn: &config.OpenVpn{
+			Addr:   &url.URL{Scheme: l.Addr().Network(), Host: l.Addr().String()},
+			Bypass: &config.OpenVpnBypass{CommonNames: make([]string, 0)},
+		},
+	}
+
+	versions := []struct {
+		name    string
+		version string
+		err     string
+	}{
+		{
+			"invalid parts",
+			"OpenVPN Version: OpenVPN Mock\r\nEND\r\n",
+			"unexpected response from version command: OpenVPN Version: OpenVPN Mock\nEND\n",
+		},
+		{
+			"invalid version",
+			"OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version:\r\nEND\r\n",
+			`unable to parse openvpn management interface version: strconv.Atoi: parsing ":": invalid syntax`,
+		},
+		{
+			"version to low",
+			"OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 4\r\nEND\r\n",
+			`openvpn-auth-oauth2 requires OpenVPN management interface version 5 or higher`,
+		},
+	}
+
+	for _, tt := range versions {
+		t.Run(tt.name, func(t *testing.T) {
+			client := NewClient(logger, conf)
+
+			go func() {
+				conn, err := l.Accept()
+				assert.NoError(t, err)
+
+				defer conn.Close() //nolint:errcheck
+				reader := bufio.NewReader(conn)
+
+				sendLine(t, conn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\r\n")
+
+				assert.Equal(t, "hold release", readLine(t, reader))
+				sendLine(t, conn, "SUCCESS: hold release succeeded\r\n")
+				assert.Equal(t, "version", readLine(t, reader))
+
+				sendLine(t, conn, tt.version)
+			}()
+
+			err = client.Connect()
+			if assert.Error(t, err) {
+				assert.Equal(t, tt.err, err.Error())
+			}
+			client.Shutdown()
+		})
+	}
+}
+
 func sendLine(t testing.TB, conn net.Conn, msg string, a ...any) {
 	_, err := fmt.Fprintf(conn, msg, a...)
 	assert.NoError(t, err)
