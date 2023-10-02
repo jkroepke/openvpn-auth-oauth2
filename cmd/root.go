@@ -82,21 +82,18 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 	}
 
 	go func() {
-		if err = startHTTPListener(conf, logger, server); err == nil {
-			return
-		}
+		if err := startHTTPListener(conf, logger, server); err != nil {
 
-		logger.Error(fmt.Errorf("error http listener: %w", err).Error())
-		done <- 1
+			logger.Error(fmt.Errorf("error http listener: %w", err).Error())
+			done <- 1
+		}
 	}()
 
 	go func() {
-		if err = openvpnClient.Connect(); err == nil {
-			return
+		if err := openvpnClient.Connect(); err != nil {
+			logger.Error(fmt.Errorf("error OpenVPN: %w", err).Error())
+			done <- 1
 		}
-
-		logger.Error(fmt.Errorf("error OpenVPN: %w", err).Error())
-		done <- 1
 	}()
 
 	termCh := make(chan os.Signal, 1)
