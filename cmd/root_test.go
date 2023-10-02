@@ -72,7 +72,7 @@ func TestExecuteConfigInvalid(t *testing.T) {
 	}
 }
 
-func TestExecuteConfigFileFound(t *testing.T) {
+func TestExecuteConfigFileFound(t *testing.T) { //nolint: paralleltest
 	opStorage := storage.NewStorage(storage.NewUserStore("http://localhost/"))
 	opConfig := &op.Config{
 		CryptoKey:                sha256.Sum256([]byte("test")),

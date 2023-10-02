@@ -74,7 +74,6 @@ func checkClientIPAddr(
 	r *http.Request, logger *slog.Logger, session state.State, openvpnClient *openvpn.Client, conf config.Config,
 ) (bool, int) {
 	clientIP, _, err := net.SplitHostPort(r.RemoteAddr)
-
 	if err != nil {
 		logger.Warn(err.Error())
 

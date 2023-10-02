@@ -43,5 +43,6 @@ linters-settings:
       - t reflect.Type
       - wg sync.WaitGroup
       - k *koanf.Koanf
+      - mu sync.Mutex
   lll:
     line-length: 160

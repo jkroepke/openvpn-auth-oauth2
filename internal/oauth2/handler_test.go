@@ -27,7 +27,7 @@ import (
 	"golang.org/x/text/language"
 )
 
-var mu = sync.Mutex{}
+var mu = sync.Mutex{} //nolint:gochecknoglobals
 
 func TestHandler(t *testing.T) {
 	t.Parallel()

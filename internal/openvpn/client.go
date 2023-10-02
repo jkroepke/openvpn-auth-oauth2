@@ -160,7 +160,6 @@ func (c *Client) handleMessages() {
 
 	for {
 		message, err := c.readMessage()
-
 		if err != nil {
 			c.errCh <- err
 
@@ -190,7 +189,6 @@ func (c *Client) handlePassword() error {
 	}
 
 	resp, err := c.readMessage()
-
 	if err != nil {
 		return fmt.Errorf("unable to read messge from buffer: %w", err)
 	}
@@ -395,14 +393,17 @@ func (c *Client) rawCommand(cmd string) error {
 
 // readMessage .
 func (c *Client) readMessage() (string, error) {
-	var buf bytes.Buffer
-	var line []byte
+	var (
+		buf  bytes.Buffer
+		line []byte
+	)
 
 	for {
 		if ok := c.scanner.Scan(); !ok {
 			if c.scanner.Err() != nil {
 				return "", fmt.Errorf("readMessage: scanner error: %w", c.scanner.Err())
 			}
+
 			return "", nil
 		}
 
