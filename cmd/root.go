@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -62,7 +64,7 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 		return 1
 	}
 
-	oidcClient, err := oauth2.NewProvider(logger, conf)
+	provider, err := oauth2.NewProvider(logger, conf)
 	if err != nil {
 		logger.Error(err.Error())
 
@@ -70,14 +72,21 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 	}
 
 	openvpnClient := openvpn.NewClient(logger, conf)
-	defer openvpnClient.Shutdown()
-
 	done := make(chan int, 1)
 
-	go func() {
-		if err = startHTTPListener(conf, logger, oidcClient, openvpnClient); err == nil {
-			done <- 0
+	server := &http.Server{
+		Addr:              conf.HTTP.Listen,
+		ReadHeaderTimeout: 3 * time.Second,
+		ErrorLog:          slog.NewLogLogger(logger.Handler(), slog.LevelError),
+		Handler:           oauth2.Handler(logger, conf, provider, openvpnClient),
+	}
 
+	go func() {
+		if err = startHTTPListener(conf, logger, server); err == nil {
+			return
+		}
+
+		if errors.Is(err, http.ErrServerClosed) {
 			return
 		}
 
@@ -87,8 +96,6 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 
 	go func() {
 		if err = openvpnClient.Connect(); err == nil {
-			done <- 0
-
 			return
 		}
 
@@ -99,26 +106,35 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 	termCh := make(chan os.Signal, 1)
 	signal.Notify(termCh, syscall.SIGINT, syscall.SIGTERM)
 
+	var returnCode int
 	select {
-	case returnCode := <-done:
-		return returnCode
+	case returnCode = <-done:
 	case sig := <-termCh:
 		logger.Info(utils.StringConcat("receiving signal: ", sig.String()))
-
-		return 0
 	}
+
+	shutdown(logger, openvpnClient, server)
+
+	return returnCode
 }
 
-func startHTTPListener(
-	conf config.Config, logger *slog.Logger, provider oauth2.Provider, openvpnClient *openvpn.Client,
-) error {
-	server := &http.Server{
-		Addr:              conf.HTTP.Listen,
-		ReadHeaderTimeout: 3 * time.Second,
-		ErrorLog:          slog.NewLogLogger(logger.Handler(), slog.LevelError),
-		Handler:           oauth2.Handler(logger, provider, conf, openvpnClient),
+func shutdown(logger *slog.Logger, openvpnClient *openvpn.Client, server *http.Server) {
+	openvpnClient.Shutdown()
+
+	logger.Info("start graceful shutdown of http listener")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		logger.Error(fmt.Errorf("error graceful shutdown: %w", err).Error())
+		return
 	}
 
+	logger.Info("http listener successfully terminated")
+}
+
+func startHTTPListener(conf config.Config, logger *slog.Logger, server *http.Server) error {
 	if conf.HTTP.TLS {
 		logger.Info(utils.StringConcat(
 			"HTTPS server listen on ", conf.HTTP.Listen, " with base url ", conf.HTTP.BaseURL.String(),

@@ -18,7 +18,7 @@ import (
 	"github.com/zitadel/oidc/v2/pkg/oidc"
 )
 
-func Handler(logger *slog.Logger, provider Provider, conf config.Config, openvpnClient *openvpn.Client) *http.ServeMux {
+func Handler(logger *slog.Logger, conf config.Config, provider Provider, openvpnClient *openvpn.Client) *http.ServeMux {
 	basePath := strings.TrimSuffix(conf.HTTP.BaseURL.Path, "/")
 
 	mux := http.NewServeMux()

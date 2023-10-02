@@ -31,7 +31,6 @@ func TestExecuteVersion(t *testing.T) {
 	returnCode := cmd.Execute([]string{"", "--version"}, &buf, "version", "commit", "date")
 	assert.Equal(t, 0, returnCode, buf.String())
 }
-
 func TestExecuteConfigInvalid(t *testing.T) {
 	t.Parallel()
 
@@ -40,6 +39,11 @@ func TestExecuteConfigInvalid(t *testing.T) {
 		args []string
 		err  string
 	}{
+		{
+			"invalid args",
+			[]string{"", "---"},
+			"error parsing cli args: bad flag syntax: ---",
+		},
 		{
 			"file not exists",
 			[]string{"", "--config=nonexists"},
