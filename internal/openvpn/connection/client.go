@@ -1,4 +1,4 @@
-package openvpn
+package connection
 
 import (
 	"fmt"
@@ -6,15 +6,15 @@ import (
 	"strings"
 )
 
-type ClientConnection struct {
+type Client struct {
 	Kid    uint64
 	Cid    uint64
 	Reason string
 	Env    map[string]string
 }
 
-func NewClientConnection(message string) (ClientConnection, error) {
-	clientConnection := ClientConnection{
+func NewClient(message string) (Client, error) {
+	clientConnection := Client{
 		Env: map[string]string{},
 	}
 
@@ -24,7 +24,7 @@ func NewClientConnection(message string) (ClientConnection, error) {
 		if isClientReason(line) {
 			clientConnection.Reason, clientConnection.Cid, clientConnection.Kid, err = parseClientReason(line)
 			if err != nil {
-				return ClientConnection{}, err
+				return Client{}, err
 			}
 		} else if strings.HasPrefix(line, ">CLIENT:ENV,") {
 			envKey, envValue := parseClientEnv(line)
@@ -37,7 +37,7 @@ func NewClientConnection(message string) (ClientConnection, error) {
 	}
 
 	if clientConnection.Reason == "" {
-		return ClientConnection{}, fmt.Errorf("unable to parse client reason from message: %s", message)
+		return Client{}, fmt.Errorf("unable to parse client reason from message: %s", message)
 	}
 
 	return clientConnection, nil

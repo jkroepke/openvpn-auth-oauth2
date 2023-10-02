@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
 )
 
 type Client struct {
@@ -18,7 +19,7 @@ type Client struct {
 	mu     sync.Mutex
 	closed bool
 
-	clientsCh         chan ClientConnection
+	clientsCh         chan connection.Client
 	commandResponseCh chan string
 	commandsCh        chan string
 	errCh             chan error
