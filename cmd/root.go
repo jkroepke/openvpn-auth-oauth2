@@ -83,7 +83,6 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 
 	go func() {
 		if err := startHTTPListener(conf, logger, server); err != nil {
-
 			logger.Error(fmt.Errorf("error http listener: %w", err).Error())
 			done <- 1
 		}
