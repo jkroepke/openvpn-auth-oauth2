@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -11,6 +10,7 @@ import (
 	"runtime"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
@@ -22,127 +22,78 @@ import (
 	"github.com/knadh/koanf/providers/posflag"
 	"github.com/knadh/koanf/v2"
 	"github.com/mitchellh/mapstructure"
+	flag "github.com/spf13/pflag"
 )
 
-var k = koanf.New(".")
+func Execute(args []string, logWriter io.Writer, version, commit, date string) int {
+	var err error
 
-func Execute(version, commit, date string, w io.Writer) int {
-	logger := slog.New(slog.NewJSONHandler(w, &slog.HandlerOptions{
+	logger := slog.New(slog.NewTextHandler(logWriter, &slog.HandlerOptions{
 		AddSource: false,
 	}))
 
-	var err error
+	flagSet := config.FlagSet()
+	if err = flagSet.Parse(args[1:]); err != nil {
+		logger.Error(fmt.Errorf("error parsing cli args: %w", err).Error())
 
-	f := config.FlagSet()
-	if err = f.Parse(os.Args[1:]); err != nil {
-		logger.Error(utils.StringConcat("error parsing cli args: ", err.Error()))
 		return 1
 	}
 
-	if versionFlag, _ := f.GetBool("version"); versionFlag {
+	if versionFlag, _ := flagSet.GetBool("version"); versionFlag {
 		fmt.Printf("version: %s\ncommit: %s\ndate: %s\ngo: %s\n", version, commit, date, runtime.Version())
+
 		return 0
 	}
 
-	configFile, _ := f.GetString("config")
-	if configFile != "" {
-		if err := k.Load(file.Provider(configFile), yaml.Parser()); err != nil {
-			logger.Error(utils.StringConcat("error loading config: ", err.Error()))
-			return 1
-		}
-	}
-
-	if err = k.Load(posflag.Provider(f, ".", k), nil); err != nil {
-		logger.Error(utils.StringConcat("error loading config: ", err.Error()))
-		return 1
-	}
-
-	err = k.Load(env.ProviderWithValue("CONFIG_", ".", func(s string, v string) (string, interface{}) {
-		key := strings.Replace(strings.ToLower(strings.TrimPrefix(s, "CONFIG_")), "_", ".", -1)
-
-		// If there is a space in the value, split the value into a slice by the space.
-		if strings.Contains(v, " ") {
-			return key, strings.Split(v, " ")
-		}
-
-		// Otherwise, return the plain string.
-		return key, v
-	}), nil)
-
+	conf, err := loadConfig(flagSet)
 	if err != nil {
-		logger.Error(utils.StringConcat("error loading config: ", err.Error()))
+		logger.Error(fmt.Errorf("error loading config: %w", err).Error())
+
 		return 1
 	}
 
-	var conf config.Config
-	unmarshalConf := koanf.UnmarshalConf{
-		DecoderConfig: &mapstructure.DecoderConfig{
-			DecodeHook: mapstructure.ComposeDecodeHookFunc(
-				mapstructure.StringToTimeDurationHookFunc(),
-				mapstructure.TextUnmarshallerHookFunc(),
-				config.StringToUrlHookFunc(),
-				config.StringToTemplateHookFunc(),
-			),
-			Metadata:         nil,
-			Result:           &conf,
-			WeaklyTypedInput: true,
-		},
-	}
-
-	if err = k.UnmarshalWithConf("", &conf, unmarshalConf); err != nil {
-		logger.Error(utils.StringConcat("error loading config: ", err.Error()))
-		return 1
-	}
-
-	logger, err = configureLogger(&conf, w)
+	logger, err = configureLogger(conf, logWriter)
 	if err != nil {
-		logger.Error(utils.StringConcat("error configure logger: ", err.Error()))
+		logger := slog.New(slog.NewTextHandler(logWriter, &slog.HandlerOptions{
+			AddSource: false,
+		}))
+		logger.Error(fmt.Errorf("error configure logging: %w", err).Error())
+
 		return 1
 	}
 
-	if err = config.Validate(&conf); err != nil {
-		logger.Error(utils.StringConcat("error validating config: ", err.Error()))
-		return 1
-	}
-
-	oidcClient, err := oauth2.NewProvider(logger, &conf)
+	oidcClient, err := oauth2.NewProvider(logger, conf)
 	if err != nil {
 		logger.Error(err.Error())
+
 		return 1
 	}
 
-	openvpnClient := openvpn.NewClient(logger, &conf)
+	openvpnClient := openvpn.NewClient(logger, conf)
+	defer openvpnClient.Shutdown()
+
 	done := make(chan int, 1)
 
 	go func() {
-		server := &http.Server{
-			Addr:     conf.Http.Listen,
-			ErrorLog: slog.NewLogLogger(logger.Handler(), slog.LevelError),
-			Handler:  oauth2.Handler(logger, oidcClient, &conf, openvpnClient),
+		if err = startHTTPListener(conf, logger, oidcClient, openvpnClient); err == nil {
+			done <- 0
+
+			return
 		}
 
-		if conf.Http.Tls {
-			logger.Info(utils.StringConcat("HTTPS server listen on ", conf.Http.Listen, " with base url ", conf.Http.BaseUrl.String()))
-			if err = server.ListenAndServeTLS(conf.Http.CertFile, conf.Http.KeyFile); err != nil {
-				logger.Error(err.Error())
-				done <- 1
-			}
-		} else {
-			logger.Info(utils.StringConcat("HTTP server listen on ", conf.Http.Listen, " with base url ", conf.Http.BaseUrl.String()))
-			if err = server.ListenAndServe(); err != nil {
-				logger.Error(err.Error())
-				done <- 1
-			}
-		}
+		logger.Error(fmt.Errorf("error http listener: %w", err).Error())
+		done <- 1
 	}()
 
 	go func() {
-		defer openvpnClient.Shutdown()
-		if err = openvpnClient.Connect(); err != nil {
-			logger.Error(err.Error())
-			done <- 1
+		if err = openvpnClient.Connect(); err == nil {
+			done <- 0
+
+			return
 		}
-		done <- 0
+
+		logger.Error(fmt.Errorf("error OpenVPN: %w", err).Error())
+		done <- 1
 	}()
 
 	termCh := make(chan os.Signal, 1)
@@ -153,16 +104,52 @@ func Execute(version, commit, date string, w io.Writer) int {
 		return returnCode
 	case sig := <-termCh:
 		logger.Info(utils.StringConcat("receiving signal: ", sig.String()))
-		openvpnClient.Shutdown()
+
 		return 0
 	}
 }
 
-func configureLogger(conf *config.Config, w io.Writer) (*slog.Logger, error) {
+func startHTTPListener(
+	conf config.Config, logger *slog.Logger, provider oauth2.Provider, openvpnClient *openvpn.Client,
+) error {
+	server := &http.Server{
+		Addr:              conf.HTTP.Listen,
+		ReadHeaderTimeout: 3 * time.Second,
+		ErrorLog:          slog.NewLogLogger(logger.Handler(), slog.LevelError),
+		Handler:           oauth2.Handler(logger, provider, conf, openvpnClient),
+	}
+
+	if conf.HTTP.TLS {
+		logger.Info(utils.StringConcat(
+			"HTTPS server listen on ", conf.HTTP.Listen, " with base url ", conf.HTTP.BaseURL.String(),
+		))
+
+		err := server.ListenAndServeTLS(conf.HTTP.CertFile, conf.HTTP.KeyFile)
+		if err != nil {
+			return fmt.Errorf("ListenAndServeTLS: %w", err)
+		}
+
+		return nil
+	}
+
+	logger.Info(utils.StringConcat(
+		"HTTP server listen on ", conf.HTTP.Listen, " with base url ", conf.HTTP.BaseURL.String(),
+	))
+
+	err := server.ListenAndServe()
+	if err != nil {
+		return fmt.Errorf("ListenAndServe: %w", err)
+	}
+
+	return nil
+}
+
+func configureLogger(conf config.Config, writer io.Writer) (*slog.Logger, error) {
 	var level slog.Level
 
-	if err := level.UnmarshalText([]byte(conf.Log.Level)); err != nil {
-		return nil, err
+	err := level.UnmarshalText([]byte(conf.Log.Level))
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse log level: %w", err)
 	}
 
 	opts := &slog.HandlerOptions{
@@ -172,10 +159,70 @@ func configureLogger(conf *config.Config, w io.Writer) (*slog.Logger, error) {
 
 	switch conf.Log.Format {
 	case "json":
-		return slog.New(slog.NewJSONHandler(w, opts)), nil
+		return slog.New(slog.NewJSONHandler(writer, opts)), nil
 	case "console":
-		return slog.New(slog.NewTextHandler(w, opts)), nil
+		return slog.New(slog.NewTextHandler(writer, opts)), nil
 	default:
-		return nil, errors.New(utils.StringConcat("Unknown log format: ", conf.Log.Format))
+		return nil, fmt.Errorf("unknown log format: %s", conf.Log.Format)
 	}
+}
+
+func loadConfig(flagSet *flag.FlagSet) (config.Config, error) {
+	var err error
+
+	k := koanf.New(".")
+
+	configFile, _ := flagSet.GetString("config")
+	if configFile != "" {
+		if err := k.Load(file.Provider(configFile), yaml.Parser()); err != nil {
+			return config.Config{}, fmt.Errorf("error from file provider: %w", err)
+		}
+	}
+
+	if err = k.Load(posflag.Provider(flagSet, ".", k), nil); err != nil {
+		return config.Config{}, fmt.Errorf("error from posflag provider: %w", err)
+	}
+
+	err = k.Load(env.ProviderWithValue("CONFIG_", ".",
+		func(envKey string, envValue string) (string, interface{}) {
+			key := strings.ReplaceAll(strings.ToLower(strings.TrimPrefix(envKey, "CONFIG_")), "_", ".")
+
+			// If there is a space in the value, split the value into a slice by the space.
+			if strings.Contains(envValue, " ") {
+				return key, strings.Split(envValue, " ")
+			}
+
+			// Otherwise, return the plain string.
+			return key, envValue
+		}), nil,
+	)
+
+	if err != nil {
+		return config.Config{}, fmt.Errorf("error from env provider: %w", err)
+	}
+
+	var conf config.Config
+	unmarshalConf := koanf.UnmarshalConf{
+		DecoderConfig: &mapstructure.DecoderConfig{
+			DecodeHook: mapstructure.ComposeDecodeHookFunc(
+				mapstructure.StringToTimeDurationHookFunc(),
+				mapstructure.TextUnmarshallerHookFunc(),
+				config.StringToURLHookFunc(),
+				config.StringToTemplateHookFunc(),
+			),
+			Metadata:         nil,
+			Result:           &conf,
+			WeaklyTypedInput: true,
+		},
+	}
+
+	if err = k.UnmarshalWithConf("", &conf, unmarshalConf); err != nil {
+		return config.Config{}, fmt.Errorf("error unmarschal config: %w", err)
+	}
+
+	if err = config.Validate(conf); err != nil {
+		return config.Config{}, fmt.Errorf("error validating logging: %w", err)
+	}
+
+	return conf, nil
 }

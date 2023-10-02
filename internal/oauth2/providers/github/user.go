@@ -17,16 +17,16 @@ type userType struct {
 	Email string `json:"email"`
 }
 
-func (p *Provider) GetUser(ctx context.Context, tokens *oidc.Tokens[*oidc.IDTokenClaims]) (*types.UserData, error) {
-	var u userType
+func (p *Provider) GetUser(ctx context.Context, tokens *oidc.Tokens[*oidc.IDTokenClaims]) (types.UserData, error) {
+	var user userType
 
-	_, err := get[userType](ctx, tokens.AccessToken, "https://api.github.com/user", &u)
+	_, err := get[userType](ctx, tokens.AccessToken, "https://api.github.com/user", &user)
 	if err != nil {
-		return nil, err
+		return types.UserData{}, err
 	}
 
-	return &types.UserData{
-		PreferredUsername: u.Login,
-		Subject:           strconv.Itoa(u.ID),
+	return types.UserData{
+		PreferredUsername: user.Login,
+		Subject:           strconv.Itoa(user.ID),
 	}, nil
 }

@@ -7,7 +7,7 @@ import (
 	"github.com/zitadel/oidc/v2/pkg/oidc"
 )
 
-func (p *Provider) GetUser(_ context.Context, tokens *oidc.Tokens[*oidc.IDTokenClaims]) (*types.UserData, error) {
+func (p *Provider) GetUser(_ context.Context, tokens *oidc.Tokens[*oidc.IDTokenClaims]) (types.UserData, error) {
 	var (
 		preferredUsername string
 		subject           string
@@ -21,7 +21,7 @@ func (p *Provider) GetUser(_ context.Context, tokens *oidc.Tokens[*oidc.IDTokenC
 		subject = tokens.IDTokenClaims.Subject
 	}
 
-	return &types.UserData{
+	return types.UserData{
 		PreferredUsername: preferredUsername,
 		Subject:           subject,
 	}, nil

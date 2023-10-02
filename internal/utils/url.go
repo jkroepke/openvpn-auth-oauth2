@@ -2,6 +2,6 @@ package utils
 
 import "net/url"
 
-func IsUrlEmpty(url *url.URL) bool {
+func IsURLEmpty(url *url.URL) bool {
 	return url == nil || url.String() == ""
 }

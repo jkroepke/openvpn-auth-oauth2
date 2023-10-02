@@ -1,29 +1,37 @@
+//nolint:goerr113, wrapcheck
 package config
 
 import (
-	"errors"
+	"fmt"
 	"html/template"
 	"net/url"
 	"reflect"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 	"github.com/mitchellh/mapstructure"
 )
 
-func StringToUrlHookFunc() mapstructure.DecodeHookFunc {
+// StringToURLHookFunc parse a string to [url.URL].
+func StringToURLHookFunc() mapstructure.DecodeHookFuncType {
 	return func(
 		f reflect.Type,
 		t reflect.Type,
-		data interface{}) (interface{}, error) {
+		data interface{},
+	) (interface{}, error) {
 		if f.Kind() != reflect.String {
 			return data, nil
 		}
+
 		if t != reflect.TypeOf(url.URL{}) {
 			return data, nil
 		}
 
+		dataString, ok := data.(string)
+		if !ok {
+			return nil, fmt.Errorf("unable to cast to string")
+		}
+
 		// Convert it by parsing
-		uri, err := url.Parse(data.(string))
+		uri, err := url.Parse(dataString)
 		if err != nil {
 			return nil, err
 		}
@@ -33,21 +41,24 @@ func StringToUrlHookFunc() mapstructure.DecodeHookFunc {
 		}
 
 		if uri.Scheme == "" {
-			return nil, errors.New(utils.StringConcat("invalid URL ", data.(string), ": empty scheme"))
+			return nil, fmt.Errorf("invalid URL %s: empty scheme", dataString)
 		}
 
 		if uri.Host == "" && uri.Path == "" {
-			return nil, errors.New(utils.StringConcat("invalid URL ", data.(string), ": empty hostname"))
+			return nil, fmt.Errorf("invalid URL %s: empty hostname", dataString)
 		}
 
 		return uri, nil
 	}
 }
-func StringToTemplateHookFunc() mapstructure.DecodeHookFunc {
+
+// StringToTemplateHookFunc parse a string to [template.Template].
+func StringToTemplateHookFunc() mapstructure.DecodeHookFuncType {
 	return func(
 		f reflect.Type,
 		t reflect.Type,
-		data interface{}) (interface{}, error) {
+		data interface{},
+	) (interface{}, error) {
 		if f.Kind() != reflect.String {
 			return data, nil
 		}
@@ -56,10 +67,24 @@ func StringToTemplateHookFunc() mapstructure.DecodeHookFunc {
 			return data, nil
 		}
 
-		if data.(string) == "" {
+		dataString, ok := data.(string)
+		if !ok {
+			return nil, fmt.Errorf("unable to cast to string")
+		}
+
+		if dataString == "" {
 			return template.Template{}, nil
 		}
 
-		return template.New("callback").ParseFiles(data.(string))
+		var err error
+
+		tmpl := template.New("callback")
+		tmpl, err = tmpl.ParseFiles(dataString)
+
+		if err != nil {
+			return template.Template{}, fmt.Errorf("error paring template files: %w", err)
+		}
+
+		return tmpl, err
 	}
 }

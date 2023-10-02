@@ -1,7 +1,7 @@
 package oauth2
 
-// language=html
-const callbackHtml = `
+// language=html.
+const callbackHTML = `
 <!doctype html>
 <html>
 <head><title>Login successfully</title></head>

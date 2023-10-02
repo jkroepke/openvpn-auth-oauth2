@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/types"
@@ -19,68 +20,90 @@ type teamType struct {
 	Slug string  `json:"slug"`
 }
 
-func (p *Provider) CheckUser(ctx context.Context, _ *state.State, _ *types.UserData, tokens *oidc.Tokens[*oidc.IDTokenClaims]) error {
+func (p *Provider) CheckUser(
+	ctx context.Context, _ state.State, _ types.UserData, tokens *oidc.Tokens[*oidc.IDTokenClaims],
+) error {
+	//nolint: exhaustruct
 	tokens.IDTokenClaims = &oidc.IDTokenClaims{
 		Claims: make(map[string]any),
 	}
 
-	if len(p.Provider.Conf.Oauth2.Validate.Groups) != 0 {
-		apiUrl := "https://api.github.com/user/orgs"
+	if err := p.CheckOrgs(ctx, tokens); err != nil {
+		return err
+	}
 
-		var groups []interface{}
+	return p.CheckTeams(ctx, tokens)
+}
 
-		for {
-			var (
-				orgs []orgType
-				err  error
-			)
+func (p *Provider) CheckTeams(ctx context.Context, tokens *oidc.Tokens[*oidc.IDTokenClaims]) error {
+	if len(p.Provider.Conf.OAuth2.Validate.Roles) != 0 {
+		return nil
+	}
 
-			if apiUrl, err = get[[]orgType](ctx, tokens.AccessToken, apiUrl, &orgs); err != nil {
-				return err
-			}
-			for _, org := range orgs {
-				groups = append(groups, org.Login)
-			}
+	apiURL := "https://api.github.com/user/teams"
 
-			if apiUrl == "" {
-				break
-			}
+	var roles []interface{}
+
+	for {
+		var (
+			teams []teamType
+			err   error
+		)
+
+		if apiURL, err = get[[]teamType](ctx, tokens.AccessToken, apiURL, &teams); err != nil {
+			return err
 		}
 
-		tokens.IDTokenClaims.Claims["groups"] = groups
+		for _, team := range teams {
+			roles = append(roles, utils.StringConcat(team.Org.Login, ":", team.Slug))
+		}
 
-		if err := p.CheckGroups(tokens); err != nil {
-			return err
+		if apiURL == "" {
+			break
 		}
 	}
-	if len(p.Provider.Conf.Oauth2.Validate.Roles) != 0 {
-		apiUrl := "https://api.github.com/user/teams"
 
-		var roles []interface{}
+	tokens.IDTokenClaims.Claims["roles"] = roles
 
-		for {
-			var (
-				teams []teamType
-				err   error
-			)
+	if err := p.CheckRoles(tokens); err != nil {
+		return fmt.Errorf("CheckRoles: %w", err)
+	}
 
-			if apiUrl, err = get[[]teamType](ctx, tokens.AccessToken, apiUrl, &teams); err != nil {
-				return err
-			}
-			for _, team := range teams {
-				roles = append(roles, utils.StringConcat(team.Org.Login, ":", team.Slug))
-			}
+	return nil
+}
 
-			if apiUrl == "" {
-				break
-			}
-		}
+func (p *Provider) CheckOrgs(ctx context.Context, tokens *oidc.Tokens[*oidc.IDTokenClaims]) error {
+	if len(p.Provider.Conf.OAuth2.Validate.Groups) != 0 {
+		return nil
+	}
 
-		tokens.IDTokenClaims.Claims["roles"] = roles
+	apiURL := "https://api.github.com/user/orgs"
 
-		if err := p.CheckRoles(tokens); err != nil {
+	var groups []interface{}
+
+	for {
+		var (
+			orgs []orgType
+			err  error
+		)
+
+		if apiURL, err = get[[]orgType](ctx, tokens.AccessToken, apiURL, &orgs); err != nil {
 			return err
 		}
+
+		for _, org := range orgs {
+			groups = append(groups, org.Login)
+		}
+
+		if apiURL == "" {
+			break
+		}
+	}
+
+	tokens.IDTokenClaims.Claims["groups"] = groups
+
+	if err := p.CheckGroups(tokens); err != nil {
+		return fmt.Errorf("CheckGroups: %w", err)
 	}
 
 	return nil
