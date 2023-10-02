@@ -41,6 +41,11 @@ func TestExecuteConfigInvalid(t *testing.T) {
 		err  string
 	}{
 		{
+			"invalid args",
+			[]string{"", "---"},
+			"error parsing cli args: bad flag syntax: ---",
+		},
+		{
 			"file not exists",
 			[]string{"", "--config=nonexists"},
 			"error loading config: error from file provider: open nonexists: no such file or directory",

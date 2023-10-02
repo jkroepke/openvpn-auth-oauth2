@@ -170,7 +170,7 @@ func (c *Client) Shutdown() {
 	defer c.mu.Unlock()
 
 	if !c.closed {
-		c.logger.Info("shutdown connection")
+		c.logger.Info("shutdown OpenVPN management connection")
 		c.shutdownCh <- struct{}{}
 	}
 }

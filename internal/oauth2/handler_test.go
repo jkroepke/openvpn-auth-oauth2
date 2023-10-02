@@ -225,7 +225,7 @@ func TestHandler(t *testing.T) {
 				return
 			}
 
-			httpClientListener := httptest.NewUnstartedServer(oauth2.Handler(logger, provider, tt.conf, client))
+			httpClientListener := httptest.NewUnstartedServer(oauth2.Handler(logger, tt.conf, provider, client))
 			httpClientListener.Listener.Close()
 			httpClientListener.Listener = clientListener
 			httpClientListener.Start()
