@@ -1,13 +1,16 @@
-package config
+package config_test
 
 import (
 	"net/url"
 	"testing"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestFlagSet(t *testing.T) {
+	t.Parallel()
+
 	for _, tt := range []struct {
 		name       string
 		args       []string
@@ -28,8 +31,11 @@ func TestFlagSet(t *testing.T) {
 			},
 		},
 	} {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			flagSet := FlagSet()
+			t.Parallel()
+
+			flagSet := config.FlagSet()
 			err := flagSet.Parse(append([]string{"openvpn-auth-oauth2"}, tt.args...))
 			assert.NoError(t, err)
 			for arg, expected := range tt.expectArgs {
@@ -49,43 +55,46 @@ func TestFlagSet(t *testing.T) {
 				}
 			}
 		})
-
 	}
 }
+
 func TestValidate(t *testing.T) {
+	t.Parallel()
+
 	for _, tt := range []struct {
-		name   string
-		config Config
-		err    string
+		name string
+		conf config.Config
+		err  string
 	}{
-		{"", Config{}, "-"},
-		{"", Config{Http: Http{}}, "-"},
-		{"", Config{Http: Http{}, Oauth2: OAuth2{}}, "-"},
-		{"", Config{Http: Http{}, Oauth2: OAuth2{}, OpenVpn: OpenVpn{}}, "-"},
-		{"", Config{Http: Http{}, Oauth2: OAuth2{}, OpenVpn: OpenVpn{}, Log: Log{}}, "-"},
-		{"", Config{Http: Http{}, Oauth2: OAuth2{Client: OAuth2Client{}}, OpenVpn: OpenVpn{}, Log: Log{}}, "-"},
-		{"", Config{Http: Http{}, Oauth2: OAuth2{Client: OAuth2Client{}, Endpoints: OAuth2Endpoints{}, Validate: OAuth2Validate{}}, OpenVpn: OpenVpn{}, Log: Log{}}, "-"},
-		{"", Config{Http: Http{}, Oauth2: OAuth2{Client: OAuth2Client{}, Endpoints: OAuth2Endpoints{}, Validate: OAuth2Validate{}}, OpenVpn: OpenVpn{Bypass: OpenVpnBypass{}}, Log: Log{}}, "-"},
-		{"", Config{Http: Http{BaseUrl: &url.URL{}}, Oauth2: OAuth2{Client: OAuth2Client{}, Endpoints: OAuth2Endpoints{}, Validate: OAuth2Validate{}}, OpenVpn: OpenVpn{Bypass: OpenVpnBypass{}}, Log: Log{}}, "-"},
-		{"", Config{Http: Http{BaseUrl: &url.URL{Scheme: "http", Host: "invalid"}}, Oauth2: OAuth2{Client: OAuth2Client{}, Endpoints: OAuth2Endpoints{}, Validate: OAuth2Validate{}}, OpenVpn: OpenVpn{Bypass: OpenVpnBypass{}}, Log: Log{}}, "-"},
-		{"", Config{Http: Http{BaseUrl: &url.URL{Scheme: "http", Host: "invalid"}, Secret: "invalid"}, Oauth2: OAuth2{Issuer: &url.URL{}, Client: OAuth2Client{}, Endpoints: OAuth2Endpoints{}, Validate: OAuth2Validate{}}, OpenVpn: OpenVpn{Bypass: OpenVpnBypass{}}, Log: Log{}}, "-"},
-		{"", Config{Http: Http{BaseUrl: &url.URL{Scheme: "http", Host: "invalid"}, Secret: "invalid"}, Oauth2: OAuth2{Issuer: &url.URL{Scheme: "http", Host: "invalid"}, Client: OAuth2Client{}, Endpoints: OAuth2Endpoints{}, Validate: OAuth2Validate{}}, OpenVpn: OpenVpn{Bypass: OpenVpnBypass{}}, Log: Log{}}, "-"},
-		{"", Config{Http: Http{BaseUrl: &url.URL{Scheme: "http", Host: "invalid"}, Secret: "invalid", Check: HttpCheck{}}, Oauth2: OAuth2{Issuer: &url.URL{Scheme: "http", Host: "invalid"}, Client: OAuth2Client{Id: "client"}, Endpoints: OAuth2Endpoints{}, Validate: OAuth2Validate{}}, OpenVpn: OpenVpn{Bypass: OpenVpnBypass{}}, Log: Log{}}, "http.secret requires a length of 16, 24 or 32"},
-		{"", Config{Http: Http{BaseUrl: &url.URL{Scheme: "http", Host: "invalid"}, Secret: "invalid", Check: HttpCheck{}}, Oauth2: OAuth2{Issuer: &url.URL{Scheme: "http", Host: "invalid"}, Client: OAuth2Client{Id: "client"}, Endpoints: OAuth2Endpoints{}, Validate: OAuth2Validate{}}, OpenVpn: OpenVpn{Bypass: OpenVpnBypass{}}, Log: Log{}}, "http.secret requires a length of 16, 24 or 32"},
-		{"", Config{Http: Http{BaseUrl: &url.URL{Scheme: "http", Host: "invalid"}, Secret: "0123456789101112", Check: HttpCheck{}}, Oauth2: OAuth2{Issuer: &url.URL{Scheme: "http", Host: "invalid"}, Client: OAuth2Client{Id: "client"}, Endpoints: OAuth2Endpoints{}, Validate: OAuth2Validate{}}, OpenVpn: OpenVpn{Addr: &url.URL{}, Bypass: OpenVpnBypass{}}, Log: Log{}}, "openvpn.addr: invalid URL. only tcp://addr or unix://addr scheme supported"},
-		{"", Config{Http: Http{BaseUrl: &url.URL{Scheme: "http", Host: "invalid"}, Secret: "0123456789101112", Check: HttpCheck{}}, Oauth2: OAuth2{Issuer: &url.URL{Scheme: "http", Host: "invalid"}, Client: OAuth2Client{Id: "client"}, Endpoints: OAuth2Endpoints{}, Validate: OAuth2Validate{}}, OpenVpn: OpenVpn{Addr: &url.URL{Scheme: "tcps", Host: "127.0.0.1:9000"}, Bypass: OpenVpnBypass{}}, Log: Log{}}, "openvpn.addr: invalid URL. only tcp://addr or unix://addr scheme supported"},
-		{"", Config{Http: Http{BaseUrl: &url.URL{Scheme: "httpss", Host: "invalid"}, Secret: "0123456789101112", Check: HttpCheck{}}, Oauth2: OAuth2{Issuer: &url.URL{Scheme: "http", Host: "invalid"}, Client: OAuth2Client{Id: "client"}, Endpoints: OAuth2Endpoints{}, Validate: OAuth2Validate{}}, OpenVpn: OpenVpn{Addr: &url.URL{Scheme: "tcp", Host: "127.0.0.1:9000"}, Bypass: OpenVpnBypass{}}, Log: Log{}}, "-"},
-		{"", Config{Http: Http{BaseUrl: &url.URL{Scheme: "http", Host: "invalid"}, Secret: "0123456789101112", Check: HttpCheck{}}, Oauth2: OAuth2{Issuer: &url.URL{Scheme: "http", Host: "invalid"}, Client: OAuth2Client{Id: "client"}, Endpoints: OAuth2Endpoints{}, Validate: OAuth2Validate{}}, OpenVpn: OpenVpn{Addr: &url.URL{Scheme: "tcp", Host: "127.0.0.1:9000"}, Bypass: OpenVpnBypass{}}, Log: Log{}}, ""},
-		{"", Config{Http: Http{BaseUrl: &url.URL{Scheme: "http", Host: "invalid"}, Secret: "0123456789101112", Check: HttpCheck{}}, Oauth2: OAuth2{Issuer: &url.URL{Scheme: "http", Host: "invalid"}, Client: OAuth2Client{Id: "client"}, Endpoints: OAuth2Endpoints{Token: &url.URL{Scheme: "http", Host: "invalid"}, Auth: &url.URL{Scheme: "http", Host: "invalid"}}, Validate: OAuth2Validate{}}, OpenVpn: OpenVpn{Addr: &url.URL{Scheme: "tcp", Host: "127.0.0.1:9000"}, Bypass: OpenVpnBypass{}}, Log: Log{}}, ""},
+		{"", config.Config{}, "-"},
+		{"", config.Config{HTTP: config.HTTP{}}, "-"},
+		{"", config.Config{HTTP: config.HTTP{}, OAuth2: config.OAuth2{}}, "-"},
+		{"", config.Config{HTTP: config.HTTP{}, OAuth2: config.OAuth2{}, OpenVpn: config.OpenVpn{}}, "-"},
+		{"", config.Config{HTTP: config.HTTP{}, OAuth2: config.OAuth2{}, OpenVpn: config.OpenVpn{}, Log: config.Log{}}, "-"},
+		{"", config.Config{HTTP: config.HTTP{}, OAuth2: config.OAuth2{Client: config.OAuth2Client{}}, OpenVpn: config.OpenVpn{}, Log: config.Log{}}, "-"},
+		{"", config.Config{HTTP: config.HTTP{}, OAuth2: config.OAuth2{Client: config.OAuth2Client{}, Endpoints: config.OAuth2Endpoints{}, Validate: config.OAuth2Validate{}}, OpenVpn: config.OpenVpn{}, Log: config.Log{}}, "-"},
+		{"", config.Config{HTTP: config.HTTP{}, OAuth2: config.OAuth2{Client: config.OAuth2Client{}, Endpoints: config.OAuth2Endpoints{}, Validate: config.OAuth2Validate{}}, OpenVpn: config.OpenVpn{Bypass: config.OpenVpnBypass{}}, Log: config.Log{}}, "-"},
+		{"", config.Config{HTTP: config.HTTP{BaseURL: &url.URL{}}, OAuth2: config.OAuth2{Client: config.OAuth2Client{}, Endpoints: config.OAuth2Endpoints{}, Validate: config.OAuth2Validate{}}, OpenVpn: config.OpenVpn{Bypass: config.OpenVpnBypass{}}, Log: config.Log{}}, "-"},
+		{"", config.Config{HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "invalid"}}, OAuth2: config.OAuth2{Client: config.OAuth2Client{}, Endpoints: config.OAuth2Endpoints{}, Validate: config.OAuth2Validate{}}, OpenVpn: config.OpenVpn{Bypass: config.OpenVpnBypass{}}, Log: config.Log{}}, "-"},
+		{"", config.Config{HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "invalid"}, Secret: "invalid"}, OAuth2: config.OAuth2{Issuer: &url.URL{}, Client: config.OAuth2Client{}, Endpoints: config.OAuth2Endpoints{}, Validate: config.OAuth2Validate{}}, OpenVpn: config.OpenVpn{Bypass: config.OpenVpnBypass{}}, Log: config.Log{}}, "-"},
+		{"", config.Config{HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "invalid"}, Secret: "invalid"}, OAuth2: config.OAuth2{Issuer: &url.URL{Scheme: "http", Host: "invalid"}, Client: config.OAuth2Client{}, Endpoints: config.OAuth2Endpoints{}, Validate: config.OAuth2Validate{}}, OpenVpn: config.OpenVpn{Bypass: config.OpenVpnBypass{}}, Log: config.Log{}}, "-"},
+		{"", config.Config{HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "invalid"}, Secret: "invalid", Check: config.HTTPCheck{}}, OAuth2: config.OAuth2{Issuer: &url.URL{Scheme: "http", Host: "invalid"}, Client: config.OAuth2Client{ID: "client"}, Endpoints: config.OAuth2Endpoints{}, Validate: config.OAuth2Validate{}}, OpenVpn: config.OpenVpn{Bypass: config.OpenVpnBypass{}}, Log: config.Log{}}, "http.secret requires a length of 16, 24 or 32"},
+		{"", config.Config{HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "invalid"}, Secret: "invalid", Check: config.HTTPCheck{}}, OAuth2: config.OAuth2{Issuer: &url.URL{Scheme: "http", Host: "invalid"}, Client: config.OAuth2Client{ID: "client"}, Endpoints: config.OAuth2Endpoints{}, Validate: config.OAuth2Validate{}}, OpenVpn: config.OpenVpn{Bypass: config.OpenVpnBypass{}}, Log: config.Log{}}, "http.secret requires a length of 16, 24 or 32"},
+		{"", config.Config{HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "invalid"}, Secret: "0123456789101112", Check: config.HTTPCheck{}}, OAuth2: config.OAuth2{Issuer: &url.URL{Scheme: "http", Host: "invalid"}, Client: config.OAuth2Client{ID: "client"}, Endpoints: config.OAuth2Endpoints{}, Validate: config.OAuth2Validate{}}, OpenVpn: config.OpenVpn{Addr: &url.URL{}, Bypass: config.OpenVpnBypass{}}, Log: config.Log{}}, "openvpn.addr: invalid URL. only tcp://addr or unix://addr scheme supported"},
+		{"", config.Config{HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "invalid"}, Secret: "0123456789101112", Check: config.HTTPCheck{}}, OAuth2: config.OAuth2{Issuer: &url.URL{Scheme: "http", Host: "invalid"}, Client: config.OAuth2Client{ID: "client"}, Endpoints: config.OAuth2Endpoints{}, Validate: config.OAuth2Validate{}}, OpenVpn: config.OpenVpn{Addr: &url.URL{Scheme: "tcps", Host: "127.0.0.1:9000"}, Bypass: config.OpenVpnBypass{}}, Log: config.Log{}}, "openvpn.addr: invalid URL. only tcp://addr or unix://addr scheme supported"},
+		{"", config.Config{HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "httpss", Host: "invalid"}, Secret: "0123456789101112", Check: config.HTTPCheck{}}, OAuth2: config.OAuth2{Issuer: &url.URL{Scheme: "http", Host: "invalid"}, Client: config.OAuth2Client{ID: "client"}, Endpoints: config.OAuth2Endpoints{}, Validate: config.OAuth2Validate{}}, OpenVpn: config.OpenVpn{Addr: &url.URL{Scheme: "tcp", Host: "127.0.0.1:9000"}, Bypass: config.OpenVpnBypass{}}, Log: config.Log{}}, "-"},
+		{"", config.Config{HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "invalid"}, Secret: "0123456789101112", Check: config.HTTPCheck{}}, OAuth2: config.OAuth2{Issuer: &url.URL{Scheme: "http", Host: "invalid"}, Client: config.OAuth2Client{ID: "client"}, Endpoints: config.OAuth2Endpoints{}, Validate: config.OAuth2Validate{}}, OpenVpn: config.OpenVpn{Addr: &url.URL{Scheme: "tcp", Host: "127.0.0.1:9000"}, Bypass: config.OpenVpnBypass{}}, Log: config.Log{}}, ""},
+		{"", config.Config{HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "invalid"}, Secret: "0123456789101112", Check: config.HTTPCheck{}}, OAuth2: config.OAuth2{Issuer: &url.URL{Scheme: "http", Host: "invalid"}, Client: config.OAuth2Client{ID: "client"}, Endpoints: config.OAuth2Endpoints{Token: &url.URL{Scheme: "http", Host: "invalid"}, Auth: &url.URL{Scheme: "http", Host: "invalid"}}, Validate: config.OAuth2Validate{}}, OpenVpn: config.OpenVpn{Addr: &url.URL{Scheme: "tcp", Host: "127.0.0.1:9000"}, Bypass: config.OpenVpnBypass{}}, Log: config.Log{}}, ""},
 	} {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			err := Validate(tt.config)
+			t.Parallel()
+
+			err := config.Validate(tt.conf)
 			if tt.err == "" {
 				assert.NoError(t, err)
-			} else {
-				if assert.Error(t, err) && tt.err != "-" {
-					assert.Equal(t, err.Error(), tt.err)
-				}
+			} else if assert.Error(t, err) && tt.err != "-" {
+				assert.Equal(t, err.Error(), tt.err)
 			}
 		})
 	}

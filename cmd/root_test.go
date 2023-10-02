@@ -1,4 +1,4 @@
-package cmd
+package cmd_test
 
 import (
 	"bufio"
@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/cmd"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/zitadel/oidc/v2/example/server/storage"
@@ -22,14 +23,18 @@ import (
 )
 
 func TestExecuteVersion(t *testing.T) {
+	t.Parallel()
+
 	var buf bytes.Buffer
 	_ = io.Writer(&buf)
 
-	returnCode := Execute([]string{"", "--version"}, &buf, "version", "commit", "date")
+	returnCode := cmd.Execute([]string{"", "--version"}, &buf, "version", "commit", "date")
 	assert.Equal(t, 0, returnCode, buf.String())
 }
 
 func TestExecuteConfigInvalid(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		args []string
@@ -53,11 +58,14 @@ func TestExecuteConfigInvalid(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			var buf bytes.Buffer
 			_ = io.Writer(&buf)
 
-			returnCode := Execute(tt.args, &buf, "version", "commit", "date")
+			returnCode := cmd.Execute(tt.args, &buf, "version", "commit", "date")
 			assert.Equal(t, 1, returnCode, buf.String())
 			assert.Contains(t, buf.String(), tt.err)
 		})
@@ -65,6 +73,8 @@ func TestExecuteConfigInvalid(t *testing.T) {
 }
 
 func TestExecuteConfigFileFound(t *testing.T) {
+	t.Parallel()
+
 	opStorage := storage.NewStorage(storage.NewUserStore("http://localhost/"))
 	opConfig := &op.Config{
 		CryptoKey:                sha256.Sum256([]byte("test")),
@@ -82,17 +92,19 @@ func TestExecuteConfigFileFound(t *testing.T) {
 	)
 
 	assert.NoError(t, err)
+
 	svr := httptest.NewServer(handler.HttpHandler())
 
 	l, err := net.Listen("tcp", "127.0.0.1:0")
 	assert.NoError(t, err)
+
 	defer l.Close()
 
 	go func() {
 		conn, err := l.Accept()
 		assert.NoError(t, err)
 
-		defer conn.Close() //nolint:errcheck
+		defer conn.Close()
 		reader := bufio.NewReader(conn)
 
 		sendLine(t, conn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\r\n")
@@ -108,6 +120,7 @@ func TestExecuteConfigFileFound(t *testing.T) {
 		if err != nil {
 			panic(err)
 		}
+
 		_ = p.Signal(syscall.SIGINT)
 	}()
 
@@ -126,17 +139,22 @@ func TestExecuteConfigFileFound(t *testing.T) {
 	var buf bytes.Buffer
 	_ = io.Writer(&buf)
 
-	returnCode := Execute(args, &buf, "version", "commit", "date")
+	returnCode := cmd.Execute(args, &buf, "version", "commit", "date")
 	assert.Equal(t, 0, returnCode, buf.String())
 }
 
-func sendLine(t testing.TB, conn net.Conn, msg string, a ...any) {
+func sendLine(tb testing.TB, conn net.Conn, msg string, a ...any) {
+	tb.Helper()
+
 	_, err := fmt.Fprintf(conn, msg, a...)
-	assert.NoError(t, err)
+	assert.NoError(tb, err)
 }
 
-func readLine(t testing.TB, reader *bufio.Reader) (msg string) {
+func readLine(tb testing.TB, reader *bufio.Reader) string {
+	tb.Helper()
+
 	line, err := reader.ReadString('\n')
-	assert.NoError(t, err)
+	assert.NoError(tb, err)
+
 	return strings.TrimSpace(line)
 }

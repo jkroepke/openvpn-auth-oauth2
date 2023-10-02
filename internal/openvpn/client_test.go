@@ -1,4 +1,4 @@
-package openvpn
+package openvpn_test
 
 import (
 	"bufio"
@@ -14,15 +14,18 @@ import (
 	"testing"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestClientInvalidServer(t *testing.T) {
+	t.Parallel()
+
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	conf := config.Config{
-		Http: config.Http{
-			BaseUrl: &url.URL{Scheme: "http", Host: "localhost"},
+		HTTP: config.HTTP{
+			BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 			Secret:  "0123456789101112",
 		},
 		OpenVpn: config.OpenVpn{
@@ -30,17 +33,16 @@ func TestClientInvalidServer(t *testing.T) {
 			Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
 		},
 	}
-	client := NewClient(logger, conf)
+	client := openvpn.NewClient(logger, conf)
 	err := client.Connect()
 	assert.Error(t, err)
 	assert.Equal(t, "unable to connect to openvpn management interface tcp://0.0.0.0:1: dial tcp 0.0.0.0:1: connect: connection refused", err.Error())
 }
 
 func TestClientFull(t *testing.T) {
+	t.Parallel()
+
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	l, err := net.Listen("tcp", "127.0.0.1:0")
-	assert.NoError(t, err)
-	defer l.Close()
 
 	confs := []struct {
 		name   string
@@ -52,12 +54,11 @@ func TestClientFull(t *testing.T) {
 		{
 			"without password",
 			config.Config{
-				Http: config.Http{
-					BaseUrl: &url.URL{Scheme: "http", Host: "localhost"},
+				HTTP: config.HTTP{
+					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  "0123456789101112",
 				},
 				OpenVpn: config.OpenVpn{
-					Addr:   &url.URL{Scheme: l.Addr().Network(), Host: l.Addr().String()},
 					Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
 				},
 			},
@@ -68,12 +69,11 @@ func TestClientFull(t *testing.T) {
 		{
 			"with password",
 			config.Config{
-				Http: config.Http{
-					BaseUrl: &url.URL{Scheme: "http", Host: "localhost"},
+				HTTP: config.HTTP{
+					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  "0123456789101112",
 				},
 				OpenVpn: config.OpenVpn{
-					Addr:     &url.URL{Scheme: l.Addr().Network(), Host: l.Addr().String()},
 					Bypass:   config.OpenVpnBypass{CommonNames: make([]string, 0)},
 					Password: "password",
 				},
@@ -85,12 +85,11 @@ func TestClientFull(t *testing.T) {
 		{
 			"with invalid state",
 			config.Config{
-				Http: config.Http{
-					BaseUrl: &url.URL{Scheme: "http", Host: "localhost"},
+				HTTP: config.HTTP{
+					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  "012345678910111",
 				},
 				OpenVpn: config.OpenVpn{
-					Addr:     &url.URL{Scheme: l.Addr().Network(), Host: l.Addr().String()},
 					Bypass:   config.OpenVpnBypass{CommonNames: make([]string, 0)},
 					Password: "password",
 				},
@@ -102,12 +101,11 @@ func TestClientFull(t *testing.T) {
 		{
 			"client without IV_SSO",
 			config.Config{
-				Http: config.Http{
-					BaseUrl: &url.URL{Scheme: "http", Host: "localhost"},
+				HTTP: config.HTTP{
+					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  "0123456789101112",
 				},
 				OpenVpn: config.OpenVpn{
-					Addr:     &url.URL{Scheme: l.Addr().Network(), Host: l.Addr().String()},
 					Bypass:   config.OpenVpnBypass{CommonNames: make([]string, 0)},
 					Password: "password",
 				},
@@ -119,12 +117,11 @@ func TestClientFull(t *testing.T) {
 		{
 			"client bypass",
 			config.Config{
-				Http: config.Http{
-					BaseUrl: &url.URL{Scheme: "http", Host: "localhost"},
+				HTTP: config.HTTP{
+					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  "0123456789101112",
 				},
 				OpenVpn: config.OpenVpn{
-					Addr:     &url.URL{Scheme: l.Addr().Network(), Host: l.Addr().String()},
 					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
 					Password: "password",
 				},
@@ -136,12 +133,11 @@ func TestClientFull(t *testing.T) {
 		{
 			"client established",
 			config.Config{
-				Http: config.Http{
-					BaseUrl: &url.URL{Scheme: "http", Host: "localhost"},
+				HTTP: config.HTTP{
+					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  "0123456789101112",
 				},
 				OpenVpn: config.OpenVpn{
-					Addr:     &url.URL{Scheme: l.Addr().Network(), Host: l.Addr().String()},
 					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
 					Password: "password",
 				},
@@ -153,12 +149,11 @@ func TestClientFull(t *testing.T) {
 		{
 			"client disconnected",
 			config.Config{
-				Http: config.Http{
-					BaseUrl: &url.URL{Scheme: "http", Host: "localhost"},
+				HTTP: config.HTTP{
+					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  "0123456789101112",
 				},
 				OpenVpn: config.OpenVpn{
-					Addr:     &url.URL{Scheme: l.Addr().Network(), Host: l.Addr().String()},
 					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
 					Password: "password",
 				},
@@ -170,12 +165,11 @@ func TestClientFull(t *testing.T) {
 		{
 			"client invalid reason",
 			config.Config{
-				Http: config.Http{
-					BaseUrl: &url.URL{Scheme: "http", Host: "localhost"},
+				HTTP: config.HTTP{
+					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  "0123456789101112",
 				},
 				OpenVpn: config.OpenVpn{
-					Addr:     &url.URL{Scheme: l.Addr().Network(), Host: l.Addr().String()},
 					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
 					Password: "password",
 				},
@@ -189,7 +183,15 @@ func TestClientFull(t *testing.T) {
 	for _, tt := range confs {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			client := NewClient(logger, tt.conf)
+			t.Parallel()
+
+			l, err := net.Listen("tcp", "127.0.0.1:0")
+			assert.NoError(t, err)
+			defer l.Close()
+
+			tt.conf.OpenVpn.Addr = &url.URL{Scheme: l.Addr().Network(), Host: l.Addr().String()}
+
+			client := openvpn.NewClient(logger, tt.conf)
 			wg := sync.WaitGroup{}
 			wg.Add(1)
 
@@ -198,7 +200,7 @@ func TestClientFull(t *testing.T) {
 				conn, err := l.Accept()
 				assert.NoError(t, err)
 
-				defer conn.Close() //nolint:errcheck
+				defer conn.Close()
 				defer client.Shutdown()
 
 				reader := bufio.NewReader(conn)
@@ -218,6 +220,7 @@ func TestClientFull(t *testing.T) {
 				sendLine(t, conn, tt.client)
 				if tt.err != nil {
 					_, _ = reader.ReadString('\n')
+
 					return
 				} else if tt.expect == "" {
 					return
@@ -234,7 +237,7 @@ func TestClientFull(t *testing.T) {
 					assert.Len(t, matches, 2)
 
 					sessionState := state.NewEncoded(matches[1])
-					err := sessionState.Decode(tt.conf.Http.Secret)
+					err := sessionState.Decode(tt.conf.HTTP.Secret)
 					assert.NoError(t, err)
 
 					assert.Equal(t, uint64(1), sessionState.Cid)
@@ -244,7 +247,7 @@ func TestClientFull(t *testing.T) {
 				}
 			}()
 
-			err := client.Connect()
+			err = client.Connect()
 			if tt.err != nil {
 				if assert.Error(t, err) {
 					assert.Equal(t, tt.err.Error(), err.Error())
@@ -261,14 +264,17 @@ func TestClientFull(t *testing.T) {
 }
 
 func TestClientInvalidPassword(t *testing.T) {
+	t.Parallel()
+
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	l, err := net.Listen("tcp", "127.0.0.1:0")
 	assert.NoError(t, err)
+
 	defer l.Close()
 
 	conf := config.Config{
-		Http: config.Http{
-			BaseUrl: &url.URL{Scheme: "http", Host: "localhost"},
+		HTTP: config.HTTP{
+			BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 			Secret:  "0123456789101112",
 		},
 		OpenVpn: config.OpenVpn{
@@ -278,13 +284,13 @@ func TestClientInvalidPassword(t *testing.T) {
 		},
 	}
 
-	client := NewClient(logger, conf)
+	client := openvpn.NewClient(logger, conf)
 
 	go func() {
 		conn, err := l.Accept()
 		assert.NoError(t, err)
 
-		defer conn.Close() //nolint:errcheck
+		defer conn.Close()
 		reader := bufio.NewReader(conn)
 
 		sendLine(t, conn, "ENTER PASSWORD:")
@@ -295,21 +301,29 @@ func TestClientInvalidPassword(t *testing.T) {
 	}()
 
 	err = client.Connect()
+
 	if assert.Error(t, err) {
 		assert.Equal(t, "wrong openvpn management interface password", err.Error())
 	}
+
 	client.Shutdown()
 }
 
 func TestClientInvalidVersion(t *testing.T) {
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	t.Parallel()
+
 	l, err := net.Listen("tcp", "127.0.0.1:0")
 	assert.NoError(t, err)
-	defer l.Close()
+
+	t.Cleanup(func() {
+		l.Close()
+	})
+
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
 	conf := config.Config{
-		Http: config.Http{
-			BaseUrl: &url.URL{Scheme: "http", Host: "localhost"},
+		HTTP: config.HTTP{
+			BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 			Secret:  "0123456789101112",
 		},
 		OpenVpn: config.OpenVpn{
@@ -341,14 +355,18 @@ func TestClientInvalidVersion(t *testing.T) {
 	}
 
 	for _, tt := range versions {
+		tt := tt
+
 		t.Run(tt.name, func(t *testing.T) {
-			client := NewClient(logger, conf)
+			t.Parallel()
+
+			client := openvpn.NewClient(logger, conf)
 
 			go func() {
 				conn, err := l.Accept()
 				assert.NoError(t, err)
 
-				defer conn.Close() //nolint:errcheck
+				defer conn.Close()
 				reader := bufio.NewReader(conn)
 
 				sendLine(t, conn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\r\n")
@@ -369,13 +387,18 @@ func TestClientInvalidVersion(t *testing.T) {
 	}
 }
 
-func sendLine(t testing.TB, conn net.Conn, msg string, a ...any) {
+func sendLine(tb testing.TB, conn net.Conn, msg string, a ...any) {
+	tb.Helper()
+
 	_, err := fmt.Fprintf(conn, msg, a...)
-	assert.NoError(t, err)
+	assert.NoError(tb, err)
 }
 
-func readLine(t testing.TB, reader *bufio.Reader) (msg string) {
+func readLine(tb testing.TB, reader *bufio.Reader) string {
+	tb.Helper()
+
 	line, err := reader.ReadString('\n')
-	assert.NoError(t, err)
+	assert.NoError(tb, err)
+
 	return strings.TrimSpace(line)
 }

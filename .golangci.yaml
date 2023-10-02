@@ -12,3 +12,36 @@ linters:
     - ifshort
     - varcheck
     - depguard
+    - exhaustruct
+    - gomnd
+    - dupl
+    - forbidigo
+    - funlen
+    - ireturn
+    - goerr113
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - lll
+        - gocognit
+        - cyclop
+        - wrapcheck
+        - maintidx
+
+linters-settings:
+  varnamelen:
+    ignore-names:
+      - tt
+    ignore-decls:
+      - err error
+      - ok bool
+      - w http.ResponseWriter
+      - r *http.Request
+      - l net.Listener
+      - t reflect.Type
+      - wg sync.WaitGroup
+      - k *koanf.Koanf
+  lll:
+    line-length: 160

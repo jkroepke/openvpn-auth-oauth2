@@ -9,18 +9,18 @@ import (
 	"golang.org/x/oauth2/github"
 )
 
-func (p *Provider) GetEndpoints(conf config.Config) (*oauth2.Endpoint, error) {
-	if !utils.IsUrlEmpty(conf.Oauth2.Endpoints.Token) && !utils.IsUrlEmpty(conf.Oauth2.Endpoints.Auth) {
-		return &github.Endpoint, nil
+func (p *Provider) GetEndpoints(conf config.Config) (oauth2.Endpoint, error) {
+	if !utils.IsURLEmpty(conf.OAuth2.Endpoints.Token) && !utils.IsURLEmpty(conf.OAuth2.Endpoints.Auth) {
+		return github.Endpoint, nil
 	}
 
-	if (!utils.IsUrlEmpty(conf.Oauth2.Endpoints.Token) && utils.IsUrlEmpty(conf.Oauth2.Endpoints.Auth)) ||
-		(utils.IsUrlEmpty(conf.Oauth2.Endpoints.Token) && !utils.IsUrlEmpty(conf.Oauth2.Endpoints.Auth)) {
-		return nil, errors.New("both oauth2.endpoints.tokenUrl and oauth2.endpoints.authUrl are required")
+	if (!utils.IsURLEmpty(conf.OAuth2.Endpoints.Token) && utils.IsURLEmpty(conf.OAuth2.Endpoints.Auth)) ||
+		(utils.IsURLEmpty(conf.OAuth2.Endpoints.Token) && !utils.IsURLEmpty(conf.OAuth2.Endpoints.Auth)) {
+		return oauth2.Endpoint{}, errors.New("both oauth2.endpoints.tokenUrl and oauth2.endpoints.authUrl are required")
 	}
 
-	return &oauth2.Endpoint{
-		AuthURL:  conf.Oauth2.Endpoints.Auth.String(),
-		TokenURL: conf.Oauth2.Endpoints.Auth.String(),
+	return oauth2.Endpoint{
+		AuthURL:  conf.OAuth2.Endpoints.Auth.String(),
+		TokenURL: conf.OAuth2.Endpoints.Auth.String(),
 	}, nil
 }

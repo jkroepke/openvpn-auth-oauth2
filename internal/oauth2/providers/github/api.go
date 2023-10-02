@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 	"encoding/json"
-	"errors"
+	"fmt"
 	"net/http"
 	"regexp"
 
@@ -11,16 +11,16 @@ import (
 )
 
 // Pagination URL patterns
-// https://developer.github.com/v3/#pagination
+// https://developer.GitHub.com/v3/#pagination
 var (
 	reNext = regexp.MustCompile("<([^>]+)>; rel=\"next\"")
 	reLast = regexp.MustCompile("<([^>]+)>; rel=\"last\"")
 )
 
-func get[T any](ctx context.Context, accessToken string, apiUrl string, t *T) (string, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiUrl, nil)
+func get[T any](ctx context.Context, accessToken string, apiURL string, data *T) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error creating request context with URL %s: %w", apiURL, err)
 	}
 
 	req.Header.Add("Authorization", utils.StringConcat("Bearer ", accessToken))
@@ -28,18 +28,18 @@ func get[T any](ctx context.Context, accessToken string, apiUrl string, t *T) (s
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error calling GitHub api %s: %w", apiURL, err)
 	} else if resp.StatusCode != http.StatusOK {
-		return "", errors.New(utils.StringConcat("error from github api ", apiUrl, ", http status code: ", resp.Status))
+		return "", fmt.Errorf("error from GitHub api %s http status code: %d", apiURL, resp.StatusCode)
 	}
 
 	defer resp.Body.Close()
 
-	if err := json.NewDecoder(resp.Body).Decode(t); err != nil {
-		return "", err
+	if err = json.NewDecoder(resp.Body).Decode(data); err != nil {
+		return "", fmt.Errorf("unable to decode json: %w", err)
 	}
 
-	return getPagination(apiUrl, resp), nil
+	return getPagination(apiURL, resp), nil
 }
 
 func getPagination(apiURL string, resp *http.Response) string {

@@ -1,11 +1,9 @@
 package openvpn
 
 import (
-	"errors"
+	"fmt"
 	"strconv"
 	"strings"
-
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
 type ClientConnection struct {
@@ -20,47 +18,72 @@ func NewClientConnection(message string) (*ClientConnection, error) {
 		Env: map[string]string{},
 	}
 
+	var err error
+
 	for _, line := range strings.Split(strings.TrimSpace(message), "\n") {
-		if strings.HasPrefix(line, ">CLIENT:CONNECT") ||
-			strings.HasPrefix(line, ">CLIENT:REAUTH") ||
-			strings.HasPrefix(line, ">CLIENT:DISCONNECT") ||
-			strings.HasPrefix(line, ">CLIENT:ESTABLISHED") ||
-			strings.HasPrefix(line, ">CLIENT:CR_RESPONSE") {
-			clientInfo := strings.Split(strings.TrimSpace(line), ",")
-			if len(clientInfo) == 1 {
-				return nil, errors.New(utils.StringConcat("unable to parse line ", line))
-			}
-
-			clientConnection.Reason = strings.Replace(clientInfo[0], ">CLIENT:", "", 1)
-
-			if cid, err := strconv.ParseUint(clientInfo[1], 10, 64); err != nil {
+		if isClientReason(line) {
+			clientConnection.Reason, clientConnection.Cid, clientConnection.Kid, err = parseClientReason(line)
+			if err != nil {
 				return nil, err
-			} else {
-				clientConnection.Cid = cid
-			}
-
-			if clientConnection.Reason != "DISCONNECT" && clientConnection.Reason != "ESTABLISHED" {
-				if kid, err := strconv.ParseUint(clientInfo[2], 10, 64); err != nil {
-					return nil, err
-				} else {
-					clientConnection.Kid = kid
-				}
 			}
 		} else if strings.HasPrefix(line, ">CLIENT:ENV,") {
-			clientEnv := strings.SplitN(strings.SplitN(line, ",", 2)[1], "=", 2)
-			if clientEnv[0] == "END" {
+			envKey, envValue := parseClientEnv(line)
+			if envKey == "" {
 				break
-			} else if len(clientEnv) == 2 {
-				clientConnection.Env[clientEnv[0]] = clientEnv[1]
-			} else {
-				clientConnection.Env[clientEnv[0]] = ""
 			}
+
+			clientConnection.Env[envKey] = envValue
 		}
 	}
 
-	if clientConnection.Reason == "" {
-		return nil, errors.New("unable to parse client reason")
+	return clientConnection, nil
+}
+
+func parseClientEnv(line string) (string, string) {
+	clientEnv := strings.SplitN(strings.SplitN(line, ",", 2)[1], "=", 2)
+	if clientEnv[0] == "END" {
+		return "", ""
 	}
 
-	return clientConnection, nil
+	if len(clientEnv) == 1 {
+		return clientEnv[0], ""
+	}
+
+	return clientEnv[0], clientEnv[1]
+}
+
+func parseClientReason(line string) (string, uint64, uint64, error) {
+	clientInfo := strings.Split(strings.TrimSpace(line), ",")
+	if len(clientInfo) == 1 {
+		return "", 0, 0, fmt.Errorf("unable to parse line '%s': %w", line, ErrInvalidMessage)
+	}
+
+	reason := strings.Replace(clientInfo[0], ">CLIENT:", "", 1)
+	if reason == "" {
+		return "", 0, 0, fmt.Errorf("unable to parse client reason: %w", ErrEmptyClientReasons)
+	}
+
+	cid, err := strconv.ParseUint(clientInfo[1], 10, 64)
+	if err != nil {
+		return "", 0, 0, fmt.Errorf("unable to parse cid: %w", err)
+	}
+
+	kid := uint64(0)
+
+	if reason != "DISCONNECT" && reason != "ESTABLISHED" {
+		kid, err = strconv.ParseUint(clientInfo[2], 10, 64)
+		if err != nil {
+			return "", 0, 0, fmt.Errorf("unable to parse kid: %w", err)
+		}
+	}
+
+	return reason, cid, kid, nil
+}
+
+func isClientReason(line string) bool {
+	return strings.HasPrefix(line, ">CLIENT:CONNECT") ||
+		strings.HasPrefix(line, ">CLIENT:REAUTH") ||
+		strings.HasPrefix(line, ">CLIENT:DISCONNECT") ||
+		strings.HasPrefix(line, ">CLIENT:ESTABLISHED") ||
+		strings.HasPrefix(line, ">CLIENT:CR_RESPONSE")
 }

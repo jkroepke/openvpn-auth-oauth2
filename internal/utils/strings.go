@@ -7,5 +7,6 @@ func StringConcat(strs ...string) string {
 	for _, str := range strs {
 		sb.WriteString(str)
 	}
+
 	return sb.String()
 }

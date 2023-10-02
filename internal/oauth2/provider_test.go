@@ -1,4 +1,4 @@
-package oauth2
+package oauth2_test
 
 import (
 	"crypto/sha256"
@@ -9,16 +9,18 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
 	"github.com/stretchr/testify/assert"
 	"github.com/zitadel/oidc/v2/example/server/storage"
 	"github.com/zitadel/oidc/v2/pkg/op"
 	"golang.org/x/text/language"
-
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 )
 
 func TestNewProvider(t *testing.T) {
+	t.Parallel()
+
 	opStorage := storage.NewStorage(storage.NewUserStore("http://localhost/"))
 	opConfig := &op.Config{
 		CryptoKey:                sha256.Sum256([]byte("test")),
@@ -36,12 +38,13 @@ func TestNewProvider(t *testing.T) {
 	)
 
 	assert.NoError(t, err)
+
 	svr := httptest.NewServer(handler.HttpHandler())
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
-	svrUrl, _ := url.Parse(svr.URL)
+	svrURL, _ := url.Parse(svr.URL)
 
-	configs := []struct {
+	tests := []struct {
 		name   string
 		config config.Config
 		err    string
@@ -49,11 +52,11 @@ func TestNewProvider(t *testing.T) {
 		{
 			"default",
 			config.Config{
-				Http: config.Http{BaseUrl: &url.URL{Scheme: "http", Host: "localhost"}},
-				Oauth2: config.OAuth2{
-					Issuer:    svrUrl,
+				HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "localhost"}},
+				OAuth2: config.OAuth2{
+					Issuer:    svrURL,
 					Provider:  generic.Name,
-					Client:    config.OAuth2Client{Id: "ID", Secret: "ID"},
+					Client:    config.OAuth2Client{ID: "ID", Secret: "ID"},
 					Endpoints: config.OAuth2Endpoints{},
 				},
 			},
@@ -62,13 +65,13 @@ func TestNewProvider(t *testing.T) {
 		{
 			"with custom discovery",
 			config.Config{
-				Http: config.Http{BaseUrl: &url.URL{Scheme: "http", Host: "localhost"}},
-				Oauth2: config.OAuth2{
-					Issuer:   svrUrl,
+				HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "localhost"}},
+				OAuth2: config.OAuth2{
+					Issuer:   svrURL,
 					Provider: generic.Name,
-					Client:   config.OAuth2Client{Id: "ID", Secret: "ID"},
+					Client:   config.OAuth2Client{ID: "ID", Secret: "ID"},
 					Endpoints: config.OAuth2Endpoints{
-						Discovery: &url.URL{Scheme: svrUrl.Scheme, Host: svrUrl.Host, Path: "/.well-known/openid-configuration"},
+						Discovery: &url.URL{Scheme: svrURL.Scheme, Host: svrURL.Host, Path: "/.well-known/openid-configuration"},
 					},
 				},
 			},
@@ -77,13 +80,13 @@ func TestNewProvider(t *testing.T) {
 		{
 			"with invalid custom discovery",
 			config.Config{
-				Http: config.Http{BaseUrl: &url.URL{Scheme: "http", Host: "localhost"}},
-				Oauth2: config.OAuth2{
-					Issuer:   svrUrl,
+				HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "localhost"}},
+				OAuth2: config.OAuth2{
+					Issuer:   svrURL,
 					Provider: generic.Name,
-					Client:   config.OAuth2Client{Id: "ID", Secret: "ID"},
+					Client:   config.OAuth2Client{ID: "ID", Secret: "ID"},
 					Endpoints: config.OAuth2Endpoints{
-						Discovery: &url.URL{Scheme: svrUrl.Scheme, Host: svrUrl.Host, Path: "/.well-known/openid-config"},
+						Discovery: &url.URL{Scheme: svrURL.Scheme, Host: svrURL.Host, Path: "/.well-known/openid-config"},
 					},
 				},
 			},
@@ -92,15 +95,15 @@ func TestNewProvider(t *testing.T) {
 		{
 			"with custom endpoints",
 			config.Config{
-				Http: config.Http{BaseUrl: &url.URL{Scheme: "http", Host: "localhost"}},
-				Oauth2: config.OAuth2{
-					Issuer:   svrUrl,
+				HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "localhost"}},
+				OAuth2: config.OAuth2{
+					Issuer:   svrURL,
 					Provider: generic.Name,
-					Client:   config.OAuth2Client{Id: "ID", Secret: "ID"},
+					Client:   config.OAuth2Client{ID: "ID", Secret: "ID"},
 					Endpoints: config.OAuth2Endpoints{
-						Discovery: &url.URL{Scheme: svrUrl.Scheme, Host: svrUrl.Host, Path: "/.well-known/openid-configuration"},
-						Auth:      &url.URL{Scheme: svrUrl.Scheme, Host: svrUrl.Host, Path: "/authorize"},
-						Token:     &url.URL{Scheme: svrUrl.Scheme, Host: svrUrl.Host, Path: "/token"},
+						Discovery: &url.URL{Scheme: svrURL.Scheme, Host: svrURL.Host, Path: "/.well-known/openid-configuration"},
+						Auth:      &url.URL{Scheme: svrURL.Scheme, Host: svrURL.Host, Path: "/authorize"},
+						Token:     &url.URL{Scheme: svrURL.Scheme, Host: svrURL.Host, Path: "/token"},
 					},
 				},
 			},
@@ -109,14 +112,14 @@ func TestNewProvider(t *testing.T) {
 		{
 			"with missing custom endpoints",
 			config.Config{
-				Http: config.Http{BaseUrl: &url.URL{Scheme: "http", Host: "localhost"}},
-				Oauth2: config.OAuth2{
-					Issuer:   svrUrl,
+				HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "localhost"}},
+				OAuth2: config.OAuth2{
+					Issuer:   svrURL,
 					Provider: generic.Name,
-					Client:   config.OAuth2Client{Id: "ID", Secret: "ID"},
+					Client:   config.OAuth2Client{ID: "ID", Secret: "ID"},
 					Endpoints: config.OAuth2Endpoints{
-						Discovery: &url.URL{Scheme: svrUrl.Scheme, Host: svrUrl.Host, Path: "/.well-known/openid-configuration"},
-						Auth:      &url.URL{Scheme: svrUrl.Scheme, Host: svrUrl.Host, Path: "/authorize"},
+						Discovery: &url.URL{Scheme: svrURL.Scheme, Host: svrURL.Host, Path: "/.well-known/openid-configuration"},
+						Auth:      &url.URL{Scheme: svrURL.Scheme, Host: svrURL.Host, Path: "/authorize"},
 					},
 				},
 			},
@@ -125,41 +128,46 @@ func TestNewProvider(t *testing.T) {
 		{
 			"with pkce",
 			config.Config{
-				Http: config.Http{BaseUrl: &url.URL{Scheme: "http", Host: "localhost"}},
-				Oauth2: config.OAuth2{
-					Issuer:   svrUrl,
+				HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "localhost"}},
+				OAuth2: config.OAuth2{
+					Issuer:   svrURL,
 					Provider: generic.Name,
 					Pkce:     true,
-					Client:   config.OAuth2Client{Id: "ID", Secret: "ID"},
+					Client:   config.OAuth2Client{ID: "ID", Secret: "ID"},
 					Endpoints: config.OAuth2Endpoints{
-						Discovery: &url.URL{Scheme: svrUrl.Scheme, Host: svrUrl.Host, Path: "/.well-known/openid-configuration"},
-						Auth:      &url.URL{Scheme: svrUrl.Scheme, Host: svrUrl.Host, Path: "/authorize"},
-						Token:     &url.URL{Scheme: svrUrl.Scheme, Host: svrUrl.Host, Path: "/token"},
+						Discovery: &url.URL{Scheme: svrURL.Scheme, Host: svrURL.Host, Path: "/.well-known/openid-configuration"},
+						Auth:      &url.URL{Scheme: svrURL.Scheme, Host: svrURL.Host, Path: "/authorize"},
+						Token:     &url.URL{Scheme: svrURL.Scheme, Host: svrURL.Host, Path: "/token"},
 					},
 				},
 			},
 			"",
 		},
 	}
-	for _, tt := range configs {
+	for _, tt := range tests {
+		tt := tt
+
 		t.Run(tt.name, func(t *testing.T) {
-			provider, err := NewProvider(logger, tt.config)
+			t.Parallel()
+
+			provider, err := oauth2.NewProvider(logger, tt.config)
 			if tt.err != "" && assert.Error(t, err) {
 				assert.Equal(t, strings.TrimSpace(err.Error()), tt.err)
+
 				return
 			}
 
 			assert.NoError(t, err)
 
-			assert.Equal(t, provider.OAuthConfig().ClientID, tt.config.Oauth2.Client.Id)
-			assert.Equal(t, provider.OAuthConfig().ClientSecret, tt.config.Oauth2.Client.Secret)
-			if tt.config.Oauth2.Endpoints.Auth != nil {
-				assert.Equal(t, provider.OAuthConfig().Endpoint.AuthURL, tt.config.Oauth2.Endpoints.Auth.String())
+			assert.Equal(t, provider.OAuthConfig().ClientID, tt.config.OAuth2.Client.ID)
+			assert.Equal(t, provider.OAuthConfig().ClientSecret, tt.config.OAuth2.Client.Secret)
+			if tt.config.OAuth2.Endpoints.Auth != nil {
+				assert.Equal(t, provider.OAuthConfig().Endpoint.AuthURL, tt.config.OAuth2.Endpoints.Auth.String())
 			} else {
 				assert.NotEmpty(t, provider.OAuthConfig().Endpoint.AuthURL)
 			}
-			if tt.config.Oauth2.Endpoints.Token != nil {
-				assert.Equal(t, provider.OAuthConfig().Endpoint.TokenURL, tt.config.Oauth2.Endpoints.Token.String())
+			if tt.config.OAuth2.Endpoints.Token != nil {
+				assert.Equal(t, provider.OAuthConfig().Endpoint.TokenURL, tt.config.OAuth2.Endpoints.Token.String())
 			} else {
 				assert.NotEmpty(t, provider.OAuthConfig().Endpoint.TokenURL)
 			}

@@ -8,25 +8,25 @@ import (
 type Config struct {
 	ConfigFile string  `koanf:"config"`
 	Log        Log     `koanf:"log"`
-	Http       Http    `koanf:"http"`
+	HTTP       HTTP    `koanf:"http"`
 	OpenVpn    OpenVpn `koanf:"openvpn"`
-	Oauth2     OAuth2  `koanf:"oauth2"`
+	OAuth2     OAuth2  `koanf:"oauth2"`
 }
 
-type Http struct {
+type HTTP struct {
 	Listen             string             `koanf:"listen"`
 	CertFile           string             `koanf:"cert"`
 	KeyFile            string             `koanf:"key"`
-	Tls                bool               `koanf:"tls"`
-	BaseUrl            *url.URL           `koanf:"baseurl"`
+	TLS                bool               `koanf:"tls"`
+	BaseURL            *url.URL           `koanf:"baseurl"`
 	Secret             string             `koanf:"secret"`
 	CallbackTemplate   *template.Template `koanf:"callback-template-path"`
-	Check              HttpCheck          `koanf:"check"`
+	Check              HTTPCheck          `koanf:"check"`
 	EnableProxyHeaders bool               `koanf:"enable-proxy-headers"`
 }
 
-type HttpCheck struct {
-	IpAddr bool `koanf:"ipaddr"`
+type HTTPCheck struct {
+	IPAddr bool `koanf:"ipaddr"`
 }
 
 type Log struct {
@@ -57,7 +57,7 @@ type OAuth2 struct {
 }
 
 type OAuth2Client struct {
-	Id     string `koanf:"id"`
+	ID     string `koanf:"id"`
 	Secret string `koanf:"secret"`
 }
 
@@ -70,7 +70,7 @@ type OAuth2Endpoints struct {
 type OAuth2Validate struct {
 	Groups     []string `koanf:"groups"`
 	Roles      []string `koanf:"roles"`
-	IpAddr     bool     `koanf:"ipaddr"`
+	IPAddr     bool     `koanf:"ipaddr"`
 	Issuer     bool     `koanf:"issuer"`
 	CommonName string   `koanf:"common_name"`
 }
