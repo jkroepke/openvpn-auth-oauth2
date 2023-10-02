@@ -8,7 +8,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
-// handlePassword enters the password on the OpenVPN management interface connection
+// handlePassword enters the password on the OpenVPN management interface connection.
 func (c *Client) handlePassword() error {
 	if err := c.rawCommand(utils.StringConcat(c.conf.OpenVpn.Password, "\n")); err != nil {
 		return fmt.Errorf("error from password command: %w", err)
@@ -26,7 +26,7 @@ func (c *Client) handlePassword() error {
 	return nil
 }
 
-// handleMessages handles all incoming messages and route messages to different channels
+// handleMessages handles all incoming messages and route messages to different channels.
 func (c *Client) handleMessages() {
 	defer close(c.commandResponseCh)
 	defer close(c.clientsCh)
@@ -56,6 +56,7 @@ func (c *Client) handleMessages() {
 	}
 }
 
+// handlePassword receive new message from clientsCh and process them.
 func (c *Client) handleClients() {
 	var client connection.Client
 
@@ -73,6 +74,7 @@ func (c *Client) handleClients() {
 	}
 }
 
+// handleCommands receive new command from commandsCh and send them to OpenVPN management interface.
 func (c *Client) handleCommands() {
 	var command string
 
