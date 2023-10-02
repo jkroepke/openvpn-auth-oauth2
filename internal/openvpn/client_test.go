@@ -96,7 +96,7 @@ func TestClientFull(t *testing.T) {
 			},
 			">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END\r\n",
 			"",
-			errors.New("OpenVPN management error: error encoding state: crypto/aes: invalid key size 15"),
+			errors.New("OpenVPN management error: error encoding state: encrypt aes: crypto/aes: invalid key size 15"),
 		},
 		{
 			"client without IV_SSO",
@@ -176,7 +176,7 @@ func TestClientFull(t *testing.T) {
 			},
 			">CLIENT:FOO,0\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END\r\n",
 			"",
-			errors.New("OpenVPN management error: unable to parse client reason"),
+			errors.New("OpenVPN management error: unable to parse client reason from message: >CLIENT:FOO,0\n>CLIENT:ENV,common_name=bypass\n>CLIENT:ENV,END\n"),
 		},
 	}
 
@@ -303,7 +303,7 @@ func TestClientInvalidPassword(t *testing.T) {
 	err = client.Connect()
 
 	if assert.Error(t, err) {
-		assert.Equal(t, "wrong openvpn management interface password", err.Error())
+		assert.Equal(t, "unable to connect to openvpn management interface: invalid password", err.Error())
 	}
 
 	client.Shutdown()
@@ -311,13 +311,6 @@ func TestClientInvalidPassword(t *testing.T) {
 
 func TestClientInvalidVersion(t *testing.T) {
 	t.Parallel()
-
-	l, err := net.Listen("tcp", "127.0.0.1:0")
-	assert.NoError(t, err)
-
-	t.Cleanup(func() {
-		l.Close()
-	})
 
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
@@ -327,7 +320,6 @@ func TestClientInvalidVersion(t *testing.T) {
 			Secret:  "0123456789101112",
 		},
 		OpenVpn: config.OpenVpn{
-			Addr:   &url.URL{Scheme: l.Addr().Network(), Host: l.Addr().String()},
 			Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
 		},
 	}
@@ -355,10 +347,16 @@ func TestClientInvalidVersion(t *testing.T) {
 	}
 
 	for _, tt := range versions {
-		tt := tt
+		tt, conf := tt, conf
 
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
+
+			l, err := net.Listen("tcp", "127.0.0.1:0")
+			assert.NoError(t, err)
+			defer l.Close()
+
+			conf.OpenVpn.Addr = &url.URL{Scheme: l.Addr().Network(), Host: l.Addr().String()}
 
 			client := openvpn.NewClient(logger, conf)
 

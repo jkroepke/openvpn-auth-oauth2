@@ -60,7 +60,7 @@ func (c *Client) Connect() error {
 
 	go c.handleMessages()
 	go c.handleClients()
-	go c.handleCommandResponses()
+	go c.handleCommands()
 
 	err = c.releaseManagementHold()
 	if err != nil {
@@ -120,7 +120,7 @@ func (c *Client) releaseManagementHold() error {
 	return nil
 }
 
-func (c *Client) handleCommandResponses() {
+func (c *Client) handleCommands() {
 	var command string
 
 	for {
@@ -158,46 +158,44 @@ func (c *Client) handleMessages() {
 	defer close(c.commandResponseCh)
 	defer close(c.clientsCh)
 
-	var buf bytes.Buffer
-
 	for {
-		buf.Reset()
+		message, err := c.readMessage()
 
-		if err := c.readMessage(&buf); err != nil {
+		if err != nil {
 			c.errCh <- err
 
 			return
 		}
 
-		if bytes.HasPrefix(buf.Bytes(), []byte(">CLIENT:")) {
-			client, err := NewClientConnection(buf.String())
+		if strings.HasPrefix(message, ">CLIENT:") {
+			client, err := NewClientConnection(message)
 			if err != nil {
 				c.errCh <- err
 
 				return
 			}
 
-			c.clientsCh <- *client
-		} else if bytes.HasPrefix(buf.Bytes(), []byte("SUCCESS:")) ||
-			bytes.HasPrefix(buf.Bytes(), []byte("ERROR:")) ||
-			bytes.HasPrefix(buf.Bytes(), []byte("OpenVPN Version:")) {
-			c.commandResponseCh <- buf.String()
+			c.clientsCh <- client
+		} else if strings.HasPrefix(message, "SUCCESS:") ||
+			strings.HasPrefix(message, "ERROR:") ||
+			strings.HasPrefix(message, "OpenVPN Version:") {
+			c.commandResponseCh <- message
 		}
 	}
 }
 
 func (c *Client) handlePassword() error {
-	var buf bytes.Buffer
-
 	if err := c.rawCommand(utils.StringConcat(c.conf.OpenVpn.Password, "\n")); err != nil {
 		return fmt.Errorf("error from password command: %w", err)
 	}
 
-	if err := c.readMessage(&buf); err != nil {
+	resp, err := c.readMessage()
+
+	if err != nil {
 		return fmt.Errorf("unable to read messge from buffer: %w", err)
 	}
 
-	if !strings.Contains(buf.String(), "SUCCESS: password is correct") {
+	if !strings.Contains(resp, "SUCCESS: password is correct") {
 		return fmt.Errorf("unable to connect to openvpn management interface: %w", ErrInvalidPassword)
 	}
 
@@ -388,35 +386,43 @@ func (c *Client) rawCommand(cmd string) error {
 	}
 
 	_, err := c.conn.Write([]byte(cmd))
+	if err != nil {
+		return fmt.Errorf("unable to write into OpenVPN management connection: %w", err)
+	}
 
-	return fmt.Errorf("unable to write into OpenVPN management connection: %w", err)
+	return nil
 }
 
 // readMessage .
-func (c *Client) readMessage(buf *bytes.Buffer) error {
+func (c *Client) readMessage() (string, error) {
+	var buf bytes.Buffer
 	var line []byte
 
 	for {
 		if ok := c.scanner.Scan(); !ok {
-			return fmt.Errorf("readMessage: scanner error: %w", c.scanner.Err())
+			if c.scanner.Err() != nil {
+				return "", fmt.Errorf("readMessage: scanner error: %w", c.scanner.Err())
+			}
+			return "", nil
 		}
 
 		line = c.scanner.Bytes()
 
 		if _, err := buf.Write(line); err != nil {
-			return fmt.Errorf("readMessage: unable to write string to buffer: %w", err)
+			return "", fmt.Errorf("readMessage: unable to write string to buffer: %w", err)
 		}
 
 		if _, err := buf.WriteString("\n"); err != nil {
-			return fmt.Errorf("readMessage: unable to write newline to buffer: %w", err)
+			return "", fmt.Errorf("readMessage: unable to write newline to buffer: %w", err)
 		}
 
 		if c.isMessageLineEOF(line) {
+			message := buf.String()
 			if c.logger.Enabled(context.Background(), slog.LevelDebug) {
-				c.logger.Debug(buf.String())
+				c.logger.Debug(message)
 			}
 
-			return nil
+			return message, nil
 		}
 	}
 }

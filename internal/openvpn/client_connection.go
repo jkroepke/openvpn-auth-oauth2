@@ -13,8 +13,8 @@ type ClientConnection struct {
 	Env    map[string]string
 }
 
-func NewClientConnection(message string) (*ClientConnection, error) {
-	clientConnection := &ClientConnection{
+func NewClientConnection(message string) (ClientConnection, error) {
+	clientConnection := ClientConnection{
 		Env: map[string]string{},
 	}
 
@@ -24,7 +24,7 @@ func NewClientConnection(message string) (*ClientConnection, error) {
 		if isClientReason(line) {
 			clientConnection.Reason, clientConnection.Cid, clientConnection.Kid, err = parseClientReason(line)
 			if err != nil {
-				return nil, err
+				return ClientConnection{}, err
 			}
 		} else if strings.HasPrefix(line, ">CLIENT:ENV,") {
 			envKey, envValue := parseClientEnv(line)
@@ -34,6 +34,10 @@ func NewClientConnection(message string) (*ClientConnection, error) {
 
 			clientConnection.Env[envKey] = envValue
 		}
+	}
+
+	if clientConnection.Reason == "" {
+		return ClientConnection{}, fmt.Errorf("unable to parse client reason from message: %s", message)
 	}
 
 	return clientConnection, nil

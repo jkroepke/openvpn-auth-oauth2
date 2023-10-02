@@ -56,8 +56,8 @@ func TestValidateGroups(t *testing.T) {
 		{"groups empty", "groups", []any{}, []string{}, ""},
 		{"groups present", "groups", []any{"apple"}, []string{}, ""},
 		{"require one group", "groups", []any{"apple"}, []string{"apple"}, ""},
-		{"require one group, claim not present", "", []any{"apple"}, []string{"apple"}, "missing groups claim"},
-		{"require two group, missing one", "groups", []any{"apple"}, []string{"apple", "pear"}, "missing required group pear"},
+		{"require one group, claim not present", "", []any{"apple"}, []string{"apple"}, "missing claim: groups"},
+		{"require two group, missing one", "groups", []any{"apple"}, []string{"apple", "pear"}, "missing required group: pear"},
 		{"require two group", "groups", []any{"apple", "pear"}, []string{"apple", "pear"}, ""},
 	} {
 		tt := tt
@@ -85,8 +85,8 @@ func TestValidateGroups(t *testing.T) {
 
 			if tt.err == "" {
 				assert.NoError(t, err)
-			} else {
-				assert.Equal(t, err.Error(), tt.err)
+			} else if assert.Error(t, err) {
+				assert.Equal(t, tt.err, err.Error())
 			}
 		})
 	}
@@ -107,8 +107,8 @@ func TestValidateRoles(t *testing.T) {
 		{"groups empty", "roles", []any{}, []string{}, ""},
 		{"groups present", "roles", []any{"apple"}, []string{}, ""},
 		{"require one group", "roles", []any{"apple"}, []string{"apple"}, ""},
-		{"require one group, claim not present", "", []any{"apple"}, []string{"apple"}, "missing roles claim"},
-		{"require two group, missing one", "roles", []any{"apple"}, []string{"apple", "pear"}, "missing required role pear"},
+		{"require one group, claim not present", "", []any{"apple"}, []string{"apple"}, "missing claim: roles"},
+		{"require two group, missing one", "roles", []any{"apple"}, []string{"apple", "pear"}, "missing required role: pear"},
 		{"require two group", "roles", []any{"apple", "pear"}, []string{"apple", "pear"}, ""},
 	} {
 		tt := tt
@@ -135,8 +135,8 @@ func TestValidateRoles(t *testing.T) {
 			err := generic.NewProvider(conf).CheckRoles(token)
 			if tt.err == "" {
 				assert.NoError(t, err)
-			} else {
-				assert.Equal(t, err.Error(), tt.err)
+			} else if assert.Error(t, err) {
+				assert.Equal(t, tt.err, err.Error())
 			}
 		})
 	}
@@ -156,7 +156,7 @@ func TestValidateCommonName(t *testing.T) {
 		{"sub present", "sub", "apple", "", "common_name mismatch: openvpn client: apple - oidc token: "},
 		{"sub required", "sub", "apple", "apple", ""},
 		{"sub required wrong", "sub", "pear", "apple", "common_name mismatch: openvpn client: pear - oidc token: apple"},
-		{"nonexists claim", "nonexists", "pear", "apple", "missing nonexists claim"},
+		{"nonexists claim", "nonexists", "pear", "apple", "missing claim: nonexists"},
 	} {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
@@ -185,8 +185,8 @@ func TestValidateCommonName(t *testing.T) {
 			err := generic.NewProvider(conf).CheckCommonName(session, token)
 			if tt.err == "" {
 				assert.NoError(t, err)
-			} else {
-				assert.Equal(t, err.Error(), tt.err)
+			} else if assert.Error(t, err) {
+				assert.Equal(t, tt.err, err.Error())
 			}
 		})
 	}
@@ -207,7 +207,7 @@ func TestValidateIpAddr(t *testing.T) {
 		{"ip present", true, "ipaddr", "apple", "", "ipaddr mismatch: openvpn client: apple - oidc token: "},
 		{"sub required", true, "ipaddr", "apple", "apple", ""},
 		{"sub required wrong", true, "ipaddr", "pear", "apple", "ipaddr mismatch: openvpn client: pear - oidc token: apple"},
-		{"nonexists claim", true, "nonexists", "pear", "apple", "missing ipaddr claim"},
+		{"nonexists claim", true, "nonexists", "pear", "apple", "missing claim: ipaddr"},
 	} {
 		tt := tt
 
@@ -237,8 +237,8 @@ func TestValidateIpAddr(t *testing.T) {
 			err := generic.NewProvider(conf).CheckIPAddress(session, token)
 			if tt.err == "" {
 				assert.NoError(t, err)
-			} else {
-				assert.Equal(t, err.Error(), tt.err)
+			} else if assert.Error(t, err) {
+				assert.Equal(t, tt.err, err.Error())
 			}
 		})
 	}

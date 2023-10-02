@@ -104,7 +104,7 @@ func newProviderWithEndpoints(
 
 	relayingParty, err := rp.NewRelyingPartyOAuth(rpConfig, options...)
 	if err != nil {
-		return Provider{}, fmt.Errorf("error creating relaying party: %w", err)
+		return Provider{}, fmt.Errorf("newProviderWithEndpoints: %w", err)
 	}
 
 	return Provider{
@@ -125,7 +125,7 @@ func newProviderWithDiscovery(
 		options...,
 	)
 	if err != nil {
-		return Provider{}, fmt.Errorf("error creating relaying party: %w", err)
+		return Provider{}, fmt.Errorf("newProviderWithDiscovery: %w", err)
 	}
 
 	return Provider{

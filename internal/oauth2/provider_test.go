@@ -90,7 +90,7 @@ func TestNewProvider(t *testing.T) {
 					},
 				},
 			},
-			"http status not ok: 404 Not Found 404 page not found",
+			"newProviderWithDiscovery: http status not ok: 404 Not Found 404 page not found",
 		},
 		{
 			"with custom endpoints",
@@ -123,7 +123,7 @@ func TestNewProvider(t *testing.T) {
 					},
 				},
 			},
-			"both oauth2.endpoints.tokenUrl and oauth2.endpoints.authUrl are required",
+			"error getting endpoints: both oauth2.endpoints.tokenUrl and oauth2.endpoints.authUrl are required",
 		},
 		{
 			"with pkce",

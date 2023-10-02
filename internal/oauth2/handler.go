@@ -74,9 +74,6 @@ func checkClientIPAddr(
 	r *http.Request, logger *slog.Logger, session state.State, openvpnClient *openvpn.Client, conf config.Config,
 ) (bool, int) {
 	clientIP, _, err := net.SplitHostPort(r.RemoteAddr)
-	if strings.HasPrefix(r.RemoteAddr, "[") {
-		clientIP = utils.StringConcat("[", clientIP, "]")
-	}
 
 	if err != nil {
 		logger.Warn(err.Error())
@@ -89,16 +86,21 @@ func checkClientIPAddr(
 		return false, http.StatusInternalServerError
 	}
 
-	if !conf.HTTP.EnableProxyHeaders {
+	if strings.HasPrefix(r.RemoteAddr, "[") {
+		clientIP = utils.StringConcat("[", clientIP, "]")
+	}
+
+	if conf.HTTP.EnableProxyHeaders {
 		if fwdAddress := r.Header.Get("X-Forwarded-For"); fwdAddress != "" {
 			clientIP = strings.Split(fwdAddress, ", ")[0]
 		}
 	}
 
 	if clientIP != session.Ipaddr {
-		logger.Warn(utils.StringConcat("http client ip ", clientIP, " and vpn ip ", session.Ipaddr, " is different."))
+		reason := utils.StringConcat("http client ip ", clientIP, " and vpn ip ", session.Ipaddr, " is different.")
+		logger.Warn(reason)
 
-		_, err := openvpnClient.SendCommandf(`client-deny %d %d "%s"`, session.Cid, session.Kid, "client rejected")
+		_, err := openvpnClient.SendCommandf(`client-deny %d %d "%s"`, session.Cid, session.Kid, reason)
 		if err != nil {
 			logger.Warn(err.Error())
 		}

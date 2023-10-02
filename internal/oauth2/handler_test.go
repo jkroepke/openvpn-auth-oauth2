@@ -27,6 +27,8 @@ import (
 	"golang.org/x/text/language"
 )
 
+var mu = sync.Mutex{}
+
 func TestHandler(t *testing.T) {
 	t.Parallel()
 
@@ -50,7 +52,6 @@ func TestHandler(t *testing.T) {
 				},
 				OAuth2: config.OAuth2{
 					Provider:  "generic",
-					Client:    config.OAuth2Client{ID: "ID", Secret: "SECRET"},
 					Endpoints: config.OAuth2Endpoints{},
 					Scopes:    []string{"openid", "profile"},
 					Validate: config.OAuth2Validate{
@@ -80,7 +81,6 @@ func TestHandler(t *testing.T) {
 				},
 				OAuth2: config.OAuth2{
 					Provider:  "generic",
-					Client:    config.OAuth2Client{ID: "ID", Secret: "SECRET"},
 					Endpoints: config.OAuth2Endpoints{},
 					Scopes:    []string{"openid", "profile"},
 					Validate: config.OAuth2Validate{
@@ -111,7 +111,6 @@ func TestHandler(t *testing.T) {
 				},
 				OAuth2: config.OAuth2{
 					Provider:  "generic",
-					Client:    config.OAuth2Client{ID: "ID", Secret: "SECRET"},
 					Endpoints: config.OAuth2Endpoints{},
 					Scopes:    []string{"openid", "profile"},
 					Validate: config.OAuth2Validate{
@@ -142,7 +141,6 @@ func TestHandler(t *testing.T) {
 				},
 				OAuth2: config.OAuth2{
 					Provider:  "generic",
-					Client:    config.OAuth2Client{ID: "ID", Secret: "SECRET"},
 					Endpoints: config.OAuth2Endpoints{},
 					Scopes:    []string{"openid", "profile"},
 					Validate: config.OAuth2Validate{
@@ -173,7 +171,6 @@ func TestHandler(t *testing.T) {
 				},
 				OAuth2: config.OAuth2{
 					Provider:  "generic",
-					Client:    config.OAuth2Client{ID: "ID", Secret: "SECRET"},
 					Endpoints: config.OAuth2Endpoints{},
 					Scopes:    []string{"openid", "profile"},
 					Validate: config.OAuth2Validate{
@@ -208,13 +205,14 @@ func TestHandler(t *testing.T) {
 			assert.NoError(t, err)
 			defer clientListener.Close()
 
-			resourceServer, err := setupResourceServer(clientListener)
+			resourceServer, clientCredentials, err := setupResourceServer(clientListener)
 			assert.NoError(t, err)
 			defer resourceServer.Close()
 
 			resourceServerURL, err := url.Parse(resourceServer.URL)
 			assert.NoError(t, err)
 
+			tt.conf.OAuth2.Client = clientCredentials
 			tt.conf.OAuth2.Issuer = resourceServerURL
 			tt.conf.HTTP.BaseURL = &url.URL{Scheme: "http", Host: clientListener.Addr().String()}
 			tt.conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
@@ -260,7 +258,7 @@ func TestHandler(t *testing.T) {
 					assert.Equal(t, "push \"auth-token-user aWQx\"", readLine(t, reader))
 					assert.Equal(t, "END", readLine(t, reader))
 				} else {
-					assert.Equal(t, `client-deny 0 1 "client rejected"`, readLine(t, reader))
+					assert.Equal(t, `client-deny 0 1 "http client ip 127.0.0.1 and vpn ip 127.0.0.2 is different."`, readLine(t, reader))
 				}
 
 				sendLine(t, conn, "SUCCESS: client-auth command succeeded\r\n")
@@ -328,8 +326,11 @@ func TestHandler(t *testing.T) {
 	}
 }
 
-func setupResourceServer(clientListener net.Listener) (*httptest.Server, error) {
-	storage.RegisterClients(storage.WebClient("ID", "SECRET", fmt.Sprintf("http://%s/oauth2/callback", clientListener.Addr().String())))
+func setupResourceServer(clientListener net.Listener) (*httptest.Server, config.OAuth2Client, error) {
+	mu.Lock()
+	storage.RegisterClients(storage.WebClient(clientListener.Addr().String(), "SECRET", fmt.Sprintf("http://%s/oauth2/callback", clientListener.Addr().String())))
+	mu.Unlock()
+
 	opStorage := storage.NewStorage(storage.NewUserStore("http://localhost"))
 	opConfig := &op.Config{
 		CryptoKey:                sha256.Sum256([]byte("test")),
@@ -346,7 +347,7 @@ func setupResourceServer(clientListener net.Listener) (*httptest.Server, error) 
 		op.WithAllowInsecure(),
 	)
 	if err != nil {
-		return nil, err
+		return nil, config.OAuth2Client{}, err
 	}
 
 	mux := http.NewServeMux()
@@ -356,7 +357,7 @@ func setupResourceServer(clientListener net.Listener) (*httptest.Server, error) 
 		http.Redirect(w, r, op.AuthCallbackURL(opProvider)(r.Context(), r.FormValue("authRequestID")), http.StatusFound)
 	}))
 
-	return httptest.NewServer(mux), err
+	return httptest.NewServer(mux), config.OAuth2Client{ID: clientListener.Addr().String(), Secret: "SECRET"}, err
 }
 
 func sendLine(t *testing.T, conn net.Conn, msg string) {

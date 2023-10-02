@@ -31,7 +31,7 @@ func TestNewClientConnection(t *testing.T) {
 			openvpn.ClientConnection{Cid: 1, Kid: 2, Reason: "CONNECT", Env: map[string]string{
 				"name1": "val1", "name2": "",
 			}},
-			"strconv.ParseUint: parsing \"k\": invalid syntax",
+			"unable to parse cid: strconv.ParseUint: parsing \"k\": invalid syntax",
 		},
 		{
 			"client CONNECT invalid kid",
@@ -39,7 +39,7 @@ func TestNewClientConnection(t *testing.T) {
 			openvpn.ClientConnection{Cid: 1, Kid: 2, Reason: "CONNECT", Env: map[string]string{
 				"name1": "val1", "name2": "",
 			}},
-			"strconv.ParseUint: parsing \"k\": invalid syntax",
+			"unable to parse kid: strconv.ParseUint: parsing \"k\": invalid syntax",
 		},
 		{
 			"client REAUTH",
@@ -74,7 +74,7 @@ func TestNewClientConnection(t *testing.T) {
 			[]string{">CLIENT:CR_RESPONSE,1,2,YmFzZTY0", ">CLIENT:ENV,name1=val1", ">CLIENT:ENV,END"},
 			openvpn.ClientConnection{
 				Cid: 1, Kid: 2, Reason: "CR_RESPONSE", Env: map[string]string{
-					"name1": "val1", "name2": "",
+					"name1": "val1",
 				},
 			},
 			"",
@@ -83,13 +83,13 @@ func TestNewClientConnection(t *testing.T) {
 			"client invalid reason",
 			[]string{">CLIENT:unknown", ">CLIENT:ENV,name1=val1", ">CLIENT:ENV,name2", ">CLIENT:ENV,END"},
 			openvpn.ClientConnection{},
-			"unable to parse client reason",
+			"unable to parse client reason from message: >CLIENT:unknown\n>CLIENT:ENV,name1=val1\n>CLIENT:ENV,name2\n>CLIENT:ENV,END",
 		},
 		{
 			"client invalid reason",
 			[]string{">CLIENT:CONNECT", ">CLIENT:ENV,name1=val1", ">CLIENT:ENV,name2", ">CLIENT:ENV,END"},
 			openvpn.ClientConnection{},
-			"unable to parse line >CLIENT:CONNECT",
+			"unable to parse line '>CLIENT:CONNECT': message invalid",
 		},
 	} {
 		tt := tt
@@ -102,10 +102,10 @@ func TestNewClientConnection(t *testing.T) {
 			clientConnection, err := openvpn.NewClientConnection(message)
 			if tt.err == "" {
 				assert.NoError(t, err)
-				assert.Equal(t, clientConnection, tt.clientConnection)
+				assert.Equal(t, tt.clientConnection, clientConnection)
 			} else {
 				assert.Error(t, err)
-				assert.Equal(t, err.Error(), tt.err)
+				assert.Equal(t, tt.err, err.Error())
 			}
 		})
 	}

@@ -43,17 +43,17 @@ func TestExecuteConfigInvalid(t *testing.T) {
 		{
 			"file not exists",
 			[]string{"", "--config=nonexists"},
-			"error loading config: open nonexists: no such file or directory",
+			"error loading config: error from file provider: open nonexists: no such file or directory",
 		},
 		{
 			"invalid log format",
-			[]string{"", "--config=../config.example.yaml", "--log.format=invalid", "--log.level=warn"},
-			"error configure logging: Unknown log format: invalid",
+			[]string{"", "--config=../config.example.yaml", "--log.format=invalid", "--log.level=warn", "--http.secret=1234567891011213"},
+			"error configure logging: unknown log format: invalid",
 		},
 		{
 			"invalid log level",
-			[]string{"", "--config=../config.example.yaml", "--log.format=console", "--log.level=invalid"},
-			`error configure logging: slog: level string \"invalid\": unknown name`,
+			[]string{"", "--config=../config.example.yaml", "--log.format=console", "--log.level=invalid", "--http.secret=1234567891111213"},
+			`error configure logging: unable to parse log level: slog: level string \"invalid\": unknown name`,
 		},
 	}
 
@@ -73,8 +73,6 @@ func TestExecuteConfigInvalid(t *testing.T) {
 }
 
 func TestExecuteConfigFileFound(t *testing.T) {
-	t.Parallel()
-
 	opStorage := storage.NewStorage(storage.NewUserStore("http://localhost/"))
 	opConfig := &op.Config{
 		CryptoKey:                sha256.Sum256([]byte("test")),
