@@ -86,10 +86,6 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 			return
 		}
 
-		if errors.Is(err, http.ErrServerClosed) {
-			return
-		}
-
 		logger.Error(fmt.Errorf("error http listener: %w", err).Error())
 		done <- 1
 	}()
@@ -128,6 +124,7 @@ func shutdown(logger *slog.Logger, openvpnClient *openvpn.Client, server *http.S
 
 	if err := server.Shutdown(ctx); err != nil {
 		logger.Error(fmt.Errorf("error graceful shutdown: %w", err).Error())
+
 		return
 	}
 
@@ -141,7 +138,7 @@ func startHTTPListener(conf config.Config, logger *slog.Logger, server *http.Ser
 		))
 
 		err := server.ListenAndServeTLS(conf.HTTP.CertFile, conf.HTTP.KeyFile)
-		if err != nil {
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			return fmt.Errorf("ListenAndServeTLS: %w", err)
 		}
 
@@ -153,7 +150,7 @@ func startHTTPListener(conf config.Config, logger *slog.Logger, server *http.Ser
 	))
 
 	err := server.ListenAndServe()
-	if err != nil {
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("ListenAndServe: %w", err)
 	}
 

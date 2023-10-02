@@ -31,6 +31,7 @@ func TestExecuteVersion(t *testing.T) {
 	returnCode := cmd.Execute([]string{"", "--version"}, &buf, "version", "commit", "date")
 	assert.Equal(t, 0, returnCode, buf.String())
 }
+
 func TestExecuteConfigInvalid(t *testing.T) {
 	t.Parallel()
 
