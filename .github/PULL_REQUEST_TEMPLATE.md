@@ -4,8 +4,11 @@
 
 **Special notes for your reviewer**:
 
+**Particularly user-facing changes**:
+
 **PR Readiness Checklist**:
 
 Complete these before marking the PR as `ready to review`:
 
-- [ ] the `CHANGELOG.md` release notes have been updated to reflect any significant (and particularly user-facing) changes introduced by this PR
+- [ ] The PR title has a summary of the changes
+- [ ] The PR body has a summary to reflect any significant (and particularly user-facing) changes introduced by this PR
