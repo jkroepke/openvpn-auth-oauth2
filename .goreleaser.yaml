@@ -24,7 +24,7 @@ builds:
 archives:
   - id: openvpn-auth-oauth2
     builds: [openvpn-auth-oauth2]
-    name_template: openvpn-auth-oauth2
+    name_template: openvpn-auth-oauth2-daemon
   - id: openvpn-auth-oauth2-plugin
     builds: [openvpn-auth-oauth2.so]
     name_template: openvpn-auth-oauth2-plugin
