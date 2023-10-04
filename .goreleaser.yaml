@@ -10,7 +10,7 @@ builds:
       - arm64
     mod_timestamp: '{{ .CommitTimestamp }}'
   - id: "openvpn-auth-oauth2.so"
-    binary: openvpn-auth-oauth2.so
+    binary: openvpn-auth-oauth2
     main: ./plugin/
     buildmode: c-shared
     env:
