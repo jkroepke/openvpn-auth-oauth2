@@ -1,19 +1,16 @@
 package cmd
 
 import (
-	"context"
-	"errors"
 	"fmt"
 	"io"
 	"log/slog"
-	"net/http"
 	"os"
 	"os/signal"
 	"runtime"
 	"syscall"
-	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/http"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
@@ -67,15 +64,10 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 	openvpnClient := openvpn.NewClient(logger, conf)
 	done := make(chan int, 1)
 
-	server := &http.Server{
-		Addr:              conf.HTTP.Listen,
-		ReadHeaderTimeout: 3 * time.Second,
-		ErrorLog:          slog.NewLogLogger(logger.Handler(), slog.LevelError),
-		Handler:           oauth2.Handler(logger, conf, provider, openvpnClient),
-	}
+	server := http.NewHTTPServer(logger, conf, provider, openvpnClient)
 
 	go func() {
-		if err := startHTTPListener(conf, logger, server); err != nil {
+		if err := server.Listen(); err != nil {
 			logger.Error(fmt.Errorf("error http listener: %w", err).Error())
 			done <- 1
 
@@ -111,47 +103,18 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 	return returnCode
 }
 
-func shutdown(logger *slog.Logger, openvpnClient *openvpn.Client, server *http.Server) {
+func shutdown(logger *slog.Logger, openvpnClient *openvpn.Client, server http.Server) {
 	openvpnClient.Shutdown()
 
 	logger.Info("start graceful shutdown of http listener")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	if err := server.Shutdown(ctx); err != nil {
+	if err := server.Shutdown(); err != nil {
 		logger.Error(fmt.Errorf("error graceful shutdown: %w", err).Error())
 
 		return
 	}
 
 	logger.Info("http listener successfully terminated")
-}
-
-func startHTTPListener(conf config.Config, logger *slog.Logger, server *http.Server) error {
-	if conf.HTTP.TLS {
-		logger.Info(utils.StringConcat(
-			"HTTPS server listen on ", conf.HTTP.Listen, " with base url ", conf.HTTP.BaseURL.String(),
-		))
-
-		err := server.ListenAndServeTLS(conf.HTTP.CertFile, conf.HTTP.KeyFile)
-		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			return fmt.Errorf("ListenAndServeTLS: %w", err)
-		}
-
-		return nil
-	}
-
-	logger.Info(utils.StringConcat(
-		"HTTP server listen on ", conf.HTTP.Listen, " with base url ", conf.HTTP.BaseURL.String(),
-	))
-
-	err := server.ListenAndServe()
-	if err != nil && !errors.Is(err, http.ErrServerClosed) {
-		return fmt.Errorf("ListenAndServe: %w", err)
-	}
-
-	return nil
 }
 
 func configureLogger(conf config.Config, writer io.Writer) (*slog.Logger, error) {

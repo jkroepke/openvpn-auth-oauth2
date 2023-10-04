@@ -22,15 +22,24 @@ import (
 )
 
 type PluginHandler struct {
-	opts Options
-	// TODO: state for WithGroup and WithAttrs
-	mu *sync.Mutex
-	cb *C.struct_openvpn_plugin_callbacks
+	opts         Options
+	preformatted []byte
+	mu           *sync.Mutex
+	cb           *C.struct_openvpn_plugin_callbacks
 }
 
 func (h *PluginHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
-	// TODO implement me
-	panic("implement me")
+	if len(attrs) == 0 {
+		return h
+	}
+	h2 := *h
+
+	// Pre-format the attributes.
+	for _, a := range attrs {
+		h2.preformatted = h2.appendAttr(h2.preformatted, a)
+	}
+
+	return &h2
 }
 
 func (h *PluginHandler) WithGroup(name string) slog.Handler {
@@ -64,6 +73,10 @@ func (h *PluginHandler) Enabled(_ context.Context, level slog.Level) bool {
 func (h *PluginHandler) Handle(_ context.Context, r slog.Record) error {
 	buf := make([]byte, 0, 1024)
 	buf = fmt.Appendf(buf, "%s: %s", r.Level, r.Message)
+
+	// Insert preformatted attributes just after built-in ones.
+	buf = append(buf, h.preformatted...)
+
 	r.Attrs(func(a slog.Attr) bool {
 		buf = h.appendAttr(buf, a)
 		return true

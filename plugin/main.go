@@ -5,7 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/http"
 )
 
 //nolint:gochecknoglobals
@@ -16,9 +16,9 @@ var (
 )
 
 type PluginHandle struct {
-	logger   *slog.Logger
-	conf     config.Config
-	provider oauth2.Provider
+	logger *slog.Logger
+	conf   config.Config
+	server http.Server
 }
 
 func main() {

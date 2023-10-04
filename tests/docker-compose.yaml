@@ -13,6 +13,7 @@ services:
       - "0.0.0.0:1194:1194/udp"
       - "8080:8080/tcp"
       - "8081:8081/tcp"
+      - "9000:9000/tcp"
     volumes:
       - ./:/tests/:ro
       - ./data:/etc/openvpn

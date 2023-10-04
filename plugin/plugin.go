@@ -13,6 +13,7 @@ import (
 	"unsafe"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/http"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
@@ -60,18 +61,26 @@ func openvpn_plugin_open_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_
 		return C.OPENVPN_PLUGIN_FUNC_ERROR
 	}
 
+	handle := &PluginHandle{
+		logger: logger,
+		conf:   conf,
+	}
+
 	provider, err := oauth2.NewProvider(logger, conf)
 	if err != nil {
 		logger.Error(err.Error())
 
-		return 1
+		return C.OPENVPN_PLUGIN_FUNC_ERROR
 	}
 
-	handle := &PluginHandle{
-		logger:   logger,
-		conf:     conf,
-		provider: provider,
-	}
+	handle.server = http.NewHTTPServer(logger, conf, provider, handle)
+	go func() {
+		if err := handle.server.Listen(); err != nil {
+			logger.Error(fmt.Errorf("error http listener: %w", err).Error())
+			os.Exit(1)
+		}
+	}()
+
 	retptr.handle = (C.openvpn_plugin_handle_t)(unsafe.Pointer(handle))
 
 	logger.Info("plugin initialization done")
@@ -108,7 +117,7 @@ func openvpn_plugin_func_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_
 		"/oauth2/start?state=", url.QueryEscape(session.Encoded()),
 	)
 
-	pendingAuth := utils.StringConcat("600\nwebauth\nWEB_AUTH::", startURL)
+	pendingAuth := utils.StringConcat("6000\nwebauth\nWEB_AUTH::", startURL)
 
 	if err := os.WriteFile(client.AuthPendingFile, []byte(pendingAuth), 0600); err != nil {
 		handle.logger.Error(fmt.Errorf("write to file %s: %w", client.AuthPendingFile, err).Error())
@@ -125,6 +134,8 @@ func openvpn_plugin_close_v1(pluginHandle C.openvpn_plugin_handle_t) {
 		return
 	}
 
+	_ = handle.server.Shutdown()
+
 	handle.logger.Info("plugin closed")
 }
 
@@ -134,6 +145,8 @@ func openvpn_plugin_abort_v1(pluginHandle C.openvpn_plugin_handle_t) {
 	if handle == nil {
 		return
 	}
+
+	_ = handle.server.Shutdown()
 
 	handle.logger.Info("plugin abort")
 }

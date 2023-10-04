@@ -17,13 +17,13 @@ import (
 	"github.com/zitadel/oidc/v2/pkg/oidc"
 )
 
-type openVPN interface {
+type OpenVPN interface {
 	AcceptClient(logger *slog.Logger, client state.ClientIdentifier)
 	AcceptClientWithToken(logger *slog.Logger, client state.ClientIdentifier, username string)
 	DenyClient(logger *slog.Logger, client state.ClientIdentifier, reason string)
 }
 
-func Handler(logger *slog.Logger, conf config.Config, provider Provider, openvpnCallback openVPN) *http.ServeMux {
+func Handler(logger *slog.Logger, conf config.Config, provider Provider, openvpnCallback OpenVPN) *http.ServeMux {
 	basePath := strings.TrimSuffix(conf.HTTP.BaseURL.Path, "/")
 
 	mux := http.NewServeMux()
@@ -34,7 +34,7 @@ func Handler(logger *slog.Logger, conf config.Config, provider Provider, openvpn
 	return mux
 }
 
-func oauth2Start(logger *slog.Logger, provider Provider, conf config.Config, openvpn openVPN) http.Handler {
+func oauth2Start(logger *slog.Logger, provider Provider, conf config.Config, openvpn OpenVPN) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sessionState := r.URL.Query().Get("state")
 		if sessionState == "" {
@@ -105,7 +105,7 @@ func checkClientIPAddr(r *http.Request, logger *slog.Logger, session state.State
 }
 
 func oauth2Callback(
-	logger *slog.Logger, provider Provider, conf config.Config, openvpn openVPN,
+	logger *slog.Logger, provider Provider, conf config.Config, openvpn OpenVPN,
 ) http.Handler {
 	return rp.CodeExchangeHandler(func(
 		w http.ResponseWriter, r *http.Request, tokens *oidc.Tokens[*oidc.IDTokenClaims], encryptedSession string,
