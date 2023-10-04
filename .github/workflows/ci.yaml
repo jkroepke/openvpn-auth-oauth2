@@ -22,7 +22,7 @@ jobs:
         with:
           go-version-file: 'go.mod'
 
-      - run: apt install openvpn -y
+      - run: sudo apt install openvpn -y
 
       - name: go build
         uses: goreleaser/goreleaser-action@v5
