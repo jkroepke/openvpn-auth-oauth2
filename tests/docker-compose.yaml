@@ -72,10 +72,10 @@ services:
         auth-gen-token 240 120
 
         management 0.0.0.0 8081 /etc/openvpn/password.txt
-        management-hold
-        management-client-auth
+        #management-hold
+        #management-client-auth
 
-        # plugin /plugin/openvpn-auth-oauth2.so /plugin/config.yaml
+        plugin /plugin/openvpn-auth-oauth2.so /plugin/config.yaml
 
         reneg-sec 60
         auth-user-pass-optional

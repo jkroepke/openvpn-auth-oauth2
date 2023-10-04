@@ -7,10 +7,15 @@ import "C"
 import (
 	"fmt"
 	"log/slog"
+	"net/url"
+	"os"
+	"strings"
 	"unsafe"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
 const OPENVPN_PLUGIN_STRUCTVER_MIN = 5
@@ -80,34 +85,55 @@ func openvpn_plugin_func_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_
 		return C.OPENVPN_PLUGIN_FUNC_ERROR
 	}
 
-	pluginHandle := (*PluginHandle)(unsafe.Pointer(args.handle))
+	handle := (*PluginHandle)(unsafe.Pointer(args.handle))
 
 	if args._type != C.OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY {
-		pluginHandle.logger.Error("OPENVPN_PLUGIN_? called")
+		handle.logger.Error("OPENVPN_PLUGIN_? called")
 		return C.OPENVPN_PLUGIN_FUNC_ERROR
 	}
 
-	pluginHandle.logger.Info("new clients")
+	client := NewClient(unsafe.Pointer(args.envp))
+	clientIdentifier := state.ClientIdentifier{
+		AuthControlFile:      client.AuthControlFile,
+		AuthFailedReasonFile: client.AuthFailedReasonFile,
+	}
+	session := state.New(clientIdentifier, client.IpAddr, client.CommonName)
+	if err := session.Encode(handle.conf.HTTP.Secret); err != nil {
+		handle.logger.Error(fmt.Errorf("encoding state: %w", err).Error())
+		return C.OPENVPN_PLUGIN_FUNC_ERROR
+	}
 
-	return C.OPENVPN_PLUGIN_FUNC_SUCCESS
+	startURL := utils.StringConcat(
+		strings.TrimSuffix(handle.conf.HTTP.BaseURL.String(), "/"),
+		"/oauth2/start?state=", url.QueryEscape(session.Encoded()),
+	)
+
+	pendingAuth := utils.StringConcat("600\nwebauth\nWEB_AUTH::", startURL)
+
+	if err := os.WriteFile(client.AuthPendingFile, []byte(pendingAuth), 0600); err != nil {
+		handle.logger.Error(fmt.Errorf("write to file %s: %w", client.AuthPendingFile, err).Error())
+		return C.OPENVPN_PLUGIN_FUNC_ERROR
+	}
+
+	return C.OPENVPN_PLUGIN_FUNC_DEFERRED
 }
 
 //export openvpn_plugin_close_v1
-func openvpn_plugin_close_v1(handle C.openvpn_plugin_handle_t) {
-	pluginHandle := (*PluginHandle)(unsafe.Pointer(handle))
-	if pluginHandle == nil {
+func openvpn_plugin_close_v1(pluginHandle C.openvpn_plugin_handle_t) {
+	handle := (*PluginHandle)(unsafe.Pointer(pluginHandle))
+	if handle == nil {
 		return
 	}
 
-	pluginHandle.logger.Info("plugin closed")
+	handle.logger.Info("plugin closed")
 }
 
 //export openvpn_plugin_abort_v1
-func openvpn_plugin_abort_v1(handle C.openvpn_plugin_handle_t) {
-	pluginHandle := (*PluginHandle)(unsafe.Pointer(handle))
-	if pluginHandle == nil {
+func openvpn_plugin_abort_v1(pluginHandle C.openvpn_plugin_handle_t) {
+	handle := (*PluginHandle)(unsafe.Pointer(pluginHandle))
+	if handle == nil {
 		return
 	}
 
-	pluginHandle.logger.Info("plugin abort")
+	handle.logger.Info("plugin abort")
 }
