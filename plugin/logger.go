@@ -1,7 +1,7 @@
 package main
 
 /*
-#include "openvpn-plugin.h"
+#include <openvpn-plugin.h>
 static char *MODULE = "openvpn-auth-oauth2";
 
 // A wrapper function is needed because go is not able to call C pointer functions

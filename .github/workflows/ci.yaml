@@ -1,8 +1,5 @@
 name: CI
 
-env:
-  CGO: 0
-
 on:
   workflow_dispatch:
   pull_request:
@@ -25,7 +22,14 @@ jobs:
         with:
           go-version-file: 'go.mod'
 
-      - run: go build
+      - name: go build
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          version: latest
+          args: build
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - run: go test ./... -race -covermode=atomic -coverprofile=coverage.out
       - uses: codecov/codecov-action@v3
 

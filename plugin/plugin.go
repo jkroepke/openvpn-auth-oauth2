@@ -1,7 +1,7 @@
 package main
 
 /*
-#include "openvpn-plugin.h"
+#include <openvpn-plugin.h>
 */
 import "C"
 import (
@@ -83,7 +83,7 @@ func openvpn_plugin_open_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_
 
 	retptr.handle = (C.openvpn_plugin_handle_t)(unsafe.Pointer(handle))
 
-	logger.Info("plugin initialization done")
+	logger.Info(fmt.Sprintf("plugin initialization done. version: %s", version))
 
 	return C.OPENVPN_PLUGIN_FUNC_SUCCESS
 }

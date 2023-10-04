@@ -1,5 +1,6 @@
 builds:
-  - binary: openvpn-auth-oauth2
+  - id: "openvpn-auth-oauth2"
+    binary: openvpn-auth-oauth2
     env:
       - CGO_ENABLED=0
     goos:
@@ -8,7 +9,19 @@ builds:
       - amd64
       - arm64
     mod_timestamp: '{{ .CommitTimestamp }}'
-    no_unique_dist_dir: false
+  - id: "openvpn-auth-oauth2.so"
+    binary: openvpn-auth-oauth2.so
+    main: ./plugin/
+    buildmode: c-shared
+    env:
+      - CGO_ENABLED=1
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    mod_timestamp: '{{ .CommitTimestamp }}'
+
 nfpms:
   - id: openvpn-auth-oauth2
     homepage: https://github.com/jkroepke/openvpn-auth-oauth2
