@@ -7,40 +7,50 @@ import (
 )
 
 type Client struct {
-	Kid    uint64
-	Cid    uint64
-	Reason string
-	Env    map[string]string
+	Kid        uint64
+	Cid        uint64
+	Reason     string
+	IpAddr     string
+	CommonName string
+	Username   string
+	IvSSO      string
 }
 
 func NewClient(message string) (Client, error) {
-	clientConnection := Client{
-		Env: map[string]string{},
-	}
+	client := Client{}
 
 	var err error
 
 	for _, line := range strings.Split(strings.TrimSpace(message), "\n") {
 		if isClientReason(line) {
-			clientConnection.Reason, clientConnection.Cid, clientConnection.Kid, err = parseClientReason(line)
+			client.Reason, client.Cid, client.Kid, err = parseClientReason(line)
 			if err != nil {
 				return Client{}, err
 			}
 		} else if strings.HasPrefix(line, ">CLIENT:ENV,") {
 			envKey, envValue := parseClientEnv(line)
-			if envKey == "" {
+			if envKey == "" || envValue == "" {
 				break
 			}
 
-			clientConnection.Env[envKey] = envValue
+			switch envKey {
+			case "untrusted_ip":
+				client.IpAddr = envValue
+			case "common_name":
+				client.CommonName = envValue
+			case "username":
+				client.Username = envValue
+			case "IV_SSO":
+				client.IvSSO = envValue
+			}
 		}
 	}
 
-	if clientConnection.Reason == "" {
+	if client.Reason == "" {
 		return Client{}, fmt.Errorf("unable to parse client reason from message: %s", message)
 	}
 
-	return clientConnection, nil
+	return client, nil
 }
 
 func parseClientEnv(line string) (string, string) {

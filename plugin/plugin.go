@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/url"
 	"os"
+	"slices"
 	"strings"
 	"unsafe"
 
@@ -84,6 +85,7 @@ func openvpn_plugin_open_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_
 	retptr.handle = (C.openvpn_plugin_handle_t)(unsafe.Pointer(handle))
 
 	logger.Info(fmt.Sprintf("plugin initialization done. version: %s", version))
+	logger.Warn("THIS PLUGIN IS STILL IN EXPERIMENTAL STATE")
 
 	return C.OPENVPN_PLUGIN_FUNC_SUCCESS
 }
@@ -102,6 +104,12 @@ func openvpn_plugin_func_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_
 	}
 
 	client := NewClient(unsafe.Pointer(args.envp))
+
+	if client.CommonName != "" && slices.Contains(handle.conf.OpenVpn.Bypass.CommonNames, client.CommonName) {
+		handle.logger.Info(fmt.Sprintf("client %s bypass authentication", client.CommonName))
+		return C.OPENVPN_PLUGIN_FUNC_SUCCESS
+	}
+
 	clientIdentifier := state.ClientIdentifier{
 		AuthControlFile:      client.AuthControlFile,
 		AuthFailedReasonFile: client.AuthFailedReasonFile,
