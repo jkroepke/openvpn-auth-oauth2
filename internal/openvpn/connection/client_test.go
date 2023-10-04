@@ -19,43 +19,42 @@ func TestNewClientConnection(t *testing.T) {
 	}{
 		{
 			"client CONNECT",
-			[]string{">CLIENT:CONNECT,0,1", ">CLIENT:ENV,name1=val1", ">CLIENT:ENV,name2=", ">CLIENT:ENV,END"},
-			connection.Client{Cid: 0, Kid: 1, Reason: "CONNECT", Env: map[string]string{
-				"name1": "val1", "name2": "",
-			}},
+			[]string{
+				">CLIENT:CONNECT,0,1",
+				">CLIENT:ENV,common_name=common_name",
+				">CLIENT:ENV,username=username",
+				">CLIENT:ENV,untrusted_ip=127.0.0.1",
+				">CLIENT:ENV,untrusted_ip=127.0.0.1",
+				">CLIENT:ENV,IV_SSO=webauth",
+				">CLIENT:ENV,END",
+			},
+			connection.Client{Cid: 0, Kid: 1, Reason: "CONNECT",
+				CommonName: "common_name", Username: "username", IpAddr: "127.0.0.1", IvSSO: "webauth"},
 			"",
 		},
 		{
 			"client CONNECT invalid cid",
 			[]string{">CLIENT:CONNECT,k,2", ">CLIENT:ENV,name1=val1", ">CLIENT:ENV,name2=", ">CLIENT:ENV,END"},
-			connection.Client{Cid: 1, Kid: 2, Reason: "CONNECT", Env: map[string]string{
-				"name1": "val1", "name2": "",
-			}},
+			connection.Client{Cid: 1, Kid: 2, Reason: "CONNECT"},
 			"unable to parse cid: strconv.ParseUint: parsing \"k\": invalid syntax",
 		},
 		{
 			"client CONNECT invalid kid",
 			[]string{">CLIENT:CONNECT,1,k", ">CLIENT:ENV,name1=val1", ">CLIENT:ENV,name2=", ">CLIENT:ENV,END"},
-			connection.Client{Cid: 1, Kid: 2, Reason: "CONNECT", Env: map[string]string{
-				"name1": "val1", "name2": "",
-			}},
+			connection.Client{Cid: 1, Kid: 2, Reason: "CONNECT"},
 			"unable to parse kid: strconv.ParseUint: parsing \"k\": invalid syntax",
 		},
 		{
 			"client REAUTH",
-			[]string{">CLIENT:REAUTH,1,2", ">CLIENT:ENV,name1=val1", ">CLIENT:ENV,name2=", ">CLIENT:ENV,END"},
-			connection.Client{Cid: 1, Kid: 2, Reason: "REAUTH", Env: map[string]string{
-				"name1": "val1", "name2": "",
-			}},
+			[]string{">CLIENT:REAUTH,1,2", ">CLIENT:ENV,common_name=common_name", ">CLIENT:ENV,name2=", ">CLIENT:ENV,END"},
+			connection.Client{Cid: 1, Kid: 2, Reason: "REAUTH", CommonName: "common_name"},
 			"",
 		},
 		{
 			"client ESTABLISHED",
-			[]string{">CLIENT:ESTABLISHED,1", ">CLIENT:ENV,name1=val1", ">CLIENT:ENV,name2=", ">CLIENT:ENV,END"},
+			[]string{">CLIENT:ESTABLISHED,1", ">CLIENT:ENV,END"},
 			connection.Client{
-				Cid: 1, Kid: 0, Reason: "ESTABLISHED", Env: map[string]string{
-					"name1": "val1", "name2": "",
-				},
+				Cid: 1, Kid: 0, Reason: "ESTABLISHED",
 			},
 			"",
 		},
@@ -63,19 +62,14 @@ func TestNewClientConnection(t *testing.T) {
 			"client DISCONNECT",
 			[]string{">CLIENT:DISCONNECT,1", ">CLIENT:ENV,name1=val1", ">CLIENT:ENV,name2=", ">CLIENT:ENV,END"},
 			connection.Client{
-				Cid: 1, Kid: 0, Reason: "DISCONNECT", Env: map[string]string{
-					"name1": "val1", "name2": "",
-				},
-			},
+				Cid: 1, Kid: 0, Reason: "DISCONNECT"},
 			"",
 		},
 		{
 			"client CR_RESPONSE",
 			[]string{">CLIENT:CR_RESPONSE,1,2,YmFzZTY0", ">CLIENT:ENV,name1=val1", ">CLIENT:ENV,END"},
 			connection.Client{
-				Cid: 1, Kid: 2, Reason: "CR_RESPONSE", Env: map[string]string{
-					"name1": "val1",
-				},
+				Cid: 1, Kid: 2, Reason: "CR_RESPONSE",
 			},
 			"",
 		},
