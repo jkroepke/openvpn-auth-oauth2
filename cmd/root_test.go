@@ -48,7 +48,7 @@ func TestExecuteConfigInvalid(t *testing.T) {
 		{
 			"file not exists",
 			[]string{"", "--config=nonexists"},
-			"error loading config: error from file provider: open nonexists: no such file or directory",
+			"error loading config: file provider: open nonexists: no such file or directory",
 		},
 		{
 			"invalid log format",

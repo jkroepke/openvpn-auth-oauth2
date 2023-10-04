@@ -80,7 +80,7 @@ func TestValidate(t *testing.T) {
 		{"", config.Config{HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "invalid"}, Secret: "invalid"}, OAuth2: config.OAuth2{Issuer: &url.URL{Scheme: "http", Host: "invalid"}, Client: config.OAuth2Client{}, Endpoints: config.OAuth2Endpoints{}, Validate: config.OAuth2Validate{}}, OpenVpn: config.OpenVpn{Bypass: config.OpenVpnBypass{}}, Log: config.Log{}}, "-"},
 		{"", config.Config{HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "invalid"}, Secret: "invalid", Check: config.HTTPCheck{}}, OAuth2: config.OAuth2{Issuer: &url.URL{Scheme: "http", Host: "invalid"}, Client: config.OAuth2Client{ID: "client"}, Endpoints: config.OAuth2Endpoints{}, Validate: config.OAuth2Validate{}}, OpenVpn: config.OpenVpn{Bypass: config.OpenVpnBypass{}}, Log: config.Log{}}, "http.secret requires a length of 16, 24 or 32"},
 		{"", config.Config{HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "invalid"}, Secret: "invalid", Check: config.HTTPCheck{}}, OAuth2: config.OAuth2{Issuer: &url.URL{Scheme: "http", Host: "invalid"}, Client: config.OAuth2Client{ID: "client"}, Endpoints: config.OAuth2Endpoints{}, Validate: config.OAuth2Validate{}}, OpenVpn: config.OpenVpn{Bypass: config.OpenVpnBypass{}}, Log: config.Log{}}, "http.secret requires a length of 16, 24 or 32"},
-		{"", config.Config{HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "invalid"}, Secret: "0123456789101112", Check: config.HTTPCheck{}}, OAuth2: config.OAuth2{Issuer: &url.URL{Scheme: "http", Host: "invalid"}, Client: config.OAuth2Client{ID: "client"}, Endpoints: config.OAuth2Endpoints{}, Validate: config.OAuth2Validate{}}, OpenVpn: config.OpenVpn{Addr: &url.URL{}, Bypass: config.OpenVpnBypass{}}, Log: config.Log{}}, "openvpn.addr: invalid URL. only tcp://addr or unix://addr scheme supported"},
+		{"", config.Config{HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "invalid"}, Secret: "0123456789101112", Check: config.HTTPCheck{}}, OAuth2: config.OAuth2{Issuer: &url.URL{Scheme: "http", Host: "invalid"}, Client: config.OAuth2Client{ID: "client"}, Endpoints: config.OAuth2Endpoints{}, Validate: config.OAuth2Validate{}}, OpenVpn: config.OpenVpn{Addr: &url.URL{}, Bypass: config.OpenVpnBypass{}}, Log: config.Log{}}, "openvpn.addr is required"},
 		{"", config.Config{HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "invalid"}, Secret: "0123456789101112", Check: config.HTTPCheck{}}, OAuth2: config.OAuth2{Issuer: &url.URL{Scheme: "http", Host: "invalid"}, Client: config.OAuth2Client{ID: "client"}, Endpoints: config.OAuth2Endpoints{}, Validate: config.OAuth2Validate{}}, OpenVpn: config.OpenVpn{Addr: &url.URL{Scheme: "tcps", Host: "127.0.0.1:9000"}, Bypass: config.OpenVpnBypass{}}, Log: config.Log{}}, "openvpn.addr: invalid URL. only tcp://addr or unix://addr scheme supported"},
 		{"", config.Config{HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "httpss", Host: "invalid"}, Secret: "0123456789101112", Check: config.HTTPCheck{}}, OAuth2: config.OAuth2{Issuer: &url.URL{Scheme: "http", Host: "invalid"}, Client: config.OAuth2Client{ID: "client"}, Endpoints: config.OAuth2Endpoints{}, Validate: config.OAuth2Validate{}}, OpenVpn: config.OpenVpn{Addr: &url.URL{Scheme: "tcp", Host: "127.0.0.1:9000"}, Bypass: config.OpenVpnBypass{}}, Log: config.Log{}}, "-"},
 		{"", config.Config{HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "invalid"}, Secret: "0123456789101112", Check: config.HTTPCheck{}}, OAuth2: config.OAuth2{Issuer: &url.URL{Scheme: "http", Host: "invalid"}, Client: config.OAuth2Client{ID: "client"}, Endpoints: config.OAuth2Endpoints{}, Validate: config.OAuth2Validate{}}, OpenVpn: config.OpenVpn{Addr: &url.URL{Scheme: "tcp", Host: "127.0.0.1:9000"}, Bypass: config.OpenVpnBypass{}}, Log: config.Log{}}, ""},
@@ -90,11 +90,11 @@ func TestValidate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			err := config.Validate(tt.conf)
+			err := config.Validate(config.ManagementClient, tt.conf)
 			if tt.err == "" {
 				assert.NoError(t, err)
 			} else if assert.Error(t, err) && tt.err != "-" {
-				assert.Equal(t, err.Error(), tt.err)
+				assert.Equal(t, tt.err, err.Error())
 			}
 		})
 	}
