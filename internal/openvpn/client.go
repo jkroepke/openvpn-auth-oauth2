@@ -35,19 +35,19 @@ func (c *Client) clientConnect(client connection.Client) error {
 		slog.Uint64("cid", client.Cid),
 		slog.Uint64("kid", client.Kid),
 		slog.String("reason", client.Reason),
-		slog.String("common_name", client.Env["common_name"]),
-		slog.String("username", client.Env["username"]),
+		slog.String("common_name", client.CommonName),
+		slog.String("username", client.Username),
 	)
 
 	logger.Info("new client connection")
 
-	if val, ok := client.Env["common_name"]; ok && slices.Contains(c.conf.OpenVpn.Bypass.CommonNames, val) {
+	if slices.Contains(c.conf.OpenVpn.Bypass.CommonNames, client.CommonName) {
 		logger.Info("client bypass authentication")
 
 		var err error
 
 		if c.conf.OpenVpn.AuthTokenUser {
-			tokenUsername := base64.StdEncoding.EncodeToString([]byte(client.Env["common_name"]))
+			tokenUsername := base64.StdEncoding.EncodeToString([]byte(client.CommonName))
 			_, err = c.SendCommandf("client-auth %d %d\npush \"auth-token-user %s\"\nEND", client.Cid, client.Kid, tokenUsername)
 		} else {
 			_, err = c.SendCommandf("client-auth-nt %d %d", client.Cid, client.Kid)
@@ -69,7 +69,7 @@ func (c *Client) clientConnect(client connection.Client) error {
 		Kid: client.Kid,
 	}
 
-	session := state.New(ClientIdentifier, client.Env["untrusted_ip"], client.Env["common_name"])
+	session := state.New(ClientIdentifier, client.IPAddr, client.CommonName)
 	if err := session.Encode(c.conf.HTTP.Secret); err != nil {
 		return fmt.Errorf("error encoding state: %w", err)
 	}
@@ -93,8 +93,8 @@ func (c *Client) clientDisconnect(client connection.Client) {
 	c.logger.Info("client disconnected",
 		slog.Uint64("cid", client.Cid),
 		slog.String("reason", client.Reason),
-		slog.String("common_name", client.Env["common_name"]),
-		slog.String("username", client.Env["username"]),
+		slog.String("common_name", client.CommonName),
+		slog.String("username", client.Username),
 	)
 }
 
@@ -102,7 +102,7 @@ func (c *Client) clientEstablished(client connection.Client) {
 	c.logger.Info("client established",
 		slog.Uint64("cid", client.Cid),
 		slog.String("reason", client.Reason),
-		slog.String("common_name", client.Env["common_name"]),
-		slog.String("username", client.Env["username"]),
+		slog.String("common_name", client.CommonName),
+		slog.String("username", client.Username),
 	)
 }

@@ -148,7 +148,7 @@ func (c *Client) checkManagementInterfaceVersion() error {
 }
 
 func (c *Client) checkClientSsoCapabilities(logger *slog.Logger, client connection.Client) bool {
-	if val, ok := client.Env["IV_SSO"]; ok && strings.Contains(val, "webauth") {
+	if strings.Contains(client.IvSSO, "webauth") {
 		return true
 	}
 

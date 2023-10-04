@@ -18,9 +18,10 @@ type State struct {
 }
 
 type ClientIdentifier struct {
-	Cid      uint64 `json:"c"`
-	Kid      uint64 `json:"k"`
-	Filepath string `json:"fp"`
+	Cid                  uint64 `json:"c"`
+	Kid                  uint64 `json:"k"`
+	AuthFailedReasonFile string `json:"afr"`
+	AuthControlFile      string `json:"ac"`
 }
 
 func New(client ClientIdentifier, ipaddr, commonName string) *State {

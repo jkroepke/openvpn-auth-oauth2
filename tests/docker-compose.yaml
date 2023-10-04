@@ -13,9 +13,11 @@ services:
       - "0.0.0.0:1194:1194/udp"
       - "8080:8080/tcp"
       - "8081:8081/tcp"
+      - "9000:9000/tcp"
     volumes:
+      - ./:/tests/:ro
       - ./data:/etc/openvpn
-      - ./openvpn-auth-azure-ad:/usr/local/bin/openvpn-auth-azure-ad
+      - ./../plugin:/plugin/
     restart: always
     environment:
       EASYRSA: /usr/local/share/easy-rsa/easyrsa3
@@ -30,8 +32,6 @@ services:
       - /bin/sh
       - -ec
       - |-
-        chmod +x /usr/local/bin/openvpn-auth-azure-ad
-
         if ! command -v openvpn >/dev/null; then
           apk add --no-cache openvpn openssl
         fi
@@ -70,11 +70,13 @@ services:
         fast-io
         user nobody
         group nogroup
+        auth-gen-token 240 120
 
         management 0.0.0.0 8081 /etc/openvpn/password.txt
-        management-hold
-        management-client-auth
-        auth-gen-token 240 120
+        #management-hold
+        #management-client-auth
+
+        plugin /plugin/openvpn-auth-oauth2.so /plugin/config.yaml
 
         reneg-sec 60
         auth-user-pass-optional
@@ -89,7 +91,7 @@ services:
         resolv-retry infinite
         tls-cert-profile preferred
         persist-tun
-        verb 4
+        verb 9
         reneg-sec 0
         <key>
         $(cat /etc/openvpn/pki/private/${UPN}.key)
