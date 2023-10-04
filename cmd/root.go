@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
-	"strings"
 	"syscall"
 	"time"
 
@@ -18,13 +17,6 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
-	"github.com/knadh/koanf/parsers/yaml"
-	"github.com/knadh/koanf/providers/env"
-	"github.com/knadh/koanf/providers/file"
-	"github.com/knadh/koanf/providers/posflag"
-	"github.com/knadh/koanf/v2"
-	"github.com/mitchellh/mapstructure"
-	flag "github.com/spf13/pflag"
 )
 
 func Execute(args []string, logWriter io.Writer, version, commit, date string) int {
@@ -47,7 +39,8 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 		return 0
 	}
 
-	conf, err := loadConfig(flagSet)
+	configFile, _ := flagSet.GetString("config")
+	conf, err := config.Load(config.ManagementClient, configFile, flagSet)
 	if err != nil {
 		logger.Error(fmt.Errorf("error loading config: %w", err).Error())
 
@@ -182,64 +175,4 @@ func configureLogger(conf config.Config, writer io.Writer) (*slog.Logger, error)
 	default:
 		return nil, fmt.Errorf("unknown log format: %s", conf.Log.Format)
 	}
-}
-
-func loadConfig(flagSet *flag.FlagSet) (config.Config, error) {
-	var err error
-
-	k := koanf.New(".")
-
-	configFile, _ := flagSet.GetString("config")
-	if configFile != "" {
-		if err := k.Load(file.Provider(configFile), yaml.Parser()); err != nil {
-			return config.Config{}, fmt.Errorf("error from file provider: %w", err)
-		}
-	}
-
-	if err = k.Load(posflag.Provider(flagSet, ".", k), nil); err != nil {
-		return config.Config{}, fmt.Errorf("error from posflag provider: %w", err)
-	}
-
-	err = k.Load(env.ProviderWithValue("CONFIG_", ".",
-		func(envKey string, envValue string) (string, interface{}) {
-			key := strings.ReplaceAll(strings.ToLower(strings.TrimPrefix(envKey, "CONFIG_")), "_", ".")
-
-			// If there is a space in the value, split the value into a slice by the space.
-			if strings.Contains(envValue, " ") {
-				return key, strings.Split(envValue, " ")
-			}
-
-			// Otherwise, return the plain string.
-			return key, envValue
-		}), nil,
-	)
-
-	if err != nil {
-		return config.Config{}, fmt.Errorf("error from env provider: %w", err)
-	}
-
-	var conf config.Config
-	unmarshalConf := koanf.UnmarshalConf{
-		DecoderConfig: &mapstructure.DecoderConfig{
-			DecodeHook: mapstructure.ComposeDecodeHookFunc(
-				mapstructure.StringToTimeDurationHookFunc(),
-				mapstructure.TextUnmarshallerHookFunc(),
-				config.StringToURLHookFunc(),
-				config.StringToTemplateHookFunc(),
-			),
-			Metadata:         nil,
-			Result:           &conf,
-			WeaklyTypedInput: true,
-		},
-	}
-
-	if err = k.UnmarshalWithConf("", &conf, unmarshalConf); err != nil {
-		return config.Config{}, fmt.Errorf("error unmarschal config: %w", err)
-	}
-
-	if err = config.Validate(conf); err != nil {
-		return config.Config{}, fmt.Errorf("error validating logging: %w", err)
-	}
-
-	return conf, nil
 }

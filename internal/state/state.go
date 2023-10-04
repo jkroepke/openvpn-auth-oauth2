@@ -9,19 +9,23 @@ import (
 )
 
 type State struct {
-	Cid        uint64    `json:"cid"`
-	Kid        uint64    `json:"kid"`
-	Ipaddr     string    `json:"ipaddr"`
-	CommonName string    `json:"commonName"`
-	Issued     time.Time `json:"issued"`
+	Client     ClientIdentifier `json:"c"`
+	Ipaddr     string           `json:"ip"`
+	CommonName string           `json:"cn"`
+	Issued     time.Time        `json:"iss"`
 
 	encoded string
 }
 
-func New(cid, kid uint64, ipaddr, commonName string) *State {
+type ClientIdentifier struct {
+	Cid      uint64 `json:"c"`
+	Kid      uint64 `json:"k"`
+	Filepath string `json:"fp"`
+}
+
+func New(client ClientIdentifier, ipaddr, commonName string) *State {
 	return &State{
-		Cid:        cid,
-		Kid:        kid,
+		Client:     client,
 		Ipaddr:     ipaddr,
 		CommonName: commonName,
 		Issued:     time.Now(),

@@ -64,7 +64,11 @@ func (c *Client) clientConnect(client connection.Client) error {
 		return nil
 	}
 
-	session := state.New(client.Cid, client.Kid, client.Env["untrusted_ip"], client.Env["common_name"])
+	ClientIdentifier := state.ClientIdentifier{
+		Cid: client.Cid,
+		Kid: client.Kid,
+	}
+	session := state.New(ClientIdentifier, client.Env["untrusted_ip"], client.Env["common_name"])
 	if err := session.Encode(c.conf.HTTP.Secret); err != nil {
 		return fmt.Errorf("error encoding state: %w", err)
 	}

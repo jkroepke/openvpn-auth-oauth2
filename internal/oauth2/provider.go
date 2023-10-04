@@ -68,7 +68,7 @@ func NewProvider(logger *slog.Logger, conf config.Config) (Provider, error) {
 		if !utils.IsURLEmpty(conf.OAuth2.Endpoints.Discovery) {
 			logger.Info(utils.StringConcat(
 				"discover oidc auto configuration with provider ",
-				provider.GetName(), "for issuer ", conf.OAuth2.Issuer.String(),
+				provider.GetName(), " for issuer ", conf.OAuth2.Issuer.String(),
 				"with custom discovery url", conf.OAuth2.Endpoints.Discovery.String(),
 			))
 
@@ -76,7 +76,7 @@ func NewProvider(logger *slog.Logger, conf config.Config) (Provider, error) {
 		} else {
 			logger.Info(utils.StringConcat(
 				"discover oidc auto configuration with provider ",
-				provider.GetName(), "for issuer ", conf.OAuth2.Issuer.String(),
+				provider.GetName(), " for issuer ", conf.OAuth2.Issuer.String(),
 			))
 		}
 
