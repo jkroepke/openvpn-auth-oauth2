@@ -23,9 +23,11 @@ jobs:
           go-version-file: 'go.mod'
 
       - run: sudo apt install openvpn -y
-      - run: find /usr/ -name openvpn-plugin.h
 
-      - name: go build
+      - run: go build
+      - run: go test ./... -race -covermode=atomic -coverprofile=coverage.out
+
+      - name: go build (with goreleaser)
         uses: goreleaser/goreleaser-action@v5
         with:
           version: latest
@@ -33,7 +35,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - run: go test ./... -race -covermode=atomic -coverprofile=coverage.out
       - uses: codecov/codecov-action@v3
 
   lint:
