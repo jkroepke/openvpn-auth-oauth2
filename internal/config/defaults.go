@@ -2,6 +2,7 @@ package config
 
 import "net/url"
 
+//nolint:gochecknoglobals
 var Defaults = Config{
 	Log: Log{
 		Format: "console",

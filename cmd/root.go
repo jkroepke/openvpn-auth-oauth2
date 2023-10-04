@@ -40,6 +40,7 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 	}
 
 	configFile, _ := flagSet.GetString("config")
+
 	conf, err := config.Load(config.ManagementClient, configFile, flagSet)
 	if err != nil {
 		logger.Error(fmt.Errorf("error loading config: %w", err).Error())

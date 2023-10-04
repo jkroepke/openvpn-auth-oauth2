@@ -186,7 +186,7 @@ func FlagSet() *flag.FlagSet {
 }
 
 // Validate validates the config.
-func Validate(mode int, conf Config) error {
+func Validate(mode int, conf Config) error { //nolint:cyclop
 	for key, value := range map[string]string{
 		"http.secret":      conf.HTTP.Secret,
 		"oauth2.client.id": conf.OAuth2.Client.ID,
