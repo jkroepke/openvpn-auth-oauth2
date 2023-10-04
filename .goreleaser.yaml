@@ -21,6 +21,14 @@ builds:
       - amd64
     mod_timestamp: '{{ .CommitTimestamp }}'
 
+archives:
+  - id: openvpn-auth-oauth2
+    builds: [openvpn-auth-oauth2]
+    name_template: openvpn-auth-oauth2
+  - id: openvpn-auth-oauth2-plugin
+    builds: [openvpn-auth-oauth2.so]
+    name_template: openvpn-auth-oauth2-plugin
+
 nfpms:
   - id: openvpn-auth-oauth2
     homepage: https://github.com/jkroepke/openvpn-auth-oauth2
