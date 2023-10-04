@@ -241,8 +241,8 @@ func TestClientFull(t *testing.T) {
 					err := sessionState.Decode(tt.conf.HTTP.Secret)
 					assert.NoError(t, err)
 
-					assert.Equal(t, uint64(1), sessionState.Cid)
-					assert.Equal(t, uint64(2), sessionState.Kid)
+					assert.Equal(t, uint64(1), sessionState.Client.Cid)
+					assert.Equal(t, uint64(2), sessionState.Client.Kid)
 					assert.Equal(t, "test", sessionState.CommonName)
 					assert.Equal(t, "127.0.0.1", sessionState.Ipaddr)
 				}

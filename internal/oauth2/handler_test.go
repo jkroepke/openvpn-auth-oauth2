@@ -279,7 +279,7 @@ func TestHandler(t *testing.T) {
 
 			httpClient.Jar = jar
 
-			sessionState := state.New(0, 1, tt.ipaddr, "name")
+			sessionState := state.New(state.ClientIdentifier{Cid: 0, Kid: 1}, tt.ipaddr, "name")
 			err = sessionState.Encode(tt.conf.HTTP.Secret)
 			if !assert.NoError(t, err) {
 				return

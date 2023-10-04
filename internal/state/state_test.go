@@ -14,14 +14,14 @@ func TestState(t *testing.T) {
 	encryptionKey := "0123456789101112"
 
 	for i := 1; i < 50; i++ {
-		token := state.New(1, 2, "127.0.0.1", "test")
+		token := state.New(state.ClientIdentifier{Cid: 1, Kid: 2}, "127.0.0.1", "test")
 		assert.NoError(t, token.Encode(encryptionKey))
 
 		encodedToken := state.NewEncoded(token.Encoded())
 		assert.NoError(t, encodedToken.Decode(encryptionKey))
 
-		assert.Equal(t, token.Cid, encodedToken.Cid)
-		assert.Equal(t, token.Kid, encodedToken.Kid)
+		assert.Equal(t, token.Client.Cid, encodedToken.Client.Cid)
+		assert.Equal(t, token.Client.Kid, encodedToken.Client.Kid)
 		assert.Equal(t, token.Ipaddr, encodedToken.Ipaddr)
 		assert.Equal(t, token.CommonName, encodedToken.CommonName)
 	}
@@ -32,7 +32,7 @@ func TestStateInvalid_Key(t *testing.T) {
 
 	encryptionKey := "01234567891011"
 
-	token := state.New(1, 2, "127.0.0.1", "test")
+	token := state.New(state.ClientIdentifier{Cid: 1, Kid: 2}, "127.0.0.1", "test")
 	assert.Error(t, token.Encode(encryptionKey), "crypto/aes: invalid key size 14")
 }
 
@@ -41,7 +41,7 @@ func TestStateInvalid_Future(t *testing.T) {
 
 	encryptionKey := "0123456789101112"
 
-	token := state.New(1, 2, "127.0.0.1", "test")
+	token := state.New(state.ClientIdentifier{Cid: 1, Kid: 2}, "127.0.0.1", "test")
 	token.Issued = time.Now().Add(time.Hour)
 
 	assert.NoError(t, token.Encode(encryptionKey))
@@ -53,7 +53,7 @@ func TestStateInvalid_TooOld(t *testing.T) {
 
 	encryptionKey := "0123456789101112"
 
-	token := state.New(1, 2, "127.0.0.1", "test")
+	token := state.New(state.ClientIdentifier{Cid: 1, Kid: 2}, "127.0.0.1", "test")
 	token.Issued = time.Now().Add(-1 * time.Hour)
 
 	assert.NoError(t, token.Encode(encryptionKey))
