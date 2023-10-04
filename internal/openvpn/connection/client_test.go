@@ -28,8 +28,9 @@ func TestNewClientConnection(t *testing.T) {
 				">CLIENT:ENV,IV_SSO=webauth",
 				">CLIENT:ENV,END",
 			},
-			connection.Client{Cid: 0, Kid: 1, Reason: "CONNECT",
-				CommonName: "common_name", Username: "username", IpAddr: "127.0.0.1", IvSSO: "webauth"},
+			connection.Client{
+				Cid: 0, Kid: 1, Reason: "CONNECT", CommonName: "common_name", Username: "username", IPAddr: "127.0.0.1", IvSSO: "webauth",
+			},
 			"",
 		},
 		{
@@ -53,16 +54,13 @@ func TestNewClientConnection(t *testing.T) {
 		{
 			"client ESTABLISHED",
 			[]string{">CLIENT:ESTABLISHED,1", ">CLIENT:ENV,END"},
-			connection.Client{
-				Cid: 1, Kid: 0, Reason: "ESTABLISHED",
-			},
+			connection.Client{Cid: 1, Kid: 0, Reason: "ESTABLISHED"},
 			"",
 		},
 		{
 			"client DISCONNECT",
 			[]string{">CLIENT:DISCONNECT,1", ">CLIENT:ENV,name1=val1", ">CLIENT:ENV,name2=", ">CLIENT:ENV,END"},
-			connection.Client{
-				Cid: 1, Kid: 0, Reason: "DISCONNECT"},
+			connection.Client{Cid: 1, Kid: 0, Reason: "DISCONNECT"},
 			"",
 		},
 		{

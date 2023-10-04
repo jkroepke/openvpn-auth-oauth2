@@ -10,7 +10,7 @@ type Client struct {
 	Kid        uint64
 	Cid        uint64
 	Reason     string
-	IpAddr     string
+	IPAddr     string
 	CommonName string
 	Username   string
 	IvSSO      string
@@ -35,7 +35,7 @@ func NewClient(message string) (Client, error) {
 
 			switch envKey {
 			case "untrusted_ip":
-				client.IpAddr = envValue
+				client.IPAddr = envValue
 			case "common_name":
 				client.CommonName = envValue
 			case "username":
