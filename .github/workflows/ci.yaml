@@ -1,7 +1,7 @@
 name: CI
 
 env:
-  PACKAGES: openvpn libssl-dev:arm64 crossbuild-essential-arm64
+  PACKAGES: openvpn crossbuild-essential-arm64
 
 on:
   workflow_dispatch:
@@ -29,8 +29,8 @@ jobs:
       - run: go test ./... -race -covermode=atomic -coverprofile=coverage.out
 
       - run: |
-          sudo dpkg --add-architecture arm64 && sudo apt-get update
           sudo apt-get install --no-install-recommends -qy $PACKAGES
+          ln -s /usr/include/x86_64-linux-gnu/openssl/opensslconf.h /usr/include/openssl/opensslconf.h
       - name: go build (with goreleaser)
         uses: goreleaser/goreleaser-action@v5
         with:
