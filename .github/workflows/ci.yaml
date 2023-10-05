@@ -1,5 +1,8 @@
 name: CI
 
+env:
+  PACKAGES: openvpn binutils-aarch64-linux-gnu gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+
 on:
   workflow_dispatch:
   pull_request:
@@ -25,7 +28,7 @@ jobs:
       - run: go build
       - run: go test ./... -race -covermode=atomic -coverprofile=coverage.out
 
-      - run: sudo apt-get install -qy openvpn binutils-aarch64-linux-gnu gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+      - run: sudo apt-get install --no-install-recommends -qy $PACKAGES
       - name: go build (with goreleaser)
         uses: goreleaser/goreleaser-action@v5
         with:
@@ -59,7 +62,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - run: sudo apt-get install -qy openvpn binutils-aarch64-linux-gnu gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+      - run: sudo apt-get install --no-install-recommends -qy $PACKAGES
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
