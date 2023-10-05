@@ -1,7 +1,7 @@
 name: CI
 
 env:
-  PACKAGES: openvpn crossbuild-essential-arm64 libssl-dev:arm64
+  PACKAGES: openvpn crossbuild-essential-arm64
 
 on:
   workflow_dispatch:
@@ -28,7 +28,10 @@ jobs:
       - run: go build
       - run: go test ./... -race -covermode=atomic -coverprofile=coverage.out
 
-      - uses: ryankurte/action-apt@cec786efbd7f7a1402b78f489bcdcf9acba6e825
+      - run: |
+          sudo apt-get install --no-install-recommends -qy $PACKAGES
+          sudo ln -s /usr/include/x86_64-linux-gnu/openssl/opensslconf.h /usr/include/openssl/opensslconf.h
+      - uses: ryankurte/action-apt@v0.3.0
         with:
           arch: arm64
           packages: "$PACKAGES"
