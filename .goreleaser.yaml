@@ -13,13 +13,20 @@ builds:
     binary: openvpn-auth-oauth2
     main: ./plugin/
     buildmode: c-shared
-    env:
-      - CGO_ENABLED=1
     goos:
       - linux
     goarch:
       - amd64
+      - arm64
     mod_timestamp: '{{ .CommitTimestamp }}'
+    env:
+      - CGO_ENABLED=1
+      - >-
+        {{- if eq .Arch "amd64"}}CC=x86_64-linux-gnu-gcc{{- end }}
+        {{- if eq .Arch "arm64"}}CC=aarch64-linux-gnu-gcc{{- end }}
+      - >-
+        {{- if eq .Arch "amd64"}}CXX=x86_64-linux-gnu-g++{{- end }}
+        {{- if eq .Arch "arm64"}}CXX=aarch64-linux-gnu-g++{{- end }}
 
 archives:
   - id: openvpn-auth-oauth2
@@ -43,6 +50,14 @@ nfpms:
       - src: packaging/openvpn-auth-oauth2.sysconfig
         dst: /etc/sysconfig/openvpn-auth-oauth2
         type: "config|noreplace"
+
+report_sizes: true
+
+metadata:
+  mod_timestamp: "{{ .CommitTimestamp }}"
+
+gomod:
+  proxy: true
 
 release:
   prerelease: auto
