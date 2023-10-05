@@ -28,7 +28,7 @@ jobs:
       - run: go build
       - run: go test ./... -race -covermode=atomic -coverprofile=coverage.out
 
-      - uses: ryankurte/action-apt@v0.3.0
+      - uses: ryankurte/action-apt@cec786efbd7f7a1402b78f489bcdcf9acba6e825
         with:
           arch: arm64
           packages: "$PACKAGES"
