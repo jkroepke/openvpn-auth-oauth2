@@ -41,26 +41,7 @@ func (c *Client) clientConnect(client connection.Client) error {
 
 	logger.Info("new client connection")
 
-	if slices.Contains(c.conf.OpenVpn.Bypass.CommonNames, client.CommonName) {
-		logger.Info("client bypass authentication")
-
-		var err error
-
-		if c.conf.OpenVpn.AuthTokenUser {
-			tokenUsername := base64.StdEncoding.EncodeToString([]byte(client.CommonName))
-			_, err = c.SendCommandf("client-auth %d %d\npush \"auth-token-user %s\"\nEND", client.Cid, client.Kid, tokenUsername)
-		} else {
-			_, err = c.SendCommandf("client-auth-nt %d %d", client.Cid, client.Kid)
-		}
-
-		if err != nil {
-			logger.Warn(err.Error())
-		}
-
-		return nil
-	}
-
-	if !c.checkClientSsoCapabilities(logger, client) {
+	if c.checkAuthBypass(logger, client) || !c.checkClientSsoCapabilities(logger, client) {
 		return nil
 	}
 
@@ -87,6 +68,22 @@ func (c *Client) clientConnect(client connection.Client) error {
 	}
 
 	return nil
+}
+
+func (c *Client) checkAuthBypass(logger *slog.Logger, client connection.Client) bool {
+	if !slices.Contains(c.conf.OpenVpn.Bypass.CommonNames, client.CommonName) {
+		return false
+	}
+
+	logger.Info("client bypass authentication")
+
+	if c.conf.OpenVpn.AuthTokenUser {
+		tokenUsername := base64.StdEncoding.EncodeToString([]byte(client.CommonName))
+		c.AcceptClientWithToken(logger, state.ClientIdentifier{Cid: client.Cid, Kid: client.Kid}, tokenUsername)
+	} else {
+		c.AcceptClient(logger, state.ClientIdentifier{Cid: client.Cid, Kid: client.Kid})
+	}
+	return true
 }
 
 func (c *Client) clientDisconnect(client connection.Client) {
