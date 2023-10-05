@@ -15,6 +15,7 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
@@ -154,12 +155,7 @@ func (c *Client) checkClientSsoCapabilities(logger *slog.Logger, client connecti
 
 	errorSsoNotSupported := "OpenVPN Client does not support SSO authentication via webauth"
 	logger.Warn(errorSsoNotSupported)
-
-	_, err := c.SendCommandf(`client-deny %d %d "%s" "%s"`,
-		client.Cid, client.Kid, errorSsoNotSupported, errorSsoNotSupported)
-	if err != nil {
-		c.logger.Warn(err.Error())
-	}
+	c.DenyClient(logger, state.ClientIdentifier{Cid: client.Cid, Kid: client.Kid}, errorSsoNotSupported)
 
 	return false
 }
