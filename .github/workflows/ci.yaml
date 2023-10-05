@@ -31,10 +31,6 @@ jobs:
       - run: |
           sudo apt-get install --no-install-recommends -qy $PACKAGES
           sudo ln -s /usr/include/x86_64-linux-gnu/openssl/opensslconf.h /usr/include/openssl/opensslconf.h
-      - uses: ryankurte/action-apt@v0.3.0
-        with:
-          arch: arm64
-          packages: "$PACKAGES"
 
       - name: go build (with goreleaser)
         uses: goreleaser/goreleaser-action@v5
