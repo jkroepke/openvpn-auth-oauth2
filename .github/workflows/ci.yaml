@@ -1,5 +1,8 @@
 name: CI
 
+env:
+  PACKAGES: openvpn crossbuild-essential-arm64 libssl-dev:arm64
+
 on:
   workflow_dispatch:
   pull_request:
@@ -14,7 +17,6 @@ jobs:
     runs-on: ubuntu-latest
     name: Build & Test
     steps:
-      - run: sudo apt install openvpn -y
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -26,6 +28,17 @@ jobs:
       - run: go build
       - run: go test ./... -race -covermode=atomic -coverprofile=coverage.out
 
+      - name: Install plugin dependencies
+        run: |
+          sudo dpkg --add-architecture arm64
+          sudo sed -i'' -E 's/^(deb|deb-src) /\1 [arch=amd64,i386] /' /etc/apt/sources.list
+
+          echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ $(lsb_release -cs) main restricted universe" | sudo tee /etc/apt/sources.list.d/arm64.list
+          echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ $(lsb_release -cs)-updates main restricted universe" | sudo tee -a /etc/apt/sources.list.d/arm64.list
+          echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ $(lsb_release -cs)-security main restricted universe" | sudo tee -a /etc/apt/sources.list.d/arm64.list
+
+          sudo apt-get update -q
+          sudo apt-get install --no-install-recommends -qy $PACKAGES
       - name: go build (with goreleaser)
         uses: goreleaser/goreleaser-action@v5
         with:
@@ -59,7 +72,9 @@ jobs:
     permissions:
       contents: write
     steps:
-      - run: sudo apt install openvpn -y
+      - run: |
+          sudo dpkg --add-architecture arm64 && sudo apt-get update
+          sudo apt-get install --no-install-recommends -qy $PACKAGES
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
