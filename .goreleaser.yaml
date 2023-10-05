@@ -44,5 +44,8 @@ nfpms:
         dst: /etc/sysconfig/openvpn-auth-oauth2
         type: "config|noreplace"
 
+release:
+  prerelease: auto
+
 changelog:
   use: github-native
