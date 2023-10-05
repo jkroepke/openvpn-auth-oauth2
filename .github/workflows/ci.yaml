@@ -29,6 +29,7 @@ jobs:
       - run: go test ./... -race -covermode=atomic -coverprofile=coverage.out
 
       - run: sudo apt-get install --no-install-recommends -qy $PACKAGES
+      - run: find /usr -name opensslconf.h
       - name: go build (with goreleaser)
         uses: goreleaser/goreleaser-action@v5
         with:
