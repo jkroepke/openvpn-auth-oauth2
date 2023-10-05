@@ -30,7 +30,6 @@ builds:
 
 archives:
   - id: openvpn-auth-oauth2
-    allow_different_binary_count: true
 
 nfpms:
   - id: openvpn-auth-oauth2

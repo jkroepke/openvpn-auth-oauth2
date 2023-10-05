@@ -14,7 +14,6 @@ jobs:
     runs-on: ubuntu-latest
     name: Build & Test
     steps:
-      - run: sudo apt install openvpn -y
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -26,6 +25,7 @@ jobs:
       - run: go build
       - run: go test ./... -race -covermode=atomic -coverprofile=coverage.out
 
+      - run: sudo apt-get install -qy openvpn binutils-aarch64-linux-gnu gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
       - name: go build (with goreleaser)
         uses: goreleaser/goreleaser-action@v5
         with:
@@ -59,7 +59,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - run: sudo apt install openvpn -y
+      - run: sudo apt-get install -qy openvpn binutils-aarch64-linux-gnu gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
