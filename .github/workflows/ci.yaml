@@ -1,7 +1,7 @@
 name: CI
 
 env:
-  PACKAGES: openvpn binutils-aarch64-linux-gnu gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+  PACKAGES: openvpn libssl-dev:arm64 binutils-aarch64-linux-gnu gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 
 on:
   workflow_dispatch:
@@ -28,8 +28,9 @@ jobs:
       - run: go build
       - run: go test ./... -race -covermode=atomic -coverprofile=coverage.out
 
-      - run: sudo apt-get install --no-install-recommends -qy $PACKAGES
-      - run: find /usr -name opensslconf.h
+      - run: |
+          sudo dpkg --add-architecture arm64 && sudo apt-get update
+          sudo apt-get install --no-install-recommends -qy $PACKAGES
       - name: go build (with goreleaser)
         uses: goreleaser/goreleaser-action@v5
         with:
@@ -63,7 +64,9 @@ jobs:
     permissions:
       contents: write
     steps:
-      - run: sudo apt-get install --no-install-recommends -qy $PACKAGES
+      - run: |
+          sudo dpkg --add-architecture arm64 && sudo apt-get update
+          sudo apt-get install --no-install-recommends -qy $PACKAGES
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
