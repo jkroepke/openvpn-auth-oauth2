@@ -83,6 +83,7 @@ func (c *Client) checkAuthBypass(logger *slog.Logger, client connection.Client) 
 	} else {
 		c.AcceptClient(logger, state.ClientIdentifier{Cid: client.Cid, Kid: client.Kid})
 	}
+
 	return true
 }
 
