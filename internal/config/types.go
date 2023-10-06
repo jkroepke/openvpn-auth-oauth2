@@ -3,6 +3,7 @@ package config
 import (
 	"html/template"
 	"net/url"
+	"time"
 )
 
 type Config struct {
@@ -35,10 +36,11 @@ type Log struct {
 }
 
 type OpenVpn struct {
-	Addr          *url.URL      `koanf:"addr"`
-	Password      string        `koanf:"password"`
-	Bypass        OpenVpnBypass `koanf:"bypass"`
-	AuthTokenUser bool          `koanf:"auth-token-user"`
+	Addr               *url.URL      `koanf:"addr"`
+	Password           string        `koanf:"password"`
+	Bypass             OpenVpnBypass `koanf:"bypass"`
+	AuthTokenUser      bool          `koanf:"auth-token-user"`
+	AuthPendingTimeout time.Duration `koanf:"auth-pending-timeout"`
 }
 
 type OpenVpnBypass struct {

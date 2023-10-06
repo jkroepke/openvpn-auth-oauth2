@@ -101,6 +101,11 @@ func FlagSet() *flag.FlagSet {
 		Defaults.OpenVpn.AuthTokenUser,
 		"Define auth-token-user for all sessions. (env: CONFIG_OPENVPN_AUTH_TOKEN_USER)",
 	)
+	flagSet.String(
+		"openvpn.auth-pending-timeout",
+		Defaults.OpenVpn.AuthPendingTimeout.String(),
+		"How long OpenVPN server wait until user is authenticated. (env: CONFIG_OPENVPN_AUTH_PENDING_TIMEOUT)",
+	)
 	flagSet.StringSlice(
 		"openvpn.bypass.cn",
 		Defaults.OpenVpn.Bypass.CommonNames,
