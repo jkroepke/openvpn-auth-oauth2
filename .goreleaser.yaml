@@ -11,7 +11,7 @@ builds:
     mod_timestamp: '{{ .CommitTimestamp }}'
   - id: "openvpn-auth-oauth2.so"
     binary: openvpn-auth-oauth2
-    main: ./plugin/
+    main: ./pkg/plugin/
     buildmode: c-shared
     goos:
       - linux
