@@ -3,23 +3,17 @@ package cmd_test
 import (
 	"bufio"
 	"bytes"
-	"crypto/sha256"
-	"fmt"
 	"io"
 	"net"
-	"net/http/httptest"
 	"os"
-	"strings"
 	"syscall"
 	"testing"
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/cmd"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
+	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
 	"github.com/stretchr/testify/assert"
-	"github.com/zitadel/oidc/v2/example/server/storage"
-	"github.com/zitadel/oidc/v2/pkg/op"
-	"golang.org/x/text/language"
 )
 
 func TestExecuteVersion(t *testing.T) {
@@ -83,25 +77,13 @@ func TestExecuteConfigInvalid(t *testing.T) {
 }
 
 func TestExecuteConfigFileFound(t *testing.T) { //nolint: paralleltest
-	opStorage := storage.NewStorage(storage.NewUserStore("http://localhost/"))
-	opConfig := &op.Config{
-		CryptoKey:                sha256.Sum256([]byte("test")),
-		DefaultLogoutRedirectURI: "/",
-		CodeMethodS256:           true,
-		AuthMethodPost:           true,
-		AuthMethodPrivateKeyJWT:  true,
-		GrantTypeRefreshToken:    true,
-		RequestObjectSupported:   true,
-		SupportedUILocales:       []language.Tag{language.English},
-	}
-
-	handler, err := op.NewDynamicOpenIDProvider("", opConfig, opStorage,
-		op.WithAllowInsecure(),
-	)
-
+	clientListener, err := net.Listen("tcp", "127.0.0.1:0")
 	assert.NoError(t, err)
 
-	svr := httptest.NewServer(handler.HttpHandler())
+	defer clientListener.Close()
+
+	svr, client, err := testutils.SetupResourceServer(clientListener)
+	assert.NoError(t, err)
 
 	l, err := net.Listen("tcp", "127.0.0.1:0")
 	assert.NoError(t, err)
@@ -115,12 +97,12 @@ func TestExecuteConfigFileFound(t *testing.T) { //nolint: paralleltest
 		defer conn.Close()
 		reader := bufio.NewReader(conn)
 
-		sendLine(t, conn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\r\n")
-		assert.Equal(t, "hold release", readLine(t, reader))
-		sendLine(t, conn, "SUCCESS: hold release succeeded\r\n")
-		assert.Equal(t, "version", readLine(t, reader))
+		testutils.SendLine(t, conn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\r\n")
+		assert.Equal(t, "hold release", testutils.ReadLine(t, reader))
+		testutils.SendLine(t, conn, "SUCCESS: hold release succeeded\r\n")
+		assert.Equal(t, "version", testutils.ReadLine(t, reader))
 
-		sendLine(t, conn, "OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 5\r\nEND\r\n")
+		testutils.SendLine(t, conn, "OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 5\r\nEND\r\n")
 
 		time.Sleep(100 * time.Millisecond)
 
@@ -142,6 +124,7 @@ func TestExecuteConfigFileFound(t *testing.T) { //nolint: paralleltest
 		"--http.secret=0123456789101112",
 		"--http.listen=127.0.0.1:0",
 		"--oauth2.issuer", svr.URL,
+		"--oauth2.client.id", client.ID,
 	}
 
 	var buf bytes.Buffer
@@ -149,20 +132,4 @@ func TestExecuteConfigFileFound(t *testing.T) { //nolint: paralleltest
 
 	returnCode := cmd.Execute(args, &buf, "version", "commit", "date")
 	assert.Equal(t, 0, returnCode, buf.String())
-}
-
-func sendLine(tb testing.TB, conn net.Conn, msg string, a ...any) {
-	tb.Helper()
-
-	_, err := fmt.Fprintf(conn, msg, a...)
-	assert.NoError(tb, err)
-}
-
-func readLine(tb testing.TB, reader *bufio.Reader) string {
-	tb.Helper()
-
-	line, err := reader.ReadString('\n')
-	assert.NoError(tb, err)
-
-	return strings.TrimSpace(line)
 }

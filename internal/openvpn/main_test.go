@@ -3,9 +3,6 @@ package openvpn_test
 import (
 	"bufio"
 	"errors"
-	"fmt"
-	"io"
-	"log/slog"
 	"net"
 	"net/url"
 	"regexp"
@@ -16,13 +13,14 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
+	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestClientInvalidServer(t *testing.T) {
 	t.Parallel()
 
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	logger := testutils.NewTestLogger()
 	conf := config.Config{
 		HTTP: config.HTTP{
 			BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
@@ -42,7 +40,7 @@ func TestClientInvalidServer(t *testing.T) {
 func TestClientFull(t *testing.T) {
 	t.Parallel()
 
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	logger := testutils.NewTestLogger()
 
 	confs := []struct {
 		name   string
@@ -207,18 +205,18 @@ func TestClientFull(t *testing.T) {
 				reader := bufio.NewReader(conn)
 
 				if tt.conf.OpenVpn.Password != "" {
-					sendLine(t, conn, "ENTER PASSWORD:")
-					assert.Equal(t, tt.conf.OpenVpn.Password, readLine(t, reader))
-					sendLine(t, conn, "SUCCESS: password is correct\r\n")
+					testutils.SendLine(t, conn, "ENTER PASSWORD:")
+					assert.Equal(t, tt.conf.OpenVpn.Password, testutils.ReadLine(t, reader))
+					testutils.SendLine(t, conn, "SUCCESS: password is correct\r\n")
 				}
 
-				sendLine(t, conn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\r\n")
-				assert.Equal(t, "hold release", readLine(t, reader))
-				sendLine(t, conn, "SUCCESS: hold release succeeded\r\n")
-				assert.Equal(t, "version", readLine(t, reader))
+				testutils.SendLine(t, conn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\r\n")
+				assert.Equal(t, "hold release", testutils.ReadLine(t, reader))
+				testutils.SendLine(t, conn, "SUCCESS: hold release succeeded\r\n")
+				assert.Equal(t, "version", testutils.ReadLine(t, reader))
 
-				sendLine(t, conn, "OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 5\r\nEND\r\n")
-				sendLine(t, conn, tt.client)
+				testutils.SendLine(t, conn, "OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 5\r\nEND\r\n")
+				testutils.SendLine(t, conn, tt.client)
 				if tt.err != nil {
 					_, _ = reader.ReadString('\n')
 
@@ -227,7 +225,7 @@ func TestClientFull(t *testing.T) {
 					return
 				}
 
-				auth := readLine(t, reader)
+				auth := testutils.ReadLine(t, reader)
 
 				if strings.Contains(tt.expect, "WEB_AUTH") {
 					assert.Contains(t, auth, tt.expect)
@@ -235,10 +233,10 @@ func TestClientFull(t *testing.T) {
 					assert.Equal(t, tt.expect, auth)
 				}
 
-				sendLine(t, conn, "SUCCESS: %s command succeeded\r\n", strings.SplitN(auth, " ", 2)[0])
+				testutils.SendLine(t, conn, "SUCCESS: %s command succeeded\r\n", strings.SplitN(auth, " ", 2)[0])
 
 				if strings.Contains(auth, "client-deny") {
-					sendLine(t, conn, ">CLIENT:DISCONNECT,0\r\n>CLIENT:ENV,END\r\n")
+					testutils.SendLine(t, conn, ">CLIENT:DISCONNECT,0\r\n>CLIENT:ENV,END\r\n")
 				} else if strings.Contains(auth, "WEB_AUTH::") {
 					matches := regexp.MustCompile(`state=(.+)"`).FindStringSubmatch(auth)
 					assert.Len(t, matches, 2)
@@ -273,7 +271,7 @@ func TestClientFull(t *testing.T) {
 func TestClientInvalidPassword(t *testing.T) {
 	t.Parallel()
 
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	logger := testutils.NewTestLogger()
 	l, err := net.Listen("tcp", "127.0.0.1:0")
 	assert.NoError(t, err)
 
@@ -300,9 +298,9 @@ func TestClientInvalidPassword(t *testing.T) {
 		defer conn.Close()
 		reader := bufio.NewReader(conn)
 
-		sendLine(t, conn, "ENTER PASSWORD:")
-		assert.Equal(t, conf.OpenVpn.Password, readLine(t, reader))
-		sendLine(t, conn, "ERROR: bad password\r\n")
+		testutils.SendLine(t, conn, "ENTER PASSWORD:")
+		assert.Equal(t, conf.OpenVpn.Password, testutils.ReadLine(t, reader))
+		testutils.SendLine(t, conn, "ERROR: bad password\r\n")
 
 		_, _ = reader.ReadString('\n')
 	}()
@@ -319,7 +317,7 @@ func TestClientInvalidPassword(t *testing.T) {
 func TestClientInvalidVersion(t *testing.T) {
 	t.Parallel()
 
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	logger := testutils.NewTestLogger()
 
 	conf := config.Config{
 		HTTP: config.HTTP{
@@ -374,13 +372,13 @@ func TestClientInvalidVersion(t *testing.T) {
 				defer conn.Close()
 				reader := bufio.NewReader(conn)
 
-				sendLine(t, conn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\r\n")
+				testutils.SendLine(t, conn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\r\n")
 
-				assert.Equal(t, "hold release", readLine(t, reader))
-				sendLine(t, conn, "SUCCESS: hold release succeeded\r\n")
-				assert.Equal(t, "version", readLine(t, reader))
+				assert.Equal(t, "hold release", testutils.ReadLine(t, reader))
+				testutils.SendLine(t, conn, "SUCCESS: hold release succeeded\r\n")
+				assert.Equal(t, "version", testutils.ReadLine(t, reader))
 
-				sendLine(t, conn, tt.version)
+				testutils.SendLine(t, conn, tt.version)
 			}()
 
 			err = client.Connect()
@@ -390,20 +388,4 @@ func TestClientInvalidVersion(t *testing.T) {
 			client.Shutdown()
 		})
 	}
-}
-
-func sendLine(tb testing.TB, conn net.Conn, msg string, a ...any) {
-	tb.Helper()
-
-	_, err := fmt.Fprintf(conn, msg, a...)
-	assert.NoError(tb, err)
-}
-
-func readLine(tb testing.TB, reader *bufio.Reader) string {
-	tb.Helper()
-
-	line, err := reader.ReadString('\n')
-	assert.NoError(tb, err)
-
-	return strings.TrimSpace(line)
 }

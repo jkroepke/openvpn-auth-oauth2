@@ -20,11 +20,11 @@ import (
 
 var mu = sync.Mutex{} //nolint:gochecknoglobals
 
-func SendLine(t *testing.T, conn net.Conn, msg string) {
-	t.Helper()
+func SendLine(tb testing.TB, conn net.Conn, msg string, a ...any) {
+	tb.Helper()
 
-	_, err := fmt.Fprint(conn, msg)
-	assert.NoError(t, err)
+	_, err := fmt.Fprintf(conn, msg, a...)
+	assert.NoError(tb, err)
 }
 
 func ReadLine(t *testing.T, reader *bufio.Reader) string {
@@ -57,7 +57,7 @@ func SetupResourceServer(clientListener net.Listener) (*httptest.Server, config.
 		op.WithAllowInsecure(),
 	)
 	if err != nil {
-		return nil, config.OAuth2Client{}, err
+		return nil, config.OAuth2Client{}, err //nolint:wrapcheck
 	}
 
 	mux := http.NewServeMux()

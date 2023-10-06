@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log/slog"
 	"net"
 	"net/http"
 	"net/http/cookiejar"
@@ -27,7 +26,7 @@ import (
 func TestHandler(t *testing.T) {
 	t.Parallel()
 
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	logger := testutils.NewTestLogger()
 
 	tests := []struct {
 		name          string
@@ -35,6 +34,7 @@ func TestHandler(t *testing.T) {
 		ipaddr        string
 		xForwardedFor string
 		allow         bool
+		state         string
 	}{
 		{
 			"default",
@@ -64,6 +64,7 @@ func TestHandler(t *testing.T) {
 			"127.0.0.1",
 			"",
 			true,
+			"-",
 		},
 		{
 			"with ipaddr",
@@ -93,6 +94,7 @@ func TestHandler(t *testing.T) {
 			"127.0.0.1",
 			"",
 			true,
+			"-",
 		},
 		{
 			"with ipaddr + forwarded-for",
@@ -123,6 +125,7 @@ func TestHandler(t *testing.T) {
 			"127.0.0.2",
 			"127.0.0.2",
 			true,
+			"-",
 		},
 		{
 			"with ipaddr + disabled forwarded-for",
@@ -153,6 +156,7 @@ func TestHandler(t *testing.T) {
 			"127.0.0.2",
 			"127.0.0.2",
 			false,
+			"-",
 		},
 		{
 			"with ipaddr + multiple forwarded-for",
@@ -183,6 +187,69 @@ func TestHandler(t *testing.T) {
 			"127.0.0.2",
 			"127.0.0.2, 8.8.8.8",
 			true,
+			"-",
+		},
+		{
+			"with empty state",
+			config.Config{
+				HTTP: config.HTTP{
+					Secret: "0123456789101112",
+					Check: config.HTTPCheck{
+						IPAddr: true,
+					},
+					EnableProxyHeaders: true,
+				},
+				OAuth2: config.OAuth2{
+					Provider:  "generic",
+					Endpoints: config.OAuth2Endpoints{},
+					Scopes:    []string{"openid", "profile"},
+					Validate: config.OAuth2Validate{
+						Groups: make([]string, 0),
+						Roles:  make([]string, 0),
+						Issuer: true,
+						IPAddr: false,
+					},
+				},
+				OpenVpn: config.OpenVpn{
+					Bypass:        config.OpenVpnBypass{CommonNames: []string{}},
+					AuthTokenUser: true,
+				},
+			},
+			"127.0.0.1",
+			"127.0.0.1",
+			true,
+			"",
+		},
+		{
+			"with invalid state",
+			config.Config{
+				HTTP: config.HTTP{
+					Secret: "0123456789101112",
+					Check: config.HTTPCheck{
+						IPAddr: true,
+					},
+					EnableProxyHeaders: true,
+				},
+				OAuth2: config.OAuth2{
+					Provider:  "generic",
+					Endpoints: config.OAuth2Endpoints{},
+					Scopes:    []string{"openid", "profile"},
+					Validate: config.OAuth2Validate{
+						Groups: make([]string, 0),
+						Roles:  make([]string, 0),
+						Issuer: true,
+						IPAddr: false,
+					},
+				},
+				OpenVpn: config.OpenVpn{
+					Bypass:        config.OpenVpnBypass{CommonNames: []string{}},
+					AuthTokenUser: true,
+				},
+			},
+			"127.0.0.1",
+			"127.0.0.1",
+			true,
+			"test",
 		},
 	}
 
@@ -233,7 +300,6 @@ func TestHandler(t *testing.T) {
 			go func() {
 				defer wg.Done()
 				defer client.Shutdown()
-				defer httpClientListener.Close()
 
 				conn, err := managementInterface.Accept()
 				assert.NoError(t, err)
@@ -247,6 +313,9 @@ func TestHandler(t *testing.T) {
 				assert.Equal(t, "version", testutils.ReadLine(t, reader))
 
 				testutils.SendLine(t, conn, "OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 5\r\nEND\r\n")
+				if tt.state != "-" {
+					return
+				}
 
 				if tt.allow {
 					assert.Equal(t, "client-auth 0 1", testutils.ReadLine(t, reader))
@@ -274,16 +343,20 @@ func TestHandler(t *testing.T) {
 
 			httpClient.Jar = jar
 
-			sessionState := state.New(state.ClientIdentifier{Cid: 0, Kid: 1}, tt.ipaddr, "name")
-			err = sessionState.Encode(tt.conf.HTTP.Secret)
-			if !assert.NoError(t, err) {
-				return
-			}
-
 			time.Sleep(time.Millisecond * 100)
 
+			session := tt.state
+			if tt.state == "-" {
+				sessionState := state.New(state.ClientIdentifier{Cid: 0, Kid: 1}, tt.ipaddr, "name")
+				err = sessionState.Encode(tt.conf.HTTP.Secret)
+				if !assert.NoError(t, err) {
+					return
+				}
+				session = sessionState.Encoded()
+			}
+
 			request, err := http.NewRequestWithContext(context.Background(), http.MethodGet,
-				fmt.Sprintf("%s/oauth2/start?state=%s", httpClientListener.URL, sessionState.Encoded()),
+				fmt.Sprintf("%s/oauth2/start?state=%s", httpClientListener.URL, session),
 				nil,
 			)
 
@@ -297,6 +370,12 @@ func TestHandler(t *testing.T) {
 
 			resp, err := httpClient.Do(request)
 			if !assert.NoError(t, err) {
+				return
+			}
+
+			if tt.state != "-" {
+				assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
 				return
 			}
 
