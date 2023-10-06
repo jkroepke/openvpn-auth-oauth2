@@ -1,4 +1,4 @@
-package config
+package config_test
 
 import (
 	"html/template"
@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/mitchellh/mapstructure"
 	"github.com/stretchr/testify/assert"
 )
@@ -30,7 +31,7 @@ func TestStringToURLHookFunc(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			f := StringToURLHookFunc()
+			f := config.StringToURLHookFunc()
 			actual, err := mapstructure.DecodeHookExec(f, tt.f, tt.t)
 
 			if tt.err {
@@ -58,6 +59,7 @@ func TestStringToTemplateHookFunc(t *testing.T) {
 		{"valid", reflect.ValueOf("./../../README.md"), reflect.ValueOf(template.Template{}), func() *template.Template {
 			tmpl, err := template.New("callback").ParseFiles("./../../README.md")
 			assert.NoError(t, err)
+
 			return tmpl
 		}(), false},
 		{"invalid", reflect.ValueOf("invalid"), reflect.ValueOf(template.Template{}), nil, true},
@@ -70,7 +72,7 @@ func TestStringToTemplateHookFunc(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			f := StringToTemplateHookFunc()
+			f := config.StringToTemplateHookFunc()
 			actual, err := mapstructure.DecodeHookExec(f, tt.f, tt.t)
 
 			if tt.err {
