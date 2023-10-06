@@ -231,7 +231,6 @@ func TestClientFull(t *testing.T) {
 
 				if strings.Contains(tt.expect, "WEB_AUTH") {
 					assert.Contains(t, auth, tt.expect)
-
 				} else {
 					assert.Equal(t, tt.expect, auth)
 				}
