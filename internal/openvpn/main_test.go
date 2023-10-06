@@ -111,7 +111,7 @@ func TestClientFull(t *testing.T) {
 				},
 			},
 			">CLIENT:CONNECT,0,1\r\n>CLIENT:ENV,daemon=0\r\n>CLIENT:ENV,END\r\n",
-			"client-deny 0 1 \"OpenVPN Client does not support SSO authentication via webauth\" \"OpenVPN Client does not support SSO authentication via webauth",
+			"client-deny 0 1 \"OpenVPN Client does not support SSO authentication via webauth\"",
 			nil,
 		},
 		{
