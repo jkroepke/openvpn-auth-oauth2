@@ -1,8 +1,8 @@
-module github.com/jkroepke/openvpn-auth-oauth2/plugin
+module github.com/jkroepke/openvpn-auth-oauth2/pkg/plugin
 
 go 1.21.1
 
-replace github.com/jkroepke/openvpn-auth-oauth2 => ../
+replace github.com/jkroepke/openvpn-auth-oauth2 => ../../
 
 require github.com/jkroepke/openvpn-auth-oauth2 v0.0.0-00010101000000-000000000000
 

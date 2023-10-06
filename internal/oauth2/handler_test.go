@@ -3,7 +3,6 @@ package oauth2_test
 import (
 	"bufio"
 	"context"
-	"crypto/sha256"
 	"fmt"
 	"io"
 	"log/slog"
@@ -21,13 +20,9 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
+	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
 	"github.com/stretchr/testify/assert"
-	"github.com/zitadel/oidc/v2/example/server/storage"
-	"github.com/zitadel/oidc/v2/pkg/op"
-	"golang.org/x/text/language"
 )
-
-var mu = sync.Mutex{} //nolint:gochecknoglobals
 
 func TestHandler(t *testing.T) {
 	t.Parallel()
@@ -205,7 +200,7 @@ func TestHandler(t *testing.T) {
 			assert.NoError(t, err)
 			defer clientListener.Close()
 
-			resourceServer, clientCredentials, err := setupResourceServer(clientListener)
+			resourceServer, clientCredentials, err := testutils.SetupResourceServer(clientListener)
 			assert.NoError(t, err)
 			defer resourceServer.Close()
 
@@ -246,22 +241,22 @@ func TestHandler(t *testing.T) {
 				defer conn.Close()
 				reader := bufio.NewReader(conn)
 
-				sendLine(t, conn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\r\n")
-				assert.Equal(t, "hold release", readLine(t, reader))
-				sendLine(t, conn, "SUCCESS: hold release succeeded\r\n")
-				assert.Equal(t, "version", readLine(t, reader))
+				testutils.SendLine(t, conn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\r\n")
+				assert.Equal(t, "hold release", testutils.ReadLine(t, reader))
+				testutils.SendLine(t, conn, "SUCCESS: hold release succeeded\r\n")
+				assert.Equal(t, "version", testutils.ReadLine(t, reader))
 
-				sendLine(t, conn, "OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 5\r\nEND\r\n")
+				testutils.SendLine(t, conn, "OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 5\r\nEND\r\n")
 
 				if tt.allow {
-					assert.Equal(t, "client-auth 0 1", readLine(t, reader))
-					assert.Equal(t, "push \"auth-token-user aWQx\"", readLine(t, reader))
-					assert.Equal(t, "END", readLine(t, reader))
+					assert.Equal(t, "client-auth 0 1", testutils.ReadLine(t, reader))
+					assert.Equal(t, "push \"auth-token-user aWQx\"", testutils.ReadLine(t, reader))
+					assert.Equal(t, "END", testutils.ReadLine(t, reader))
 				} else {
-					assert.Equal(t, `client-deny 0 1 "http client ip 127.0.0.1 and vpn ip 127.0.0.2 is different."`, readLine(t, reader))
+					assert.Equal(t, `client-deny 0 1 "http client ip 127.0.0.1 and vpn ip 127.0.0.2 is different."`, testutils.ReadLine(t, reader))
 				}
 
-				sendLine(t, conn, "SUCCESS: client-auth command succeeded\r\n")
+				testutils.SendLine(t, conn, "SUCCESS: client-auth command succeeded\r\n")
 			}()
 
 			go func() {
@@ -324,54 +319,4 @@ func TestHandler(t *testing.T) {
 			wg.Wait()
 		})
 	}
-}
-
-func setupResourceServer(clientListener net.Listener) (*httptest.Server, config.OAuth2Client, error) {
-	mu.Lock()
-	storage.RegisterClients(storage.WebClient(clientListener.Addr().String(), "SECRET", fmt.Sprintf("http://%s/oauth2/callback", clientListener.Addr().String())))
-	mu.Unlock()
-
-	opStorage := storage.NewStorage(storage.NewUserStore("http://localhost"))
-	opConfig := &op.Config{
-		CryptoKey:                sha256.Sum256([]byte("test")),
-		DefaultLogoutRedirectURI: "/",
-		CodeMethodS256:           true,
-		AuthMethodPost:           true,
-		AuthMethodPrivateKeyJWT:  true,
-		GrantTypeRefreshToken:    true,
-		RequestObjectSupported:   true,
-		SupportedUILocales:       []language.Tag{language.English},
-	}
-
-	opProvider, err := op.NewDynamicOpenIDProvider("", opConfig, opStorage,
-		op.WithAllowInsecure(),
-	)
-	if err != nil {
-		return nil, config.OAuth2Client{}, err
-	}
-
-	mux := http.NewServeMux()
-	mux.Handle("/", opProvider.HttpHandler())
-	mux.Handle("/login/username", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_ = opStorage.CheckUsernamePassword("test-user@localhost", "verysecure", r.FormValue("authRequestID"))
-		http.Redirect(w, r, op.AuthCallbackURL(opProvider)(r.Context(), r.FormValue("authRequestID")), http.StatusFound)
-	}))
-
-	return httptest.NewServer(mux), config.OAuth2Client{ID: clientListener.Addr().String(), Secret: "SECRET"}, err
-}
-
-func sendLine(t *testing.T, conn net.Conn, msg string) {
-	t.Helper()
-
-	_, err := fmt.Fprint(conn, msg)
-	assert.NoError(t, err)
-}
-
-func readLine(t *testing.T, reader *bufio.Reader) string {
-	t.Helper()
-
-	line, err := reader.ReadString('\n')
-	assert.NoError(t, err)
-
-	return strings.TrimSpace(line)
 }

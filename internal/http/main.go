@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
@@ -19,15 +18,17 @@ type Server struct {
 	server *http.Server
 }
 
-func NewHTTPServer(logger *slog.Logger, conf config.Config, provider oauth2.Provider, openvpn oauth2.OpenVPN) Server {
+func NewHTTPServer(logger *slog.Logger, conf config.Config, fnHandler *http.ServeMux) Server {
 	return Server{
 		conf:   conf,
 		logger: logger,
 		server: &http.Server{
 			Addr:              conf.HTTP.Listen,
 			ReadHeaderTimeout: 3 * time.Second,
+			ReadTimeout:       3 * time.Second,
+			WriteTimeout:      3 * time.Second,
 			ErrorLog:          slog.NewLogLogger(logger.Handler(), slog.LevelError),
-			Handler:           oauth2.Handler(logger, conf, provider, openvpn),
+			Handler:           fnHandler,
 		},
 	}
 }
