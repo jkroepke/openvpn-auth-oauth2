@@ -38,8 +38,6 @@ nfpms:
     description: |
       openvpn-auth-oauth2 is a management client for OpenVPN that handles the authentication of connecting users against OIDC providers like Azure AD or Keycloak.
     license: MIT License
-    builds:
-      - openvpn-auth-oauth2
     formats:
       - deb
       - rpm
@@ -49,6 +47,8 @@ nfpms:
       - src: packaging/openvpn-auth-oauth2.sysconfig
         dst: /etc/sysconfig/openvpn-auth-oauth2
         type: "config|noreplace"
+      - src: packaging/config.yaml
+        dst: /usr/share/doc/openvpn-auth-oauth2/examples/auth-oauth2.yaml
 
 report_sizes: true
 

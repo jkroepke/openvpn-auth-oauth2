@@ -1,0 +1,10 @@
+# Example:
+# http:
+#   secret: ""
+#   baseurl: http://localhost:9000
+#
+# oauth2:
+#   client:
+#     id:
+#     secret:
+#   issuer:

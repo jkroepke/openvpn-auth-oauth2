@@ -39,16 +39,20 @@ jobs:
 
           sudo apt-get update -q
           sudo apt-get install --no-install-recommends -qy $PACKAGES
+
       - name: go build (with goreleaser)
         uses: goreleaser/goreleaser-action@v5
         with:
           version: latest
-          args: build --snapshot
+          args: release --snapshot
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: codecov/codecov-action@v3
-
+      - uses: actions/upload-artifact@v3
+        with:
+          name: dists
+          path: dist/
   lint:
     name: lint
     runs-on: ubuntu-latest
