@@ -48,4 +48,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils => ./pkg/testutils //nolint:gomoddirectives
+replace github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils => ./pkg/testutils
