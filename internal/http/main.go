@@ -38,26 +38,24 @@ func (s Server) Listen() error {
 		return nil
 	}
 
+	var err error
+
 	if s.conf.HTTP.TLS {
 		s.logger.Info(utils.StringConcat(
 			"start HTTPS server listener on ", s.conf.HTTP.Listen, " with base url ", s.conf.HTTP.BaseURL.String(),
 		))
 
-		err := s.server.ListenAndServeTLS(s.conf.HTTP.CertFile, s.conf.HTTP.KeyFile)
-		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			return fmt.Errorf("ListenAndServeTLS: %w", err)
-		}
+		err = s.server.ListenAndServeTLS(s.conf.HTTP.CertFile, s.conf.HTTP.KeyFile)
+	} else {
+		s.logger.Info(utils.StringConcat(
+			"start HTTP server listener on ", s.conf.HTTP.Listen, " with base url ", s.conf.HTTP.BaseURL.String(),
+		))
 
-		return nil
+		err = s.server.ListenAndServe()
 	}
 
-	s.logger.Info(utils.StringConcat(
-		"start HTTP server listener on ", s.conf.HTTP.Listen, " with base url ", s.conf.HTTP.BaseURL.String(),
-	))
-
-	err := s.server.ListenAndServe()
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
-		return fmt.Errorf("ListenAndServe: %w", err)
+		return fmt.Errorf("ListenAndServeTLS: %w", err)
 	}
 
 	return nil
