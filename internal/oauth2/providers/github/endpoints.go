@@ -21,6 +21,6 @@ func (p *Provider) GetEndpoints(conf config.Config) (oauth2.Endpoint, error) {
 
 	return oauth2.Endpoint{
 		AuthURL:  conf.OAuth2.Endpoints.Auth.String(),
-		TokenURL: conf.OAuth2.Endpoints.Auth.String(),
+		TokenURL: conf.OAuth2.Endpoints.Token.String(),
 	}, nil
 }
