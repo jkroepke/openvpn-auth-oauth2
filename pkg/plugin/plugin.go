@@ -133,7 +133,7 @@ func openvpn_plugin_func_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_
 		"/oauth2/start?state=", url.QueryEscape(session.Encoded()),
 	)
 
-	pendingAuth := utils.StringConcat("6000\nwebauth\nWEB_AUTH::", startURL)
+	pendingAuth := fmt.Sprintf("%.0f\nwebauth\nWEB_AUTH::%s", handle.conf.OpenVpn.AuthPendingTimeout.Seconds(), startURL)
 
 	if err := os.WriteFile(client.AuthPendingFile, []byte(pendingAuth), 0600); err != nil {
 		handle.logger.Error(fmt.Errorf("write to file %s: %w", client.AuthPendingFile, err).Error())

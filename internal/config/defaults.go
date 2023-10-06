@@ -1,6 +1,9 @@
 package config
 
-import "net/url"
+import (
+	"net/url"
+	"time"
+)
 
 //nolint:gochecknoglobals
 var Defaults = Config{
@@ -25,7 +28,8 @@ var Defaults = Config{
 			Path:     "/run/openvpn/server.sock",
 			OmitHost: true,
 		},
-		AuthTokenUser: true,
+		AuthTokenUser:      true,
+		AuthPendingTimeout: 3 * time.Minute,
 		Bypass: OpenVpnBypass{
 			CommonNames: make([]string, 0),
 		},

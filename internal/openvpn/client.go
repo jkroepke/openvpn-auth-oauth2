@@ -62,7 +62,7 @@ func (c *Client) clientConnect(client connection.Client) error {
 
 	logger.Info("start pending auth")
 
-	_, err := c.SendCommandf(`client-pending-auth %d %d "WEB_AUTH::%s" %d`, client.Cid, client.Kid, startURL, 600)
+	_, err := c.SendCommandf(`client-pending-auth %d %d "WEB_AUTH::%s" %.0f`, client.Cid, client.Kid, startURL, c.conf.OpenVpn.AuthPendingTimeout.Seconds())
 	if err != nil {
 		logger.Warn(err.Error())
 	}
