@@ -3,10 +3,8 @@ package oauth2_test
 import (
 	"bufio"
 	"context"
-	"crypto/sha256"
 	"fmt"
 	"io"
-	"log/slog"
 	"net"
 	"net/http"
 	"net/http/cookiejar"
@@ -21,18 +19,14 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
+	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
 	"github.com/stretchr/testify/assert"
-	"github.com/zitadel/oidc/v2/example/server/storage"
-	"github.com/zitadel/oidc/v2/pkg/op"
-	"golang.org/x/text/language"
 )
-
-var mu = sync.Mutex{} //nolint:gochecknoglobals
 
 func TestHandler(t *testing.T) {
 	t.Parallel()
 
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	logger := testutils.NewTestLogger()
 
 	tests := []struct {
 		name          string
@@ -40,6 +34,7 @@ func TestHandler(t *testing.T) {
 		ipaddr        string
 		xForwardedFor string
 		allow         bool
+		state         string
 	}{
 		{
 			"default",
@@ -69,6 +64,7 @@ func TestHandler(t *testing.T) {
 			"127.0.0.1",
 			"",
 			true,
+			"-",
 		},
 		{
 			"with ipaddr",
@@ -98,6 +94,7 @@ func TestHandler(t *testing.T) {
 			"127.0.0.1",
 			"",
 			true,
+			"-",
 		},
 		{
 			"with ipaddr + forwarded-for",
@@ -128,6 +125,7 @@ func TestHandler(t *testing.T) {
 			"127.0.0.2",
 			"127.0.0.2",
 			true,
+			"-",
 		},
 		{
 			"with ipaddr + disabled forwarded-for",
@@ -158,6 +156,7 @@ func TestHandler(t *testing.T) {
 			"127.0.0.2",
 			"127.0.0.2",
 			false,
+			"-",
 		},
 		{
 			"with ipaddr + multiple forwarded-for",
@@ -188,6 +187,69 @@ func TestHandler(t *testing.T) {
 			"127.0.0.2",
 			"127.0.0.2, 8.8.8.8",
 			true,
+			"-",
+		},
+		{
+			"with empty state",
+			config.Config{
+				HTTP: config.HTTP{
+					Secret: "0123456789101112",
+					Check: config.HTTPCheck{
+						IPAddr: true,
+					},
+					EnableProxyHeaders: true,
+				},
+				OAuth2: config.OAuth2{
+					Provider:  "generic",
+					Endpoints: config.OAuth2Endpoints{},
+					Scopes:    []string{"openid", "profile"},
+					Validate: config.OAuth2Validate{
+						Groups: make([]string, 0),
+						Roles:  make([]string, 0),
+						Issuer: true,
+						IPAddr: false,
+					},
+				},
+				OpenVpn: config.OpenVpn{
+					Bypass:        config.OpenVpnBypass{CommonNames: []string{}},
+					AuthTokenUser: true,
+				},
+			},
+			"127.0.0.1",
+			"127.0.0.1",
+			true,
+			"",
+		},
+		{
+			"with invalid state",
+			config.Config{
+				HTTP: config.HTTP{
+					Secret: "0123456789101112",
+					Check: config.HTTPCheck{
+						IPAddr: true,
+					},
+					EnableProxyHeaders: true,
+				},
+				OAuth2: config.OAuth2{
+					Provider:  "generic",
+					Endpoints: config.OAuth2Endpoints{},
+					Scopes:    []string{"openid", "profile"},
+					Validate: config.OAuth2Validate{
+						Groups: make([]string, 0),
+						Roles:  make([]string, 0),
+						Issuer: true,
+						IPAddr: false,
+					},
+				},
+				OpenVpn: config.OpenVpn{
+					Bypass:        config.OpenVpnBypass{CommonNames: []string{}},
+					AuthTokenUser: true,
+				},
+			},
+			"127.0.0.1",
+			"127.0.0.1",
+			true,
+			"test",
 		},
 	}
 
@@ -205,7 +267,7 @@ func TestHandler(t *testing.T) {
 			assert.NoError(t, err)
 			defer clientListener.Close()
 
-			resourceServer, clientCredentials, err := setupResourceServer(clientListener)
+			resourceServer, clientCredentials, err := testutils.SetupResourceServer(clientListener)
 			assert.NoError(t, err)
 			defer resourceServer.Close()
 
@@ -238,7 +300,6 @@ func TestHandler(t *testing.T) {
 			go func() {
 				defer wg.Done()
 				defer client.Shutdown()
-				defer httpClientListener.Close()
 
 				conn, err := managementInterface.Accept()
 				assert.NoError(t, err)
@@ -246,22 +307,25 @@ func TestHandler(t *testing.T) {
 				defer conn.Close()
 				reader := bufio.NewReader(conn)
 
-				sendLine(t, conn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\r\n")
-				assert.Equal(t, "hold release", readLine(t, reader))
-				sendLine(t, conn, "SUCCESS: hold release succeeded\r\n")
-				assert.Equal(t, "version", readLine(t, reader))
+				testutils.SendLine(t, conn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\r\n")
+				assert.Equal(t, "hold release", testutils.ReadLine(t, reader))
+				testutils.SendLine(t, conn, "SUCCESS: hold release succeeded\r\n")
+				assert.Equal(t, "version", testutils.ReadLine(t, reader))
 
-				sendLine(t, conn, "OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 5\r\nEND\r\n")
-
-				if tt.allow {
-					assert.Equal(t, "client-auth 0 1", readLine(t, reader))
-					assert.Equal(t, "push \"auth-token-user aWQx\"", readLine(t, reader))
-					assert.Equal(t, "END", readLine(t, reader))
-				} else {
-					assert.Equal(t, `client-deny 0 1 "http client ip 127.0.0.1 and vpn ip 127.0.0.2 is different."`, readLine(t, reader))
+				testutils.SendLine(t, conn, "OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 5\r\nEND\r\n")
+				if tt.state != "-" {
+					return
 				}
 
-				sendLine(t, conn, "SUCCESS: client-auth command succeeded\r\n")
+				if tt.allow {
+					assert.Equal(t, "client-auth 0 1", testutils.ReadLine(t, reader))
+					assert.Equal(t, "push \"auth-token-user aWQx\"", testutils.ReadLine(t, reader))
+					assert.Equal(t, "END", testutils.ReadLine(t, reader))
+				} else {
+					assert.Equal(t, `client-deny 0 1 "http client ip 127.0.0.1 and vpn ip 127.0.0.2 is different."`, testutils.ReadLine(t, reader))
+				}
+
+				testutils.SendLine(t, conn, "SUCCESS: client-auth command succeeded\r\n")
 			}()
 
 			go func() {
@@ -279,16 +343,20 @@ func TestHandler(t *testing.T) {
 
 			httpClient.Jar = jar
 
-			sessionState := state.New(state.ClientIdentifier{Cid: 0, Kid: 1}, tt.ipaddr, "name")
-			err = sessionState.Encode(tt.conf.HTTP.Secret)
-			if !assert.NoError(t, err) {
-				return
-			}
-
 			time.Sleep(time.Millisecond * 100)
 
+			session := tt.state
+			if tt.state == "-" {
+				sessionState := state.New(state.ClientIdentifier{Cid: 0, Kid: 1}, tt.ipaddr, "name")
+				err = sessionState.Encode(tt.conf.HTTP.Secret)
+				if !assert.NoError(t, err) {
+					return
+				}
+				session = sessionState.Encoded()
+			}
+
 			request, err := http.NewRequestWithContext(context.Background(), http.MethodGet,
-				fmt.Sprintf("%s/oauth2/start?state=%s", httpClientListener.URL, sessionState.Encoded()),
+				fmt.Sprintf("%s/oauth2/start?state=%s", httpClientListener.URL, session),
 				nil,
 			)
 
@@ -302,6 +370,12 @@ func TestHandler(t *testing.T) {
 
 			resp, err := httpClient.Do(request)
 			if !assert.NoError(t, err) {
+				return
+			}
+
+			if tt.state != "-" {
+				assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
 				return
 			}
 
@@ -324,54 +398,4 @@ func TestHandler(t *testing.T) {
 			wg.Wait()
 		})
 	}
-}
-
-func setupResourceServer(clientListener net.Listener) (*httptest.Server, config.OAuth2Client, error) {
-	mu.Lock()
-	storage.RegisterClients(storage.WebClient(clientListener.Addr().String(), "SECRET", fmt.Sprintf("http://%s/oauth2/callback", clientListener.Addr().String())))
-	mu.Unlock()
-
-	opStorage := storage.NewStorage(storage.NewUserStore("http://localhost"))
-	opConfig := &op.Config{
-		CryptoKey:                sha256.Sum256([]byte("test")),
-		DefaultLogoutRedirectURI: "/",
-		CodeMethodS256:           true,
-		AuthMethodPost:           true,
-		AuthMethodPrivateKeyJWT:  true,
-		GrantTypeRefreshToken:    true,
-		RequestObjectSupported:   true,
-		SupportedUILocales:       []language.Tag{language.English},
-	}
-
-	opProvider, err := op.NewDynamicOpenIDProvider("", opConfig, opStorage,
-		op.WithAllowInsecure(),
-	)
-	if err != nil {
-		return nil, config.OAuth2Client{}, err
-	}
-
-	mux := http.NewServeMux()
-	mux.Handle("/", opProvider.HttpHandler())
-	mux.Handle("/login/username", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_ = opStorage.CheckUsernamePassword("test-user@localhost", "verysecure", r.FormValue("authRequestID"))
-		http.Redirect(w, r, op.AuthCallbackURL(opProvider)(r.Context(), r.FormValue("authRequestID")), http.StatusFound)
-	}))
-
-	return httptest.NewServer(mux), config.OAuth2Client{ID: clientListener.Addr().String(), Secret: "SECRET"}, err
-}
-
-func sendLine(t *testing.T, conn net.Conn, msg string) {
-	t.Helper()
-
-	_, err := fmt.Fprint(conn, msg)
-	assert.NoError(t, err)
-}
-
-func readLine(t *testing.T, reader *bufio.Reader) string {
-	t.Helper()
-
-	line, err := reader.ReadString('\n')
-	assert.NoError(t, err)
-
-	return strings.TrimSpace(line)
 }

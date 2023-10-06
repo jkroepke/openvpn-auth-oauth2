@@ -2,8 +2,6 @@ package oauth2_test
 
 import (
 	"crypto/sha256"
-	"io"
-	"log/slog"
 	"net/http/httptest"
 	"net/url"
 	"strings"
@@ -12,6 +10,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
+	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/zitadel/oidc/v2/example/server/storage"
 	"github.com/zitadel/oidc/v2/pkg/op"
@@ -40,7 +39,7 @@ func TestNewProvider(t *testing.T) {
 	assert.NoError(t, err)
 
 	svr := httptest.NewServer(handler.HttpHandler())
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	logger := testutils.NewTestLogger()
 
 	svrURL, _ := url.Parse(svr.URL)
 

@@ -192,7 +192,7 @@ func Validate(mode int, conf Config) error { //nolint:cyclop
 		"oauth2.client.id": conf.OAuth2.Client.ID,
 	} {
 		if value == "" {
-			return fmt.Errorf("%s is required", key)
+			return fmt.Errorf("%s is %w", key, ErrRequired)
 		}
 	}
 
@@ -201,7 +201,7 @@ func Validate(mode int, conf Config) error { //nolint:cyclop
 		"oauth2.issuer": conf.OAuth2.Issuer,
 	} {
 		if utils.IsURLEmpty(value) {
-			return errors.New(utils.StringConcat(key, " is required"))
+			return fmt.Errorf("%s is %w", key, ErrRequired)
 		}
 	}
 
@@ -230,7 +230,7 @@ func Validate(mode int, conf Config) error { //nolint:cyclop
 			"openvpn.addr": conf.OpenVpn.Addr,
 		} {
 			if utils.IsURLEmpty(value) {
-				return errors.New(utils.StringConcat(key, " is required"))
+				return fmt.Errorf("%s is %w", key, ErrRequired)
 			}
 		}
 

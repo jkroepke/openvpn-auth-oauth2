@@ -1,6 +1,7 @@
 version: '3'
 services:
   openvpn:
+    # noinspection ComposeUnknownKeys
     init: true
     image: local/openvpn
     build:

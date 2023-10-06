@@ -1,3 +1,5 @@
+//go:build linux
+
 package main
 
 /*
@@ -42,7 +44,7 @@ func (h *PluginHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	return &h2
 }
 
-func (h *PluginHandler) WithGroup(name string) slog.Handler {
+func (h *PluginHandler) WithGroup(_ string) slog.Handler {
 	// TODO implement me
 	panic("implement me")
 }
