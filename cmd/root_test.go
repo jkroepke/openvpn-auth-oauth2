@@ -60,6 +60,11 @@ func TestExecuteConfigInvalid(t *testing.T) {
 			[]string{"", "--config=../config.example.yaml", "--log.format=console", "--log.level=invalid", "--http.secret=1234567891111213"},
 			`error configure logging: unable to parse log level: slog: level string \"invalid\": unknown name`,
 		},
+		{
+			"error oidc provider",
+			[]string{"", "--config=../config.example.yaml", "--log.format=console", "--log.level=info", "--http.secret=1234567891111213"},
+			`newProviderWithDiscovery`,
+		},
 	}
 
 	for _, tt := range tests {

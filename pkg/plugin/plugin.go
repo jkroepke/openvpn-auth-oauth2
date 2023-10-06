@@ -1,3 +1,5 @@
+//go:build linux
+
 package main
 
 /*
@@ -20,25 +22,29 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
+//goland:noinspection GoSnakeCaseUsage
 const OPENVPN_PLUGIN_STRUCTVER_MIN = 5
 
 //export openvpn_plugin_select_initialization_point_v1
+//goland:noinspection GoSnakeCaseUsage
 func openvpn_plugin_select_initialization_point_v1() C.int {
 	return 2
 }
 
 //export openvpn_plugin_min_version_required_v1
+//goland:noinspection GoSnakeCaseUsage
 func openvpn_plugin_min_version_required_v1() C.int {
 	return 3
 }
 
 //export openvpn_plugin_open_v3_go
-func openvpn_plugin_open_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_args_open_in, retptr *C.struct_openvpn_plugin_args_open_return) C.int {
+//goland:noinspection GoSnakeCaseUsage
+func openvpn_plugin_open_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_args_open_in, ret *C.struct_openvpn_plugin_args_open_return) C.int {
 	if v3structver < OPENVPN_PLUGIN_STRUCTVER_MIN {
 		return C.OPENVPN_PLUGIN_FUNC_ERROR
 	}
 
-	retptr.type_mask = 1 << C.OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY
+	ret.type_mask = 1 << C.OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY
 
 	pluginArgs := unsafe.Slice(args.argv, 2)
 
@@ -83,7 +89,7 @@ func openvpn_plugin_open_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_
 		}
 	}()
 
-	retptr.handle = (C.openvpn_plugin_handle_t)(unsafe.Pointer(handle))
+	ret.handle = (C.openvpn_plugin_handle_t)(unsafe.Pointer(handle))
 
 	logger.Info(fmt.Sprintf("plugin initialization done. version: %s", version))
 	logger.Warn("THIS PLUGIN IS STILL IN EXPERIMENTAL STATE")
@@ -92,6 +98,7 @@ func openvpn_plugin_open_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_
 }
 
 //export openvpn_plugin_func_v3_go
+//goland:noinspection GoSnakeCaseUsage
 func openvpn_plugin_func_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_args_func_in, _ *C.struct_openvpn_plugin_args_func_return) C.int {
 	if v3structver < OPENVPN_PLUGIN_STRUCTVER_MIN {
 		return C.OPENVPN_PLUGIN_FUNC_ERROR
@@ -137,6 +144,7 @@ func openvpn_plugin_func_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_
 }
 
 //export openvpn_plugin_close_v1
+//goland:noinspection GoSnakeCaseUsage
 func openvpn_plugin_close_v1(pluginHandle C.openvpn_plugin_handle_t) {
 	handle := (*PluginHandle)(unsafe.Pointer(pluginHandle))
 	if handle == nil {
@@ -149,6 +157,7 @@ func openvpn_plugin_close_v1(pluginHandle C.openvpn_plugin_handle_t) {
 }
 
 //export openvpn_plugin_abort_v1
+//goland:noinspection GoSnakeCaseUsage
 func openvpn_plugin_abort_v1(pluginHandle C.openvpn_plugin_handle_t) {
 	handle := (*PluginHandle)(unsafe.Pointer(pluginHandle))
 	if handle == nil {

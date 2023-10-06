@@ -1,3 +1,5 @@
+//go:build linux
+
 package main
 
 import "C"
@@ -13,7 +15,7 @@ func (p *PluginHandle) AcceptClient(logger *slog.Logger, client state.ClientIden
 	p.writeToAuthFile(logger, client, "1")
 }
 
-func (p *PluginHandle) AcceptClientWithToken(logger *slog.Logger, client state.ClientIdentifier, username string) {
+func (p *PluginHandle) AcceptClientWithToken(logger *slog.Logger, client state.ClientIdentifier, _ string) {
 	p.writeToAuthFile(logger, client, "1")
 }
 
