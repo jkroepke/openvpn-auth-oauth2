@@ -31,6 +31,8 @@ func (c *Client) processClient(client connection.Client) error {
 }
 
 func (c *Client) clientConnect(client connection.Client) error {
+	var err error
+
 	logger := c.logger.With(
 		slog.Uint64("cid", client.Cid),
 		slog.Uint64("kid", client.Kid),
@@ -51,7 +53,7 @@ func (c *Client) clientConnect(client connection.Client) error {
 	}
 
 	session := state.New(ClientIdentifier, client.IPAddr, client.CommonName)
-	if err := session.Encode(c.conf.HTTP.Secret); err != nil {
+	if err = session.Encode(c.conf.HTTP.Secret); err != nil {
 		return fmt.Errorf("error encoding state: %w", err)
 	}
 
@@ -62,7 +64,7 @@ func (c *Client) clientConnect(client connection.Client) error {
 
 	logger.Info("start pending auth")
 
-	_, err := c.SendCommandf(`client-pending-auth %d %d "WEB_AUTH::%s" %.0f`, client.Cid, client.Kid, startURL, c.conf.OpenVpn.AuthPendingTimeout.Seconds())
+	_, err = c.SendCommandf(`client-pending-auth %d %d "WEB_AUTH::%s" %.0f`, client.Cid, client.Kid, startURL, c.conf.OpenVpn.AuthPendingTimeout.Seconds())
 	if err != nil {
 		logger.Warn(err.Error())
 	}

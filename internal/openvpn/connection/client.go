@@ -30,7 +30,7 @@ func NewClient(message string) (Client, error) { //nolint:cyclop
 		} else if strings.HasPrefix(line, ">CLIENT:ENV,") {
 			envKey, envValue := parseClientEnv(line)
 			if envKey == "" || envValue == "" {
-				break
+				continue
 			}
 
 			switch envKey {

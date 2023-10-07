@@ -14,7 +14,7 @@ services:
       - "0.0.0.0:1194:1194/udp"
       - "8080:8080/tcp"
       - "8081:8081/tcp"
-      - "9000:9000/tcp"
+      - "9001:9001/tcp"
     volumes:
       - ./:/tests/:ro
       - ./data:/etc/openvpn
@@ -71,15 +71,15 @@ services:
         fast-io
         user nobody
         group nogroup
-        auth-gen-token 240 120
 
+        #auth-gen-token 240 120
         management 0.0.0.0 8081 /etc/openvpn/password.txt
-        #management-hold
-        #management-client-auth
+        management-hold
+        management-client-auth
 
-        plugin /plugin/openvpn-auth-oauth2.so /plugin/config.yaml
+        #plugin /plugin/openvpn-auth-oauth2.so /plugin/config.yaml
 
-        reneg-sec 60
+        reneg-sec 30
         auth-user-pass-optional
         EOF
 
