@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/types"
-	"github.com/zitadel/oidc/v2/pkg/oidc"
+	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
 // user holds GitHub user information as defined by

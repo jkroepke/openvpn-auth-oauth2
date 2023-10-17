@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/types"
-	"github.com/zitadel/oidc/v2/pkg/oidc"
+	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
 func (p *Provider) GetUser(_ context.Context, tokens *oidc.Tokens[*oidc.IDTokenClaims]) (types.UserData, error) {
