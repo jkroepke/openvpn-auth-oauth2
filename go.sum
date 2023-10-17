@@ -71,6 +71,7 @@ github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXl
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
 github.com/zitadel/oidc/v2 v2.11.0 h1:Am4/yQr4iiM5bznRgF3FOp+wLdKx2gzSU73uyI9vvBE=
 github.com/zitadel/oidc/v2 v2.11.0/go.mod h1:enFSVBQI6aE0TEB1ntjXs9r6O6DEosxX4uhEBLBVD8o=
+github.com/zitadel/oidc/v3 v3.0.2/go.mod h1:ne9V9FHug4iUZDV42JirWVLHcbmwaxY8LnkcfekHgRg=
 go.opentelemetry.io/otel v1.19.0 h1:MuS/TNf4/j4IXsZuJegVzI1cwut7Qc00344rgH7p8bs=
 go.opentelemetry.io/otel v1.19.0/go.mod h1:i0QyjOq3UPoTzff0PJB2N66fb4S0+rSbSB15/oyH9fY=
 go.opentelemetry.io/otel/metric v1.19.0 h1:aTzpGtV0ar9wlV4Sna9sdJyII5jTVJEvKETPiOKwvpE=
