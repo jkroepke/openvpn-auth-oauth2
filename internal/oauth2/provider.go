@@ -114,11 +114,8 @@ func newProviderWithEndpoints(
 	}, nil
 }
 
-func newProviderWithDiscovery(
-	conf config.Config, _ *slog.Logger, provider oidcProvider, options []rp.Option, redirectURI string,
-) (Provider, error) {
-	// expLogger := logging.ToContext(context.Background(), logger)
-
+func newProviderWithDiscovery(conf config.Config, _ *slog.Logger, provider oidcProvider, options []rp.Option, redirectURI string) (Provider, error) {
+	// expLogger := logging.ToContext(context.Background(), logger)s
 	relayingParty, err := rp.NewRelyingPartyOIDC(
 		context.Background(),
 		conf.OAuth2.Issuer.String(),

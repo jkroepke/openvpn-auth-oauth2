@@ -61,7 +61,7 @@ func SetupResourceServer(clientListener net.Listener) (*httptest.Server, config.
 	}
 
 	mux := http.NewServeMux()
-	mux.Handle("/", opProvider.HttpHandler())
+	mux.Handle("/", opProvider)
 	mux.Handle("/login/username", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_ = opStorage.CheckUsernamePassword("test-user@localhost", "verysecure", r.FormValue("authRequestID"))
 		http.Redirect(w, r, op.AuthCallbackURL(opProvider)(r.Context(), r.FormValue("authRequestID")), http.StatusFound)

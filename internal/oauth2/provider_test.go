@@ -38,7 +38,7 @@ func TestNewProvider(t *testing.T) {
 
 	assert.NoError(t, err)
 
-	svr := httptest.NewServer(handler.HttpHandler())
+	svr := httptest.NewServer(handler)
 	logger := testutils.NewTestLogger()
 
 	svrURL, _ := url.Parse(svr.URL)
