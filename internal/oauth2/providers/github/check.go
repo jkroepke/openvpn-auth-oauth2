@@ -7,7 +7,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
-	"github.com/zitadel/oidc/v2/pkg/oidc"
+	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
 type orgType struct {

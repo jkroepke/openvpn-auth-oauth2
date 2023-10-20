@@ -1,6 +1,7 @@
 package oauth2
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -10,8 +11,8 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/github"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
-	"github.com/zitadel/oidc/v2/pkg/client/rp"
-	httphelper "github.com/zitadel/oidc/v2/pkg/http"
+	"github.com/zitadel/oidc/v3/pkg/client/rp"
+	httphelper "github.com/zitadel/oidc/v3/pkg/http"
 	"golang.org/x/oauth2"
 )
 
@@ -80,7 +81,7 @@ func NewProvider(logger *slog.Logger, conf config.Config) (Provider, error) {
 			))
 		}
 
-		return newProviderWithDiscovery(conf, provider, options, redirectURI)
+		return newProviderWithDiscovery(conf, logger, provider, options, redirectURI)
 	}
 
 	logger.Info(utils.StringConcat(
@@ -113,10 +114,10 @@ func newProviderWithEndpoints(
 	}, nil
 }
 
-func newProviderWithDiscovery(
-	conf config.Config, provider oidcProvider, options []rp.Option, redirectURI string,
-) (Provider, error) {
+func newProviderWithDiscovery(conf config.Config, _ *slog.Logger, provider oidcProvider, options []rp.Option, redirectURI string) (Provider, error) {
+	// expLogger := logging.ToContext(context.Background(), logger)s
 	relayingParty, err := rp.NewRelyingPartyOIDC(
+		context.Background(),
 		conf.OAuth2.Issuer.String(),
 		conf.OAuth2.Client.ID,
 		conf.OAuth2.Client.Secret,

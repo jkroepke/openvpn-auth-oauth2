@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/zitadel/oidc/v2/pkg/crypto"
+	"github.com/zitadel/oidc/v3/pkg/crypto"
 )
 
 type State struct {
