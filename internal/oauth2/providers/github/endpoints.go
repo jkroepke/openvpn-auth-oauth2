@@ -10,7 +10,7 @@ import (
 )
 
 func (p *Provider) GetEndpoints(conf config.Config) (oauth2.Endpoint, error) {
-	if !utils.IsURLEmpty(conf.OAuth2.Endpoints.Token) && !utils.IsURLEmpty(conf.OAuth2.Endpoints.Auth) {
+	if utils.IsURLEmpty(conf.OAuth2.Endpoints.Token) && utils.IsURLEmpty(conf.OAuth2.Endpoints.Auth) {
 		return github.Endpoint, nil
 	}
 
