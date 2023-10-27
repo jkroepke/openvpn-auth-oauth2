@@ -1,6 +1,6 @@
 module github.com/jkroepke/openvpn-auth-oauth2
 
-go 1.21.1
+go 1.21
 
 require (
 	github.com/knadh/koanf/parsers/yaml v0.1.0
