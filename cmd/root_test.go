@@ -14,6 +14,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestExecuteVersion(t *testing.T) {
@@ -78,21 +79,21 @@ func TestExecuteConfigInvalid(t *testing.T) {
 
 func TestExecuteConfigFileFound(t *testing.T) { //nolint: paralleltest
 	clientListener, err := net.Listen("tcp", "127.0.0.1:0")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	defer clientListener.Close()
 
 	svr, client, err := testutils.SetupResourceServer(clientListener)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	l, err := net.Listen("tcp", "127.0.0.1:0")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	defer l.Close()
 
 	go func() {
 		conn, err := l.Accept()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		defer conn.Close()
 		reader := bufio.NewReader(conn)

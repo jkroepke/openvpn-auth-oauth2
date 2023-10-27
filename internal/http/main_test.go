@@ -14,6 +14,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
 	"github.com/madflojo/testcerts"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewHTTPServer(t *testing.T) {
@@ -22,13 +23,11 @@ func TestNewHTTPServer(t *testing.T) {
 	logger := testutils.NewTestLogger()
 
 	cert, key, err := testcerts.GenerateCertsToTempFile("/tmp/")
-	if !assert.NoError(t, err) {
-		return
-	}
+	require.NoError(t, err)
 
 	t.Cleanup(func() {
-		assert.NoError(t, os.Remove(key))
-		assert.NoError(t, os.Remove(cert))
+		require.NoError(t, os.Remove(key))
+		require.NoError(t, os.Remove(cert))
 	})
 
 	confs := []struct {
@@ -90,15 +89,16 @@ func TestNewHTTPServer(t *testing.T) {
 				defer wg.Done()
 				err := svr.Listen()
 				if tt.err == nil {
-					assert.NoError(t, err)
-				} else if assert.Error(t, err) {
+					require.NoError(t, err)
+				} else {
+					require.Error(t, err)
 					assert.Equal(t, tt.err.Error(), err.Error())
 				}
 			}()
 
 			time.Sleep(50 * time.Millisecond)
 
-			assert.NoError(t, svr.Shutdown())
+			require.NoError(t, svr.Shutdown())
 			wg.Wait()
 		})
 	}

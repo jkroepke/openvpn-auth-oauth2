@@ -21,6 +21,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHandler(t *testing.T) {
@@ -40,7 +41,7 @@ func TestHandler(t *testing.T) {
 			"default",
 			config.Config{
 				HTTP: config.HTTP{
-					Secret: "0123456789101112",
+					Secret: testutils.HTTPSecret,
 					Check: config.HTTPCheck{
 						IPAddr: false,
 					},
@@ -70,7 +71,7 @@ func TestHandler(t *testing.T) {
 			"with ipaddr",
 			config.Config{
 				HTTP: config.HTTP{
-					Secret: "0123456789101112",
+					Secret: testutils.HTTPSecret,
 					Check: config.HTTPCheck{
 						IPAddr: true,
 					},
@@ -100,7 +101,7 @@ func TestHandler(t *testing.T) {
 			"with ipaddr + forwarded-for",
 			config.Config{
 				HTTP: config.HTTP{
-					Secret: "0123456789101112",
+					Secret: testutils.HTTPSecret,
 					Check: config.HTTPCheck{
 						IPAddr: true,
 					},
@@ -131,7 +132,7 @@ func TestHandler(t *testing.T) {
 			"with ipaddr + disabled forwarded-for",
 			config.Config{
 				HTTP: config.HTTP{
-					Secret: "0123456789101112",
+					Secret: testutils.HTTPSecret,
 					Check: config.HTTPCheck{
 						IPAddr: true,
 					},
@@ -162,7 +163,7 @@ func TestHandler(t *testing.T) {
 			"with ipaddr + multiple forwarded-for",
 			config.Config{
 				HTTP: config.HTTP{
-					Secret: "0123456789101112",
+					Secret: testutils.HTTPSecret,
 					Check: config.HTTPCheck{
 						IPAddr: true,
 					},
@@ -193,7 +194,7 @@ func TestHandler(t *testing.T) {
 			"with empty state",
 			config.Config{
 				HTTP: config.HTTP{
-					Secret: "0123456789101112",
+					Secret: testutils.HTTPSecret,
 					Check: config.HTTPCheck{
 						IPAddr: true,
 					},
@@ -224,7 +225,7 @@ func TestHandler(t *testing.T) {
 			"with invalid state",
 			config.Config{
 				HTTP: config.HTTP{
-					Secret: "0123456789101112",
+					Secret: testutils.HTTPSecret,
 					Check: config.HTTPCheck{
 						IPAddr: true,
 					},
@@ -260,19 +261,19 @@ func TestHandler(t *testing.T) {
 			t.Parallel()
 
 			managementInterface, err := net.Listen("tcp", "127.0.0.1:0")
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			defer managementInterface.Close()
 
 			clientListener, err := net.Listen("tcp", "127.0.0.1:0")
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			defer clientListener.Close()
 
 			resourceServer, clientCredentials, err := testutils.SetupResourceServer(clientListener)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			defer resourceServer.Close()
 
 			resourceServerURL, err := url.Parse(resourceServer.URL)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			tt.conf.OAuth2.Client = clientCredentials
 			tt.conf.OAuth2.Issuer = resourceServerURL
@@ -283,9 +284,7 @@ func TestHandler(t *testing.T) {
 			defer client.Shutdown()
 
 			provider, err := oauth2.NewProvider(logger, tt.conf)
-			if !assert.NoError(t, err) {
-				return
-			}
+			require.NoError(t, err)
 
 			httpClientListener := httptest.NewUnstartedServer(oauth2.Handler(logger, tt.conf, provider, client))
 			httpClientListener.Listener.Close()
@@ -302,7 +301,7 @@ func TestHandler(t *testing.T) {
 				defer client.Shutdown()
 
 				conn, err := managementInterface.Accept()
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				defer conn.Close()
 				reader := bufio.NewReader(conn)
@@ -332,14 +331,12 @@ func TestHandler(t *testing.T) {
 				defer wg.Done()
 				err := client.Connect()
 				if err != nil && !strings.HasSuffix(err.Error(), "EOF") {
-					assert.NoError(t, err)
+					require.NoError(t, err)
 				}
 			}()
 
 			jar, err := cookiejar.New(nil)
-			if !assert.NoError(t, err) {
-				return
-			}
+			require.NoError(t, err)
 
 			httpClient.Jar = jar
 
@@ -349,9 +346,8 @@ func TestHandler(t *testing.T) {
 			if tt.state == "-" {
 				sessionState := state.New(state.ClientIdentifier{Cid: 0, Kid: 1}, tt.ipaddr, "name")
 				err = sessionState.Encode(tt.conf.HTTP.Secret)
-				if !assert.NoError(t, err) {
-					return
-				}
+				require.NoError(t, err)
+
 				session = sessionState.Encoded()
 			}
 
@@ -360,18 +356,14 @@ func TestHandler(t *testing.T) {
 				nil,
 			)
 
-			if !assert.NoError(t, err) {
-				return
-			}
+			require.NoError(t, err)
 
 			if tt.xForwardedFor != "" {
 				request.Header.Set("X-Forwarded-For", tt.xForwardedFor)
 			}
 
 			resp, err := httpClient.Do(request)
-			if !assert.NoError(t, err) {
-				return
-			}
+			require.NoError(t, err)
 
 			if tt.state != "-" {
 				assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
@@ -380,9 +372,7 @@ func TestHandler(t *testing.T) {
 			}
 
 			body, err := io.ReadAll(resp.Body)
-			if !assert.NoError(t, err) {
-				return
-			}
+			require.NoError(t, err)
 			_ = resp.Body.Close()
 
 			expectedStatus := 200

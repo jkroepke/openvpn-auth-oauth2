@@ -6,6 +6,7 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewClientConnection(t *testing.T) {
@@ -93,10 +94,10 @@ func TestNewClientConnection(t *testing.T) {
 
 			clientConnection, err := connection.NewClient(message)
 			if tt.err == "" {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Equal(t, tt.clientConnection, clientConnection)
 			} else {
-				assert.Error(t, err)
+				require.Error(t, err)
 				assert.Equal(t, tt.err, err.Error())
 			}
 		})
