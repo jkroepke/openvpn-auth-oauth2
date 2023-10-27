@@ -15,6 +15,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestClientInvalidServer(t *testing.T) {
@@ -24,7 +25,7 @@ func TestClientInvalidServer(t *testing.T) {
 	conf := config.Config{
 		HTTP: config.HTTP{
 			BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
-			Secret:  "0123456789101112",
+			Secret:  testutils.HTTPSecret,
 		},
 		OpenVpn: config.OpenVpn{
 			Addr:   &url.URL{Scheme: "tcp", Host: "0.0.0.0:1"},
@@ -33,7 +34,7 @@ func TestClientInvalidServer(t *testing.T) {
 	}
 	client := openvpn.NewClient(logger, conf)
 	err := client.Connect()
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Equal(t, "unable to connect to openvpn management interface tcp://0.0.0.0:1: dial tcp 0.0.0.0:1: connect: connection refused", err.Error())
 }
 
@@ -50,26 +51,25 @@ func TestClientFull(t *testing.T) {
 		err    error
 	}{
 		{
-			"without password",
-			config.Config{
+			name: "without password",
+			conf: config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
-					Secret:  "0123456789101112",
+					Secret:  testutils.HTTPSecret,
 				},
 				OpenVpn: config.OpenVpn{
 					Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
 				},
 			},
-			">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END\r\n",
-			"client-pending-auth 1 2 \"WEB_AUTH::",
-			nil,
+			client: ">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END\r\n",
+			expect: "client-pending-auth 1 2 \"WEB_AUTH::",
 		},
 		{
 			"with password",
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
-					Secret:  "0123456789101112",
+					Secret:  testutils.HTTPSecret,
 				},
 				OpenVpn: config.OpenVpn{
 					Bypass:   config.OpenVpnBypass{CommonNames: make([]string, 0)},
@@ -101,7 +101,7 @@ func TestClientFull(t *testing.T) {
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
-					Secret:  "0123456789101112",
+					Secret:  testutils.HTTPSecret,
 				},
 				OpenVpn: config.OpenVpn{
 					Bypass:   config.OpenVpnBypass{CommonNames: make([]string, 0)},
@@ -117,7 +117,7 @@ func TestClientFull(t *testing.T) {
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
-					Secret:  "0123456789101112",
+					Secret:  testutils.HTTPSecret,
 				},
 				OpenVpn: config.OpenVpn{
 					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
@@ -133,7 +133,7 @@ func TestClientFull(t *testing.T) {
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
-					Secret:  "0123456789101112",
+					Secret:  testutils.HTTPSecret,
 				},
 				OpenVpn: config.OpenVpn{
 					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
@@ -149,7 +149,7 @@ func TestClientFull(t *testing.T) {
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
-					Secret:  "0123456789101112",
+					Secret:  testutils.HTTPSecret,
 				},
 				OpenVpn: config.OpenVpn{
 					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
@@ -165,7 +165,7 @@ func TestClientFull(t *testing.T) {
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
-					Secret:  "0123456789101112",
+					Secret:  testutils.HTTPSecret,
 				},
 				OpenVpn: config.OpenVpn{
 					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
@@ -185,7 +185,7 @@ func TestClientFull(t *testing.T) {
 			t.Parallel()
 
 			l, err := net.Listen("tcp", "127.0.0.1:0")
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			defer l.Close()
 
 			tt.conf.OpenVpn.Addr = &url.URL{Scheme: l.Addr().Network(), Host: l.Addr().String()}
@@ -197,7 +197,7 @@ func TestClientFull(t *testing.T) {
 			go func() {
 				defer wg.Done()
 				conn, err := l.Accept()
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				defer conn.Close()
 				defer client.Shutdown()
@@ -243,7 +243,7 @@ func TestClientFull(t *testing.T) {
 
 					sessionState := state.NewEncoded(matches[1])
 					err := sessionState.Decode(tt.conf.HTTP.Secret)
-					assert.NoError(t, err)
+					require.NoError(t, err)
 
 					assert.Equal(t, uint64(1), sessionState.Client.Cid)
 					assert.Equal(t, uint64(2), sessionState.Client.Kid)
@@ -254,14 +254,14 @@ func TestClientFull(t *testing.T) {
 
 			err = client.Connect()
 			if tt.err != nil {
-				if assert.Error(t, err) {
-					assert.Equal(t, tt.err.Error(), err.Error())
-				}
+				require.Error(t, err)
+				assert.Equal(t, tt.err.Error(), err.Error())
+
 				client.Shutdown()
 			} else {
 				wg.Wait()
 				if err != nil && !strings.HasSuffix(err.Error(), "EOF") {
-					assert.NoError(t, err)
+					require.NoError(t, err)
 				}
 			}
 		})
@@ -273,14 +273,14 @@ func TestClientInvalidPassword(t *testing.T) {
 
 	logger := testutils.NewTestLogger()
 	l, err := net.Listen("tcp", "127.0.0.1:0")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	defer l.Close()
 
 	conf := config.Config{
 		HTTP: config.HTTP{
 			BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
-			Secret:  "0123456789101112",
+			Secret:  testutils.HTTPSecret,
 		},
 		OpenVpn: config.OpenVpn{
 			Addr:     &url.URL{Scheme: l.Addr().Network(), Host: l.Addr().String()},
@@ -293,7 +293,7 @@ func TestClientInvalidPassword(t *testing.T) {
 
 	go func() {
 		conn, err := l.Accept()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		defer conn.Close()
 		reader := bufio.NewReader(conn)
@@ -307,9 +307,8 @@ func TestClientInvalidPassword(t *testing.T) {
 
 	err = client.Connect()
 
-	if assert.Error(t, err) {
-		assert.Equal(t, "unable to connect to openvpn management interface: invalid password", err.Error())
-	}
+	require.Error(t, err)
+	assert.Equal(t, "unable to connect to openvpn management interface: invalid password", err.Error())
 
 	client.Shutdown()
 }
@@ -322,7 +321,7 @@ func TestClientInvalidVersion(t *testing.T) {
 	conf := config.Config{
 		HTTP: config.HTTP{
 			BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
-			Secret:  "0123456789101112",
+			Secret:  testutils.HTTPSecret,
 		},
 		OpenVpn: config.OpenVpn{
 			Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
@@ -358,7 +357,7 @@ func TestClientInvalidVersion(t *testing.T) {
 			t.Parallel()
 
 			l, err := net.Listen("tcp", "127.0.0.1:0")
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			defer l.Close()
 
 			conf.OpenVpn.Addr = &url.URL{Scheme: l.Addr().Network(), Host: l.Addr().String()}
@@ -367,7 +366,7 @@ func TestClientInvalidVersion(t *testing.T) {
 
 			go func() {
 				conn, err := l.Accept()
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				defer conn.Close()
 				reader := bufio.NewReader(conn)
@@ -382,9 +381,9 @@ func TestClientInvalidVersion(t *testing.T) {
 			}()
 
 			err = client.Connect()
-			if assert.Error(t, err) {
-				assert.Equal(t, tt.err, err.Error())
-			}
+			require.Error(t, err)
+			assert.Equal(t, tt.err, err.Error())
+
 			client.Shutdown()
 		})
 	}

@@ -8,6 +8,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
@@ -35,10 +36,10 @@ func TestCheckUser(t *testing.T) {
 	provider := generic.NewProvider(conf)
 
 	userData, err := provider.GetUser(context.Background(), token)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = provider.CheckUser(context.Background(), state.State{}, userData, token)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestValidateGroups(t *testing.T) {
@@ -84,8 +85,9 @@ func TestValidateGroups(t *testing.T) {
 			err := generic.NewProvider(conf).CheckGroups(token)
 
 			if tt.err == "" {
-				assert.NoError(t, err)
-			} else if assert.Error(t, err) {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
 				assert.Equal(t, tt.err, err.Error())
 			}
 		})
@@ -134,8 +136,9 @@ func TestValidateRoles(t *testing.T) {
 
 			err := generic.NewProvider(conf).CheckRoles(token)
 			if tt.err == "" {
-				assert.NoError(t, err)
-			} else if assert.Error(t, err) {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
 				assert.Equal(t, tt.err, err.Error())
 			}
 		})
@@ -184,8 +187,9 @@ func TestValidateCommonName(t *testing.T) {
 
 			err := generic.NewProvider(conf).CheckCommonName(session, token)
 			if tt.err == "" {
-				assert.NoError(t, err)
-			} else if assert.Error(t, err) {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
 				assert.Equal(t, tt.err, err.Error())
 			}
 		})
@@ -236,8 +240,9 @@ func TestValidateIpAddr(t *testing.T) {
 
 			err := generic.NewProvider(conf).CheckIPAddress(session, token)
 			if tt.err == "" {
-				assert.NoError(t, err)
-			} else if assert.Error(t, err) {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
 				assert.Equal(t, tt.err, err.Error())
 			}
 		})

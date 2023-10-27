@@ -9,6 +9,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/mitchellh/mapstructure"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStringToURLHookFunc(t *testing.T) {
@@ -35,12 +36,12 @@ func TestStringToURLHookFunc(t *testing.T) {
 			actual, err := mapstructure.DecodeHookExec(f, tt.f, tt.t)
 
 			if tt.err {
-				assert.Error(t, err)
+				require.Error(t, err)
 
 				return
 			}
 
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, tt.result, actual)
 			assert.True(t, reflect.DeepEqual(actual, tt.result))
 		})
@@ -58,7 +59,7 @@ func TestStringToTemplateHookFunc(t *testing.T) {
 	}{
 		{"valid", reflect.ValueOf("./../../README.md"), reflect.ValueOf(template.Template{}), func() *template.Template {
 			tmpl, err := template.New("callback").ParseFiles("./../../README.md")
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			return tmpl
 		}(), false},
@@ -76,12 +77,12 @@ func TestStringToTemplateHookFunc(t *testing.T) {
 			actual, err := mapstructure.DecodeHookExec(f, tt.f, tt.t)
 
 			if tt.err {
-				assert.Error(t, err)
+				require.Error(t, err)
 
 				return
 			}
 
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, tt.result, actual)
 			assert.True(t, reflect.DeepEqual(actual, tt.result))
 		})

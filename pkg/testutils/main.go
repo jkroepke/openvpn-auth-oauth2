@@ -12,11 +12,13 @@ import (
 	"testing"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/zitadel/oidc/v3/example/server/storage"
 	"github.com/zitadel/oidc/v3/pkg/op"
 	"golang.org/x/text/language"
 )
+
+const HTTPSecret = "0123456789101112"
 
 var mu = sync.Mutex{} //nolint:gochecknoglobals
 
@@ -24,14 +26,14 @@ func SendLine(tb testing.TB, conn net.Conn, msg string, a ...any) {
 	tb.Helper()
 
 	_, err := fmt.Fprintf(conn, msg, a...)
-	assert.NoError(tb, err)
+	require.NoError(tb, err)
 }
 
 func ReadLine(t *testing.T, reader *bufio.Reader) string {
 	t.Helper()
 
 	line, err := reader.ReadString('\n')
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	return strings.TrimSpace(line)
 }

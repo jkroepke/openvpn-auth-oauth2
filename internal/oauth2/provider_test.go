@@ -12,6 +12,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
 	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/zitadel/oidc/v3/example/server/storage"
 	"github.com/zitadel/oidc/v3/pkg/op"
 	"golang.org/x/text/language"
@@ -36,7 +37,7 @@ func TestNewProvider(t *testing.T) {
 		op.WithAllowInsecure(),
 	)
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	svr := httptest.NewServer(handler)
 	logger := testutils.NewTestLogger()
@@ -150,13 +151,14 @@ func TestNewProvider(t *testing.T) {
 			t.Parallel()
 
 			provider, err := oauth2.NewProvider(logger, tt.config)
-			if tt.err != "" && assert.Error(t, err) {
+			if tt.err != "" {
+				require.Error(t, err)
 				assert.Equal(t, strings.TrimSpace(err.Error()), tt.err)
 
 				return
 			}
 
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			assert.Equal(t, provider.OAuthConfig().ClientID, tt.config.OAuth2.Client.ID)
 			assert.Equal(t, provider.OAuthConfig().ClientSecret, tt.config.OAuth2.Client.Secret)
