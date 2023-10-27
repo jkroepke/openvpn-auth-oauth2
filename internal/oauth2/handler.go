@@ -114,10 +114,12 @@ func oauth2Callback(
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
-		logger = logger.With(
-			slog.String("subject", tokens.IDTokenClaims.Subject),
-			slog.String("preferred_username", tokens.IDTokenClaims.PreferredUsername),
-		)
+		if tokens.IDTokenClaims != nil {
+			logger = logger.With(
+				slog.String("idtoken.subject", tokens.IDTokenClaims.Subject),
+				slog.String("idtoken.preferred_username", tokens.IDTokenClaims.PreferredUsername),
+			)
+		}
 
 		session := state.NewEncoded(encryptedSession)
 		if err := session.Decode(conf.HTTP.Secret); err != nil {
@@ -142,6 +144,11 @@ func oauth2Callback(
 
 			return
 		}
+
+		logger = logger.With(
+			slog.String("user.subject", user.Subject),
+			slog.String("user.preferred_username", user.PreferredUsername),
+		)
 
 		err = provider.OIDC.CheckUser(ctx, session, user, tokens)
 		if err != nil {
