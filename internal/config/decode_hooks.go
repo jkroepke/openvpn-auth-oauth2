@@ -76,10 +76,7 @@ func StringToTemplateHookFunc() mapstructure.DecodeHookFuncType {
 			return template.Template{}, nil
 		}
 
-		var err error
-
 		tmpl, err := template.New(dataString).ParseFiles(dataString)
-
 		if err != nil {
 			return template.Template{}, fmt.Errorf("error paring template files: %w", err)
 		}
