@@ -11,7 +11,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/pkg/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/stretchr/testify/require"
 	"github.com/zitadel/oidc/v3/example/server/storage"
 	"github.com/zitadel/oidc/v3/pkg/op"

@@ -15,11 +15,11 @@ import (
 	"strings"
 	"unsafe"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/pkg/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/pkg/internal/http"
-	"github.com/jkroepke/openvpn-auth-oauth2/pkg/internal/oauth2"
-	"github.com/jkroepke/openvpn-auth-oauth2/pkg/internal/state"
-	"github.com/jkroepke/openvpn-auth-oauth2/pkg/internal/utils"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/http"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
 //goland:noinspection GoSnakeCaseUsage

@@ -8,7 +8,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/pkg/internal/state"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 )
 
 func (p *PluginHandle) AcceptClient(logger *slog.Logger, client state.ClientIdentifier) {

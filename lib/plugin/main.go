@@ -6,8 +6,8 @@ import "C"
 import (
 	"log/slog"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/pkg/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/pkg/internal/http"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/http"
 )
 
 //nolint:gochecknoglobals
