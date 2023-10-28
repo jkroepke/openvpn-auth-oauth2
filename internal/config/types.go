@@ -1,8 +1,8 @@
 package config
 
 import (
-	"html/template"
 	"net/url"
+	"text/template"
 	"time"
 )
 
@@ -21,7 +21,7 @@ type HTTP struct {
 	TLS                bool               `koanf:"tls"`
 	BaseURL            *url.URL           `koanf:"baseurl"`
 	Secret             string             `koanf:"secret"`
-	CallbackTemplate   *template.Template `koanf:"callback-template-path"`
+	CallbackTemplate   *template.Template `koanf:"template"`
 	Check              HTTPCheck          `koanf:"check"`
 	EnableProxyHeaders bool               `koanf:"enable-proxy-headers"`
 }

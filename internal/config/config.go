@@ -72,9 +72,9 @@ func FlagSet() *flag.FlagSet {
 		"Path to tls server certificate. (env: CONFIG_HTTP_CERT)",
 	)
 	flagSet.String(
-		"http.callback-template-path",
+		"http.template",
 		"",
-		"Path to a HTML file which is displayed at the end of the screen. (env: CONFIG_HTTP_CALLBACK_TEMPLATE_PATH)",
+		"Path to a HTML file which is displayed at the end of the screen. (env: CONFIG_HTTP_TEMPLATE)",
 	)
 	flagSet.Bool(
 		"http.check.ipaddr",

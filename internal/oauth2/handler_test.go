@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"text/template"
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
@@ -45,6 +46,42 @@ func TestHandler(t *testing.T) {
 					Check: config.HTTPCheck{
 						IPAddr: false,
 					},
+				},
+				OAuth2: config.OAuth2{
+					Provider:  "generic",
+					Endpoints: config.OAuth2Endpoints{},
+					Scopes:    []string{"openid", "profile"},
+					Validate: config.OAuth2Validate{
+						Groups: make([]string, 0),
+						Roles:  make([]string, 0),
+						Issuer: true,
+						IPAddr: false,
+					},
+				},
+				OpenVpn: config.OpenVpn{
+					Bypass:        config.OpenVpnBypass{CommonNames: []string{}},
+					AuthTokenUser: true,
+				},
+			},
+			"127.0.0.1",
+			"",
+			true,
+			"-",
+		},
+		{
+			"with template",
+			config.Config{
+				HTTP: config.HTTP{
+					Secret: testutils.HTTPSecret,
+					Check: config.HTTPCheck{
+						IPAddr: false,
+					},
+					CallbackTemplate: func() *template.Template {
+						tmpl, err := template.New("README.md").ParseFiles("./../../README.md")
+						require.NoError(t, err)
+
+						return tmpl
+					}(),
 				},
 				OAuth2: config.OAuth2{
 					Provider:  "generic",
@@ -382,6 +419,12 @@ func TestHandler(t *testing.T) {
 
 			if !assert.Equal(t, expectedStatus, resp.StatusCode, string(body)) {
 				return
+			}
+
+			if tt.conf.HTTP.CallbackTemplate != nil {
+				if !assert.Contains(t, string(body), "openvpn-auth-oauth2 is a management client for OpenVPN that handles the authentication") {
+					return
+				}
 			}
 
 			client.Shutdown()
