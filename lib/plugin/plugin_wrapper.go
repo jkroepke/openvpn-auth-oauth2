@@ -1,6 +1,6 @@
 //go:build linux
 
-package plugin
+package main
 
 /*
 #cgo CFLAGS: -Wno-discarded-qualifiers -I/usr/include/openvpn/

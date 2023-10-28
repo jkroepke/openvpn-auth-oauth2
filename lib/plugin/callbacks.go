@@ -1,6 +1,6 @@
 //go:build linux
 
-package plugin
+package main
 
 import "C"
 import (
