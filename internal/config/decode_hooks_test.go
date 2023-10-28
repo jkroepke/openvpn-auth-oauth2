@@ -1,10 +1,10 @@
 package config_test
 
 import (
-	"html/template"
 	"net/url"
 	"reflect"
 	"testing"
+	"text/template"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/mitchellh/mapstructure"

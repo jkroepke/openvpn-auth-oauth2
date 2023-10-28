@@ -3,9 +3,9 @@ package config
 
 import (
 	"fmt"
-	"html/template"
 	"net/url"
 	"reflect"
+	"text/template"
 
 	"github.com/mitchellh/mapstructure"
 )
@@ -78,8 +78,7 @@ func StringToTemplateHookFunc() mapstructure.DecodeHookFuncType {
 
 		var err error
 
-		tmpl := template.New("callback")
-		tmpl, err = tmpl.ParseFiles(dataString)
+		tmpl, err := template.New(dataString).ParseFiles(dataString)
 
 		if err != nil {
 			return template.Template{}, fmt.Errorf("error paring template files: %w", err)
