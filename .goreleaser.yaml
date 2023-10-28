@@ -11,7 +11,7 @@ builds:
     mod_timestamp: '{{ .CommitTimestamp }}'
   - id: "openvpn-auth-oauth2.so"
     binary: openvpn-auth-oauth2
-    main: ./pkg/plugin/
+    main: ./lib/plugin/
     buildmode: c-shared
     goos:
       - linux
@@ -55,8 +55,8 @@ report_sizes: true
 metadata:
   mod_timestamp: "{{ .CommitTimestamp }}"
 
-#gomod:
-#  proxy: true
+gomod:
+  proxy: true
 
 release:
   prerelease: auto

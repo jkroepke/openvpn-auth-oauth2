@@ -9,11 +9,11 @@ import (
 	"runtime"
 	"syscall"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/http"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
+	"github.com/jkroepke/openvpn-auth-oauth2/pkg/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/pkg/internal/http"
+	"github.com/jkroepke/openvpn-auth-oauth2/pkg/internal/oauth2"
+	"github.com/jkroepke/openvpn-auth-oauth2/pkg/internal/openvpn"
+	"github.com/jkroepke/openvpn-auth-oauth2/pkg/internal/utils"
 )
 
 func Execute(args []string, logWriter io.Writer, version, commit, date string) int {

@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/cmd"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
+	"github.com/jkroepke/openvpn-auth-oauth2/pkg/internal/utils"
 	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
