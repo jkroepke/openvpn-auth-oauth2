@@ -179,7 +179,7 @@ func FlagSet() *flag.FlagSet {
 	flagSet.StringSlice(
 		"oauth2.scopes",
 		Defaults.OAuth2.Scopes,
-		"oauth2 token scopes. (env: CONFIG_OAUTH2_SCOPES)",
+		"oauth2 token scopes. Defaults depends on oauth2.provider (env: CONFIG_OAUTH2_SCOPES)",
 	)
 	flagSet.Bool(
 		"version",

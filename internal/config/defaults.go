@@ -49,6 +49,6 @@ var Defaults = Config{
 			IPAddr: false,
 			Issuer: true,
 		},
-		Scopes: []string{"openid", "profile"},
+		Scopes: []string{},
 	},
 }

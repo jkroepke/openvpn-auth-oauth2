@@ -19,3 +19,7 @@ func NewProvider(conf config.Config) *Provider {
 func (p *Provider) GetName() string {
 	return Name
 }
+
+func (p *Provider) GetDefaultScopes() []string {
+	return []string{"openid", "profile"}
+}

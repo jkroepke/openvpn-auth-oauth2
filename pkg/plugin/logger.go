@@ -14,6 +14,7 @@ int plugin_log(struct openvpn_plugin_callbacks* cb, int flags, char *msg) {
 }
 */
 import "C"
+
 import (
 	"context"
 	"fmt"
