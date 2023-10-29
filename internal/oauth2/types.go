@@ -18,6 +18,7 @@ type Provider struct {
 
 type oidcProvider interface {
 	CheckUser(ctx context.Context, session state.State, user types.UserData, tokens *oidc.Tokens[*oidc.IDTokenClaims]) error
+	GetDefaultScopes() []string
 	GetEndpoints(conf config.Config) (oauth2.Endpoint, error)
 	GetName() string
 	GetUser(ctx context.Context, tokens *oidc.Tokens[*oidc.IDTokenClaims]) (types.UserData, error)
