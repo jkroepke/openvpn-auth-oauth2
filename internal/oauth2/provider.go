@@ -144,9 +144,9 @@ func newProviderWithDiscovery(
 
 func newOidcProvider(conf config.Config) (oidcProvider, error) {
 	switch conf.OAuth2.Provider {
-	case "generic":
+	case generic.Name:
 		return generic.NewProvider(conf), nil
-	case "github":
+	case github.Name:
 		return github.NewProvider(conf), nil
 	default:
 		return nil, fmt.Errorf("unknown oauth2 provider: %s", conf.OAuth2.Provider)
