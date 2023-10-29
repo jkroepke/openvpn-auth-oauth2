@@ -3,7 +3,6 @@
 This pages documents the setup at the OIDC provider.
 
 ## Azure AD
-
 ### Register an app with AAD
 
 1. Login as admin into tenant
@@ -33,7 +32,6 @@ References:
 - https://learn.microsoft.com/en-us/azure/active-directory/develop/active-directory-optional-claims
 
 ## GitHub
-
 ### Caveats
 A user must explicitly [request](https://help.github.com/articles/requesting-organization-approval-for-oauth-apps/) an
 [organization](https://developer.github.com/v3/orgs/) give openvpn-auth-oauth2
@@ -57,3 +55,26 @@ After registering the app, you will receive an OAuth2 client ID and secret. Thes
 - `CONFIG_OAUTH2_ENDPOINT_TOKEN=https://github.com/login/oauth/access_token`
 - `CONFIG_OAUTH2_VALIDATE_GROUPS=org`
 - `CONFIG_OAUTH2_VALIDATE_ROLES=org:team`
+
+
+## Zitadel
+### Register an application in zitadel
+1. Create project in Zitadel
+2. Create new application in project
+3. Enter name and choose web type
+4. Authentication method - POST
+5. Redirect url - http://<vpn>:9000/oauth2/callback
+6. Save Client ID and Client Secret to use below
+
+After created application, on page URLs you can find all links which you need.
+
+### Configuration
+- `CONFIG_HTTP_BASEURL=http://<vpn>:9000/`
+- `CONFIG_HTTP_LISTEN=:9000`
+- `CONFIG_HTTP_SECRET=1jd93h5b6s82lf03jh5b2hf9`
+- `CONFIG_OPENVPN_ADDR=unix:///run/openvpn/server.sock`
+- `CONFIG_OPENVPN_PASSWORD=<password from /etc/openvpn/password.txt>`
+- `CONFIG_OAUTH2_ISSUER=https://company.zitadel.cloud`
+- `CONFIG_OAUTH2_SCOPES=openid profile email offline_access`
+- `CONFIG_OAUTH2_CLIENT_ID=<client_id>`
+- `CONFIG_OAUTH2_CLIENT_SECRET=<client_secret>`
