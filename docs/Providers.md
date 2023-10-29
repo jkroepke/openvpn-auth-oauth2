@@ -75,7 +75,6 @@ After created application, on page URLs you can find all links which you need.
 - `CONFIG_OPENVPN_ADDR=unix:///run/openvpn/server.sock`
 - `CONFIG_OPENVPN_PASSWORD=<password from /etc/openvpn/password.txt>`
 - `CONFIG_OAUTH2_ISSUER=https://company.zitadel.cloud`
-- `CONFIG_HTTP_TEMPLATE=/etc/sysconfig/auth.html`
 - `CONFIG_OAUTH2_SCOPES=openid profile email offline_access`
 - `CONFIG_OAUTH2_CLIENT_ID=<client_id>`
 - `CONFIG_OAUTH2_CLIENT_SECRET=<client_secret>`
