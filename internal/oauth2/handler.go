@@ -3,6 +3,7 @@ package oauth2
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
@@ -36,6 +37,8 @@ func Handler(logger *slog.Logger, conf config.Config, provider Provider, openvpn
 
 func oauth2Start(logger *slog.Logger, provider Provider, conf config.Config, openvpn OpenVPN) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sendCacheHeaders(w)
+
 		sessionState := r.URL.Query().Get("state")
 		if sessionState == "" {
 			w.WriteHeader(http.StatusBadRequest)
@@ -76,6 +79,12 @@ func oauth2Start(logger *slog.Logger, provider Provider, conf config.Config, ope
 	})
 }
 
+func sendCacheHeaders(w http.ResponseWriter) {
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "0")
+}
+
 func checkClientIPAddr(r *http.Request, logger *slog.Logger, session state.State, conf config.Config) (bool, int, string) {
 	clientIP, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
@@ -111,6 +120,10 @@ func oauth2Callback(
 		w http.ResponseWriter, r *http.Request, tokens *oidc.Tokens[*oidc.IDTokenClaims], encryptedSession string,
 		rp rp.RelyingParty,
 	) {
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		w.Header().Set("Pragma", "no-cache")
+		w.Header().Set("Expires", "0")
+
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
@@ -186,7 +199,7 @@ func getAuthTokenUsername(session state.State, user types.UserData) string {
 }
 
 func writeError(w http.ResponseWriter, logger *slog.Logger, conf config.Config, httpCode int, errorType, errorDesc string) {
-	if conf.HTTP.CallbackTemplate == nil || conf.HTTP.CallbackTemplate.Tree == nil {
+	if conf.HTTP.CallbackTemplate == nil {
 		http.Error(w, utils.StringConcat(errorType, ": ", errorDesc), httpCode)
 
 		return
@@ -207,7 +220,7 @@ func writeError(w http.ResponseWriter, logger *slog.Logger, conf config.Config, 
 }
 
 func writeSuccess(w http.ResponseWriter, conf config.Config, logger *slog.Logger) {
-	if conf.HTTP.CallbackTemplate == nil || conf.HTTP.CallbackTemplate.Tree == nil {
+	if conf.HTTP.CallbackTemplate == nil {
 		_, _ = w.Write([]byte(callbackHTML))
 
 		return
@@ -215,7 +228,7 @@ func writeSuccess(w http.ResponseWriter, conf config.Config, logger *slog.Logger
 
 	err := conf.HTTP.CallbackTemplate.Execute(w, map[string]string{})
 	if err != nil {
-		logger.Error("executing template:", err)
+		logger.Error(fmt.Sprintf("executing template: %s", err))
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 }

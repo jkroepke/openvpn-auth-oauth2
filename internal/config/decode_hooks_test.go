@@ -1,10 +1,10 @@
 package config_test
 
 import (
-	"html/template"
 	"net/url"
 	"reflect"
 	"testing"
+	"text/template"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/mitchellh/mapstructure"
@@ -58,7 +58,7 @@ func TestStringToTemplateHookFunc(t *testing.T) {
 		err    bool
 	}{
 		{"valid", reflect.ValueOf("./../../README.md"), reflect.ValueOf(template.Template{}), func() *template.Template {
-			tmpl, err := template.New("callback").ParseFiles("./../../README.md")
+			tmpl, err := template.New("README.md").ParseFiles("./../../README.md")
 			require.NoError(t, err)
 
 			return tmpl

@@ -9,13 +9,13 @@ Linux package, use the file `/etc/sysconfig/openvpn-auth-oauth2` to configure op
 Usage of openvpn-auth-oauth2:
       --config string                        path to one .yaml config files. (env: CONFIG_CONFIG)
       --http.baseurl string                  listen addr for client listener. (env: CONFIG_HTTP_BASEURL) (default "http://localhost:9000")
-      --http.callback-template-path string   Path to a HTML file which is displayed at the end of the screen. (env: CONFIG_HTTP_CALLBACK_TEMPLATE_PATH)
+      --http.template string   Path to a HTML file which is displayed at the end of the screen. (env: CONFIG_HTTP_TEMPLATE)
       --http.cert string                     Path to tls server certificate. (env: CONFIG_HTTP_CERT)
       --http.check.ipaddr                    Check if client IP in http and VPN is equal. (env: CONFIG_HTTP_CHECK_IPADDR)
       --http.enable-proxy-headers            Use X-Forward-For http header for client ips. (env: CONFIG_HTTP_ENABLE_PROXY_HEADERS)
       --http.key string                      Path to tls server key. (env: CONFIG_HTTP_KEY)
       --http.listen string                   listen addr for client listener. (env: CONFIG_HTTP_LISTEN) (default ":9000")
-      --http.secret string                   Cookie secret. (env: CONFIG_HTTP_SECRET)
+      --http.secret string                   Cookie secret. (16 or 24 symbols) (env: CONFIG_HTTP_SECRET)
       --http.tls                             enable TLS listener. (env: CONFIG_HTTP_TLS)
       --log.format string                    log format. json or console (env: CONFIG_LOG_FORMAT) (default "json")
       --log.level string                     log level. (env: CONFIG_LOG_LEVEL) (default "info")
@@ -40,35 +40,56 @@ Usage of openvpn-auth-oauth2:
       --version                              shows versions
 ```
 
-## Setup HTTP listener
-
+## Configuration openvpn-auth-oauth2
 openvpn-auth-oauth2 starts a http listener which needs to be accessible from OpenVPN client before the VPN connection is established.
 By default, the http listener runs on :9000.
 
 It's highly recommend to put openvpn-auth-oauth2 behind a reverse proxy which terminates the TLS connections. It's important to configure
 `CONFIG_HTTP_BASE_URL` because openvpn-auth-oauth2 need to know the redirect url.
 
-### Configuration
-
-- `CONFIG_HTTP_LISTEN=:9000`
-- `CONFIG_HTTP_BASE_URL=https://login.example.com`
-
-## Setup OIDC Provider
-
-See [Providers](Providers) for more information
+Example:
+```conf
+# openvpn-auth-oauth2 config file
+CONFIG_HTTP_LISTEN=:9000
+CONFIG_HTTP_BASE_URL=https://login.example.com
+```
 
 ## Setup OpenVPN server
+To connect openvpn-auth-oauth2 with openvpn server add lines below:
 
-### server.conf
-
-```
+```conf
+# openvpn server.conf
+...
 # /etc/openvpn/password.txt is a password file where the password must be on first line
 management /run/openvpn/server.sock unix /etc/openvpn/password.txt
 management-hold
 management-client-auth
 ```
 
-### Configuration
+```conf
+# openvpn-auth-oauth2 config file
+CONFIG_OPENVPN_ADDR=unix:///run/openvpn/server.sock
+CONFIG_OPENVPN_PASSWORD=<password>
+```
 
-- `CONFIG_OPENVPN_ADDR=unix:///run/openvpn/server.sock`
-- `CONFIG_OPENVPN_PASSWORD=<password>`
+## Setup OIDC Provider
+
+See [Providers](Providers) for more information
+
+## Full configuration example
+Configuration openvpn-auth-oauth2 for zitadel
+
+```conf
+# Define the public http endpoint here.
+CONFIG_HTTP_BASEURL=http://<vpn>:9000/
+CONFIG_HTTP_LISTEN=:9000
+# Define a random value with 16 or 24 characters
+CONFIG_HTTP_SECRET=1jd93h5b6s82lf03jh5b2hf9
+CONFIG_OPENVPN_ADDR=unix:///run/openvpn/server.sock
+CONFIG_OPENVPN_PASSWORD=<password from /etc/openvpn/password.txt>
+CONFIG_OAUTH2_ISSUER=https://company.zitadel.cloud
+CONFIG_HTTP_TEMPLATE=/etc/sysconfig/auth.html
+CONFIG_OAUTH2_SCOPES=openid profile email offline_access
+CONFIG_OAUTH2_CLIENT_ID=34372461928374612@any
+CONFIG_OAUTH2_CLIENT_SECRET=ASDhjgadjhAUYSDGjkhasgdIATWDGJHASDtiwGDJAHSGDutwqdygASJKD12hfva
+```
