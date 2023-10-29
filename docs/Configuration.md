@@ -88,7 +88,6 @@ CONFIG_HTTP_SECRET=1jd93h5b6s82lf03jh5b2hf9
 CONFIG_OPENVPN_ADDR=unix:///run/openvpn/server.sock
 CONFIG_OPENVPN_PASSWORD=<password from /etc/openvpn/password.txt>
 CONFIG_OAUTH2_ISSUER=https://company.zitadel.cloud
-CONFIG_HTTP_TEMPLATE=/etc/sysconfig/auth.html
 CONFIG_OAUTH2_SCOPES=openid profile email offline_access
 CONFIG_OAUTH2_CLIENT_ID=34372461928374612@any
 CONFIG_OAUTH2_CLIENT_SECRET=ASDhjgadjhAUYSDGjkhasgdIATWDGJHASDtiwGDJAHSGDutwqdygASJKD12hfva
