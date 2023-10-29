@@ -53,7 +53,6 @@ After registering the app, you will receive an OAuth2 client ID and secret. Thes
 - `CONFIG_OAUTH2_CLIENT_SECRET=$CLIENT_SECRET`
 - `CONFIG_OAUTH2_ENDPOINT_AUTH=https://github.com/login/oauth/authorize`
 - `CONFIG_OAUTH2_ENDPOINT_TOKEN=https://github.com/login/oauth/access_token`
-- `CONFIG_OAUTH2_SCOPES=user:email read:org`
 - `CONFIG_OAUTH2_VALIDATE_GROUPS=org`
 - `CONFIG_OAUTH2_VALIDATE_ROLES=org:team`
 

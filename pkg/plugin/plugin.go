@@ -6,6 +6,7 @@ package main
 #include <openvpn-plugin.h>
 */
 import "C"
+
 import (
 	"fmt"
 	"log/slog"
@@ -135,7 +136,7 @@ func openvpn_plugin_func_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_
 
 	pendingAuth := fmt.Sprintf("%.0f\nwebauth\nWEB_AUTH::%s", handle.conf.OpenVpn.AuthPendingTimeout.Seconds(), startURL)
 
-	if err := os.WriteFile(client.AuthPendingFile, []byte(pendingAuth), 0600); err != nil {
+	if err := os.WriteFile(client.AuthPendingFile, []byte(pendingAuth), 0o600); err != nil {
 		handle.logger.Error(fmt.Errorf("write to file %s: %w", client.AuthPendingFile, err).Error())
 		return C.OPENVPN_PLUGIN_FUNC_ERROR
 	}

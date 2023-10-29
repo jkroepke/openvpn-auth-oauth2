@@ -72,14 +72,14 @@ services:
         user nobody
         group nogroup
 
-        #auth-gen-token 240 120
+        #auth-gen-token
         management 0.0.0.0 8081 /etc/openvpn/password.txt
         management-hold
         management-client-auth
 
         #plugin /plugin/openvpn-auth-oauth2.so /plugin/config.yaml
 
-        reneg-sec 30
+        reneg-sec 120
         auth-user-pass-optional
         EOF
 

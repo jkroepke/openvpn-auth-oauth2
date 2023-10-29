@@ -65,6 +65,11 @@ func NewProvider(logger *slog.Logger, conf config.Config) (Provider, error) {
 		return Provider{}, fmt.Errorf("error getting endpoints: %w", err)
 	}
 
+	scopes := conf.OAuth2.Scopes
+	if len(scopes) == 0 {
+		scopes = provider.GetDefaultScopes()
+	}
+
 	if endpoints == (oauth2.Endpoint{}) {
 		if !utils.IsURLEmpty(conf.OAuth2.Endpoints.Discovery) {
 			logger.Info(utils.StringConcat(
@@ -81,7 +86,7 @@ func NewProvider(logger *slog.Logger, conf config.Config) (Provider, error) {
 			))
 		}
 
-		return newProviderWithDiscovery(conf, logger, provider, options, redirectURI)
+		return newProviderWithDiscovery(conf, logger, provider, options, redirectURI, scopes)
 	}
 
 	logger.Info(utils.StringConcat(
@@ -89,17 +94,17 @@ func NewProvider(logger *slog.Logger, conf config.Config) (Provider, error) {
 		provider.GetName(), " and endpoints ", endpoints.AuthURL, " and ", endpoints.TokenURL,
 	))
 
-	return newProviderWithEndpoints(conf, provider, options, redirectURI, endpoints)
+	return newProviderWithEndpoints(conf, provider, options, redirectURI, endpoints, scopes)
 }
 
 func newProviderWithEndpoints(
-	conf config.Config, provider oidcProvider, options []rp.Option, redirectURI string, endpoints oauth2.Endpoint,
+	conf config.Config, provider oidcProvider, options []rp.Option, redirectURI string, endpoints oauth2.Endpoint, scopes []string,
 ) (Provider, error) {
 	rpConfig := &oauth2.Config{
 		ClientID:     conf.OAuth2.Client.ID,
 		ClientSecret: conf.OAuth2.Client.Secret,
 		RedirectURL:  redirectURI,
-		Scopes:       conf.OAuth2.Scopes,
+		Scopes:       scopes,
 		Endpoint:     endpoints,
 	}
 
@@ -114,7 +119,9 @@ func newProviderWithEndpoints(
 	}, nil
 }
 
-func newProviderWithDiscovery(conf config.Config, _ *slog.Logger, provider oidcProvider, options []rp.Option, redirectURI string) (Provider, error) {
+func newProviderWithDiscovery(
+	conf config.Config, _ *slog.Logger, provider oidcProvider, options []rp.Option, redirectURI string, scopes []string,
+) (Provider, error) {
 	// expLogger := logging.ToContext(context.Background(), logger)s
 	relayingParty, err := rp.NewRelyingPartyOIDC(
 		context.Background(),
@@ -122,7 +129,7 @@ func newProviderWithDiscovery(conf config.Config, _ *slog.Logger, provider oidcP
 		conf.OAuth2.Client.ID,
 		conf.OAuth2.Client.Secret,
 		redirectURI,
-		conf.OAuth2.Scopes,
+		scopes,
 		options...,
 	)
 	if err != nil {
@@ -137,9 +144,9 @@ func newProviderWithDiscovery(conf config.Config, _ *slog.Logger, provider oidcP
 
 func newOidcProvider(conf config.Config) (oidcProvider, error) {
 	switch conf.OAuth2.Provider {
-	case "generic":
+	case generic.Name:
 		return generic.NewProvider(conf), nil
-	case "github":
+	case github.Name:
 		return github.NewProvider(conf), nil
 	default:
 		return nil, fmt.Errorf("unknown oauth2 provider: %s", conf.OAuth2.Provider)
