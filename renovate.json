@@ -6,5 +6,6 @@
   "schedule": [
     "before 3am on the first day of the month"
   ],
+  "labels": ["dependencies"],
   "postUpdateOptions": ["gomodTidy"]
 }
