@@ -20,6 +20,7 @@ jobs:
           && !contains(github.event.pull_request.labels.*.name, 'bug')
           && !contains(github.event.pull_request.labels.*.name, 'docs')
           && !contains(github.event.pull_request.labels.*.name, 'chore')
+          && !contains(github.event.pull_request.labels.*.name, 'dependencies')
         run: >-
           echo One of the following labels is missing on this PR:
           breaking-change
