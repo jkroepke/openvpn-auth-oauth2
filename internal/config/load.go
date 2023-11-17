@@ -14,6 +14,8 @@ import (
 	flag "github.com/spf13/pflag"
 )
 
+const envPrefix = "CONFIG_"
+
 func Load(mode int, configFile string, flagSet *flag.FlagSet) (Config, error) {
 	var err error
 
@@ -35,9 +37,11 @@ func Load(mode int, configFile string, flagSet *flag.FlagSet) (Config, error) {
 		}
 	}
 
-	err = k.Load(env.ProviderWithValue("CONFIG_", ".",
+	err = k.Load(env.ProviderWithValue(envPrefix, ".",
 		func(envKey string, envValue string) (string, interface{}) {
-			key := strings.ReplaceAll(strings.ToLower(strings.TrimPrefix(envKey, "CONFIG_")), "_", ".")
+			key := strings.ToLower(strings.TrimPrefix(envKey, envPrefix))
+			key = strings.ReplaceAll(key, "__", "-")
+			key = strings.ReplaceAll(key, "_", ".")
 
 			// If there is a space in the value, split the value into a slice by the space.
 			if strings.Contains(envValue, " ") {

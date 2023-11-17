@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"slices"
+	"strings"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 	flag "github.com/spf13/pflag"
@@ -16,7 +17,7 @@ const (
 	ManagementClient
 )
 
-// FlagSet configure the command line parser using [flag] library.
+// FlagSet configure the command line parser using the [flag] library.
 func FlagSet() *flag.FlagSet {
 	flagSet := flag.NewFlagSet("openvpn-auth-oauth2", flag.ContinueOnError)
 	flagSet.Usage = func() {
@@ -28,163 +29,175 @@ func FlagSet() *flag.FlagSet {
 	flagSet.String(
 		"config",
 		"",
-		"path to one .yaml config files. (env: CONFIG_CONFIG)",
+		"path to one .yaml config files",
 	)
 	flagSet.String(
 		"log.format",
 		Defaults.Log.Format,
-		"log format. json or console (env: CONFIG_LOG_FORMAT)",
+		"log format. json or console",
 	)
 	flagSet.String(
 		"log.level",
 		Defaults.Log.Level,
-		"log level. (env: CONFIG_LOG_LEVEL)",
+		"log level",
 	)
 	flagSet.String(
 		"http.listen",
 		Defaults.HTTP.Listen,
-		"listen addr for client listener. (env: CONFIG_HTTP_LISTEN)",
+		"listen addr for client listener",
 	)
 	flagSet.Bool(
 		"http.tls",
 		Defaults.HTTP.TLS,
-		"enable TLS listener. (env: CONFIG_HTTP_TLS)",
+		"enable TLS listener",
 	)
 	flagSet.String(
 		"http.baseurl",
 		Defaults.HTTP.BaseURL.String(),
-		"listen addr for client listener. (env: CONFIG_HTTP_BASEURL)",
+		"listen addr for client listener",
 	)
 	flagSet.String(
 		"http.secret",
 		Defaults.HTTP.Secret,
-		"Cookie secret. (env: CONFIG_HTTP_SECRET)",
+		"Cookie secret",
 	)
 	flagSet.String(
 		"http.key",
 		Defaults.HTTP.KeyFile,
-		"Path to tls server key. (env: CONFIG_HTTP_KEY)",
+		"Path to tls server key",
 	)
 	flagSet.String(
 		"http.cert",
 		Defaults.HTTP.CertFile,
-		"Path to tls server certificate. (env: CONFIG_HTTP_CERT)",
+		"Path to tls server certificate",
 	)
 	flagSet.String(
 		"http.template",
 		"",
-		"Path to a HTML file which is displayed at the end of the screen. (env: CONFIG_HTTP_TEMPLATE)",
+		"Path to a HTML file which is displayed at the end of the screen",
 	)
 	flagSet.Bool(
 		"http.check.ipaddr",
 		Defaults.HTTP.Check.IPAddr,
-		"Check if client IP in http and VPN is equal. (env: CONFIG_HTTP_CHECK_IPADDR)",
+		"Check if client IP in http and VPN is equal",
 	)
 	flagSet.Bool(
 		"http.enable-proxy-headers",
 		Defaults.HTTP.EnableProxyHeaders,
-		"Use X-Forward-For http header for client ips. (env: CONFIG_HTTP_ENABLE_PROXY_HEADERS)",
+		"Use X-Forward-For http header for client ips",
 	)
 	flagSet.String(
 		"openvpn.addr",
 		Defaults.OpenVpn.Addr.String(),
-		"openvpn management interface addr. Must start with unix:// or tcp:// (env: CONFIG_OPENVPN_ADDR)",
+		"openvpn management interface addr. Must start with unix:// or tcp://",
 	)
 	flagSet.String(
 		"openvpn.password",
 		Defaults.OpenVpn.Password,
-		"openvpn management interface password. (env: CONFIG_OPENVPN_PASSWORD)",
+		"openvpn management interface password",
 	)
 	flagSet.Bool(
 		"openvpn.auth-token-user",
 		Defaults.OpenVpn.AuthTokenUser,
-		"Define auth-token-user for all sessions. (env: CONFIG_OPENVPN_AUTH_TOKEN_USER)",
+		"Define auth-token-user for all sessions",
 	)
 	flagSet.String(
 		"openvpn.auth-pending-timeout",
 		Defaults.OpenVpn.AuthPendingTimeout.String(),
-		"How long OpenVPN server wait until user is authenticated. (env: CONFIG_OPENVPN_AUTH_PENDING_TIMEOUT)",
+		"How long OpenVPN server wait until user is authenticated",
 	)
 	flagSet.StringSlice(
 		"openvpn.bypass.cn",
 		Defaults.OpenVpn.Bypass.CommonNames,
-		"bypass oauth authentication for CNs. (env: CONFIG_OAUTH2_BYPASS_CN)",
+		"bypass oauth authentication for CNs",
 	)
 	flagSet.String(
 		"oauth2.issuer",
 		Defaults.OAuth2.Issuer.String(),
-		"oauth2 issuer. (env: CONFIG_OAUTH2_ISSUER)",
+		"oauth2 issuer",
 	)
 	flagSet.String(
 		"oauth2.provider",
 		Defaults.OAuth2.Provider,
-		"oauth2 provider. (env: CONFIG_OAUTH2_PROVIDER)",
+		"oauth2 provider",
 	)
 	flagSet.String(
 		"oauth2.authorize-params",
 		"",
-		"additional url query parameter to authorize endpoint. (env: CONFIG_OAUTH2_AUTHORIZE_ENDPOINT)",
+		"additional url query parameter to authorize endpoint",
 	)
 	flagSet.String(
 		"oauth2.endpoint.discovery",
 		Defaults.OAuth2.Endpoints.Discovery.String(),
-		"custom oauth2 discovery url. (env: CONFIG_OAUTH2_ENDPOINT_DISCOVERY)",
+		"custom oauth2 discovery url",
 	)
 	flagSet.String(
 		"oauth2.endpoint.auth",
 		Defaults.OAuth2.Endpoints.Auth.String(),
-		"custom oauth2 auth endpoint. (env: CONFIG_OAUTH2_ENDPOINT_AUTH)",
+		"custom oauth2 auth endpoint",
 	)
 	flagSet.String(
 		"oauth2.endpoint.token",
 		Defaults.OAuth2.Endpoints.Token.String(),
-		"custom oauth2 token endpoint. (env: CONFIG_OAUTH2_ENDPOINT_TOKEN)",
+		"custom oauth2 token endpoint",
 	)
 	flagSet.String(
 		"oauth2.client.id",
 		Defaults.OAuth2.Client.ID,
-		"oauth2 client id. (env: CONFIG_OAUTH2_CLIENT_ID)",
+		"oauth2 client id",
 	)
 	flagSet.String(
 		"oauth2.client.secret",
 		Defaults.OAuth2.Client.Secret,
-		"oauth2 client secret. (env: CONFIG_OAUTH2_CLIENT_SECRET)",
+		"oauth2 client secret",
 	)
 	flagSet.StringSlice(
 		"oauth2.validate.groups",
 		Defaults.OAuth2.Validate.Groups,
-		"oauth2 required user groups. (env: CONFIG_OAUTH2_VALIDATE_GROUPS)",
+		"oauth2 required user groups",
 	)
 	flagSet.StringSlice(
 		"oauth2.validate.roles",
 		Defaults.OAuth2.Validate.Roles,
-		"oauth2 required user roles. (env: CONFIG_OAUTH2_VALIDATE_ROLES)",
+		"oauth2 required user roles",
 	)
 	flagSet.Bool(
 		"oauth2.validate.ipaddr",
 		Defaults.OAuth2.Validate.IPAddr,
-		"validate client ipaddr between VPN and oidc token. (env: CONFIG_OAUTH2_VALIDATE_IPADDR)",
+		"validate client ipaddr between VPN and oidc token",
 	)
 	flagSet.Bool(
 		"oauth2.validate.issuer",
 		Defaults.OAuth2.Validate.Issuer,
-		"validate issuer from oidc discovery. (env: CONFIG_OAUTH2_VALIDATE_ISSUER)",
+		"validate issuer from oidc discovery",
 	)
 	flagSet.String(
-		"oauth2.validate.common_name",
+		"oauth2.validate.common-name",
 		Defaults.OAuth2.Validate.CommonName,
-		"validate common_name from OpenVPN with IDToken claim. (env: CONFIG_OAUTH2_VALIDATE_COMMON_NAME)",
+		"validate common_name from OpenVPN with IDToken claim",
 	)
 	flagSet.StringSlice(
 		"oauth2.scopes",
 		Defaults.OAuth2.Scopes,
-		"oauth2 token scopes. Defaults depends on oauth2.provider (env: CONFIG_OAUTH2_SCOPES)",
+		"oauth2 token scopes. Defaults depends on oauth2.provider",
 	)
 	flagSet.Bool(
 		"version",
 		false,
-		"shows versions",
+		"show version",
 	)
+
+	flagSet.VisitAll(func(flag *flag.Flag) {
+		if flag.Name == "version" {
+			return
+		}
+
+		env := strings.ToUpper(flag.Name)
+		env = strings.ReplaceAll(env, ".", "_")
+		env = strings.ReplaceAll(env, "-", "__")
+
+		flag.Usage += fmt.Sprintf(" (env: %s%s)", envPrefix, env)
+	})
 
 	return flagSet
 }
