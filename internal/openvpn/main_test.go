@@ -301,8 +301,6 @@ func TestClientInvalidPassword(t *testing.T) {
 		testutils.SendLine(t, conn, "ENTER PASSWORD:")
 		assert.Equal(t, conf.OpenVpn.Password, testutils.ReadLine(t, reader))
 		testutils.SendLine(t, conn, "ERROR: bad password\r\n")
-
-		_, _ = reader.ReadString('\n')
 	}()
 
 	err = client.Connect()
