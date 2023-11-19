@@ -20,7 +20,7 @@ func (c *Client) handlePassword() error {
 
 	c.logger.Debug(utils.StringConcat("password probe: ", string(buf)))
 
-	if "ENTER" == string(buf) {
+	if string(buf) == "ENTER" {
 		if c.conf.OpenVpn.Password == "" {
 			return errors.New("management password required")
 		}
@@ -28,10 +28,8 @@ func (c *Client) handlePassword() error {
 		if err = c.sendPassword(); err != nil {
 			return err
 		}
-	} else {
-		if c.conf.OpenVpn.Password != "" {
-			return errors.New("management password expected, but server does not ask for me")
-		}
+	} else if c.conf.OpenVpn.Password != "" {
+		return errors.New("management password expected, but server does not ask for me")
 	}
 
 	return nil
