@@ -40,20 +40,17 @@ func (c *Client) Connect() error {
 
 	c.logger.Info(utils.StringConcat("connect to openvpn management interface ", c.conf.OpenVpn.Addr.String()))
 
-	err = c.setupConnection()
-	if err != nil {
+	if err = c.setupConnection(); err != nil {
 		return fmt.Errorf("unable to connect to openvpn management interface %s: %w", c.conf.OpenVpn.Addr.String(), err)
 	}
 
 	defer c.conn.Close()
+
 	c.scanner = bufio.NewScanner(c.conn)
 	c.scanner.Split(bufio.ScanLines)
 
-	if c.conf.OpenVpn.Password != "" {
-		err = c.handlePassword()
-		if err != nil {
-			return err
-		}
+	if err = c.handlePassword(); err != nil {
+		return err
 	}
 
 	go c.handleMessages()
@@ -65,7 +62,7 @@ func (c *Client) Connect() error {
 		return err
 	}
 
-	c.logger.Info("Connection to OpenVPN management interfaced established.")
+	c.logger.Info("connection to OpenVPN management interfaced established.")
 
 	err = c.checkManagementInterfaceVersion()
 	if err != nil {
@@ -260,7 +257,7 @@ func (c *Client) isMessageLineEOF(line []byte) bool {
 		bytes.HasPrefix(line, []byte(">HOLD:")) ||
 		bytes.HasPrefix(line, []byte(">INFO:")) ||
 		bytes.HasPrefix(line, []byte(">NOTIFY:")) ||
-		bytes.HasPrefix(line, []byte("ENTER PASSWORD:"))
+		bytes.HasPrefix(line, []byte(":OpenVPN"))
 }
 
 func (c *Client) close() {
