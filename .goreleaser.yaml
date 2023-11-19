@@ -55,8 +55,8 @@ report_sizes: true
 metadata:
   mod_timestamp: "{{ .CommitTimestamp }}"
 
-#gomod:
-#  proxy: true
+gomod:
+  proxy: true
 
 release:
   prerelease: auto
