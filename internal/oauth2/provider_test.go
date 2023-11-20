@@ -33,9 +33,7 @@ func TestNewProvider(t *testing.T) {
 		SupportedUILocales:       []language.Tag{language.English},
 	}
 
-	handler, err := op.NewDynamicOpenIDProvider("", opConfig, opStorage,
-		op.WithAllowInsecure(),
-	)
+	handler, err := op.NewProvider(opConfig, opStorage, op.IssuerFromHost(""), op.WithAllowInsecure())
 
 	require.NoError(t, err)
 
