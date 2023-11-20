@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
-	"sync"
 	"testing"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
@@ -19,8 +18,6 @@ import (
 )
 
 const HTTPSecret = "0123456789101112"
-
-var mu = sync.Mutex{} //nolint:gochecknoglobals
 
 func SendLine(tb testing.TB, conn net.Conn, msg string, a ...any) {
 	tb.Helper()
@@ -39,11 +36,17 @@ func ReadLine(t *testing.T, reader *bufio.Reader) string {
 }
 
 func SetupResourceServer(clientListener net.Listener) (*httptest.Server, config.OAuth2Client, error) {
-	mu.Lock()
-	storage.RegisterClients(storage.WebClient(clientListener.Addr().String(), "SECRET", fmt.Sprintf("http://%s/oauth2/callback", clientListener.Addr().String())))
-	mu.Unlock()
+	client := storage.WebClient(
+		clientListener.Addr().String(),
+		"SECRET",
+		fmt.Sprintf("http://%s/oauth2/callback", clientListener.Addr().String()),
+	)
 
-	opStorage := storage.NewStorage(storage.NewUserStore("http://localhost"))
+	clients := map[string]*storage.Client{
+		clientListener.Addr().String(): client,
+	}
+
+	opStorage := storage.NewStorageWithClients(storage.NewUserStore("http://localhost"), clients)
 	opConfig := &op.Config{
 		CryptoKey:                sha256.Sum256([]byte("test")),
 		DefaultLogoutRedirectURI: "/",
