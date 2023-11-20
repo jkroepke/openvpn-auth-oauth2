@@ -21,7 +21,7 @@ import (
 func TestNewProvider(t *testing.T) {
 	t.Parallel()
 
-	opStorage := storage.NewStorage(storage.NewUserStore("http://localhost/"))
+	opStorage := storage.NewStorageWithClients(storage.NewUserStore("http://localhost"), map[string]*storage.Client{})
 	opConfig := &op.Config{
 		CryptoKey:                sha256.Sum256([]byte("test")),
 		DefaultLogoutRedirectURI: "/",
