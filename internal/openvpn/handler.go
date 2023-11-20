@@ -1,6 +1,7 @@
 package openvpn
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -10,6 +11,32 @@ import (
 
 // handlePassword enters the password on the OpenVPN management interface connection.
 func (c *Client) handlePassword() error {
+	buf := make([]byte, 5)
+
+	_, err := c.conn.Read(buf)
+	if err != nil {
+		return fmt.Errorf("read first message: %w", err)
+	}
+
+	c.logger.Debug(utils.StringConcat("password probe: ", string(buf)))
+
+	if string(buf) == "ENTER" {
+		if c.conf.OpenVpn.Password == "" {
+			return errors.New("management password required")
+		}
+
+		if err = c.sendPassword(); err != nil {
+			return err
+		}
+	} else if c.conf.OpenVpn.Password != "" {
+		return errors.New("management password expected, but server does not ask for me")
+	}
+
+	return nil
+}
+
+// sendPassword enters the password on the OpenVPN management interface connection.
+func (c *Client) sendPassword() error {
 	if err := c.rawCommand(utils.StringConcat(c.conf.OpenVpn.Password, "\n")); err != nil {
 		return fmt.Errorf("error from password command: %w", err)
 	}
@@ -56,7 +83,7 @@ func (c *Client) handleMessages() {
 	}
 }
 
-// handlePassword receive new message from clientsCh and process them.
+// handlePassword receive a new message from clientsCh and process them.
 func (c *Client) handleClients() {
 	var client connection.Client
 

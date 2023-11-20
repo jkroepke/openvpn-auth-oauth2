@@ -55,9 +55,7 @@ func SetupResourceServer(clientListener net.Listener) (*httptest.Server, config.
 		SupportedUILocales:       []language.Tag{language.English},
 	}
 
-	opProvider, err := op.NewDynamicOpenIDProvider("", opConfig, opStorage,
-		op.WithAllowInsecure(),
-	)
+	opProvider, err := op.NewProvider(opConfig, opStorage, op.IssuerFromHost(""), op.WithAllowInsecure())
 	if err != nil {
 		return nil, config.OAuth2Client{}, err //nolint:wrapcheck
 	}

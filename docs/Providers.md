@@ -56,6 +56,21 @@ After registering the app, you will receive an OAuth2 client ID and secret. Thes
 - `CONFIG_OAUTH2_VALIDATE_ROLES=org:team`
 
 
+## Digitalocean
+### Register an application in Digitalocean
+
+Developers must [register their application](https://cloud.digitalocean.com/account/api/applications/new) to use OAuth.
+A registered application is assigned a client ID and client secret.
+The client secret should be kept confidential,
+and only used between the application and the DigitalOcean authorization server https://cloud.digitalocean.com/v1/oauth.
+
+### Configuration
+
+- `CONFIG_OAUTH2_ISSUER=https://cloud.digitalocean.com/`
+- `CONFIG_OAUTH2_SCOPES=read`
+- `CONFIG_OAUTH2_ENDPOINT_TOKEN=https://cloud.digitalocean.com/v1/oauth/token`
+- `CONFIG_OAUTH2_ENDPOINT_AUTH=https://cloud.digitalocean.com/v1/oauth/authorize`
+
 ## Zitadel
 ### Register an application in zitadel
 1. Create project in Zitadel
@@ -68,6 +83,7 @@ After registering the app, you will receive an OAuth2 client ID and secret. Thes
 After created application, on page URLs you can find all links which you need.
 
 ### Configuration
+
 - `CONFIG_HTTP_BASEURL=http://<vpn>:9000/`
 - `CONFIG_HTTP_LISTEN=:9000`
 - `CONFIG_HTTP_SECRET=1jd93h5b6s82lf03jh5b2hf9`
