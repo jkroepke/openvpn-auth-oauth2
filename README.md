@@ -7,7 +7,7 @@
 
 # openvpn-auth-oauth2
 
-openvpn-auth-oauth2 is a management client for OpenVPN that handles the authentication
+openvpn-auth-oauth2 is a management client for OpenVPN that handles the SSO authentication
 of connecting users against OIDC providers like Azure AD, GitHub or Keycloak.
 
 ## Version requirements
