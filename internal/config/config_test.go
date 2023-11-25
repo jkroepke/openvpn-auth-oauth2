@@ -2,6 +2,7 @@ package config_test
 
 import (
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
@@ -43,16 +44,13 @@ func TestFlagSet(t *testing.T) {
 			for arg, expected := range tt.expectArgs {
 				switch expectedTyped := expected.(type) {
 				case string:
-					value, err := flagSet.GetString(arg)
-					require.NoError(t, err)
+					value := flagSet.Lookup(arg).Value.String()
 					assert.Equal(t, expectedTyped, value)
 				case bool:
-					value, err := flagSet.GetBool(arg)
-					require.NoError(t, err)
+					value := flagSet.Lookup(arg).Value.String() == "true"
 					assert.Equal(t, expectedTyped, value)
 				case []string:
-					value, err := flagSet.GetStringSlice(arg)
-					require.NoError(t, err)
+					value := strings.Split(flagSet.Lookup(arg).Value.String(), ",")
 					assert.Equal(t, expectedTyped, value)
 				}
 			}
