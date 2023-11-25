@@ -47,7 +47,7 @@ func oauth2Start(logger *slog.Logger, provider Provider, conf config.Config, ope
 		}
 
 		session := state.NewEncoded(sessionState)
-		if err := session.Decode(conf.HTTP.Secret); err != nil {
+		if err := session.Decode(conf.HTTP.Secret.String()); err != nil {
 			logger.Warn(utils.StringConcat("invalid state: ", err.Error()))
 			logger.Debug(sessionState)
 			w.WriteHeader(http.StatusBadRequest)
@@ -135,7 +135,7 @@ func oauth2Callback(
 		}
 
 		session := state.NewEncoded(encryptedSession)
-		if err := session.Decode(conf.HTTP.Secret); err != nil {
+		if err := session.Decode(conf.HTTP.Secret.String()); err != nil {
 			logger.Warn(err.Error())
 			logger.Debug(encryptedSession)
 			writeError(w, logger, conf, http.StatusInternalServerError, "invalidSession", err.Error())

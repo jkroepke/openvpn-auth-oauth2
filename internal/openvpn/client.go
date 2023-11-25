@@ -55,7 +55,7 @@ func (c *Client) clientConnect(client connection.Client) error {
 	commonName := utils.TransformCommonName(c.conf.OpenVpn.CommonName.Mode, client.CommonName)
 
 	session := state.New(ClientIdentifier, client.IPAddr, commonName)
-	if err = session.Encode(c.conf.HTTP.Secret); err != nil {
+	if err = session.Encode(c.conf.HTTP.Secret.String()); err != nil {
 		return fmt.Errorf("error encoding state: %w", err)
 	}
 

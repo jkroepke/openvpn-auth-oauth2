@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"log/slog"
@@ -25,20 +27,22 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 
 	flagSet := config.FlagSet()
 	if err = flagSet.Parse(args[1:]); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return 0
+		}
+
 		logger.Error(fmt.Errorf("error parsing cli args: %w", err).Error())
 
 		return 1
 	}
 
-	if versionFlag, _ := flagSet.GetBool("version"); versionFlag {
+	if flagSet.Lookup("version").Value.String() == "true" {
 		fmt.Printf("version: %s\ncommit: %s\ndate: %s\ngo: %s\n", version, commit, date, runtime.Version())
 
 		return 0
 	}
 
-	configFile, _ := flagSet.GetString("config")
-
-	conf, err := config.Load(config.ManagementClient, configFile, flagSet)
+	conf, err := config.Load(config.ManagementClient, flagSet.Lookup("config").Value.String(), flagSet)
 	if err != nil {
 		logger.Error(fmt.Errorf("error loading config: %w", err).Error())
 
@@ -120,16 +124,9 @@ func shutdown(logger *slog.Logger, openvpnClient *openvpn.Client, server http.Se
 }
 
 func configureLogger(conf config.Config, writer io.Writer) (*slog.Logger, error) {
-	var level slog.Level
-
-	err := level.UnmarshalText([]byte(conf.Log.Level))
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse log level: %w", err)
-	}
-
 	opts := &slog.HandlerOptions{
 		AddSource: false,
-		Level:     level,
+		Level:     conf.Log.Level,
 	}
 
 	switch conf.Log.Format {
