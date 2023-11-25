@@ -1,6 +1,7 @@
 package config
 
 import (
+	"log/slog"
 	"net/url"
 	"time"
 )
@@ -9,7 +10,7 @@ import (
 var Defaults = Config{
 	Log: Log{
 		Format: "console",
-		Level:  "info",
+		Level:  slog.LevelInfo,
 	},
 	HTTP: HTTP{
 		BaseURL: &url.URL{

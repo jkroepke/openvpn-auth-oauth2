@@ -53,7 +53,7 @@ func (c *Client) clientConnect(client connection.Client) error {
 	}
 
 	session := state.New(ClientIdentifier, client.IPAddr, client.CommonName)
-	if err = session.Encode(c.conf.HTTP.Secret); err != nil {
+	if err = session.Encode(c.conf.HTTP.Secret.String()); err != nil {
 		return fmt.Errorf("error encoding state: %w", err)
 	}
 
