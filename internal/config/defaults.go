@@ -30,6 +30,9 @@ var Defaults = Config{
 		},
 		AuthTokenUser:      true,
 		AuthPendingTimeout: 3 * time.Minute,
+		CommonName: OpenVPNCommonName{
+			Mode: CommonNameModePlain,
+		},
 		Bypass: OpenVpnBypass{
 			CommonNames: make([]string, 0),
 		},

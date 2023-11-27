@@ -37,6 +37,7 @@ Usage of openvpn-auth-oauth2:
       --openvpn.auth-pending-timeout string   How long OpenVPN server wait until user is authenticated (env: CONFIG_OPENVPN_AUTH__PENDING__TIMEOUT) (default "3m0s")
       --openvpn.auth-token-user               Define auth-token-user for all sessions (env: CONFIG_OPENVPN_AUTH__TOKEN__USER) (default true)
       --openvpn.bypass.cn strings             bypass oauth authentication for CNs (env: CONFIG_OPENVPN_BYPASS_CN)
+      --openvpn.common-name.mode string       If common names are too long, use md5/sha1 to hash them or omit to skip them. If omit, oauth2.validate.common-name does not work anymore. Values: [plain,md5,sha1,omit] (env: CONFIG_OPENVPN_COMMON__NAME_MODE) (default "plain")
       --openvpn.password string               openvpn management interface password (env: CONFIG_OPENVPN_PASSWORD)
       --version                               show version
 ```

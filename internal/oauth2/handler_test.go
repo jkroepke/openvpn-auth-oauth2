@@ -422,7 +422,7 @@ func TestHandler(t *testing.T) {
 			}
 
 			if tt.conf.HTTP.CallbackTemplate != nil {
-				if !assert.Contains(t, string(body), "openvpn-auth-oauth2 is a management client for OpenVPN that handles the authentication") {
+				if !assert.Contains(t, string(body), "openvpn-auth-oauth2 is a management client for OpenVPN that handles the single sign-on") {
 					return
 				}
 			}

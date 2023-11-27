@@ -7,6 +7,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
@@ -153,13 +154,17 @@ func TestValidateCommonName(t *testing.T) {
 		tokenClaim         string
 		tokenCommonName    any
 		requiredCommonName string
+		commonNameMode     config.OpenVPNCommonNameMode
 		err                string
 	}{
-		{"not require", "", nil, "", ""},
-		{"sub present", "sub", "apple", "", "common_name mismatch: openvpn client: apple - oidc token: "},
-		{"sub required", "sub", "apple", "apple", ""},
-		{"sub required wrong", "sub", "pear", "apple", "common_name mismatch: openvpn client: pear - oidc token: apple"},
-		{"nonexists claim", "nonexists", "pear", "apple", "missing claim: nonexists"},
+		{"not require", "", nil, "", config.CommonNameModePlain, ""},
+		{"sub empty", "sub", "apple", "", config.CommonNameModePlain, "common_name mismatch: openvpn client is empty"},
+		{"sub required", "sub", "apple", "apple", config.CommonNameModePlain, ""},
+		{"sub required wrong", "sub", "pear", "apple", config.CommonNameModePlain, "common_name mismatch: openvpn client: apple - oidc token: pear"},
+		{"nonexists claim", "nonexists", "pear", "apple", config.CommonNameModePlain, "missing claim: nonexists"},
+		{"sub md5", "sub", "apple", utils.TransformCommonName(config.CommonNameModeMD5, "apple"), config.CommonNameModeMD5, ""},
+		{"sub sha1", "sub", "apple", utils.TransformCommonName(config.CommonNameModeSHA1, "apple"), config.CommonNameModeSHA1, ""},
+		{"sub omit", "sub", "apple", config.CommonNameModeOmitValue, config.CommonNameModeOmit, "common_name mismatch: openvpn client is empty"},
 	} {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
@@ -174,6 +179,11 @@ func TestValidateCommonName(t *testing.T) {
 			}
 
 			conf := config.Config{
+				OpenVpn: config.OpenVpn{
+					CommonName: config.OpenVPNCommonName{
+						Mode: tt.commonNameMode,
+					},
+				},
 				OAuth2: config.OAuth2{
 					Validate: config.OAuth2Validate{
 						CommonName: tt.tokenClaim,

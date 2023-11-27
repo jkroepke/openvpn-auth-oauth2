@@ -1,7 +1,9 @@
 package config
 
 import (
+	"fmt"
 	"net/url"
+	"strings"
 	"text/template"
 	"time"
 )
@@ -36,15 +38,20 @@ type Log struct {
 }
 
 type OpenVpn struct {
-	Addr               *url.URL      `koanf:"addr"`
-	Password           string        `koanf:"password"`
-	Bypass             OpenVpnBypass `koanf:"bypass"`
-	AuthTokenUser      bool          `koanf:"auth-token-user"`
-	AuthPendingTimeout time.Duration `koanf:"auth-pending-timeout"`
+	Addr               *url.URL          `koanf:"addr"`
+	Password           string            `koanf:"password"`
+	Bypass             OpenVpnBypass     `koanf:"bypass"`
+	AuthTokenUser      bool              `koanf:"auth-token-user"`
+	AuthPendingTimeout time.Duration     `koanf:"auth-pending-timeout"`
+	CommonName         OpenVPNCommonName `koanf:"common-name"`
 }
 
 type OpenVpnBypass struct {
 	CommonNames []string `koanf:"cn"`
+}
+
+type OpenVPNCommonName struct {
+	Mode OpenVPNCommonNameMode `koanf:"mode"`
 }
 
 type OAuth2 struct {
@@ -75,4 +82,55 @@ type OAuth2Validate struct {
 	IPAddr     bool     `koanf:"ipaddr"`
 	Issuer     bool     `koanf:"issuer"`
 	CommonName string   `koanf:"common_name"`
+}
+
+type OpenVPNCommonNameMode int
+
+const (
+	CommonNameModePlain OpenVPNCommonNameMode = iota
+	CommonNameModeMD5
+	CommonNameModeSHA1
+	CommonNameModeOmit
+	CommonNameModeOmitValue = "<omit>"
+)
+
+//goland:noinspection GoMixedReceiverTypes
+func (s OpenVPNCommonNameMode) String() string {
+	text, _ := s.MarshalText()
+	return string(text)
+}
+
+//goland:noinspection GoMixedReceiverTypes
+func (s OpenVPNCommonNameMode) MarshalText() ([]byte, error) {
+	switch s {
+	case CommonNameModePlain:
+		return []byte("plain"), nil
+	case CommonNameModeMD5:
+		return []byte("md5"), nil
+	case CommonNameModeSHA1:
+		return []byte("sha1"), nil
+	case CommonNameModeOmit:
+		return []byte("omit"), nil
+	default:
+		return nil, fmt.Errorf("unknown identitfer %d", s)
+	}
+}
+
+//goland:noinspection GoMixedReceiverTypes
+func (s *OpenVPNCommonNameMode) UnmarshalText(text []byte) error {
+	config := strings.ToLower(string(text))
+	switch config {
+	case "plain":
+		*s = CommonNameModePlain
+	case "md5":
+		*s = CommonNameModeMD5
+	case "sha1":
+		*s = CommonNameModeSHA1
+	case "omit":
+		*s = CommonNameModeOmit
+	default:
+		return fmt.Errorf("invalid value %s", config)
+	}
+
+	return nil
 }
