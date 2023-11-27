@@ -11,7 +11,7 @@ import (
 func TestTransformCommonName(t *testing.T) {
 	t.Parallel()
 
-	for _, tc := range []struct {
+	for _, tt := range []struct {
 		mode     config.OpenVPNCommonNameMode
 		expected string
 		actual   string
@@ -37,12 +37,12 @@ func TestTransformCommonName(t *testing.T) {
 			"hello world",
 		},
 	} {
-		tc := tc
+		tt := tt
 
-		t.Run(tc.mode.String(), func(t *testing.T) {
+		t.Run(tt.mode.String(), func(t *testing.T) {
 			t.Parallel()
 
-			assert.Equal(t, tc.expected, utils.TransformCommonName(tc.mode, tc.actual))
+			assert.Equal(t, tt.expected, utils.TransformCommonName(tt.mode, tt.actual))
 		})
 	}
 }

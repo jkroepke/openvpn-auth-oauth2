@@ -97,6 +97,7 @@ const (
 //goland:noinspection GoMixedReceiverTypes
 func (s OpenVPNCommonNameMode) String() string {
 	text, _ := s.MarshalText()
+
 	return string(text)
 }
 
