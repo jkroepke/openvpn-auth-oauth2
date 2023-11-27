@@ -88,8 +88,6 @@ type OpenVPNCommonNameMode int
 
 const (
 	CommonNameModePlain OpenVPNCommonNameMode = iota
-	CommonNameModeMD5
-	CommonNameModeSHA1
 	CommonNameModeOmit
 	CommonNameModeOmitValue = "<omit>"
 )
@@ -106,10 +104,6 @@ func (s OpenVPNCommonNameMode) MarshalText() ([]byte, error) {
 	switch s {
 	case CommonNameModePlain:
 		return []byte("plain"), nil
-	case CommonNameModeMD5:
-		return []byte("md5"), nil
-	case CommonNameModeSHA1:
-		return []byte("sha1"), nil
 	case CommonNameModeOmit:
 		return []byte("omit"), nil
 	default:
@@ -123,10 +117,6 @@ func (s *OpenVPNCommonNameMode) UnmarshalText(text []byte) error {
 	switch config {
 	case "plain":
 		*s = CommonNameModePlain
-	case "md5":
-		*s = CommonNameModeMD5
-	case "sha1":
-		*s = CommonNameModeSHA1
 	case "omit":
 		*s = CommonNameModeOmit
 	default:

@@ -114,7 +114,7 @@ func FlagSet() *flag.FlagSet {
 		"openvpn.common-name.mode",
 		Defaults.OpenVpn.CommonName.Mode.String(),
 		"If common names are too long, use md5/sha1 to hash them or omit to skip them. "+
-			"If omit, oauth2.validate.common-name does not work anymore. Values: [plain,md5,sha1,omit]",
+			"If omit, oauth2.validate.common-name does not work anymore. Values: [plain,omit]",
 	)
 	flagSet.String(
 		"oauth2.issuer",
