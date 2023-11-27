@@ -29,7 +29,7 @@ clean: ## clean builds dir
 check: test lint golangci ## Run all checks locally
 
 .PHONY: build
-build: openvpn-auth-oauth2  ## Build openvpn-auth-oauth2
+build: clean openvpn-auth-oauth2  ## Build openvpn-auth-oauth2
 
 openvpn-auth-oauth2:
 	@go build -o openvpn-auth-oauth2 .

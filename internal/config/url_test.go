@@ -1,10 +1,10 @@
-package utils_test
+package config_test
 
 import (
 	"net/url"
 	"testing"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -37,7 +37,7 @@ func TestIsUrlEmpty(t *testing.T) {
 
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			assert.Equal(t, tt.expect, utils.IsURLEmpty(tt.url))
+			assert.Equal(t, tt.expect, config.IsURLEmpty(tt.url))
 		})
 	}
 }

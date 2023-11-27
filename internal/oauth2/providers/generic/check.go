@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
@@ -85,14 +86,19 @@ func (p *Provider) CheckCommonName(session state.State, tokens *oidc.Tokens[*oid
 		return nil
 	}
 
+	if session.CommonName == "" || session.CommonName == config.CommonNameModeOmitValue {
+		return fmt.Errorf("common_name %w: openvpn client is empty", ErrMismatch)
+	}
+
 	tokenCommonName, ok := tokens.IDTokenClaims.Claims[p.Conf.OAuth2.Validate.CommonName].(string)
 	if !ok {
 		return fmt.Errorf("%w: %s", ErrMissingClaim, p.Conf.OAuth2.Validate.CommonName)
 	}
 
+	tokenCommonName = utils.TransformCommonName(p.Conf.OpenVpn.CommonName.Mode, tokenCommonName)
 	if tokenCommonName != session.CommonName {
 		return fmt.Errorf("common_name %w: openvpn client: %s - oidc token: %s",
-			ErrMismatch, tokenCommonName, session.CommonName)
+			ErrMismatch, session.CommonName, tokenCommonName)
 	}
 
 	return nil

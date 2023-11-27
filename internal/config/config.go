@@ -8,7 +8,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 	flag "github.com/spf13/pflag"
 )
 
@@ -110,6 +109,12 @@ func FlagSet() *flag.FlagSet {
 		"openvpn.bypass.cn",
 		Defaults.OpenVpn.Bypass.CommonNames,
 		"bypass oauth authentication for CNs",
+	)
+	flagSet.String(
+		"openvpn.common-name.mode",
+		Defaults.OpenVpn.CommonName.Mode.String(),
+		"If common names are too long, use md5/sha1 to hash them or omit to skip them. "+
+			"If omit, oauth2.validate.common-name does not work anymore. Values: [plain,omit]",
 	)
 	flagSet.String(
 		"oauth2.issuer",
@@ -217,7 +222,7 @@ func Validate(mode int, conf Config) error { //nolint:cyclop
 		"http.baseurl":  conf.HTTP.BaseURL,
 		"oauth2.issuer": conf.OAuth2.Issuer,
 	} {
-		if utils.IsURLEmpty(value) {
+		if IsURLEmpty(value) {
 			return fmt.Errorf("%s is %w", key, ErrRequired)
 		}
 	}
@@ -233,12 +238,12 @@ func Validate(mode int, conf Config) error { //nolint:cyclop
 		"oauth2.endpoint.token":     conf.OAuth2.Endpoints.Token,
 		"oauth2.endpoint.auth":      conf.OAuth2.Endpoints.Auth,
 	} {
-		if utils.IsURLEmpty(uri) {
+		if IsURLEmpty(uri) {
 			continue
 		}
 
 		if !slices.Contains([]string{"http", "https"}, uri.Scheme) {
-			return errors.New(utils.StringConcat(key, ": invalid URL. only http:// or https:// scheme supported"))
+			return fmt.Errorf("%s: invalid URL. only http:// or https:// scheme supported", key)
 		}
 	}
 
@@ -246,7 +251,7 @@ func Validate(mode int, conf Config) error { //nolint:cyclop
 		for key, value := range map[string]*url.URL{
 			"openvpn.addr": conf.OpenVpn.Addr,
 		} {
-			if utils.IsURLEmpty(value) {
+			if IsURLEmpty(value) {
 				return fmt.Errorf("%s is %w", key, ErrRequired)
 			}
 		}

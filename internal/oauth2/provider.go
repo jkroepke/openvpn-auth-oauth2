@@ -71,7 +71,7 @@ func NewProvider(logger *slog.Logger, conf config.Config) (Provider, error) {
 	}
 
 	if endpoints == (oauth2.Endpoint{}) {
-		if !utils.IsURLEmpty(conf.OAuth2.Endpoints.Discovery) {
+		if !config.IsURLEmpty(conf.OAuth2.Endpoints.Discovery) {
 			logger.Info(utils.StringConcat(
 				"discover oidc auto configuration with provider ",
 				provider.GetName(), " for issuer ", conf.OAuth2.Issuer.String(),
