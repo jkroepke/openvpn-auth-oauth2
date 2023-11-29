@@ -4,3 +4,5 @@ use (
 	.
 	pkg/plugin
 )
+
+replace github.com/jkroepke/openvpn-auth-oauth2 v0.0.0 => ./

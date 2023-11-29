@@ -2,7 +2,9 @@ module github.com/jkroepke/openvpn-auth-oauth2/pkg/plugin
 
 go 1.21
 
-require github.com/jkroepke/openvpn-auth-oauth2 v1.11.0
+require github.com/jkroepke/openvpn-auth-oauth2 v0.0.0
+
+replace github.com/jkroepke/openvpn-auth-oauth2 v0.0.0 => ../../
 
 require (
 	github.com/fatih/structs v1.1.0 // indirect
@@ -29,7 +31,7 @@ require (
 	github.com/zitadel/oidc/v3 v3.4.0 // indirect
 	github.com/zitadel/schema v1.3.0 // indirect
 	golang.org/x/crypto v0.16.0 // indirect
-	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa // indirect
+	golang.org/x/exp v0.0.0-20231127185646-65229373498e // indirect
 	golang.org/x/oauth2 v0.15.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
