@@ -89,7 +89,7 @@ type OpenVPNCommonNameMode int
 const (
 	CommonNameModePlain OpenVPNCommonNameMode = iota
 	CommonNameModeOmit
-	CommonNameModeOmitValue = "<omit>"
+	CommonNameModeOmitValue = "-"
 )
 
 //goland:noinspection GoMixedReceiverTypes
