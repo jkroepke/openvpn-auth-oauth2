@@ -26,8 +26,8 @@ type ClientIdentifier struct {
 	AuthControlFile      string
 }
 
-func New(client ClientIdentifier, ipaddr, commonName string) *State {
-	return &State{
+func New(client ClientIdentifier, ipaddr, commonName string) State {
+	return State{
 		Client:     client,
 		Ipaddr:     ipaddr,
 		CommonName: commonName,
@@ -35,13 +35,13 @@ func New(client ClientIdentifier, ipaddr, commonName string) *State {
 	}
 }
 
-func NewEncoded(state string) *State {
-	return &State{
+func NewEncoded(state string) State {
+	return State{
 		encoded: state,
 	}
 }
 
-func (state *State) Encoded() string {
+func (state State) Encoded() string {
 	return state.encoded
 }
 
