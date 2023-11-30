@@ -87,6 +87,7 @@ func (state *State) Decode(secretKey string) error {
 
 func (state *State) Encode(secretKey string) error {
 	var data bytes.Buffer
+
 	_, err := fmt.Fprintln(&data,
 		state.Client.Cid,
 		state.Client.Kid,
