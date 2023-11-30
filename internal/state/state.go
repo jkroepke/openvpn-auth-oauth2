@@ -41,14 +41,14 @@ func NewEncoded(state string) State {
 	}
 }
 
-func (state State) Encoded() string {
+func (state *State) Encoded() string {
 	return state.encoded
 }
 
 func (state *State) Decode(secretKey string) error {
 	encrypted, err := base64.RawURLEncoding.DecodeString(state.encoded)
 	if err != nil {
-		return err
+		return fmt.Errorf("base64 decode %s: %w", state.encoded, err)
 	}
 
 	data, err := crypto.DecryptBytesAES(encrypted, secretKey)
@@ -96,7 +96,6 @@ func (state *State) Encode(secretKey string) error {
 		encodeString(state.CommonName),
 		state.Issued,
 	)
-
 	if err != nil {
 		return fmt.Errorf("encode: %w", err)
 	}
