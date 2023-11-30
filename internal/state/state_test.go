@@ -44,7 +44,7 @@ func TestStateInvalid_Future(t *testing.T) {
 	encryptionKey := testutils.HTTPSecret
 
 	token := state.New(state.ClientIdentifier{Cid: 1, Kid: 2}, "127.0.0.1", "test")
-	token.Issued = time.Now().Add(time.Hour)
+	token.Issued = time.Now().Add(time.Hour).Unix()
 
 	require.NoError(t, token.Encode(encryptionKey))
 	assert.Contains(t, token.Decode(encryptionKey).Error(), "invalid state: issued in future, issued at:")
@@ -56,7 +56,7 @@ func TestStateInvalid_TooOld(t *testing.T) {
 	encryptionKey := testutils.HTTPSecret
 
 	token := state.New(state.ClientIdentifier{Cid: 1, Kid: 2}, "127.0.0.1", "test")
-	token.Issued = time.Now().Add(-1 * time.Hour)
+	token.Issued = time.Now().Add(-1 * time.Hour).Unix()
 
 	require.NoError(t, token.Encode(encryptionKey))
 	assert.Contains(t, token.Decode(encryptionKey).Error(), "invalid state: expired after 2 minutes, issued at:")

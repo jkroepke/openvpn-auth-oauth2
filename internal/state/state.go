@@ -1,35 +1,37 @@
 package state
 
 import (
-	"encoding/json"
+	"bytes"
+	"encoding/base64"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/zitadel/oidc/v3/pkg/crypto"
 )
 
 type State struct {
-	Client     ClientIdentifier `json:"c"`
-	Ipaddr     string           `json:"ip"`
-	CommonName string           `json:"cn"`
-	Issued     time.Time        `json:"iss"`
+	Client     ClientIdentifier
+	Ipaddr     string
+	CommonName string
+	Issued     int64
 
 	encoded string
 }
 
 type ClientIdentifier struct {
-	Cid                  uint64 `json:"c"`
-	Kid                  uint64 `json:"k"`
-	AuthFailedReasonFile string `json:"afr"`
-	AuthControlFile      string `json:"ac"`
+	Cid                  uint64
+	Kid                  uint64
+	AuthFailedReasonFile string
+	AuthControlFile      string
 }
 
-func New(client ClientIdentifier, ipaddr, commonName string) *State {
-	return &State{
+func New(client ClientIdentifier, ipaddr, commonName string) State {
+	return State{
 		Client:     client,
 		Ipaddr:     ipaddr,
 		CommonName: commonName,
-		Issued:     time.Now(),
+		Issued:     time.Now().Round(time.Second).Unix(),
 	}
 }
 
@@ -44,36 +46,79 @@ func (state *State) Encoded() string {
 }
 
 func (state *State) Decode(secretKey string) error {
-	jsonState, err := crypto.DecryptAES(state.encoded, secretKey)
+	encrypted, err := base64.RawURLEncoding.DecodeString(state.encoded)
+	if err != nil {
+		return fmt.Errorf("base64 decode %s: %w", state.encoded, err)
+	}
+
+	data, err := crypto.DecryptBytesAES(encrypted, secretKey)
 	if err != nil {
 		return fmt.Errorf("invalid state %s: %w", state.encoded, err)
 	}
 
-	if err := json.Unmarshal([]byte(jsonState), &state); err != nil {
-		return fmt.Errorf("json decode: %w", err)
+	_, err = fmt.Fscanln(bytes.NewReader(data),
+		&state.Client.Cid,
+		&state.Client.Kid,
+		&state.Client.AuthFailedReasonFile,
+		&state.Client.AuthControlFile,
+		&state.Ipaddr,
+		&state.CommonName,
+		&state.Issued,
+	)
+
+	if err != nil {
+		return fmt.Errorf("decode: %w", err)
 	}
 
-	issuedSince := time.Since(state.Issued)
+	state.Client.AuthFailedReasonFile = decodeString(state.Client.AuthFailedReasonFile)
+	state.Client.AuthControlFile = decodeString(state.Client.AuthControlFile)
+	state.CommonName = decodeString(state.CommonName)
+
+	issuedSince := time.Since(time.Unix(state.Issued, 0))
 
 	if issuedSince >= time.Minute*2 {
-		return fmt.Errorf("%w: expired after 2 minutes, issued at: %s", ErrInvalid, state.Issued.String())
+		return fmt.Errorf("%w: expired after 2 minutes, issued at: %s", ErrInvalid, issuedSince.String())
 	} else if issuedSince <= time.Second*-5 {
-		return fmt.Errorf("%w: issued in future, issued at: %s", ErrInvalid, state.Issued.String())
+		return fmt.Errorf("%w: issued in future, issued at: %s", ErrInvalid, issuedSince.String())
 	}
 
 	return nil
 }
 
 func (state *State) Encode(secretKey string) error {
-	jsonState, err := json.Marshal(state)
+	var data bytes.Buffer
+
+	_, err := fmt.Fprintln(&data,
+		state.Client.Cid,
+		state.Client.Kid,
+		encodeString(state.Client.AuthFailedReasonFile),
+		encodeString(state.Client.AuthControlFile),
+		state.Ipaddr,
+		encodeString(state.CommonName),
+		state.Issued,
+	)
 	if err != nil {
-		return fmt.Errorf("json encode: %w", err)
+		return fmt.Errorf("encode: %w", err)
 	}
 
-	state.encoded, err = crypto.EncryptAES(string(jsonState), secretKey)
+	encrypted, err := crypto.EncryptBytesAES(data.Bytes(), secretKey)
 	if err != nil {
 		return fmt.Errorf("encrypt aes: %w", err)
 	}
 
+	state.encoded = base64.RawURLEncoding.EncodeToString(encrypted)
+
 	return nil
+}
+
+func encodeString(text string) string {
+	if text == "" {
+		return "\x00"
+	}
+
+	return strings.ReplaceAll(text, " ", "\x00")
+}
+
+func decodeString(text string) string {
+	return strings.ReplaceAll(text, "\x00", " ")
 }
