@@ -66,7 +66,7 @@ https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Configuration
 
 Licensed under the [MIT License](LICENSE.txt)
 
-## Thanks
+# Thanks
 
 - [JetBrains IDEs](https://www.jetbrains.com/?from=jkroepke)
 
