@@ -65,3 +65,9 @@ https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Configuration
 © [2023 Jan-Otto Kröpke (jkroepke)](https://github.com/jkroepke/openvpn-auth-oauth2)
 
 Licensed under the [MIT License](LICENSE.txt)
+
+## Thanks
+
+- [JetBrains IDEs](https://www.jetbrains.com/?from=jkroepke)
+
+[![JetBrains-Logo (Haupt) logo](https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.svg)](https://www.jetbrains.com/?from=jkroepke)
