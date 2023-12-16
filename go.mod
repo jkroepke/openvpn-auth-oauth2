@@ -3,8 +3,8 @@ module github.com/jkroepke/openvpn-auth-oauth2
 go 1.21
 
 require (
-	github.com/knadh/koanf/maps v0.1.1
 	github.com/knadh/koanf/parsers/yaml v0.1.0
+	github.com/knadh/koanf/providers/basicflag v0.1.0
 	github.com/knadh/koanf/providers/env v0.1.0
 	github.com/knadh/koanf/providers/file v0.1.0
 	github.com/knadh/koanf/providers/structs v0.1.0
@@ -28,6 +28,7 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/uuid v1.4.0 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
+	github.com/knadh/koanf/maps v0.1.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
@@ -48,3 +49,5 @@ require (
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/knadh/koanf/providers/basicflag v0.1.0 => github.com/knadh/koanf/providers/basicflag v0.0.0-20231215124341-b92d5e403ef3

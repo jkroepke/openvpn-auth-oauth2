@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"github.com/knadh/koanf/parsers/yaml"
+	"github.com/knadh/koanf/providers/basicflag"
+	_ "github.com/knadh/koanf/providers/basicflag"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/providers/structs"
@@ -31,7 +33,8 @@ func Load(mode int, configFile string, flagSet *flag.FlagSet) (Config, error) {
 	}
 
 	if flagSet != nil {
-		if err = k.Load(newFlagProvider(flagSet, ".", k), nil); err != nil {
+		if err = k.Load(basicflag.Provider(flagSet, ".", &basicflag.Opt{KeyMap: k}), nil); err != nil {
+			// if err = k.Load(newFlagProvider(flagSet, ".", k), nil); err != nil {
 			return Config{}, fmt.Errorf("posflag provider: %w", err)
 		}
 	}

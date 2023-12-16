@@ -206,7 +206,7 @@ func TestClientFull(t *testing.T) {
 
 				if tt.conf.OpenVpn.Password != "" {
 					testutils.SendLine(t, conn, "ENTER PASSWORD:")
-					assert.Equal(t, tt.conf.OpenVpn.Password, testutils.ReadLine(t, reader))
+					assert.Equal(t, tt.conf.OpenVpn.Password.String(), testutils.ReadLine(t, reader))
 					testutils.SendLine(t, conn, "SUCCESS: password is correct\r\n")
 				}
 
@@ -242,7 +242,7 @@ func TestClientFull(t *testing.T) {
 					assert.Len(t, matches, 2)
 
 					sessionState := state.NewEncoded(matches[1])
-					err := sessionState.Decode(tt.conf.HTTP.Secret)
+					err := sessionState.Decode(tt.conf.HTTP.Secret.String())
 					require.NoError(t, err)
 
 					assert.Equal(t, uint64(1), sessionState.Client.Cid)
@@ -299,7 +299,7 @@ func TestClientInvalidPassword(t *testing.T) {
 		reader := bufio.NewReader(conn)
 
 		testutils.SendLine(t, conn, "ENTER PASSWORD:")
-		assert.Equal(t, conf.OpenVpn.Password, testutils.ReadLine(t, reader))
+		assert.Equal(t, conf.OpenVpn.Password.String(), testutils.ReadLine(t, reader))
 		testutils.SendLine(t, conn, "ERROR: bad password\r\n")
 	}()
 

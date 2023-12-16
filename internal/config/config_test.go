@@ -36,10 +36,10 @@ func TestFlagSet(t *testing.T) {
 	} {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
+			// t.Parallel()
 
 			flagSet := config.FlagSet()
-			err := flagSet.Parse(append([]string{"openvpn-auth-oauth2"}, tt.args...))
+			err := flagSet.Parse(tt.args)
 			require.NoError(t, err)
 			for arg, expected := range tt.expectArgs {
 				switch expectedTyped := expected.(type) {
