@@ -18,5 +18,6 @@ func (stringSlice StringSlice) MarshalText() ([]byte, error) {
 //goland:noinspection GoMixedReceiverTypes
 func (stringSlice *StringSlice) UnmarshalText(text []byte) error {
 	*stringSlice = strings.Split(string(text), ",")
+
 	return nil
 }

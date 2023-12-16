@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"strings"
 )
@@ -28,12 +29,15 @@ func (secret *Secret) UnmarshalText(text []byte) error {
 	stringText := string(text)
 	if !strings.HasPrefix(stringText, "file://") {
 		*secret = Secret(stringText)
+
 		return nil
 	}
 
-	body, err := os.ReadFile(strings.TrimPrefix(stringText, "file://"))
+	file := strings.TrimPrefix(stringText, "file://")
+
+	body, err := os.ReadFile(file)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable read secret from file %s: %w", file, err)
 	}
 
 	*secret = Secret(body)
