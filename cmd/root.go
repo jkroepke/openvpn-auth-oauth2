@@ -21,9 +21,7 @@ import (
 func Execute(args []string, logWriter io.Writer, version, commit, date string) int {
 	var err error
 
-	logger := slog.New(slog.NewTextHandler(logWriter, &slog.HandlerOptions{
-		AddSource: false,
-	}))
+	logger := defaultLogger(logWriter)
 
 	flagSet := config.FlagSet()
 	if err = flagSet.Parse(args[1:]); err != nil {
@@ -51,9 +49,7 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 
 	logger, err = configureLogger(conf, logWriter)
 	if err != nil {
-		logger := slog.New(slog.NewTextHandler(logWriter, &slog.HandlerOptions{
-			AddSource: false,
-		}))
+		logger = defaultLogger(logWriter)
 		logger.Error(fmt.Errorf("error configure logging: %w", err).Error())
 
 		return 1
@@ -121,6 +117,12 @@ func shutdown(logger *slog.Logger, openvpnClient *openvpn.Client, server http.Se
 	}
 
 	logger.Info("http listener successfully terminated")
+}
+
+func defaultLogger(writer io.Writer) *slog.Logger {
+	return slog.New(slog.NewTextHandler(writer, &slog.HandlerOptions{
+		AddSource: false,
+	}))
 }
 
 func configureLogger(conf config.Config, writer io.Writer) (*slog.Logger, error) {

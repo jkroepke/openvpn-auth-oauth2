@@ -42,5 +42,5 @@ func (secret *Secret) UnmarshalText(text []byte) error {
 
 	*secret = Secret(body)
 
-	return err
+	return nil
 }
