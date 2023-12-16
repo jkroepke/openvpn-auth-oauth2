@@ -2,7 +2,6 @@
 package config
 
 import (
-	"encoding"
 	"fmt"
 	"net/url"
 	"path"
@@ -84,34 +83,5 @@ func StringToTemplateHookFunc() mapstructure.DecodeHookFuncType {
 		}
 
 		return tmpl, err
-	}
-}
-
-// TextUnmarshallerHookFunc returns a [mapstructure.DecodeHookFuncType] that applies
-// strings to the UnmarshalText function, when the target type
-// implements the [encoding.TextUnmarshaler] interface
-//
-// See: https://github.com/mitchellh/mapstructure/pull/328
-func TextUnmarshallerHookFunc() mapstructure.DecodeHookFuncType {
-	return func(
-		f reflect.Type,
-		t reflect.Type,
-		data interface{}) (interface{}, error) {
-		if f.Kind() != reflect.String {
-			return data, nil
-		}
-		result := reflect.New(t).Interface()
-		unmarshaller, ok := result.(encoding.TextUnmarshaler)
-		if !ok {
-			return data, nil
-		}
-		str, ok := data.(string)
-		if !ok {
-			str = reflect.Indirect(reflect.ValueOf(&data)).Elem().String()
-		}
-		if err := unmarshaller.UnmarshalText([]byte(str)); err != nil {
-			return nil, err
-		}
-		return result, nil
 	}
 }

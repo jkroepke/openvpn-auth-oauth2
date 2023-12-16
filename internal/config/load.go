@@ -59,7 +59,7 @@ func Load(mode int, configFile string, flagSet *flag.FlagSet) (Config, error) {
 		DecoderConfig: &mapstructure.DecoderConfig{
 			DecodeHook: mapstructure.ComposeDecodeHookFunc(
 				mapstructure.StringToTimeDurationHookFunc(),
-				TextUnmarshallerHookFunc(),
+				mapstructure.TextUnmarshallerHookFunc(),
 				StringToURLHookFunc(),
 				StringToTemplateHookFunc(),
 			),
