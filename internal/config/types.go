@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log/slog"
 	"net/url"
 	"strings"
 	"text/template"
@@ -22,7 +23,7 @@ type HTTP struct {
 	KeyFile            string             `koanf:"key"`
 	TLS                bool               `koanf:"tls"`
 	BaseURL            *url.URL           `koanf:"baseurl"`
-	Secret             string             `koanf:"secret"`
+	Secret             Secret             `koanf:"secret"`
 	CallbackTemplate   *template.Template `koanf:"template"`
 	Check              HTTPCheck          `koanf:"check"`
 	EnableProxyHeaders bool               `koanf:"enable-proxy-headers"`
@@ -33,13 +34,13 @@ type HTTPCheck struct {
 }
 
 type Log struct {
-	Format string `koanf:"format"`
-	Level  string `koanf:"level"`
+	Format string     `koanf:"format"`
+	Level  slog.Level `koanf:"level"`
 }
 
 type OpenVpn struct {
 	Addr               *url.URL          `koanf:"addr"`
-	Password           string            `koanf:"password"`
+	Password           Secret            `koanf:"password"`
 	Bypass             OpenVpnBypass     `koanf:"bypass"`
 	AuthTokenUser      bool              `koanf:"auth-token-user"`
 	AuthPendingTimeout time.Duration     `koanf:"auth-pending-timeout"`
@@ -47,7 +48,7 @@ type OpenVpn struct {
 }
 
 type OpenVpnBypass struct {
-	CommonNames []string `koanf:"cn"`
+	CommonNames StringSlice `koanf:"cn"`
 }
 
 type OpenVPNCommonName struct {
@@ -60,14 +61,14 @@ type OAuth2 struct {
 	AuthorizeParams string          `koanf:"authorize-params"`
 	Endpoints       OAuth2Endpoints `koanf:"endpoint"`
 	Client          OAuth2Client    `koanf:"client"`
-	Scopes          []string        `koanf:"scopes"`
+	Scopes          StringSlice     `koanf:"scopes"`
 	Pkce            bool            `koanf:"pkce"`
 	Validate        OAuth2Validate  `koanf:"validate"`
 }
 
 type OAuth2Client struct {
 	ID     string `koanf:"id"`
-	Secret string `koanf:"secret"`
+	Secret Secret `koanf:"secret"`
 }
 
 type OAuth2Endpoints struct {
@@ -77,11 +78,11 @@ type OAuth2Endpoints struct {
 }
 
 type OAuth2Validate struct {
-	Groups     []string `koanf:"groups"`
-	Roles      []string `koanf:"roles"`
-	IPAddr     bool     `koanf:"ipaddr"`
-	Issuer     bool     `koanf:"issuer"`
-	CommonName string   `koanf:"common_name"`
+	Groups     StringSlice `koanf:"groups"`
+	Roles      StringSlice `koanf:"roles"`
+	IPAddr     bool        `koanf:"ipaddr"`
+	Issuer     bool        `koanf:"issuer"`
+	CommonName string      `koanf:"common_name"`
 }
 
 type OpenVPNCommonNameMode int

@@ -102,7 +102,7 @@ func newProviderWithEndpoints(
 ) (Provider, error) {
 	rpConfig := &oauth2.Config{
 		ClientID:     conf.OAuth2.Client.ID,
-		ClientSecret: conf.OAuth2.Client.Secret,
+		ClientSecret: conf.OAuth2.Client.Secret.String(),
 		RedirectURL:  redirectURI,
 		Scopes:       scopes,
 		Endpoint:     endpoints,
@@ -127,7 +127,7 @@ func newProviderWithDiscovery(
 		context.Background(),
 		conf.OAuth2.Issuer.String(),
 		conf.OAuth2.Client.ID,
-		conf.OAuth2.Client.Secret,
+		conf.OAuth2.Client.Secret.String(),
 		redirectURI,
 		scopes,
 		options...,

@@ -27,6 +27,20 @@ func TestExecuteVersion(t *testing.T) {
 	assert.Equal(t, 0, returnCode, buf.String())
 }
 
+func TestExecuteHelp(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	_ = io.Writer(&buf)
+
+	returnCode := cmd.Execute([]string{"openvpn-auth-oauth2-test", "--help"}, &buf, "version", "commit", "date")
+	output := buf.String()
+
+	assert.Equal(t, 0, returnCode, buf.String())
+	assert.Contains(t, output, "Usage of openvpn-auth-oauth2-test")
+	assert.Contains(t, output, "--version")
+}
+
 func TestExecuteConfigInvalid(t *testing.T) {
 	t.Parallel()
 
@@ -53,7 +67,7 @@ func TestExecuteConfigInvalid(t *testing.T) {
 		{
 			"invalid log level",
 			[]string{"", "--config=../config.example.yaml", "--log.format=console", "--log.level=invalid", "--http.secret=1234567891111213"},
-			`error configure logging: unable to parse log level: slog: level string \"invalid\": unknown name`,
+			`error parsing cli args: invalid value \"invalid\" for flag -log.level: slog: level string \"invalid\": unknown name`,
 		},
 		{
 			"error oidc provider",

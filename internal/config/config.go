@@ -2,13 +2,12 @@ package config
 
 import (
 	"errors"
+	"flag"
 	"fmt"
+	"log/slog"
 	"net/url"
-	"os"
 	"slices"
 	"strings"
-
-	flag "github.com/spf13/pflag"
 )
 
 const (
@@ -17,25 +16,28 @@ const (
 )
 
 // FlagSet configure the command line parser using the [flag] library.
-func FlagSet() *flag.FlagSet {
-	flagSet := flag.NewFlagSet("openvpn-auth-oauth2", flag.ContinueOnError)
+func FlagSet(name string) *flag.FlagSet {
+	flagSet := flag.NewFlagSet(name, flag.ContinueOnError)
 	flagSet.Usage = func() {
-		fmt.Println("Usage of openvpn-auth-oauth2:")
+		fmt.Fprintf(flagSet.Output(), "Usage of %s:\n\n", name)
+		// --help should display options with double dash
+		flagSet.VisitAll(func(flag *flag.Flag) {
+			flag.Name = "-" + flag.Name
+		})
 		flagSet.PrintDefaults()
-		os.Exit(0)
 	}
 
 	flagSet.String(
 		"config",
 		"",
-		"path to one .yaml config files",
+		"path to one .yaml config file",
 	)
 	flagSet.String(
 		"log.format",
 		Defaults.Log.Format,
 		"log format. json or console",
 	)
-	flagSet.String(
+	flagSet.TextVar(new(slog.Level),
 		"log.level",
 		Defaults.Log.Level,
 		"log level",
@@ -55,7 +57,7 @@ func FlagSet() *flag.FlagSet {
 		Defaults.HTTP.BaseURL.String(),
 		"listen addr for client listener",
 	)
-	flagSet.String(
+	flagSet.TextVar(new(Secret),
 		"http.secret",
 		Defaults.HTTP.Secret,
 		"Cookie secret",
@@ -90,7 +92,7 @@ func FlagSet() *flag.FlagSet {
 		Defaults.OpenVpn.Addr.String(),
 		"openvpn management interface addr. Must start with unix:// or tcp://",
 	)
-	flagSet.String(
+	flagSet.TextVar(new(Secret),
 		"openvpn.password",
 		Defaults.OpenVpn.Password,
 		"openvpn management interface password",
@@ -105,7 +107,7 @@ func FlagSet() *flag.FlagSet {
 		Defaults.OpenVpn.AuthPendingTimeout.String(),
 		"How long OpenVPN server wait until user is authenticated",
 	)
-	flagSet.StringSlice(
+	flagSet.TextVar(new(StringSlice),
 		"openvpn.bypass.cn",
 		Defaults.OpenVpn.Bypass.CommonNames,
 		"bypass oauth authentication for CNs",
@@ -151,17 +153,17 @@ func FlagSet() *flag.FlagSet {
 		Defaults.OAuth2.Client.ID,
 		"oauth2 client id",
 	)
-	flagSet.String(
+	flagSet.TextVar(new(Secret),
 		"oauth2.client.secret",
 		Defaults.OAuth2.Client.Secret,
 		"oauth2 client secret",
 	)
-	flagSet.StringSlice(
+	flagSet.TextVar(new(StringSlice),
 		"oauth2.validate.groups",
 		Defaults.OAuth2.Validate.Groups,
 		"oauth2 required user groups",
 	)
-	flagSet.StringSlice(
+	flagSet.TextVar(new(StringSlice),
 		"oauth2.validate.roles",
 		Defaults.OAuth2.Validate.Roles,
 		"oauth2 required user roles",
@@ -181,7 +183,7 @@ func FlagSet() *flag.FlagSet {
 		Defaults.OAuth2.Validate.CommonName,
 		"validate common_name from OpenVPN with IDToken claim",
 	)
-	flagSet.StringSlice(
+	flagSet.TextVar(new(StringSlice),
 		"oauth2.scopes",
 		Defaults.OAuth2.Scopes,
 		"oauth2 token scopes. Defaults depends on oauth2.provider",
@@ -210,10 +212,17 @@ func FlagSet() *flag.FlagSet {
 // Validate validates the config.
 func Validate(mode int, conf Config) error { //nolint:cyclop
 	for key, value := range map[string]string{
-		"http.secret":      conf.HTTP.Secret,
 		"oauth2.client.id": conf.OAuth2.Client.ID,
 	} {
 		if value == "" {
+			return fmt.Errorf("%s is %w", key, ErrRequired)
+		}
+	}
+
+	for key, value := range map[string]Secret{
+		"http.secret": conf.HTTP.Secret,
+	} {
+		if value.String() == "" {
 			return fmt.Errorf("%s is %w", key, ErrRequired)
 		}
 	}

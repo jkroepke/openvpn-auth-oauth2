@@ -12,6 +12,7 @@ import (
 )
 
 //nolint:gochecknoglobals
+//goland:noinspection GoUnusedGlobalVariable
 var (
 	version = "dev"
 	commit  = "none"

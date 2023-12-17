@@ -124,7 +124,7 @@ func openvpn_plugin_func_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_
 		AuthFailedReasonFile: client.AuthFailedReasonFile,
 	}
 	session := state.New(clientIdentifier, client.IpAddr, client.CommonName)
-	if err := session.Encode(handle.conf.HTTP.Secret); err != nil {
+	if err := session.Encode(handle.conf.HTTP.Secret.String()); err != nil {
 		handle.logger.Error(fmt.Errorf("encoding state: %w", err).Error())
 		return C.OPENVPN_PLUGIN_FUNC_ERROR
 	}

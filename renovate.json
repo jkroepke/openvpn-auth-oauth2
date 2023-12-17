@@ -8,5 +8,6 @@
   ],
   "labels": ["dependencies"],
   "dependencyDashboardApproval": true,
-  "postUpdateOptions": ["gomodTidy"]
+  "postUpdateOptions": ["gomodTidy"],
+  "ignoreDeps": ["github.com/jkroepke/openvpn-auth-oauth2"]
 }

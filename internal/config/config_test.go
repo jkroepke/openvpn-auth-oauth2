@@ -1,7 +1,11 @@
 package config_test
 
 import (
+	"bytes"
+	"flag"
+	"io"
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
@@ -37,27 +41,42 @@ func TestFlagSet(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			flagSet := config.FlagSet()
-			err := flagSet.Parse(append([]string{"openvpn-auth-oauth2"}, tt.args...))
+			var buf bytes.Buffer
+			_ = io.Writer(&buf)
+
+			flagSet := config.FlagSet("")
+			flagSet.SetOutput(&buf)
+			err := flagSet.Parse(tt.args)
 			require.NoError(t, err)
 			for arg, expected := range tt.expectArgs {
 				switch expectedTyped := expected.(type) {
 				case string:
-					value, err := flagSet.GetString(arg)
-					require.NoError(t, err)
+					value := flagSet.Lookup(arg).Value.String()
 					assert.Equal(t, expectedTyped, value)
 				case bool:
-					value, err := flagSet.GetBool(arg)
-					require.NoError(t, err)
+					value := flagSet.Lookup(arg).Value.String() == "true"
 					assert.Equal(t, expectedTyped, value)
 				case []string:
-					value, err := flagSet.GetStringSlice(arg)
-					require.NoError(t, err)
+					value := strings.Split(flagSet.Lookup(arg).Value.String(), ",")
 					assert.Equal(t, expectedTyped, value)
 				}
 			}
 		})
 	}
+}
+
+func TestFlagSetHelp(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	_ = io.Writer(&buf)
+
+	flagSet := config.FlagSet("")
+	flagSet.SetOutput(&buf)
+
+	err := flagSet.Parse([]string{"--help"})
+
+	require.ErrorIs(t, flag.ErrHelp, err)
 }
 
 func TestValidate(t *testing.T) {

@@ -159,7 +159,7 @@ func TestNewProvider(t *testing.T) {
 			require.NoError(t, err)
 
 			assert.Equal(t, provider.OAuthConfig().ClientID, tt.config.OAuth2.Client.ID)
-			assert.Equal(t, provider.OAuthConfig().ClientSecret, tt.config.OAuth2.Client.Secret)
+			assert.Equal(t, provider.OAuthConfig().ClientSecret, tt.config.OAuth2.Client.Secret.String())
 			if tt.config.OAuth2.Endpoints.Auth != nil {
 				assert.Equal(t, provider.OAuthConfig().Endpoint.AuthURL, tt.config.OAuth2.Endpoints.Auth.String())
 			} else {

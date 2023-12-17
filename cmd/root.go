@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"log/slog"
@@ -16,29 +18,32 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
+//nolint:cyclop
 func Execute(args []string, logWriter io.Writer, version, commit, date string) int {
 	var err error
 
-	logger := slog.New(slog.NewTextHandler(logWriter, &slog.HandlerOptions{
-		AddSource: false,
-	}))
+	logger := defaultLogger(logWriter)
 
-	flagSet := config.FlagSet()
+	flagSet := config.FlagSet(args[0])
+	flagSet.SetOutput(logWriter)
+
 	if err = flagSet.Parse(args[1:]); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return 0
+		}
+
 		logger.Error(fmt.Errorf("error parsing cli args: %w", err).Error())
 
 		return 1
 	}
 
-	if versionFlag, _ := flagSet.GetBool("version"); versionFlag {
-		fmt.Printf("version: %s\ncommit: %s\ndate: %s\ngo: %s\n", version, commit, date, runtime.Version())
+	if flagSet.Lookup("version").Value.String() == "true" {
+		fmt.Fprintf(logWriter, "version: %s\ncommit: %s\ndate: %s\ngo: %s\n", version, commit, date, runtime.Version())
 
 		return 0
 	}
 
-	configFile, _ := flagSet.GetString("config")
-
-	conf, err := config.Load(config.ManagementClient, configFile, flagSet)
+	conf, err := config.Load(config.ManagementClient, flagSet.Lookup("config").Value.String(), flagSet)
 	if err != nil {
 		logger.Error(fmt.Errorf("error loading config: %w", err).Error())
 
@@ -47,9 +52,7 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 
 	logger, err = configureLogger(conf, logWriter)
 	if err != nil {
-		logger := slog.New(slog.NewTextHandler(logWriter, &slog.HandlerOptions{
-			AddSource: false,
-		}))
+		logger = defaultLogger(logWriter)
 		logger.Error(fmt.Errorf("error configure logging: %w", err).Error())
 
 		return 1
@@ -91,7 +94,7 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 	}()
 
 	termCh := make(chan os.Signal, 1)
-	signal.Notify(termCh, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(termCh, os.Interrupt, syscall.SIGTERM)
 
 	var returnCode int
 	select {
@@ -119,17 +122,16 @@ func shutdown(logger *slog.Logger, openvpnClient *openvpn.Client, server http.Se
 	logger.Info("http listener successfully terminated")
 }
 
+func defaultLogger(writer io.Writer) *slog.Logger {
+	return slog.New(slog.NewTextHandler(writer, &slog.HandlerOptions{
+		AddSource: false,
+	}))
+}
+
 func configureLogger(conf config.Config, writer io.Writer) (*slog.Logger, error) {
-	var level slog.Level
-
-	err := level.UnmarshalText([]byte(conf.Log.Level))
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse log level: %w", err)
-	}
-
 	opts := &slog.HandlerOptions{
 		AddSource: false,
-		Level:     level,
+		Level:     conf.Log.Level,
 	}
 
 	switch conf.Log.Format {
