@@ -37,7 +37,7 @@ func (secret *Secret) UnmarshalText(text []byte) error {
 
 	body, err := os.ReadFile(file)
 	if err != nil {
-		return fmt.Errorf("unable read secret from file %s: %w", file, err)
+		return fmt.Errorf("unable read secret: %w", err)
 	}
 
 	*secret = Secret(body)
