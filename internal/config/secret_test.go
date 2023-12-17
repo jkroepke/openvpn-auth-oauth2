@@ -17,6 +17,8 @@ func TestSecretString(t *testing.T) {
 }
 
 func TestSecretMarshalText(t *testing.T) {
+	t.Parallel()
+
 	secret, err := config.Secret("SECRET").MarshalText()
 
 	require.NoError(t, err)
@@ -24,6 +26,8 @@ func TestSecretMarshalText(t *testing.T) {
 }
 
 func TestSecretUnmarshalText(t *testing.T) {
+	t.Parallel()
+
 	var secret config.Secret
 	require.NoError(t, secret.UnmarshalText([]byte("SECRET")))
 
@@ -31,6 +35,8 @@ func TestSecretUnmarshalText(t *testing.T) {
 }
 
 func TestSecretUnmarshalTextFile(t *testing.T) {
+	t.Parallel()
+
 	var secret config.Secret
 	err := secret.UnmarshalText([]byte("file:///nonexists"))
 
