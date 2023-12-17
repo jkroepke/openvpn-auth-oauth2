@@ -43,7 +43,7 @@ func TestSecretUnmarshalTextFile(t *testing.T) {
 
 	filePath := path.Join(t.TempDir(), "test.file")
 
-	require.NoError(t, os.WriteFile(filePath, []byte("SECRET"), 0o666))
+	require.NoError(t, os.WriteFile(filePath, []byte("SECRET"), 0o600))
 	require.NoError(t, secret.UnmarshalText([]byte("file://"+filePath)))
 	assert.Equal(t, config.Secret("SECRET"), secret)
 }
