@@ -38,7 +38,7 @@ func TestFlagSet(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			flagSet := config.FlagSet()
+			flagSet := config.FlagSet("")
 			err := flagSet.Parse(tt.args)
 			require.NoError(t, err)
 			for arg, expected := range tt.expectArgs {

@@ -27,6 +27,20 @@ func TestExecuteVersion(t *testing.T) {
 	assert.Equal(t, 0, returnCode, buf.String())
 }
 
+func TestExecuteHelp(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	_ = io.Writer(&buf)
+
+	returnCode := cmd.Execute([]string{"openvpn-auth-oauth2-test", "--help"}, &buf, "version", "commit", "date")
+	output := buf.String()
+
+	assert.Equal(t, 0, returnCode, buf.String())
+	assert.Contains(t, output, "Usage of openvpn-auth-oauth2-test")
+	assert.Contains(t, output, "--version")
+}
+
 func TestExecuteConfigInvalid(t *testing.T) {
 	t.Parallel()
 

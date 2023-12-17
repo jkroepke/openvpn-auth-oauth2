@@ -18,12 +18,15 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
+//nolint:cyclop
 func Execute(args []string, logWriter io.Writer, version, commit, date string) int {
 	var err error
 
 	logger := defaultLogger(logWriter)
 
-	flagSet := config.FlagSet()
+	flagSet := config.FlagSet(args[0])
+	flagSet.SetOutput(logWriter)
+
 	if err = flagSet.Parse(args[1:]); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return 0
@@ -35,7 +38,7 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 	}
 
 	if flagSet.Lookup("version").Value.String() == "true" {
-		fmt.Printf("version: %s\ncommit: %s\ndate: %s\ngo: %s\n", version, commit, date, runtime.Version())
+		fmt.Fprintf(logWriter, "version: %s\ncommit: %s\ndate: %s\ngo: %s\n", version, commit, date, runtime.Version())
 
 		return 0
 	}
@@ -91,7 +94,7 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 	}()
 
 	termCh := make(chan os.Signal, 1)
-	signal.Notify(termCh, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(termCh, os.Interrupt, syscall.SIGTERM)
 
 	var returnCode int
 	select {

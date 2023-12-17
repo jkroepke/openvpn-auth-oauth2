@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
 type Server struct {
@@ -41,14 +40,14 @@ func (s Server) Listen() error {
 	var err error
 
 	if s.conf.HTTP.TLS {
-		s.logger.Info(utils.StringConcat(
-			"start HTTPS server listener on ", s.conf.HTTP.Listen, " with base url ", s.conf.HTTP.BaseURL.String(),
+		s.logger.Info(fmt.Sprintf(
+			"start HTTPS server listener on %s with base url %s", s.conf.HTTP.Listen, s.conf.HTTP.BaseURL.String(),
 		))
 
 		err = s.server.ListenAndServeTLS(s.conf.HTTP.CertFile, s.conf.HTTP.KeyFile)
 	} else {
-		s.logger.Info(utils.StringConcat(
-			"start HTTP server listener on ", s.conf.HTTP.Listen, " with base url ", s.conf.HTTP.BaseURL.String(),
+		s.logger.Info(fmt.Sprintf(
+			"start HTTP server listener on %s with base url %s", s.conf.HTTP.Listen, s.conf.HTTP.BaseURL.String(),
 		))
 
 		err = s.server.ListenAndServe()

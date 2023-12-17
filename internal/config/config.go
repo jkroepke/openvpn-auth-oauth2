@@ -16,10 +16,11 @@ const (
 )
 
 // FlagSet configure the command line parser using the [flag] library.
-func FlagSet() *flag.FlagSet {
-	flagSet := flag.NewFlagSet("openvpn-auth-oauth2", flag.ContinueOnError)
+func FlagSet(name string) *flag.FlagSet {
+	flagSet := flag.NewFlagSet(name, flag.ContinueOnError)
 	flagSet.Usage = func() {
-		fmt.Println("Usage of openvpn-auth-oauth2:")
+		fmt.Fprintf(flagSet.Output(), "Usage of %s:\n\n", name)
+		// --help should display options with double dash
 		flagSet.VisitAll(func(flag *flag.Flag) {
 			flag.Name = "-" + flag.Name
 		})
@@ -29,7 +30,7 @@ func FlagSet() *flag.FlagSet {
 	flagSet.String(
 		"config",
 		"",
-		"path to one .yaml config files",
+		"path to one .yaml config file",
 	)
 	flagSet.String(
 		"log.format",
