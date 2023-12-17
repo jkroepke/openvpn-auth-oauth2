@@ -29,6 +29,7 @@ func TestSecretUnmarshalText(t *testing.T) {
 	t.Parallel()
 
 	var secret config.Secret
+
 	require.NoError(t, secret.UnmarshalText([]byte("SECRET")))
 
 	assert.Equal(t, config.Secret("SECRET"), secret)
