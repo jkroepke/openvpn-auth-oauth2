@@ -1,6 +1,9 @@
 package config_test
 
 import (
+	"bytes"
+	"flag"
+	"io"
 	"net/url"
 	"strings"
 	"testing"
@@ -38,7 +41,11 @@ func TestFlagSet(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
+			var buf bytes.Buffer
+			_ = io.Writer(&buf)
+
 			flagSet := config.FlagSet("")
+			flagSet.SetOutput(&buf)
 			err := flagSet.Parse(tt.args)
 			require.NoError(t, err)
 			for arg, expected := range tt.expectArgs {
@@ -56,6 +63,20 @@ func TestFlagSet(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestFlagSetHelp(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	_ = io.Writer(&buf)
+
+	flagSet := config.FlagSet("")
+	flagSet.SetOutput(&buf)
+
+	err := flagSet.Parse([]string{"--help"})
+
+	require.ErrorIs(t, flag.ErrHelp, err)
 }
 
 func TestValidate(t *testing.T) {

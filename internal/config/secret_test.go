@@ -1,6 +1,8 @@
 package config_test
 
 import (
+	"os"
+	"path"
 	"testing"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
@@ -31,7 +33,6 @@ func TestSecretUnmarshalText(t *testing.T) {
 	var secret config.Secret
 
 	require.NoError(t, secret.UnmarshalText([]byte("SECRET")))
-
 	assert.Equal(t, config.Secret("SECRET"), secret)
 }
 
@@ -39,8 +40,10 @@ func TestSecretUnmarshalTextFile(t *testing.T) {
 	t.Parallel()
 
 	var secret config.Secret
-	err := secret.UnmarshalText([]byte("file:///nonexists"))
 
-	require.Error(t, err)
-	assert.Equal(t, "unable read secret: open /nonexists: no such file or directory", err.Error())
+	filePath := path.Join(t.TempDir(), "test.file")
+
+	require.NoError(t, os.WriteFile(filePath, []byte("SECRET"), 0666))
+	require.NoError(t, secret.UnmarshalText([]byte("file://"+filePath)))
+	assert.Equal(t, config.Secret("SECRET"), secret)
 }
