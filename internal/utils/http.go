@@ -3,17 +3,19 @@ package utils
 import "net/http"
 
 type UserAgentTransport struct {
-	T http.RoundTripper
+	rt http.RoundTripper
 }
 
-func NewUserAgentTransport(T http.RoundTripper) *UserAgentTransport {
-	if T == nil {
-		T = http.DefaultTransport
+func NewUserAgentTransport(rt http.RoundTripper) *UserAgentTransport {
+	if rt == nil {
+		rt = http.DefaultTransport
 	}
-	return &UserAgentTransport{T}
+
+	return &UserAgentTransport{rt}
 }
 
 func (adt *UserAgentTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	req.Header.Add("User-Agent", "openvpn-auth-oauth2")
-	return adt.T.RoundTrip(req)
+
+	return adt.rt.RoundTrip(req) //nolint: wrapcheck
 }

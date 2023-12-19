@@ -7,50 +7,52 @@ import (
 	expslog "golang.org/x/exp/slog"
 )
 
-var LogLevelMapper = map[expslog.Level]slog.Level{
-	expslog.LevelDebug: slog.LevelDebug,
-	expslog.LevelInfo:  slog.LevelInfo,
-	expslog.LevelWarn:  slog.LevelWarn,
-	expslog.LevelError: slog.LevelError,
-}
-
-type LogSLogHandler struct {
-	logger *slog.Logger
+type SLogHandler struct {
+	logger      *slog.Logger
+	levelMapper map[expslog.Level]slog.Level
 }
 
 func NewZitadelLogger(logger *slog.Logger) *expslog.Logger {
 	return expslog.New(newSlogHandler(logger))
 }
 
-func newSlogHandler(logger *slog.Logger) *LogSLogHandler {
-	return &LogSLogHandler{logger}
+func newSlogHandler(logger *slog.Logger) *SLogHandler {
+	return &SLogHandler{
+		logger,
+		map[expslog.Level]slog.Level{
+			expslog.LevelDebug: slog.LevelDebug,
+			expslog.LevelInfo:  slog.LevelInfo,
+			expslog.LevelWarn:  slog.LevelWarn,
+			expslog.LevelError: slog.LevelError,
+		},
+	}
 }
 
-func (h LogSLogHandler) Enabled(ctx context.Context, level expslog.Level) bool {
-
-	return h.logger.Enabled(ctx, convertSLogLevel(level))
+func (handler SLogHandler) Enabled(ctx context.Context, level expslog.Level) bool {
+	return handler.logger.Enabled(ctx, handler.convertLevel(level))
 }
 
-func (h LogSLogHandler) Handle(ctx context.Context, expRecord expslog.Record) error {
-	record := slog.NewRecord(expRecord.Time, convertSLogLevel(expRecord.Level), expRecord.Message, expRecord.PC)
-	return h.logger.Handler().Handle(ctx, record)
+func (handler SLogHandler) Handle(ctx context.Context, expRecord expslog.Record) error {
+	record := slog.NewRecord(expRecord.Time, handler.convertLevel(expRecord.Level), expRecord.Message, expRecord.PC)
+
+	return handler.logger.Handler().Handle(ctx, record) //nolint:wrapcheck
 }
 
-func (h LogSLogHandler) WithAttrs(attrs []expslog.Attr) expslog.Handler {
-	logger := h.logger
+func (handler SLogHandler) WithAttrs(attrs []expslog.Attr) expslog.Handler {
+	logger := handler.logger
 	for _, attr := range attrs {
 		logger = logger.With(attr.Key, attr.Value.String())
 	}
 
-	return &LogSLogHandler{logger}
+	return &SLogHandler{logger, handler.levelMapper}
 }
 
-func (h LogSLogHandler) WithGroup(name string) expslog.Handler {
-	return &LogSLogHandler{h.logger.WithGroup(name)}
+func (handler SLogHandler) WithGroup(name string) expslog.Handler {
+	return &SLogHandler{handler.logger.WithGroup(name), handler.levelMapper}
 }
 
-func convertSLogLevel(expLevel expslog.Level) slog.Level {
-	level, ok := LogLevelMapper[expLevel]
+func (handler SLogHandler) convertLevel(expLevel expslog.Level) slog.Level {
+	level, ok := handler.levelMapper[expLevel]
 	if ok {
 		return level
 	}

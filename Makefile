@@ -58,8 +58,8 @@ goimports:
 
 .PHONY: golangci
 golangci:
-	@go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.55.1 run .
+	@go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.55.2 run ./...
 
 .PHONY: golangci-fix
 golangci-fix:
-	@go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.55.1 run . --fix
+	@go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.55.2 run ./... --fix

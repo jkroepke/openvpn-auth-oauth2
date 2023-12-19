@@ -17,6 +17,7 @@ import (
 	"github.com/zitadel/logging"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
 	httphelper "github.com/zitadel/oidc/v3/pkg/http"
+	"golang.org/x/exp/maps"
 	"golang.org/x/oauth2"
 )
 
@@ -27,17 +28,9 @@ func NewProvider(logger *slog.Logger, conf config.Config, openvpnCallback OpenVP
 		return Provider{}, err
 	}
 
-	authorizeParamsQuery, err := url.ParseQuery(conf.OAuth2.AuthorizeParams)
+	authorizeParams, err := GetAuthorizeParams(conf.OAuth2.AuthorizeParams)
 	if err != nil {
 		return Provider{}, err
-	}
-	authorizeParams := make([]rp.URLParamOpt, len(authorizeParamsQuery))
-
-	for key, value := range authorizeParamsQuery {
-		if len(value) == 0 {
-			return Provider{}, fmt.Errorf("authorize param %s does not have values", key)
-		}
-		authorizeParams = append(authorizeParams, rp.WithURLParam(key, value[0]))
 	}
 
 	basePath := conf.HTTP.BaseURL.JoinPath("/oauth2")
@@ -63,40 +56,10 @@ func NewProvider(logger *slog.Logger, conf config.Config, openvpnCallback OpenVP
 		rp.WithVerifierOpts(rp.WithIssuedAtOffset(5 * time.Second)),
 		rp.WithHTTPClient(&http.Client{Timeout: time.Second * 30, Transport: utils.NewUserAgentTransport(nil)}),
 		rp.WithErrorHandler(func(w http.ResponseWriter, r *http.Request, errorType string, errorDesc string, encryptedSession string) {
-			logger := logger
-
-			session := state.NewEncoded(encryptedSession)
-			if err := session.Decode(conf.HTTP.Secret.String()); err == nil {
-				logger = logger.With(
-					slog.String("common_name", session.CommonName),
-					slog.Uint64("cid", session.Client.Cid),
-					slog.Uint64("kid", session.Client.Kid),
-				)
-				openvpnCallback.DenyClient(logger, session.Client, "client rejected")
-			} else {
-				logger.Debug(fmt.Sprintf("rp.ErrorHandler: %s", err.Error()))
-			}
-
-			logger.Warn(fmt.Sprintf("%s: %s", errorType, errorDesc))
-			writeError(w, logger, conf, http.StatusInternalServerError, errorType, errorDesc)
+			errorHandler(w, conf, logger, openvpnCallback, http.StatusInternalServerError, errorType, errorDesc, encryptedSession)
 		}),
 		rp.WithUnauthorizedHandler(func(w http.ResponseWriter, r *http.Request, desc string, encryptedSession string) {
-			logger := logger
-
-			session := state.NewEncoded(encryptedSession)
-			if err := session.Decode(conf.HTTP.Secret.String()); err == nil {
-				logger = logger.With(
-					slog.String("common_name", session.CommonName),
-					slog.Uint64("cid", session.Client.Cid),
-					slog.Uint64("kid", session.Client.Kid),
-				)
-				openvpnCallback.DenyClient(logger, session.Client, "client rejected")
-			} else {
-				logger.Debug(fmt.Sprintf("rp.UnauthorizedHandler: %s", err.Error()))
-			}
-
-			logger.Warn(fmt.Sprintf("%s: %s", "Unauthorized", desc))
-			writeError(w, logger, conf, http.StatusUnauthorized, "Unauthorized", desc)
+			errorHandler(w, conf, logger, openvpnCallback, http.StatusUnauthorized, "Unauthorized", desc, encryptedSession)
 		}),
 	}
 
@@ -158,7 +121,7 @@ func NewProvider(logger *slog.Logger, conf config.Config, openvpnCallback OpenVP
 	}
 
 	if err != nil {
-		return Provider{}, err
+		return Provider{}, fmt.Errorf("error from construct oauth2 provider: %w", err)
 	}
 
 	return Provider{
@@ -171,6 +134,25 @@ func NewProvider(logger *slog.Logger, conf config.Config, openvpnCallback OpenVP
 	}, nil
 }
 
+func GetAuthorizeParams(authorizeParams string) ([]rp.URLParamOpt, error) {
+	authorizeParamsQuery, err := url.ParseQuery(authorizeParams)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse '%s': %w", authorizeParams, err)
+	}
+
+	params := make([]rp.URLParamOpt, len(authorizeParamsQuery))
+
+	for i, key := range maps.Keys(authorizeParamsQuery) {
+		if len(authorizeParamsQuery[key]) == 0 {
+			return nil, fmt.Errorf("authorize param %s does not have values", key)
+		}
+
+		params[i] = rp.WithURLParam(key, authorizeParamsQuery[key][0])
+	}
+
+	return params, nil
+}
+
 func newOidcProvider(conf config.Config) (oidcProvider, error) {
 	switch conf.OAuth2.Provider {
 	case generic.Name:
@@ -180,4 +162,24 @@ func newOidcProvider(conf config.Config) (oidcProvider, error) {
 	default:
 		return nil, fmt.Errorf("unknown oauth2 provider: %s", conf.OAuth2.Provider)
 	}
+}
+
+func errorHandler(
+	w http.ResponseWriter, conf config.Config, logger *slog.Logger, openvpn OpenVPN,
+	httpStatus int, errorType string, errorDesc string, encryptedSession string,
+) {
+	session := state.NewEncoded(encryptedSession)
+	if err := session.Decode(conf.HTTP.Secret.String()); err == nil {
+		logger = logger.With(
+			slog.String("common_name", session.CommonName),
+			slog.Uint64("cid", session.Client.Cid),
+			slog.Uint64("kid", session.Client.Kid),
+		)
+		openvpn.DenyClient(logger, session.Client, "client rejected")
+	} else {
+		logger.Debug(fmt.Sprintf("rp.UnauthorizedHandler: %s", err.Error()))
+	}
+
+	logger.Warn(fmt.Sprintf("%s: %s", errorType, errorDesc))
+	writeError(w, logger, conf, httpStatus, errorType, errorDesc)
 }
