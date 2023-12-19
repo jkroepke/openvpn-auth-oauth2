@@ -18,8 +18,9 @@ type Provider struct {
 	logger *slog.Logger
 
 	rp.RelyingParty
-	OIDC    oidcProvider
-	openvpn OpenVPN
+	OIDC            oidcProvider
+	openvpn         OpenVPN
+	authorizeParams []rp.URLParamOpt
 }
 
 type oidcProvider interface {

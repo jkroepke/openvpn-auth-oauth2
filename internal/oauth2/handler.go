@@ -76,7 +76,7 @@ func (provider Provider) oauth2Start() http.Handler {
 
 		rp.AuthURLHandler(func() string {
 			return sessionState
-		}, provider.RelyingParty).ServeHTTP(w, r)
+		}, provider.RelyingParty, provider.authorizeParams...).ServeHTTP(w, r)
 	})
 }
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
@@ -19,11 +20,24 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// NewProvider returns a [rp.RelyingParty] instance.
+// NewProvider returns a [Provider] instance.
 func NewProvider(logger *slog.Logger, conf config.Config, openvpnCallback OpenVPN) (Provider, error) {
 	provider, err := newOidcProvider(conf)
 	if err != nil {
 		return Provider{}, err
+	}
+
+	authorizeParamsQuery, err := url.ParseQuery(conf.OAuth2.AuthorizeParams)
+	if err != nil {
+		return Provider{}, err
+	}
+	authorizeParams := make([]rp.URLParamOpt, len(authorizeParamsQuery))
+
+	for key, value := range authorizeParamsQuery {
+		if len(value) == 0 {
+			return Provider{}, fmt.Errorf("authorize param %s does not have values", key)
+		}
+		authorizeParams = append(authorizeParams, rp.WithURLParam(key, value[0]))
 	}
 
 	basePath := conf.HTTP.BaseURL.JoinPath("/oauth2")
@@ -117,15 +131,30 @@ func NewProvider(logger *slog.Logger, conf config.Config, openvpnCallback OpenVP
 			))
 		}
 
-		ctx := logging.ToContext(context.Background(), providerLogger)
-		relyingParty, err = newProviderWithDiscovery(ctx, conf, options, redirectURI, scopes)
+		relyingParty, err = rp.NewRelyingPartyOIDC(
+			logging.ToContext(context.Background(), providerLogger),
+			conf.OAuth2.Issuer.String(),
+			conf.OAuth2.Client.ID,
+			conf.OAuth2.Client.Secret.String(),
+			redirectURI,
+			scopes,
+			options...,
+		)
 	} else {
 		logger.Info(utils.StringConcat(
 			"manually configure oauth2 provider with provider ",
 			provider.GetName(), " and endpoints ", endpoints.AuthURL, " and ", endpoints.TokenURL,
 		))
 
-		relyingParty, err = newProviderWithEndpoints(conf, options, redirectURI, endpoints, scopes)
+		rpConfig := &oauth2.Config{
+			ClientID:     conf.OAuth2.Client.ID,
+			ClientSecret: conf.OAuth2.Client.Secret.String(),
+			RedirectURL:  redirectURI,
+			Scopes:       scopes,
+			Endpoint:     endpoints,
+		}
+
+		relyingParty, err = rp.NewRelyingPartyOAuth(rpConfig, options...)
 	}
 
 	if err != nil {
@@ -133,50 +162,13 @@ func NewProvider(logger *slog.Logger, conf config.Config, openvpnCallback OpenVP
 	}
 
 	return Provider{
-		RelyingParty: relyingParty,
-		OIDC:         provider,
-		openvpn:      openvpnCallback,
-		conf:         conf,
-		logger:       logger,
+		RelyingParty:    relyingParty,
+		OIDC:            provider,
+		openvpn:         openvpnCallback,
+		conf:            conf,
+		logger:          logger,
+		authorizeParams: authorizeParams,
 	}, nil
-}
-
-func newProviderWithEndpoints(
-	conf config.Config, options []rp.Option, redirectURI string, endpoints oauth2.Endpoint, scopes []string,
-) (rp.RelyingParty, error) {
-	rpConfig := &oauth2.Config{
-		ClientID:     conf.OAuth2.Client.ID,
-		ClientSecret: conf.OAuth2.Client.Secret.String(),
-		RedirectURL:  redirectURI,
-		Scopes:       scopes,
-		Endpoint:     endpoints,
-	}
-
-	relayingParty, err := rp.NewRelyingPartyOAuth(rpConfig, options...)
-	if err != nil {
-		return nil, fmt.Errorf("newProviderWithEndpoints: %w", err)
-	}
-
-	return relayingParty, nil
-}
-
-func newProviderWithDiscovery(
-	ctx context.Context, conf config.Config, options []rp.Option, redirectURI string, scopes []string,
-) (rp.RelyingParty, error) {
-	relayingParty, err := rp.NewRelyingPartyOIDC(
-		ctx,
-		conf.OAuth2.Issuer.String(),
-		conf.OAuth2.Client.ID,
-		conf.OAuth2.Client.Secret.String(),
-		redirectURI,
-		scopes,
-		options...,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("newProviderWithDiscovery: %w", err)
-	}
-
-	return relayingParty, nil
 }
 
 func newOidcProvider(conf config.Config) (oidcProvider, error) {
