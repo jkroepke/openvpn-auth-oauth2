@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/stretchr/testify/assert"
@@ -15,15 +16,13 @@ import (
 func TestCheckUser(t *testing.T) {
 	t.Parallel()
 
-	token := &oidc.Tokens[*oidc.IDTokenClaims]{
-		IDTokenClaims: &oidc.IDTokenClaims{
+	token := &oidc.Tokens[*idtoken.Claims]{
+		IDTokenClaims: &idtoken.Claims{
 			TokenClaims: oidc.TokenClaims{
 				Subject: "subnect",
 			},
-			UserInfoProfile: oidc.UserInfoProfile{
-				PreferredUsername: "username",
-			},
-			Claims: map[string]any{},
+			PreferredUsername: "username",
+			Claims:            map[string]any{},
 		},
 	}
 
@@ -66,8 +65,8 @@ func TestValidateGroups(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			token := &oidc.Tokens[*oidc.IDTokenClaims]{
-				IDTokenClaims: &oidc.IDTokenClaims{
+			token := &oidc.Tokens[*idtoken.Claims]{
+				IDTokenClaims: &idtoken.Claims{
 					Claims: map[string]any{
 						tt.tokenClaim: tt.tokenGroups,
 					},
@@ -118,8 +117,8 @@ func TestValidateRoles(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			token := &oidc.Tokens[*oidc.IDTokenClaims]{
-				IDTokenClaims: &oidc.IDTokenClaims{
+			token := &oidc.Tokens[*idtoken.Claims]{
+				IDTokenClaims: &idtoken.Claims{
 					Claims: map[string]any{
 						tt.tokenClaim: tt.tokenRoles,
 					},
@@ -167,8 +166,8 @@ func TestValidateCommonName(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			token := &oidc.Tokens[*oidc.IDTokenClaims]{
-				IDTokenClaims: &oidc.IDTokenClaims{
+			token := &oidc.Tokens[*idtoken.Claims]{
+				IDTokenClaims: &idtoken.Claims{
 					Claims: map[string]any{
 						"sub": tt.tokenCommonName,
 					},
@@ -225,8 +224,8 @@ func TestValidateIpAddr(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			token := &oidc.Tokens[*oidc.IDTokenClaims]{
-				IDTokenClaims: &oidc.IDTokenClaims{
+			token := &oidc.Tokens[*idtoken.Claims]{
+				IDTokenClaims: &idtoken.Claims{
 					Claims: map[string]any{
 						tt.tokenClaim: tt.tokenIPAddr,
 					},

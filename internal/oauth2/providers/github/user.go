@@ -4,6 +4,7 @@ import (
 	"context"
 	"strconv"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/types"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
@@ -17,7 +18,7 @@ type userType struct {
 	Email string `json:"email"`
 }
 
-func (p *Provider) GetUser(ctx context.Context, tokens *oidc.Tokens[*oidc.IDTokenClaims]) (types.UserData, error) {
+func (p *Provider) GetUser(ctx context.Context, tokens *oidc.Tokens[*idtoken.Claims]) (types.UserData, error) {
 	var user userType
 
 	_, err := get[userType](ctx, tokens.AccessToken, "https://api.github.com/user", &user)

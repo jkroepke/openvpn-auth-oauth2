@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
@@ -21,10 +22,10 @@ type teamType struct {
 }
 
 func (p *Provider) CheckUser(
-	ctx context.Context, _ state.State, _ types.UserData, tokens *oidc.Tokens[*oidc.IDTokenClaims],
+	ctx context.Context, _ state.State, _ types.UserData, tokens *oidc.Tokens[*idtoken.Claims],
 ) error {
 	//nolint: exhaustruct
-	tokens.IDTokenClaims = &oidc.IDTokenClaims{
+	tokens.IDTokenClaims = &idtoken.Claims{
 		Claims: make(map[string]any),
 	}
 
@@ -35,7 +36,7 @@ func (p *Provider) CheckUser(
 	return p.CheckTeams(ctx, tokens)
 }
 
-func (p *Provider) CheckTeams(ctx context.Context, tokens *oidc.Tokens[*oidc.IDTokenClaims]) error {
+func (p *Provider) CheckTeams(ctx context.Context, tokens *oidc.Tokens[*idtoken.Claims]) error {
 	if len(p.Provider.Conf.OAuth2.Validate.Roles) != 0 {
 		return nil
 	}
@@ -72,7 +73,7 @@ func (p *Provider) CheckTeams(ctx context.Context, tokens *oidc.Tokens[*oidc.IDT
 	return nil
 }
 
-func (p *Provider) CheckOrgs(ctx context.Context, tokens *oidc.Tokens[*oidc.IDTokenClaims]) error {
+func (p *Provider) CheckOrgs(ctx context.Context, tokens *oidc.Tokens[*idtoken.Claims]) error {
 	if len(p.Provider.Conf.OAuth2.Validate.Groups) != 0 {
 		return nil
 	}
