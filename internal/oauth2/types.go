@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/types"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
@@ -17,9 +18,9 @@ type Provider struct {
 }
 
 type oidcProvider interface {
-	CheckUser(ctx context.Context, session state.State, user types.UserData, tokens *oidc.Tokens[*oidc.IDTokenClaims]) error
+	CheckUser(ctx context.Context, session state.State, user types.UserData, tokens *oidc.Tokens[*idtoken.Claims]) error
 	GetDefaultScopes() []string
 	GetEndpoints(conf config.Config) (oauth2.Endpoint, error)
 	GetName() string
-	GetUser(ctx context.Context, tokens *oidc.Tokens[*oidc.IDTokenClaims]) (types.UserData, error)
+	GetUser(ctx context.Context, tokens *oidc.Tokens[*idtoken.Claims]) (types.UserData, error)
 }

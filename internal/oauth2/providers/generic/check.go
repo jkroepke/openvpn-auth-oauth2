@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
@@ -16,7 +17,7 @@ func (p *Provider) CheckUser(
 	_ context.Context,
 	session state.State,
 	_ types.UserData,
-	tokens *oidc.Tokens[*oidc.IDTokenClaims],
+	tokens *oidc.Tokens[*idtoken.Claims],
 ) error {
 	if err := p.CheckGroups(tokens); err != nil {
 		return err
@@ -33,7 +34,7 @@ func (p *Provider) CheckUser(
 	return p.CheckIPAddress(session, tokens)
 }
 
-func (p *Provider) CheckGroups(tokens *oidc.Tokens[*oidc.IDTokenClaims]) error {
+func (p *Provider) CheckGroups(tokens *oidc.Tokens[*idtoken.Claims]) error {
 	if len(p.Conf.OAuth2.Validate.Groups) == 0 {
 		return nil
 	}
@@ -57,7 +58,7 @@ func (p *Provider) CheckGroups(tokens *oidc.Tokens[*oidc.IDTokenClaims]) error {
 	return nil
 }
 
-func (p *Provider) CheckRoles(tokens *oidc.Tokens[*oidc.IDTokenClaims]) error {
+func (p *Provider) CheckRoles(tokens *oidc.Tokens[*idtoken.Claims]) error {
 	if len(p.Conf.OAuth2.Validate.Roles) == 0 {
 		return nil
 	}
@@ -81,7 +82,7 @@ func (p *Provider) CheckRoles(tokens *oidc.Tokens[*oidc.IDTokenClaims]) error {
 	return nil
 }
 
-func (p *Provider) CheckCommonName(session state.State, tokens *oidc.Tokens[*oidc.IDTokenClaims]) error {
+func (p *Provider) CheckCommonName(session state.State, tokens *oidc.Tokens[*idtoken.Claims]) error {
 	if p.Conf.OAuth2.Validate.CommonName == "" {
 		return nil
 	}
@@ -104,7 +105,7 @@ func (p *Provider) CheckCommonName(session state.State, tokens *oidc.Tokens[*oid
 	return nil
 }
 
-func (p *Provider) CheckIPAddress(session state.State, tokens *oidc.Tokens[*oidc.IDTokenClaims]) error {
+func (p *Provider) CheckIPAddress(session state.State, tokens *oidc.Tokens[*idtoken.Claims]) error {
 	if !p.Conf.OAuth2.Validate.IPAddr {
 		return nil
 	}

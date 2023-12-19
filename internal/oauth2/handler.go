@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
@@ -117,7 +118,7 @@ func oauth2Callback(
 	logger *slog.Logger, provider Provider, conf config.Config, openvpn OpenVPN,
 ) http.Handler {
 	return rp.CodeExchangeHandler(func(
-		w http.ResponseWriter, r *http.Request, tokens *oidc.Tokens[*oidc.IDTokenClaims], encryptedSession string,
+		w http.ResponseWriter, r *http.Request, tokens *oidc.Tokens[*idtoken.Claims], encryptedSession string,
 		rp rp.RelyingParty,
 	) {
 		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
