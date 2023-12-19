@@ -58,18 +58,18 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 		return 1
 	}
 
-	provider, err := oauth2.NewProvider(logger, conf)
+	openvpnClient := openvpn.NewClient(logger, conf)
+
+	provider, err := oauth2.NewProvider(logger, conf, openvpnClient)
 	if err != nil {
 		logger.Error(err.Error())
 
 		return 1
 	}
 
-	openvpnClient := openvpn.NewClient(logger, conf)
-	done := make(chan int, 1)
+	server := http.NewHTTPServer(logger, conf, provider.Handler())
 
-	serverHandler := oauth2.Handler(logger, conf, provider, openvpnClient)
-	server := http.NewHTTPServer(logger, conf, serverHandler)
+	done := make(chan int, 1)
 
 	go func() {
 		if err := server.Listen(); err != nil {

@@ -2,6 +2,7 @@ package oauth2
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
@@ -13,8 +14,12 @@ import (
 )
 
 type Provider struct {
+	conf   config.Config
+	logger *slog.Logger
+
 	rp.RelyingParty
-	OIDC oidcProvider
+	OIDC    oidcProvider
+	openvpn OpenVPN
 }
 
 type oidcProvider interface {
