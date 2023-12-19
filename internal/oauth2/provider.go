@@ -177,7 +177,7 @@ func errorHandler(
 		)
 		openvpn.DenyClient(logger, session.Client, "client rejected")
 	} else {
-		logger.Debug(fmt.Sprintf("rp.UnauthorizedHandler: %s", err.Error()))
+		logger.Debug(fmt.Sprintf("errorHandler: %s", err.Error()))
 	}
 
 	logger.Warn(fmt.Sprintf("%s: %s", errorType, errorDesc))
