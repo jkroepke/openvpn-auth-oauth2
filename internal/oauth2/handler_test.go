@@ -320,10 +320,10 @@ func TestHandler(t *testing.T) {
 			client := openvpn.NewClient(logger, tt.conf)
 			defer client.Shutdown()
 
-			provider, err := oauth2.NewProvider(logger, tt.conf)
+			provider, err := oauth2.NewProvider(logger, tt.conf, client)
 			require.NoError(t, err)
 
-			httpClientListener := httptest.NewUnstartedServer(oauth2.Handler(logger, tt.conf, provider, client))
+			httpClientListener := httptest.NewUnstartedServer(provider.Handler())
 			httpClientListener.Listener.Close()
 			httpClientListener.Listener = clientListener
 			httpClientListener.Start()
