@@ -1,6 +1,7 @@
 package utils_test
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -20,8 +21,14 @@ func TestNewUserAgentTransport(t *testing.T) {
 
 	server.Client().Transport = utils.NewUserAgentTransport(nil)
 
-	resp, err := server.Client().Get(server.URL)
+	ctx := context.Background()
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, server.URL, nil)
+
 	require.NoError(t, err)
+
+	resp, err := server.Client().Do(req)
+	require.NoError(t, err)
+
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
