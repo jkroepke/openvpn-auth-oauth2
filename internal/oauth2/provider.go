@@ -121,7 +121,7 @@ func NewProvider(logger *slog.Logger, conf config.Config, openvpnCallback OpenVP
 	}
 
 	if err != nil {
-		return Provider{}, fmt.Errorf("error from construct oauth2 provider: %w", err)
+		return Provider{}, fmt.Errorf("error oauth2 provider: %w", err)
 	}
 
 	return Provider{

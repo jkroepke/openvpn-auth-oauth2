@@ -90,7 +90,7 @@ func TestNewProvider(t *testing.T) {
 					},
 				},
 			},
-			"newProviderWithDiscovery: http status not ok: 404 Not Found 404 page not found",
+			"error oauth2 provider: http status not ok: 404 Not Found 404 page not found",
 		},
 		{
 			"with custom endpoints",
