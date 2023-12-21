@@ -21,14 +21,20 @@ of connecting users against OIDC providers like
 
 ## Version requirements
 
-- Server: 2.6.2 or later
+- Server: 2.6.2 or later (OpenVPN Access Server not supported)
 - Client: 2.6.0 or later
 
 ## Tested environment
 
 ### Server
 
+#### Working
+
 - OpenVPN 2.6.6 on Linux
+
+#### Non-Working
+
+- OpenVPN Access Server (any)
 
 ### Client
 
