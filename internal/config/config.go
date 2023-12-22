@@ -102,9 +102,9 @@ func FlagSet(name string) *flag.FlagSet {
 		Defaults.OpenVpn.AuthTokenUser,
 		"Define auth-token-user for all sessions",
 	)
-	flagSet.String(
+	flagSet.Duration(
 		"openvpn.auth-pending-timeout",
-		Defaults.OpenVpn.AuthPendingTimeout.String(),
+		Defaults.OpenVpn.AuthPendingTimeout,
 		"How long OpenVPN server wait until user is authenticated",
 	)
 	flagSet.TextVar(new(StringSlice),
@@ -187,6 +187,16 @@ func FlagSet(name string) *flag.FlagSet {
 		"oauth2.scopes",
 		Defaults.OAuth2.Scopes,
 		"oauth2 token scopes. Defaults depends on oauth2.provider",
+	)
+	flagSet.Duration(
+		"oauth2.tokenstore.expires",
+		Defaults.OAuth2.TokenStore.Expires,
+		"TTL of stored oauth2 token.",
+	)
+	flagSet.TextVar(new(Secret),
+		"oauth2.tokenstore.key",
+		Defaults.OAuth2.TokenStore.Key,
+		"encryption key to encrypt oauth2 token in store",
 	)
 	flagSet.Bool(
 		"version",

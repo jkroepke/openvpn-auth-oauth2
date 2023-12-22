@@ -15,6 +15,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/http"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
@@ -58,9 +59,10 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 		return 1
 	}
 
-	openvpnClient := openvpn.NewClient(logger, conf)
+	storageClient := storage.New(conf.OAuth2.TokenStore.Key.String(), conf.OAuth2.TokenStore.Expires)
+	openvpnClient := openvpn.NewClient(logger, conf, storageClient)
 
-	provider, err := oauth2.NewProvider(logger, conf, openvpnClient)
+	provider, err := oauth2.NewProvider(logger, conf, storageClient, openvpnClient)
 	if err != nil {
 		logger.Error(err.Error())
 
