@@ -158,6 +158,21 @@ func FlagSet(name string) *flag.FlagSet {
 		Defaults.OAuth2.Client.Secret,
 		"oauth2 client secret",
 	)
+	flagSet.Bool(
+		"oauth2.refresh.enabled",
+		Defaults.OAuth2.Refresh.Enabled,
+		"If true, openvpn-auth-oauth2 stores refresh tokens and will use it do an non-interaction reauth.",
+	)
+	flagSet.Duration(
+		"oauth2.refresh.expires",
+		Defaults.OAuth2.Refresh.Expires,
+		"TTL of stored oauth2 token.",
+	)
+	flagSet.TextVar(new(Secret),
+		"oauth2.refresh.secret",
+		Defaults.OAuth2.Refresh.Secret,
+		"encryption key to encrypt oauth2 token in store",
+	)
 	flagSet.TextVar(new(StringSlice),
 		"oauth2.validate.groups",
 		Defaults.OAuth2.Validate.Groups,
@@ -187,16 +202,6 @@ func FlagSet(name string) *flag.FlagSet {
 		"oauth2.scopes",
 		Defaults.OAuth2.Scopes,
 		"oauth2 token scopes. Defaults depends on oauth2.provider",
-	)
-	flagSet.Duration(
-		"oauth2.tokenstore.expires",
-		Defaults.OAuth2.TokenStore.Expires,
-		"TTL of stored oauth2 token.",
-	)
-	flagSet.TextVar(new(Secret),
-		"oauth2.tokenstore.key",
-		Defaults.OAuth2.TokenStore.Key,
-		"encryption key to encrypt oauth2 token in store",
 	)
 	flagSet.Bool(
 		"version",
@@ -263,6 +268,12 @@ func Validate(mode int, conf Config) error { //nolint:cyclop
 
 		if !slices.Contains([]string{"http", "https"}, uri.Scheme) {
 			return fmt.Errorf("%s: invalid URL. only http:// or https:// scheme supported", key)
+		}
+	}
+
+	if conf.OAuth2.Refresh.Enabled {
+		if !slices.Contains([]int{16, 24, 32}, len(conf.OAuth2.Refresh.Secret)) {
+			return errors.New("oauth2.refresh.secret requires a length of 16, 24 or 32")
 		}
 	}
 

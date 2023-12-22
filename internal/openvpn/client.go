@@ -1,12 +1,10 @@
 package openvpn
 
 import (
-	"encoding/base64"
 	"fmt"
 	"log/slog"
 	"net/url"
 	"slices"
-	"strings"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
@@ -43,7 +41,7 @@ func (c *Client) clientConnect(client connection.Client) error {
 
 	logger.Info("new client connection")
 
-	if c.checkAuthBypass(logger, client) || !c.checkClientSsoCapabilities(logger, client) {
+	if c.checkAuthBypass(logger, client) || c.checkReAuth(logger, client) || !c.checkClientSsoCapabilities(logger, client) {
 		return nil
 	}
 
@@ -59,21 +57,21 @@ func (c *Client) clientConnect(client connection.Client) error {
 		return fmt.Errorf("error encoding state: %w", err)
 	}
 
-	startURL := utils.StringConcat(
-		strings.TrimSuffix(c.conf.HTTP.BaseURL.String(), "/"),
-		"/oauth2/start?state=", url.QueryEscape(session.Encoded()),
-	)
+	startURL := c.conf.HTTP.BaseURL.JoinPath("/oauth2/start")
+	startURL.RawQuery = fmt.Sprintf("state=%s", url.QueryEscape(session.Encoded()))
 
-	if len(startURL) >= 245 {
+	startURLString := startURL.String()
+
+	if len(startURLString) >= 245 {
 		c.DenyClient(logger, ClientIdentifier, "internal error")
 
 		return fmt.Errorf("url %s (%d chars) too long! OpenVPN support up to 245 chars. Try --openvpn.common-name.mode to avoid this error",
-			startURL, len(startURL))
+			startURL, len(startURLString))
 	}
 
 	logger.Info("start pending auth")
 
-	_, err = c.SendCommandf(`client-pending-auth %d %d "WEB_AUTH::%s" %.0f`, client.Cid, client.Kid, startURL, c.conf.OpenVpn.AuthPendingTimeout.Seconds())
+	_, err = c.SendCommandf(`client-pending-auth %d %d "WEB_AUTH::%s" %.0f`, client.Cid, client.Kid, startURLString, c.conf.OpenVpn.AuthPendingTimeout.Seconds())
 	if err != nil {
 		logger.Warn(err.Error())
 	}
@@ -87,15 +85,26 @@ func (c *Client) checkAuthBypass(logger *slog.Logger, client connection.Client) 
 	}
 
 	logger.Info("client bypass authentication")
-
-	if c.conf.OpenVpn.AuthTokenUser {
-		tokenUsername := base64.StdEncoding.EncodeToString([]byte(client.CommonName))
-		c.AcceptClientWithToken(logger, state.ClientIdentifier{Cid: client.Cid, Kid: client.Kid}, tokenUsername)
-	} else {
-		c.AcceptClient(logger, state.ClientIdentifier{Cid: client.Cid, Kid: client.Kid})
-	}
+	c.AcceptClient(logger, state.ClientIdentifier{Cid: client.Cid, Kid: client.Kid}, client.CommonName)
 
 	return true
+}
+
+func (c *Client) checkReAuth(logger *slog.Logger, client connection.Client) bool {
+	if !c.conf.OAuth2.Refresh.Enabled {
+		return false
+	}
+
+	ok, err := c.oauth2.RefreshClientAuth(client.Cid, logger)
+	if err != nil {
+		logger.Warn(err.Error())
+	}
+
+	if ok {
+		c.AcceptClient(logger, state.ClientIdentifier{Cid: client.Cid, Kid: client.Kid}, client.CommonName)
+	}
+
+	return ok
 }
 
 func (c *Client) clientDisconnect(client connection.Client) {

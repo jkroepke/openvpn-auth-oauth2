@@ -2,7 +2,6 @@ package oauth2
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"io/fs"
 	"log/slog"
@@ -22,29 +21,28 @@ import (
 )
 
 type OpenVPN interface {
-	AcceptClient(logger *slog.Logger, client state.ClientIdentifier)
-	AcceptClientWithToken(logger *slog.Logger, client state.ClientIdentifier, username string)
+	AcceptClient(logger *slog.Logger, client state.ClientIdentifier, username string)
 	DenyClient(logger *slog.Logger, client state.ClientIdentifier, reason string)
 }
 
-func (provider Provider) Handler() *http.ServeMux {
+func (p *Provider) Handler() *http.ServeMux {
 	staticFs, err := fs.Sub(ui.Static, "static")
 	if err != nil {
 		panic(err)
 	}
 
-	basePath := strings.TrimSuffix(provider.conf.HTTP.BaseURL.Path, "/")
+	basePath := strings.TrimSuffix(p.conf.HTTP.BaseURL.Path, "/")
 
 	mux := http.NewServeMux()
 	mux.Handle("/", http.NotFoundHandler())
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(staticFs))))
-	mux.Handle(utils.StringConcat(basePath, "/oauth2/start"), provider.oauth2Start())
-	mux.Handle(utils.StringConcat(basePath, "/oauth2/callback"), provider.oauth2Callback())
+	mux.Handle(utils.StringConcat(basePath, "/oauth2/start"), p.oauth2Start())
+	mux.Handle(utils.StringConcat(basePath, "/oauth2/callback"), p.oauth2Callback())
 
 	return mux
 }
 
-func (provider Provider) oauth2Start() http.Handler {
+func (p *Provider) oauth2Start() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sendCacheHeaders(w)
 
@@ -56,24 +54,24 @@ func (provider Provider) oauth2Start() http.Handler {
 		}
 
 		session := state.NewEncoded(sessionState)
-		if err := session.Decode(provider.conf.HTTP.Secret.String()); err != nil {
-			provider.logger.Warn(utils.StringConcat("invalid state: ", err.Error()))
-			provider.logger.Debug(sessionState)
+		if err := session.Decode(p.conf.HTTP.Secret.String()); err != nil {
+			p.logger.Warn(utils.StringConcat("invalid state: ", err.Error()))
+			p.logger.Debug(sessionState)
 			w.WriteHeader(http.StatusBadRequest)
 
 			return
 		}
 
-		logger := provider.logger.With(
+		logger := p.logger.With(
 			slog.String("common_name", session.CommonName),
 			slog.Uint64("cid", session.Client.Cid),
 			slog.Uint64("kid", session.Client.Kid),
 		)
 
-		if provider.conf.HTTP.Check.IPAddr {
-			ok, httpStatusCode, denyReason := checkClientIPAddr(r, logger, session, provider.conf)
+		if p.conf.HTTP.Check.IPAddr {
+			ok, httpStatusCode, denyReason := checkClientIPAddr(r, logger, session, p.conf)
 			if !ok {
-				provider.openvpn.DenyClient(logger, session.Client, denyReason)
+				p.openvpn.DenyClient(logger, session.Client, denyReason)
 				w.WriteHeader(httpStatusCode)
 
 				return
@@ -84,7 +82,7 @@ func (provider Provider) oauth2Start() http.Handler {
 
 		rp.AuthURLHandler(func() string {
 			return sessionState
-		}, provider.RelyingParty, provider.authorizeParams...).ServeHTTP(w, r)
+		}, p.RelyingParty, p.authorizeParams...).ServeHTTP(w, r)
 	})
 }
 
@@ -122,7 +120,7 @@ func checkClientIPAddr(r *http.Request, logger *slog.Logger, session state.State
 	return true, 0, ""
 }
 
-func (provider Provider) oauth2Callback() http.Handler {
+func (p *Provider) oauth2Callback() http.Handler {
 	return rp.CodeExchangeHandler(func(
 		w http.ResponseWriter, r *http.Request, tokens *oidc.Tokens[*idtoken.Claims], encryptedSession string,
 		rp rp.RelyingParty,
@@ -134,7 +132,7 @@ func (provider Provider) oauth2Callback() http.Handler {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
-		logger := provider.logger
+		logger := p.logger
 		if tokens.IDTokenClaims != nil {
 			logger = logger.With(
 				slog.String("idtoken.subject", tokens.IDTokenClaims.Subject),
@@ -143,10 +141,10 @@ func (provider Provider) oauth2Callback() http.Handler {
 		}
 
 		session := state.NewEncoded(encryptedSession)
-		if err := session.Decode(provider.conf.HTTP.Secret.String()); err != nil {
+		if err := session.Decode(p.conf.HTTP.Secret.String()); err != nil {
 			logger.Warn(err.Error())
 			logger.Debug(encryptedSession)
-			writeError(w, logger, provider.conf, http.StatusInternalServerError, "invalidSession", err.Error())
+			writeError(w, logger, p.conf, http.StatusInternalServerError, "invalidSession", err.Error())
 
 			return
 		}
@@ -157,11 +155,11 @@ func (provider Provider) oauth2Callback() http.Handler {
 			slog.Uint64("kid", session.Client.Kid),
 		)
 
-		user, err := provider.OIDC.GetUser(ctx, tokens)
+		user, err := p.OIDC.GetUser(ctx, tokens)
 		if err != nil {
 			logger.Error(err.Error())
-			provider.openvpn.DenyClient(logger, session.Client, "unable to fetch user data")
-			writeError(w, logger, provider.conf, http.StatusInternalServerError, "fetchUser", err.Error())
+			p.openvpn.DenyClient(logger, session.Client, "unable to fetch user data")
+			writeError(w, logger, p.conf, http.StatusInternalServerError, "fetchUser", err.Error())
 
 			return
 		}
@@ -171,34 +169,31 @@ func (provider Provider) oauth2Callback() http.Handler {
 			slog.String("user.preferred_username", user.PreferredUsername),
 		)
 
-		err = provider.OIDC.CheckUser(ctx, session, user, tokens)
+		err = p.OIDC.CheckUser(ctx, session, user, tokens)
 		if err != nil {
 			reason := err.Error()
 			logger.Warn(reason)
-			provider.openvpn.DenyClient(logger, session.Client, "client rejected")
+			p.openvpn.DenyClient(logger, session.Client, "client rejected")
 
-			writeError(w, logger, provider.conf, http.StatusInternalServerError, "tokenValidation", reason)
+			writeError(w, logger, p.conf, http.StatusInternalServerError, "tokenValidation", reason)
 
 			return
 		}
 
 		logger.Info("successful authorization via oauth2")
 
-		if provider.conf.OpenVpn.AuthTokenUser {
-			username := getAuthTokenUsername(session, user)
-			provider.openvpn.AcceptClientWithToken(logger, session.Client, username)
-		} else {
-			provider.openvpn.AcceptClient(logger, session.Client)
-		}
+		p.openvpn.AcceptClient(logger, session.Client, getAuthTokenUsername(session, user))
 
-		if tokens.RefreshToken != "" {
-			if err = provider.storage.Set(session.Client.Cid, tokens.RefreshToken); err != nil {
+		if p.conf.OAuth2.Refresh.Enabled {
+			if tokens.RefreshToken == "" {
+				p.logger.Warn("oauth2.refresh is enabled, but provider does not return refresh token")
+			} else if err = p.storage.Set(session.Client.Cid, tokens.RefreshToken); err != nil {
 				logger.Warn(err.Error())
 			}
 		}
 
-		writeSuccess(w, provider.conf, logger)
-	}, provider.RelyingParty)
+		writeSuccess(w, p.conf, logger)
+	}, p.RelyingParty)
 }
 
 func getAuthTokenUsername(session state.State, user types.UserData) string {
@@ -209,7 +204,7 @@ func getAuthTokenUsername(session state.State, user types.UserData) string {
 		username = user.Subject
 	}
 
-	return base64.StdEncoding.EncodeToString([]byte(username))
+	return username
 }
 
 func writeError(w http.ResponseWriter, logger *slog.Logger, conf config.Config, httpCode int, errorType, errorDesc string) {

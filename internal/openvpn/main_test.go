@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
@@ -36,7 +37,8 @@ func TestClientInvalidServer(t *testing.T) {
 		},
 	}
 	storageClient := storage.New("0123456789101112", time.Hour)
-	client := openvpn.NewClient(logger, conf, storageClient)
+	provider := oauth2.New(logger, conf, storageClient)
+	client := openvpn.NewClient(logger, conf, provider)
 	err := client.Connect()
 	require.Error(t, err)
 	assert.Equal(t, "unable to connect to openvpn management interface tcp://0.0.0.0:1: dial tcp 0.0.0.0:1: connect: connection refused", err.Error())
@@ -195,7 +197,8 @@ func TestClientFull(t *testing.T) {
 			tt.conf.OpenVpn.Addr = &url.URL{Scheme: l.Addr().Network(), Host: l.Addr().String()}
 
 			storageClient := storage.New("0123456789101112", time.Hour)
-			client := openvpn.NewClient(logger, tt.conf, storageClient)
+			provider := oauth2.New(logger, tt.conf, storageClient)
+			client := openvpn.NewClient(logger, tt.conf, provider)
 
 			wg := sync.WaitGroup{}
 			wg.Add(1)
@@ -296,7 +299,8 @@ func TestClientInvalidPassword(t *testing.T) {
 	}
 
 	storageClient := storage.New("0123456789101112", time.Hour)
-	client := openvpn.NewClient(logger, conf, storageClient)
+	provider := oauth2.New(logger, conf, storageClient)
+	client := openvpn.NewClient(logger, conf, provider)
 
 	go func() {
 		conn, err := l.Accept()
@@ -368,7 +372,8 @@ func TestClientInvalidVersion(t *testing.T) {
 			conf.OpenVpn.Addr = &url.URL{Scheme: l.Addr().Network(), Host: l.Addr().String()}
 
 			storageClient := storage.New("0123456789101112", time.Hour)
-			client := openvpn.NewClient(logger, conf, storageClient)
+			provider := oauth2.New(logger, conf, storageClient)
+			client := openvpn.NewClient(logger, conf, provider)
 
 			go func() {
 				conn, err := l.Accept()

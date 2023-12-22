@@ -20,6 +20,7 @@ type Provider struct {
 	storage *storage.Storage
 
 	rp.RelyingParty
+
 	OIDC            oidcProvider
 	openvpn         OpenVPN
 	authorizeParams []rp.URLParamOpt

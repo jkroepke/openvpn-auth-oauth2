@@ -21,5 +21,5 @@ func (p *Provider) GetName() string {
 }
 
 func (p *Provider) GetDefaultScopes() []string {
-	return []string{"openid", "profile"}
+	return []string{"openid", "profile", "offline_access"}
 }

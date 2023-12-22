@@ -159,13 +159,15 @@ func TestNewProvider(t *testing.T) {
 
 			storageClient := storage.New("0123456789101112", time.Hour)
 
-			client := openvpn.NewClient(logger, tt.conf, storageClient)
+			provider := oauth2.New(logger, tt.conf, storageClient)
+
+			client := openvpn.NewClient(logger, tt.conf, provider)
 			defer client.Shutdown()
 
-			provider, err := oauth2.NewProvider(logger, tt.conf, storageClient, client)
+			err = provider.Discover(client)
 			if tt.err != "" {
 				require.Error(t, err)
-				assert.Equal(t, strings.TrimSpace(err.Error()), tt.err)
+				assert.Equal(t, tt.err, strings.TrimSpace(err.Error()))
 
 				return
 			}

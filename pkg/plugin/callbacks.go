@@ -12,11 +12,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 )
 
-func (p *PluginHandle) AcceptClient(logger *slog.Logger, client state.ClientIdentifier) {
-	p.writeToAuthFile(logger, client, "1")
-}
-
-func (p *PluginHandle) AcceptClientWithToken(logger *slog.Logger, client state.ClientIdentifier, _ string) {
+func (p *PluginHandle) AcceptClient(logger *slog.Logger, client state.ClientIdentifier, _ string) {
 	p.writeToAuthFile(logger, client, "1")
 }
 

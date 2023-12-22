@@ -80,7 +80,7 @@ services:
 
         #plugin /plugin/openvpn-auth-oauth2.so /plugin/config.yaml
 
-        reneg-sec 120
+        reneg-sec 30
         auth-user-pass-optional
         EOF
 

@@ -75,9 +75,10 @@ func openvpn_plugin_open_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_
 		conf:   conf,
 	}
 
-	storageClient := storage.New(conf.OAuth2.TokenStore.Key.String(), conf.OAuth2.TokenStore.Expires)
-	provider, err := oauth2.NewProvider(logger, conf, storageClient, handle)
-	if err != nil {
+	storageClient := storage.New(conf.OAuth2.Refresh.Secret.String(), conf.OAuth2.Refresh.Expires)
+	provider := oauth2.New(logger, conf, storageClient)
+
+	if err = provider.Discover(handle); err != nil {
 		logger.Error(err.Error())
 
 		return C.OPENVPN_PLUGIN_FUNC_ERROR

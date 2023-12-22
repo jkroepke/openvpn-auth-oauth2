@@ -57,9 +57,9 @@ var Defaults = Config{
 			IPAddr: false,
 			Issuer: true,
 		},
-		Scopes: []string{},
-		TokenStore: OAuth2TokenStore{
+		Refresh: OAuth2Refresh{
 			Expires: time.Hour * 8,
 		},
+		Scopes: []string{},
 	},
 }
