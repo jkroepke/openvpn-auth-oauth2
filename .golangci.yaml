@@ -36,6 +36,7 @@ linters-settings:
     ignore-names:
       - tt
     ignore-decls:
+      - i int
       - err error
       - ok bool
       - w http.ResponseWriter

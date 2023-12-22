@@ -142,13 +142,14 @@ func GetAuthorizeParams(authorizeParams string) ([]rp.URLParamOpt, error) {
 	params := make([]rp.URLParamOpt, len(authorizeParamsQuery))
 
 	var i int
+
 	for key, value := range authorizeParamsQuery {
 		if len(value) == 0 {
 			return nil, fmt.Errorf("authorize param %s does not have values", key)
 		}
 
 		params[i] = rp.WithURLParam(key, value[0])
-		i += 1
+		i++
 	}
 
 	return params, nil
