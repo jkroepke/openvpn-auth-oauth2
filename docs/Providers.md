@@ -31,6 +31,27 @@ References:
 - https://docs.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app
 - https://learn.microsoft.com/en-us/azure/active-directory/develop/active-directory-optional-claims
 
+## Google Cloud / Google Workspace
+
+### Register an app on google cloud console
+
+1. Login as admin into your google console from here https://console.cloud.google.com/
+2. click on Create a new project or select an existing project
+3. then "API & Services", then "Credentials" (left column)
+4. click "create credentials" (button at the top-middle) then type "OAuth Client ID" (in the dropdown)
+5. Choose a name for your app like "openvpn connection"
+6. in the "Authorized Redirect URIs" add one and set it to "https://yourdomain/oauth2/callback" (yourdomain would be the domain where a proxy is redirecting to your openvpn-auth-oauth2 daemon, typically on port 9000) 
+7. you'll get your client id and client secret from google, copy them somewhere safe
+8. use those in the config as shown below
+
+### Configuration
+
+Set the following variables in your openvpn-auth-oauth2 configuration file: 
+
+- `CONFIG_OAUTH2_ISSUER=https://accounts.google.com/.well-known/openid-configuration`
+- `CONFIG_OAUTH2_CLIENT_ID=162738495-xxxxx.apps.googleusercontent.com`
+- `CONFIG_OAUTH2_CLIENT_SECRET=GOCSPX-xxxxxxxx`
+
 ## GitHub
 ### Caveats
 A user must explicitly [request](https://help.github.com/articles/requesting-organization-approval-for-oauth-apps/) an

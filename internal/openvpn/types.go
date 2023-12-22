@@ -8,6 +8,7 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
 )
 
 type Client struct {
@@ -15,6 +16,7 @@ type Client struct {
 	conn    net.Conn
 	scanner *bufio.Scanner
 	logger  *slog.Logger
+	storage *storage.Storage
 
 	mu     sync.Mutex
 	closed bool

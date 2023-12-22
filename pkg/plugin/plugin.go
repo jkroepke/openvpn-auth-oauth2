@@ -20,6 +20,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/http"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
@@ -74,7 +75,8 @@ func openvpn_plugin_open_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_
 		conf:   conf,
 	}
 
-	provider, err := oauth2.NewProvider(logger, conf, handle)
+	storageClient := storage.New(conf.OAuth2.TokenStore.Key.String(), conf.OAuth2.TokenStore.Expires)
+	provider, err := oauth2.NewProvider(logger, conf, storageClient, handle)
 	if err != nil {
 		logger.Error(err.Error())
 

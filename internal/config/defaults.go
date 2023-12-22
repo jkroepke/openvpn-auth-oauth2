@@ -58,5 +58,8 @@ var Defaults = Config{
 			Issuer: true,
 		},
 		Scopes: []string{},
+		TokenStore: OAuth2TokenStore{
+			Expires: time.Hour * 8,
+		},
 	},
 }

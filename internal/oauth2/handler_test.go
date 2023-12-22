@@ -20,6 +20,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
 	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -312,10 +313,12 @@ func TestHandler(t *testing.T) {
 			tt.conf.HTTP.BaseURL = &url.URL{Scheme: "http", Host: clientListener.Addr().String()}
 			tt.conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
-			client := openvpn.NewClient(logger, tt.conf)
+			storageClient := storage.New("0123456789101112", time.Hour)
+
+			client := openvpn.NewClient(logger, tt.conf, storageClient)
 			defer client.Shutdown()
 
-			provider, err := oauth2.NewProvider(logger, tt.conf, client)
+			provider, err := oauth2.NewProvider(logger, tt.conf, storageClient, client)
 			require.NoError(t, err)
 
 			httpClientListener := httptest.NewUnstartedServer(provider.Handler())

@@ -13,6 +13,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/github"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 	"github.com/zitadel/logging"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
@@ -21,7 +22,7 @@ import (
 )
 
 // NewProvider returns a [Provider] instance.
-func NewProvider(logger *slog.Logger, conf config.Config, openvpnCallback OpenVPN) (Provider, error) {
+func NewProvider(logger *slog.Logger, conf config.Config, storageClient *storage.Storage, openvpnClient OpenVPN) (Provider, error) {
 	provider, err := newOidcProvider(conf)
 	if err != nil {
 		return Provider{}, err
@@ -55,10 +56,10 @@ func NewProvider(logger *slog.Logger, conf config.Config, openvpnCallback OpenVP
 		rp.WithVerifierOpts(rp.WithIssuedAtOffset(5 * time.Second)),
 		rp.WithHTTPClient(&http.Client{Timeout: time.Second * 30, Transport: utils.NewUserAgentTransport(nil)}),
 		rp.WithErrorHandler(func(w http.ResponseWriter, r *http.Request, errorType string, errorDesc string, encryptedSession string) {
-			errorHandler(w, conf, logger, openvpnCallback, http.StatusInternalServerError, errorType, errorDesc, encryptedSession)
+			errorHandler(w, conf, logger, openvpnClient, http.StatusInternalServerError, errorType, errorDesc, encryptedSession)
 		}),
 		rp.WithUnauthorizedHandler(func(w http.ResponseWriter, r *http.Request, desc string, encryptedSession string) {
-			errorHandler(w, conf, logger, openvpnCallback, http.StatusUnauthorized, "Unauthorized", desc, encryptedSession)
+			errorHandler(w, conf, logger, openvpnClient, http.StatusUnauthorized, "Unauthorized", desc, encryptedSession)
 		}),
 	}
 
@@ -126,7 +127,8 @@ func NewProvider(logger *slog.Logger, conf config.Config, openvpnCallback OpenVP
 	return Provider{
 		RelyingParty:    relyingParty,
 		OIDC:            provider,
-		openvpn:         openvpnCallback,
+		openvpn:         openvpnClient,
+		storage:         storageClient,
 		conf:            conf,
 		logger:          logger,
 		authorizeParams: authorizeParams,
