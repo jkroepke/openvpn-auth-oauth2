@@ -3,7 +3,9 @@ package testutils
 import (
 	"bufio"
 	"crypto/sha256"
+	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -30,7 +32,10 @@ func ReadLine(t *testing.T, reader *bufio.Reader) string {
 	t.Helper()
 
 	line, err := reader.ReadString('\n')
-	require.NoError(t, err)
+
+	if err != nil && !errors.Is(err, io.EOF) {
+		require.NoError(t, err)
+	}
 
 	return strings.TrimSpace(line)
 }

@@ -3,6 +3,7 @@ package openvpn_test
 import (
 	"bufio"
 	"errors"
+	"io"
 	"net"
 	"net/url"
 	"regexp"
@@ -265,7 +266,7 @@ func TestClientFull(t *testing.T) {
 				client.Shutdown()
 			} else {
 				wg.Wait()
-				if err != nil && !strings.HasSuffix(err.Error(), "EOF") {
+				if err != nil && !errors.Is(err, io.EOF) {
 					require.NoError(t, err)
 				}
 			}

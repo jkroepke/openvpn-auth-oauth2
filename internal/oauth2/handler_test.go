@@ -312,6 +312,9 @@ func TestHandler(t *testing.T) {
 			tt.conf.OAuth2.Issuer = resourceServerURL
 			tt.conf.HTTP.BaseURL = &url.URL{Scheme: "http", Host: clientListener.Addr().String()}
 			tt.conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
+			if tt.conf.HTTP.CallbackTemplate == nil {
+				tt.conf.HTTP.CallbackTemplate = config.Defaults.HTTP.CallbackTemplate
+			}
 
 			storageClient := storage.New("0123456789101112", time.Hour)
 
@@ -419,7 +422,7 @@ func TestHandler(t *testing.T) {
 				return
 			}
 
-			if tt.conf.HTTP.CallbackTemplate != nil {
+			if tt.conf.HTTP.CallbackTemplate != config.Defaults.HTTP.CallbackTemplate {
 				if !assert.Contains(t, string(body), "openvpn-auth-oauth2 is a management client for OpenVPN that handles the single sign-on") {
 					return
 				}
