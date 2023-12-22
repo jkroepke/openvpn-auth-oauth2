@@ -81,11 +81,11 @@ Usage of ./openvpn-auth-oauth2:
 ```
 
 ## Configuration openvpn-auth-oauth2
-openvpn-auth-oauth2 starts a http listener which needs to be accessible from OpenVPN client before the VPN connection is established.
-By default, the http listener runs on :9000.
+openvpn-auth-oauth2 starts an HTTP listener which needs to be accessible from the OpenVPN client before the VPN connection is established.
+By default, the http listener runs on `:9000`.
 
-It's highly recommend to put openvpn-auth-oauth2 behind a reverse proxy which terminates the TLS connections. It's important to configure
-`CONFIG_HTTP_BASE_URL` because openvpn-auth-oauth2 need to know the redirect url.
+It'd highly recommend putting openvpn-auth-oauth2 behind a reverse proxy which terminates the TLS connections.
+It's important to configure `CONFIG_HTTP_BASE_URL` because openvpn-auth-oauth2 need to know the redirect url.
 
 Example:
 ```conf
@@ -95,7 +95,7 @@ CONFIG_HTTP_BASE_URL=https://login.example.com
 ```
 
 ## Setup OpenVPN server
-To connect openvpn-auth-oauth2 with openvpn server add lines below:
+To connect openvpn-auth-oauth2 with openvpn server, add lines below:
 
 ```conf
 # openvpn server.conf
@@ -117,7 +117,7 @@ CONFIG_OPENVPN_PASSWORD=<password>
 See [Providers](Providers) for more information
 
 ## Full configuration example
-Configuration openvpn-auth-oauth2 for zitadel
+Configuration openvpn-auth-oauth2 for [zitadel](https://zitadel.com/)
 
 ```conf
 # Define the public http endpoint here.
@@ -143,7 +143,7 @@ The interactive login can be avoided by requesting [refresh tokens](https://auth
 
 If enabled (via `--oauth2.refresh.enabled=true`), `openvpn-auth-oauth2` will store the oauth2 refresh token in an in-memory key-value store.
 `openvpn-auth-oauth2` is using a random generated asymmetric RSA2048 key to encrypt the tokens. The token will be bound to the OpenVPN client ID.
-While on initial connect the interactive login is still mandatory, `openvpn-auth-oauth2` tries to initiate a non-interactive login with the refresh
+While on initially connect the interactive login is still mandatory, `openvpn-auth-oauth2` tries to initiate a non-interactive login with the refresh
 token against the OIDC provider and fallbacks to interactive login, if unsuccessful.
 
 References:
