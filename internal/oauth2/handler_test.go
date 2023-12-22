@@ -76,12 +76,7 @@ func TestHandler(t *testing.T) {
 					Check: config.HTTPCheck{
 						IPAddr: false,
 					},
-					CallbackTemplate: func() *template.Template {
-						tmpl, err := template.New("README.md").ParseFiles("./../../README.md")
-						require.NoError(t, err)
-
-						return tmpl
-					}(),
+					CallbackTemplate: template.Must(template.New("README.md").ParseFiles("./../../README.md")),
 				},
 				OAuth2: config.OAuth2{
 					Provider:  "generic",

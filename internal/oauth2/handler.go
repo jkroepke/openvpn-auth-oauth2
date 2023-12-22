@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"net"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/ui"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
@@ -26,10 +28,16 @@ type OpenVPN interface {
 }
 
 func (provider Provider) Handler() *http.ServeMux {
+	staticFs, err := fs.Sub(ui.Static, "static")
+	if err != nil {
+		panic(err)
+	}
+
 	basePath := strings.TrimSuffix(provider.conf.HTTP.BaseURL.Path, "/")
 
 	mux := http.NewServeMux()
 	mux.Handle("/", http.NotFoundHandler())
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(staticFs))))
 	mux.Handle(utils.StringConcat(basePath, "/oauth2/start"), provider.oauth2Start())
 	mux.Handle(utils.StringConcat(basePath, "/oauth2/callback"), provider.oauth2Callback())
 
@@ -199,15 +207,9 @@ func getAuthTokenUsername(session state.State, user types.UserData) string {
 }
 
 func writeError(w http.ResponseWriter, logger *slog.Logger, conf config.Config, httpCode int, errorType, errorDesc string) {
-	if conf.HTTP.CallbackTemplate == nil {
-		http.Error(w, utils.StringConcat(errorType, ": ", errorDesc), httpCode)
-
-		return
-	}
-
 	err := conf.HTTP.CallbackTemplate.Execute(w, map[string]string{
-		"errorDesc": errorDesc,
-		"errorType": errorType,
+		"title":   errorType,
+		"message": errorDesc,
 	})
 	if err != nil {
 		logger.Error("executing template:", err)
@@ -220,13 +222,10 @@ func writeError(w http.ResponseWriter, logger *slog.Logger, conf config.Config, 
 }
 
 func writeSuccess(w http.ResponseWriter, conf config.Config, logger *slog.Logger) {
-	if conf.HTTP.CallbackTemplate == nil {
-		_, _ = w.Write([]byte(callbackHTML))
-
-		return
-	}
-
-	err := conf.HTTP.CallbackTemplate.Execute(w, map[string]string{})
+	err := conf.HTTP.CallbackTemplate.Execute(w, map[string]string{
+		"title":   "You have logged into OpenVPN!",
+		"message": "You can close this window now.",
+	})
 	if err != nil {
 		logger.Error(fmt.Sprintf("executing template: %s", err))
 		w.WriteHeader(http.StatusInternalServerError)

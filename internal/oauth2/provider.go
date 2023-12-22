@@ -52,7 +52,7 @@ func NewProvider(logger *slog.Logger, conf config.Config, openvpnCallback OpenVP
 	options := []rp.Option{
 		rp.WithLogger(providerLogger),
 		rp.WithCookieHandler(cookieHandler),
-		rp.WithVerifierOpts(rp.WithIssuedAtOffset(5 * time.Second)),
+		rp.WithVerifierOpts(rp.WithIssuedAtOffset(5*time.Second), rp.WithAuthTimeMaxAge(time.Minute)),
 		rp.WithHTTPClient(&http.Client{Timeout: time.Second * 30, Transport: utils.NewUserAgentTransport(nil)}),
 		rp.WithErrorHandler(func(w http.ResponseWriter, r *http.Request, errorType string, errorDesc string, encryptedSession string) {
 			errorHandler(w, conf, logger, openvpnCallback, http.StatusInternalServerError, errorType, errorDesc, encryptedSession)
