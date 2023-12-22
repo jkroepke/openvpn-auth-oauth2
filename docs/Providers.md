@@ -49,8 +49,6 @@ References:
 Set the following variables in your openvpn-auth-oauth2 configuration file: 
 
 - `CONFIG_OAUTH2_ISSUER=https://accounts.google.com/.well-known/openid-configuration`
-- `CONFIG_OAUTH2_ENDPOINT_AUTH=https://accounts.google.com/o/oauth2/auth`
-- `CONFIG_OAUTH2_ENDPOINT_TOKEN=https://oauth2.googleapis.com/token`
 - `CONFIG_OAUTH2_CLIENT_ID=162738495-xxxxx.apps.googleusercontent.com`
 - `CONFIG_OAUTH2_CLIENT_SECRET=GOCSPX-xxxxxxxx`
 
