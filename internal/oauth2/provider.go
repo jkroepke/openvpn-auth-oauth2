@@ -17,7 +17,6 @@ import (
 	"github.com/zitadel/logging"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
 	httphelper "github.com/zitadel/oidc/v3/pkg/http"
-	"golang.org/x/exp/maps"
 	"golang.org/x/oauth2"
 )
 
@@ -142,12 +141,14 @@ func GetAuthorizeParams(authorizeParams string) ([]rp.URLParamOpt, error) {
 
 	params := make([]rp.URLParamOpt, len(authorizeParamsQuery))
 
-	for i, key := range maps.Keys(authorizeParamsQuery) {
-		if len(authorizeParamsQuery[key]) == 0 {
+	var i int
+	for key, value := range authorizeParamsQuery {
+		if len(value) == 0 {
 			return nil, fmt.Errorf("authorize param %s does not have values", key)
 		}
 
-		params[i] = rp.WithURLParam(key, authorizeParamsQuery[key][0])
+		params[i] = rp.WithURLParam(key, value[0])
+		i += 1
 	}
 
 	return params, nil
