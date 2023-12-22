@@ -74,15 +74,14 @@ func openvpn_plugin_open_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_
 		conf:   conf,
 	}
 
-	provider, err := oauth2.NewProvider(logger, conf)
+	provider, err := oauth2.NewProvider(logger, conf, handle)
 	if err != nil {
 		logger.Error(err.Error())
 
 		return C.OPENVPN_PLUGIN_FUNC_ERROR
 	}
 
-	serverHandler := oauth2.Handler(logger, conf, provider, handle)
-	handle.server = http.NewHTTPServer(logger, conf, serverHandler)
+	handle.server = http.NewHTTPServer(logger, conf, provider.Handler())
 	go func() {
 		if err := handle.server.Listen(); err != nil {
 			logger.Error(fmt.Errorf("error http listener: %w", err).Error())

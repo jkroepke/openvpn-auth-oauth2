@@ -72,7 +72,7 @@ func TestExecuteConfigInvalid(t *testing.T) {
 		{
 			"error oidc provider",
 			[]string{"", "--config=../config.example.yaml", "--log.format=console", "--log.level=info", "--http.secret=1234567891111213"},
-			`newProviderWithDiscovery`,
+			`error oauth2 provider`,
 		},
 	}
 
