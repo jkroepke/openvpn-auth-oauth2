@@ -30,7 +30,7 @@ func New(logger *slog.Logger, conf config.Config, storageClient *storage.Storage
 	}
 }
 
-// Discover initiate the discovery of OIDC provider
+// Discover initiate the discovery of OIDC provider.
 func (p *Provider) Discover(openvpn OpenVPN) error {
 	var err error
 

@@ -114,6 +114,8 @@ func (c *Client) clientDisconnect(client connection.Client) {
 		slog.String("common_name", client.CommonName),
 		slog.String("username", client.Username),
 	)
+
+	c.oauth2.ClientDisconnect(client.Cid)
 }
 
 func (c *Client) clientEstablished(client connection.Client) {
