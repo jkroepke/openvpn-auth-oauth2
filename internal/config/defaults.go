@@ -3,7 +3,10 @@ package config
 import (
 	"log/slog"
 	"net/url"
+	"text/template"
 	"time"
+
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/ui"
 )
 
 //nolint:gochecknoglobals
@@ -22,6 +25,7 @@ var Defaults = Config{
 		Check: HTTPCheck{
 			IPAddr: false,
 		},
+		CallbackTemplate: template.Must(template.New("index.gohtml").ParseFS(ui.Template, "index.gohtml")),
 	},
 	OpenVpn: OpenVpn{
 		Addr: &url.URL{
