@@ -168,11 +168,6 @@ func FlagSet(name string) *flag.FlagSet {
 		Defaults.OAuth2.Refresh.Expires,
 		"TTL of stored oauth2 token.",
 	)
-	flagSet.TextVar(new(Secret),
-		"oauth2.refresh.secret",
-		Defaults.OAuth2.Refresh.Secret,
-		"encryption key to encrypt oauth2 token in store",
-	)
 	flagSet.TextVar(new(StringSlice),
 		"oauth2.validate.groups",
 		Defaults.OAuth2.Validate.Groups,
@@ -268,12 +263,6 @@ func Validate(mode int, conf Config) error { //nolint:cyclop
 
 		if !slices.Contains([]string{"http", "https"}, uri.Scheme) {
 			return fmt.Errorf("%s: invalid URL. only http:// or https:// scheme supported", key)
-		}
-	}
-
-	if conf.OAuth2.Refresh.Enabled {
-		if !slices.Contains([]int{16, 24, 32}, len(conf.OAuth2.Refresh.Secret)) {
-			return errors.New("oauth2.refresh.secret requires a length of 16, 24 or 32")
 		}
 	}
 

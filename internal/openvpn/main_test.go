@@ -36,7 +36,7 @@ func TestClientInvalidServer(t *testing.T) {
 			Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
 		},
 	}
-	storageClient := storage.New("0123456789101112", time.Hour)
+	storageClient := storage.New(time.Hour)
 	provider := oauth2.New(logger, conf, storageClient)
 	client := openvpn.NewClient(logger, conf, provider)
 	err := client.Connect()
@@ -196,7 +196,7 @@ func TestClientFull(t *testing.T) {
 
 			tt.conf.OpenVpn.Addr = &url.URL{Scheme: l.Addr().Network(), Host: l.Addr().String()}
 
-			storageClient := storage.New("0123456789101112", time.Hour)
+			storageClient := storage.New(time.Hour)
 			provider := oauth2.New(logger, tt.conf, storageClient)
 			client := openvpn.NewClient(logger, tt.conf, provider)
 
@@ -298,7 +298,7 @@ func TestClientInvalidPassword(t *testing.T) {
 		},
 	}
 
-	storageClient := storage.New("0123456789101112", time.Hour)
+	storageClient := storage.New(time.Hour)
 	provider := oauth2.New(logger, conf, storageClient)
 	client := openvpn.NewClient(logger, conf, provider)
 
@@ -371,7 +371,7 @@ func TestClientInvalidVersion(t *testing.T) {
 
 			conf.OpenVpn.Addr = &url.URL{Scheme: l.Addr().Network(), Host: l.Addr().String()}
 
-			storageClient := storage.New("0123456789101112", time.Hour)
+			storageClient := storage.New(time.Hour)
 			provider := oauth2.New(logger, conf, storageClient)
 			client := openvpn.NewClient(logger, conf, provider)
 

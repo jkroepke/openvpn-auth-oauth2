@@ -316,7 +316,7 @@ func TestHandler(t *testing.T) {
 				tt.conf.HTTP.CallbackTemplate = config.Defaults.HTTP.CallbackTemplate
 			}
 
-			storageClient := storage.New("0123456789101112", time.Hour)
+			storageClient := storage.New(time.Hour)
 
 			provider := oauth2.New(logger, tt.conf, storageClient)
 

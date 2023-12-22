@@ -1,28 +1,34 @@
 package storage
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/sha256"
 	"fmt"
 	"sync"
 	"time"
-
-	"github.com/zitadel/oidc/v3/pkg/crypto"
 )
 
 type Storage struct {
-	encryptionKey string
+	encryptionKey *rsa.PrivateKey
 
 	expires time.Duration
 	data    sync.Map
 }
 
 type item struct {
-	token   string
+	token   []byte
 	expires time.Time
 }
 
-func New(encryptionKey string, expires time.Duration) *Storage {
+func New(expires time.Duration) *Storage {
+	privkey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		panic(err)
+	}
+
 	storage := &Storage{
-		encryptionKey,
+		privkey,
 		expires,
 		sync.Map{},
 	}
@@ -31,16 +37,16 @@ func New(encryptionKey string, expires time.Duration) *Storage {
 	return storage
 }
 
-func (storage *Storage) collect() {
+func (s *Storage) collect() {
 	for {
-		storage.data.Range(func(client, data any) bool {
+		s.data.Range(func(client, data any) bool {
 			entry, ok := data.(item)
 			if !ok {
 				panic(data)
 			}
 
 			if entry.expires.Compare(time.Now()) == -1 {
-				storage.data.Delete(client)
+				s.data.Delete(client)
 			}
 
 			return true
@@ -50,31 +56,32 @@ func (storage *Storage) collect() {
 	}
 }
 
-func (storage *Storage) Set(client uint64, token string) error {
-	encryptedToken, err := crypto.EncryptAES(token, storage.encryptionKey)
+func (s *Storage) Set(client uint64, token string) error {
+	encryptedToken, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, &s.encryptionKey.PublicKey, []byte(token), nil)
 	if err != nil {
 		return fmt.Errorf("encrypt error: %w", err)
 	}
 
-	storage.data.Store(client, item{encryptedToken, time.Now().Add(storage.expires)})
+	s.data.Store(client, item{encryptedToken, time.Now().Add(s.expires)})
 
 	return nil
 }
 
-func (storage *Storage) Get(client uint64) (string, error) {
-	data, ok := storage.data.Load(client)
+func (s *Storage) Get(client uint64) (string, error) {
+	data, ok := s.data.Load(client)
 	if !ok {
 		return "", ErrNotExists
 	}
 
-	token, err := crypto.DecryptAES(data.(item).token, storage.encryptionKey)
+	token, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, s.encryptionKey, data.(item).token, nil)
+
 	if err != nil {
 		return "", fmt.Errorf("decrypt error: %w", err)
 	}
 
-	return token, nil
+	return string(token), nil
 }
 
-func (storage *Storage) Delete(client uint64) {
-	storage.data.Delete(client)
+func (s *Storage) Delete(client uint64) {
+	s.data.Delete(client)
 }

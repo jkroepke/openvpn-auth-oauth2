@@ -157,7 +157,7 @@ func TestNewProvider(t *testing.T) {
 			defer managementInterface.Close()
 			tt.conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
-			storageClient := storage.New("0123456789101112", time.Hour)
+			storageClient := storage.New(time.Hour)
 
 			provider := oauth2.New(logger, tt.conf, storageClient)
 
