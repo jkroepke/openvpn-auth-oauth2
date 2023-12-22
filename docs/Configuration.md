@@ -139,7 +139,7 @@ With default settings, openvpn-auth-oauth2 does not store any tokens from the us
 each authentication, included on TLS soft-resets (if `reneg-sec` is triggered).
 
 The interactive login can be avoided by requesting [refresh tokens](https://auth0.com/blog/refresh-tokens-what-are-they-and-when-to-use-them/)
-(via oauth2 scope `offline_accss`; enabled by default) and store the token inside openvpn-auth-oauth2.
+(via oauth2 scope `offline_access`; enabled by default) and store the token inside openvpn-auth-oauth2.
 
 If enabled (via `--oauth2.refresh.enabled=true`), `openvpn-auth-oauth2` will store the oauth2 refresh token in an in-memory key-value store.
 `openvpn-auth-oauth2` is using a random generated asymmetric RSA2048 key to encrypt the tokens. The token will be bound to the OpenVPN client ID.
