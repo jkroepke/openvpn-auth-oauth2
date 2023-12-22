@@ -9,10 +9,12 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
 	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -32,7 +34,8 @@ func TestClientInvalidServer(t *testing.T) {
 			Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
 		},
 	}
-	client := openvpn.NewClient(logger, conf)
+	storageClient := storage.New("0123456789101112", time.Hour)
+	client := openvpn.NewClient(logger, conf, storageClient)
 	err := client.Connect()
 	require.Error(t, err)
 	assert.Equal(t, "unable to connect to openvpn management interface tcp://0.0.0.0:1: dial tcp 0.0.0.0:1: connect: connection refused", err.Error())
@@ -190,7 +193,9 @@ func TestClientFull(t *testing.T) {
 
 			tt.conf.OpenVpn.Addr = &url.URL{Scheme: l.Addr().Network(), Host: l.Addr().String()}
 
-			client := openvpn.NewClient(logger, tt.conf)
+			storageClient := storage.New("0123456789101112", time.Hour)
+			client := openvpn.NewClient(logger, tt.conf, storageClient)
+
 			wg := sync.WaitGroup{}
 			wg.Add(1)
 
@@ -289,7 +294,8 @@ func TestClientInvalidPassword(t *testing.T) {
 		},
 	}
 
-	client := openvpn.NewClient(logger, conf)
+	storageClient := storage.New("0123456789101112", time.Hour)
+	client := openvpn.NewClient(logger, conf, storageClient)
 
 	go func() {
 		conn, err := l.Accept()
@@ -360,7 +366,8 @@ func TestClientInvalidVersion(t *testing.T) {
 
 			conf.OpenVpn.Addr = &url.URL{Scheme: l.Addr().Network(), Host: l.Addr().String()}
 
-			client := openvpn.NewClient(logger, conf)
+			storageClient := storage.New("0123456789101112", time.Hour)
+			client := openvpn.NewClient(logger, conf, storageClient)
 
 			go func() {
 				conn, err := l.Accept()

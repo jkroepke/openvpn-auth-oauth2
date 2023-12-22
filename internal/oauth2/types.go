@@ -7,6 +7,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/types"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
@@ -14,8 +15,9 @@ import (
 )
 
 type Provider struct {
-	conf   config.Config
-	logger *slog.Logger
+	conf    config.Config
+	logger  *slog.Logger
+	storage *storage.Storage
 
 	rp.RelyingParty
 	OIDC            oidcProvider

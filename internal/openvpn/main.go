@@ -16,13 +16,15 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
-func NewClient(logger *slog.Logger, conf config.Config) *Client {
+func NewClient(logger *slog.Logger, conf config.Config, stor *storage.Storage) *Client {
 	return &Client{
-		conf:   conf,
-		logger: logger,
+		conf:    conf,
+		storage: stor,
+		logger:  logger,
 
 		closed: false,
 		mu:     sync.Mutex{},

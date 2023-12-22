@@ -183,6 +183,12 @@ func (provider Provider) oauth2Callback() http.Handler {
 			provider.openvpn.AcceptClient(logger, session.Client)
 		}
 
+		if tokens.RefreshToken != "" {
+			if err = provider.storage.Set(session.Client.Cid, tokens.RefreshToken); err != nil {
+				logger.Warn(err.Error())
+			}
+		}
+
 		writeSuccess(w, provider.conf, logger)
 	}, provider.RelyingParty)
 }
