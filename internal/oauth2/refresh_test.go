@@ -156,6 +156,8 @@ func TestRefreshReAuth(t *testing.T) {
 	assert.Contains(t, auth, "client-pending-auth 1 2 \"WEB_AUTH::")
 	testutils.SendLine(t, managementInterfaceConn, "SUCCESS: %s command succeeded\r\n", strings.SplitN(auth, " ", 2)[0])
 
+	time.Sleep(time.Millisecond * 50)
+
 	client.Shutdown()
 	wg.Wait()
 }
