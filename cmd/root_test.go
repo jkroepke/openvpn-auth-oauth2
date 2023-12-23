@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"io"
-	"net"
 	"os"
 	"syscall"
 	"testing"
@@ -92,21 +91,17 @@ func TestExecuteConfigInvalid(t *testing.T) {
 }
 
 func TestExecuteConfigFileFound(t *testing.T) { //nolint: paralleltest
-	clientListener, err := net.Listen("tcp", "127.0.0.1:0")
-	require.NoError(t, err)
-
+	clientListener := testutils.TCPTestListener(t)
 	defer clientListener.Close()
 
-	svr, client, err := testutils.SetupResourceServer(clientListener)
+	resourceServer, _, clientCredentials, err := testutils.SetupResourceServer(clientListener)
 	require.NoError(t, err)
 
-	l, err := net.Listen("tcp", "127.0.0.1:0")
-	require.NoError(t, err)
-
-	defer l.Close()
+	managementInterface := testutils.TCPTestListener(t)
+	defer managementInterface.Close()
 
 	go func() {
-		conn, err := l.Accept()
+		conn, err := managementInterface.Accept()
 		require.NoError(t, err)
 
 		defer conn.Close()
@@ -129,7 +124,7 @@ func TestExecuteConfigFileFound(t *testing.T) { //nolint: paralleltest
 		_ = p.Signal(syscall.SIGINT)
 	}()
 
-	t.Setenv("CONFIG_OPENVPN_ADDR", utils.StringConcat(l.Addr().Network(), "://", l.Addr().String()))
+	t.Setenv("CONFIG_OPENVPN_ADDR", utils.StringConcat(managementInterface.Addr().Network(), "://", managementInterface.Addr().String()))
 	t.Setenv("CONFIG_LOG_FORMAT", "console")
 	t.Setenv("CONFIG_LOG_LEVEL", "warn")
 
@@ -138,8 +133,8 @@ func TestExecuteConfigFileFound(t *testing.T) { //nolint: paralleltest
 		"--config=../config.example.yaml",
 		"--http.secret=0123456789101112",
 		"--http.listen=127.0.0.1:0",
-		"--oauth2.issuer", svr.URL,
-		"--oauth2.client.id", client.ID,
+		"--oauth2.issuer", resourceServer.URL,
+		"--oauth2.client.id", clientCredentials.ID,
 	}
 
 	var buf bytes.Buffer

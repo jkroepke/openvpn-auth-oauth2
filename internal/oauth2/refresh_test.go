@@ -4,21 +4,14 @@ import (
 	"bufio"
 	"context"
 	"io"
-	"net"
 	"net/http"
 	"net/http/cookiejar"
-	"net/http/httptest"
-	"net/url"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
 	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,59 +20,12 @@ import (
 func TestRefreshReAuth(t *testing.T) {
 	t.Parallel()
 
-	logger := testutils.NewTestLogger()
-
-	managementInterface, err := net.Listen("tcp", "127.0.0.1:0")
-	require.NoError(t, err)
-
-	defer managementInterface.Close()
-
-	clientListener, err := net.Listen("tcp", "127.0.0.1:0")
-	require.NoError(t, err)
-
-	defer clientListener.Close()
-
-	resourceServer, clientCredentials, err := testutils.SetupResourceServer(clientListener)
-	require.NoError(t, err)
-
-	defer resourceServer.Close()
-
-	resourceServerURL, err := url.Parse(resourceServer.URL)
-	require.NoError(t, err)
-
-	conf := config.Config{
-		HTTP: config.HTTP{
-			BaseURL:          &url.URL{Scheme: "http", Host: clientListener.Addr().String()},
-			Secret:           testutils.HTTPSecret,
-			CallbackTemplate: config.Defaults.HTTP.CallbackTemplate,
-		},
-		OpenVpn: config.OpenVpn{
-			Addr:   &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()},
-			Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
-		},
+	_, client, managementInterface, _, _, httpClient, shutdownFn := testutils.SetupMockEnvironment(t, config.Config{
 		OAuth2: config.OAuth2{
-			Issuer:    resourceServerURL,
-			Provider:  generic.Name,
-			Client:    clientCredentials,
-			Endpoints: config.OAuth2Endpoints{},
-			Refresh:   config.OAuth2Refresh{Enabled: true},
+			Refresh: config.OAuth2Refresh{Enabled: true},
 		},
-	}
-
-	storageClient := storage.New(time.Hour)
-	provider := oauth2.New(logger, conf, storageClient)
-	client := openvpn.NewClient(logger, conf, provider)
-
-	require.NoError(t, provider.Discover(client))
-
-	httpClientListener := httptest.NewUnstartedServer(provider.Handler())
-	httpClientListener.Listener.Close()
-	httpClientListener.Listener = clientListener
-	httpClientListener.Start()
-
-	defer httpClientListener.Close()
-
-	httpClient := httpClientListener.Client()
+	})
+	defer shutdownFn()
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)

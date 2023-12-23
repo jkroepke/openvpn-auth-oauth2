@@ -1,9 +1,7 @@
 package oauth2_test
 
 import (
-	"crypto/sha256"
 	"net"
-	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
@@ -17,34 +15,16 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	serverStorage "github.com/zitadel/oidc/v3/example/server/storage"
-	"github.com/zitadel/oidc/v3/pkg/op"
-	"golang.org/x/text/language"
 )
 
 func TestNewProvider(t *testing.T) {
 	t.Parallel()
 
-	opStorage := serverStorage.NewStorageWithClients(serverStorage.NewUserStore("http://localhost"), map[string]*serverStorage.Client{})
-	opConfig := &op.Config{
-		CryptoKey:                sha256.Sum256([]byte("test")),
-		DefaultLogoutRedirectURI: "/",
-		CodeMethodS256:           true,
-		AuthMethodPost:           true,
-		AuthMethodPrivateKeyJWT:  true,
-		GrantTypeRefreshToken:    true,
-		RequestObjectSupported:   true,
-		SupportedUILocales:       []language.Tag{language.English},
-	}
-
-	handler, err := op.NewProvider(opConfig, opStorage, op.IssuerFromHost(""), op.WithAllowInsecure())
-
+	clientListener := testutils.TCPTestListener(t)
+	_, resourceServerURL, clientCredentials, err := testutils.SetupResourceServer(clientListener)
 	require.NoError(t, err)
 
-	svr := httptest.NewServer(handler)
 	logger := testutils.NewTestLogger()
-
-	svrURL, _ := url.Parse(svr.URL)
 
 	tests := []struct {
 		name string
@@ -56,9 +36,9 @@ func TestNewProvider(t *testing.T) {
 			config.Config{
 				HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "localhost"}},
 				OAuth2: config.OAuth2{
-					Issuer:    svrURL,
+					Issuer:    resourceServerURL,
 					Provider:  generic.Name,
-					Client:    config.OAuth2Client{ID: "ID", Secret: "ID"},
+					Client:    clientCredentials,
 					Endpoints: config.OAuth2Endpoints{},
 				},
 			},
@@ -69,11 +49,11 @@ func TestNewProvider(t *testing.T) {
 			config.Config{
 				HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "localhost"}},
 				OAuth2: config.OAuth2{
-					Issuer:   svrURL,
+					Issuer:   resourceServerURL,
 					Provider: generic.Name,
-					Client:   config.OAuth2Client{ID: "ID", Secret: "ID"},
+					Client:   clientCredentials,
 					Endpoints: config.OAuth2Endpoints{
-						Discovery: &url.URL{Scheme: svrURL.Scheme, Host: svrURL.Host, Path: "/.well-known/openid-configuration"},
+						Discovery: &url.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-configuration"},
 					},
 				},
 			},
@@ -84,11 +64,11 @@ func TestNewProvider(t *testing.T) {
 			config.Config{
 				HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "localhost"}},
 				OAuth2: config.OAuth2{
-					Issuer:   svrURL,
+					Issuer:   resourceServerURL,
 					Provider: generic.Name,
-					Client:   config.OAuth2Client{ID: "ID", Secret: "ID"},
+					Client:   clientCredentials,
 					Endpoints: config.OAuth2Endpoints{
-						Discovery: &url.URL{Scheme: svrURL.Scheme, Host: svrURL.Host, Path: "/.well-known/openid-config"},
+						Discovery: &url.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-config"},
 					},
 				},
 			},
@@ -99,13 +79,13 @@ func TestNewProvider(t *testing.T) {
 			config.Config{
 				HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "localhost"}},
 				OAuth2: config.OAuth2{
-					Issuer:   svrURL,
+					Issuer:   resourceServerURL,
 					Provider: generic.Name,
-					Client:   config.OAuth2Client{ID: "ID", Secret: "ID"},
+					Client:   clientCredentials,
 					Endpoints: config.OAuth2Endpoints{
-						Discovery: &url.URL{Scheme: svrURL.Scheme, Host: svrURL.Host, Path: "/.well-known/openid-configuration"},
-						Auth:      &url.URL{Scheme: svrURL.Scheme, Host: svrURL.Host, Path: "/authorize"},
-						Token:     &url.URL{Scheme: svrURL.Scheme, Host: svrURL.Host, Path: "/token"},
+						Discovery: &url.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-configuration"},
+						Auth:      &url.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/authorize"},
+						Token:     &url.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/token"},
 					},
 				},
 			},
@@ -116,12 +96,12 @@ func TestNewProvider(t *testing.T) {
 			config.Config{
 				HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "localhost"}},
 				OAuth2: config.OAuth2{
-					Issuer:   svrURL,
+					Issuer:   resourceServerURL,
 					Provider: generic.Name,
-					Client:   config.OAuth2Client{ID: "ID", Secret: "ID"},
+					Client:   clientCredentials,
 					Endpoints: config.OAuth2Endpoints{
-						Discovery: &url.URL{Scheme: svrURL.Scheme, Host: svrURL.Host, Path: "/.well-known/openid-configuration"},
-						Auth:      &url.URL{Scheme: svrURL.Scheme, Host: svrURL.Host, Path: "/authorize"},
+						Discovery: &url.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-configuration"},
+						Auth:      &url.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/authorize"},
 					},
 				},
 			},
@@ -132,14 +112,14 @@ func TestNewProvider(t *testing.T) {
 			config.Config{
 				HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "localhost"}},
 				OAuth2: config.OAuth2{
-					Issuer:   svrURL,
+					Issuer:   resourceServerURL,
 					Provider: generic.Name,
 					Pkce:     true,
-					Client:   config.OAuth2Client{ID: "ID", Secret: "ID"},
+					Client:   clientCredentials,
 					Endpoints: config.OAuth2Endpoints{
-						Discovery: &url.URL{Scheme: svrURL.Scheme, Host: svrURL.Host, Path: "/.well-known/openid-configuration"},
-						Auth:      &url.URL{Scheme: svrURL.Scheme, Host: svrURL.Host, Path: "/authorize"},
-						Token:     &url.URL{Scheme: svrURL.Scheme, Host: svrURL.Host, Path: "/token"},
+						Discovery: &url.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-configuration"},
+						Auth:      &url.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/authorize"},
+						Token:     &url.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/token"},
 					},
 				},
 			},

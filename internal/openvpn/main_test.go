@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"io"
-	"net"
 	"net/url"
 	"regexp"
 	"strings"
@@ -190,11 +189,10 @@ func TestClientFull(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			l, err := net.Listen("tcp", "127.0.0.1:0")
-			require.NoError(t, err)
-			defer l.Close()
+			managementInterface := testutils.TCPTestListener(t)
+			defer managementInterface.Close()
 
-			tt.conf.OpenVpn.Addr = &url.URL{Scheme: l.Addr().Network(), Host: l.Addr().String()}
+			tt.conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
 			storageClient := storage.New(time.Hour)
 			provider := oauth2.New(logger, tt.conf, storageClient)
@@ -205,7 +203,7 @@ func TestClientFull(t *testing.T) {
 
 			go func() {
 				defer wg.Done()
-				conn, err := l.Accept()
+				conn, err := managementInterface.Accept()
 				require.NoError(t, err)
 
 				defer conn.Close()
@@ -261,7 +259,7 @@ func TestClientFull(t *testing.T) {
 				}
 			}()
 
-			err = client.Connect()
+			err := client.Connect()
 			if tt.err != nil {
 				require.Error(t, err)
 				assert.Equal(t, tt.err.Error(), err.Error())
@@ -281,10 +279,9 @@ func TestClientInvalidPassword(t *testing.T) {
 	t.Parallel()
 
 	logger := testutils.NewTestLogger()
-	l, err := net.Listen("tcp", "127.0.0.1:0")
-	require.NoError(t, err)
 
-	defer l.Close()
+	managementInterface := testutils.TCPTestListener(t)
+	defer managementInterface.Close()
 
 	conf := config.Config{
 		HTTP: config.HTTP{
@@ -292,7 +289,7 @@ func TestClientInvalidPassword(t *testing.T) {
 			Secret:  testutils.HTTPSecret,
 		},
 		OpenVpn: config.OpenVpn{
-			Addr:     &url.URL{Scheme: l.Addr().Network(), Host: l.Addr().String()},
+			Addr:     &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()},
 			Bypass:   config.OpenVpnBypass{CommonNames: make([]string, 0)},
 			Password: "invalid",
 		},
@@ -303,7 +300,7 @@ func TestClientInvalidPassword(t *testing.T) {
 	client := openvpn.NewClient(logger, conf, provider)
 
 	go func() {
-		conn, err := l.Accept()
+		conn, err := managementInterface.Accept()
 		require.NoError(t, err)
 
 		defer conn.Close()
@@ -314,7 +311,7 @@ func TestClientInvalidPassword(t *testing.T) {
 		testutils.SendLine(t, conn, "ERROR: bad password\r\n")
 	}()
 
-	err = client.Connect()
+	err := client.Connect()
 
 	require.Error(t, err)
 	assert.Equal(t, "unable to connect to openvpn management interface: invalid password", err.Error())
@@ -365,18 +362,17 @@ func TestClientInvalidVersion(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			l, err := net.Listen("tcp", "127.0.0.1:0")
-			require.NoError(t, err)
-			defer l.Close()
+			managementInterface := testutils.TCPTestListener(t)
+			defer managementInterface.Close()
 
-			conf.OpenVpn.Addr = &url.URL{Scheme: l.Addr().Network(), Host: l.Addr().String()}
+			conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
 			storageClient := storage.New(time.Hour)
 			provider := oauth2.New(logger, conf, storageClient)
 			client := openvpn.NewClient(logger, conf, provider)
 
 			go func() {
-				conn, err := l.Accept()
+				conn, err := managementInterface.Accept()
 				require.NoError(t, err)
 
 				defer conn.Close()
@@ -391,7 +387,7 @@ func TestClientInvalidVersion(t *testing.T) {
 				testutils.SendLine(t, conn, tt.version)
 			}()
 
-			err = client.Connect()
+			err := client.Connect()
 			require.Error(t, err)
 			assert.Equal(t, tt.err, err.Error())
 
