@@ -31,14 +31,17 @@ func TestRefreshReAuth(t *testing.T) {
 
 	managementInterface, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
+
 	defer managementInterface.Close()
 
 	clientListener, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
+
 	defer clientListener.Close()
 
 	resourceServer, clientCredentials, err := testutils.SetupResourceServer(clientListener)
 	require.NoError(t, err)
+
 	defer resourceServer.Close()
 
 	resourceServerURL, err := url.Parse(resourceServer.URL)
@@ -73,6 +76,7 @@ func TestRefreshReAuth(t *testing.T) {
 	httpClientListener.Listener.Close()
 	httpClientListener.Listener = clientListener
 	httpClientListener.Start()
+
 	defer httpClientListener.Close()
 
 	httpClient := httpClientListener.Client()
@@ -82,6 +86,7 @@ func TestRefreshReAuth(t *testing.T) {
 
 	go func() {
 		defer wg.Done()
+
 		err := client.Connect()
 		if err != nil && !strings.HasSuffix(err.Error(), "EOF") {
 			require.NoError(t, err)
@@ -115,13 +120,13 @@ func TestRefreshReAuth(t *testing.T) {
 	assert.Contains(t, auth, "client-pending-auth 1 2 \"WEB_AUTH::")
 	testutils.SendLine(t, managementInterfaceConn, "SUCCESS: %s command succeeded\r\n", strings.SplitN(auth, " ", 2)[0])
 
-	authUrl := strings.TrimPrefix(strings.Split(auth, `"`)[1], "WEB_AUTH::")
-	_ = authUrl
+	authURL := strings.TrimPrefix(strings.Split(auth, `"`)[1], "WEB_AUTH::")
 
-	request, err := http.NewRequestWithContext(context.Background(), http.MethodGet, authUrl, nil)
+	request, err := http.NewRequestWithContext(context.Background(), http.MethodGet, authURL, nil)
 	require.NoError(t, err)
 
 	wg.Add(1)
+
 	go func() {
 		defer wg.Done()
 		assert.Equal(t, "client-auth-nt 1 2", testutils.ReadLine(t, reader))
@@ -134,6 +139,7 @@ func TestRefreshReAuth(t *testing.T) {
 
 	_, err = io.Copy(io.Discard, resp.Body)
 	require.NoError(t, err)
+
 	_ = resp.Body.Close()
 
 	// Testing ReAuth

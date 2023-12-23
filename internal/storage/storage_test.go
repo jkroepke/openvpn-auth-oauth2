@@ -33,5 +33,5 @@ func TestStorage(t *testing.T) {
 
 	_, err = stor.Get(uint64(1))
 	require.Error(t, err)
-	assert.ErrorIs(t, err, storage.ErrNotExists)
+	require.ErrorIs(t, err, storage.ErrNotExists)
 }
