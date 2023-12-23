@@ -147,6 +147,15 @@ func TestRefreshReAuth(t *testing.T) {
 	assert.Equal(t, "client-auth-nt 1 3", testutils.ReadLine(t, reader))
 	testutils.SendLine(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded\r\n")
 
+	// Test Disconnect
+	testutils.SendLine(t, managementInterfaceConn, ">CLIENT:DISCONNECT,1\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END\r\n")
+
+	// Test ReAuth after DC
+	testutils.SendLine(t, managementInterfaceConn, ">CLIENT:REAUTH,1,3\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END\r\n")
+
+	assert.Contains(t, auth, "client-pending-auth 1 2 \"WEB_AUTH::")
+	testutils.SendLine(t, managementInterfaceConn, "SUCCESS: %s command succeeded\r\n", strings.SplitN(auth, " ", 2)[0])
+
 	client.Shutdown()
 	wg.Wait()
 }
