@@ -39,6 +39,8 @@ func New(expires time.Duration) *Storage {
 
 func (s *Storage) collect() {
 	for {
+		time.Sleep(time.Minute * 5)
+
 		s.data.Range(func(client, data any) bool {
 			entry, ok := data.(item)
 			if !ok {
@@ -51,8 +53,6 @@ func (s *Storage) collect() {
 
 			return true
 		})
-
-		time.Sleep(time.Minute * 5)
 	}
 }
 
