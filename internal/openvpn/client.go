@@ -41,7 +41,11 @@ func (c *Client) clientConnect(client connection.Client) error {
 
 	logger.Info("new client connection")
 
-	if c.checkAuthBypass(logger, client) || c.checkReAuth(logger, client) || !c.checkClientSsoCapabilities(logger, client) {
+	if c.checkAuthBypass(logger, client) || !c.checkClientSsoCapabilities(logger, client) {
+		return nil
+	}
+
+	if client.Reason == "REAUTH" && c.checkReAuth(logger, client) {
 		return nil
 	}
 
