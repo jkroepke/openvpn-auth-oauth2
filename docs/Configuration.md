@@ -88,7 +88,7 @@ It'd highly recommend putting openvpn-auth-oauth2 behind a reverse proxy which t
 It's important to configure `CONFIG_HTTP_BASE_URL` because openvpn-auth-oauth2 need to know the redirect url.
 
 Example:
-```conf
+```ini
 # openvpn-auth-oauth2 config file
 CONFIG_HTTP_LISTEN=:9000
 CONFIG_HTTP_BASE_URL=https://login.example.com
@@ -97,7 +97,7 @@ CONFIG_HTTP_BASE_URL=https://login.example.com
 ## Setup OpenVPN server
 To connect openvpn-auth-oauth2 with openvpn server, add lines below:
 
-```conf
+```ini
 # openvpn server.conf
 ...
 # /etc/openvpn/password.txt is a password file where the password must be on first line
@@ -106,7 +106,7 @@ management-hold
 management-client-auth
 ```
 
-```conf
+```ini
 # openvpn-auth-oauth2 config file
 CONFIG_OPENVPN_ADDR=unix:///run/openvpn/server.sock
 CONFIG_OPENVPN_PASSWORD=<password>
@@ -119,7 +119,7 @@ See [Providers](Providers) for more information
 ## Full configuration example
 Configuration openvpn-auth-oauth2 for [zitadel](https://zitadel.com/)
 
-```conf
+```ini
 # Define the public http endpoint here.
 CONFIG_HTTP_BASEURL=http://<vpn>:9000/
 CONFIG_HTTP_LISTEN=:9000
@@ -150,3 +150,8 @@ References:
 - https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow#refresh-the-access-token
 - https://curity.io/resources/learn/oauth-refresh/
 - https://developer.okta.com/docs/guides/refresh-tokens/main/
+
+```ini
+CONFIG_OAUTH2_REFRESH_ENABLED=true
+CONFIG_OAUTH2_REFRESH_EXPIRES=8h
+```

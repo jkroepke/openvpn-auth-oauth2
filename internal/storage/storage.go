@@ -74,7 +74,6 @@ func (s *Storage) Get(client uint64) (string, error) {
 	}
 
 	token, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, s.encryptionKey, data.(item).token, nil)
-
 	if err != nil {
 		return "", fmt.Errorf("decrypt error: %w", err)
 	}
