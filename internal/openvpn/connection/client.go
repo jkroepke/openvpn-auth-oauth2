@@ -19,10 +19,19 @@ type Client struct {
 func NewClient(message string) (Client, error) { //nolint:cyclop
 	client := Client{}
 
-	var err error
+	var (
+		err  error
+		line string
+	)
 
-	for _, line := range strings.Split(strings.TrimSpace(message), "\n") {
-		if isClientReason(line) {
+	ok := true
+	clientMessage := message
+
+	for ok {
+		line, clientMessage, ok = strings.Cut(clientMessage, "\n")
+		line = strings.TrimSpace(line)
+
+		if client.Reason == "" && isClientReason(line) {
 			client.Reason, client.Cid, client.Kid, err = parseClientReason(line)
 			if err != nil {
 				return Client{}, err
@@ -54,30 +63,34 @@ func NewClient(message string) (Client, error) { //nolint:cyclop
 }
 
 func parseClientEnv(line string) (string, string) {
-	clientEnv := strings.SplitN(strings.SplitN(line, ",", 2)[1], "=", 2)
-	if clientEnv[0] == "END" {
+	comma := strings.Index(line, ",") + 1
+	key, value, ok := strings.Cut(line[comma:], "=")
+
+	if value == "END" {
 		return "", ""
 	}
 
-	if len(clientEnv) == 1 {
-		return clientEnv[0], ""
+	if !ok {
+		return key, ""
 	}
 
-	return clientEnv[0], clientEnv[1]
+	return key, value
 }
 
 func parseClientReason(line string) (string, uint64, uint64, error) {
-	clientInfo := strings.Split(strings.TrimSpace(line), ",")
-	if len(clientInfo) == 1 {
+	reason, clientIds, ok := strings.Cut(line, ",")
+	if !ok {
 		return "", 0, 0, fmt.Errorf("unable to parse line '%s': %w", line, ErrInvalidMessage)
 	}
 
-	reason := strings.Replace(clientInfo[0], ">CLIENT:", "", 1)
-	if reason == "" {
+	_, reason, ok = strings.Cut(reason, ":")
+	if !ok || reason == "" {
 		return "", 0, 0, fmt.Errorf("unable to parse client reason: %w", ErrEmptyClientReasons)
 	}
 
-	cid, err := strconv.ParseUint(clientInfo[1], 10, 64)
+	cidString, kidString, _ := strings.Cut(clientIds, ",")
+
+	cid, err := strconv.ParseUint(cidString, 10, 64)
 	if err != nil {
 		return "", 0, 0, fmt.Errorf("unable to parse cid: %w", err)
 	}
@@ -85,7 +98,10 @@ func parseClientReason(line string) (string, uint64, uint64, error) {
 	kid := uint64(0)
 
 	if reason != "DISCONNECT" && reason != "ESTABLISHED" {
-		kid, err = strconv.ParseUint(clientInfo[2], 10, 64)
+		// kidString could contain a CR_RESPONSE, cut it again
+		kidString, _, _ = strings.Cut(kidString, ",")
+
+		kid, err = strconv.ParseUint(kidString, 10, 64)
 		if err != nil {
 			return "", 0, 0, fmt.Errorf("unable to parse kid: %w", err)
 		}
