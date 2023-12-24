@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
 	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
@@ -38,8 +39,8 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 		},
 	}
 
-	storageClient := storage.New("0123456789101112", time.Hour)
-	client := openvpn.NewClient(logger, conf, storageClient)
+	storageClient := storage.New(time.Hour)
+	client := openvpn.NewClient(logger, conf, oauth2.New(logger, conf, storageClient))
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
