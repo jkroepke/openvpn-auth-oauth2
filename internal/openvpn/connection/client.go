@@ -98,6 +98,7 @@ func parseClientReason(line string) (string, uint64, uint64, error) {
 	kid := uint64(0)
 
 	if reason != "DISCONNECT" && reason != "ESTABLISHED" {
+		// kidString could contain a CR_RESPONSE, cut it again
 		kidString, _, _ = strings.Cut(kidString, ",")
 		kid, err = strconv.ParseUint(kidString, 10, 64)
 		if err != nil {
