@@ -35,13 +35,13 @@ func SendLine(tb testing.TB, conn net.Conn, msg string, a ...any) {
 	require.NoError(tb, err)
 }
 
-func ReadLine(t *testing.T, reader *bufio.Reader) string {
-	t.Helper()
+func ReadLine(tb testing.TB, reader *bufio.Reader) string {
+	tb.Helper()
 
 	line, err := reader.ReadString('\n')
 
 	if err != nil && !errors.Is(err, io.EOF) {
-		require.NoError(t, err)
+		require.NoError(tb, err)
 	}
 
 	return strings.TrimSpace(line)
@@ -83,28 +83,29 @@ func SetupResourceServer(clientListener net.Listener) (*httptest.Server, *url.UR
 	}))
 
 	resourceServer := httptest.NewServer(mux)
+
 	resourceServerURL, err := url.Parse(resourceServer.URL)
 	if err != nil {
 		return nil, nil, config.OAuth2Client{}, err //nolint:wrapcheck
 	}
 
-	return resourceServer, resourceServerURL, config.OAuth2Client{ID: clientListener.Addr().String(), Secret: "SECRET"}, err
+	return resourceServer, resourceServerURL, config.OAuth2Client{ID: clientListener.Addr().String(), Secret: "SECRET"}, nil
 }
 
 //nolint:cyclop
-func SetupMockEnvironment(t *testing.T, conf config.Config) (
+func SetupMockEnvironment(tb testing.TB, conf config.Config) (
 	config.Config, *openvpn.Client, net.Listener,
 	*oauth2.Provider, *httptest.Server, *http.Client, func(),
 ) {
-	t.Helper()
+	tb.Helper()
 
 	logger := NewTestLogger()
 
-	managementInterface := TCPTestListener(t)
-	clientListener := TCPTestListener(t)
+	managementInterface := TCPTestListener(tb)
+	clientListener := TCPTestListener(tb)
 
 	resourceServer, resourceServerURL, clientCredentials, err := SetupResourceServer(clientListener)
-	require.NoError(t, err)
+	require.NoError(tb, err)
 
 	if conf.HTTP.BaseURL == nil {
 		conf.HTTP.BaseURL = &url.URL{Scheme: "http", Host: clientListener.Addr().String()}
@@ -150,7 +151,7 @@ func SetupMockEnvironment(t *testing.T, conf config.Config) (
 	provider := oauth2.New(logger, conf, storageClient)
 	openvpnClient := openvpn.NewClient(logger, conf, provider)
 
-	require.NoError(t, provider.Discover(openvpnClient))
+	require.NoError(tb, provider.Discover(openvpnClient))
 
 	httpClientListener := httptest.NewUnstartedServer(provider.Handler())
 	httpClientListener.Listener.Close()
@@ -160,7 +161,7 @@ func SetupMockEnvironment(t *testing.T, conf config.Config) (
 	httpClient := httpClientListener.Client()
 
 	jar, err := cookiejar.New(nil)
-	require.NoError(t, err)
+	require.NoError(tb, err)
 
 	httpClient.Jar = jar
 

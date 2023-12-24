@@ -7,11 +7,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TCPTestListener(t *testing.T) net.Listener {
-	t.Helper()
+func TCPTestListener(tb testing.TB) net.Listener {
+	tb.Helper()
 
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	require.NoError(t, err)
+	require.NoError(tb, err)
 
 	return listener
 }

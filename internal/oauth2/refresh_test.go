@@ -5,7 +5,6 @@ import (
 	"context"
 	"io"
 	"net/http"
-	"net/http/cookiejar"
 	"strings"
 	"sync"
 	"testing"
@@ -52,11 +51,6 @@ func TestRefreshReAuth(t *testing.T) {
 	assert.Equal(t, "version", testutils.ReadLine(t, reader))
 
 	testutils.SendLine(t, managementInterfaceConn, "OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 5\r\nEND\r\n")
-
-	jar, err := cookiejar.New(nil)
-	require.NoError(t, err)
-
-	httpClient.Jar = jar
 
 	time.Sleep(time.Millisecond * 100)
 
