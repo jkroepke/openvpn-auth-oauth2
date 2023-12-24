@@ -16,7 +16,7 @@ type Storage struct {
 }
 
 type item struct {
-	token   string
+	token   []byte
 	expires time.Time
 }
 
@@ -31,50 +31,50 @@ func New(encryptionKey string, expires time.Duration) *Storage {
 	return storage
 }
 
-func (storage *Storage) collect() {
+func (s *Storage) collect() {
 	for {
-		storage.data.Range(func(client, data any) bool {
+		time.Sleep(time.Minute * 5)
+
+		s.data.Range(func(client, data any) bool {
 			entry, ok := data.(item)
 			if !ok {
 				panic(data)
 			}
 
 			if entry.expires.Compare(time.Now()) == -1 {
-				storage.data.Delete(client)
+				s.data.Delete(client)
 			}
 
 			return true
 		})
-
-		time.Sleep(time.Minute * 5)
 	}
 }
 
-func (storage *Storage) Set(client uint64, token string) error {
-	encryptedToken, err := crypto.EncryptAES(token, storage.encryptionKey)
+func (s *Storage) Set(client uint64, token string) error {
+	encryptedBytes, err := crypto.EncryptBytesAES([]byte(token), s.encryptionKey)
 	if err != nil {
-		return fmt.Errorf("encrypt error: %w", err)
+		return fmt.Errorf("decrypt error: %w", err)
 	}
 
-	storage.data.Store(client, item{encryptedToken, time.Now().Add(storage.expires)})
+	s.data.Store(client, item{encryptedBytes, time.Now().Add(s.expires)})
 
 	return nil
 }
 
-func (storage *Storage) Get(client uint64) (string, error) {
-	data, ok := storage.data.Load(client)
+func (s *Storage) Get(client uint64) (string, error) {
+	data, ok := s.data.Load(client)
 	if !ok {
 		return "", ErrNotExists
 	}
 
-	token, err := crypto.DecryptAES(data.(item).token, storage.encryptionKey)
+	token, err := crypto.DecryptBytesAES(data.(item).token, s.encryptionKey)
 	if err != nil {
 		return "", fmt.Errorf("decrypt error: %w", err)
 	}
 
-	return token, nil
+	return string(token), nil
 }
 
-func (storage *Storage) Delete(client uint64) {
-	storage.data.Delete(client)
+func (s *Storage) Delete(client uint64) {
+	s.data.Delete(client)
 }

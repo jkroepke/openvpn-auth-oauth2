@@ -7,8 +7,8 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 )

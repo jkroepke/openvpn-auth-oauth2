@@ -21,34 +21,52 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// NewProvider returns a [Provider] instance.
-func NewProvider(logger *slog.Logger, conf config.Config, storageClient *storage.Storage, openvpnClient OpenVPN) (Provider, error) {
-	provider, err := newOidcProvider(conf)
+// New returns a [Provider] instance.
+func New(logger *slog.Logger, conf config.Config, storageClient *storage.Storage) *Provider {
+	return &Provider{
+		storage: storageClient,
+		conf:    conf,
+		logger:  logger,
+	}
+}
+
+// Discover initiate the discovery of OIDC provider.
+func (p *Provider) Discover(openvpn OpenVPN) error {
+	var err error
+
+	p.openvpn = openvpn
+
+	p.OIDC, err = newOidcProvider(p.conf)
 	if err != nil {
-		return Provider{}, err
+		return err
 	}
 
-	authorizeParams, err := GetAuthorizeParams(conf.OAuth2.AuthorizeParams)
+	endpoints, err := p.OIDC.GetEndpoints(p.conf)
 	if err != nil {
-		return Provider{}, err
+		return fmt.Errorf("error getting endpoints: %w", err)
 	}
 
-	basePath := conf.HTTP.BaseURL.JoinPath("/oauth2")
+	p.authorizeParams, err = GetAuthorizeParams(p.conf.OAuth2.AuthorizeParams)
+	if err != nil {
+		return err
+	}
+
+	basePath := p.conf.HTTP.BaseURL.JoinPath("/oauth2")
 	redirectURI := basePath.JoinPath("/callback").String()
 
-	cookieKey := []byte(conf.HTTP.Secret)
+	cookieKey := []byte(p.conf.HTTP.Secret)
 	cookieOpt := []httphelper.CookieHandlerOpt{
-		httphelper.WithMaxAge(int(conf.OpenVpn.AuthPendingTimeout.Seconds()) + 5),
+		httphelper.WithMaxAge(int(p.conf.OpenVpn.AuthPendingTimeout.Seconds()) + 5),
 		httphelper.WithPath(basePath.Path),
 		httphelper.WithDomain(basePath.Hostname()),
 	}
 
-	if conf.HTTP.BaseURL.Scheme == "http" {
+	if p.conf.HTTP.BaseURL.Scheme == "http" {
 		cookieOpt = append(cookieOpt, httphelper.WithUnsecure())
 	}
 
 	cookieHandler := httphelper.NewCookieHandler(cookieKey, cookieKey, cookieOpt...)
-	providerLogger := log.NewZitadelLogger(logger)
+	providerLogger := log.NewZitadelLogger(p.logger)
 
 	options := []rp.Option{
 		rp.WithLogger(providerLogger),
@@ -56,83 +74,68 @@ func NewProvider(logger *slog.Logger, conf config.Config, storageClient *storage
 		rp.WithVerifierOpts(rp.WithIssuedAtOffset(5 * time.Second)),
 		rp.WithHTTPClient(&http.Client{Timeout: time.Second * 30, Transport: utils.NewUserAgentTransport(nil)}),
 		rp.WithErrorHandler(func(w http.ResponseWriter, r *http.Request, errorType string, errorDesc string, encryptedSession string) {
-			errorHandler(w, conf, logger, openvpnClient, http.StatusInternalServerError, errorType, errorDesc, encryptedSession)
+			errorHandler(w, p.conf, p.logger, p.openvpn, http.StatusInternalServerError, errorType, errorDesc, encryptedSession)
 		}),
 		rp.WithUnauthorizedHandler(func(w http.ResponseWriter, r *http.Request, desc string, encryptedSession string) {
-			errorHandler(w, conf, logger, openvpnClient, http.StatusUnauthorized, "Unauthorized", desc, encryptedSession)
+			errorHandler(w, p.conf, p.logger, p.openvpn, http.StatusUnauthorized, "Unauthorized", desc, encryptedSession)
 		}),
 	}
 
-	if conf.OAuth2.Pkce {
+	if p.conf.OAuth2.Pkce {
 		options = append(options, rp.WithPKCE(cookieHandler))
 	}
 
-	endpoints, err := provider.GetEndpoints(conf)
-	if err != nil {
-		return Provider{}, fmt.Errorf("error getting endpoints: %w", err)
-	}
-
-	scopes := conf.OAuth2.Scopes
+	scopes := p.conf.OAuth2.Scopes
 	if len(scopes) == 0 {
-		scopes = provider.GetDefaultScopes()
+		scopes = p.OIDC.GetDefaultScopes()
 	}
-
-	var relyingParty rp.RelyingParty
 
 	if endpoints == (oauth2.Endpoint{}) {
-		if !config.IsURLEmpty(conf.OAuth2.Endpoints.Discovery) {
-			logger.Info(fmt.Sprintf(
-				"discover oidc auto configuration with provider %s for issuer %s with custom discovery url %s",
-				provider.GetName(), conf.OAuth2.Issuer.String(), conf.OAuth2.Endpoints.Discovery.String(),
+		if !config.IsURLEmpty(p.conf.OAuth2.Endpoints.Discovery) {
+			p.logger.Info(fmt.Sprintf(
+				"discover oidc auto configuration with p %s for issuer %s with custom discovery url %s",
+				p.OIDC.GetName(), p.conf.OAuth2.Issuer.String(), p.conf.OAuth2.Endpoints.Discovery.String(),
 			))
 
-			options = append(options, rp.WithCustomDiscoveryUrl(conf.OAuth2.Endpoints.Discovery.String()))
+			options = append(options, rp.WithCustomDiscoveryUrl(p.conf.OAuth2.Endpoints.Discovery.String()))
 		} else {
-			logger.Info(fmt.Sprintf(
-				"discover oidc auto configuration with provider %s for issuer %s",
-				provider.GetName(), conf.OAuth2.Issuer.String(),
+			p.logger.Info(fmt.Sprintf(
+				"discover oidc auto configuration with p %s for issuer %s",
+				p.OIDC.GetName(), p.conf.OAuth2.Issuer.String(),
 			))
 		}
 
-		relyingParty, err = rp.NewRelyingPartyOIDC(
+		p.RelyingParty, err = rp.NewRelyingPartyOIDC(
 			logging.ToContext(context.Background(), providerLogger),
-			conf.OAuth2.Issuer.String(),
-			conf.OAuth2.Client.ID,
-			conf.OAuth2.Client.Secret.String(),
+			p.conf.OAuth2.Issuer.String(),
+			p.conf.OAuth2.Client.ID,
+			p.conf.OAuth2.Client.Secret.String(),
 			redirectURI,
 			scopes,
 			options...,
 		)
 	} else {
-		logger.Info(utils.StringConcat(
-			"manually configure oauth2 provider with provider ",
-			provider.GetName(), " and endpoints ", endpoints.AuthURL, " and ", endpoints.TokenURL,
+		p.logger.Info(fmt.Sprintf(
+			"manually configure oauth2 p with p %s and endpoints %s and %s",
+			p.OIDC.GetName(), endpoints.AuthURL, endpoints.TokenURL,
 		))
 
 		rpConfig := &oauth2.Config{
-			ClientID:     conf.OAuth2.Client.ID,
-			ClientSecret: conf.OAuth2.Client.Secret.String(),
+			ClientID:     p.conf.OAuth2.Client.ID,
+			ClientSecret: p.conf.OAuth2.Client.Secret.String(),
 			RedirectURL:  redirectURI,
 			Scopes:       scopes,
 			Endpoint:     endpoints,
 		}
 
-		relyingParty, err = rp.NewRelyingPartyOAuth(rpConfig, options...)
+		p.RelyingParty, err = rp.NewRelyingPartyOAuth(rpConfig, options...)
 	}
 
 	if err != nil {
-		return Provider{}, fmt.Errorf("error oauth2 provider: %w", err)
+		return fmt.Errorf("error oauth2 provider: %w", err)
 	}
 
-	return Provider{
-		RelyingParty:    relyingParty,
-		OIDC:            provider,
-		openvpn:         openvpnClient,
-		storage:         storageClient,
-		conf:            conf,
-		logger:          logger,
-		authorizeParams: authorizeParams,
-	}, nil
+	return nil
 }
 
 func GetAuthorizeParams(authorizeParams string) ([]rp.URLParamOpt, error) {

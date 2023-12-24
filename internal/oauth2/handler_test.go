@@ -5,11 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
-	"net/http/cookiejar"
-	"net/http/httptest"
-	"net/url"
 	"strings"
 	"sync"
 	"testing"
@@ -17,10 +13,7 @@ import (
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
 	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,8 +21,6 @@ import (
 
 func TestHandler(t *testing.T) {
 	t.Parallel()
-
-	logger := testutils.NewTestLogger()
 
 	tests := []struct {
 		name          string
@@ -43,7 +34,7 @@ func TestHandler(t *testing.T) {
 			"default",
 			config.Config{
 				HTTP: config.HTTP{
-					Secret: testutils.HTTPSecret,
+					Secret: testutils.Secret,
 					Check: config.HTTPCheck{
 						IPAddr: false,
 					},
@@ -73,7 +64,7 @@ func TestHandler(t *testing.T) {
 			"with template",
 			config.Config{
 				HTTP: config.HTTP{
-					Secret: testutils.HTTPSecret,
+					Secret: testutils.Secret,
 					Check: config.HTTPCheck{
 						IPAddr: false,
 					},
@@ -104,7 +95,7 @@ func TestHandler(t *testing.T) {
 			"with ipaddr",
 			config.Config{
 				HTTP: config.HTTP{
-					Secret: testutils.HTTPSecret,
+					Secret: testutils.Secret,
 					Check: config.HTTPCheck{
 						IPAddr: true,
 					},
@@ -134,7 +125,7 @@ func TestHandler(t *testing.T) {
 			"with ipaddr + forwarded-for",
 			config.Config{
 				HTTP: config.HTTP{
-					Secret: testutils.HTTPSecret,
+					Secret: testutils.Secret,
 					Check: config.HTTPCheck{
 						IPAddr: true,
 					},
@@ -165,7 +156,7 @@ func TestHandler(t *testing.T) {
 			"with ipaddr + disabled forwarded-for",
 			config.Config{
 				HTTP: config.HTTP{
-					Secret: testutils.HTTPSecret,
+					Secret: testutils.Secret,
 					Check: config.HTTPCheck{
 						IPAddr: true,
 					},
@@ -196,7 +187,7 @@ func TestHandler(t *testing.T) {
 			"with ipaddr + multiple forwarded-for",
 			config.Config{
 				HTTP: config.HTTP{
-					Secret: testutils.HTTPSecret,
+					Secret: testutils.Secret,
 					Check: config.HTTPCheck{
 						IPAddr: true,
 					},
@@ -227,7 +218,7 @@ func TestHandler(t *testing.T) {
 			"with empty state",
 			config.Config{
 				HTTP: config.HTTP{
-					Secret: testutils.HTTPSecret,
+					Secret: testutils.Secret,
 					Check: config.HTTPCheck{
 						IPAddr: true,
 					},
@@ -258,7 +249,7 @@ func TestHandler(t *testing.T) {
 			"with invalid state",
 			config.Config{
 				HTTP: config.HTTP{
-					Secret: testutils.HTTPSecret,
+					Secret: testutils.Secret,
 					Check: config.HTTPCheck{
 						IPAddr: true,
 					},
@@ -293,44 +284,8 @@ func TestHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			managementInterface, err := net.Listen("tcp", "127.0.0.1:0")
-			require.NoError(t, err)
-			defer managementInterface.Close()
-
-			clientListener, err := net.Listen("tcp", "127.0.0.1:0")
-			require.NoError(t, err)
-			defer clientListener.Close()
-
-			resourceServer, clientCredentials, err := testutils.SetupResourceServer(clientListener)
-			require.NoError(t, err)
-			defer resourceServer.Close()
-
-			resourceServerURL, err := url.Parse(resourceServer.URL)
-			require.NoError(t, err)
-
-			tt.conf.OAuth2.Client = clientCredentials
-			tt.conf.OAuth2.Issuer = resourceServerURL
-			tt.conf.HTTP.BaseURL = &url.URL{Scheme: "http", Host: clientListener.Addr().String()}
-			tt.conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
-			if tt.conf.HTTP.CallbackTemplate == nil {
-				tt.conf.HTTP.CallbackTemplate = config.Defaults.HTTP.CallbackTemplate
-			}
-
-			storageClient := storage.New("0123456789101112", time.Hour)
-
-			client := openvpn.NewClient(logger, tt.conf, storageClient)
-			defer client.Shutdown()
-
-			provider, err := oauth2.NewProvider(logger, tt.conf, storageClient, client)
-			require.NoError(t, err)
-
-			httpClientListener := httptest.NewUnstartedServer(provider.Handler())
-			httpClientListener.Listener.Close()
-			httpClientListener.Listener = clientListener
-			httpClientListener.Start()
-			defer httpClientListener.Close()
-
-			httpClient := httpClientListener.Client()
+			conf, client, managementInterface, _, httpClientListener, httpClient, shutdownFn := testutils.SetupMockEnvironment(t, tt.conf)
+			defer shutdownFn()
 
 			wg := sync.WaitGroup{}
 			wg.Add(2)
@@ -373,18 +328,12 @@ func TestHandler(t *testing.T) {
 				}
 			}()
 
-			jar, err := cookiejar.New(nil)
-			require.NoError(t, err)
-
-			httpClient.Jar = jar
-
 			time.Sleep(time.Millisecond * 100)
 
 			session := tt.state
 			if tt.state == "-" {
 				sessionState := state.New(state.ClientIdentifier{Cid: 0, Kid: 1}, tt.ipaddr, "name")
-				err = sessionState.Encode(tt.conf.HTTP.Secret.String())
-				require.NoError(t, err)
+				require.NoError(t, sessionState.Encode(tt.conf.HTTP.Secret.String()))
 
 				session = sessionState.Encoded()
 			}
@@ -422,7 +371,7 @@ func TestHandler(t *testing.T) {
 				return
 			}
 
-			if tt.conf.HTTP.CallbackTemplate != config.Defaults.HTTP.CallbackTemplate {
+			if conf.HTTP.CallbackTemplate != config.Defaults.HTTP.CallbackTemplate {
 				if !assert.Contains(t, string(body), "openvpn-auth-oauth2 is a management client for OpenVPN that handles the single sign-on") {
 					return
 				}

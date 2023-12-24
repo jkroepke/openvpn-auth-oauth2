@@ -8,7 +8,7 @@
 # openvpn-auth-oauth2
 
 openvpn-auth-oauth2 is a management client for OpenVPN that handles the single sign-on (SSO) authentication
-of connecting users against OIDC providers like 
+of connecting users against OIDC providers like
 
 * Microsoft Entra ID (Azure AD)
 * GitHub
@@ -42,12 +42,11 @@ of connecting users against OIDC providers like
 
 - [OpenVPN Community Client for Windows 2.6.0](https://openvpn.net/community-downloads/)
 - [Tunnelblick](https://tunnelblick.net/) [4.0.0beta10](https://github.com/Tunnelblick/Tunnelblick/issues/676)
-- [OpenVPN 3 core library 3.9](https://github.com/OpenVPN/openvpn3)
+- [OpenVPN 3 core library 3.9](https://github.com/OpenVPN/openvpn3)
 
 #### Partial Working
 
-- [OpenVPN Connect v3 for macOS](https://openvpn.net/vpn-server-resources/connecting-to-access-server-with-macos/) ([REAUTH issues](https://github.com/OpenVPN/openvpn3/issues/282))
-- OpenVPN 3 on Linux ([REAUTH issues](https://github.com/OpenVPN/openvpn3/issues/282))
+- [OpenVPN Connect v3 for Windows/macOS/Linux](https://openvpn.net/vpn-server-resources/connecting-to-access-server-with-macos/) ([REAUTH issues](https://github.com/OpenVPN/openvpn3/issues/282); workaround: [`--oauth2.refresh.enabled=true`](https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Configuration#non-interactive-session-refresh))
 
 #### Non-Working
 
@@ -59,7 +58,7 @@ https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Installation
 
 # Configuration
 
-https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Configuration
+https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Configuration#
 
 # Related projects
 

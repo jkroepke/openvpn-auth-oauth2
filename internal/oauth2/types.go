@@ -6,9 +6,9 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/types"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 	"golang.org/x/oauth2"
@@ -20,6 +20,7 @@ type Provider struct {
 	storage *storage.Storage
 
 	rp.RelyingParty
+
 	OIDC            oidcProvider
 	openvpn         OpenVPN
 	authorizeParams []rp.URLParamOpt

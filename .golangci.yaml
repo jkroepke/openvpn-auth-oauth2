@@ -30,6 +30,7 @@ issues:
         - cyclop
         - wrapcheck
         - maintidx
+        - dogsled
 
 linters-settings:
   varnamelen:

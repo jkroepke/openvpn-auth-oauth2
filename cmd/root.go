@@ -16,7 +16,6 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
 //nolint:cyclop
@@ -59,17 +58,17 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 		return 1
 	}
 
-	storageClient := storage.New(conf.OAuth2.TokenStore.Key.String(), conf.OAuth2.TokenStore.Expires)
-	openvpnClient := openvpn.NewClient(logger, conf, storageClient)
+	storageClient := storage.New(conf.OAuth2.Refresh.Secret.String(), conf.OAuth2.Refresh.Expires)
+	oauth2Client := oauth2.New(logger, conf, storageClient)
+	openvpnClient := openvpn.NewClient(logger, conf, oauth2Client)
 
-	provider, err := oauth2.NewProvider(logger, conf, storageClient, openvpnClient)
-	if err != nil {
+	if err = oauth2Client.Discover(openvpnClient); err != nil {
 		logger.Error(err.Error())
 
 		return 1
 	}
 
-	server := http.NewHTTPServer(logger, conf, provider.Handler())
+	server := http.NewHTTPServer(logger, conf, oauth2Client.Handler())
 
 	done := make(chan int, 1)
 
@@ -102,7 +101,7 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 	select {
 	case returnCode = <-done:
 	case sig := <-termCh:
-		logger.Info(utils.StringConcat("receiving signal: ", sig.String()))
+		logger.Info(fmt.Sprintf("receiving signal: %s", sig.String()))
 	}
 
 	shutdown(logger, openvpnClient, server)

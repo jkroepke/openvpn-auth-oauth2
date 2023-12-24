@@ -56,15 +56,15 @@ type OpenVPNCommonName struct {
 }
 
 type OAuth2 struct {
-	Issuer          *url.URL         `koanf:"issuer"`
-	Provider        string           `koanf:"provider"`
-	AuthorizeParams string           `koanf:"authorize-params"`
-	Endpoints       OAuth2Endpoints  `koanf:"endpoint"`
-	Client          OAuth2Client     `koanf:"client"`
-	Scopes          StringSlice      `koanf:"scopes"`
-	Pkce            bool             `koanf:"pkce"`
-	Validate        OAuth2Validate   `koanf:"validate"`
-	TokenStore      OAuth2TokenStore `koanf:"tokenstore"`
+	Issuer          *url.URL        `koanf:"issuer"`
+	Provider        string          `koanf:"provider"`
+	AuthorizeParams string          `koanf:"authorize-params"`
+	Endpoints       OAuth2Endpoints `koanf:"endpoint"`
+	Client          OAuth2Client    `koanf:"client"`
+	Scopes          StringSlice     `koanf:"scopes"`
+	Pkce            bool            `koanf:"pkce"`
+	Validate        OAuth2Validate  `koanf:"validate"`
+	Refresh         OAuth2Refresh   `koanf:"refresh"`
 }
 
 type OAuth2Client struct {
@@ -86,9 +86,10 @@ type OAuth2Validate struct {
 	CommonName string      `koanf:"common_name"`
 }
 
-type OAuth2TokenStore struct {
+type OAuth2Refresh struct {
+	Enabled bool          `koanf:"enabled"`
 	Expires time.Duration `koanf:"expires"`
-	Key     Secret        `koanf:"salt"`
+	Secret  Secret        `koanf:"secret"`
 }
 
 type OpenVPNCommonNameMode int
