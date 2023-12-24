@@ -19,9 +19,16 @@ type Client struct {
 func NewClient(message string) (Client, error) { //nolint:cyclop
 	client := Client{}
 
-	var err error
+	var (
+		err  error
+		ok   bool
+		line string
+	)
 
-	for _, line := range strings.Split(strings.TrimSpace(message), "\n") {
+	for ok {
+		line, message, ok = strings.Cut(message, "\n")
+		line = strings.TrimSpace(line)
+
 		if isClientReason(line) {
 			client.Reason, client.Cid, client.Kid, err = parseClientReason(line)
 			if err != nil {
