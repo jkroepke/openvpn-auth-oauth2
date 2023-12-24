@@ -54,19 +54,19 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 		}
 	}()
 
-	conn, err := managementInterface.Accept()
+	managementInterfaceConn, err := managementInterface.Accept()
 	require.NoError(b, err)
 
-	defer conn.Close()
-	reader := bufio.NewReader(conn)
+	defer managementInterfaceConn.Close()
+	reader := bufio.NewReader(managementInterfaceConn)
 
 	require.NoError(b, err)
-	testutils.SendLine(b, conn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\r\n")
+	testutils.SendLine(b, managementInterfaceConn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\r\n")
 	assert.Equal(b, "hold release", testutils.ReadLine(b, reader))
-	testutils.SendLine(b, conn, "SUCCESS: hold release succeeded\r\n")
+	testutils.SendLine(b, managementInterfaceConn, "SUCCESS: hold release succeeded\r\n")
 	assert.Equal(b, "version", testutils.ReadLine(b, reader))
 
-	testutils.SendLine(b, conn, "OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 5\r\nEND\r\n")
+	testutils.SendLine(b, managementInterfaceConn, "OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 5\r\nEND\r\n")
 
 	tests := []struct {
 		name   string
@@ -90,9 +90,9 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 
 		b.Run(fmt.Sprintf(tt.name), func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				testutils.SendLine(b, conn, tt.client)
+				testutils.SendLine(b, managementInterfaceConn, tt.client)
 				assert.Contains(b, testutils.ReadLine(b, reader), "client-pending-auth 0 1 \"WEB_AUTH::")
-				testutils.SendLine(b, conn, "SUCCESS: client-pending-auth command succeeded\r\n")
+				testutils.SendLine(b, managementInterfaceConn, "SUCCESS: client-pending-auth command succeeded\r\n")
 			}
 
 			b.ReportAllocs()
