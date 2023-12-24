@@ -13,7 +13,7 @@ import (
 func TestState(t *testing.T) {
 	t.Parallel()
 
-	encryptionKey := testutils.HTTPSecret
+	encryptionKey := testutils.Secret
 
 	for i := 1; i < 50; i++ {
 		token := state.New(state.ClientIdentifier{Cid: 1, Kid: 2}, "127.0.0.1", "test")
@@ -41,7 +41,7 @@ func TestStateInvalid_Key(t *testing.T) {
 func TestStateInvalid_Future(t *testing.T) {
 	t.Parallel()
 
-	encryptionKey := testutils.HTTPSecret
+	encryptionKey := testutils.Secret
 
 	token := state.New(state.ClientIdentifier{Cid: 1, Kid: 2}, "127.0.0.1", "test")
 	token.Issued = time.Now().Add(time.Hour).Unix()
@@ -53,7 +53,7 @@ func TestStateInvalid_Future(t *testing.T) {
 func TestStateInvalid_TooOld(t *testing.T) {
 	t.Parallel()
 
-	encryptionKey := testutils.HTTPSecret
+	encryptionKey := testutils.Secret
 
 	token := state.New(state.ClientIdentifier{Cid: 1, Kid: 2}, "127.0.0.1", "test")
 	token.Issued = time.Now().Add(-1 * time.Hour).Unix()
@@ -65,7 +65,7 @@ func TestStateInvalid_TooOld(t *testing.T) {
 func TestStateInvalid_Encoded(t *testing.T) {
 	t.Parallel()
 
-	encryptionKey := testutils.HTTPSecret
+	encryptionKey := testutils.Secret
 
 	token := state.NewEncoded("test")
 	require.Error(t, token.Decode(encryptionKey))

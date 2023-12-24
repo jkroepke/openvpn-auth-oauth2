@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
+	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -12,7 +13,7 @@ import (
 func TestStorage(t *testing.T) {
 	t.Parallel()
 
-	storageClient := storage.New(time.Millisecond * 400)
+	storageClient := storage.New(testutils.Secret, time.Millisecond*400)
 	require.NoError(t, storageClient.Set(uint64(0), "TEST0"))
 	require.NoError(t, storageClient.Set(uint64(1), "TEST1"))
 

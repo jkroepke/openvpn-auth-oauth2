@@ -58,7 +58,7 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 		return 1
 	}
 
-	storageClient := storage.New(conf.OAuth2.Refresh.Expires)
+	storageClient := storage.New(conf.OAuth2.Refresh.Secret.String(), conf.OAuth2.Refresh.Expires)
 	oauth2Client := oauth2.New(logger, conf, storageClient)
 	openvpnClient := openvpn.NewClient(logger, conf, oauth2Client)
 

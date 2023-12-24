@@ -89,6 +89,7 @@ type OAuth2Validate struct {
 type OAuth2Refresh struct {
 	Enabled bool          `koanf:"enabled"`
 	Expires time.Duration `koanf:"expires"`
+	Secret  Secret        `koanf:"secret"`
 }
 
 type OpenVPNCommonNameMode int

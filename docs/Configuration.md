@@ -142,7 +142,8 @@ The interactive login can be avoided by requesting [refresh tokens](https://auth
 (via oauth2 scope `offline_access`; enabled by default) and store the token inside openvpn-auth-oauth2.
 
 If enabled (via `--oauth2.refresh.enabled=true`), `openvpn-auth-oauth2` will store the oauth2 refresh token in an in-memory key-value store.
-`openvpn-auth-oauth2` is using a random generated asymmetric RSA2048 key to encrypt the tokens. The token will be bound to the OpenVPN client ID.
+`openvpn-auth-oauth2` is using AES to encrypt the tokens.
+The token will be bound to the OpenVPN client ID.
 While on initially connect the interactive login is still mandatory, `openvpn-auth-oauth2` tries to initiate a non-interactive login with the refresh
 token against the OIDC provider and fallbacks to interactive login, if unsuccessful.
 

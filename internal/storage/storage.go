@@ -1,16 +1,15 @@
 package storage
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/sha256"
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/zitadel/oidc/v3/pkg/crypto"
 )
 
 type Storage struct {
-	encryptionKey *rsa.PrivateKey
+	encryptionKey string
 
 	expires time.Duration
 	data    sync.Map
@@ -21,14 +20,9 @@ type item struct {
 	expires time.Time
 }
 
-func New(expires time.Duration) *Storage {
-	privkey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		panic(err)
-	}
-
+func New(encryptionKey string, expires time.Duration) *Storage {
 	storage := &Storage{
-		privkey,
+		encryptionKey,
 		expires,
 		sync.Map{},
 	}
@@ -57,12 +51,12 @@ func (s *Storage) collect() {
 }
 
 func (s *Storage) Set(client uint64, token string) error {
-	encryptedToken, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, &s.encryptionKey.PublicKey, []byte(token), nil)
+	encryptedBytes, err := crypto.EncryptBytesAES([]byte(token), s.encryptionKey)
 	if err != nil {
-		return fmt.Errorf("encrypt error: %w", err)
+		return fmt.Errorf("decrypt error: %w", err)
 	}
 
-	s.data.Store(client, item{encryptedToken, time.Now().Add(s.expires)})
+	s.data.Store(client, item{encryptedBytes, time.Now().Add(s.expires)})
 
 	return nil
 }
@@ -73,7 +67,7 @@ func (s *Storage) Get(client uint64) (string, error) {
 		return "", ErrNotExists
 	}
 
-	token, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, s.encryptionKey, data.(item).token, nil)
+	token, err := crypto.DecryptBytesAES(data.(item).token, s.encryptionKey)
 	if err != nil {
 		return "", fmt.Errorf("decrypt error: %w", err)
 	}

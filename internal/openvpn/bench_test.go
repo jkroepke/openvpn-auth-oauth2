@@ -31,7 +31,7 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 	conf := config.Config{
 		HTTP: config.HTTP{
 			BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
-			Secret:  testutils.HTTPSecret,
+			Secret:  testutils.Secret,
 		},
 		OpenVpn: config.OpenVpn{
 			Addr:   &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()},
@@ -39,7 +39,7 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 		},
 	}
 
-	storageClient := storage.New(time.Hour)
+	storageClient := storage.New(testutils.Secret, time.Hour)
 	client := openvpn.NewClient(logger, conf, oauth2.New(logger, conf, storageClient))
 
 	wg := sync.WaitGroup{}

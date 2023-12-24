@@ -26,7 +26,7 @@ import (
 	"golang.org/x/text/language"
 )
 
-const HTTPSecret = "0123456789101112"
+const Secret = "0123456789101112"
 
 func SendLine(tb testing.TB, conn net.Conn, msg string, a ...any) {
 	tb.Helper()
@@ -112,7 +112,7 @@ func SetupMockEnvironment(tb testing.TB, conf config.Config) (
 	}
 
 	if conf.HTTP.Secret == "" {
-		conf.HTTP.Secret = HTTPSecret
+		conf.HTTP.Secret = Secret
 	}
 
 	if conf.HTTP.CallbackTemplate == nil {
@@ -147,7 +147,7 @@ func SetupMockEnvironment(tb testing.TB, conf config.Config) (
 		conf.OAuth2.Refresh.Expires = time.Hour
 	}
 
-	storageClient := storage.New(conf.OAuth2.Refresh.Expires)
+	storageClient := storage.New(Secret, conf.OAuth2.Refresh.Expires)
 	provider := oauth2.New(logger, conf, storageClient)
 	openvpnClient := openvpn.NewClient(logger, conf, provider)
 

@@ -28,14 +28,14 @@ func TestClientInvalidServer(t *testing.T) {
 	conf := config.Config{
 		HTTP: config.HTTP{
 			BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
-			Secret:  testutils.HTTPSecret,
+			Secret:  testutils.Secret,
 		},
 		OpenVpn: config.OpenVpn{
 			Addr:   &url.URL{Scheme: "tcp", Host: "0.0.0.0:1"},
 			Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
 		},
 	}
-	storageClient := storage.New(time.Hour)
+	storageClient := storage.New(testutils.Secret, time.Hour)
 	provider := oauth2.New(logger, conf, storageClient)
 	client := openvpn.NewClient(logger, conf, provider)
 	err := client.Connect()
@@ -60,7 +60,7 @@ func TestClientFull(t *testing.T) {
 			conf: config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.HTTPSecret,
+					Secret:  testutils.Secret,
 				},
 				OpenVpn: config.OpenVpn{
 					Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
@@ -74,7 +74,7 @@ func TestClientFull(t *testing.T) {
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.HTTPSecret,
+					Secret:  testutils.Secret,
 				},
 				OpenVpn: config.OpenVpn{
 					Bypass:   config.OpenVpnBypass{CommonNames: make([]string, 0)},
@@ -106,7 +106,7 @@ func TestClientFull(t *testing.T) {
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.HTTPSecret,
+					Secret:  testutils.Secret,
 				},
 				OpenVpn: config.OpenVpn{
 					Bypass:   config.OpenVpnBypass{CommonNames: make([]string, 0)},
@@ -122,7 +122,7 @@ func TestClientFull(t *testing.T) {
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.HTTPSecret,
+					Secret:  testutils.Secret,
 				},
 				OpenVpn: config.OpenVpn{
 					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
@@ -138,7 +138,7 @@ func TestClientFull(t *testing.T) {
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.HTTPSecret,
+					Secret:  testutils.Secret,
 				},
 				OpenVpn: config.OpenVpn{
 					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
@@ -154,7 +154,7 @@ func TestClientFull(t *testing.T) {
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.HTTPSecret,
+					Secret:  testutils.Secret,
 				},
 				OpenVpn: config.OpenVpn{
 					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
@@ -170,7 +170,7 @@ func TestClientFull(t *testing.T) {
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.HTTPSecret,
+					Secret:  testutils.Secret,
 				},
 				OpenVpn: config.OpenVpn{
 					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
@@ -194,7 +194,7 @@ func TestClientFull(t *testing.T) {
 
 			tt.conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
-			storageClient := storage.New(time.Hour)
+			storageClient := storage.New(testutils.Secret, time.Hour)
 			provider := oauth2.New(logger, tt.conf, storageClient)
 			client := openvpn.NewClient(logger, tt.conf, provider)
 
@@ -286,7 +286,7 @@ func TestClientInvalidPassword(t *testing.T) {
 	conf := config.Config{
 		HTTP: config.HTTP{
 			BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
-			Secret:  testutils.HTTPSecret,
+			Secret:  testutils.Secret,
 		},
 		OpenVpn: config.OpenVpn{
 			Addr:     &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()},
@@ -295,7 +295,7 @@ func TestClientInvalidPassword(t *testing.T) {
 		},
 	}
 
-	storageClient := storage.New(time.Hour)
+	storageClient := storage.New(testutils.Secret, time.Hour)
 	provider := oauth2.New(logger, conf, storageClient)
 	client := openvpn.NewClient(logger, conf, provider)
 
@@ -327,7 +327,7 @@ func TestClientInvalidVersion(t *testing.T) {
 	conf := config.Config{
 		HTTP: config.HTTP{
 			BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
-			Secret:  testutils.HTTPSecret,
+			Secret:  testutils.Secret,
 		},
 		OpenVpn: config.OpenVpn{
 			Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
@@ -367,7 +367,7 @@ func TestClientInvalidVersion(t *testing.T) {
 
 			conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
-			storageClient := storage.New(time.Hour)
+			storageClient := storage.New(testutils.Secret, time.Hour)
 			provider := oauth2.New(logger, conf, storageClient)
 			client := openvpn.NewClient(logger, conf, provider)
 

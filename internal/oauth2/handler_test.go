@@ -34,7 +34,7 @@ func TestHandler(t *testing.T) {
 			"default",
 			config.Config{
 				HTTP: config.HTTP{
-					Secret: testutils.HTTPSecret,
+					Secret: testutils.Secret,
 					Check: config.HTTPCheck{
 						IPAddr: false,
 					},
@@ -64,7 +64,7 @@ func TestHandler(t *testing.T) {
 			"with template",
 			config.Config{
 				HTTP: config.HTTP{
-					Secret: testutils.HTTPSecret,
+					Secret: testutils.Secret,
 					Check: config.HTTPCheck{
 						IPAddr: false,
 					},
@@ -95,7 +95,7 @@ func TestHandler(t *testing.T) {
 			"with ipaddr",
 			config.Config{
 				HTTP: config.HTTP{
-					Secret: testutils.HTTPSecret,
+					Secret: testutils.Secret,
 					Check: config.HTTPCheck{
 						IPAddr: true,
 					},
@@ -125,7 +125,7 @@ func TestHandler(t *testing.T) {
 			"with ipaddr + forwarded-for",
 			config.Config{
 				HTTP: config.HTTP{
-					Secret: testutils.HTTPSecret,
+					Secret: testutils.Secret,
 					Check: config.HTTPCheck{
 						IPAddr: true,
 					},
@@ -156,7 +156,7 @@ func TestHandler(t *testing.T) {
 			"with ipaddr + disabled forwarded-for",
 			config.Config{
 				HTTP: config.HTTP{
-					Secret: testutils.HTTPSecret,
+					Secret: testutils.Secret,
 					Check: config.HTTPCheck{
 						IPAddr: true,
 					},
@@ -187,7 +187,7 @@ func TestHandler(t *testing.T) {
 			"with ipaddr + multiple forwarded-for",
 			config.Config{
 				HTTP: config.HTTP{
-					Secret: testutils.HTTPSecret,
+					Secret: testutils.Secret,
 					Check: config.HTTPCheck{
 						IPAddr: true,
 					},
@@ -218,7 +218,7 @@ func TestHandler(t *testing.T) {
 			"with empty state",
 			config.Config{
 				HTTP: config.HTTP{
-					Secret: testutils.HTTPSecret,
+					Secret: testutils.Secret,
 					Check: config.HTTPCheck{
 						IPAddr: true,
 					},
@@ -249,7 +249,7 @@ func TestHandler(t *testing.T) {
 			"with invalid state",
 			config.Config{
 				HTTP: config.HTTP{
-					Secret: testutils.HTTPSecret,
+					Secret: testutils.Secret,
 					Check: config.HTTPCheck{
 						IPAddr: true,
 					},
