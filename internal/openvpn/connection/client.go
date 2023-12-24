@@ -88,7 +88,7 @@ func parseClientReason(line string) (string, uint64, uint64, error) {
 		return "", 0, 0, fmt.Errorf("unable to parse client reason: %w", ErrEmptyClientReasons)
 	}
 
-	cidString, kidString, ok := strings.Cut(clientIds, ",")
+	cidString, kidString, _ := strings.Cut(clientIds, ",")
 
 	cid, err := strconv.ParseUint(cidString, 10, 64)
 	if err != nil {
@@ -100,6 +100,7 @@ func parseClientReason(line string) (string, uint64, uint64, error) {
 	if reason != "DISCONNECT" && reason != "ESTABLISHED" {
 		// kidString could contain a CR_RESPONSE, cut it again
 		kidString, _, _ = strings.Cut(kidString, ",")
+
 		kid, err = strconv.ParseUint(kidString, 10, 64)
 		if err != nil {
 			return "", 0, 0, fmt.Errorf("unable to parse kid: %w", err)
