@@ -28,13 +28,13 @@ func SendLine(tb testing.TB, conn net.Conn, msg string, a ...any) {
 	require.NoError(tb, err)
 }
 
-func ReadLine(t *testing.T, reader *bufio.Reader) string {
-	t.Helper()
+func ReadLine(tb testing.TB, reader *bufio.Reader) string {
+	tb.Helper()
 
 	line, err := reader.ReadString('\n')
 
 	if err != nil && !errors.Is(err, io.EOF) {
-		require.NoError(t, err)
+		require.NoError(tb, err)
 	}
 
 	return strings.TrimSpace(line)
