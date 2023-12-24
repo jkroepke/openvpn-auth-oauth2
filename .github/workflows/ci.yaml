@@ -27,6 +27,7 @@ jobs:
 
       - run: go build
       - run: go test ./... -timeout 20s -race -covermode=atomic -coverprofile=coverage.out -coverpkg=./...
+      - run: go test ./... -bench . -benchmem -count 3
 
       - name: Install plugin dependencies
         run: |
