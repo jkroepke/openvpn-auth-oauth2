@@ -53,6 +53,7 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 	}()
 
 	conn, err := managementInterface.Accept()
+	require.NoError(b, err)
 
 	defer conn.Close()
 	reader := bufio.NewReader(conn)
