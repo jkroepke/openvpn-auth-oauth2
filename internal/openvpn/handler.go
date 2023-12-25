@@ -1,6 +1,7 @@
 package openvpn
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"strings"
@@ -41,12 +42,12 @@ func (c *Client) sendPassword() error {
 		return fmt.Errorf("error from password command: %w", err)
 	}
 
-	resp, err := c.readMessage()
-	if err != nil {
-		return fmt.Errorf("unable to read messge from buffer: %w", err)
+	var buf bytes.Buffer
+	if err := c.readMessage(&buf); err != nil {
+		return fmt.Errorf("readMessage: %w", err)
 	}
 
-	if !strings.Contains(resp, "SUCCESS: password is correct") {
+	if !strings.Contains(buf.String(), "SUCCESS: password is correct") {
 		return fmt.Errorf("unable to connect to openvpn management interface: %w", ErrInvalidPassword)
 	}
 
@@ -58,16 +59,26 @@ func (c *Client) handleMessages() {
 	defer close(c.commandResponseCh)
 	defer close(c.clientsCh)
 
+	var (
+		err     error
+		buf     bytes.Buffer
+		client  connection.Client
+		message string
+	)
+
+	buf.Grow(4096)
+
 	for {
-		message, err := c.readMessage()
-		if err != nil {
-			c.errCh <- err
+		if err = c.readMessage(&buf); err != nil {
+			c.errCh <- fmt.Errorf("readMessage: %w", err)
 
 			return
 		}
 
+		message = buf.String()
+
 		if strings.HasPrefix(message, ">CLIENT:") {
-			client, err := connection.NewClient(message)
+			client, err = connection.NewClient(message)
 			if err != nil {
 				c.errCh <- err
 
@@ -80,12 +91,17 @@ func (c *Client) handleMessages() {
 			strings.HasPrefix(message, "OpenVPN Version:") {
 			c.commandResponseCh <- message
 		}
+
+		buf.Reset()
 	}
 }
 
 // handlePassword receive a new message from clientsCh and process them.
 func (c *Client) handleClients() {
-	var client connection.Client
+	var (
+		client connection.Client
+		err    error
+	)
 
 	for {
 		client = <-c.clientsCh
@@ -93,7 +109,7 @@ func (c *Client) handleClients() {
 			return
 		}
 
-		if err := c.processClient(client); err != nil {
+		if err = c.processClient(client); err != nil {
 			c.errCh <- err
 
 			return

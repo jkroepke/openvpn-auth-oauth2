@@ -3,8 +3,8 @@ package openvpn
 import (
 	"fmt"
 	"log/slog"
-	"net/url"
 	"slices"
+	"strings"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
@@ -61,21 +61,18 @@ func (c *Client) clientConnect(client connection.Client) error {
 		return fmt.Errorf("error encoding state: %w", err)
 	}
 
-	startURL := c.conf.HTTP.BaseURL.JoinPath("/oauth2/start")
-	startURL.RawQuery = fmt.Sprintf("state=%s", url.QueryEscape(session.Encoded()))
+	startURL := fmt.Sprintf("%s/oauth2/start?state=%s", strings.TrimSuffix(c.conf.HTTP.BaseURL.String(), "/"), session.Encoded())
 
-	startURLString := startURL.String()
-
-	if len(startURLString) >= 245 {
+	if len(startURL) >= 245 {
 		c.DenyClient(logger, ClientIdentifier, "internal error")
 
 		return fmt.Errorf("url %s (%d chars) too long! OpenVPN support up to 245 chars. Try --openvpn.common-name.mode to avoid this error",
-			startURL, len(startURLString))
+			startURL, len(startURL))
 	}
 
 	logger.Info("start pending auth")
 
-	_, err = c.SendCommandf(`client-pending-auth %d %d "WEB_AUTH::%s" %.0f`, client.Cid, client.Kid, startURLString, c.conf.OpenVpn.AuthPendingTimeout.Seconds())
+	_, err = c.SendCommandf(`client-pending-auth %d %d "WEB_AUTH::%s" %.0f`, client.Cid, client.Kid, startURL, c.conf.OpenVpn.AuthPendingTimeout.Seconds())
 	if err != nil {
 		logger.Warn(err.Error())
 	}
