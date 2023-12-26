@@ -27,6 +27,7 @@ func TestStringToURLHookFunc(t *testing.T) {
 		{"empty host", reflect.ValueOf("http://"), reflect.ValueOf(url.URL{}), nil, true},
 		{"empty scheme", reflect.ValueOf("://localhost"), reflect.ValueOf(url.URL{}), nil, true},
 		{"invalid port", reflect.ValueOf("http://localhost:-"), reflect.ValueOf(url.URL{}), nil, true},
+		{"invalid string", reflect.ValueOf("Hello,World"), reflect.ValueOf(url.URL{}), nil, true},
 		{"different type", reflect.ValueOf("5"), reflect.ValueOf("5"), "5", false},
 	}
 
