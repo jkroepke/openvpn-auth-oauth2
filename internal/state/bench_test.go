@@ -24,7 +24,9 @@ func BenchmarkState(b *testing.B) {
 	})
 
 	b.StopTimer()
+
 	encodedToken := state.NewEncoded(token.Encoded())
+
 	b.StartTimer()
 
 	b.Run("decode", func(b *testing.B) {

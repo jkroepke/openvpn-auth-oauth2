@@ -88,8 +88,8 @@ func (state *State) Decode(secretKey string) error {
 
 func (state *State) Encode(secretKey string) error {
 	var data bytes.Buffer
-	data.Grow(512)
 
+	data.Grow(512)
 	data.WriteString(strconv.FormatUint(state.Client.Cid, 10))
 	data.WriteString(" ")
 	data.WriteString(strconv.FormatUint(state.Client.Kid, 10))
