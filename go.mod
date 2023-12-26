@@ -13,8 +13,8 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/stretchr/testify v1.8.4
 	github.com/zitadel/logging v0.5.0
-	github.com/zitadel/oidc/v3 v3.8.0
-	golang.org/x/exp v0.0.0-20231219180239-dc181d75b848
+	github.com/zitadel/oidc/v3 v3.8.1
+	golang.org/x/exp v0.0.0-20231226003508-02704c960a9b
 	golang.org/x/oauth2 v0.15.0
 	golang.org/x/text v0.14.0
 )

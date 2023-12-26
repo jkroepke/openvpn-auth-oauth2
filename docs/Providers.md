@@ -3,13 +3,15 @@
 This pages documents the setup at the OIDC provider.
 
 ## Azure AD
+
 ### Register an app with AAD
 
 1. Login as admin into tenant
 2. Open [App registrations](https://aad.portal.azure.com/#blade/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/RegisteredApps) in Azure AD admin center
 3. Click new registration
 4. Pick a name, chose a "Supported account types"-option. Leave the default value, if you are not sure.
-5. For redirect uri, choice Web and enter the public endpoint of `openvpn-auth-oauth2`, for example `https://openvpn-auth-oauth2.example.com/oauth2/callback`.
+5. For redirect uri, choice Web and enter the public endpoint of `openvpn-auth-oauth2`, for
+   example `https://openvpn-auth-oauth2.example.com/oauth2/callback`.
 6. Click register.
 7. Copy the tenant-id and client-id. You need the both as configuration option for `openvpn-auth-oauth2`.
 8. After creation, select `Certificates & secrets` on the left side.
@@ -28,6 +30,7 @@ This pages documents the setup at the OIDC provider.
 - `CONFIG_OAUTH2_CLIENT_SECRET=$CLIENT_SECRET`
 
 References:
+
 - https://docs.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app
 - https://learn.microsoft.com/en-us/azure/active-directory/develop/active-directory-optional-claims
 
@@ -40,20 +43,23 @@ References:
 3. then "API & Services", then "Credentials" (left column)
 4. click "create credentials" (button at the top-middle) then type "OAuth Client ID" (in the dropdown)
 5. Choose a name for your app like "openvpn connection"
-6. in the "Authorized Redirect URIs" add one and set it to "https://yourdomain/oauth2/callback" (yourdomain would be the domain where a proxy is redirecting to your openvpn-auth-oauth2 daemon, typically on port 9000) 
+6. in the "Authorized Redirect URIs" add one and set it to "https://yourdomain/oauth2/callback" (yourdomain would be the domain where a proxy is
+   redirecting to your openvpn-auth-oauth2 daemon, typically on port 9000)
 7. you'll get your client id and client secret from google, copy them somewhere safe
 8. use those in the config as shown below
 
 ### Configuration
 
-Set the following variables in your openvpn-auth-oauth2 configuration file: 
+Set the following variables in your openvpn-auth-oauth2 configuration file:
 
 - `CONFIG_OAUTH2_ISSUER=https://accounts.google.com`
 - `CONFIG_OAUTH2_CLIENT_ID=162738495-xxxxx.apps.googleusercontent.com`
 - `CONFIG_OAUTH2_CLIENT_SECRET=GOCSPX-xxxxxxxx`
 
 ## GitHub
+
 ### Caveats
+
 A user must explicitly [request](https://help.github.com/articles/requesting-organization-approval-for-oauth-apps/) an
 [organization](https://developer.github.com/v3/orgs/) give openvpn-auth-oauth2
 [resource access](https://help.github.com/articles/approving-oauth-apps-for-your-organization/).
@@ -76,8 +82,8 @@ After registering the app, you will receive an OAuth2 client ID and secret. Thes
 - `CONFIG_OAUTH2_VALIDATE_GROUPS=org`
 - `CONFIG_OAUTH2_VALIDATE_ROLES=org:team`
 
-
 ## Digitalocean
+
 ### Register an application in Digitalocean
 
 Developers must [register their application](https://cloud.digitalocean.com/account/api/applications/new) to use OAuth.
@@ -93,7 +99,9 @@ and only used between the application and the DigitalOcean authorization server 
 - `CONFIG_OAUTH2_ENDPOINT_AUTH=https://cloud.digitalocean.com/v1/oauth/authorize`
 
 ## Zitadel
+
 ### Register an application in zitadel
+
 1. Create project in Zitadel
 2. Create new application in project
 3. Enter name and choose web type

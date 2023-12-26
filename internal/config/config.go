@@ -235,7 +235,8 @@ func Validate(mode int, conf Config) error { //nolint:cyclop
 	}
 
 	for key, value := range map[string]Secret{
-		"http.secret": conf.HTTP.Secret,
+		"http.secret":          conf.HTTP.Secret,
+		"oauth2.client.secret": conf.OAuth2.Client.Secret,
 	} {
 		if value.String() == "" {
 			return fmt.Errorf("%s is %w", key, ErrRequired)

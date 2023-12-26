@@ -46,11 +46,13 @@ of connecting users against OIDC providers like
 
 #### Partial Working
 
-- [OpenVPN Connect v3 for Windows/macOS/Linux](https://openvpn.net/vpn-server-resources/connecting-to-access-server-with-macos/) ([REAUTH issues](https://github.com/OpenVPN/openvpn3/issues/282); workaround: [`--oauth2.refresh.enabled=true`](https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Configuration#non-interactive-session-refresh))
+- [OpenVPN Connect v3 for Windows/macOS/Linux](https://openvpn.net/vpn-server-resources/connecting-to-access-server-with-macos/) ([REAUTH issues](https://github.com/OpenVPN/openvpn3/issues/282);
+  workaround: [`--oauth2.refresh.enabled=true`](https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Configuration#non-interactive-session-refresh))
 
 #### Non-Working
 
-- [network-manager-openvpn-gnome](https://gitlab.gnome.org/GNOME/NetworkManager-openvpn) - See https://gitlab.gnome.org/GNOME/NetworkManager-openvpn/-/issues/124
+- [network-manager-openvpn-gnome](https://gitlab.gnome.org/GNOME/NetworkManager-openvpn) -
+  See https://gitlab.gnome.org/GNOME/NetworkManager-openvpn/-/issues/124
 
 # Installation
 
