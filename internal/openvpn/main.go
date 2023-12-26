@@ -40,7 +40,7 @@ func NewClient(logger *slog.Logger, conf config.Config, oauth2Client *oauth2.Pro
 func (c *Client) Connect() error {
 	var err error
 
-	c.logger.Info(utils.StringConcat("connect to openvpn management interface ", c.conf.OpenVpn.Addr.String()))
+	c.logger.Info(fmt.Sprintf("connect to openvpn management interface %s", c.conf.OpenVpn.Addr.String()))
 
 	if err = c.setupConnection(); err != nil {
 		return fmt.Errorf("unable to connect to openvpn management interface %s: %w", c.conf.OpenVpn.Addr.String(), err)
@@ -50,6 +50,7 @@ func (c *Client) Connect() error {
 
 	c.scanner = bufio.NewScanner(c.conn)
 	c.scanner.Split(bufio.ScanLines)
+	c.scanner.Buffer(make([]byte, 0, bufio.MaxScanTokenSize), bufio.MaxScanTokenSize)
 
 	if err = c.handlePassword(); err != nil {
 		return err
@@ -215,47 +216,37 @@ func (c *Client) rawCommand(cmd string) error {
 }
 
 // readMessage .
-func (c *Client) readMessage() (string, error) {
-	var (
-		buf  bytes.Buffer
-		line []byte
-	)
+func (c *Client) readMessage(buf *bytes.Buffer) error {
+	var line []byte
 
-	for {
-		if ok := c.scanner.Scan(); !ok {
-			if c.scanner.Err() != nil {
-				return "", fmt.Errorf("readMessage: scanner error: %w", c.scanner.Err())
-			}
-
-			return "", nil
-		}
-
+	for c.scanner.Scan() {
 		line = c.scanner.Bytes()
 
 		if _, err := buf.Write(line); err != nil {
-			return "", fmt.Errorf("readMessage: unable to write string to buffer: %w", err)
+			return fmt.Errorf("unable to write string to buffer: %w", err)
 		}
 
 		if _, err := buf.WriteString("\n"); err != nil {
-			return "", fmt.Errorf("readMessage: unable to write newline to buffer: %w", err)
+			return fmt.Errorf("unable to write newline to buffer: %w", err)
 		}
 
 		if c.isMessageLineEOF(line) {
-			message := buf.String()
-			if c.logger.Enabled(context.Background(), slog.LevelDebug) {
-				c.logger.Debug(message)
-			}
-
-			return message, nil
+			return nil
 		}
 	}
+
+	if c.scanner.Err() != nil {
+		return fmt.Errorf("scanner error: %w", c.scanner.Err())
+	}
+
+	return nil
 }
 
 func (c *Client) isMessageLineEOF(line []byte) bool {
 	return bytes.HasPrefix(line, []byte(">CLIENT:ENV,END")) ||
 		bytes.Index(line, []byte("END")) == 0 ||
-		bytes.Index(line, []byte("SUCCESS:")) == 0 ||
-		bytes.Index(line, []byte("ERROR:")) == 0 ||
+		bytes.HasPrefix(line, []byte("SUCCESS:")) ||
+		bytes.HasPrefix(line, []byte("ERROR:")) ||
 		bytes.HasPrefix(line, []byte(">HOLD:")) ||
 		bytes.HasPrefix(line, []byte(">INFO:")) ||
 		bytes.HasPrefix(line, []byte(">NOTIFY:")) ||

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -88,18 +89,20 @@ func (state *State) Decode(secretKey string) error {
 func (state *State) Encode(secretKey string) error {
 	var data bytes.Buffer
 
-	_, err := fmt.Fprintln(&data,
-		state.Client.Cid,
-		state.Client.Kid,
-		encodeString(state.Client.AuthFailedReasonFile),
-		encodeString(state.Client.AuthControlFile),
-		state.Ipaddr,
-		encodeString(state.CommonName),
-		state.Issued,
-	)
-	if err != nil {
-		return fmt.Errorf("encode: %w", err)
-	}
+	data.Grow(512)
+	data.WriteString(strconv.FormatUint(state.Client.Cid, 10))
+	data.WriteString(" ")
+	data.WriteString(strconv.FormatUint(state.Client.Kid, 10))
+	data.WriteString(" ")
+	data.WriteString(encodeString(state.Client.AuthFailedReasonFile))
+	data.WriteString(" ")
+	data.WriteString(encodeString(state.Client.AuthControlFile))
+	data.WriteString(" ")
+	data.WriteString(state.Ipaddr)
+	data.WriteString(" ")
+	data.WriteString(encodeString(state.CommonName))
+	data.WriteString(" ")
+	data.WriteString(strconv.FormatInt(state.Issued, 10))
 
 	encrypted, err := crypto.EncryptBytesAES(data.Bytes(), secretKey)
 	if err != nil {
@@ -120,5 +123,9 @@ func encodeString(text string) string {
 }
 
 func decodeString(text string) string {
+	if text == "\x00" {
+		return ""
+	}
+
 	return strings.ReplaceAll(text, "\x00", " ")
 }

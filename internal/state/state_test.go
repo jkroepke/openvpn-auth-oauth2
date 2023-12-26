@@ -16,7 +16,7 @@ func TestState(t *testing.T) {
 	encryptionKey := testutils.Secret
 
 	for i := 1; i < 50; i++ {
-		token := state.New(state.ClientIdentifier{Cid: 1, Kid: 2}, "127.0.0.1", "test")
+		token := state.New(state.ClientIdentifier{Cid: 9223372036854775807, Kid: 2}, "127.0.0.1", "test")
 		require.NoError(t, token.Encode(encryptionKey))
 
 		encodedToken := state.NewEncoded(token.Encoded())
