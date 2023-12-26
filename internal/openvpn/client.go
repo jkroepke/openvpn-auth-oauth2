@@ -61,7 +61,7 @@ func (c *Client) clientConnect(client connection.Client) error {
 		return fmt.Errorf("error encoding state: %w", err)
 	}
 
-	startURL := fmt.Sprintf("%s/oauth2/start?state=%s", strings.TrimSuffix(c.conf.HTTP.BaseURL.String(), "/"), session.Encoded())
+	startURL := utils.StringConcat(strings.TrimSuffix(c.conf.HTTP.BaseURL.String(), "/"), "/oauth2/start?state=", session.Encoded())
 
 	if len(startURL) >= 245 {
 		c.DenyClient(logger, ClientIdentifier, "internal error")
