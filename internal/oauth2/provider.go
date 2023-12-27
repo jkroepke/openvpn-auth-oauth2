@@ -68,10 +68,25 @@ func (p *Provider) Discover(openvpn OpenVPN) error {
 	cookieHandler := httphelper.NewCookieHandler(cookieKey, cookieKey, cookieOpt...)
 	providerLogger := log.NewZitadelLogger(p.logger)
 
+	verifierOpts := []rp.VerifierOption{
+		rp.WithIssuedAtMaxAge(30 * time.Minute),
+		rp.WithIssuedAtOffset(5 * time.Second),
+	}
+
+	if p.conf.OAuth2.Nonce {
+		verifierOpts = append(verifierOpts, rp.WithNonce(func(ctx context.Context) string {
+			if nonce, ok := ctx.Value("nonce").(string); ok {
+				return nonce
+			}
+
+			return ""
+		}))
+	}
+
 	options := []rp.Option{
 		rp.WithLogger(providerLogger),
 		rp.WithCookieHandler(cookieHandler),
-		rp.WithVerifierOpts(rp.WithIssuedAtOffset(5 * time.Second)),
+		rp.WithVerifierOpts(verifierOpts...),
 		rp.WithHTTPClient(&http.Client{Timeout: time.Second * 30, Transport: utils.NewUserAgentTransport(nil)}),
 		rp.WithErrorHandler(func(w http.ResponseWriter, r *http.Request, errorType string, errorDesc string, encryptedSession string) {
 			errorHandler(w, p.conf, p.logger, p.openvpn, http.StatusInternalServerError, errorType, errorDesc, encryptedSession)
@@ -93,14 +108,14 @@ func (p *Provider) Discover(openvpn OpenVPN) error {
 	if endpoints == (oauth2.Endpoint{}) {
 		if !config.IsURLEmpty(p.conf.OAuth2.Endpoints.Discovery) {
 			p.logger.Info(fmt.Sprintf(
-				"discover oidc auto configuration with p %s for issuer %s with custom discovery url %s",
+				"discover oidc auto configuration with provider %s for issuer %s with custom discovery url %s",
 				p.OIDC.GetName(), p.conf.OAuth2.Issuer.String(), p.conf.OAuth2.Endpoints.Discovery.String(),
 			))
 
 			options = append(options, rp.WithCustomDiscoveryUrl(p.conf.OAuth2.Endpoints.Discovery.String()))
 		} else {
 			p.logger.Info(fmt.Sprintf(
-				"discover oidc auto configuration with p %s for issuer %s",
+				"discover oidc auto configuration with provider %s for issuer %s",
 				p.OIDC.GetName(), p.conf.OAuth2.Issuer.String(),
 			))
 		}
@@ -116,7 +131,7 @@ func (p *Provider) Discover(openvpn OpenVPN) error {
 		)
 	} else {
 		p.logger.Info(fmt.Sprintf(
-			"manually configure oauth2 p with p %s and endpoints %s and %s",
+			"manually configure oauth2 provider with provider %s and endpoints %s and %s",
 			p.OIDC.GetName(), endpoints.AuthURL, endpoints.TokenURL,
 		))
 

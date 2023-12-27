@@ -21,6 +21,8 @@
     <h2>{{ .message }}</h2>
   </section>
 </main>
+{{- if eq .success "true" }}
 <script>setTimeout(window.close,10000)</script>
+{{- end }}
 </body>
 </html>

@@ -50,6 +50,8 @@ var Defaults = Config{
 			Discovery: &url.URL{Scheme: "", Host: ""},
 			Token:     &url.URL{Scheme: "", Host: ""},
 		},
+		Pkce:   true,
+		Nonce:  true,
 		Client: OAuth2Client{},
 		Validate: OAuth2Validate{
 			Groups: make([]string, 0),

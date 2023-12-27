@@ -62,6 +62,7 @@ type OAuth2 struct {
 	Endpoints       OAuth2Endpoints `koanf:"endpoint"`
 	Client          OAuth2Client    `koanf:"client"`
 	Scopes          StringSlice     `koanf:"scopes"`
+	Nonce           bool            `koanf:"nonce"`
 	Pkce            bool            `koanf:"pkce"`
 	Validate        OAuth2Validate  `koanf:"validate"`
 	Refresh         OAuth2Refresh   `koanf:"refresh"`
