@@ -18,6 +18,7 @@ import (
 	"github.com/zitadel/logging"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
 	httphelper "github.com/zitadel/oidc/v3/pkg/http"
+	expslog "golang.org/x/exp/slog"
 	"golang.org/x/oauth2"
 )
 
@@ -51,54 +52,11 @@ func (p *Provider) Discover(openvpn OpenVPN) error {
 		return err
 	}
 
-	basePath := p.conf.HTTP.BaseURL.JoinPath("/oauth2")
-	redirectURI := basePath.JoinPath("/callback").String()
-
-	cookieKey := []byte(p.conf.HTTP.Secret)
-	cookieOpt := []httphelper.CookieHandlerOpt{
-		httphelper.WithMaxAge(int(p.conf.OpenVpn.AuthPendingTimeout.Seconds()) + 5),
-		httphelper.WithPath(basePath.Path),
-		httphelper.WithDomain(basePath.Hostname()),
-	}
-
-	if p.conf.HTTP.BaseURL.Scheme == "http" {
-		cookieOpt = append(cookieOpt, httphelper.WithUnsecure())
-	}
-
-	cookieHandler := httphelper.NewCookieHandler(cookieKey, cookieKey, cookieOpt...)
 	providerLogger := log.NewZitadelLogger(p.logger)
 
-	verifierOpts := []rp.VerifierOption{
-		rp.WithIssuedAtMaxAge(30 * time.Minute),
-		rp.WithIssuedAtOffset(5 * time.Second),
-	}
-
-	if p.conf.OAuth2.Nonce {
-		verifierOpts = append(verifierOpts, rp.WithNonce(func(ctx context.Context) string {
-			if nonce, ok := ctx.Value("nonce").(string); ok {
-				return nonce
-			}
-
-			return ""
-		}))
-	}
-
-	options := []rp.Option{
-		rp.WithLogger(providerLogger),
-		rp.WithCookieHandler(cookieHandler),
-		rp.WithVerifierOpts(verifierOpts...),
-		rp.WithHTTPClient(&http.Client{Timeout: time.Second * 30, Transport: utils.NewUserAgentTransport(nil)}),
-		rp.WithErrorHandler(func(w http.ResponseWriter, r *http.Request, errorType string, errorDesc string, encryptedSession string) {
-			errorHandler(w, p.conf, p.logger, p.openvpn, http.StatusInternalServerError, errorType, errorDesc, encryptedSession)
-		}),
-		rp.WithUnauthorizedHandler(func(w http.ResponseWriter, r *http.Request, desc string, encryptedSession string) {
-			errorHandler(w, p.conf, p.logger, p.openvpn, http.StatusUnauthorized, "Unauthorized", desc, encryptedSession)
-		}),
-	}
-
-	if p.conf.OAuth2.Pkce {
-		options = append(options, rp.WithPKCE(cookieHandler))
-	}
+	basePath := p.conf.HTTP.BaseURL.JoinPath("/oauth2")
+	redirectURI := basePath.JoinPath("/callback").String()
+	options := p.getProviderOptions(providerLogger, basePath)
 
 	scopes := p.conf.OAuth2.Scopes
 	if len(scopes) == 0 {
@@ -151,6 +109,55 @@ func (p *Provider) Discover(openvpn OpenVPN) error {
 	}
 
 	return nil
+}
+
+func (p *Provider) getProviderOptions(providerLogger *expslog.Logger, basePath *url.URL) []rp.Option {
+	cookieKey := []byte(p.conf.HTTP.Secret)
+	cookieOpt := []httphelper.CookieHandlerOpt{
+		httphelper.WithMaxAge(int(p.conf.OpenVpn.AuthPendingTimeout.Seconds()) + 5),
+		httphelper.WithPath(basePath.Path),
+		httphelper.WithDomain(basePath.Hostname()),
+	}
+
+	if p.conf.HTTP.BaseURL.Scheme == "http" {
+		cookieOpt = append(cookieOpt, httphelper.WithUnsecure())
+	}
+
+	cookieHandler := httphelper.NewCookieHandler(cookieKey, cookieKey, cookieOpt...)
+
+	verifierOpts := []rp.VerifierOption{
+		rp.WithIssuedAtMaxAge(30 * time.Minute),
+		rp.WithIssuedAtOffset(5 * time.Second),
+	}
+
+	if p.conf.OAuth2.Nonce {
+		verifierOpts = append(verifierOpts, rp.WithNonce(func(ctx context.Context) string {
+			if nonce, ok := ctx.Value(ctxNonce{}).(string); ok {
+				return nonce
+			}
+
+			return ""
+		}))
+	}
+
+	options := []rp.Option{
+		rp.WithLogger(providerLogger),
+		rp.WithCookieHandler(cookieHandler),
+		rp.WithVerifierOpts(verifierOpts...),
+		rp.WithHTTPClient(&http.Client{Timeout: time.Second * 30, Transport: utils.NewUserAgentTransport(nil)}),
+		rp.WithErrorHandler(func(w http.ResponseWriter, r *http.Request, errorType string, errorDesc string, encryptedSession string) {
+			errorHandler(w, p.conf, p.logger, p.openvpn, http.StatusInternalServerError, errorType, errorDesc, encryptedSession)
+		}),
+		rp.WithUnauthorizedHandler(func(w http.ResponseWriter, r *http.Request, desc string, encryptedSession string) {
+			errorHandler(w, p.conf, p.logger, p.openvpn, http.StatusUnauthorized, "Unauthorized", desc, encryptedSession)
+		}),
+	}
+
+	if p.conf.OAuth2.Pkce {
+		options = append(options, rp.WithPKCE(cookieHandler))
+	}
+
+	return options
 }
 
 func GetAuthorizeParams(authorizeParams string) ([]rp.URLParamOpt, error) {

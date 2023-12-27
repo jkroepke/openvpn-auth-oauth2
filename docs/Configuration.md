@@ -6,7 +6,7 @@ Linux package, use the file `/etc/sysconfig/openvpn-auth-oauth2` to configure op
 ## Supported configuration properties
 
 ```
-Usage of ./openvpn-auth-oauth2:
+Usage of /var/folders/cs/zz5gz_v567v7y00jpvc5v16h0000gn/T/go-build2152924040/b001/exe/main:
 
   --config string
     	path to one .yaml config file (env: CONFIG_CONFIG)
@@ -46,12 +46,18 @@ Usage of ./openvpn-auth-oauth2:
     	custom oauth2 token endpoint (env: CONFIG_OAUTH2_ENDPOINT_TOKEN)
   --oauth2.issuer string
     	oauth2 issuer (env: CONFIG_OAUTH2_ISSUER)
+  --oauth2.nonce
+    	If true, a nonce will be defined on the auth URL which is expected inside the token. (env: CONFIG_OAUTH2_NONCE) (default true)
+  --oauth2.pkce
+    	If true, Proof Key for Code Exchange (PKCE) RFC 7636 is used for token exchange. (env: CONFIG_OAUTH2_PKCE) (default true)
   --oauth2.provider string
     	oauth2 provider (env: CONFIG_OAUTH2_PROVIDER) (default "generic")
   --oauth2.refresh.enabled
     	If true, openvpn-auth-oauth2 stores refresh tokens and will use it do an non-interaction reauth. (env: CONFIG_OAUTH2_REFRESH_ENABLED)
   --oauth2.refresh.expires duration
     	TTL of stored oauth2 token. (env: CONFIG_OAUTH2_REFRESH_EXPIRES) (default 8h0m0s)
+  --oauth2.refresh.secret value
+    	Encryption key for stored token in encrypted format. (env: CONFIG_OAUTH2_REFRESH_SECRET)
   --oauth2.scopes value
     	oauth2 token scopes. Defaults depends on oauth2.provider (env: CONFIG_OAUTH2_SCOPES)
   --oauth2.validate.common-name string

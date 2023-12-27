@@ -87,8 +87,6 @@ func (p *Provider) oauth2Start() http.Handler {
 			authorizeParams = append(authorizeParams, rp.WithURLParam("nonce", session.Encoded()))
 		}
 
-		authorizeParams = append(authorizeParams)
-
 		rp.AuthURLHandler(func() string {
 			return sessionState
 		}, p.RelyingParty, authorizeParams...).ServeHTTP(w, r)
@@ -161,7 +159,7 @@ func (p *Provider) oauth2Callback() http.Handler {
 		ctx = logging.ToContext(ctx, log.NewZitadelLogger(logger))
 
 		if p.conf.OAuth2.Nonce {
-			ctx = context.WithValue(ctx, "nonce", r.URL.Query().Get("state"))
+			ctx = context.WithValue(ctx, ctxNonce{}, r.URL.Query().Get("state"))
 			r = r.WithContext(ctx)
 		}
 

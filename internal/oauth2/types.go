@@ -14,6 +14,8 @@ import (
 	"golang.org/x/oauth2"
 )
 
+type ctxNonce struct{}
+
 type Provider struct {
 	conf    config.Config
 	logger  *slog.Logger
