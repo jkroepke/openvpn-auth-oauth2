@@ -48,7 +48,7 @@ func (p *Provider) ClientDisconnect(clientID uint64, logger *slog.Logger) {
 		return
 	}
 
-	logger.Debug("start revoke refresh token")
+	logger.Debug("revoke refresh token")
 
 	ctx := logging.ToContext(context.Background(), log.NewZitadelLogger(logger))
 	if err = rp.RevokeToken(ctx, p.RelyingParty, refreshToken, "refresh_token"); err != nil {
