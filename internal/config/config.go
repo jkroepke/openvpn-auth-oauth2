@@ -159,6 +159,16 @@ func FlagSet(name string) *flag.FlagSet {
 		"oauth2 client secret",
 	)
 	flagSet.Bool(
+		"oauth2.pkce",
+		Defaults.OAuth2.Pkce,
+		"If true, Proof Key for Code Exchange (PKCE) RFC 7636 is used for token exchange.",
+	)
+	flagSet.Bool(
+		"oauth2.nonce",
+		Defaults.OAuth2.Nonce,
+		"If true, a nonce will be defined on the auth URL which is expected inside the token.",
+	)
+	flagSet.Bool(
 		"oauth2.refresh.enabled",
 		Defaults.OAuth2.Refresh.Enabled,
 		"If true, openvpn-auth-oauth2 stores refresh tokens and will use it do an non-interaction reauth.",
@@ -235,7 +245,8 @@ func Validate(mode int, conf Config) error { //nolint:cyclop
 	}
 
 	for key, value := range map[string]Secret{
-		"http.secret": conf.HTTP.Secret,
+		"http.secret":          conf.HTTP.Secret,
+		"oauth2.client.secret": conf.OAuth2.Client.Secret,
 	} {
 		if value.String() == "" {
 			return fmt.Errorf("%s is %w", key, ErrRequired)

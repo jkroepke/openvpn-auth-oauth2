@@ -1,6 +1,7 @@
 package openvpn
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"slices"
@@ -109,18 +110,20 @@ func (c *Client) checkReAuth(logger *slog.Logger, client connection.Client) bool
 }
 
 func (c *Client) clientDisconnect(client connection.Client) {
-	c.logger.Info("client disconnected",
+	logger := c.logger.With(
 		slog.Uint64("cid", client.Cid),
 		slog.String("reason", client.Reason),
 		slog.String("common_name", client.CommonName),
 		slog.String("username", client.Username),
 	)
 
-	c.oauth2.ClientDisconnect(client.Cid)
+	logger.Info("client disconnected")
+	c.oauth2.ClientDisconnect(client.Cid, logger)
 }
 
 func (c *Client) clientEstablished(client connection.Client) {
-	c.logger.Info("client established",
+	c.logger.LogAttrs(context.Background(),
+		slog.LevelInfo, "client established",
 		slog.Uint64("cid", client.Cid),
 		slog.String("reason", client.Reason),
 		slog.String("common_name", client.CommonName),

@@ -42,6 +42,20 @@ func (p *Provider) RefreshClientAuth(clientID uint64, logger *slog.Logger) (bool
 }
 
 // ClientDisconnect purges the refresh token from store.
-func (p *Provider) ClientDisconnect(clientID uint64) {
+func (p *Provider) ClientDisconnect(clientID uint64, logger *slog.Logger) {
+	refreshToken, err := p.storage.Get(clientID)
+	if err != nil {
+		return
+	}
+
+	logger.Debug("revoke refresh token")
+
+	ctx := logging.ToContext(context.Background(), log.NewZitadelLogger(logger))
+	if err = rp.RevokeToken(ctx, p.RelyingParty, refreshToken, "refresh_token"); err != nil {
+		if err.Error() != "RelyingParty does not support RevokeCaller" {
+			logger.Warn(fmt.Sprintf("refresh token revoke error: %s", err.Error()))
+		}
+	}
+
 	p.storage.Delete(clientID)
 }

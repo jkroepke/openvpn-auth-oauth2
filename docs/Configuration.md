@@ -6,7 +6,7 @@ Linux package, use the file `/etc/sysconfig/openvpn-auth-oauth2` to configure op
 ## Supported configuration properties
 
 ```
-Usage of ./openvpn-auth-oauth2:
+Usage of /var/folders/cs/zz5gz_v567v7y00jpvc5v16h0000gn/T/go-build2152924040/b001/exe/main:
 
   --config string
     	path to one .yaml config file (env: CONFIG_CONFIG)
@@ -46,12 +46,18 @@ Usage of ./openvpn-auth-oauth2:
     	custom oauth2 token endpoint (env: CONFIG_OAUTH2_ENDPOINT_TOKEN)
   --oauth2.issuer string
     	oauth2 issuer (env: CONFIG_OAUTH2_ISSUER)
+  --oauth2.nonce
+    	If true, a nonce will be defined on the auth URL which is expected inside the token. (env: CONFIG_OAUTH2_NONCE) (default true)
+  --oauth2.pkce
+    	If true, Proof Key for Code Exchange (PKCE) RFC 7636 is used for token exchange. (env: CONFIG_OAUTH2_PKCE) (default true)
   --oauth2.provider string
     	oauth2 provider (env: CONFIG_OAUTH2_PROVIDER) (default "generic")
   --oauth2.refresh.enabled
     	If true, openvpn-auth-oauth2 stores refresh tokens and will use it do an non-interaction reauth. (env: CONFIG_OAUTH2_REFRESH_ENABLED)
   --oauth2.refresh.expires duration
     	TTL of stored oauth2 token. (env: CONFIG_OAUTH2_REFRESH_EXPIRES) (default 8h0m0s)
+  --oauth2.refresh.secret value
+    	Encryption key for stored token in encrypted format. (env: CONFIG_OAUTH2_REFRESH_SECRET)
   --oauth2.scopes value
     	oauth2 token scopes. Defaults depends on oauth2.provider (env: CONFIG_OAUTH2_SCOPES)
   --oauth2.validate.common-name string
@@ -81,6 +87,7 @@ Usage of ./openvpn-auth-oauth2:
 ```
 
 ## Configuration openvpn-auth-oauth2
+
 openvpn-auth-oauth2 starts an HTTP listener which needs to be accessible from the OpenVPN client before the VPN connection is established.
 By default, the http listener runs on `:9000`.
 
@@ -88,6 +95,7 @@ It'd highly recommend putting openvpn-auth-oauth2 behind a reverse proxy which t
 It's important to configure `CONFIG_HTTP_BASE_URL` because openvpn-auth-oauth2 need to know the redirect url.
 
 Example:
+
 ```ini
 # openvpn-auth-oauth2 config file
 CONFIG_HTTP_LISTEN=:9000
@@ -95,6 +103,7 @@ CONFIG_HTTP_BASE_URL=https://login.example.com
 ```
 
 ## Setup OpenVPN server
+
 To connect openvpn-auth-oauth2 with openvpn server, add lines below:
 
 ```ini
@@ -117,6 +126,7 @@ CONFIG_OPENVPN_PASSWORD=<password>
 See [Providers](Providers) for more information
 
 ## Full configuration example
+
 Configuration openvpn-auth-oauth2 for [zitadel](https://zitadel.com/)
 
 ```ini
@@ -148,6 +158,7 @@ While on initially connect the interactive login is still mandatory, `openvpn-au
 token against the OIDC provider and fallbacks to interactive login, if unsuccessful.
 
 References:
+
 - https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow#refresh-the-access-token
 - https://curity.io/resources/learn/oauth-refresh/
 - https://developer.okta.com/docs/guides/refresh-tokens/main/
