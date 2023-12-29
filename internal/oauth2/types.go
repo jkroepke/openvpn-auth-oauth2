@@ -33,5 +33,7 @@ type oidcProvider interface {
 	GetDefaultScopes() []string
 	GetEndpoints(conf config.Config) (oauth2.Endpoint, error)
 	GetName() string
+	GetRefreshToken(tokens *oidc.Tokens[*idtoken.Claims]) string
 	GetUser(ctx context.Context, tokens *oidc.Tokens[*idtoken.Claims]) (types.UserData, error)
+	Refresh(ctx context.Context, logger *slog.Logger, refreshToken string, relyingParty rp.RelyingParty) (string, error)
 }

@@ -144,7 +144,7 @@ func (p *Provider) getProviderOptions(providerLogger *expslog.Logger, basePath *
 		rp.WithLogger(providerLogger),
 		rp.WithCookieHandler(cookieHandler),
 		rp.WithVerifierOpts(verifierOpts...),
-		rp.WithHTTPClient(&http.Client{Timeout: time.Second * 30, Transport: utils.NewUserAgentTransport(nil)}),
+		rp.WithHTTPClient(&http.Client{Timeout: time.Second * 20, Transport: utils.NewUserAgentTransport(nil)}),
 		rp.WithErrorHandler(func(w http.ResponseWriter, r *http.Request, errorType string, errorDesc string, encryptedSession string) {
 			errorHandler(w, p.conf, p.logger, p.openvpn, http.StatusInternalServerError, errorType, errorDesc, encryptedSession)
 		}),

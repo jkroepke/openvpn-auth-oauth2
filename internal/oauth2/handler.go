@@ -204,9 +204,10 @@ func (p *Provider) oauth2Callback() http.Handler {
 			p.openvpn.AcceptClient(logger, session.Client, getAuthTokenUsername(session, user))
 
 			if p.conf.OAuth2.Refresh.Enabled {
-				if tokens.RefreshToken == "" {
+				refreshToken := p.OIDC.GetRefreshToken(tokens)
+				if refreshToken == "" {
 					p.logger.Warn("oauth2.refresh is enabled, but provider does not return refresh token")
-				} else if err = p.storage.Set(session.Client.Cid, tokens.RefreshToken); err != nil {
+				} else if err = p.storage.Set(session.Client.Cid, refreshToken); err != nil {
 					logger.Warn(err.Error())
 				}
 			}
@@ -227,10 +228,10 @@ func getAuthTokenUsername(session state.State, user types.UserData) string {
 	return username
 }
 
-func writeError(w http.ResponseWriter, logger *slog.Logger, conf config.Config, httpCode int, errorType, errorDesc string) {
+func writeError(w http.ResponseWriter, logger *slog.Logger, conf config.Config, httpCode int, _, _ string) {
 	err := conf.HTTP.CallbackTemplate.Execute(w, map[string]string{
-		"title":   errorType,
-		"message": errorDesc,
+		"title":   "Access denied",
+		"message": "",
 		"success": "false",
 	})
 	if err != nil {
@@ -245,7 +246,7 @@ func writeError(w http.ResponseWriter, logger *slog.Logger, conf config.Config, 
 
 func writeSuccess(w http.ResponseWriter, conf config.Config, logger *slog.Logger) {
 	err := conf.HTTP.CallbackTemplate.Execute(w, map[string]string{
-		"title":   "You have logged into OpenVPN!",
+		"title":   "Access granted",
 		"message": "You can close this window now.",
 		"success": "true",
 	})
