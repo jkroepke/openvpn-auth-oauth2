@@ -21,7 +21,7 @@ func TestNewProvider(t *testing.T) {
 	t.Parallel()
 
 	clientListener := testutils.TCPTestListener(t)
-	_, resourceServerURL, clientCredentials, err := testutils.SetupResourceServer(clientListener)
+	_, resourceServerURL, clientCredentials, err := testutils.SetupResourceServer(t, clientListener)
 	require.NoError(t, err)
 
 	logger := testutils.NewTestLogger()

@@ -47,7 +47,9 @@ func ReadLine(tb testing.TB, reader *bufio.Reader) string {
 	return strings.TrimSpace(line)
 }
 
-func SetupResourceServer(clientListener net.Listener) (*httptest.Server, *url.URL, config.OAuth2Client, error) {
+func SetupResourceServer(tb testing.TB, clientListener net.Listener) (*httptest.Server, *url.URL, config.OAuth2Client, error) {
+	tb.Helper()
+
 	client := oidcStorage.WebClient(
 		clientListener.Addr().String(),
 		"SECRET",
@@ -104,7 +106,7 @@ func SetupMockEnvironment(tb testing.TB, conf config.Config) (
 	managementInterface := TCPTestListener(tb)
 	clientListener := TCPTestListener(tb)
 
-	resourceServer, resourceServerURL, clientCredentials, err := SetupResourceServer(clientListener)
+	resourceServer, resourceServerURL, clientCredentials, err := SetupResourceServer(tb, clientListener)
 	require.NoError(tb, err)
 
 	if conf.HTTP.BaseURL == nil {

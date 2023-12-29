@@ -42,7 +42,6 @@ func TestRefreshReAuth(t *testing.T) {
 	require.NoError(t, err)
 
 	defer managementInterfaceConn.Close()
-	defer client.Shutdown()
 
 	reader := bufio.NewReader(managementInterfaceConn)
 	testutils.SendLine(t, managementInterfaceConn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\r\n")
@@ -69,6 +68,7 @@ func TestRefreshReAuth(t *testing.T) {
 
 	go func() {
 		defer wg.Done()
+
 		assert.Equal(t, "client-auth-nt 1 2", testutils.ReadLine(t, reader))
 		testutils.SendLine(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded\r\n")
 	}()
