@@ -173,6 +173,7 @@ func (c *Client) Shutdown() {
 
 // SendCommand passes command to a given connection (adds logging and EOL character) and returns the response.
 func (c *Client) SendCommand(cmd string) (string, error) {
+	fmt.Printf("%s: %s\n", c.conn.RemoteAddr().String(), cmd)
 	c.commandsCh <- cmd
 
 	select {
@@ -203,7 +204,6 @@ func (c *Client) SendCommandf(format string, a ...any) (string, error) {
 
 // rawCommand passes command to a given connection (adds logging and EOL character).
 func (c *Client) rawCommand(cmd string) error {
-	fmt.Printf("%s: %s\n", c.conn.RemoteAddr().String(), cmd)
 	if c.logger.Enabled(context.Background(), slog.LevelDebug) {
 		c.logger.Debug(cmd)
 	}
