@@ -42,7 +42,7 @@ test:  ## Test openvpn-auth-oauth2
 lint: golangci  ## Run linter
 
 .PHONY: format
-format: fmt goimports gofumpt golangci-fix ## Format source code
+format: fmt goimports gofumpt gowsl golangci-fix ## Format source code
 
 .PHONY: fmt
 fmt:
@@ -55,6 +55,10 @@ gofumpt:
 .PHONY: goimports
 goimports:
 	@go run golang.org/x/tools/cmd/goimports@latest -l -w .
+
+.PHONY: gowsl
+gowsl:
+	@go run github.com/bombsimon/wsl/v4/cmd...@latest -test=false -fix ./...
 
 .PHONY: golangci
 golangci:
