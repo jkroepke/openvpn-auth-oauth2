@@ -87,8 +87,8 @@ func BenchmarkFull(b *testing.B) {
 
 	b.StopTimer()
 
-	client.Shutdown()
 	wg.Wait()
+	client.Shutdown()
 
 	b.ReportAllocs()
 }
