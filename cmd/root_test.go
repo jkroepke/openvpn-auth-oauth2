@@ -94,7 +94,7 @@ func TestExecuteConfigFileFound(t *testing.T) { //nolint: paralleltest
 	clientListener := testutils.TCPTestListener(t)
 	defer clientListener.Close()
 
-	resourceServer, _, clientCredentials, err := testutils.SetupResourceServer(clientListener)
+	resourceServer, _, clientCredentials, err := testutils.SetupResourceServer(t, clientListener)
 	require.NoError(t, err)
 
 	managementInterface := testutils.TCPTestListener(t)
