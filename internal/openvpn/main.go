@@ -173,7 +173,7 @@ func (c *Client) Shutdown() {
 
 // SendCommand passes command to a given connection (adds logging and EOL character) and returns the response.
 func (c *Client) SendCommand(cmd string) (string, error) {
-	c.commandsCh <- utils.StringConcat(cmd, "\n")
+	c.commandsCh <- cmd
 
 	select {
 	case resp := <-c.commandResponseCh:
@@ -203,12 +203,16 @@ func (c *Client) SendCommandf(format string, a ...any) (string, error) {
 
 // rawCommand passes command to a given connection (adds logging and EOL character).
 func (c *Client) rawCommand(cmd string) error {
+	fmt.Println(cmd)
 	if c.logger.Enabled(context.Background(), slog.LevelDebug) {
 		c.logger.Debug(cmd)
 	}
 
-	_, err := c.conn.Write([]byte(cmd))
-	if err != nil {
+	if _, err := c.conn.Write([]byte(cmd)); err != nil {
+		return fmt.Errorf("unable to write into OpenVPN management connection: %w", err)
+	}
+
+	if _, err := c.conn.Write([]byte("\n")); err != nil {
 		return fmt.Errorf("unable to write into OpenVPN management connection: %w", err)
 	}
 

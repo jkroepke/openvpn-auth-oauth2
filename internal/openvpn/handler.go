@@ -38,7 +38,7 @@ func (c *Client) handlePassword() error {
 
 // sendPassword enters the password on the OpenVPN management interface connection.
 func (c *Client) sendPassword() error {
-	if err := c.rawCommand(utils.StringConcat(c.conf.OpenVpn.Password.String(), "\n")); err != nil {
+	if err := c.rawCommand(c.conf.OpenVpn.Password.String()); err != nil {
 		return fmt.Errorf("error from password command: %w", err)
 	}
 
