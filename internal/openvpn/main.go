@@ -173,7 +173,6 @@ func (c *Client) Shutdown() {
 
 // SendCommand passes command to a given connection (adds logging and EOL character) and returns the response.
 func (c *Client) SendCommand(cmd string) (string, error) {
-	fmt.Printf("%s: %s\n", c.conn.RemoteAddr().String(), cmd)
 	c.commandsCh <- cmd
 
 	select {
@@ -263,6 +262,8 @@ func (c *Client) close() {
 
 	if !c.closed {
 		c.closed = true
+
+		_ = c.rawCommand("quit")
 		_ = c.conn.Close()
 		close(c.commandsCh)
 	}

@@ -29,7 +29,7 @@ func (c *Client) processClient(client connection.Client) error {
 	return nil
 }
 
-// clientConnect handles CONNECT events from OpenVPN management interface
+// clientConnect handles CONNECT events from OpenVPN management interface.
 func (c *Client) clientConnect(client connection.Client) error {
 	logger := c.logger.With(
 		slog.Uint64("cid", client.Cid),
@@ -44,7 +44,7 @@ func (c *Client) clientConnect(client connection.Client) error {
 	return c.handleClientAuthentication(logger, client)
 }
 
-// clientReauth handles REAUTH events from OpenVPN management interface
+// clientReauth handles REAUTH events from OpenVPN management interface.
 func (c *Client) clientReauth(client connection.Client) error {
 	logger := c.logger.With(
 		slog.Uint64("cid", client.Cid),
@@ -63,7 +63,7 @@ func (c *Client) clientReauth(client connection.Client) error {
 	return c.handleClientAuthentication(logger, client)
 }
 
-// handleClientAuthentication holds the shared authentication logic for CONNECT and REAUTH events
+// handleClientAuthentication holds the shared authentication logic for CONNECT and REAUTH events.
 func (c *Client) handleClientAuthentication(logger *slog.Logger, client connection.Client) error {
 	if c.checkAuthBypass(logger, client) || !c.checkClientSsoCapabilities(logger, client) {
 		return nil
