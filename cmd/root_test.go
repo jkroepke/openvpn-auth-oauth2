@@ -20,6 +20,7 @@ func TestExecuteVersion(t *testing.T) {
 	t.Parallel()
 
 	var buf bytes.Buffer
+
 	buf.Grow(16 << 20)
 	_ = io.Writer(&buf)
 
@@ -31,6 +32,7 @@ func TestExecuteHelp(t *testing.T) {
 	t.Parallel()
 
 	var buf bytes.Buffer
+
 	buf.Grow(16 << 20)
 	_ = io.Writer(&buf)
 
@@ -143,6 +145,7 @@ func TestExecuteConfigFileFound(t *testing.T) { //nolint: paralleltest
 	}
 
 	var buf bytes.Buffer
+
 	buf.Grow(16 << 20)
 	_ = io.Writer(&buf)
 
