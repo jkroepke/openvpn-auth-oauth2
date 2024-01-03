@@ -3,6 +3,24 @@
 The preferred way to configure openvpn-auth-oauth2 is via environment variables. If you install the openvpn-auth-auth2 via
 Linux package, use the file `/etc/sysconfig/openvpn-auth-oauth2` to configure openvpn-auth-oauth2.
 
+## Full configuration example
+
+Configuration openvpn-auth-oauth2 for [zitadel](https://zitadel.com/)
+
+```ini
+# Define the public http endpoint here.
+CONFIG_HTTP_BASEURL=http://<vpn>:9000/
+CONFIG_HTTP_LISTEN=:9000
+# Define a random value with 16 or 24 characters
+CONFIG_HTTP_SECRET=1jd93h5b6s82lf03jh5b2hf9
+CONFIG_OPENVPN_ADDR=unix:///run/openvpn/server.sock
+CONFIG_OPENVPN_PASSWORD=<password from /etc/openvpn/password.txt>
+CONFIG_OAUTH2_ISSUER=https://company.zitadel.cloud
+CONFIG_OAUTH2_SCOPES=openid profile email offline_access
+CONFIG_OAUTH2_CLIENT_ID=34372461928374612@any
+CONFIG_OAUTH2_CLIENT_SECRET=ASDhjgadjhAUYSDGjkhasgdIATWDGJHASDtiwGDJAHSGDutwqdygASJKD12hfva
+```
+
 ## Supported configuration properties
 
 ```
@@ -115,8 +133,10 @@ To connect openvpn-auth-oauth2 with openvpn server, add lines below:
 ...
 # /etc/openvpn/password.txt is a password file where the password must be on first line
 management /run/openvpn/server.sock unix /etc/openvpn/password.txt
-management-hold
 management-client-auth
+# management-hold holds the OpenVPN server until openvpn-auth-oauth2 has been connected.
+# In some situation, there is a deadlock where systemd waits for OpenVPN server, not starting
+#management-hold
 ```
 
 ```ini
@@ -128,24 +148,6 @@ CONFIG_OPENVPN_PASSWORD=<password>
 ## Setup OIDC Provider
 
 See [Providers](Providers) for more information
-
-## Full configuration example
-
-Configuration openvpn-auth-oauth2 for [zitadel](https://zitadel.com/)
-
-```ini
-# Define the public http endpoint here.
-CONFIG_HTTP_BASEURL=http://<vpn>:9000/
-CONFIG_HTTP_LISTEN=:9000
-# Define a random value with 16 or 24 characters
-CONFIG_HTTP_SECRET=1jd93h5b6s82lf03jh5b2hf9
-CONFIG_OPENVPN_ADDR=unix:///run/openvpn/server.sock
-CONFIG_OPENVPN_PASSWORD=<password from /etc/openvpn/password.txt>
-CONFIG_OAUTH2_ISSUER=https://company.zitadel.cloud
-CONFIG_OAUTH2_SCOPES=openid profile email offline_access
-CONFIG_OAUTH2_CLIENT_ID=34372461928374612@any
-CONFIG_OAUTH2_CLIENT_SECRET=ASDhjgadjhAUYSDGjkhasgdIATWDGJHASDtiwGDJAHSGDutwqdygASJKD12hfva
-```
 
 ## HTTPS Listener
 
