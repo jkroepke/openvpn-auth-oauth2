@@ -276,5 +276,7 @@ func (c *Client) close() {
 
 		_ = c.conn.Close()
 		close(c.commandsCh)
+		close(c.errCh)
+		close(c.shutdownCh)
 	}
 }
