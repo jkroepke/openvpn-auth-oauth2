@@ -20,6 +20,7 @@ func TestExecuteVersion(t *testing.T) {
 	t.Parallel()
 
 	var buf bytes.Buffer
+	buf.Grow(16 << 20)
 	_ = io.Writer(&buf)
 
 	returnCode := cmd.Execute([]string{"", "--version"}, &buf, "version", "commit", "date")
@@ -30,6 +31,7 @@ func TestExecuteHelp(t *testing.T) {
 	t.Parallel()
 
 	var buf bytes.Buffer
+	buf.Grow(16 << 20)
 	_ = io.Writer(&buf)
 
 	returnCode := cmd.Execute([]string{"openvpn-auth-oauth2-test", "--help"}, &buf, "version", "commit", "date")
@@ -138,6 +140,7 @@ func TestExecuteConfigFileFound(t *testing.T) { //nolint: paralleltest
 	}
 
 	var buf bytes.Buffer
+	buf.Grow(16 << 20)
 	_ = io.Writer(&buf)
 
 	returnCode := cmd.Execute(args, &buf, "version", "commit", "date")
