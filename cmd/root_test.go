@@ -86,6 +86,9 @@ func TestExecuteConfigInvalid(t *testing.T) {
 			_ = io.Writer(&buf)
 
 			returnCode := cmd.Execute(tt.args, &buf, "version", "commit", "date")
+
+			time.Sleep(100 * time.Millisecond)
+
 			assert.Equal(t, 1, returnCode, buf.String())
 			assert.Contains(t, buf.String(), tt.err)
 		})
@@ -144,5 +147,8 @@ func TestExecuteConfigFileFound(t *testing.T) { //nolint: paralleltest
 	_ = io.Writer(&buf)
 
 	returnCode := cmd.Execute(args, &buf, "version", "commit", "date")
+
+	time.Sleep(100 * time.Millisecond)
+
 	assert.Equal(t, 0, returnCode, buf.String())
 }
