@@ -166,7 +166,7 @@ func FlagSet(name string) *flag.FlagSet {
 	flagSet.TextVar(new(Secret),
 		"oauth2.client.secret",
 		Defaults.OAuth2.Client.Secret,
-		"oauth2 client secret",
+		"oauth2 client secret. Must be 16, 24 or 32 characters.",
 	)
 	flagSet.Bool(
 		"oauth2.pkce",
@@ -191,7 +191,7 @@ func FlagSet(name string) *flag.FlagSet {
 	flagSet.TextVar(new(Secret),
 		"oauth2.refresh.secret",
 		Defaults.OAuth2.Refresh.Secret,
-		"Encryption key for stored token in encrypted format.",
+		"Required, if oauth2.refresh.enabled=true. Encryption key for stored token in encrypted format. Must be 16, 24 or 32 characters.",
 	)
 	flagSet.TextVar(new(StringSlice),
 		"oauth2.validate.groups",
