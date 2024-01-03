@@ -7,11 +7,12 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	_ "net/http/pprof"
+	"net/http/pprof"
 	"os"
 	"os/signal"
 	"runtime"
 	"syscall"
+	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/httpserver"
@@ -75,12 +76,24 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 	done := make(chan int, 1)
 
 	if conf.Debug.Pprof {
-		logger.Warn(fmt.Sprintf("start HTTP debug server on %s", conf.Debug.Listen))
-
-		http.DefaultServeMux.Handle("/", http.RedirectHandler("/debug/pprof/", http.StatusTemporaryRedirect))
-
 		go func() {
-			if err := http.ListenAndServe(conf.Debug.Listen, http.DefaultServeMux); err != nil {
+			logger.Warn(fmt.Sprintf("start HTTP debug server on %s", conf.Debug.Listen))
+
+			mux := http.NewServeMux()
+			mux.Handle("/", http.RedirectHandler("/debug/pprof/", http.StatusTemporaryRedirect))
+			mux.HandleFunc("/debug/pprof/", pprof.Index)
+			mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+			mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+			mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+			mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+
+			server := &http.Server{
+				Addr:              conf.Debug.Listen,
+				ReadHeaderTimeout: 3 * time.Second,
+				Handler:           mux,
+			}
+
+			if err := server.ListenAndServe(); err != nil {
 				logger.Error(fmt.Errorf("error http debug listener: %w", err).Error())
 				done <- 1
 

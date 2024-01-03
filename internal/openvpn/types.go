@@ -2,6 +2,7 @@ package openvpn
 
 import (
 	"bufio"
+	"bytes"
 	"log/slog"
 	"net"
 	"sync"
@@ -20,6 +21,8 @@ type Client struct {
 
 	mu     sync.Mutex
 	closed bool
+
+	commandsBuffer bytes.Buffer
 
 	clientsCh         chan connection.Client
 	commandResponseCh chan string

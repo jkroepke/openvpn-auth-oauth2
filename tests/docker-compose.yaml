@@ -12,9 +12,7 @@ services:
       - /dev/net/tun
     ports:
       - "0.0.0.0:1194:1194/udp"
-      - "8080:8080/tcp"
       - "8081:8081/tcp"
-      - "9001:9001/tcp"
     volumes:
       - ./:/tests/:ro
       - ./data:/etc/openvpn

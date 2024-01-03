@@ -22,6 +22,9 @@ import (
 )
 
 func NewClient(logger *slog.Logger, conf config.Config, oauth2Client *oauth2.Provider) *Client {
+	commandsBuffer := bytes.Buffer{}
+	commandsBuffer.Grow(512)
+
 	return &Client{
 		conf:   conf,
 		logger: logger,
@@ -29,6 +32,8 @@ func NewClient(logger *slog.Logger, conf config.Config, oauth2Client *oauth2.Pro
 
 		closed: false,
 		mu:     sync.Mutex{},
+
+		commandsBuffer: commandsBuffer,
 
 		errCh:             make(chan error, 1),
 		clientsCh:         make(chan connection.Client, 10),
@@ -214,11 +219,11 @@ func (c *Client) rawCommand(cmd string) error {
 		c.logger.Debug(cmd)
 	}
 
-	if _, err := c.conn.Write([]byte(cmd)); err != nil {
-		return fmt.Errorf("unable to write into OpenVPN management connection: %w", err)
-	}
+	c.commandsBuffer.Reset()
+	c.commandsBuffer.WriteString(cmd)
+	c.commandsBuffer.WriteString("\n")
 
-	if _, err := c.conn.Write([]byte("\n")); err != nil {
+	if _, err := c.commandsBuffer.WriteTo(c.conn); err != nil {
 		return fmt.Errorf("unable to write into OpenVPN management connection: %w", err)
 	}
 
@@ -269,7 +274,6 @@ func (c *Client) close() {
 	if !c.closed {
 		c.closed = true
 
-		_ = c.rawCommand("quit")
 		_ = c.conn.Close()
 		close(c.commandsCh)
 	}
