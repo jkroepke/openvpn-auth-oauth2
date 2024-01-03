@@ -143,6 +143,38 @@ CONFIG_OAUTH2_CLIENT_ID=34372461928374612@any
 CONFIG_OAUTH2_CLIENT_SECRET=ASDhjgadjhAUYSDGjkhasgdIATWDGJHASDtiwGDJAHSGDutwqdygASJKD12hfva
 ```
 
+## HTTPS Listener
+
+> [!IMPORTANT]
+> Remember to set `CONFIG_HTTP_BASEURL` correctly. It should start with `https://` following your public domain name plus port.
+
+Some SSO Provider like Entra ID requires `https://` based redirect URL.
+In the default configuration, openvpn-auth-oauth2 listen on `http://`.
+There are two common ways to set up an HTTPS listener
+
+### Reverse proxy (nginx, traefik)
+
+You can use one of your favorite http reverse proxy. Configure HTTPS on reverse proxy and proxy to an HTTP instance of openvpn-auth-oauth2.
+For beginners, [traefik](https://traefik.io/traefik/) is recommended since it [natively](https://doc.traefik.io/traefik/https/acme/)
+supports [Let's Encrypt](https://letsencrypt.org/) where you can get public SSL certificates for free.
+
+### Using native HTTPS support
+
+openvpn-auth-oauth2 supports HTTPS out of the box.
+
+```ini
+CONFIG_HTTP_TLS=true
+CONFIG_HTTP_KEY=server.key
+CONFIG_HTTP_CERT=server.crt
+```
+
+To set up a self-signed certificate, you can use the command below:
+
+```bash
+export DOMAIN_NAME=vpn.example.com
+openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes -keyout server.key -out server.crt -subj "/CN=$DOMAIN_NAME" -addext "subjectAltName=DNS:$DOMAIN_NAME"
+```
+
 ## Non-interactive session refresh
 
 With default settings, openvpn-auth-oauth2 does not store any tokens from the users. This requires an interactive login from user on
