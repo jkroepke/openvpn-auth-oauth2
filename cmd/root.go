@@ -6,13 +6,15 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"runtime"
 	"syscall"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/http"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/httpserver"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
@@ -68,9 +70,26 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 		return 1
 	}
 
-	server := http.NewHTTPServer(logger, conf, oauth2Client.Handler())
+	server := httpserver.NewHTTPServer(logger, conf, oauth2Client.Handler())
 
 	done := make(chan int, 1)
+
+	if conf.Debug.Pprof {
+		logger.Warn(fmt.Sprintf("start HTTP debug server on %s", conf.Debug.Listen))
+
+		http.DefaultServeMux.Handle("/", http.RedirectHandler("/debug/pprof/", http.StatusTemporaryRedirect))
+
+		go func() {
+			if err := http.ListenAndServe(conf.Debug.Listen, http.DefaultServeMux); err != nil {
+				logger.Error(fmt.Errorf("error http debug listener: %w", err).Error())
+				done <- 1
+
+				return
+			}
+
+			done <- 0
+		}()
+	}
 
 	go func() {
 		if err := server.Listen(); err != nil {
@@ -109,7 +128,7 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 	return returnCode
 }
 
-func shutdown(logger *slog.Logger, openvpnClient *openvpn.Client, server http.Server) {
+func shutdown(logger *slog.Logger, openvpnClient *openvpn.Client, server httpserver.Server) {
 	openvpnClient.Shutdown()
 
 	logger.Info("start graceful shutdown of http listener")

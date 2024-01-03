@@ -12,7 +12,7 @@ import (
 
 // handlePassword enters the password on the OpenVPN management interface connection.
 func (c *Client) handlePassword() error {
-	buf := make([]byte, 5)
+	buf := make([]byte, 15)
 
 	_, err := c.conn.Read(buf)
 	if err != nil {
@@ -21,7 +21,7 @@ func (c *Client) handlePassword() error {
 
 	c.logger.Debug(utils.StringConcat("password probe: ", string(buf)))
 
-	if string(buf) == "ENTER" {
+	if string(buf) == "ENTER PASSWORD:" {
 		if c.conf.OpenVpn.Password == "" {
 			return errors.New("management password required")
 		}
@@ -31,6 +31,9 @@ func (c *Client) handlePassword() error {
 		}
 	} else if c.conf.OpenVpn.Password != "" {
 		return errors.New("management password expected, but server does not ask for me")
+	} else {
+		// In case there is no password, read the whole line
+		c.scanner.Scan()
 	}
 
 	return nil

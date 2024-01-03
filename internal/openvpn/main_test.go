@@ -267,7 +267,7 @@ func TestClientFull(t *testing.T) {
 				client.Shutdown()
 			} else {
 				wg.Wait()
-				if err != nil && !errors.Is(err, io.EOF) {
+				if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, openvpn.ErrConnectionTerminated) {
 					require.NoError(t, err)
 				}
 			}
@@ -309,6 +309,7 @@ func TestClientInvalidPassword(t *testing.T) {
 		testutils.SendLine(t, conn, "ENTER PASSWORD:")
 		assert.Equal(t, conf.OpenVpn.Password.String(), testutils.ReadLine(t, reader))
 		testutils.SendLine(t, conn, "ERROR: bad password\r\n")
+		testutils.SendLine(t, conn, "\r\n")
 	}()
 
 	err := client.Connect()

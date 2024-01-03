@@ -32,6 +32,16 @@ func FlagSet(name string) *flag.FlagSet {
 		"",
 		"path to one .yaml config file",
 	)
+	flagSet.Bool(
+		"debug.pprof",
+		Defaults.Debug.Pprof,
+		"Enables go profiling endpoint. This should be never exposed.",
+	)
+	flagSet.String(
+		"debug.listen",
+		Defaults.Debug.Listen,
+		"listen address for go profiling endpoint",
+	)
 	flagSet.String(
 		"log.format",
 		Defaults.Log.Format,

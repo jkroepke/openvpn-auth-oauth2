@@ -7,8 +7,10 @@ tests/*
 !tests/docker-compose.yaml
 !tests/Dockerfile
 !tests/.dockerignore
+!tests/systemd/
+tests/systemd/openvpn-auth-oauth2.conf
 
-/openvpn-auth-azure-ad
+/openvpn-auth-azure-adss
 dist/
 
 ### macOS template

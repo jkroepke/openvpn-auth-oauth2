@@ -1,0 +1,2 @@
+enable openvpn-auth-oauth2.service
+enable openvpn@openvpn

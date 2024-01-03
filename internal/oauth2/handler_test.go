@@ -3,16 +3,17 @@ package oauth2_test
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 	"sync"
 	"testing"
 	"text/template"
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
 	"github.com/stretchr/testify/assert"
@@ -323,7 +324,7 @@ func TestHandler(t *testing.T) {
 			go func() {
 				defer wg.Done()
 				err := client.Connect()
-				if err != nil && !strings.HasSuffix(err.Error(), "EOF") {
+				if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, openvpn.ErrConnectionTerminated) {
 					require.NoError(t, err)
 				}
 			}()

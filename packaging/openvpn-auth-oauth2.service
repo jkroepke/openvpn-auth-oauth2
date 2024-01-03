@@ -2,7 +2,8 @@
 Description=OpenVPN authenticator
 Documentation=https://github.com/jkroepke/openvpn-auth-oauth2
 Wants=network-online.target openvpn.service
-After=network-online.target openvpn.service
+After=network-online.target openvpn.service openvpn@.service openvpn-server@.service
+PartOf=openvpn.service openvpn@.service openvpn-server@.service
 
 [Service]
 DynamicUser=true
