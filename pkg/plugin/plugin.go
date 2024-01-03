@@ -17,7 +17,7 @@ import (
 	"unsafe"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/http"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/httpserver"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
@@ -84,7 +84,7 @@ func openvpn_plugin_open_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_
 		return C.OPENVPN_PLUGIN_FUNC_ERROR
 	}
 
-	handle.server = http.NewHTTPServer(logger, conf, provider.Handler())
+	handle.server = httpserver.NewHTTPServer(logger, conf, provider.Handler())
 	go func() {
 		if err := handle.server.Listen(); err != nil {
 			logger.Error(fmt.Errorf("error http listener: %w", err).Error())

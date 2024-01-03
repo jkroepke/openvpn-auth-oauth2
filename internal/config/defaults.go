@@ -11,6 +11,9 @@ import (
 
 //nolint:gochecknoglobals
 var Defaults = Config{
+	Debug: Debug{
+		Listen: ":9001",
+	},
 	Log: Log{
 		Format: "console",
 		Level:  slog.LevelInfo,

@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net"
 	"strconv"
@@ -21,6 +22,9 @@ import (
 )
 
 func NewClient(logger *slog.Logger, conf config.Config, oauth2Client *oauth2.Provider) *Client {
+	commandsBuffer := bytes.Buffer{}
+	commandsBuffer.Grow(512)
+
 	return &Client{
 		conf:   conf,
 		logger: logger,
@@ -28,6 +32,8 @@ func NewClient(logger *slog.Logger, conf config.Config, oauth2Client *oauth2.Pro
 
 		closed: false,
 		mu:     sync.Mutex{},
+
+		commandsBuffer: commandsBuffer,
 
 		errCh:             make(chan error, 1),
 		clientsCh:         make(chan connection.Client, 10),
@@ -65,7 +71,7 @@ func (c *Client) Connect() error {
 		return err
 	}
 
-	c.logger.Info("connection to OpenVPN management interfaced established.")
+	c.logger.Info("connection to OpenVPN management interface established.")
 
 	err = c.checkManagementInterfaceVersion()
 	if err != nil {
@@ -75,6 +81,10 @@ func (c *Client) Connect() error {
 	for {
 		select {
 		case err := <-c.errCh:
+			if errors.Is(err, io.EOF) {
+				return ErrConnectionTerminated
+			}
+
 			c.close()
 
 			if err != nil {
@@ -141,6 +151,8 @@ func (c *Client) checkManagementInterfaceVersion() error {
 		return fmt.Errorf("unable to parse openvpn management interface version: %w", err)
 	}
 
+	// Management Interface Version 5 is required at minimum
+	// ref: https://github.com/OpenVPN/openvpn/commit/a261e173341f8e68505a6ab5a413d09b0797a459
 	if managementInterfaceVersion < 5 {
 		return errors.New("openvpn-auth-oauth2 requires OpenVPN management interface version 5 or higher")
 	}
@@ -207,11 +219,11 @@ func (c *Client) rawCommand(cmd string) error {
 		c.logger.Debug(cmd)
 	}
 
-	if _, err := c.conn.Write([]byte(cmd)); err != nil {
-		return fmt.Errorf("unable to write into OpenVPN management connection: %w", err)
-	}
+	c.commandsBuffer.Reset()
+	c.commandsBuffer.WriteString(cmd)
+	c.commandsBuffer.WriteString("\n")
 
-	if _, err := c.conn.Write([]byte("\n")); err != nil {
+	if _, err := c.commandsBuffer.WriteTo(c.conn); err != nil {
 		return fmt.Errorf("unable to write into OpenVPN management connection: %w", err)
 	}
 
@@ -242,18 +254,17 @@ func (c *Client) readMessage(buf *bytes.Buffer) error {
 		return fmt.Errorf("scanner error: %w", c.scanner.Err())
 	}
 
-	return nil
+	return io.EOF
 }
 
 func (c *Client) isMessageLineEOF(line []byte) bool {
 	return bytes.HasPrefix(line, []byte(">CLIENT:ENV,END")) ||
-		bytes.Index(line, []byte("END")) == 0 ||
 		bytes.HasPrefix(line, []byte("SUCCESS:")) ||
 		bytes.HasPrefix(line, []byte("ERROR:")) ||
+		bytes.HasPrefix(line, []byte("END")) ||
 		bytes.HasPrefix(line, []byte(">HOLD:")) ||
 		bytes.HasPrefix(line, []byte(">INFO:")) ||
-		bytes.HasPrefix(line, []byte(">NOTIFY:")) ||
-		bytes.HasPrefix(line, []byte(":OpenVPN"))
+		bytes.HasPrefix(line, []byte(">NOTIFY:"))
 }
 
 func (c *Client) close() {
@@ -263,7 +274,6 @@ func (c *Client) close() {
 	if !c.closed {
 		c.closed = true
 
-		_ = c.rawCommand("quit")
 		_ = c.conn.Close()
 		close(c.commandsCh)
 	}

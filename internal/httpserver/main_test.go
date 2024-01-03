@@ -1,4 +1,4 @@
-package http_test
+package httpserver_test
 
 import (
 	"errors"
@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/http"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/httpserver"
 	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
 	"github.com/madflojo/testcerts"
 	"github.com/stretchr/testify/assert"
@@ -80,7 +80,7 @@ func TestNewHTTPServer(t *testing.T) {
 			mux := gohttp.NewServeMux()
 			mux.Handle("/", gohttp.NotFoundHandler())
 
-			svr := http.NewHTTPServer(logger, tt.conf, mux)
+			svr := httpserver.NewHTTPServer(logger, tt.conf, mux)
 
 			wg := sync.WaitGroup{}
 			wg.Add(1)

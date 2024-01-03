@@ -11,6 +11,7 @@ import (
 
 type Config struct {
 	ConfigFile string  `koanf:"config"`
+	Debug      Debug   `koanf:"debug"`
 	Log        Log     `koanf:"log"`
 	HTTP       HTTP    `koanf:"http"`
 	OpenVpn    OpenVpn `koanf:"openvpn"`
@@ -91,6 +92,11 @@ type OAuth2Refresh struct {
 	Enabled bool          `koanf:"enabled"`
 	Expires time.Duration `koanf:"expires"`
 	Secret  Secret        `koanf:"secret"`
+}
+
+type Debug struct {
+	Pprof  bool   `koanf:"pprof"`
+	Listen string `koanf:"listen"`
 }
 
 type OpenVPNCommonNameMode int

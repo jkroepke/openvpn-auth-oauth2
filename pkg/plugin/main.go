@@ -8,7 +8,7 @@ import (
 	"log/slog"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/http"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/httpserver"
 )
 
 //nolint:gochecknoglobals
@@ -22,7 +22,7 @@ var (
 type PluginHandle struct {
 	logger *slog.Logger
 	conf   config.Config
-	server http.Server
+	server httpserver.Server
 }
 
 func main() {

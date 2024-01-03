@@ -1,0 +1,30 @@
+version: '3'
+services:
+  systemd:
+    image: local/openvpn-systemd
+    build:
+      dockerfile: Dockerfile
+    privileged: true
+    tty: true
+    ports:
+      - "0.0.0.0:1195:1194/udp"
+      - "9000:9000/tcp"
+      - "9002:9002/tcp"
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
+    tmpfs:
+      - /run
+      - /run/lock
+      - /tmp
+    cgroup: private
+    volumes:
+      - ./default.preset:/etc/systemd/system-preset/default.preset
+      - ./openvpn-auth-oauth2:/usr/bin/openvpn-auth-oauth2
+      - ../../packaging/openvpn-auth-oauth2.service:/etc/systemd/system/openvpn-auth-oauth2.service
+      - ./openvpn-auth-oauth2.conf:/etc/sysconfig/openvpn-auth-oauth2
+      - ../data/:/etc/openvpn/
+    stop_signal: SIGRTMIN+3
+    entrypoint:
+      - /lib/systemd/systemd

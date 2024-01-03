@@ -6,13 +6,16 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net/http"
+	"net/http/pprof"
 	"os"
 	"os/signal"
 	"runtime"
 	"syscall"
+	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/http"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/httpserver"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
@@ -68,9 +71,38 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 		return 1
 	}
 
-	server := http.NewHTTPServer(logger, conf, oauth2Client.Handler())
+	server := httpserver.NewHTTPServer(logger, conf, oauth2Client.Handler())
 
 	done := make(chan int, 1)
+
+	if conf.Debug.Pprof {
+		go func() {
+			logger.Warn(fmt.Sprintf("start HTTP debug server on %s", conf.Debug.Listen))
+
+			mux := http.NewServeMux()
+			mux.Handle("/", http.RedirectHandler("/debug/pprof/", http.StatusTemporaryRedirect))
+			mux.HandleFunc("/debug/pprof/", pprof.Index)
+			mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+			mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+			mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+			mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+
+			server := &http.Server{
+				Addr:              conf.Debug.Listen,
+				ReadHeaderTimeout: 3 * time.Second,
+				Handler:           mux,
+			}
+
+			if err := server.ListenAndServe(); err != nil {
+				logger.Error(fmt.Errorf("error http debug listener: %w", err).Error())
+				done <- 1
+
+				return
+			}
+
+			done <- 0
+		}()
+	}
 
 	go func() {
 		if err := server.Listen(); err != nil {
@@ -109,7 +141,7 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 	return returnCode
 }
 
-func shutdown(logger *slog.Logger, openvpnClient *openvpn.Client, server http.Server) {
+func shutdown(logger *slog.Logger, openvpnClient *openvpn.Client, server httpserver.Server) {
 	openvpnClient.Shutdown()
 
 	logger.Info("start graceful shutdown of http listener")
