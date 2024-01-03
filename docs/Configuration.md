@@ -6,10 +6,14 @@ Linux package, use the file `/etc/sysconfig/openvpn-auth-oauth2` to configure op
 ## Supported configuration properties
 
 ```
-Usage of /var/folders/cs/zz5gz_v567v7y00jpvc5v16h0000gn/T/go-build2152924040/b001/exe/main:
+Usage of ./openvpn-auth-oauth2:
 
   --config string
     	path to one .yaml config file (env: CONFIG_CONFIG)
+  --debug.listen string
+    	listen address for go profiling endpoint (env: CONFIG_DEBUG_LISTEN) (default ":9001")
+  --debug.pprof
+    	Enables go profiling endpoint. This should be never exposed. (env: CONFIG_DEBUG_PPROF)
   --http.baseurl string
     	listen addr for client listener (env: CONFIG_HTTP_BASEURL) (default "http://localhost:9000")
   --http.cert string
