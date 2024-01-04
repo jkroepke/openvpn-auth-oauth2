@@ -65,9 +65,9 @@ func (p *Provider) oauth2Start() http.Handler {
 		}
 
 		logger := p.logger.With(
-			slog.String("common_name", session.CommonName),
 			slog.Uint64("cid", session.Client.Cid),
 			slog.Uint64("kid", session.Client.Kid),
+			slog.String("common_name", session.CommonName),
 		)
 
 		if p.conf.HTTP.Check.IPAddr {
@@ -152,9 +152,9 @@ func (p *Provider) oauth2Callback() http.Handler {
 		}
 
 		logger := p.logger.With(
-			slog.String("common_name", session.CommonName),
 			slog.Uint64("cid", session.Client.Cid),
 			slog.Uint64("kid", session.Client.Kid),
+			slog.String("common_name", session.CommonName),
 		)
 		ctx = logging.ToContext(ctx, log.NewZitadelLogger(logger))
 
