@@ -207,7 +207,6 @@ func TestClientFull(t *testing.T) {
 				require.NoError(t, err)
 
 				defer conn.Close()
-				defer client.Shutdown()
 
 				reader := bufio.NewReader(conn)
 
@@ -263,14 +262,14 @@ func TestClientFull(t *testing.T) {
 			if tt.err != nil {
 				require.Error(t, err)
 				assert.Equal(t, tt.err.Error(), err.Error())
-
-				client.Shutdown()
 			} else {
 				wg.Wait()
-				if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, openvpn.ErrConnectionTerminated) {
+				if err != nil && !errors.Is(err, io.EOF) {
 					require.NoError(t, err)
 				}
 			}
+
+			client.Shutdown()
 		})
 	}
 }
