@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
@@ -115,7 +116,7 @@ func (p *Provider) getProviderOptions(providerLogger *expslog.Logger, basePath *
 	cookieKey := []byte(p.conf.HTTP.Secret)
 	cookieOpt := []httphelper.CookieHandlerOpt{
 		httphelper.WithMaxAge(int(p.conf.OpenVpn.AuthPendingTimeout.Seconds()) + 5),
-		httphelper.WithPath(basePath.Path),
+		httphelper.WithPath("/" + strings.TrimSuffix(basePath.Path, "/")),
 		httphelper.WithDomain(basePath.Hostname()),
 	}
 
@@ -200,9 +201,9 @@ func errorHandler(
 	session := state.NewEncoded(encryptedSession)
 	if err := session.Decode(conf.HTTP.Secret.String()); err == nil {
 		logger = logger.With(
-			slog.String("common_name", session.CommonName),
 			slog.Uint64("cid", session.Client.Cid),
 			slog.Uint64("kid", session.Client.Kid),
+			slog.String("common_name", session.CommonName),
 		)
 		openvpn.DenyClient(logger, session.Client, "client rejected")
 	} else {

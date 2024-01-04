@@ -34,8 +34,8 @@ func (c *Client) clientConnect(client connection.Client) error {
 	logger := c.logger.With(
 		slog.Uint64("cid", client.Cid),
 		slog.Uint64("kid", client.Kid),
-		slog.String("reason", client.Reason),
 		slog.String("common_name", client.CommonName),
+		slog.String("reason", client.Reason),
 		slog.String("username", client.Username),
 	)
 
@@ -49,8 +49,8 @@ func (c *Client) clientReauth(client connection.Client) error {
 	logger := c.logger.With(
 		slog.Uint64("cid", client.Cid),
 		slog.Uint64("kid", client.Kid),
-		slog.String("reason", client.Reason),
 		slog.String("common_name", client.CommonName),
+		slog.String("reason", client.Reason),
 		slog.String("username", client.Username),
 	)
 
@@ -132,8 +132,8 @@ func (c *Client) clientEstablished(client connection.Client) {
 	c.logger.LogAttrs(context.Background(),
 		slog.LevelInfo, "client established",
 		slog.Uint64("cid", client.Cid),
-		slog.String("reason", client.Reason),
 		slog.String("common_name", client.CommonName),
+		slog.String("reason", client.Reason),
 		slog.String("username", client.Username),
 	)
 }
@@ -141,8 +141,8 @@ func (c *Client) clientEstablished(client connection.Client) {
 func (c *Client) clientDisconnect(client connection.Client) {
 	logger := c.logger.With(
 		slog.Uint64("cid", client.Cid),
-		slog.String("reason", client.Reason),
 		slog.String("common_name", client.CommonName),
+		slog.String("reason", client.Reason),
 		slog.String("username", client.Username),
 	)
 
