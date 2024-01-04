@@ -18,6 +18,7 @@ services:
       - /run
       - /run/lock
       - /tmp
+    # noinspection ComposeUnknownKeys
     cgroup: private
     volumes:
       - ./default.preset:/etc/systemd/system-preset/default.preset

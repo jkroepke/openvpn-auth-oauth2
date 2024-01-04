@@ -21,6 +21,8 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
 )
 
+// Execute runs the main program logic of openvpn-auth-oauth2.
+//
 //nolint:cyclop
 func Execute(args []string, logWriter io.Writer, version, commit, date string) int {
 	var err error
@@ -65,44 +67,19 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 	oauth2Client := oauth2.New(logger, conf, storageClient)
 	openvpnClient := openvpn.NewClient(logger, conf, oauth2Client)
 
-	if err = oauth2Client.Discover(openvpnClient); err != nil {
+	if err = oauth2Client.Initialize(openvpnClient); err != nil {
 		logger.Error(err.Error())
 
 		return 1
 	}
 
-	server := httpserver.NewHTTPServer(logger, conf, oauth2Client.Handler())
-
 	done := make(chan int, 1)
 
 	if conf.Debug.Pprof {
-		go func() {
-			logger.Warn(fmt.Sprintf("start HTTP debug server on %s", conf.Debug.Listen))
-
-			mux := http.NewServeMux()
-			mux.Handle("/", http.RedirectHandler("/debug/pprof/", http.StatusTemporaryRedirect))
-			mux.HandleFunc("/debug/pprof/", pprof.Index)
-			mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
-			mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
-			mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
-			mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
-
-			server := &http.Server{
-				Addr:              conf.Debug.Listen,
-				ReadHeaderTimeout: 3 * time.Second,
-				Handler:           mux,
-			}
-
-			if err := server.ListenAndServe(); err != nil {
-				logger.Error(fmt.Errorf("error http debug listener: %w", err).Error())
-				done <- 1
-
-				return
-			}
-
-			done <- 0
-		}()
+		go setupDebugListener(logger, conf, done)
 	}
+
+	server := httpserver.NewHTTPServer(logger, conf, oauth2Client.Handler())
 
 	go func() {
 		if err := server.Listen(); err != nil {
@@ -139,6 +116,33 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 	shutdown(logger, openvpnClient, server)
 
 	return returnCode
+}
+
+func setupDebugListener(logger *slog.Logger, conf config.Config, done chan int) {
+	logger.Warn(fmt.Sprintf("start HTTP debug server on %s", conf.Debug.Listen))
+
+	mux := http.NewServeMux()
+	mux.Handle("/", http.RedirectHandler("/debug/pprof/", http.StatusTemporaryRedirect))
+	mux.HandleFunc("/debug/pprof/", pprof.Index)
+	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+
+	server := &http.Server{
+		Addr:              conf.Debug.Listen,
+		ReadHeaderTimeout: 3 * time.Second,
+		Handler:           mux,
+	}
+
+	if err := server.ListenAndServe(); err != nil {
+		logger.Error(fmt.Errorf("error http debug listener: %w", err).Error())
+		done <- 1
+
+		return
+	}
+
+	done <- 0
 }
 
 func shutdown(logger *slog.Logger, openvpnClient *openvpn.Client, server httpserver.Server) {

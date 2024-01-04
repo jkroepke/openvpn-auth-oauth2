@@ -43,7 +43,7 @@ func (p *Provider) RefreshClientAuth(clientID uint64, logger *slog.Logger) (bool
 	return true, nil
 }
 
-// ClientDisconnect purges the refresh token from store.
+// ClientDisconnect purges the refresh token from the [storage.Storage].
 func (p *Provider) ClientDisconnect(clientID uint64, logger *slog.Logger) {
 	refreshToken, err := p.storage.Get(clientID)
 	if err != nil {

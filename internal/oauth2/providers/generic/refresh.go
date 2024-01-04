@@ -22,7 +22,7 @@ func (p *Provider) Refresh(ctx context.Context, logger *slog.Logger, refreshToke
 
 	newTokens, err := rp.RefreshTokens[*oidc.IDTokenClaims](ctx, relyingParty, refreshToken, "", "")
 	if err != nil {
-		return "", fmt.Errorf("failed authentication via refresh token %w", err)
+		return "", fmt.Errorf("error from token exchange: %w", err)
 	}
 
 	return newTokens.RefreshToken, nil

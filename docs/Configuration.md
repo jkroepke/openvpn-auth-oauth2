@@ -160,7 +160,8 @@ There are two common ways to set up an HTTPS listener
 
 ### Reverse proxy (nginx, traefik)
 
-You can use one of your favorite http reverse proxy. Configure HTTPS on reverse proxy and proxy to an HTTP instance of openvpn-auth-oauth2.
+You can use one of your favorite http reverse proxies.
+Configure HTTPS on reverse proxy and proxy to an HTTP instance of openvpn-auth-oauth2.
 For beginners, [traefik](https://traefik.io/traefik/) is recommended since it [natively](https://doc.traefik.io/traefik/https/acme/)
 supports [Let's Encrypt](https://letsencrypt.org/) where you can get public SSL certificates for free.
 

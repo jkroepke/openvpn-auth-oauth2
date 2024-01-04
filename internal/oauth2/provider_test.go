@@ -144,7 +144,7 @@ func TestNewProvider(t *testing.T) {
 			client := openvpn.NewClient(logger, tt.conf, provider)
 			defer client.Shutdown()
 
-			err = provider.Discover(client)
+			err = provider.Initialize(client)
 			if tt.err != "" {
 				require.Error(t, err)
 				assert.Equal(t, tt.err, strings.TrimSpace(err.Error()))
