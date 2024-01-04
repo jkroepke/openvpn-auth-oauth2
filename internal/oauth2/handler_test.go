@@ -349,8 +349,16 @@ func TestHandler(t *testing.T) {
 				request.Header.Set("X-Forwarded-For", tt.xForwardedFor)
 			}
 
+			httpClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse
+			}
+
 			resp, err := httpClient.Do(request)
 			require.NoError(t, err)
+
+			_, err = io.Copy(io.Discard, resp.Body)
+			require.NoError(t, err)
+			resp.Body.Close()
 
 			if tt.state != "-" {
 				assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
@@ -358,24 +366,42 @@ func TestHandler(t *testing.T) {
 				return
 			}
 
+			if !tt.allow {
+				require.Equal(t, http.StatusForbidden, resp.StatusCode)
+
+				return
+			}
+
+			require.Equal(t, http.StatusFound, resp.StatusCode)
+
+			assert.NotEmpty(t, resp.Header.Get("Set-Cookie"))
+			assert.Contains(t, resp.Header.Get("Set-Cookie"), "state=")
+			assert.Contains(t, resp.Header.Get("Set-Cookie"), "Path=/oauth2/")
+			assert.Contains(t, resp.Header.Get("Set-Cookie"), "HttpOnly")
+			assert.Contains(t, resp.Header.Get("Set-Cookie"), "Max-Age=5")
+
+			require.NotEmpty(t, resp.Header.Get("Location"))
+			httpClient.CheckRedirect = nil
+
+			request, err = http.NewRequestWithContext(context.Background(), http.MethodGet, resp.Header.Get("Location"), nil)
+			require.NoError(t, err)
+
+			resp, err = httpClient.Do(request)
+			require.NoError(t, err)
+
 			body, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)
 			_ = resp.Body.Close()
 
-			expectedStatus := 200
-			if !tt.allow {
-				expectedStatus = 403
-			}
-
-			if !assert.Equal(t, expectedStatus, resp.StatusCode, string(body)) {
-				return
-			}
-
 			if conf.HTTP.CallbackTemplate != config.Defaults.HTTP.CallbackTemplate {
-				if !assert.Contains(t, string(body), "openvpn-auth-oauth2 is a management client for OpenVPN that handles the single sign-on") {
-					return
-				}
+				require.Contains(t, string(body), "openvpn-auth-oauth2 is a management client for OpenVPN that handles the single sign-on")
 			}
+
+			assert.NotEmpty(t, resp.Header.Get("Set-Cookie"))
+			assert.Contains(t, resp.Header.Get("Set-Cookie"), "state=")
+			assert.Contains(t, resp.Header.Get("Set-Cookie"), "Path=/oauth2/")
+			assert.Contains(t, resp.Header.Get("Set-Cookie"), "HttpOnly")
+			assert.Contains(t, resp.Header.Get("Set-Cookie"), "Max-Age=0")
 
 			client.Shutdown()
 			wg.Wait()

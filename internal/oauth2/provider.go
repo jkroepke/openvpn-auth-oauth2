@@ -55,7 +55,7 @@ func (p *Provider) Discover(openvpn OpenVPN) error {
 
 	providerLogger := log.NewZitadelLogger(p.logger)
 
-	basePath := p.conf.HTTP.BaseURL.JoinPath("/oauth2")
+	basePath := p.conf.HTTP.BaseURL.JoinPath("/oauth2/")
 	redirectURI := basePath.JoinPath("/callback").String()
 	options := p.getProviderOptions(providerLogger, basePath)
 
@@ -116,7 +116,7 @@ func (p *Provider) getProviderOptions(providerLogger *expslog.Logger, basePath *
 	cookieKey := []byte(p.conf.HTTP.Secret)
 	cookieOpt := []httphelper.CookieHandlerOpt{
 		httphelper.WithMaxAge(int(p.conf.OpenVpn.AuthPendingTimeout.Seconds()) + 5),
-		httphelper.WithPath("/" + strings.TrimSuffix(basePath.Path, "/")),
+		httphelper.WithPath(fmt.Sprintf("/%s/", strings.Trim(basePath.Path, "/"))),
 		httphelper.WithDomain(basePath.Hostname()),
 	}
 
