@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
@@ -74,7 +75,20 @@ func (c *Client) handleMessages() {
 
 	for {
 		if err = c.readMessage(&buf); err != nil {
-			c.errCh <- fmt.Errorf("readMessage: %w", err)
+			if errors.Is(err, io.EOF) {
+				c.logger.Warn("OpenVPN management interface connection terminated")
+				c.Shutdown()
+
+				return
+			}
+
+			c.shutdownMu.Lock()
+
+			if !c.closed {
+				c.errCh <- fmt.Errorf("error reading bytes: %w", err)
+			}
+
+			c.shutdownMu.Unlock()
 
 			return
 		}

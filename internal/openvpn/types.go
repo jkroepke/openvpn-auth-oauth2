@@ -19,8 +19,9 @@ type Client struct {
 	logger  *slog.Logger
 	oauth2  *oauth2.Provider
 
-	mu     sync.Mutex
-	closed bool
+	shutdownMu sync.Mutex
+	connMu     sync.Mutex
+	closed     bool
 
 	commandsBuffer bytes.Buffer
 
@@ -28,5 +29,4 @@ type Client struct {
 	commandResponseCh chan string
 	commandsCh        chan string
 	errCh             chan error
-	shutdownCh        chan struct{}
 }

@@ -30,8 +30,9 @@ func NewClient(logger *slog.Logger, conf config.Config, oauth2Client *oauth2.Pro
 		logger: logger,
 		oauth2: oauth2Client,
 
-		closed: false,
-		mu:     sync.Mutex{},
+		closed:     false,
+		connMu:     sync.Mutex{},
+		shutdownMu: sync.Mutex{},
 
 		commandsBuffer: commandsBuffer,
 
@@ -39,7 +40,6 @@ func NewClient(logger *slog.Logger, conf config.Config, oauth2Client *oauth2.Pro
 		clientsCh:         make(chan connection.Client, 10),
 		commandResponseCh: make(chan string, 10),
 		commandsCh:        make(chan string, 10),
-		shutdownCh:        make(chan struct{}, 1),
 	}
 }
 
@@ -78,29 +78,21 @@ func (c *Client) Connect() error {
 		return err
 	}
 
-	for {
-		select {
-		case err := <-c.errCh:
-			if errors.Is(err, io.EOF) {
-				return ErrConnectionTerminated
-			}
+	err = <-c.errCh
 
-			c.close()
+	c.Shutdown()
 
-			if err != nil {
-				return fmt.Errorf("OpenVPN management error: %w", err)
-			}
-
-			return nil
-		case <-c.shutdownCh:
-			c.close()
-
-			return nil
-		}
+	if err != nil {
+		return fmt.Errorf("OpenVPN management error: %w", err)
 	}
+
+	return nil
 }
 
 func (c *Client) setupConnection() error {
+	c.connMu.Lock()
+	defer c.connMu.Unlock()
+
 	var err error
 
 	switch c.conf.OpenVpn.Addr.Scheme {
@@ -174,13 +166,25 @@ func (c *Client) checkClientSsoCapabilities(logger *slog.Logger, client connecti
 
 // Shutdown shutdowns the client connection.
 func (c *Client) Shutdown() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.shutdownMu.Lock()
+	defer c.shutdownMu.Unlock()
 
-	if !c.closed {
-		c.logger.Info("shutdown OpenVPN management connection")
-		c.shutdownCh <- struct{}{}
+	c.connMu.Lock()
+	defer c.connMu.Unlock()
+
+	if c.closed {
+		return
 	}
+
+	c.closed = true
+	c.logger.Info("shutdown OpenVPN management connection")
+
+	if c.conn != nil {
+		_ = c.conn.Close()
+	}
+
+	close(c.commandsCh)
+	close(c.errCh)
 }
 
 // SendCommand passes command to a given connection (adds logging and EOL character) and returns the response.
@@ -265,16 +269,4 @@ func (c *Client) isMessageLineEOF(line []byte) bool {
 		bytes.HasPrefix(line, []byte(">HOLD:")) ||
 		bytes.HasPrefix(line, []byte(">INFO:")) ||
 		bytes.HasPrefix(line, []byte(">NOTIFY:"))
-}
-
-func (c *Client) close() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	if !c.closed {
-		c.closed = true
-
-		_ = c.conn.Close()
-		close(c.commandsCh)
-	}
 }
