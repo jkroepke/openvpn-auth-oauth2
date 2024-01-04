@@ -94,6 +94,8 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener) (*httptest.
 	return resourceServer, resourceServerURL, config.OAuth2Client{ID: clientListener.Addr().String(), Secret: "SECRET"}, nil
 }
 
+// SetupMockEnvironment setups an OpenVPN and IDP mock
+//
 //nolint:cyclop
 func SetupMockEnvironment(tb testing.TB, conf config.Config) (
 	config.Config, *openvpn.Client, net.Listener,
@@ -153,7 +155,7 @@ func SetupMockEnvironment(tb testing.TB, conf config.Config) (
 	provider := oauth2.New(logger, conf, storageClient)
 	openvpnClient := openvpn.NewClient(logger, conf, provider)
 
-	require.NoError(tb, provider.Discover(openvpnClient))
+	require.NoError(tb, provider.Initialize(openvpnClient))
 
 	httpClientListener := httptest.NewUnstartedServer(provider.Handler())
 	httpClientListener.Listener.Close()

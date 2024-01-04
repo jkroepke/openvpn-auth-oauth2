@@ -5,7 +5,7 @@
 DEB/RPM packages are available at https://github.com/jkroepke/openvpn-auth-oauth2/releases/latest
 
 1. Download package
-2. Install it with command below:
+2. Install it with the command below:
 
 For Ubuntu:
 
@@ -23,8 +23,10 @@ sudo yum localinstall <package_file>.rpm
 
 Go to https://github.com/jkroepke/openvpn-auth-oauth2/releases/latest and download the binary to the openvpn server.
 
-To build project you need Golang and Make installed.
+To build openvpn-auth-oauth2, you need Golang and Make installed.
 
-`make build`
+```bash
+make build
+```
 
 Move `openvpn-auth-oauth2` binary to `/usr/bin/`.

@@ -21,6 +21,8 @@ type teamType struct {
 	Slug string  `json:"slug"`
 }
 
+// CheckUser implements the [github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2.Provider] interface.
+// It checks if mets specific GitHub related conditions
 func (p *Provider) CheckUser(
 	ctx context.Context, _ state.State, _ types.UserData, tokens *oidc.Tokens[*idtoken.Claims],
 ) error {
@@ -29,14 +31,15 @@ func (p *Provider) CheckUser(
 		Claims: make(map[string]any),
 	}
 
-	if err := p.CheckOrgs(ctx, tokens); err != nil {
+	if err := p.checkOrganizations(ctx, tokens); err != nil {
 		return err
 	}
 
-	return p.CheckTeams(ctx, tokens)
+	return p.checkTeams(ctx, tokens)
 }
 
-func (p *Provider) CheckTeams(ctx context.Context, tokens *oidc.Tokens[*idtoken.Claims]) error {
+// checkTeams checks if the user is in a specific GitHub team by accessing the GitHub API.
+func (p *Provider) checkTeams(ctx context.Context, tokens *oidc.Tokens[*idtoken.Claims]) error {
 	if len(p.Provider.Conf.OAuth2.Validate.Roles) != 0 {
 		return nil
 	}
@@ -73,7 +76,8 @@ func (p *Provider) CheckTeams(ctx context.Context, tokens *oidc.Tokens[*idtoken.
 	return nil
 }
 
-func (p *Provider) CheckOrgs(ctx context.Context, tokens *oidc.Tokens[*idtoken.Claims]) error {
+// checkOrganizations checks if the user is in a specific GitHub organization by accessing the GitHub API.
+func (p *Provider) checkOrganizations(ctx context.Context, tokens *oidc.Tokens[*idtoken.Claims]) error {
 	if len(p.Provider.Conf.OAuth2.Validate.Groups) != 0 {
 		return nil
 	}

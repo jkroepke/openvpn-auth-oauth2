@@ -8,6 +8,8 @@ import (
 	"golang.org/x/oauth2/github"
 )
 
+// GetEndpoints implements the [github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2.Provider] interface.
+// It returns the OAuth2 GitHub [github.Endpoint], since GitHub does not support OIDC discovery.
 func (p *Provider) GetEndpoints(conf config.Config) (oauth2.Endpoint, error) {
 	if config.IsURLEmpty(conf.OAuth2.Endpoints.Token) && config.IsURLEmpty(conf.OAuth2.Endpoints.Auth) {
 		return github.Endpoint, nil

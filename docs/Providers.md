@@ -1,25 +1,25 @@
 # Providers
 
-This pages documents the setup at the OIDC provider.
+This page documents the setup at the OIDC provider.
 
 ## Azure AD
 
 ### Register an app with AAD
 
 1. Login as admin into tenant
-2. Open [App registrations](https://aad.portal.azure.com/#blade/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/RegisteredApps) in Azure AD admin center
+2. Open [App registrations](https://aad.portal.azure.com/#blade/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/RegisteredApps) in an Azure AD admin center
 3. Click new registration
-4. Pick a name, chose a "Supported account types"-option. Leave the default value, if you are not sure.
+4. Pick a name, choose a "Supported account types"-option. Leave the default value if you are not sure.
 5. For redirect uri, choice Web and enter the public endpoint of `openvpn-auth-oauth2`, for
    example `https://openvpn-auth-oauth2.example.com/oauth2/callback`.
 6. Click register.
-7. Copy the tenant-id and client-id. You need the both as configuration option for `openvpn-auth-oauth2`.
+7. Copy the tenant-id and client-id. You need it both as configuration option for `openvpn-auth-oauth2`.
 8. After creation, select `Certificates & secrets` on the left side.
 9. Select the tab `Client secrets` and create a new client secret.
-10. Copy the client-secret. Need it as configuration option for `openvpn-auth-oauth2`.
+10. Copy the client-secret. Need it as a configuration option for `openvpn-auth-oauth2`.
 11. Then, select Token configuration on the left side.
 12. Add optional claim
-13. On the right panel, select `ID` as token type
+13. On the right panel, select `ID` as a token type
 14. Select `ipaddr` from the list of claims.
 15. Select Add.
 
@@ -38,15 +38,16 @@ References:
 
 ### Register an app on google cloud console
 
-1. Login as admin into your google console from here https://console.cloud.google.com/
+1. Login as admin into your Google console from here https://console.cloud.google.com/
 2. click on Create a new project or select an existing project
-3. then "API & Services", then "Credentials" (left column)
-4. click "create credentials" (button at the top-middle) then type "OAuth Client ID" (in the dropdown)
-5. Choose a name for your app like "openvpn connection"
-6. in the "Authorized Redirect URIs" add one and set it to "https://yourdomain/oauth2/callback" (yourdomain would be the domain where a proxy is
+3. then "API & Services"
+4. then "Credentials" (left column)
+5. click "create credentials" (button at the top-middle) then type "OAuth Client ID" (in the dropdown)
+6. Choose a name for your app like "openvpn connection"
+7. in the "Authorized Redirect URIs" add one and set it to "https://yourdomain/oauth2/callback" (`yourdomain` would be the domain where a proxy is
    redirecting to your openvpn-auth-oauth2 daemon, typically on port 9000)
-7. you'll get your client id and client secret from google, copy them somewhere safe
-8. use those in the config as shown below
+8. you'll get your client id and client secret from Google, copy them somewhere safe
+9. use those in the config as shown below
 
 ### Configuration
 
@@ -102,14 +103,14 @@ and only used between the application and the DigitalOcean authorization server 
 
 ### Register an application in zitadel
 
-1. Create project in Zitadel
-2. Create new application in project
-3. Enter name and choose web type
-4. Authentication method - POST
-5. Redirect url - http://<vpn>:9000/oauth2/callback
+1. Create a project in Zitadel
+2. Create a new application in a project
+3. Enter name and choose a web type
+4. Authentication method: POST
+5. Redirect URL: http://<vpn>:9000/oauth2/callback
 6. Save Client ID and Client Secret to use below
 
-After created application, on page URLs you can find all links which you need.
+After creating application, on page URLs you can find all links that you need.
 
 ### Configuration
 
