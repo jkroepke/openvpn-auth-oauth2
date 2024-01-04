@@ -31,7 +31,7 @@ func (p *Provider) RefreshClientAuth(clientID uint64, logger *slog.Logger) (bool
 
 	refreshToken, err = p.OIDC.Refresh(ctx, logger, refreshToken, p.RelyingParty)
 	if err != nil {
-		return false, fmt.Errorf("failed authentication via refresh token %w", err)
+		return false, fmt.Errorf("error from token exchange: %w", err)
 	}
 
 	logger.Info("successful authenticate via refresh token")

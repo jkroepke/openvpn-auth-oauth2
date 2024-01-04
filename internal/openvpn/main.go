@@ -80,9 +80,9 @@ func (c *Client) Connect() error {
 
 	err = <-c.errCh
 
-	c.Shutdown()
-
 	if err != nil {
+		c.Shutdown()
+
 		return fmt.Errorf("OpenVPN management error: %w", err)
 	}
 
