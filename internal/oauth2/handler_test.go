@@ -355,6 +355,11 @@ func TestHandler(t *testing.T) {
 
 			resp, err := httpClient.Do(request)
 			require.NoError(t, err)
+
+			_, err = io.Copy(io.Discard, resp.Body)
+			require.NoError(t, err)
+			resp.Body.Close()
+
 			if tt.state != "-" {
 				assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 
