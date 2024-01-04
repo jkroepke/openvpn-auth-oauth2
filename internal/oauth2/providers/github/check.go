@@ -22,7 +22,7 @@ type teamType struct {
 }
 
 // CheckUser implements the [github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2.Provider] interface.
-// It checks if mets specific GitHub related conditions
+// It checks if mets specific GitHub related conditions.
 func (p *Provider) CheckUser(
 	ctx context.Context, _ state.State, _ types.UserData, tokens *oidc.Tokens[*idtoken.Claims],
 ) error {
