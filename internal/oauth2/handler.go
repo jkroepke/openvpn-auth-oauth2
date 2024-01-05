@@ -3,6 +3,7 @@ package oauth2
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io/fs"
 	"log/slog"
@@ -227,14 +228,14 @@ func writeError(w http.ResponseWriter, logger *slog.Logger, conf config.Config, 
 	h := sha256.New()
 	h.Write([]byte(time.Now().String()))
 
-	errorId := fmt.Sprintf("%x", h.Sum(nil))
+	errorID := hex.EncodeToString(h.Sum(nil))
 
-	logger.LogAttrs(nil, slog.LevelWarn, fmt.Sprintf("%s: %s", errorType, errorDesc), slog.String("error_id", errorId))
+	logger.Warn(fmt.Sprintf("%s: %s", errorType, errorDesc), slog.String("error_id", errorID))
 	w.WriteHeader(httpCode)
 
 	err := conf.HTTP.CallbackTemplate.Execute(w, map[string]string{
 		"title":   "Access denied",
-		"message": fmt.Sprintf("Error ID: %s\nPlease contact your administrator for help.", errorId),
+		"message": fmt.Sprintf("Error ID: %s\nPlease contact your administrator for help.", errorID),
 		"success": "false",
 	})
 	if err != nil {

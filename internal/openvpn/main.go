@@ -46,7 +46,7 @@ func NewClient(logger *slog.Logger, conf config.Config, oauth2Client *oauth2.Pro
 func (c *Client) Connect() error {
 	var err error
 
-	c.logger.Info(fmt.Sprintf("connect to openvpn management interface %s", c.conf.OpenVpn.Addr.String()))
+	c.logger.Info("connect to openvpn management interface " + c.conf.OpenVpn.Addr.String())
 
 	if err = c.setupConnection(); err != nil {
 		return fmt.Errorf("unable to connect to openvpn management interface %s: %w", c.conf.OpenVpn.Addr.String(), err)

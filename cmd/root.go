@@ -110,7 +110,7 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 	select {
 	case returnCode = <-done:
 	case sig := <-termCh:
-		logger.Info(fmt.Sprintf("receiving signal: %s", sig.String()))
+		logger.Info("receiving signal: " + sig.String())
 	}
 
 	shutdown(logger, openvpnClient, server)
@@ -119,7 +119,7 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 }
 
 func setupDebugListener(logger *slog.Logger, conf config.Config, done chan int) {
-	logger.Warn(fmt.Sprintf("start HTTP debug server on %s", conf.Debug.Listen))
+	logger.Warn("start HTTP debug server on " + conf.Debug.Listen)
 
 	mux := http.NewServeMux()
 	mux.Handle("/", http.RedirectHandler("/debug/pprof/", http.StatusTemporaryRedirect))

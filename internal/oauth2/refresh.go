@@ -55,7 +55,7 @@ func (p *Provider) ClientDisconnect(clientID uint64, logger *slog.Logger) {
 	ctx := logging.ToContext(context.Background(), log.NewZitadelLogger(logger))
 	if err = rp.RevokeToken(ctx, p.RelyingParty, refreshToken, "refresh_token"); err != nil {
 		if err.Error() != "RelyingParty does not support RevokeCaller" {
-			logger.Warn(fmt.Sprintf("refresh token revoke error: %s", err.Error()))
+			logger.Warn("refresh token revoke error: " + err.Error())
 		}
 	}
 
