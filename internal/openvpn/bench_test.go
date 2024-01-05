@@ -2,7 +2,6 @@ package openvpn_test
 
 import (
 	"bufio"
-	"fmt"
 	"net"
 	"net/url"
 	"strings"
@@ -88,7 +87,7 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 	for _, tt := range tests {
 		tt := tt
 
-		b.Run(fmt.Sprintf(tt.name), func(b *testing.B) {
+		b.Run(tt.name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				testutils.SendLine(b, managementInterfaceConn, tt.client)
 				assert.Contains(b, testutils.ReadLine(b, reader), "client-pending-auth 0 1 \"WEB_AUTH::")

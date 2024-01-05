@@ -2,6 +2,8 @@ package oauth2
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io/fs"
 	"log/slog"
@@ -143,9 +145,7 @@ func (p *Provider) oauth2Callback() http.Handler {
 
 		session := state.NewEncoded(encryptedState)
 		if err := session.Decode(p.conf.HTTP.Secret.String()); err != nil {
-			p.logger.Warn(err.Error())
 			p.logger.Debug(encryptedState)
-
 			writeError(w, p.logger, p.conf, http.StatusBadRequest, "Invalid State", err.Error())
 
 			return
@@ -176,7 +176,6 @@ func (p *Provider) oauth2Callback() http.Handler {
 
 			user, err := p.OIDC.GetUser(ctx, tokens)
 			if err != nil {
-				logger.Error(err.Error())
 				p.openvpn.DenyClient(logger, session.Client, "unable to fetch user data")
 				writeError(w, logger, p.conf, http.StatusInternalServerError, "fetchUser", err.Error())
 
@@ -190,11 +189,8 @@ func (p *Provider) oauth2Callback() http.Handler {
 
 			err = p.OIDC.CheckUser(ctx, session, user, tokens)
 			if err != nil {
-				reason := err.Error()
-				logger.Warn(reason)
 				p.openvpn.DenyClient(logger, session.Client, "client rejected")
-
-				writeError(w, logger, p.conf, http.StatusInternalServerError, "tokenValidation", reason)
+				writeError(w, logger, p.conf, http.StatusInternalServerError, "tokenValidation", err.Error())
 
 				return
 			}
@@ -228,10 +224,18 @@ func getAuthTokenUsername(session state.State, user types.UserData) string {
 	return username
 }
 
-func writeError(w http.ResponseWriter, logger *slog.Logger, conf config.Config, httpCode int, _, _ string) {
+func writeError(w http.ResponseWriter, logger *slog.Logger, conf config.Config, httpCode int, errorType, errorDesc string) {
+	h := sha256.New()
+	h.Write([]byte(time.Now().String()))
+
+	errorID := hex.EncodeToString(h.Sum(nil))
+
+	logger.Warn(fmt.Sprintf("%s: %s", errorType, errorDesc), slog.String("error_id", errorID))
+	w.WriteHeader(httpCode)
+
 	err := conf.HTTP.CallbackTemplate.Execute(w, map[string]string{
 		"title":   "Access denied",
-		"message": "",
+		"message": fmt.Sprintf("Error ID: %s\nPlease contact your administrator for help.", errorID),
 		"success": "false",
 	})
 	if err != nil {
@@ -240,8 +244,6 @@ func writeError(w http.ResponseWriter, logger *slog.Logger, conf config.Config, 
 
 		return
 	}
-
-	w.WriteHeader(httpCode)
 }
 
 func writeSuccess(w http.ResponseWriter, conf config.Config, logger *slog.Logger) {

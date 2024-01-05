@@ -2,6 +2,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"path"
@@ -28,7 +29,7 @@ func StringToURLHookFunc() mapstructure.DecodeHookFuncType {
 
 		dataString, ok := data.(string)
 		if !ok {
-			return nil, fmt.Errorf("unable to cast to string")
+			return nil, errors.New("unable to cast to string")
 		}
 
 		// Convert it by parsing
@@ -70,7 +71,7 @@ func StringToTemplateHookFunc() mapstructure.DecodeHookFuncType {
 
 		dataString, ok := data.(string)
 		if !ok {
-			return nil, fmt.Errorf("unable to cast to string")
+			return nil, errors.New("unable to cast to string")
 		}
 
 		if dataString == "" {
