@@ -210,6 +210,5 @@ func errorHandler(
 		logger.Debug(fmt.Sprintf("errorHandler: %s", err.Error()))
 	}
 
-	logger.Warn(fmt.Sprintf("%s: %s", errorType, errorDesc))
 	writeError(w, logger, conf, httpStatus, errorType, errorDesc)
 }
