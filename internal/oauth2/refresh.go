@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/log"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
 	"github.com/zitadel/logging"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
@@ -25,6 +26,10 @@ func (p *Provider) RefreshClientAuth(clientID uint64, logger *slog.Logger) (bool
 		}
 
 		return false, fmt.Errorf("error from token store: %w", err)
+	}
+
+	if p.conf.OAuth2.Nonce {
+		ctx = context.WithValue(ctx, types.CtxNonce{}, p.GetNonce(clientID))
 	}
 
 	logger.Info("initiate non-interactive authentication via refresh token")
