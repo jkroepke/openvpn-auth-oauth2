@@ -2,6 +2,9 @@ package oauth2
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -13,6 +16,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/log"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/github"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
@@ -133,7 +137,7 @@ func (p *Provider) getProviderOptions(providerLogger *expslog.Logger, basePath *
 
 	if p.conf.OAuth2.Nonce {
 		verifierOpts = append(verifierOpts, rp.WithNonce(func(ctx context.Context) string {
-			if nonce, ok := ctx.Value(ctxNonce{}).(string); ok {
+			if nonce, ok := ctx.Value(types.CtxNonce{}).(string); ok {
 				return nonce
 			}
 
@@ -211,4 +215,13 @@ func errorHandler(
 	}
 
 	writeError(w, logger, conf, httpStatus, errorType, errorDesc)
+}
+
+func (p *Provider) GetNonce(clientID uint64) string {
+	bs := make([]byte, 0, 8+len(p.conf.HTTP.Secret.String()))
+	binary.LittleEndian.PutUint64(bs, clientID)
+
+	nonce := sha256.Sum256(append(bs, p.conf.HTTP.Secret.String()...))
+
+	return hex.EncodeToString(nonce[:])
 }
