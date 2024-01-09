@@ -13,7 +13,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/stretchr/testify v1.8.4
 	github.com/zitadel/logging v0.5.0
-	github.com/zitadel/oidc/v3 v3.9.0
+	github.com/zitadel/oidc/v3 v3.9.1
 	golang.org/x/exp v0.0.0-20240103183307-be819d1f06fc
 	golang.org/x/oauth2 v0.16.0
 	golang.org/x/text v0.14.0
@@ -56,5 +56,5 @@ replace (
 	github.com/mitchellh/mapstructure v1.5.0 => github.com/go-viper/mapstructure v1.6.0
 
 	// https://github.com/zitadel/oidc/pull/503
-	github.com/zitadel/oidc/v3 => github.com/jkroepke/oidc/v3 v3.0.0-20240105183935-e0adadb83050
+	github.com/zitadel/oidc/v3 => github.com/jkroepke/oidc/v3 v3.0.0-20240109003113-763e05feedc1
 )
