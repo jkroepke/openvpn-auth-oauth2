@@ -95,16 +95,18 @@ func parseClientReason(line string) (string, uint64, uint64, error) {
 		return "", 0, 0, fmt.Errorf("unable to parse cid: %w", err)
 	}
 
-	kid := uint64(0)
+	var kid uint64
 
-	if reason != "DISCONNECT" && reason != "ESTABLISHED" {
-		// kidString could contain a CR_RESPONSE, cut it again
-		kidString, _, _ = strings.Cut(kidString, ",")
+	if reason == "DISCONNECT" || reason == "ESTABLISHED" {
+		return reason, cid, kid, nil
+	}
 
-		kid, err = strconv.ParseUint(kidString, 10, 64)
-		if err != nil {
-			return "", 0, 0, fmt.Errorf("unable to parse kid: %w", err)
-		}
+	// kidString could contain a CR_RESPONSE, cut it again
+	kidString, _, _ = strings.Cut(kidString, ",")
+
+	kid, err = strconv.ParseUint(kidString, 10, 64)
+	if err != nil {
+		return "", 0, 0, fmt.Errorf("unable to parse kid: %w", err)
 	}
 
 	return reason, cid, kid, nil

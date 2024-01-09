@@ -34,6 +34,10 @@ build: clean openvpn-auth-oauth2  ## Build openvpn-auth-oauth2
 openvpn-auth-oauth2:
 	@go build -o openvpn-auth-oauth2 .
 
+.Phony: build-debug
+build-debug: ## Build openvpn-auth-oauth2 with debug flags
+	@go build -gcflags="-l=4 -m=2" -o openvpn-auth-oauth2 .
+
 .PHONY: test
 test:  ## Test openvpn-auth-oauth2
 	@go test -race ./...
