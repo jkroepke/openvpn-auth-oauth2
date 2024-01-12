@@ -208,16 +208,16 @@ func TestValidateIpAddr(t *testing.T) {
 	for _, tt := range []struct {
 		name           string
 		validateIPAddr bool
-		tokenClaim     string
-		tokenIPAddr    any
+		setClaim       bool
+		tokenIPAddr    string
 		requiredIPAddr string
 		err            string
 	}{
-		{"no require", false, "nonexists", "apple", "", ""},
-		{"ip present", true, "ipaddr", "apple", "", "ipaddr mismatch: openvpn client: apple - oidc token: "},
-		{"sub required", true, "ipaddr", "apple", "apple", ""},
-		{"sub required wrong", true, "ipaddr", "pear", "apple", "ipaddr mismatch: openvpn client: pear - oidc token: apple"},
-		{"nonexists claim", true, "nonexists", "pear", "apple", "missing claim: ipaddr"},
+		{"no require", false, false, "apple", "", ""},
+		{"ip present", true, true, "apple", "", "ipaddr mismatch: openvpn client: apple - oidc token: "},
+		{"sub required", true, true, "apple", "apple", ""},
+		{"sub required wrong", true, true, "pear", "apple", "ipaddr mismatch: openvpn client: pear - oidc token: apple"},
+		{"nonexists claim", true, false, "pear", "apple", "missing claim: ipaddr"},
 	} {
 		tt := tt
 
@@ -225,11 +225,11 @@ func TestValidateIpAddr(t *testing.T) {
 			t.Parallel()
 
 			token := &oidc.Tokens[*idtoken.Claims]{
-				IDTokenClaims: &idtoken.Claims{
-					Claims: map[string]any{
-						tt.tokenClaim: tt.tokenIPAddr,
-					},
-				},
+				IDTokenClaims: &idtoken.Claims{},
+			}
+
+			if tt.setClaim {
+				token.IDTokenClaims.IpAddr = tt.tokenIPAddr
 			}
 
 			conf := config.Config{
