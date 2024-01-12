@@ -14,7 +14,7 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/zitadel/logging v0.5.0
 	github.com/zitadel/oidc/v3 v3.10.0
-	golang.org/x/exp v0.0.0-20240103183307-be819d1f06fc
+	golang.org/x/exp v0.0.0-20240112132812-db7319d0e0e3
 	golang.org/x/oauth2 v0.16.0
 	golang.org/x/text v0.14.0
 )
