@@ -110,13 +110,13 @@ func (p *Provider) CheckIPAddress(session state.State, tokens *oidc.Tokens[*idto
 		return nil
 	}
 
-	if tokens.IDTokenClaims.IpAddr == "" {
+	if tokens.IDTokenClaims.IPAddr == "" {
 		return fmt.Errorf("%w: ipaddr", ErrMissingClaim)
 	}
 
-	if tokens.IDTokenClaims.IpAddr != session.Ipaddr {
+	if tokens.IDTokenClaims.IPAddr != session.Ipaddr {
 		return fmt.Errorf("ipaddr %w: openvpn client: %s - oidc token: %s",
-			ErrMismatch, tokens.IDTokenClaims.IpAddr, session.Ipaddr)
+			ErrMismatch, tokens.IDTokenClaims.IPAddr, session.Ipaddr)
 	}
 
 	return nil

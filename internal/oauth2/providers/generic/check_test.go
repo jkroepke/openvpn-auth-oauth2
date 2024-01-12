@@ -229,7 +229,7 @@ func TestValidateIpAddr(t *testing.T) {
 			}
 
 			if tt.setClaim {
-				token.IDTokenClaims.IpAddr = tt.tokenIPAddr
+				token.IDTokenClaims.IPAddr = tt.tokenIPAddr
 			}
 
 			conf := config.Config{
