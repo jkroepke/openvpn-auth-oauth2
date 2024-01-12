@@ -7,6 +7,7 @@ type Claims struct {
 	oidc.TokenClaims
 	PreferredUsername string         `json:"preferred_username,omitempty"`
 	AccessTokenHash   string         `json:"at_hash,omitempty"`
+	IPAddr            string         `json:"ipaddr,omitempty"`
 	Claims            map[string]any `json:"-"`
 }
 

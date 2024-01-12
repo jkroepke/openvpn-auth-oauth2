@@ -218,7 +218,7 @@ func errorHandler(
 }
 
 func (p *Provider) GetNonce(clientID uint64) string {
-	bs := make([]byte, 0, 8+len(p.conf.HTTP.Secret.String()))
+	bs := make([]byte, 8, 8+len(p.conf.HTTP.Secret.String()))
 	binary.LittleEndian.PutUint64(bs, clientID)
 
 	nonce := sha256.Sum256(append(bs, p.conf.HTTP.Secret.String()...))
