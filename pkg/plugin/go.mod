@@ -4,12 +4,11 @@ go 1.21
 
 require github.com/jkroepke/openvpn-auth-oauth2 v0.0.0-00000000000000-000000000000
 
-replace github.com/jkroepke/openvpn-auth-oauth2 v0.0.0-00000000000000-000000000000 => ../../
-
 require (
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.1 // indirect
+	github.com/go-viper/mapstructure/v2 v2.0.0-alpha.1 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/uuid v1.5.0 // indirect
@@ -20,9 +19,8 @@ require (
 	github.com/knadh/koanf/providers/env v0.1.0 // indirect
 	github.com/knadh/koanf/providers/file v0.1.0 // indirect
 	github.com/knadh/koanf/providers/structs v0.1.0 // indirect
-	github.com/knadh/koanf/v2 v2.0.1 // indirect
+	github.com/knadh/koanf/v2 v2.0.0-20240110174456-1d7909b70777 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
-	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/muhlemmer/gu v0.3.1 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
@@ -39,3 +37,5 @@ require (
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/jkroepke/openvpn-auth-oauth2 v0.0.0-00000000000000-000000000000 => ../../

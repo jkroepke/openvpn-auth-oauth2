@@ -3,14 +3,14 @@ module github.com/jkroepke/openvpn-auth-oauth2
 go 1.21
 
 require (
+	github.com/go-viper/mapstructure/v2 v2.0.0-alpha.1
 	github.com/knadh/koanf/parsers/yaml v0.1.0
 	github.com/knadh/koanf/providers/basicflag v1.0.0
 	github.com/knadh/koanf/providers/env v0.1.0
 	github.com/knadh/koanf/providers/file v0.1.0
 	github.com/knadh/koanf/providers/structs v0.1.0
-	github.com/knadh/koanf/v2 v2.0.1
+	github.com/knadh/koanf/v2 v2.0.0-20240110174456-1d7909b70777
 	github.com/madflojo/testcerts v1.1.1
-	github.com/mitchellh/mapstructure v1.5.0
 	github.com/stretchr/testify v1.8.4
 	github.com/zitadel/logging v0.5.0
 	github.com/zitadel/oidc/v3 v3.10.0
@@ -50,6 +50,3 @@ require (
 	google.golang.org/protobuf v1.32.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-// https://github.com/knadh/koanf/issues/262
-replace github.com/mitchellh/mapstructure v1.5.0 => github.com/go-viper/mapstructure v1.6.0

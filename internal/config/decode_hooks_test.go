@@ -6,8 +6,8 @@ import (
 	"testing"
 	"text/template"
 
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/mitchellh/mapstructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

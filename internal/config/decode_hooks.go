@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"text/template"
 
-	"github.com/mitchellh/mapstructure"
+	"github.com/go-viper/mapstructure/v2"
 )
 
 // StringToURLHookFunc parse a string to [url.URL].
