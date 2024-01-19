@@ -25,7 +25,7 @@ require (
 	github.com/muhlemmer/gu v0.3.1 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/zitadel/logging v0.5.0 // indirect
-	github.com/zitadel/oidc/v3 v3.10.0 // indirect
+	github.com/zitadel/oidc/v3 v3.10.2 // indirect
 	github.com/zitadel/schema v1.3.0 // indirect
 	golang.org/x/crypto v0.18.0 // indirect
 	golang.org/x/exp v0.0.0-20240112132812-db7319d0e0e3 // indirect
