@@ -1,4 +1,4 @@
-package cmd_test
+package daemon_test
 
 import (
 	"bufio"
@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/cmd"
+	"github.com/jkroepke/openvpn-auth-oauth2/cmd/daemon"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
 	"github.com/stretchr/testify/assert"
@@ -22,7 +22,7 @@ func TestExecuteVersion(t *testing.T) {
 	var buf bytes.Buffer
 	_ = io.Writer(&buf)
 
-	returnCode := cmd.Execute([]string{"", "--version"}, &buf, "version", "commit", "date")
+	returnCode := daemon.Execute([]string{"", "--version"}, &buf, "version", "commit", "date")
 	assert.Equal(t, 0, returnCode, buf.String())
 }
 
@@ -34,7 +34,7 @@ func TestExecuteHelp(t *testing.T) {
 	buf.Grow(16 << 20)
 	_ = io.Writer(&buf)
 
-	returnCode := cmd.Execute([]string{"openvpn-auth-oauth2-test", "--help"}, &buf, "version", "commit", "date")
+	returnCode := daemon.Execute([]string{"openvpn-auth-oauth2-test", "--help"}, &buf, "version", "commit", "date")
 	output := buf.String()
 
 	assert.Equal(t, 0, returnCode, buf.String())
@@ -62,17 +62,17 @@ func TestExecuteConfigInvalid(t *testing.T) {
 		},
 		{
 			"invalid log format",
-			[]string{"", "--config=../config.example.yaml", "--log.format=invalid", "--log.level=warn", "--http.secret=1234567891011213"},
+			[]string{"", "--config=../../config.example.yaml", "--log.format=invalid", "--log.level=warn", "--http.secret=1234567891011213"},
 			"error configure logging: unknown log format: invalid",
 		},
 		{
 			"invalid log level",
-			[]string{"", "--config=../config.example.yaml", "--log.format=console", "--log.level=invalid", "--http.secret=1234567891111213"},
+			[]string{"", "--config=../../config.example.yaml", "--log.format=console", "--log.level=invalid", "--http.secret=1234567891111213"},
 			`error parsing cli args: invalid value \"invalid\" for flag -log.level: slog: level string \"invalid\": unknown name`,
 		},
 		{
 			"error oidc provider",
-			[]string{"", "--config=../config.example.yaml", "--log.format=console", "--log.level=info", "--http.secret=1234567891111213"},
+			[]string{"", "--config=../../config.example.yaml", "--log.format=console", "--log.level=info", "--http.secret=1234567891111213"},
 			`error oauth2 provider`,
 		},
 	}
@@ -85,7 +85,7 @@ func TestExecuteConfigInvalid(t *testing.T) {
 			var buf bytes.Buffer
 			_ = io.Writer(&buf)
 
-			returnCode := cmd.Execute(tt.args, &buf, "version", "commit", "date")
+			returnCode := daemon.Execute(tt.args, &buf, "version", "commit", "date")
 
 			assert.Equal(t, 1, returnCode, buf.String())
 			assert.Contains(t, buf.String(), tt.err)
@@ -132,7 +132,7 @@ func TestExecuteConfigFileFound(t *testing.T) { //nolint: paralleltest
 
 	args := []string{
 		"openvpn-auth-oauth2",
-		"--config=../config.example.yaml",
+		"--config=../../config.example.yaml",
 		"--http.secret=0123456789101112",
 		"--http.listen=127.0.0.1:0",
 		"--oauth2.issuer", resourceServer.URL,
@@ -142,7 +142,7 @@ func TestExecuteConfigFileFound(t *testing.T) { //nolint: paralleltest
 	var buf bytes.Buffer
 	_ = io.Writer(&buf)
 
-	returnCode := cmd.Execute(args, &buf, "version", "commit", "date")
+	returnCode := daemon.Execute(args, &buf, "version", "commit", "date")
 
 	assert.Equal(t, 0, returnCode, buf.String())
 }
