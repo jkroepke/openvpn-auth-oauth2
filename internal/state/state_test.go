@@ -67,6 +67,24 @@ func TestStateInvalid_Future(t *testing.T) {
 	assert.Contains(t, token.Decode(encryptionKey).Error(), "invalid state: issued in future, issued at:")
 }
 
+func TestState_WithSpace(t *testing.T) {
+	t.Parallel()
+
+	encryptionKey := testutils.Secret
+
+	token := state.New(state.ClientIdentifier{Cid: 1, Kid: 2}, "127.0.0.1", "te st")
+
+	require.NoError(t, token.Encode(encryptionKey))
+
+	encodedToken := state.NewEncoded(token.Encoded())
+	require.NoError(t, encodedToken.Decode(encryptionKey))
+
+	assert.Equal(t, token.Client.Cid, encodedToken.Client.Cid)
+	assert.Equal(t, token.Client.Kid, encodedToken.Client.Kid)
+	assert.Equal(t, token.Ipaddr, encodedToken.Ipaddr)
+	assert.Equal(t, token.CommonName, encodedToken.CommonName)
+}
+
 func TestStateInvalid_TooOld(t *testing.T) {
 	t.Parallel()
 
