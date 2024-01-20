@@ -60,7 +60,6 @@ func (p *Provider) oauth2Start() http.Handler {
 		session := state.NewEncoded(sessionState)
 		if err := session.Decode(p.conf.HTTP.Secret.String()); err != nil {
 			p.logger.Warn(utils.StringConcat("invalid state: ", err.Error()))
-			p.logger.Debug(sessionState)
 			w.WriteHeader(http.StatusBadRequest)
 
 			return
@@ -145,7 +144,6 @@ func (p *Provider) oauth2Callback() http.Handler {
 
 		session := state.NewEncoded(encryptedState)
 		if err := session.Decode(p.conf.HTTP.Secret.String()); err != nil {
-			p.logger.Debug(encryptedState)
 			writeError(w, p.logger, p.conf, http.StatusBadRequest, "Invalid State", err.Error())
 
 			return

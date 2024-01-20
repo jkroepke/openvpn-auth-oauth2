@@ -54,7 +54,7 @@ func (state *State) Decode(secretKey string) error {
 
 	data, err := crypto.DecryptBytesAES(encrypted, secretKey)
 	if err != nil {
-		return fmt.Errorf("invalid state %s: %w", state.encoded, err)
+		return fmt.Errorf("decrypt aes %s: %w", state.encoded, err)
 	}
 
 	_, err = fmt.Fscanln(bytes.NewReader(data),
@@ -68,7 +68,7 @@ func (state *State) Decode(secretKey string) error {
 	)
 
 	if err != nil {
-		return fmt.Errorf("decode: %w", err)
+		return fmt.Errorf("scan error %s: %w", state.encoded, err)
 	}
 
 	state.Client.AuthFailedReasonFile = decodeString(state.Client.AuthFailedReasonFile)
@@ -103,6 +103,7 @@ func (state *State) Encode(secretKey string) error {
 	data.WriteString(encodeString(state.CommonName))
 	data.WriteString(" ")
 	data.WriteString(strconv.FormatInt(state.Issued, 10))
+	data.WriteString("\n")
 
 	encrypted, err := crypto.EncryptBytesAES(data.Bytes(), secretKey)
 	if err != nil {

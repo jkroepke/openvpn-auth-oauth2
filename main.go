@@ -3,7 +3,8 @@ package main
 import (
 	"os"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/cmd"
+	"github.com/jkroepke/openvpn-auth-oauth2/cmd/daemon"
+	"github.com/jkroepke/openvpn-auth-oauth2/cmd/state"
 )
 
 //nolint:gochecknoglobals
@@ -14,5 +15,14 @@ var (
 )
 
 func main() {
-	os.Exit(cmd.Execute(os.Args, os.Stdout, version, commit, date))
+	if len(os.Args) == 1 {
+		os.Args = append(os.Args, "")
+	}
+
+	switch os.Args[1] {
+	case "state":
+		os.Exit(state.Execute(os.Args, os.Stdout, version, commit, date))
+	default:
+		os.Exit(daemon.Execute(os.Args, os.Stdout, version, commit, date))
+	}
 }
