@@ -68,7 +68,7 @@ func (state *State) Decode(secretKey string) error {
 	)
 
 	if err != nil {
-		return fmt.Errorf("scan error %s: %w", state.encoded, err)
+		return fmt.Errorf("scan error %#v: %w", string(data), err)
 	}
 
 	state.Client.AuthFailedReasonFile = decodeString(state.Client.AuthFailedReasonFile)
