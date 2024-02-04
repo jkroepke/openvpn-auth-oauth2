@@ -37,8 +37,8 @@ body:
         examples:
         - **openvpn-auth-oauth2 Version**: 1.5.1
         - **OpenVPN Server Version**: 2.6.2
-        - **Server OS*: Linux
-        - **OpenVPN Client (flavor, OS)*: Tunnelblick 4.0.0beta10 / MacOD
+        - **Server OS**: Linux
+        - **OpenVPN Client (flavor, OS)**: Tunnelblick 4.0.0beta10 / MacOD
       value: |
         - openvpn-auth-oauth2 Version:
         - OpenVPN Server Version:
@@ -46,6 +46,24 @@ body:
         - OpenVPN Client (flavor, OS):
     validations:
       required: false
+  - type: textarea
+    attributes:
+      label: openvpn-auth-oauth2 logs
+      description: |
+        Log of openvpn-auth-oauth2
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: openvpn server logs
+      description: |
+        Log of openvpn server
+      render: shell
+    validations:
+      required: false
+      
   - type: textarea
     attributes:
       label: Anything else?
