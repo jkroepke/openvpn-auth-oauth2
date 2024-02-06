@@ -38,12 +38,14 @@ body:
         - **openvpn-auth-oauth2 Version**: 1.5.1
         - **OpenVPN Server Version**: 2.6.2
         - **Server OS**: Linux
-        - **OpenVPN Client (flavor, OS)**: Tunnelblick 4.0.0beta10 / MacOD
+        - **OpenVPN Client (flavor, OS)**: Tunnelblick 4.0.0beta10 / MacOS
+        - **OIDC Provider**: Entra ID
       value: |
         - openvpn-auth-oauth2 Version:
         - OpenVPN Server Version:
         - Server OS:
         - OpenVPN Client (flavor, OS):
+        - OIDC Provider:
     validations:
       required: false
   - type: textarea
