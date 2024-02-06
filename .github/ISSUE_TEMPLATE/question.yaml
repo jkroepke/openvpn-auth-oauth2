@@ -1,0 +1,30 @@
+name: ❓ Question
+description: Something is not cleae.
+labels: [ question ]
+body:
+  - type: textarea
+    attributes:
+      label: Problem Statement
+      description: Without specifying a solution, describe what the project is missing today.
+      placeholder: |
+        The rotating project logo has a fixed size and color.
+        There is no way to make it larger and more shiny.
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Environment
+      description: |
+        examples:
+        - **openvpn-auth-oauth2 Version**: 1.5.1
+        - **OpenVPN Server Version**: 2.6.2
+        - **Server OS**: Linux
+        - **OpenVPN Client (flavor, OS)**: Tunnelblick 4.0.0beta10 / MacOD
+      value: |
+        - openvpn-auth-oauth2 Version:
+        - OpenVPN Server Version:
+        - Server OS:
+        - OpenVPN Client (flavor, OS):
+    validations:
+      required: false
