@@ -191,7 +191,8 @@ func FlagSet(name string) *flag.FlagSet {
 	flagSet.TextVar(new(Secret),
 		"oauth2.refresh.secret",
 		Defaults.OAuth2.Refresh.Secret,
-		"Required, if oauth2.refresh.enabled=true. Random generated secret for token encryption. Must be 16, 24 or 32 characters. If argument starts with file:// it reads the secret from a file.",
+		"Required, if oauth2.refresh.enabled=true. Random generated secret for token encryption. "+
+			"Must be 16, 24 or 32 characters. If argument starts with file:// it reads the secret from a file.",
 	)
 	flagSet.TextVar(new(StringSlice),
 		"oauth2.validate.groups",

@@ -79,7 +79,6 @@ func (c *Client) Connect() error {
 	}
 
 	err = <-c.errCh
-
 	if err != nil {
 		c.Shutdown()
 

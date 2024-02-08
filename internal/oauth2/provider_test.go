@@ -134,7 +134,9 @@ func TestNewProvider(t *testing.T) {
 
 			managementInterface, err := net.Listen("tcp", "127.0.0.1:0")
 			require.NoError(t, err)
+
 			defer managementInterface.Close()
+
 			tt.conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
 			storageClient := storage.New(testutils.Secret, time.Hour)
@@ -156,11 +158,13 @@ func TestNewProvider(t *testing.T) {
 
 			assert.Equal(t, provider.OAuthConfig().ClientID, tt.conf.OAuth2.Client.ID)
 			assert.Equal(t, provider.OAuthConfig().ClientSecret, tt.conf.OAuth2.Client.Secret.String())
+
 			if tt.conf.OAuth2.Endpoints.Auth != nil {
 				assert.Equal(t, provider.OAuthConfig().Endpoint.AuthURL, tt.conf.OAuth2.Endpoints.Auth.String())
 			} else {
 				assert.NotEmpty(t, provider.OAuthConfig().Endpoint.AuthURL)
 			}
+
 			if tt.conf.OAuth2.Endpoints.Token != nil {
 				assert.Equal(t, provider.OAuthConfig().Endpoint.TokenURL, tt.conf.OAuth2.Endpoints.Token.String())
 			} else {

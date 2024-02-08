@@ -162,8 +162,8 @@ func (p *Provider) oauth2Callback() http.Handler {
 		}
 
 		rp.CodeExchangeHandler(func(
-			w http.ResponseWriter, r *http.Request, tokens *oidc.Tokens[*idtoken.Claims], encryptedSession string,
-			rp rp.RelyingParty,
+			w http.ResponseWriter, _ *http.Request, tokens *oidc.Tokens[*idtoken.Claims], encryptedSession string,
+			_ rp.RelyingParty,
 		) {
 			if tokens.IDTokenClaims != nil {
 				logger = logger.With(
