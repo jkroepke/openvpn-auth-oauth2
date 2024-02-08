@@ -87,7 +87,9 @@ func TestNewHTTPServer(t *testing.T) {
 
 			go func() {
 				defer wg.Done()
+
 				err := svr.Listen()
+
 				if tt.err == nil {
 					require.NoError(t, err)
 				} else {

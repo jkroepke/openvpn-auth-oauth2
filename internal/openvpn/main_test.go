@@ -264,6 +264,7 @@ func TestClientFull(t *testing.T) {
 				assert.Equal(t, tt.err.Error(), err.Error())
 			} else {
 				wg.Wait()
+
 				if err != nil && !errors.Is(err, io.EOF) {
 					require.NoError(t, err)
 				}
