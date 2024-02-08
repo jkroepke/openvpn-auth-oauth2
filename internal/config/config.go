@@ -70,7 +70,7 @@ func FlagSet(name string) *flag.FlagSet {
 	flagSet.TextVar(new(Secret),
 		"http.secret",
 		Defaults.HTTP.Secret,
-		"Random generated secret for cookie encryption. Must be 16, 24 or 32 characters.",
+		"Random generated secret for cookie encryption. Must be 16, 24 or 32 characters. If argument starts with file:// it reads the secret from a file.",
 	)
 	flagSet.String(
 		"http.key",
@@ -105,7 +105,7 @@ func FlagSet(name string) *flag.FlagSet {
 	flagSet.TextVar(new(Secret),
 		"openvpn.password",
 		Defaults.OpenVpn.Password,
-		"openvpn management interface password",
+		"openvpn management interface password. If argument starts with file:// it reads the secret from a file.",
 	)
 	flagSet.Bool(
 		"openvpn.auth-token-user",
@@ -166,7 +166,7 @@ func FlagSet(name string) *flag.FlagSet {
 	flagSet.TextVar(new(Secret),
 		"oauth2.client.secret",
 		Defaults.OAuth2.Client.Secret,
-		"oauth2 client secret.",
+		"oauth2 client secret. If argument starts with file:// it reads the secret from a file.",
 	)
 	flagSet.Bool(
 		"oauth2.pkce",
@@ -191,7 +191,7 @@ func FlagSet(name string) *flag.FlagSet {
 	flagSet.TextVar(new(Secret),
 		"oauth2.refresh.secret",
 		Defaults.OAuth2.Refresh.Secret,
-		"Required, if oauth2.refresh.enabled=true. Random generated secret for token encryption. Must be 16, 24 or 32 characters.",
+		"Required, if oauth2.refresh.enabled=true. Random generated secret for token encryption. Must be 16, 24 or 32 characters. If argument starts with file:// it reads the secret from a file.",
 	)
 	flagSet.TextVar(new(StringSlice),
 		"oauth2.validate.groups",
