@@ -205,7 +205,7 @@ func TestClientFull(t *testing.T) {
 				defer wg.Done()
 
 				conn, err := managementInterface.Accept()
-				require.NoError(t, err)
+				require.NoError(t, err) //nolint:testifylint
 
 				defer conn.Close()
 
@@ -251,7 +251,7 @@ func TestClientFull(t *testing.T) {
 
 					sessionState := state.NewEncoded(matches[1])
 					err := sessionState.Decode(tt.conf.HTTP.Secret.String())
-					require.NoError(t, err)
+					require.NoError(t, err) //nolint:testifylint
 
 					assert.Equal(t, uint64(1), sessionState.Client.Cid)
 					assert.Equal(t, uint64(2), sessionState.Client.Kid)
