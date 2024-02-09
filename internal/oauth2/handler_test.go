@@ -397,6 +397,7 @@ func TestHandler(t *testing.T) {
 
 			body, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)
+
 			_ = resp.Body.Close()
 
 			if conf.HTTP.CallbackTemplate != config.Defaults.HTTP.CallbackTemplate {

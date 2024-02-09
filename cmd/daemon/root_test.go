@@ -93,7 +93,8 @@ func TestExecuteConfigInvalid(t *testing.T) {
 	}
 }
 
-func TestExecuteConfigFileFound(t *testing.T) { //nolint: paralleltest
+// nolint: paralleltest
+func TestExecuteConfigFileFound(t *testing.T) {
 	clientListener := testutils.TCPTestListener(t)
 	defer clientListener.Close()
 

@@ -203,6 +203,7 @@ func TestClientFull(t *testing.T) {
 
 			go func() {
 				defer wg.Done()
+
 				conn, err := managementInterface.Accept()
 				require.NoError(t, err)
 
@@ -223,6 +224,7 @@ func TestClientFull(t *testing.T) {
 
 				testutils.SendLine(t, conn, "OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 5\r\nEND\r\n")
 				testutils.SendLine(t, conn, tt.client)
+
 				if tt.err != nil {
 					_, _ = reader.ReadString('\n')
 

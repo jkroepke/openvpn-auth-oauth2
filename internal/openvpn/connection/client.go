@@ -78,7 +78,7 @@ func parseClientEnv(line string) (string, string) {
 }
 
 func parseClientReason(line string) (string, uint64, uint64, error) {
-	reason, clientIds, ok := strings.Cut(line, ",")
+	reason, clientIDs, ok := strings.Cut(line, ",")
 	if !ok {
 		return "", 0, 0, fmt.Errorf("unable to parse line '%s': %w", line, ErrInvalidMessage)
 	}
@@ -88,7 +88,7 @@ func parseClientReason(line string) (string, uint64, uint64, error) {
 		return "", 0, 0, fmt.Errorf("unable to parse client reason: %w", ErrEmptyClientReasons)
 	}
 
-	cidString, kidString, _ := strings.Cut(clientIds, ",")
+	cidString, kidString, _ := strings.Cut(clientIDs, ",")
 
 	cid, err := strconv.ParseUint(cidString, 10, 64)
 	if err != nil {
