@@ -23,16 +23,24 @@ help: ## show this help.
 
 .PHONY: clean
 clean: ## clean builds dir
-	@rm -rf openvpn-auth-oauth2 dist/
+	@rm -rf openvpn-auth-oauth2 openvpn-auth-oauth2.exe dist/
 
 .PHONY: check
 check: test lint golangci ## Run all checks locally
 
 .PHONY: build
-build: clean openvpn-auth-oauth2  ## Build openvpn-auth-oauth2
+ifeq ($(OS),Windows_NT)
+build: clean openvpn-auth-oauth2.exe  ## Build openvpn-auth-oauth2
+else
+build: clean openvpn-auth-oauth2
+endif
+
 
 openvpn-auth-oauth2:
 	@go build -o openvpn-auth-oauth2 .
+
+openvpn-auth-oauth2.exe:
+	@go build -o openvpn-auth-oauth2.exe .
 
 .Phony: build-debug
 build-debug: ## Build openvpn-auth-oauth2 with debug flags
@@ -70,8 +78,8 @@ goperfsprint:
 
 .PHONY: golangci
 golangci:
-	@go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.55.2 run ./...
+	@go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.56.1 run ./...
 
 .PHONY: golangci-fix
 golangci-fix:
-	@go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.55.2 run ./... --fix
+	@go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.56.1 run ./... --fix

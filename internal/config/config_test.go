@@ -30,10 +30,10 @@ func TestFlagSet(t *testing.T) {
 			},
 		},
 		{
-			"--openvpn.bypass.cn",
-			[]string{"--openvpn.bypass.cn=a,b"},
+			"--openvpn.bypass.common-names",
+			[]string{"--openvpn.bypass.common-names=a,b"},
 			map[string]any{
-				"openvpn.bypass.cn": []string{"a", "b"},
+				"openvpn.bypass.common-names": []string{"a", "b"},
 			},
 		},
 		{

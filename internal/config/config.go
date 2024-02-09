@@ -70,7 +70,8 @@ func FlagSet(name string) *flag.FlagSet {
 	flagSet.TextVar(new(Secret),
 		"http.secret",
 		Defaults.HTTP.Secret,
-		"Random generated secret for cookie encryption. Must be 16, 24 or 32 characters. If argument starts with file:// it reads the secret from a file.",
+		"Random generated secret for cookie encryption. Must be 16, 24 or 32 characters. "+
+			"If argument starts with file:// it reads the secret from a file.",
 	)
 	flagSet.String(
 		"http.key",
@@ -118,9 +119,9 @@ func FlagSet(name string) *flag.FlagSet {
 		"How long OpenVPN server wait until user is authenticated",
 	)
 	flagSet.TextVar(new(StringSlice),
-		"openvpn.bypass.cn",
+		"openvpn.bypass.common-names",
 		Defaults.OpenVpn.Bypass.CommonNames,
-		"bypass oauth authentication for CNs",
+		"bypass oauth authentication for CNs. Comma separated list.",
 	)
 	flagSet.String(
 		"openvpn.common-name.mode",
@@ -197,12 +198,14 @@ func FlagSet(name string) *flag.FlagSet {
 	flagSet.TextVar(new(StringSlice),
 		"oauth2.validate.groups",
 		Defaults.OAuth2.Validate.Groups,
-		"oauth2 required user groups",
+		"oauth2 required user groups. Comma separated list. "+
+			"Example: group1,group2,group3",
 	)
 	flagSet.TextVar(new(StringSlice),
 		"oauth2.validate.roles",
 		Defaults.OAuth2.Validate.Roles,
-		"oauth2 required user roles",
+		"oauth2 required user roles. Comma separated list. "+
+			"Example: role1,role2,role3",
 	)
 	flagSet.Bool(
 		"oauth2.validate.ipaddr",
@@ -217,12 +220,13 @@ func FlagSet(name string) *flag.FlagSet {
 	flagSet.String(
 		"oauth2.validate.common-name",
 		Defaults.OAuth2.Validate.CommonName,
-		"validate common_name from OpenVPN with IDToken claim",
+		"validate common_name from OpenVPN with IDToken claim. For example: preferred_username or sub",
 	)
 	flagSet.TextVar(new(StringSlice),
 		"oauth2.scopes",
 		Defaults.OAuth2.Scopes,
-		"oauth2 token scopes. Defaults depends on oauth2.provider",
+		"oauth2 token scopes. Defaults depends on oauth2.provider. Comma separated list. "+
+			"Example: openid,profile,email",
 	)
 	flagSet.Bool(
 		"version",

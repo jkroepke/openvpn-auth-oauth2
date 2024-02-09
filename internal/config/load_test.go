@@ -1,0 +1,213 @@
+package config_test
+
+import (
+	"errors"
+	"flag"
+	"log/slog"
+	"net/url"
+	"os"
+	"testing"
+	"time"
+
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestLoad(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name       string
+		configFile string
+		conf       config.Config
+		err        error
+	}{
+		{
+			"empty file",
+			"",
+			config.Config{},
+			errors.New("validation error: oauth2.client.id is required"),
+		},
+		{
+			"minimal file",
+			// language=yaml
+			`
+oauth2:
+    issuer: "https://company.zitadel.cloud"
+    client:
+        id: "test"
+        secret: "test"
+http:
+    secret: "1jd93h5b6s82lf03jh5b2hf9"
+`,
+			func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.CallbackTemplate = nil
+				conf.HTTP.Secret = "1jd93h5b6s82lf03jh5b2hf9"
+				conf.OAuth2.Issuer = &url.URL{
+					Scheme: "https",
+					Host:   "company.zitadel.cloud",
+				}
+				conf.OAuth2.Client.ID = "test"
+				conf.OAuth2.Client.Secret = "test"
+
+				return conf
+			}(),
+			nil,
+		},
+		{
+			"full file",
+			// language=yaml
+			`
+debug:
+    pprof: true
+    listen: :9002
+log:
+    format: json
+    level: DEBUG
+oauth2:
+    issuer: "https://company.zitadel.cloud"
+    client:
+        id: "test"
+        secret: "test"
+    validate:
+        common-name: "preffered_username"
+        groups:
+        - "test"
+        - "test2"
+        roles: 
+        - "test"
+        - "test2"
+        ipaddr: true
+        issuer: false
+    authorize-params: "a=c"
+    scopes: 
+    - "openid"
+    - "profile"
+    nonce: true
+    pkce: true
+    refresh:
+        enabled: true
+        expires: 10h0m0s
+        secret: "1jd93h5b6s82lf03jh5b2hf9"
+openvpn:
+    addr: "unix:///run/openvpn/server2.sock"
+    auth-token-user: true
+    auth-pending-timeout: 2m
+    bypass:
+        common-names:
+        - "test"
+        - "test2"
+    common-name:
+        mode: omit
+    password: "1jd93h5b6s82lf03jh5b2hf9"
+http:
+    listen: ":9001"
+    secret: "1jd93h5b6s82lf03jh5b2hf9"
+    enable-proxy-headers: true
+    check:
+        ipaddr: true
+`,
+			config.Config{
+				Debug: config.Debug{
+					Pprof:  true,
+					Listen: ":9002",
+				},
+				Log: config.Log{
+					Format: "json",
+					Level:  slog.LevelDebug,
+				},
+				HTTP: config.HTTP{
+					Listen:             ":9001",
+					EnableProxyHeaders: true,
+					Check: config.HTTPCheck{
+						IPAddr: true,
+					},
+					Secret: "1jd93h5b6s82lf03jh5b2hf9",
+					BaseURL: &url.URL{
+						Scheme: "http",
+						Host:   "localhost:9000",
+					},
+				},
+				OpenVpn: config.OpenVpn{
+					Addr: &url.URL{
+						Scheme:   "unix",
+						Path:     "/run/openvpn/server2.sock",
+						OmitHost: false,
+					},
+					Bypass: config.OpenVpnBypass{
+						CommonNames: []string{"test", "test2"},
+					},
+					Password:           "1jd93h5b6s82lf03jh5b2hf9",
+					AuthTokenUser:      true,
+					AuthPendingTimeout: 2 * time.Minute,
+					CommonName: config.OpenVPNCommonName{
+						Mode: config.CommonNameModeOmit,
+					},
+				},
+				OAuth2: config.OAuth2{
+					Issuer: &url.URL{
+						Scheme: "https",
+						Host:   "company.zitadel.cloud",
+					},
+					Provider: "generic",
+
+					AuthorizeParams: "a=c",
+					Endpoints: config.OAuth2Endpoints{
+						Auth:      &url.URL{},
+						Token:     &url.URL{},
+						Discovery: &url.URL{},
+					},
+					Client: config.OAuth2Client{
+						ID:     "test",
+						Secret: "test",
+					},
+					Nonce:  true,
+					Pkce:   true,
+					Scopes: []string{"openid", "profile"},
+					Refresh: config.OAuth2Refresh{
+						Enabled: true,
+						Expires: 10 * time.Hour,
+						Secret:  "1jd93h5b6s82lf03jh5b2hf9",
+					},
+					Validate: config.OAuth2Validate{
+						CommonName: "preffered_username",
+						IPAddr:     true,
+						Issuer:     false,
+						Groups:     []string{"test", "test2"},
+						Roles:      []string{"test", "test2"},
+					},
+				},
+			},
+			nil,
+		},
+	} {
+		tt := tt
+
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			file, err := os.CreateTemp("", "openvpn-auth-oauth2-*")
+			require.NoError(t, err)
+
+			// close and remove the temporary file at the end of the program
+			defer file.Close()
+			defer os.Remove(file.Name())
+
+			_, err = file.WriteString(tt.configFile)
+			require.NoError(t, err)
+
+			conf, err := config.Load(config.ManagementClient, file.Name(), flag.NewFlagSet("openvpn-auth-oauth2", flag.ContinueOnError))
+			conf.HTTP.CallbackTemplate = nil
+
+			if tt.err != nil {
+				require.Error(t, err)
+				assert.Equal(t, tt.err.Error(), err.Error())
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tt.conf, conf)
+			}
+		})
+	}
+}
