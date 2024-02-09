@@ -303,7 +303,7 @@ func TestClientInvalidPassword(t *testing.T) {
 
 	go func() {
 		conn, err := managementInterface.Accept()
-		require.NoError(t, err)
+		require.NoError(t, err) //nolint:testifylint
 
 		defer conn.Close()
 		reader := bufio.NewReader(conn)
@@ -376,7 +376,7 @@ func TestClientInvalidVersion(t *testing.T) {
 
 			go func() {
 				conn, err := managementInterface.Accept()
-				require.NoError(t, err)
+				require.NoError(t, err) //nolint:testifylint
 
 				defer conn.Close()
 				reader := bufio.NewReader(conn)
