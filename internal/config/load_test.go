@@ -30,7 +30,7 @@ func TestLoad(t *testing.T) {
 		},
 		{
 			"minimal file",
-			//language=yaml
+			// language=yaml
 			`
 oauth2:
     issuer: "https://company.zitadel.cloud"
@@ -50,13 +50,14 @@ http:
 				}
 				conf.OAuth2.Client.ID = "test"
 				conf.OAuth2.Client.Secret = "test"
+
 				return conf
 			}(),
 			nil,
 		},
 		{
 			"full file",
-			//language=yaml
+			// language=yaml
 			`
 debug:
     pprof: true
