@@ -55,6 +55,7 @@ func TestFlagSet(t *testing.T) {
 			flagSet.SetOutput(&buf)
 			err := flagSet.Parse(tt.args)
 			require.NoError(t, err)
+
 			for arg, expected := range tt.expectArgs {
 				switch expectedTyped := expected.(type) {
 				case string:
@@ -257,6 +258,7 @@ func TestValidate(t *testing.T) {
 				require.NoError(t, err)
 			} else {
 				require.Error(t, err)
+
 				if tt.err != "-" {
 					assert.Equal(t, tt.err, err.Error())
 				}

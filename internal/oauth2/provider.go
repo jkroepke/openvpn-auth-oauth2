@@ -150,10 +150,10 @@ func (p *Provider) getProviderOptions(providerLogger *expslog.Logger, basePath *
 		rp.WithCookieHandler(cookieHandler),
 		rp.WithVerifierOpts(verifierOpts...),
 		rp.WithHTTPClient(&http.Client{Timeout: time.Second * 20, Transport: utils.NewUserAgentTransport(nil)}),
-		rp.WithErrorHandler(func(w http.ResponseWriter, r *http.Request, errorType string, errorDesc string, encryptedSession string) {
+		rp.WithErrorHandler(func(w http.ResponseWriter, _ *http.Request, errorType string, errorDesc string, encryptedSession string) {
 			errorHandler(w, p.conf, p.logger, p.openvpn, http.StatusInternalServerError, errorType, errorDesc, encryptedSession)
 		}),
-		rp.WithUnauthorizedHandler(func(w http.ResponseWriter, r *http.Request, desc string, encryptedSession string) {
+		rp.WithUnauthorizedHandler(func(w http.ResponseWriter, _ *http.Request, desc string, encryptedSession string) {
 			errorHandler(w, p.conf, p.logger, p.openvpn, http.StatusUnauthorized, "Unauthorized", desc, encryptedSession)
 		}),
 	}

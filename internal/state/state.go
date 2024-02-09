@@ -66,7 +66,6 @@ func (state *State) Decode(secretKey string) error {
 		&state.CommonName,
 		&state.Issued,
 	)
-
 	if err != nil {
 		return fmt.Errorf("scan error %#v: %w", string(data), err)
 	}

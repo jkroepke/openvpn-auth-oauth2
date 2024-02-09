@@ -93,7 +93,12 @@ func TestExecuteConfigInvalid(t *testing.T) {
 	}
 }
 
-func TestExecuteConfigFileFound(t *testing.T) { //nolint: paralleltest
+// TestExecuteConfigFileFound tests the main program logic of openvpn-auth-oauth2 with a valid config file.
+// It sets up a resource server, a management interface and a client.
+// It then starts the main program logic.
+//
+//nolint:paralleltest,nolintlint
+func TestExecuteConfigFileFound(t *testing.T) {
 	clientListener := testutils.TCPTestListener(t)
 	defer clientListener.Close()
 
@@ -105,7 +110,7 @@ func TestExecuteConfigFileFound(t *testing.T) { //nolint: paralleltest
 
 	go func() {
 		conn, err := managementInterface.Accept()
-		require.NoError(t, err)
+		require.NoError(t, err) //nolint:testifylint
 
 		reader := bufio.NewReader(conn)
 

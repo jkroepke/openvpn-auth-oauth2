@@ -21,6 +21,63 @@ CONFIG_OAUTH2_CLIENT_ID=34372461928374612@any
 CONFIG_OAUTH2_CLIENT_SECRET=ASDhjgadjhAUYSDGjkhasgdIATWDGJHASDtiwGDJAHSGDutwqdygASJKD12hfva
 ```
 
+## Configuration file
+
+openvpn-auth-oauth2 supports configuration via a YAML file. The file can be passed via the `--config` flag.
+
+<details>
+<summary>Example</summary>
+
+```yaml
+debug:
+    pprof: false
+    listen: :9001
+log:
+    format: console
+    level: INFO
+http:
+    listen: :9000
+    baseurl: "http://<vpn>:9000/"
+    secret: "1jd93h5b6s82lf03jh5b2hf9"
+    check:
+        ipaddr: false
+    enableproxyheaders: false
+openvpn:
+    addr: "unix:///run/openvpn/server.sock"
+    password: ""
+    bypass:
+        commonnames: ""
+    authtokenuser: true
+    authpendingtimeout: 3m
+    commonname:
+        mode: plain
+oauth2:
+    issuer: "https://company.zitadel.cloud"
+    provider: generic
+    authorizeparams: ""
+    endpoints:
+        discovery:
+        auth:
+        token:
+    client:
+        id: ""
+        secret: ""
+    scopes: ""
+    nonce: true
+    pkce: true
+    validate:
+        groups: ""
+        roles: ""
+        ipaddr: false
+        issuer: true
+        commonname: ""
+    refresh:
+        enabled: false
+        expires: 8h0m0s
+        secret: ""
+```
+</details>
+
 ## Supported configuration properties
 
 ```
@@ -45,7 +102,7 @@ Usage of ./openvpn-auth-oauth2:
   --http.listen string
     	listen addr for client listener (env: CONFIG_HTTP_LISTEN) (default ":9000")
   --http.secret value
-    	Cookie secret (env: CONFIG_HTTP_SECRET)
+    	Random generated secret for cookie encryption. Must be 16, 24 or 32 characters. If argument starts with file:// it reads the secret from a file. (env: CONFIG_HTTP_SECRET)
   --http.template string
     	Path to a HTML file which is displayed at the end of the screen (env: CONFIG_HTTP_TEMPLATE)
   --http.tls
@@ -59,7 +116,7 @@ Usage of ./openvpn-auth-oauth2:
   --oauth2.client.id string
     	oauth2 client id (env: CONFIG_OAUTH2_CLIENT_ID)
   --oauth2.client.secret value
-    	oauth2 client secret (env: CONFIG_OAUTH2_CLIENT_SECRET)
+    	oauth2 client secret. If argument starts with file:// it reads the secret from a file. (env: CONFIG_OAUTH2_CLIENT_SECRET)
   --oauth2.endpoint.auth string
     	custom oauth2 auth endpoint (env: CONFIG_OAUTH2_ENDPOINT_AUTH)
   --oauth2.endpoint.discovery string
@@ -79,7 +136,7 @@ Usage of ./openvpn-auth-oauth2:
   --oauth2.refresh.expires duration
     	TTL of stored oauth2 token. (env: CONFIG_OAUTH2_REFRESH_EXPIRES) (default 8h0m0s)
   --oauth2.refresh.secret value
-    	Encryption key for stored token in encrypted format. (env: CONFIG_OAUTH2_REFRESH_SECRET)
+    	Required, if oauth2.refresh.enabled=true. Random generated secret for token encryption. Must be 16, 24 or 32 characters. If argument starts with file:// it reads the secret from a file. (env: CONFIG_OAUTH2_REFRESH_SECRET)
   --oauth2.scopes value
     	oauth2 token scopes. Defaults depends on oauth2.provider (env: CONFIG_OAUTH2_SCOPES)
   --oauth2.validate.common-name string
@@ -103,10 +160,21 @@ Usage of ./openvpn-auth-oauth2:
   --openvpn.common-name.mode string
     	If common names are too long, use md5/sha1 to hash them or omit to skip them. If omit, oauth2.validate.common-name does not work anymore. Values: [plain,omit] (env: CONFIG_OPENVPN_COMMON__NAME_MODE) (default "plain")
   --openvpn.password value
-    	openvpn management interface password (env: CONFIG_OPENVPN_PASSWORD)
+    	openvpn management interface password. If argument starts with file:// it reads the secret from a file. (env: CONFIG_OPENVPN_PASSWORD)
   --version
     	show version
 ```
+
+## Read sensitive data from file
+
+The following parameter supports sensitive data from the file:
+
+* http.secret
+* openvpn.password
+* oauth2.client.secret
+* oauth2.refresh.secret
+
+To read the sensitive data from the file, use the `file://` prefix, e.g. `file://path/to/secret.txt`.
 
 ## Configuration openvpn-auth-oauth2
 

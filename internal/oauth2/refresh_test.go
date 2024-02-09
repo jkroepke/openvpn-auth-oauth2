@@ -34,7 +34,7 @@ func TestRefreshReAuth(t *testing.T) {
 
 		err := client.Connect()
 		if err != nil && !strings.HasSuffix(err.Error(), "EOF") {
-			require.NoError(t, err)
+			require.NoError(t, err) //nolint:testifylint
 		}
 	}()
 

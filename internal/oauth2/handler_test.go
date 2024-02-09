@@ -290,11 +290,12 @@ func TestHandler(t *testing.T) {
 
 			wg := sync.WaitGroup{}
 			wg.Add(2)
+
 			go func() {
 				defer wg.Done()
 
 				conn, err := managementInterface.Accept()
-				require.NoError(t, err)
+				require.NoError(t, err) //nolint:testifylint
 
 				defer conn.Close()
 				reader := bufio.NewReader(conn)
@@ -305,6 +306,7 @@ func TestHandler(t *testing.T) {
 				assert.Equal(t, "version", testutils.ReadLine(t, reader))
 
 				testutils.SendLine(t, conn, "OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 5\r\nEND\r\n")
+
 				if tt.state != "-" {
 					return
 				}
@@ -322,15 +324,18 @@ func TestHandler(t *testing.T) {
 
 			go func() {
 				defer wg.Done()
+
 				err := client.Connect()
+
 				if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, openvpn.ErrConnectionTerminated) {
-					require.NoError(t, err)
+					require.NoError(t, err) //nolint:testifylint
 				}
 			}()
 
 			time.Sleep(time.Millisecond * 100)
 
 			session := tt.state
+
 			if tt.state == "-" {
 				sessionState := state.New(state.ClientIdentifier{Cid: 0, Kid: 1}, tt.ipaddr, "name")
 				require.NoError(t, sessionState.Encode(tt.conf.HTTP.Secret.String()))
@@ -349,7 +354,7 @@ func TestHandler(t *testing.T) {
 				request.Header.Set("X-Forwarded-For", tt.xForwardedFor)
 			}
 
-			httpClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+			httpClient.CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
 				return http.ErrUseLastResponse
 			}
 
@@ -381,6 +386,7 @@ func TestHandler(t *testing.T) {
 			assert.Contains(t, resp.Header.Get("Set-Cookie"), "Max-Age=5")
 
 			require.NotEmpty(t, resp.Header.Get("Location"))
+
 			httpClient.CheckRedirect = nil
 
 			request, err = http.NewRequestWithContext(context.Background(), http.MethodGet, resp.Header.Get("Location"), nil)
@@ -391,6 +397,7 @@ func TestHandler(t *testing.T) {
 
 			body, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)
+
 			_ = resp.Body.Close()
 
 			if conf.HTTP.CallbackTemplate != config.Defaults.HTTP.CallbackTemplate {

@@ -26,7 +26,7 @@ type teamType struct {
 func (p *Provider) CheckUser(
 	ctx context.Context, _ state.State, _ types.UserData, tokens *oidc.Tokens[*idtoken.Claims],
 ) error {
-	//nolint: exhaustruct
+	//nolint:exhaustruct
 	tokens.IDTokenClaims = &idtoken.Claims{
 		Claims: make(map[string]any),
 	}

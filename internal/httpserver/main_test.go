@@ -87,11 +87,13 @@ func TestNewHTTPServer(t *testing.T) {
 
 			go func() {
 				defer wg.Done()
+
 				err := svr.Listen()
+
 				if tt.err == nil {
-					require.NoError(t, err)
+					require.NoError(t, err) //nolint:testifylint
 				} else {
-					require.Error(t, err)
+					require.Error(t, err) //nolint:testifylint
 					assert.Equal(t, tt.err.Error(), err.Error())
 				}
 			}()

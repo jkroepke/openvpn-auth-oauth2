@@ -22,7 +22,7 @@ of connecting users against OIDC providers like
 ## Version requirements
 
 - Server: 2.6.2 or later (OpenVPN Access Server not supported)
-- Client: 2.6.0 or later
+- Client: 2.6.0 or later (OpenVPN Client 2.x requires a management client to handle WebAuth, e.g. Viscosity or Tunnelblick)
 
 ## Tested environment
 

@@ -30,7 +30,7 @@ func BenchmarkFull(b *testing.B) {
 
 		err := client.Connect()
 		if err != nil && !strings.HasSuffix(err.Error(), "EOF") {
-			require.NoError(b, err)
+			require.NoError(b, err) //nolint:testifylint
 		}
 	}()
 

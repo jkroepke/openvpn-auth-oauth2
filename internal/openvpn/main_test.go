@@ -203,8 +203,9 @@ func TestClientFull(t *testing.T) {
 
 			go func() {
 				defer wg.Done()
+
 				conn, err := managementInterface.Accept()
-				require.NoError(t, err)
+				require.NoError(t, err) //nolint:testifylint
 
 				defer conn.Close()
 
@@ -223,6 +224,7 @@ func TestClientFull(t *testing.T) {
 
 				testutils.SendLine(t, conn, "OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 5\r\nEND\r\n")
 				testutils.SendLine(t, conn, tt.client)
+
 				if tt.err != nil {
 					_, _ = reader.ReadString('\n')
 
@@ -249,7 +251,7 @@ func TestClientFull(t *testing.T) {
 
 					sessionState := state.NewEncoded(matches[1])
 					err := sessionState.Decode(tt.conf.HTTP.Secret.String())
-					require.NoError(t, err)
+					require.NoError(t, err) //nolint:testifylint
 
 					assert.Equal(t, uint64(1), sessionState.Client.Cid)
 					assert.Equal(t, uint64(2), sessionState.Client.Kid)
@@ -264,6 +266,7 @@ func TestClientFull(t *testing.T) {
 				assert.Equal(t, tt.err.Error(), err.Error())
 			} else {
 				wg.Wait()
+
 				if err != nil && !errors.Is(err, io.EOF) {
 					require.NoError(t, err)
 				}
@@ -300,7 +303,7 @@ func TestClientInvalidPassword(t *testing.T) {
 
 	go func() {
 		conn, err := managementInterface.Accept()
-		require.NoError(t, err)
+		require.NoError(t, err) //nolint:testifylint
 
 		defer conn.Close()
 		reader := bufio.NewReader(conn)
@@ -373,7 +376,7 @@ func TestClientInvalidVersion(t *testing.T) {
 
 			go func() {
 				conn, err := managementInterface.Accept()
-				require.NoError(t, err)
+				require.NoError(t, err) //nolint:testifylint
 
 				defer conn.Close()
 				reader := bufio.NewReader(conn)

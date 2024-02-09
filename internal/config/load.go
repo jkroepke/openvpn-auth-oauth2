@@ -47,7 +47,6 @@ func Load(mode int, configFile string, flagSet *flag.FlagSet) (Config, error) {
 			return key, envValue
 		}), nil,
 	)
-
 	if err != nil {
 		return Config{}, fmt.Errorf("env provider: %w", err)
 	}
