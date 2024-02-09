@@ -20,7 +20,6 @@ linters:
     - ireturn
     - goerr113
     - gomoddirectives
-    - go-require
 
 issues:
   exclude-rules:
@@ -32,6 +31,7 @@ issues:
         - wrapcheck
         - maintidx
         - dogsled
+        - go-require
 
 linters-settings:
   varnamelen:
