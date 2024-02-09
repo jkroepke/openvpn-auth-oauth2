@@ -97,7 +97,7 @@ func TestExecuteConfigInvalid(t *testing.T) {
 // It sets up a resource server, a management interface and a client.
 // It then starts the main program logic.
 //
-//nolint:paralleltest
+//nolint:paralleltest,nolintlint
 func TestExecuteConfigFileFound(t *testing.T) {
 	clientListener := testutils.TCPTestListener(t)
 	defer clientListener.Close()
