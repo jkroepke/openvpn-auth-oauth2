@@ -95,9 +95,7 @@ func TestExecuteConfigInvalid(t *testing.T) {
 
 // TestExecuteConfigFileFound tests the main program logic of openvpn-auth-oauth2 with a valid config file.
 // It sets up a resource server, a management interface and a client. It then starts the main program logic
-//
-// nolint: paralleltest
-func TestExecuteConfigFileFound(t *testing.T) {
+func TestExecuteConfigFileFound(t *testing.T) { //nolint: paralleltest
 	clientListener := testutils.TCPTestListener(t)
 	defer clientListener.Close()
 
