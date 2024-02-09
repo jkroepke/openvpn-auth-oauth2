@@ -3,14 +3,15 @@ package config_test
 import (
 	"errors"
 	"flag"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"log/slog"
 	"net/url"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLoad(t *testing.T) {
