@@ -106,7 +106,7 @@ func TestExecuteConfigFileFound(t *testing.T) {
 
 	go func() {
 		conn, err := managementInterface.Accept()
-		require.NoError(t, err)
+		require.NoError(t, err) //nolint:testifylint
 
 		reader := bufio.NewReader(conn)
 

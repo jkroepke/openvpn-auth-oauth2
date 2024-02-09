@@ -31,7 +31,6 @@ issues:
         - wrapcheck
         - maintidx
         - dogsled
-        - go-require
 
 linters-settings:
   varnamelen:
