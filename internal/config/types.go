@@ -49,7 +49,7 @@ type OpenVpn struct {
 }
 
 type OpenVpnBypass struct {
-	CommonNames StringSlice `koanf:"cn"`
+	CommonNames StringSlice `koanf:"common-names"`
 }
 
 type OpenVPNCommonName struct {
@@ -85,7 +85,7 @@ type OAuth2Validate struct {
 	Roles      StringSlice `koanf:"roles"`
 	IPAddr     bool        `koanf:"ipaddr"`
 	Issuer     bool        `koanf:"issuer"`
-	CommonName string      `koanf:"common_name"`
+	CommonName string      `koanf:"common-name"`
 }
 
 type OAuth2Refresh struct {
