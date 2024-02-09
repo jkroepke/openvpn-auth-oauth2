@@ -295,7 +295,7 @@ func TestHandler(t *testing.T) {
 				defer wg.Done()
 
 				conn, err := managementInterface.Accept()
-				require.NoError(t, err)
+				require.NoError(t, err) //nolint:testifylint
 
 				defer conn.Close()
 				reader := bufio.NewReader(conn)
@@ -328,7 +328,7 @@ func TestHandler(t *testing.T) {
 				err := client.Connect()
 
 				if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, openvpn.ErrConnectionTerminated) {
-					require.NoError(t, err)
+					require.NoError(t, err) //nolint:testifylint
 				}
 			}()
 
