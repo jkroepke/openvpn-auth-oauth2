@@ -45,6 +45,8 @@ func NewClient(message string) (Client, error) { //nolint:cyclop
 			switch envKey {
 			case "untrusted_ip":
 				client.IPAddr = envValue
+			case "untrusted_ip6":
+				client.IPAddr = envValue
 			case "common_name":
 				client.CommonName = envValue
 			case "username":
