@@ -25,9 +25,11 @@ This page documents the setup at the OIDC provider.
 
 ### Configuration
 
-- `CONFIG_OAUTH2_ISSUER=https://login.microsoftonline.com/$TENANT_ID/v2.0`
-- `CONFIG_OAUTH2_CLIENT_ID=$CLIENT_ID`
-- `CONFIG_OAUTH2_CLIENT_SECRET=$CLIENT_SECRET`
+```ini
+CONFIG_OAUTH2_ISSUER=https://login.microsoftonline.com/$TENANT_ID/v2.0
+CONFIG_OAUTH2_CLIENT_ID=$CLIENT_ID
+CONFIG_OAUTH2_CLIENT_SECRET=$CLIENT_SECRET
+```
 
 References:
 
@@ -39,23 +41,64 @@ References:
 ### Register an app on google cloud console
 
 1. Login as admin into your Google console from here https://console.cloud.google.com/
-2. click on Create a new project or select an existing project
-3. then "API & Services"
-4. then "Credentials" (left column)
-5. click "create credentials" (button at the top-middle) then type "OAuth Client ID" (in the dropdown)
-6. Choose a name for your app like "openvpn connection"
-7. in the "Authorized Redirect URIs" add one and set it to "https://yourdomain/oauth2/callback" (`yourdomain` would be the domain where a proxy is
-   redirecting to your openvpn-auth-oauth2 daemon, typically on port 9000)
-8. you'll get your client id and client secret from Google, copy them somewhere safe
-9. use those in the config as shown below
+2. Create a new project: https://console.developers.google.com/project
+3. Choose the new project from the top right project dropdown (only if another project is selected)
+4. In the project Dashboard center pane, choose **"APIs & Services"**
+5. In the left Nav pane, choose **"Credentials"**
+6. In the center pane, choose **"OAuth consent screen"** tab. Fill in **"Product name shown to users"** and hit save.
+7. In the center pane, choose **"Credentials"** tab.
+   * Open the "New credentials"** drop down
+   * Choose **"OAuth client ID"**
+   * Choose **"Web application"**
+   * Application name is freeform, choose something appropriate
+   * Authorized redirect URIs is the location of oauth2/callback ex: https://yourdomain/oauth2/callback
+   * Choose "Create"
+8. Take note of the Client ID and Client Secret
+
+### Restrict auth to specific Google Groups in your domain. (optional)
+
+To allow openvpn-auth-oauth2 to fetch group information from Google,
+you will need to configure a service account for openvpn-auth-oauth2 to use.
+This account needs Domain-Wide Delegation and permission
+to access the `https://www.googleapis.com/auth/admin.directory.group.readonly` API scope.
+
+1. Create a [service account](https://developers.google.com/identity/protocols/OAuth2ServiceAccount) and download
+   the json file
+   if you're not using [Application Default Credentials / Workload Identity / Workload Identity Federation (recommended)](https://oauth2-proxy.github.io/oauth2-proxy/configuration/oauth_provider#using-application-default-credentials-adc--workload-identity--workload-identity-federation-recommended).
+   This needs storing in a location accessible by `openvpn-auth-oauth2`
+   and you will set the `provider.google.service-account-config` to point at it.
+2. Make note of the Client ID for a future step.
+3. Under **"APIs & Auth"**, choose APIs.
+4. Click on [Admin SDK API](https://console.developers.google.com/apis/library/admin.googleapis.com/) and then Enable API.
+5. Follow the steps on https://developers.google.com/admin-sdk/directory/v1/guides/delegation#delegate_domain-wide_authority_to_your_service_account
+   and give the client id from step 2 the following oauth scopes:
+   ```
+   https://www.googleapis.com/auth/admin.directory.group.readonly
+   https://www.googleapis.com/auth/admin.directory.user.readonly
+   ```
+6. Follow the steps on https://support.google.com/a/answer/60757 to enable Admin API access.
+7. Create or choose an existing administrative email address on the Gmail domain
+   to assign to the `providers.google.admin-emails` flag.
+   This email will be impersonated by this client to make calls to the Admin SDK.
+   See the note on the link from step 5 for the reason why.
+8. Create or choose an existing email group and set that email to the `oauth2.validate.groups` flag.
+   You can pass multiple instances of this flag with different groups,
+   and the user will be checked against all the provided groups.
+9. Lock down the permissions on the json file downloaded from step 1
+   so only `openvpn-auth-oauth2` is able to read the file
+   and set the path to the file in the `provider.google.service-account-config=file://<path-to-json>` flag.
 
 ### Configuration
 
 Set the following variables in your openvpn-auth-oauth2 configuration file:
 
-- `CONFIG_OAUTH2_ISSUER=https://accounts.google.com`
-- `CONFIG_OAUTH2_CLIENT_ID=162738495-xxxxx.apps.googleusercontent.com`
-- `CONFIG_OAUTH2_CLIENT_SECRET=GOCSPX-xxxxxxxx`
+```ini
+CONFIG_OAUTH2_PROVIDER=google
+CONFIG_OAUTH2_ISSUER=https://accounts.google.com
+CONFIG_OAUTH2_CLIENT_ID=162738495-xxxxx.apps.googleusercontent.com
+CONFIG_OAUTH2_CLIENT_SECRET=GOCSPX-xxxxxxxx
+CONFIG_PROVIDER_GOOGLE_SERVICE__ACCOUNT__CONFIG=file://<path-to-json>
+```
 
 ## GitHub
 
@@ -76,12 +119,14 @@ After registering the app, you will receive an OAuth2 client ID and secret. Thes
 
 ### Configuration
 
-- `CONFIG_OAUTH2_PROVIDER=github`
-- `CONFIG_OAUTH2_ISSUER=https://github.com`
-- `CONFIG_OAUTH2_CLIENT_ID=$CLIENT_ID`
-- `CONFIG_OAUTH2_CLIENT_SECRET=$CLIENT_SECRET`
-- `CONFIG_OAUTH2_VALIDATE_GROUPS=org`
-- `CONFIG_OAUTH2_VALIDATE_ROLES=org:team`
+```ini
+CONFIG_OAUTH2_PROVIDER=github
+CONFIG_OAUTH2_ISSUER=https://github.com
+CONFIG_OAUTH2_CLIENT_ID=$CLIENT_ID
+CONFIG_OAUTH2_CLIENT_SECRET=$CLIENT_SECRET
+CONFIG_OAUTH2_VALIDATE_GROUPS=org
+CONFIG_OAUTH2_VALIDATE_ROLES=org:team
+```
 
 ## Digitalocean
 
@@ -94,10 +139,12 @@ and only used between the application and the DigitalOcean authorization server 
 
 ### Configuration
 
-- `CONFIG_OAUTH2_ISSUER=https://cloud.digitalocean.com/`
-- `CONFIG_OAUTH2_SCOPES=read`
-- `CONFIG_OAUTH2_ENDPOINT_TOKEN=https://cloud.digitalocean.com/v1/oauth/token`
-- `CONFIG_OAUTH2_ENDPOINT_AUTH=https://cloud.digitalocean.com/v1/oauth/authorize`
+```ini
+CONFIG_OAUTH2_ISSUER=https://cloud.digitalocean.com/
+CONFIG_OAUTH2_SCOPES=read
+CONFIG_OAUTH2_ENDPOINT_TOKEN=https://cloud.digitalocean.com/v1/oauth/token
+CONFIG_OAUTH2_ENDPOINT_AUTH=https://cloud.digitalocean.com/v1/oauth/authorize
+```
 
 ## Zitadel
 
@@ -114,12 +161,14 @@ After creating application, on page URLs you can find all links that you need.
 
 ### Configuration
 
-- `CONFIG_HTTP_BASEURL=http://<vpn>:9000/`
-- `CONFIG_HTTP_LISTEN=:9000`
-- `CONFIG_HTTP_SECRET=1jd93h5b6s82lf03jh5b2hf9`
-- `CONFIG_OPENVPN_ADDR=unix:///run/openvpn/server.sock`
-- `CONFIG_OPENVPN_PASSWORD=<password from /etc/openvpn/password.txt>`
-- `CONFIG_OAUTH2_ISSUER=https://company.zitadel.cloud`
-- `CONFIG_OAUTH2_SCOPES=openid profile email offline_access`
-- `CONFIG_OAUTH2_CLIENT_ID=<client_id>`
-- `CONFIG_OAUTH2_CLIENT_SECRET=<client_secret>`
+```ini
+CONFIG_HTTP_BASEURL=http://<vpn>:9000/
+CONFIG_HTTP_LISTEN=:9000
+CONFIG_HTTP_SECRET=1jd93h5b6s82lf03jh5b2hf9
+CONFIG_OPENVPN_ADDR=unix:///run/openvpn/server.sock
+CONFIG_OPENVPN_PASSWORD=<password from /etc/openvpn/password.txt>
+CONFIG_OAUTH2_ISSUER=https://company.zitadel.cloud
+CONFIG_OAUTH2_SCOPES=openid profile email offline_access
+CONFIG_OAUTH2_CLIENT_ID=<client_id>
+CONFIG_OAUTH2_CLIENT_SECRET=<client_secret>
+```

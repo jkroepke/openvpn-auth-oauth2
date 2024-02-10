@@ -168,6 +168,7 @@ func (p *Provider) oauth2Callback() http.Handler {
 			if tokens.IDTokenClaims != nil {
 				logger = logger.With(
 					slog.String("idtoken.subject", tokens.IDTokenClaims.Subject),
+					slog.String("idtoken.email", tokens.IDTokenClaims.EMail),
 					slog.String("idtoken.preferred_username", tokens.IDTokenClaims.PreferredUsername),
 				)
 			}

@@ -41,7 +41,7 @@ http:
     key: ""
     listen: ":9000"
     # secret: ""
-    # template: "" # Path to a HTML file which is displayed at the end of the screen   
+    # template: "" # Path to a HTML file which is displayed at the end of the screen
     tls: false
 log:
     format: console
@@ -94,89 +94,90 @@ openvpn:
 ```
 Usage of openvpn-auth-oauth2:
 
-
   --config string
-        path to one .yaml config file (env: CONFIG_CONFIG)
+    	path to one .yaml config file (env: CONFIG_CONFIG)
   --debug.listen string
-        listen address for go profiling endpoint (env: CONFIG_DEBUG_LISTEN) (default ":9001")
+    	listen address for go profiling endpoint (env: CONFIG_DEBUG_LISTEN) (default ":9001")
   --debug.pprof
-        Enables go profiling endpoint. This should be never exposed. (env: CONFIG_DEBUG_PPROF)
+    	Enables go profiling endpoint. This should be never exposed. (env: CONFIG_DEBUG_PPROF)
   --http.baseurl string
-        listen addr for client listener (env: CONFIG_HTTP_BASEURL) (default "http://localhost:9000")
+    	listen addr for client listener (env: CONFIG_HTTP_BASEURL) (default "http://localhost:9000")
   --http.cert string
-        Path to tls server certificate (env: CONFIG_HTTP_CERT)
+    	Path to tls server certificate (env: CONFIG_HTTP_CERT)
   --http.check.ipaddr
-        Check if client IP in http and VPN is equal (env: CONFIG_HTTP_CHECK_IPADDR)
+    	Check if client IP in http and VPN is equal (env: CONFIG_HTTP_CHECK_IPADDR)
   --http.enable-proxy-headers
-        Use X-Forward-For http header for client ips (env: CONFIG_HTTP_ENABLE__PROXY__HEADERS)
+    	Use X-Forward-For http header for client ips (env: CONFIG_HTTP_ENABLE__PROXY__HEADERS)
   --http.key string
-        Path to tls server key (env: CONFIG_HTTP_KEY)
+    	Path to tls server key (env: CONFIG_HTTP_KEY)
   --http.listen string
-        listen addr for client listener (env: CONFIG_HTTP_LISTEN) (default ":9000")
+    	listen addr for client listener (env: CONFIG_HTTP_LISTEN) (default ":9000")
   --http.secret value
-        Random generated secret for cookie encryption. Must be 16, 24 or 32 characters. If argument starts with file:// it reads the secret from a file. (env: CONFIG_HTTP_SECRET)
+    	Random generated secret for cookie encryption. Must be 16, 24 or 32 characters. If argument starts with file:// it reads the secret from a file. (env: CONFIG_HTTP_SECRET)
   --http.template string
-        Path to a HTML file which is displayed at the end of the screen (env: CONFIG_HTTP_TEMPLATE)
+    	Path to a HTML file which is displayed at the end of the screen (env: CONFIG_HTTP_TEMPLATE)
   --http.tls
-        enable TLS listener (env: CONFIG_HTTP_TLS)
+    	enable TLS listener (env: CONFIG_HTTP_TLS)
   --log.format string
-        log format. json or console (env: CONFIG_LOG_FORMAT) (default "console")
+    	log format. json or console (env: CONFIG_LOG_FORMAT) (default "console")
   --log.level value
-        log level (env: CONFIG_LOG_LEVEL) (default INFO)
+    	log level (env: CONFIG_LOG_LEVEL) (default INFO)
   --oauth2.authorize-params string
-        additional url query parameter to authorize endpoint (env: CONFIG_OAUTH2_AUTHORIZE__PARAMS)
+    	additional url query parameter to authorize endpoint (env: CONFIG_OAUTH2_AUTHORIZE__PARAMS)
   --oauth2.client.id string
-        oauth2 client id (env: CONFIG_OAUTH2_CLIENT_ID)
+    	oauth2 client id (env: CONFIG_OAUTH2_CLIENT_ID)
   --oauth2.client.secret value
-        oauth2 client secret. If argument starts with file:// it reads the secret from a file. (env: CONFIG_OAUTH2_CLIENT_SECRET)
+    	oauth2 client secret. If argument starts with file:// it reads the secret from a file. (env: CONFIG_OAUTH2_CLIENT_SECRET)
   --oauth2.endpoint.auth string
-        custom oauth2 auth endpoint (env: CONFIG_OAUTH2_ENDPOINT_AUTH)
+    	custom oauth2 auth endpoint (env: CONFIG_OAUTH2_ENDPOINT_AUTH)
   --oauth2.endpoint.discovery string
-        custom oauth2 discovery url (env: CONFIG_OAUTH2_ENDPOINT_DISCOVERY)
+    	custom oauth2 discovery url (env: CONFIG_OAUTH2_ENDPOINT_DISCOVERY)
   --oauth2.endpoint.token string
-        custom oauth2 token endpoint (env: CONFIG_OAUTH2_ENDPOINT_TOKEN)
+    	custom oauth2 token endpoint (env: CONFIG_OAUTH2_ENDPOINT_TOKEN)
   --oauth2.issuer string
-        oauth2 issuer (env: CONFIG_OAUTH2_ISSUER)
+    	oauth2 issuer (env: CONFIG_OAUTH2_ISSUER)
   --oauth2.nonce
-        If true, a nonce will be defined on the auth URL which is expected inside the token. (env: CONFIG_OAUTH2_NONCE) (default true)
+    	If true, a nonce will be defined on the auth URL which is expected inside the token. (env: CONFIG_OAUTH2_NONCE) (default true)
   --oauth2.pkce
-        If true, Proof Key for Code Exchange (PKCE) RFC 7636 is used for token exchange. (env: CONFIG_OAUTH2_PKCE) (default true)
+    	If true, Proof Key for Code Exchange (PKCE) RFC 7636 is used for token exchange. (env: CONFIG_OAUTH2_PKCE) (default true)
   --oauth2.provider string
-        oauth2 provider (env: CONFIG_OAUTH2_PROVIDER) (default "generic")
+    	oauth2 provider (env: CONFIG_OAUTH2_PROVIDER) (default "generic")
   --oauth2.refresh.enabled
-        If true, openvpn-auth-oauth2 stores refresh tokens and will use it do an non-interaction reauth. (env: CONFIG_OAUTH2_REFRESH_ENABLED)
+    	If true, openvpn-auth-oauth2 stores refresh tokens and will use it do an non-interaction reauth. (env: CONFIG_OAUTH2_REFRESH_ENABLED)
   --oauth2.refresh.expires duration
-        TTL of stored oauth2 token. (env: CONFIG_OAUTH2_REFRESH_EXPIRES) (default 8h0m0s)
+    	TTL of stored oauth2 token. (env: CONFIG_OAUTH2_REFRESH_EXPIRES) (default 8h0m0s)
   --oauth2.refresh.secret value
-        Required, if oauth2.refresh.enabled=true. Random generated secret for token encryption. Must be 16, 24 or 32 characters. If argument starts with file:// it reads the secret from a file. (env: CO
-NFIG_OAUTH2_REFRESH_SECRET)
+    	Required, if oauth2.refresh.enabled=true. Random generated secret for token encryption. Must be 16, 24 or 32 characters. If argument starts with file:// it reads the secret from a file. (env: CONFIG_OAUTH2_REFRESH_SECRET)
   --oauth2.scopes value
-        oauth2 token scopes. Defaults depends on oauth2.provider. Comma separated list. Example: openid,profile,email (env: CONFIG_OAUTH2_SCOPES)
+    	oauth2 token scopes. Defaults depends on oauth2.provider. Comma separated list. Example: openid,profile,email (env: CONFIG_OAUTH2_SCOPES)
   --oauth2.validate.common-name string
-        validate common_name from OpenVPN with IDToken claim. For example: preferred_username or sub (env: CONFIG_OAUTH2_VALIDATE_COMMON__NAME)
+    	validate common_name from OpenVPN with IDToken claim. For example: preferred_username or sub (env: CONFIG_OAUTH2_VALIDATE_COMMON__NAME)
   --oauth2.validate.groups value
-        oauth2 required user groups. Comma separated list. Example: group1,group2,group3 (env: CONFIG_OAUTH2_VALIDATE_GROUPS)
+    	oauth2 required user groups. Comma separated list. Example: group1,group2,group3 (env: CONFIG_OAUTH2_VALIDATE_GROUPS)
   --oauth2.validate.ipaddr
-        validate client ipaddr between VPN and oidc token (env: CONFIG_OAUTH2_VALIDATE_IPADDR)
+    	validate client ipaddr between VPN and oidc token (env: CONFIG_OAUTH2_VALIDATE_IPADDR)
   --oauth2.validate.issuer
-        validate issuer from oidc discovery (env: CONFIG_OAUTH2_VALIDATE_ISSUER) (default true)
+    	validate issuer from oidc discovery (env: CONFIG_OAUTH2_VALIDATE_ISSUER) (default true)
   --oauth2.validate.roles value
-        oauth2 required user roles. Comma separated list. Example: role1,role2,role3 (env: CONFIG_OAUTH2_VALIDATE_ROLES)
+    	oauth2 required user roles. Comma separated list. Example: role1,role2,role3 (env: CONFIG_OAUTH2_VALIDATE_ROLES)
   --openvpn.addr string
-        openvpn management interface addr. Must start with unix:// or tcp:// (env: CONFIG_OPENVPN_ADDR) (default "unix:/run/openvpn/server.sock")
+    	openvpn management interface addr. Must start with unix:// or tcp:// (env: CONFIG_OPENVPN_ADDR) (default "unix:/run/openvpn/server.sock")
   --openvpn.auth-pending-timeout duration
-        How long OpenVPN server wait until user is authenticated (env: CONFIG_OPENVPN_AUTH__PENDING__TIMEOUT) (default 3m0s)
+    	How long OpenVPN server wait until user is authenticated (env: CONFIG_OPENVPN_AUTH__PENDING__TIMEOUT) (default 3m0s)
   --openvpn.auth-token-user
-        Define auth-token-user for all sessions (env: CONFIG_OPENVPN_AUTH__TOKEN__USER) (default true)
+    	Define auth-token-user for all sessions (env: CONFIG_OPENVPN_AUTH__TOKEN__USER) (default true)
   --openvpn.bypass.common-names value
-        bypass oauth authentication for CNs. Comma separated list. (env: CONFIG_OPENVPN_BYPASS_COMMON__NAMES)
+    	bypass oauth authentication for CNs. Comma separated list. (env: CONFIG_OPENVPN_BYPASS_COMMON__NAMES)
   --openvpn.common-name.mode string
-        If common names are too long, use md5/sha1 to hash them or omit to skip them. If omit, oauth2.validate.common-name does not work anymore. Values: [plain,omit] (env: CONFIG_OPENVPN_COMMON__NAME_M
-ODE) (default "plain")
+    	If common names are too long, use md5/sha1 to hash them or omit to skip them. If omit, oauth2.validate.common-name does not work anymore. Values: [plain,omit] (env: CONFIG_OPENVPN_COMMON__NAME_MODE) (default "plain")
   --openvpn.password value
-        openvpn management interface password. If argument starts with file:// it reads the secret from a file. (env: CONFIG_OPENVPN_PASSWORD)
+    	openvpn management interface password. If argument starts with file:// it reads the secret from a file. (env: CONFIG_OPENVPN_PASSWORD)
+  --provider.google.admin-emails value
+    	Admin email for service account to impersonate for google admin api. Used, if oauth2.validate.groups is set. (env: CONFIG_PROVIDER_GOOGLE_ADMIN__EMAILS)
+  --provider.google.service-account-config value
+    	Path to service account config for google admin api. Required, if oauth2.validate.groups is set. If argument starts with file:// it reads the secret from a file. (env: CONFIG_PROVIDER_GOOGLE_SERVICE__ACCOUNT__CONFIG)
   --version
-        show version
+    	show version
 ```
 
 ## Read sensitive data from file

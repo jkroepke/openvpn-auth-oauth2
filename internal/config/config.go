@@ -98,6 +98,17 @@ func FlagSet(name string) *flag.FlagSet {
 		Defaults.HTTP.EnableProxyHeaders,
 		"Use X-Forward-For http header for client ips",
 	)
+	flagSet.TextVar(new(StringSlice),
+		"provider.google.admin-emails",
+		Defaults.Provider.Google.AdminEmails,
+		"Admin email for service account to impersonate for google admin api. Used, if oauth2.validate.groups is set.",
+	)
+	flagSet.TextVar(new(Secret),
+		"provider.google.service-account-config",
+		Defaults.Provider.Google.ServiceAccountConfig,
+		"Path to service account config for google admin api. Required, if oauth2.validate.groups is set. "+
+			"If argument starts with file:// it reads the secret from a file.",
+	)
 	flagSet.String(
 		"openvpn.addr",
 		Defaults.OpenVpn.Addr.String(),

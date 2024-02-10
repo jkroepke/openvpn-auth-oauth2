@@ -105,7 +105,7 @@ func TestNewProvider(t *testing.T) {
 					},
 				},
 			},
-			"error getting endpoints: both oauth2.endpoints.tokenUrl and oauth2.endpoints.authUrl are required",
+			"error getting providerConfig: both oauth2.endpoints.tokenUrl and oauth2.endpoints.authUrl are required",
 		},
 		{
 			"with pkce",

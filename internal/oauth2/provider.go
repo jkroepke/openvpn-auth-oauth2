@@ -16,6 +16,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/log"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/github"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/google"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
@@ -30,9 +31,10 @@ import (
 // New returns a [Provider] instance.
 func New(logger *slog.Logger, conf config.Config, storageClient *storage.Storage) *Provider {
 	return &Provider{
-		storage: storageClient,
-		conf:    conf,
-		logger:  logger,
+		storage:    storageClient,
+		conf:       conf,
+		logger:     logger,
+		httpClient: &http.Client{Transport: utils.NewUserAgentTransport(nil)},
 	}
 }
 
@@ -42,19 +44,29 @@ func (p *Provider) Initialize(openvpn OpenVPN) error {
 
 	p.openvpn = openvpn
 
-	p.OIDC, err = newOidcProvider(p.conf)
+	ctx := context.Background()
+
+	p.OIDC, err = newOidcProvider(ctx, p.conf, p.httpClient)
 	if err != nil {
 		return err
 	}
 
-	endpoints, err := p.OIDC.GetEndpoints(p.conf)
+	providerConfig, err := p.OIDC.GetProviderConfig(p.conf)
 	if err != nil {
-		return fmt.Errorf("error getting endpoints: %w", err)
+		return fmt.Errorf("error getting providerConfig: %w", err)
 	}
+
+	p.authorizeParams = make([]rp.URLParamOpt, len(p.conf.OAuth2.AuthorizeParams)+len(providerConfig.AuthCodeOptions))
 
 	p.authorizeParams, err = GetAuthorizeParams(p.conf.OAuth2.AuthorizeParams)
 	if err != nil {
 		return err
+	}
+
+	if providerConfig.AuthCodeOptions != nil {
+		p.authorizeParams = append(p.authorizeParams, func() []oauth2.AuthCodeOption {
+			return providerConfig.AuthCodeOptions
+		})
 	}
 
 	providerLogger := log.NewZitadelLogger(p.logger)
@@ -65,10 +77,10 @@ func (p *Provider) Initialize(openvpn OpenVPN) error {
 
 	scopes := p.conf.OAuth2.Scopes
 	if len(scopes) == 0 {
-		scopes = p.OIDC.GetDefaultScopes()
+		scopes = providerConfig.Scopes
 	}
 
-	if endpoints == (oauth2.Endpoint{}) {
+	if providerConfig.Endpoint == (oauth2.Endpoint{}) {
 		if !config.IsURLEmpty(p.conf.OAuth2.Endpoints.Discovery) {
 			p.logger.Info(fmt.Sprintf(
 				"discover oidc auto configuration with provider %s for issuer %s with custom discovery url %s",
@@ -94,8 +106,8 @@ func (p *Provider) Initialize(openvpn OpenVPN) error {
 		)
 	} else {
 		p.logger.Info(fmt.Sprintf(
-			"manually configure oauth2 provider with provider %s and endpoints %s and %s",
-			p.OIDC.GetName(), endpoints.AuthURL, endpoints.TokenURL,
+			"manually configure oauth2 provider with provider %s and providerConfig %s and %s",
+			p.OIDC.GetName(), providerConfig.AuthURL, providerConfig.TokenURL,
 		))
 
 		rpConfig := &oauth2.Config{
@@ -103,7 +115,7 @@ func (p *Provider) Initialize(openvpn OpenVPN) error {
 			ClientSecret: p.conf.OAuth2.Client.Secret.String(),
 			RedirectURL:  redirectURI,
 			Scopes:       scopes,
-			Endpoint:     endpoints,
+			Endpoint:     providerConfig.Endpoint,
 		}
 
 		p.RelyingParty, err = rp.NewRelyingPartyOAuth(rpConfig, options...)
@@ -149,7 +161,7 @@ func (p *Provider) getProviderOptions(providerLogger *expslog.Logger, basePath *
 		rp.WithLogger(providerLogger),
 		rp.WithCookieHandler(cookieHandler),
 		rp.WithVerifierOpts(verifierOpts...),
-		rp.WithHTTPClient(&http.Client{Timeout: time.Second * 20, Transport: utils.NewUserAgentTransport(nil)}),
+		rp.WithHTTPClient(&http.Client{Transport: utils.NewUserAgentTransport(nil)}),
 		rp.WithErrorHandler(func(w http.ResponseWriter, _ *http.Request, errorType string, errorDesc string, encryptedSession string) {
 			errorHandler(w, p.conf, p.logger, p.openvpn, http.StatusInternalServerError, errorType, errorDesc, encryptedSession)
 		}),
@@ -187,15 +199,28 @@ func GetAuthorizeParams(authorizeParams string) ([]rp.URLParamOpt, error) {
 	return params, nil
 }
 
-func newOidcProvider(conf config.Config) (oidcProvider, error) {
+func newOidcProvider(ctx context.Context, conf config.Config, httpClient *http.Client) (oidcProvider, error) {
+	var (
+		err      error
+		provider oidcProvider
+	)
+
 	switch conf.OAuth2.Provider {
 	case generic.Name:
-		return generic.NewProvider(conf), nil
+		provider, err = generic.NewProvider(ctx, conf, httpClient)
 	case github.Name:
-		return github.NewProvider(conf), nil
+		provider, err = github.NewProvider(ctx, conf, httpClient)
+	case google.Name:
+		provider, err = google.NewProvider(ctx, conf, httpClient)
 	default:
 		return nil, fmt.Errorf("unknown oauth2 provider: %s", conf.OAuth2.Provider)
 	}
+
+	if err != nil {
+		return nil, fmt.Errorf("error creating oauth2 provider: %w", err)
+	}
+
+	return provider, nil
 }
 
 func errorHandler(
