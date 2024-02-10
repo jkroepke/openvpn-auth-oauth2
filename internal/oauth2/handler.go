@@ -189,7 +189,7 @@ func (p *Provider) oauth2Callback() http.Handler {
 			err = p.OIDC.CheckUser(ctx, session, user, tokens)
 			if err != nil {
 				p.openvpn.DenyClient(logger, session.Client, "client rejected")
-				writeError(w, logger, p.conf, http.StatusInternalServerError, "tokenValidation", err.Error())
+				writeError(w, logger, p.conf, http.StatusInternalServerError, "user validation", err.Error())
 
 				return
 			}

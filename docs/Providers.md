@@ -74,13 +74,22 @@ to access the `https://www.googleapis.com/auth/admin.directory.group.readonly` A
    and give the client id from step 2 the following oauth scopes:
    ```
    https://www.googleapis.com/auth/admin.directory.group.readonly
-   https://www.googleapis.com/auth/admin.directory.user.readonly
    ```
 6. Follow the steps on https://support.google.com/a/answer/60757 to enable Admin API access.
-7. Create or choose an existing administrative email address on the Gmail domain
-   to assign to the `providers.google.admin-emails` flag.
-   This email will be impersonated by this client to make calls to the Admin SDK.
-   See the note on the link from step 5 for the reason why.
+7. Permit access to the Admin SDK API for the service account
+   * **Assign a role to a service account**
+     1. In the Google Admin console, go [**Account** > **Admin roles**](https://admin.google.com/ac/roles) page.
+     2. Point to the role that you want to assign (e.g. Groups reader), and then click **Assign admin**
+     3. Click **Assign service accounts**
+     4. Enter the email address of the service account.
+     5. Click **Add > Assign role**.
+
+   * **Admin impersonation**
+
+     Create or choose an existing administrative email address on the Gmail domain
+     to assign to the `providers.google.admin-emails` flag.
+     This email will be impersonated by this client to make calls to the Admin SDK.
+   
 8. Create or choose an existing email group and set that email to the `oauth2.validate.groups` flag.
    You can pass multiple instances of this flag with different groups,
    and the user will be checked against all the provided groups.
@@ -148,7 +157,7 @@ CONFIG_OAUTH2_ENDPOINT_AUTH=https://cloud.digitalocean.com/v1/oauth/authorize
 
 ## Zitadel
 
-### Register an application in zitadel
+### Register an application in Zitadel
 
 1. Create a project in Zitadel
 2. Create a new application in a project
