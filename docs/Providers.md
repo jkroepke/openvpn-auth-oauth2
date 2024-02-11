@@ -108,7 +108,24 @@ to access the `https://www.googleapis.com/auth/admin.directory.group.readonly` A
    so only `openvpn-auth-oauth2` is able to read the file
    and set the path to the file in the `provider.google.service-account-config=file://<path-to-json>` flag.
 
-**Application Default Credentials** are supported by openvpn-auth-oauth2 and used if no `provider.google.service-account-config` is set.
+#### Using Application Default Credentials (ADC) / Workload Identity / Workload Identity Federation (recommended)
+
+openvpn-auth-oauth2 can make use of [Application Default Credentials](https://cloud.google.com/docs/authentication/application-default-credentials)
+if `provider.google.service-account-config` is unset.
+
+When deployed within GCP, this means that it can automatically use the service account attached to the resource. 
+When deployed to GKE, ADC can be leveraged through a feature called Workload Identity. 
+Follow Google's [guide](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity)
+to set up Workload Identity.
+When deployed outside GCP,
+[Workload Identity Federation](https://cloud.google.com/docs/authentication/provide-credentials-adc#wlif) might be an option.
+
+Google Directory API requires a service account to access the group information.
+If Workload Identity is used, `provider.google.impersonate-account`
+needs to be set to the email address of the service account from step 1 to impersonate.
+
+Reference:
+- https://cloud.google.com/iam/docs/service-account-impersonation
 
 ### Configuration
 
@@ -120,6 +137,8 @@ CONFIG_OAUTH2_ISSUER=https://accounts.google.com
 CONFIG_OAUTH2_CLIENT_ID=162738495-xxxxx.apps.googleusercontent.com
 CONFIG_OAUTH2_CLIENT_SECRET=GOCSPX-xxxxxxxx
 CONFIG_PROVIDER_GOOGLE_SERVICE__ACCOUNT__CONFIG=file://<path-to-json>
+# CONFIG_PROVIDER_GOOGLE_IMPERSONATE__ACCOUNT=service-account@yourdomain
+# CONFIG_PROVIDER_GOOGLE_ADMIN__EMAIL=admin@example.com
 ```
 
 ## GitHub

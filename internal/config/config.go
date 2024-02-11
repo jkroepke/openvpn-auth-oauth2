@@ -99,7 +99,7 @@ func FlagSet(name string) *flag.FlagSet {
 		"Use X-Forward-For http header for client ips",
 	)
 	flagSet.String(
-		"provider.google.admin-emails",
+		"provider.google.admin-email",
 		Defaults.Provider.Google.AdminEmail,
 		"Admin email for service account to impersonate for google admin api. Used, if oauth2.validate.groups is set.",
 	)
