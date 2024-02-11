@@ -265,6 +265,14 @@ export DOMAIN_NAME=vpn.example.com
 openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes -keyout server.key -out server.crt -subj "/CN=$DOMAIN_NAME" -addext "subjectAltName=DNS:$DOMAIN_NAME"
 ```
 
+To set up a publicly accepted certificate using Let's Encrypt, you can use `certbot`. Make sure you have port 80 open for the validation:
+```bash
+snap install --classic certbot
+ln -s /snap/bin/certbot /usr/bin/certbot
+
+certbot certonly --standalone
+```
+
 ## Non-interactive session refresh
 
 With default settings, openvpn-auth-oauth2 does not store any tokens from the users. This requires an interactive login from user on
