@@ -85,8 +85,10 @@ to access the `https://www.googleapis.com/auth/admin.directory.group.readonly` A
    https://www.googleapis.com/auth/admin.directory.group.readonly
    ```
 6. Follow the steps on https://support.google.com/a/answer/60757 to enable Admin API access.
-7. Permit access to the Admin SDK API for the service account
-   * **Assign a role to a service account**
+7. Permit access to the Admin SDK API for the service account.
+   
+   **Only one of the following is required:**
+   * **Assign a role to a service account (preferred)**
      1. In the Google Admin console, go [**Account** > **Admin roles**](https://admin.google.com/ac/roles) page.
      2. Point to the role that you want to assign (e.g. Groups reader), and then click **Assign admin**
      3. Click **Assign service accounts**
@@ -105,6 +107,8 @@ to access the `https://www.googleapis.com/auth/admin.directory.group.readonly` A
 9. Lock down the permissions on the json file downloaded from step 1
    so only `openvpn-auth-oauth2` is able to read the file
    and set the path to the file in the `provider.google.service-account-config=file://<path-to-json>` flag.
+
+**Application Default Credentials** are supported by openvpn-auth-oauth2 and used if no `provider.google.service-account-config` is set.
 
 ### Configuration
 
