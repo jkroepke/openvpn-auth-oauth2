@@ -77,6 +77,21 @@ Licensed under the [MIT License](LICENSE.txt)
 
 # Thanks
 
-- [JetBrains IDEs](https://www.jetbrains.com/?from=jkroepke)
+<table>
+  <thead>
+    <tr>
+      <th><a href="https://www.jetbrains.com/?from=jkroepke">JetBrains IDEs</a></th>
+      <th><a href="https://www.sparklabs.com/viscosity">Sparklabs</a></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><center><a href="https://www.jetbrains.com/?from=jkroepke"><img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.svg" alt="JetBrains-Logo (Haupt) logo" height="200px"></a></center></td>
+      <td><center><a href="https://www.sparklabs.com/viscosity"><img src="https://www.sparklabs.com/static/other/logo_assets/logo_cropped.png" alt="Sparklabs Viscosity logo" height="200px"></a></center></td>
+    </tr>
+  </tbody>
+</table>
 
-[![JetBrains-Logo (Haupt) logo](https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.svg)](https://www.jetbrains.com/?from=jkroepke)
+
+
+
