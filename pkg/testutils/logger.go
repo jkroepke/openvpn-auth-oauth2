@@ -1,28 +1,49 @@
 package testutils
 
 import (
-	"context"
+	"bytes"
 	"log/slog"
+	"sync"
 )
 
-type Logger struct{}
-
-func (l Logger) Enabled(_ context.Context, _ slog.Level) bool {
-	return false
+type Logger struct {
+	*slog.Logger
+	*Buffer
 }
 
-func (l Logger) Handle(_ context.Context, _ slog.Record) error {
-	return nil
+func NewTestLogger() *Logger {
+	buffer := new(Buffer)
+
+	return &Logger{
+		slog.New(slog.NewTextHandler(buffer, nil)),
+		buffer,
+	}
 }
 
-func (l Logger) WithAttrs(_ []slog.Attr) slog.Handler {
-	return l
+func (l Logger) GetLogs() string {
+	return l.Buffer.String()
 }
 
-func (l Logger) WithGroup(_ string) slog.Handler {
-	return l
+type Buffer struct {
+	buffer bytes.Buffer
+	mutex  sync.Mutex
 }
 
-func NewTestLogger() *slog.Logger {
-	return slog.New(Logger{})
+// Write appends the contents of p to the buffer, growing the buffer as needed.
+// It returns the number of bytes written.
+func (s *Buffer) Write(p []byte) (int, error) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	return s.buffer.Write(p) //nolint:wrapcheck
+}
+
+// String returns the contents of the unread portion of the buffer
+// as a string.
+// If the Buffer is a nil pointer, it returns "<nil>".
+func (s *Buffer) String() string {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	return s.buffer.String()
 }

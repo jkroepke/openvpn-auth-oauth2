@@ -80,7 +80,7 @@ func TestNewHTTPServer(t *testing.T) {
 			mux := gohttp.NewServeMux()
 			mux.Handle("/", gohttp.NotFoundHandler())
 
-			svr := httpserver.NewHTTPServer(logger, tt.conf, mux)
+			svr := httpserver.NewHTTPServer(logger.Logger, tt.conf, mux)
 
 			wg := sync.WaitGroup{}
 			wg.Add(1)

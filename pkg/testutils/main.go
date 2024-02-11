@@ -97,9 +97,8 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener) (*httptest.
 // SetupMockEnvironment setups an OpenVPN and IDP mock
 //
 //nolint:cyclop
-func SetupMockEnvironment(tb testing.TB, conf config.Config) (
-	config.Config, *openvpn.Client, net.Listener,
-	*oauth2.Provider, *httptest.Server, *http.Client, func(),
+func SetupMockEnvironment(tb testing.TB, conf config.Config) (config.Config, *openvpn.Client, net.Listener,
+	*oauth2.Provider, *httptest.Server, *http.Client, *Logger, func(),
 ) {
 	tb.Helper()
 
@@ -152,8 +151,8 @@ func SetupMockEnvironment(tb testing.TB, conf config.Config) (
 	}
 
 	storageClient := storage.New(Secret, conf.OAuth2.Refresh.Expires)
-	provider := oauth2.New(logger, conf, storageClient)
-	openvpnClient := openvpn.NewClient(logger, conf, provider)
+	provider := oauth2.New(logger.Logger, conf, storageClient)
+	openvpnClient := openvpn.NewClient(logger.Logger, conf, provider)
 
 	require.NoError(tb, provider.Initialize(openvpnClient))
 
@@ -169,7 +168,7 @@ func SetupMockEnvironment(tb testing.TB, conf config.Config) (
 
 	httpClient.Jar = jar
 
-	return conf, openvpnClient, managementInterface, provider, httpClientListener, httpClient, func() {
+	return conf, openvpnClient, managementInterface, provider, httpClientListener, httpClient, logger, func() {
 		defer managementInterface.Close()
 		defer clientListener.Close()
 		defer resourceServer.Close()

@@ -141,9 +141,9 @@ func TestNewProvider(t *testing.T) {
 
 			storageClient := storage.New(testutils.Secret, time.Hour)
 
-			provider := oauth2.New(logger, tt.conf, storageClient)
+			provider := oauth2.New(logger.Logger, tt.conf, storageClient)
 
-			client := openvpn.NewClient(logger, tt.conf, provider)
+			client := openvpn.NewClient(logger.Logger, tt.conf, provider)
 			defer client.Shutdown()
 
 			err = provider.Initialize(client)
