@@ -444,6 +444,7 @@ func TestHandler(t *testing.T) {
 
 			if !tt.postAllow {
 				require.Equal(t, http.StatusForbidden, resp.StatusCode, logger.GetLogs(), string(body))
+
 				return
 			}
 
