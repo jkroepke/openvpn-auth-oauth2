@@ -223,6 +223,10 @@ func getAuthTokenUsername(session state.State, user types.UserData) string {
 }
 
 func writeError(w http.ResponseWriter, logger *slog.Logger, conf config.Config, httpCode int, errorType, errorDesc string) {
+	if httpCode == http.StatusUnauthorized {
+		httpCode = http.StatusForbidden
+	}
+
 	h := sha256.New()
 	h.Write([]byte(time.Now().String()))
 
