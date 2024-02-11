@@ -326,7 +326,7 @@ func TestHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			conf, client, managementInterface, _, httpClientListener, httpClient, shutdownFn := testutils.SetupMockEnvironment(t, tt.conf)
+			conf, client, managementInterface, _, httpClientListener, httpClient, logger, shutdownFn := testutils.SetupMockEnvironment(t, tt.conf)
 			defer shutdownFn()
 
 			wg := sync.WaitGroup{}
@@ -442,11 +442,11 @@ func TestHandler(t *testing.T) {
 			require.NoError(t, err)
 
 			if !tt.postAllow {
-				require.Equal(t, http.StatusForbidden, resp.StatusCode, string(body))
+				require.Equal(t, http.StatusForbidden, resp.StatusCode, logger.GetLogs(), string(body))
 				return
 			}
 
-			require.Equal(t, http.StatusOK, resp.StatusCode)
+			require.Equal(t, http.StatusOK, resp.StatusCode, logger.GetLogs(), string(body))
 
 			_ = resp.Body.Close()
 

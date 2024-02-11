@@ -36,8 +36,8 @@ func TestClientInvalidServer(t *testing.T) {
 		},
 	}
 	storageClient := storage.New(testutils.Secret, time.Hour)
-	provider := oauth2.New(logger, conf, storageClient)
-	client := openvpn.NewClient(logger, conf, provider)
+	provider := oauth2.New(logger.Logger, conf, storageClient)
+	client := openvpn.NewClient(logger.Logger, conf, provider)
 	err := client.Connect()
 	require.Error(t, err)
 	assert.Equal(t, "unable to connect to openvpn management interface tcp://0.0.0.0:1: dial tcp 0.0.0.0:1: connect: connection refused", err.Error())
@@ -195,8 +195,8 @@ func TestClientFull(t *testing.T) {
 			tt.conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
 			storageClient := storage.New(testutils.Secret, time.Hour)
-			provider := oauth2.New(logger, tt.conf, storageClient)
-			client := openvpn.NewClient(logger, tt.conf, provider)
+			provider := oauth2.New(logger.Logger, tt.conf, storageClient)
+			client := openvpn.NewClient(logger.Logger, tt.conf, provider)
 
 			wg := sync.WaitGroup{}
 			wg.Add(1)
@@ -298,8 +298,8 @@ func TestClientInvalidPassword(t *testing.T) {
 	}
 
 	storageClient := storage.New(testutils.Secret, time.Hour)
-	provider := oauth2.New(logger, conf, storageClient)
-	client := openvpn.NewClient(logger, conf, provider)
+	provider := oauth2.New(logger.Logger, conf, storageClient)
+	client := openvpn.NewClient(logger.Logger, conf, provider)
 
 	go func() {
 		conn, err := managementInterface.Accept()
@@ -371,8 +371,8 @@ func TestClientInvalidVersion(t *testing.T) {
 			conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
 			storageClient := storage.New(testutils.Secret, time.Hour)
-			provider := oauth2.New(logger, conf, storageClient)
-			client := openvpn.NewClient(logger, conf, provider)
+			provider := oauth2.New(logger.Logger, conf, storageClient)
+			client := openvpn.NewClient(logger.Logger, conf, provider)
 
 			go func() {
 				conn, err := managementInterface.Accept()
