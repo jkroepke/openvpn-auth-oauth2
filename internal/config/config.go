@@ -198,14 +198,14 @@ func FlagSet(name string) *flag.FlagSet {
 	flagSet.TextVar(new(StringSlice),
 		"oauth2.validate.groups",
 		Defaults.OAuth2.Validate.Groups,
-		"oauth2 required user groups. Comma separated list. "+
-			"Example: group1,group2,group3",
+		"oauth2 required user groups. If multiple groups are configured, the user needs to be least in one group. "+
+			"Comma separated list. Example: group1,group2,group3",
 	)
 	flagSet.TextVar(new(StringSlice),
 		"oauth2.validate.roles",
 		Defaults.OAuth2.Validate.Roles,
-		"oauth2 required user roles. Comma separated list. "+
-			"Example: role1,role2,role3",
+		"oauth2 required user roles. If multiple role are configured, the user needs to be least in one role. "+
+			"Comma separated list. Example: role1,role2,role3",
 	)
 	flagSet.Bool(
 		"oauth2.validate.ipaddr",
