@@ -19,7 +19,7 @@ import (
 func TestRefreshReAuth(t *testing.T) {
 	t.Parallel()
 
-	_, client, managementInterface, _, _, httpClient, shutdownFn := testutils.SetupMockEnvironment(t, config.Config{
+	_, client, managementInterface, _, _, httpClient, _, shutdownFn := testutils.SetupMockEnvironment(t, config.Config{
 		OAuth2: config.OAuth2{
 			Refresh: config.OAuth2Refresh{Enabled: true},
 		},

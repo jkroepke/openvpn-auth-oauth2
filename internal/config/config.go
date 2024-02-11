@@ -207,6 +207,12 @@ func FlagSet(name string) *flag.FlagSet {
 			"Must be 16, 24 or 32 characters. If argument starts with file:// it reads the secret from a file.",
 	)
 	flagSet.TextVar(new(StringSlice),
+		"oauth2.validate.acr",
+		Defaults.OAuth2.Validate.Acr,
+		"oauth2 required acr values. Comma separated list. "+
+			"Example: phr,phrh",
+	)
+	flagSet.TextVar(new(StringSlice),
 		"oauth2.validate.groups",
 		Defaults.OAuth2.Validate.Groups,
 		"oauth2 required user groups. If multiple groups are configured, the user needs to be least in one group. "+

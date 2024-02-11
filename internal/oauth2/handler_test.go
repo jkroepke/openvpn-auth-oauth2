@@ -28,7 +28,8 @@ func TestHandler(t *testing.T) {
 		conf          config.Config
 		ipaddr        string
 		xForwardedFor string
-		allow         bool
+		preAllow      bool
+		postAllow     bool
 		state         string
 	}{
 		{
@@ -59,6 +60,39 @@ func TestHandler(t *testing.T) {
 			"127.0.0.1",
 			"",
 			true,
+			true,
+			"-",
+		},
+		{
+			"with acr values",
+			config.Config{
+				HTTP: config.HTTP{
+					Secret: testutils.Secret,
+					Check: config.HTTPCheck{
+						IPAddr: false,
+					},
+				},
+				OAuth2: config.OAuth2{
+					Provider:  "generic",
+					Endpoints: config.OAuth2Endpoints{},
+					Scopes:    []string{"openid", "profile"},
+					Validate: config.OAuth2Validate{
+						Acr:    []string{"phr"},
+						Groups: make([]string, 0),
+						Roles:  make([]string, 0),
+						Issuer: true,
+						IPAddr: false,
+					},
+				},
+				OpenVpn: config.OpenVpn{
+					Bypass:        config.OpenVpnBypass{CommonNames: []string{}},
+					AuthTokenUser: true,
+				},
+			},
+			"127.0.0.1",
+			"",
+			true,
+			false,
 			"-",
 		},
 		{
@@ -90,6 +124,7 @@ func TestHandler(t *testing.T) {
 			"127.0.0.1",
 			"",
 			true,
+			true,
 			"-",
 		},
 		{
@@ -119,6 +154,7 @@ func TestHandler(t *testing.T) {
 			},
 			"127.0.0.1",
 			"",
+			true,
 			true,
 			"-",
 		},
@@ -151,6 +187,7 @@ func TestHandler(t *testing.T) {
 			"127.0.0.2",
 			"127.0.0.2",
 			true,
+			true,
 			"-",
 		},
 		{
@@ -181,6 +218,7 @@ func TestHandler(t *testing.T) {
 			},
 			"127.0.0.2",
 			"127.0.0.2",
+			false,
 			false,
 			"-",
 		},
@@ -213,6 +251,7 @@ func TestHandler(t *testing.T) {
 			"127.0.0.2",
 			"127.0.0.2, 8.8.8.8",
 			true,
+			true,
 			"-",
 		},
 		{
@@ -243,6 +282,7 @@ func TestHandler(t *testing.T) {
 			},
 			"127.0.0.1",
 			"127.0.0.1",
+			true,
 			true,
 			"",
 		},
@@ -275,6 +315,7 @@ func TestHandler(t *testing.T) {
 			"127.0.0.1",
 			"127.0.0.1",
 			true,
+			true,
 			"test",
 		},
 	}
@@ -285,7 +326,7 @@ func TestHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			conf, client, managementInterface, _, httpClientListener, httpClient, shutdownFn := testutils.SetupMockEnvironment(t, tt.conf)
+			conf, client, managementInterface, _, httpClientListener, httpClient, logger, shutdownFn := testutils.SetupMockEnvironment(t, tt.conf)
 			defer shutdownFn()
 
 			wg := sync.WaitGroup{}
@@ -311,12 +352,15 @@ func TestHandler(t *testing.T) {
 					return
 				}
 
-				if tt.allow {
+				switch {
+				case !tt.preAllow:
+					assert.Equal(t, `client-deny 0 1 "http client ip 127.0.0.1 and vpn ip 127.0.0.2 is different."`, testutils.ReadLine(t, reader))
+				case !tt.postAllow:
+					assert.Equal(t, `client-deny 0 1 "client rejected"`, testutils.ReadLine(t, reader))
+				default:
 					assert.Equal(t, "client-auth 0 1", testutils.ReadLine(t, reader))
 					assert.Equal(t, "push \"auth-token-user aWQx\"", testutils.ReadLine(t, reader))
 					assert.Equal(t, "END", testutils.ReadLine(t, reader))
-				} else {
-					assert.Equal(t, `client-deny 0 1 "http client ip 127.0.0.1 and vpn ip 127.0.0.2 is different."`, testutils.ReadLine(t, reader))
 				}
 
 				testutils.SendLine(t, conn, "SUCCESS: client-auth command succeeded\r\n")
@@ -371,7 +415,7 @@ func TestHandler(t *testing.T) {
 				return
 			}
 
-			if !tt.allow {
+			if !tt.preAllow {
 				require.Equal(t, http.StatusForbidden, resp.StatusCode)
 
 				return
@@ -397,6 +441,14 @@ func TestHandler(t *testing.T) {
 
 			body, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)
+
+			if !tt.postAllow {
+				require.Equal(t, http.StatusForbidden, resp.StatusCode, logger.GetLogs(), string(body))
+
+				return
+			}
+
+			require.Equal(t, http.StatusOK, resp.StatusCode, logger.GetLogs(), string(body))
 
 			_ = resp.Body.Close()
 

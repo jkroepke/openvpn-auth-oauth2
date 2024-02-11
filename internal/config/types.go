@@ -82,6 +82,7 @@ type OAuth2Endpoints struct {
 }
 
 type OAuth2Validate struct {
+	Acr        StringSlice `koanf:"acr"`
 	Groups     StringSlice `koanf:"groups"`
 	Roles      StringSlice `koanf:"roles"`
 	IPAddr     bool        `koanf:"ipaddr"`

@@ -91,6 +91,7 @@ openvpn:
 
 ## Supported configuration properties
 
+<!-- BEGIN USAGE -->
 ```
 Usage of openvpn-auth-oauth2:
 
@@ -150,16 +151,18 @@ Usage of openvpn-auth-oauth2:
     	Required, if oauth2.refresh.enabled=true. Random generated secret for token encryption. Must be 16, 24 or 32 characters. If argument starts with file:// it reads the secret from a file. (env: CONFIG_OAUTH2_REFRESH_SECRET)
   --oauth2.scopes value
     	oauth2 token scopes. Defaults depends on oauth2.provider. Comma separated list. Example: openid,profile,email (env: CONFIG_OAUTH2_SCOPES)
+  --oauth2.validate.acr value
+    	oauth2 required acr values. Comma separated list. Example: phr,phrh (env: CONFIG_OAUTH2_VALIDATE_ACR)
   --oauth2.validate.common-name string
     	validate common_name from OpenVPN with IDToken claim. For example: preferred_username or sub (env: CONFIG_OAUTH2_VALIDATE_COMMON__NAME)
   --oauth2.validate.groups value
-    	oauth2 required user groups. Comma separated list. Example: group1,group2,group3 (env: CONFIG_OAUTH2_VALIDATE_GROUPS)
+    	oauth2 required user groups. If multiple groups are configured, the user needs to be least in one group. Comma separated list. Example: group1,group2,group3 (env: CONFIG_OAUTH2_VALIDATE_GROUPS)
   --oauth2.validate.ipaddr
     	validate client ipaddr between VPN and oidc token (env: CONFIG_OAUTH2_VALIDATE_IPADDR)
   --oauth2.validate.issuer
     	validate issuer from oidc discovery (env: CONFIG_OAUTH2_VALIDATE_ISSUER) (default true)
   --oauth2.validate.roles value
-    	oauth2 required user roles. Comma separated list. Example: role1,role2,role3 (env: CONFIG_OAUTH2_VALIDATE_ROLES)
+    	oauth2 required user roles. If multiple role are configured, the user needs to be least in one role. Comma separated list. Example: role1,role2,role3 (env: CONFIG_OAUTH2_VALIDATE_ROLES)
   --openvpn.addr string
     	openvpn management interface addr. Must start with unix:// or tcp:// (env: CONFIG_OPENVPN_ADDR) (default "unix:/run/openvpn/server.sock")
   --openvpn.auth-pending-timeout duration
@@ -179,6 +182,7 @@ Usage of openvpn-auth-oauth2:
   --version
     	show version
 ```
+<!-- END USAGE -->
 
 ## Read sensitive data from file
 

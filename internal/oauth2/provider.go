@@ -24,6 +24,7 @@ import (
 	"github.com/zitadel/logging"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
 	httphelper "github.com/zitadel/oidc/v3/pkg/http"
+	"github.com/zitadel/oidc/v3/pkg/oidc"
 	expslog "golang.org/x/exp/slog"
 	"golang.org/x/oauth2"
 )
@@ -145,6 +146,10 @@ func (p *Provider) getProviderOptions(providerLogger *expslog.Logger, basePath *
 	verifierOpts := []rp.VerifierOption{
 		rp.WithIssuedAtMaxAge(30 * time.Minute),
 		rp.WithIssuedAtOffset(5 * time.Second),
+	}
+
+	if p.conf.OAuth2.Validate.Acr != nil {
+		verifierOpts = append(verifierOpts, rp.WithACRVerifier(oidc.DefaultACRVerifier(p.conf.OAuth2.Validate.Acr)))
 	}
 
 	if p.conf.OAuth2.Nonce {

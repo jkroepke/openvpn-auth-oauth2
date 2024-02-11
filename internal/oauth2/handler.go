@@ -39,9 +39,9 @@ func (p *Provider) Handler() *http.ServeMux {
 
 	mux := http.NewServeMux()
 	mux.Handle("/", http.NotFoundHandler())
-	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(staticFs))))
-	mux.Handle(utils.StringConcat(basePath, "/oauth2/start"), p.oauth2Start())
-	mux.Handle(utils.StringConcat(basePath, "/oauth2/callback"), p.oauth2Callback())
+	mux.Handle(fmt.Sprintf("GET %s/static", basePath), http.StripPrefix("/static/", http.FileServer(http.FS(staticFs))))
+	mux.Handle(fmt.Sprintf("GET %s/oauth2/start", basePath), p.oauth2Start())
+	mux.Handle(fmt.Sprintf("GET %s/oauth2/callback", basePath), p.oauth2Callback())
 
 	return mux
 }
@@ -224,6 +224,10 @@ func getAuthTokenUsername(session state.State, user types.UserData) string {
 }
 
 func writeError(w http.ResponseWriter, logger *slog.Logger, conf config.Config, httpCode int, errorType, errorDesc string) {
+	if httpCode == http.StatusUnauthorized {
+		httpCode = http.StatusForbidden
+	}
+
 	h := sha256.New()
 	h.Write([]byte(time.Now().String()))
 
