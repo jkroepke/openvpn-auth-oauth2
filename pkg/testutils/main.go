@@ -98,7 +98,8 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener) (*httptest.
 //
 //nolint:cyclop
 func SetupMockEnvironment(tb testing.TB, conf config.Config) (config.Config, *openvpn.Client, net.Listener,
-	*oauth2.Provider, *httptest.Server, *http.Client, *Logger, func()) {
+	*oauth2.Provider, *httptest.Server, *http.Client, *Logger, func(),
+) {
 	tb.Helper()
 
 	logger := NewTestLogger()

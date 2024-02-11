@@ -352,11 +352,12 @@ func TestHandler(t *testing.T) {
 					return
 				}
 
-				if !tt.preAllow {
+				switch {
+				case !tt.preAllow:
 					assert.Equal(t, `client-deny 0 1 "http client ip 127.0.0.1 and vpn ip 127.0.0.2 is different."`, testutils.ReadLine(t, reader))
-				} else if !tt.postAllow {
+				case !tt.postAllow:
 					assert.Equal(t, `client-deny 0 1 "client rejected"`, testutils.ReadLine(t, reader))
-				} else {
+				default:
 					assert.Equal(t, "client-auth 0 1", testutils.ReadLine(t, reader))
 					assert.Equal(t, "push \"auth-token-user aWQx\"", testutils.ReadLine(t, reader))
 					assert.Equal(t, "END", testutils.ReadLine(t, reader))
