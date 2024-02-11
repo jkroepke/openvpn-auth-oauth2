@@ -49,20 +49,19 @@ How require multiple groups, check you could define `CONFIG_OAUTH2_VALIDATE_GROU
 
 ### Register an app on google cloud console
 
-1. Login as admin into your Google console from here https://console.cloud.google.com/
-2. Create a new project: https://console.developers.google.com/project
-3. Choose the new project from the top right project dropdown (only if another project is selected)
-4. In the project Dashboard center pane, choose **"APIs & Services"**
-5. In the left Nav pane, choose **"Credentials"**
-6. In the center pane, choose **"OAuth consent screen"** tab. Fill in **"Product name shown to users"** and hit save.
-7. In the center pane, choose **"Credentials"** tab.
+1. Login as admin into your [Google console](https://console.cloud.google.com/).
+2. In the project Dashboard center pane, choose **"APIs & Services"**.
+3. If necessary, complete the `OAuth consent screen` wizard. You will probably want to create an `Internal` application.
+4. In the left Nav pane, choose **"Credentials"**.
+5. In the center pane, choose **"OAuth consent screen"** tab. Fill in **"Product name shown to users"** and hit save.
+6. In the center pane, choose **"Credentials"** tab.
    * Open the "New credentials"** drop down
    * Choose **"OAuth client ID"**
    * Choose **"Web application"**
    * Application name is freeform, choose something appropriate
-   * Authorized redirect URIs is the location of oauth2/callback ex: https://yourdomain/oauth2/callback
+   * Authorized redirect URIs is the location of oauth2/callback ex: https://yourdomain:9000/oauth2/callback
    * Choose "Create"
-8. Take note of the Client ID and Client Secret
+8. Take note of the Client ID and Client Secret.
 
 ### Restrict auth to specific Google Groups in your domain. (optional)
 
@@ -73,19 +72,21 @@ to access the `https://www.googleapis.com/auth/admin.directory.group.readonly` A
 
 1. Create a [service account](https://developers.google.com/identity/protocols/OAuth2ServiceAccount) and download
    the json file
-   if you're not using [Application Default Credentials / Workload Identity / Workload Identity Federation (recommended)](https://oauth2-proxy.github.io/oauth2-proxy/configuration/oauth_provider#using-application-default-credentials-adc--workload-identity--workload-identity-federation-recommended).
+   - if you are using [Application Default Credentials](https://oauth2-proxy.github.io/oauth2-proxy/configuration/oauth_provider#using-application-default-credentials-adc--workload-identity--workload-identity-federation-recommended) (recommended), make sure to assign the Service Account with the `Service Account Token Creator` role.
+   - if you are not using ADC, you will need to create a new key (under **KEYS**) and after that download the Service Account JSON. 
    This needs storing in a location accessible by `openvpn-auth-oauth2`
    and you will set the `provider.google.service-account-config` to point at it.
-2. Make note of the Client ID for a future step.
-3. Under **"APIs & Auth"**, choose APIs.
-4. Click on [Admin SDK API](https://console.developers.google.com/apis/library/admin.googleapis.com/) and then Enable API.
-5. Follow the steps on https://developers.google.com/admin-sdk/directory/v1/guides/delegation#delegate_domain-wide_authority_to_your_service_account
+   
+3. Make note of the Client ID for a future step.
+4. Under **"APIs & Auth"**, choose APIs.
+5. Click on [Admin SDK API](https://console.developers.google.com/apis/library/admin.googleapis.com/) and then Enable API.
+6. Follow the steps on https://developers.google.com/admin-sdk/directory/v1/guides/delegation#delegate_domain-wide_authority_to_your_service_account
    and give the client id from step 2 the following oauth scopes:
    ```
    https://www.googleapis.com/auth/admin.directory.group.readonly
    ```
-6. Follow the steps on https://support.google.com/a/answer/60757 to enable Admin API access.
-7. Permit access to the Admin SDK API for the service account.
+7. Follow the steps on https://support.google.com/a/answer/60757 to enable Admin API access.
+8. Permit access to the Admin SDK API for the service account.
    
    **Only one of the following is required:**
    * **Assign a role to a service account (preferred)**
@@ -101,10 +102,10 @@ to access the `https://www.googleapis.com/auth/admin.directory.group.readonly` A
      to assign to the `providers.google.admin-emails` flag.
      This email will be impersonated by this client to make calls to the Admin SDK.
    
-8. Create or choose an existing email group and set that email to the `oauth2.validate.groups` flag.
+9. Create or choose an existing email group and set that email to the `oauth2.validate.groups` flag.
    You can pass multiple instances of this flag with different groups,
    and the user will be checked against all the provided groups.
-9. Lock down the permissions on the json file downloaded from step 1
+10. If not using ADC, Lock down the permissions on the json file downloaded from step 1
    so only `openvpn-auth-oauth2` is able to read the file
    and set the path to the file in the `provider.google.service-account-config=file://<path-to-json>` flag.
 
@@ -121,8 +122,7 @@ When deployed outside GCP,
 [Workload Identity Federation](https://cloud.google.com/docs/authentication/provide-credentials-adc#wlif) might be an option.
 
 Google Directory API requires a service account to access the group information.
-If Workload Identity is used, `provider.google.impersonate-account`
-needs to be set to the email address of the service account from step 1 to impersonate.
+If Workload Identity is used, `provider.google.impersonate-account` should be set to the full email address of the service account used (`service-account-name@<project_id>.iam.gserviceaccount.com`).
 
 Reference:
 - https://cloud.google.com/iam/docs/service-account-impersonation
@@ -136,8 +136,11 @@ CONFIG_OAUTH2_PROVIDER=google
 CONFIG_OAUTH2_ISSUER=https://accounts.google.com
 CONFIG_OAUTH2_CLIENT_ID=162738495-xxxxx.apps.googleusercontent.com
 CONFIG_OAUTH2_CLIENT_SECRET=GOCSPX-xxxxxxxx
+# If using ADC
+CONFIG_PROVIDER_GOOGLE_IMPERSONATE__ACCOUNT=service-account-name@<project_id>.iam.gserviceaccount.com
+# If not using ADC
 CONFIG_PROVIDER_GOOGLE_SERVICE__ACCOUNT__CONFIG=file://<path-to-json>
-# CONFIG_PROVIDER_GOOGLE_IMPERSONATE__ACCOUNT=service-account@yourdomain
+# If Group Read role not assigned in Admin console.
 # CONFIG_PROVIDER_GOOGLE_ADMIN__EMAIL=admin@example.com
 ```
 
