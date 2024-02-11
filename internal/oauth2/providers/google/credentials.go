@@ -35,33 +35,46 @@ func getHTTPClient(ctx context.Context, conf config.Config) (*http.Client, error
 	}
 
 	if conf.Provider.Google.ImpersonateAccount == "" {
-		jwtConfig, err := google.JWTConfigFromJSON(credentials.JSON, AdminDirectoryGroupReadonlyScope)
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse client secret file to config: %w", err)
-		}
-
-		if conf.Provider.Google.AdminEmail != "" {
-			jwtConfig.Subject = conf.Provider.Google.AdminEmail
-		}
-
-		ts = jwtConfig.TokenSource(ctx)
+		ts, err = getTokenSourceFromCredential(ctx, conf, credentials)
 	} else {
-		credentialsConfig := impersonate.CredentialsConfig{
-			Scopes:          []string{AdminDirectoryGroupReadonlyScope},
-			Lifetime:        300 * time.Second,
-			TargetPrincipal: conf.Provider.Google.ImpersonateAccount,
-		}
+		ts, err = getTokenSourceFromCredentialWithImpersonate(ctx, conf, credentials)
+	}
 
-		if conf.Provider.Google.AdminEmail != "" {
-			credentialsConfig.Subject = conf.Provider.Google.AdminEmail
-		}
-
-		ts, err = impersonate.CredentialsTokenSource(ctx, credentialsConfig, option.WithCredentials(credentials))
-
-		if err != nil {
-			return nil, fmt.Errorf("CredentialsTokenSource error: %w", err)
-		}
+	if err != nil {
+		return nil, err
 	}
 
 	return oauth2.NewClient(ctx, ts), nil
+}
+
+func getTokenSourceFromCredentialWithImpersonate(ctx context.Context, conf config.Config, credentials *google.Credentials) (oauth2.TokenSource, error) {
+	credentialsConfig := impersonate.CredentialsConfig{
+		Scopes:          []string{AdminDirectoryGroupReadonlyScope},
+		Lifetime:        300 * time.Second,
+		TargetPrincipal: conf.Provider.Google.ImpersonateAccount,
+	}
+
+	if conf.Provider.Google.AdminEmail != "" {
+		credentialsConfig.Subject = conf.Provider.Google.AdminEmail
+	}
+
+	ts, err := impersonate.CredentialsTokenSource(ctx, credentialsConfig, option.WithCredentials(credentials))
+	if err != nil {
+		return nil, fmt.Errorf("CredentialsTokenSource error: %w", err)
+	}
+
+	return ts, nil
+}
+
+func getTokenSourceFromCredential(ctx context.Context, conf config.Config, credentials *google.Credentials) (oauth2.TokenSource, error) {
+	jwtConfig, err := google.JWTConfigFromJSON(credentials.JSON, AdminDirectoryGroupReadonlyScope)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse client secret file to config: %w", err)
+	}
+
+	if conf.Provider.Google.AdminEmail != "" {
+		jwtConfig.Subject = conf.Provider.Google.AdminEmail
+	}
+
+	return jwtConfig.TokenSource(ctx), nil
 }
