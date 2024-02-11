@@ -55,10 +55,11 @@ func TestValidateGroups(t *testing.T) {
 		{"groups not present", "groups", nil, []string{}, ""},
 		{"groups empty", "groups", []any{}, []string{}, ""},
 		{"groups present", "groups", []any{"apple"}, []string{}, ""},
-		{"require one group", "groups", []any{"apple"}, []string{"apple"}, ""},
-		{"require one group, claim not present", "", []any{"apple"}, []string{"apple"}, "missing claim: groups"},
-		{"require two group, missing one", "groups", []any{"apple"}, []string{"apple", "pear"}, ""},
-		{"require two group", "groups", []any{"apple", "pear"}, []string{"apple", "pear"}, ""},
+		{"configure one group", "groups", []any{"apple"}, []string{"apple"}, ""},
+		{"configure one group, claim not present", "", []any{"apple"}, []string{"apple"}, "missing claim: groups"},
+		{"configure two group, none match", "groups", []any{}, []string{"apple", "pear"}, generic.ErrMissingRequiredGroup.Error()},
+		{"configure two group, missing one", "groups", []any{"apple"}, []string{"apple", "pear"}, ""},
+		{"configure two group", "groups", []any{"apple", "pear"}, []string{"apple", "pear"}, ""},
 	} {
 		tt := tt
 
@@ -107,10 +108,11 @@ func TestValidateRoles(t *testing.T) {
 		{"groups not present", "roles", nil, []string{}, ""},
 		{"groups empty", "roles", []any{}, []string{}, ""},
 		{"groups present", "roles", []any{"apple"}, []string{}, ""},
-		{"require one group", "roles", []any{"apple"}, []string{"apple"}, ""},
-		{"require one group, claim not present", "", []any{"apple"}, []string{"apple"}, "missing claim: roles"},
-		{"require two group, missing one", "roles", []any{"apple"}, []string{"apple", "pear"}, ""},
-		{"require two group", "roles", []any{"apple", "pear"}, []string{"apple", "pear"}, ""},
+		{"configure one role", "roles", []any{"apple"}, []string{"apple"}, ""},
+		{"configure one role, claim not present", "", []any{"apple"}, []string{"apple"}, "missing claim: roles"},
+		{"configure two role, none match", "roles", []any{}, []string{"apple", "pear"}, generic.ErrMissingRequiredRole.Error()},
+		{"configure two role, missing one", "roles", []any{"apple"}, []string{"apple", "pear"}, ""},
+		{"configure two role", "roles", []any{"apple", "pear"}, []string{"apple", "pear"}, ""},
 	} {
 		tt := tt
 
