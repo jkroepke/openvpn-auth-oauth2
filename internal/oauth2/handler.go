@@ -39,9 +39,9 @@ func (p *Provider) Handler() *http.ServeMux {
 
 	mux := http.NewServeMux()
 	mux.Handle("/", http.NotFoundHandler())
-	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(staticFs))))
-	mux.Handle(utils.StringConcat(basePath, "/oauth2/start"), p.oauth2Start())
-	mux.Handle(utils.StringConcat(basePath, "/oauth2/callback"), p.oauth2Callback())
+	mux.Handle(fmt.Sprintf("GET %s/static", basePath), http.StripPrefix("/static/", http.FileServer(http.FS(staticFs))))
+	mux.Handle(fmt.Sprintf("GET %s/oauth2/start", basePath), p.oauth2Start())
+	mux.Handle(fmt.Sprintf("GET %s/oauth2/callback", basePath), p.oauth2Callback())
 
 	return mux
 }
