@@ -2,9 +2,9 @@
 
 This page documents the setup at the OIDC provider.
 
-## Azure AD
+## Microsoft Entra ID (formerly known as Azure AD)
 
-### Register an app with AAD
+### Register an app with Microsoft Entra ID
 
 1. Login as admin into tenant
 2. Open [App registrations](https://aad.portal.azure.com/#blade/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/RegisteredApps) in an Azure AD admin center
@@ -23,17 +23,26 @@ This page documents the setup at the OIDC provider.
 14. Select `ipaddr` from the list of claims.
 15. Select Add.
 
+References:
+
+- https://docs.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app
+- https://learn.microsoft.com/en-us/azure/active-directory/develop/active-directory-optional-claims
+
 ### Configuration
 
 - `CONFIG_OAUTH2_ISSUER=https://login.microsoftonline.com/$TENANT_ID/v2.0`
 - `CONFIG_OAUTH2_CLIENT_ID=$CLIENT_ID`
 - `CONFIG_OAUTH2_CLIENT_SECRET=$CLIENT_SECRET`
 
-References:
 
-- https://docs.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app
-- https://learn.microsoft.com/en-us/azure/active-directory/develop/active-directory-optional-claims
+### Restrict auth to specific groups in your directory. (optional)
 
+Restrict login based on groups can be configured inside the App Registration directly. This is generally prefered, since users get the notice from Azure that they are not part of the group and the login would be denied.
+
+Referece: https://learn.microsoft.com/en-us/entra/identity-platform/howto-restrict-your-app-to-a-set-of-users#assign-the-app-to-users-and-groups-to-restrict-access
+
+How require multiple groups, check you could define `CONFIG_OAUTH2_VALIDATE_GROUPS`.
+  
 ## Google Cloud / Google Workspace
 
 ### Register an app on google cloud console
