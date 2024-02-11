@@ -44,12 +44,12 @@ func (p *Provider) CheckGroups(tokens *oidc.Tokens[*idtoken.Claims]) error {
 	}
 
 	for _, group := range p.Conf.OAuth2.Validate.Groups {
-		if !slices.Contains(tokens.IDTokenClaims.Groups, group) {
-			return fmt.Errorf("%w: %s", ErrMissingRequiredGroup, group)
+		if slices.Contains(tokens.IDTokenClaims.Groups, group) {
+			return nil
 		}
 	}
 
-	return nil
+	return ErrMissingRequiredGroup
 }
 
 func (p *Provider) CheckRoles(tokens *oidc.Tokens[*idtoken.Claims]) error {
@@ -62,12 +62,12 @@ func (p *Provider) CheckRoles(tokens *oidc.Tokens[*idtoken.Claims]) error {
 	}
 
 	for _, role := range p.Conf.OAuth2.Validate.Roles {
-		if !slices.Contains(tokens.IDTokenClaims.Roles, role) {
-			return fmt.Errorf("%w: %s", ErrMissingRequiredRole, role)
+		if slices.Contains(tokens.IDTokenClaims.Roles, role) {
+			return nil
 		}
 	}
 
-	return nil
+	return ErrMissingRequiredRole
 }
 
 func (p *Provider) CheckCommonName(session state.State, tokens *oidc.Tokens[*idtoken.Claims]) error {
