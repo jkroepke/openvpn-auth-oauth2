@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"github.com/zitadel/oidc/v3/pkg/oidc"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -24,6 +23,7 @@ import (
 	"github.com/zitadel/logging"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
 	httphelper "github.com/zitadel/oidc/v3/pkg/http"
+	"github.com/zitadel/oidc/v3/pkg/oidc"
 	expslog "golang.org/x/exp/slog"
 	"golang.org/x/oauth2"
 )
