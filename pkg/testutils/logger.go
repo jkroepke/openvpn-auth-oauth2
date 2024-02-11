@@ -31,11 +31,11 @@ type Buffer struct {
 
 // Write appends the contents of p to the buffer, growing the buffer as needed.
 // It returns the number of bytes written.
-func (s *Buffer) Write(p []byte) (n int, err error) {
+func (s *Buffer) Write(p []byte) (int, error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	return s.buffer.Write(p)
+	return s.buffer.Write(p) //nolint:wrapcheck
 }
 
 // String returns the contents of the unread portion of the buffer
