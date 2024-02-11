@@ -69,9 +69,9 @@ https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Configuration#
 - https://github.com/vitaliy-sn/openvpn-oidc
 - https://github.com/jkroepke/openvpn-auth-azure-ad
 
-# Copyright and license
+# License
 
-© [2023 Jan-Otto Kröpke (jkroepke)](https://github.com/jkroepke/openvpn-auth-oauth2)
+[2024 Jan-Otto Kröpke (jkroepke)](https://github.com/jkroepke/openvpn-auth-oauth2)
 
 Licensed under the [MIT License](LICENSE.txt)
 
