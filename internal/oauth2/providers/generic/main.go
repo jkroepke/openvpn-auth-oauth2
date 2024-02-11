@@ -1,6 +1,9 @@
 package generic
 
 import (
+	"context"
+	"net/http"
+
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 )
 
@@ -10,16 +13,12 @@ type Provider struct {
 	Conf config.Config
 }
 
-func NewProvider(conf config.Config) *Provider {
+func NewProvider(_ context.Context, conf config.Config, _ *http.Client) (*Provider, error) {
 	return &Provider{
 		Conf: conf,
-	}
+	}, nil
 }
 
 func (p *Provider) GetName() string {
 	return Name
-}
-
-func (p *Provider) GetDefaultScopes() []string {
-	return []string{"openid", "profile", "offline_access"}
 }

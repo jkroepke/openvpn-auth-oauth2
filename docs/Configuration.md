@@ -41,7 +41,7 @@ http:
     key: ""
     listen: ":9000"
     # secret: ""
-    # template: "" # Path to a HTML file which is displayed at the end of the screen   
+    # template: "" # Path to a HTML file which is displayed at the end of the screen
     tls: false
 log:
     format: console
@@ -60,6 +60,9 @@ oauth2:
     #  - "openid"
     #  - "profile"
     validate:
+        acr:
+        #  - "phr"
+        #  - "phrh"
         common-name: ""
         # groups:
         #  - "test"
@@ -86,6 +89,11 @@ openvpn:
     common-name:
         mode: plain
     # password: ""
+provider:
+    google:
+        admin-email: ""
+        impersonate-account: ""
+        service-account-config: ""
 ```
 </details>
 
@@ -175,6 +183,12 @@ Usage of openvpn-auth-oauth2:
     	If common names are too long, use md5/sha1 to hash them or omit to skip them. If omit, oauth2.validate.common-name does not work anymore. Values: [plain,omit] (env: CONFIG_OPENVPN_COMMON__NAME_MODE) (default "plain")
   --openvpn.password value
     	openvpn management interface password. If argument starts with file:// it reads the secret from a file. (env: CONFIG_OPENVPN_PASSWORD)
+  --provider.google.admin-email string
+    	Admin email for service account to impersonate for google admin api. Used, if oauth2.validate.groups is set. (env: CONFIG_PROVIDER_GOOGLE_ADMIN__EMAIL)
+  --provider.google.impersonate-account string
+    	Service account to impersonate if Default Application Credentials used. Used, if oauth2.validate.groups is set. (env: CONFIG_PROVIDER_GOOGLE_IMPERSONATE__ACCOUNT)
+  --provider.google.service-account-config value
+    	Path to service account config for google admin api. Required, if oauth2.validate.groups is set. If argument starts with file:// it reads the secret from a file. (env: CONFIG_PROVIDER_GOOGLE_SERVICE__ACCOUNT__CONFIG)
   --version
     	show version
 ```

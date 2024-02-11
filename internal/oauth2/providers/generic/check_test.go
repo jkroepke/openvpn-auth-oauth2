@@ -2,6 +2,7 @@ package generic_test
 
 import (
 	"context"
+	"net/http"
 	"testing"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
@@ -22,7 +23,6 @@ func TestCheckUser(t *testing.T) {
 				Subject: "subnect",
 			},
 			PreferredUsername: "username",
-			Claims:            map[string]any{},
 		},
 	}
 
@@ -32,7 +32,8 @@ func TestCheckUser(t *testing.T) {
 		},
 	}
 
-	provider := generic.NewProvider(conf)
+	provider, err := generic.NewProvider(context.Background(), conf, http.DefaultClient)
+	require.NoError(t, err)
 
 	userData, err := provider.GetUser(context.Background(), token)
 	require.NoError(t, err)
@@ -46,20 +47,18 @@ func TestValidateGroups(t *testing.T) {
 
 	for _, tt := range []struct {
 		name           string
-		tokenClaim     string
-		tokenGroups    any
+		tokenGroups    []string
 		requiredGroups []string
 		err            string
 	}{
-		{"claim not present", "", nil, []string{}, ""},
-		{"groups not present", "groups", nil, []string{}, ""},
-		{"groups empty", "groups", []any{}, []string{}, ""},
-		{"groups present", "groups", []any{"apple"}, []string{}, ""},
-		{"configure one group", "groups", []any{"apple"}, []string{"apple"}, ""},
-		{"configure one group, claim not present", "", []any{"apple"}, []string{"apple"}, "missing claim: groups"},
-		{"configure two group, none match", "groups", []any{}, []string{"apple", "pear"}, generic.ErrMissingRequiredGroup.Error()},
-		{"configure two group, missing one", "groups", []any{"apple"}, []string{"apple", "pear"}, ""},
-		{"configure two group", "groups", []any{"apple", "pear"}, []string{"apple", "pear"}, ""},
+		{"groups not present", nil, []string{}, ""},
+		{"groups empty", []string{}, []string{}, ""},
+		{"groups present", []string{"apple"}, []string{}, ""},
+		{"configure one group", []string{"apple"}, []string{"apple"}, ""},
+		{"configure one group, groups not present", nil, []string{"apple"}, "missing claim: groups"},
+		{"configure two group, none match", []string{}, []string{"apple", "pear"}, generic.ErrMissingRequiredGroup.Error()},
+		{"configure two group, missing one", []string{"apple"}, []string{"apple", "pear"}, ""},
+		{"configure two group", []string{"apple", "pear"}, []string{"apple", "pear"}, ""},
 	} {
 		tt := tt
 
@@ -68,9 +67,7 @@ func TestValidateGroups(t *testing.T) {
 
 			token := &oidc.Tokens[*idtoken.Claims]{
 				IDTokenClaims: &idtoken.Claims{
-					Claims: map[string]any{
-						tt.tokenClaim: tt.tokenGroups,
-					},
+					Groups: tt.tokenGroups,
 				},
 			}
 
@@ -82,7 +79,10 @@ func TestValidateGroups(t *testing.T) {
 				},
 			}
 
-			err := generic.NewProvider(conf).CheckGroups(token)
+			provider, err := generic.NewProvider(context.Background(), conf, http.DefaultClient)
+			require.NoError(t, err)
+
+			err = provider.CheckGroups(token)
 
 			if tt.err == "" {
 				require.NoError(t, err)
@@ -99,20 +99,18 @@ func TestValidateRoles(t *testing.T) {
 
 	for _, tt := range []struct {
 		name          string
-		tokenClaim    string
-		tokenRoles    any
+		tokenRoles    []string
 		requiredRoles []string
 		err           string
 	}{
-		{"claim not present", "", nil, []string{}, ""},
-		{"groups not present", "roles", nil, []string{}, ""},
-		{"groups empty", "roles", []any{}, []string{}, ""},
-		{"groups present", "roles", []any{"apple"}, []string{}, ""},
-		{"configure one role", "roles", []any{"apple"}, []string{"apple"}, ""},
-		{"configure one role, claim not present", "", []any{"apple"}, []string{"apple"}, "missing claim: roles"},
-		{"configure two role, none match", "roles", []any{}, []string{"apple", "pear"}, generic.ErrMissingRequiredRole.Error()},
-		{"configure two role, missing one", "roles", []any{"apple"}, []string{"apple", "pear"}, ""},
-		{"configure two role", "roles", []any{"apple", "pear"}, []string{"apple", "pear"}, ""},
+		{"groups not present", nil, []string{}, ""},
+		{"groups empty", []string{}, []string{}, ""},
+		{"groups present", []string{"apple"}, []string{}, ""},
+		{"configure one role", []string{"apple"}, []string{"apple"}, ""},
+		{"configure one role, role not present", nil, []string{"apple"}, "missing claim: roles"},
+		{"configure two role, none match", []string{}, []string{"apple", "pear"}, generic.ErrMissingRequiredRole.Error()},
+		{"configure two role, missing one", []string{"apple"}, []string{"apple", "pear"}, ""},
+		{"configure two role", []string{"apple", "pear"}, []string{"apple", "pear"}, ""},
 	} {
 		tt := tt
 
@@ -121,9 +119,7 @@ func TestValidateRoles(t *testing.T) {
 
 			token := &oidc.Tokens[*idtoken.Claims]{
 				IDTokenClaims: &idtoken.Claims{
-					Claims: map[string]any{
-						tt.tokenClaim: tt.tokenRoles,
-					},
+					Roles: tt.tokenRoles,
 				},
 			}
 
@@ -135,7 +131,10 @@ func TestValidateRoles(t *testing.T) {
 				},
 			}
 
-			err := generic.NewProvider(conf).CheckRoles(token)
+			provider, err := generic.NewProvider(context.Background(), conf, http.DefaultClient)
+			require.NoError(t, err)
+
+			err = provider.CheckRoles(token)
 			if tt.err == "" {
 				require.NoError(t, err)
 			} else {
@@ -152,12 +151,11 @@ func TestValidateCommonName(t *testing.T) {
 	for _, tt := range []struct {
 		name               string
 		tokenClaim         string
-		tokenCommonName    any
+		tokenCommonName    string
 		requiredCommonName string
 		commonNameMode     config.OpenVPNCommonNameMode
 		err                string
 	}{
-		{"not require", "", nil, "", config.CommonNameModePlain, ""},
 		{"sub empty", "sub", "apple", "", config.CommonNameModePlain, "common_name mismatch: openvpn client is empty"},
 		{"sub required", "sub", "apple", "apple", config.CommonNameModePlain, ""},
 		{"sub required wrong", "sub", "pear", "apple", config.CommonNameModePlain, "common_name mismatch: openvpn client: apple - oidc token: pear"},
@@ -193,7 +191,10 @@ func TestValidateCommonName(t *testing.T) {
 				CommonName: tt.requiredCommonName,
 			}
 
-			err := generic.NewProvider(conf).CheckCommonName(session, token)
+			provider, err := generic.NewProvider(context.Background(), conf, http.DefaultClient)
+			require.NoError(t, err)
+
+			err = provider.CheckCommonName(session, token)
 			if tt.err == "" {
 				require.NoError(t, err)
 			} else {
@@ -246,7 +247,10 @@ func TestValidateIpAddr(t *testing.T) {
 				Ipaddr: tt.requiredIPAddr,
 			}
 
-			err := generic.NewProvider(conf).CheckIPAddress(session, token)
+			provider, err := generic.NewProvider(context.Background(), conf, http.DefaultClient)
+			require.NoError(t, err)
+
+			err = provider.CheckIPAddress(session, token)
 			if tt.err == "" {
 				require.NoError(t, err)
 			} else {

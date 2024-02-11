@@ -168,6 +168,7 @@ func (p *Provider) oauth2Callback() http.Handler {
 			if tokens.IDTokenClaims != nil {
 				logger = logger.With(
 					slog.String("idtoken.subject", tokens.IDTokenClaims.Subject),
+					slog.String("idtoken.email", tokens.IDTokenClaims.EMail),
 					slog.String("idtoken.preferred_username", tokens.IDTokenClaims.PreferredUsername),
 				)
 			}
@@ -188,7 +189,7 @@ func (p *Provider) oauth2Callback() http.Handler {
 			err = p.OIDC.CheckUser(ctx, session, user, tokens)
 			if err != nil {
 				p.openvpn.DenyClient(logger, session.Client, "client rejected")
-				writeError(w, logger, p.conf, http.StatusInternalServerError, "tokenValidation", err.Error())
+				writeError(w, logger, p.conf, http.StatusInternalServerError, "user validation", err.Error())
 
 				return
 			}

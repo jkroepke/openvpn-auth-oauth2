@@ -24,29 +24,37 @@ type teamType struct {
 // CheckUser implements the [github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2.Provider] interface.
 // It checks if mets specific GitHub related conditions.
 func (p *Provider) CheckUser(
-	ctx context.Context, _ state.State, _ types.UserData, tokens *oidc.Tokens[*idtoken.Claims],
+	ctx context.Context, state state.State, userData types.UserData, tokens *oidc.Tokens[*idtoken.Claims],
 ) error {
 	//nolint:exhaustruct
-	tokens.IDTokenClaims = &idtoken.Claims{
-		Claims: make(map[string]any),
+	tokens.IDTokenClaims = &idtoken.Claims{}
+
+	orgs, err := p.getOrganizations(ctx, tokens)
+	if err != nil {
+		return fmt.Errorf("error getting GitHub organizations: %w", err)
 	}
 
-	if err := p.checkOrganizations(ctx, tokens); err != nil {
-		return err
+	tokens.IDTokenClaims.Groups = orgs
+
+	teams, err := p.getTeams(ctx, tokens)
+	if err != nil {
+		return fmt.Errorf("error getting GitHub teams: %w", err)
 	}
 
-	return p.checkTeams(ctx, tokens)
+	tokens.IDTokenClaims.Roles = teams
+
+	return p.Provider.CheckUser(ctx, state, userData, tokens) //nolint:wrapcheck
 }
 
-// checkTeams checks if the user is in a specific GitHub team by accessing the GitHub API.
-func (p *Provider) checkTeams(ctx context.Context, tokens *oidc.Tokens[*idtoken.Claims]) error {
+// getTeams fetch the users GitHub team by accessing the GitHub API.
+func (p *Provider) getTeams(ctx context.Context, tokens *oidc.Tokens[*idtoken.Claims]) ([]string, error) {
+	var roles []string
+
 	if len(p.Provider.Conf.OAuth2.Validate.Roles) != 0 {
-		return nil
+		return roles, nil
 	}
 
 	apiURL := "https://api.github.com/user/teams"
-
-	var roles []interface{}
 
 	for {
 		var (
@@ -54,8 +62,8 @@ func (p *Provider) checkTeams(ctx context.Context, tokens *oidc.Tokens[*idtoken.
 			err   error
 		)
 
-		if apiURL, err = get[[]teamType](ctx, tokens.AccessToken, apiURL, &teams); err != nil {
-			return err
+		if apiURL, err = get[[]teamType](ctx, p.httpClient, tokens.AccessToken, apiURL, &teams); err != nil {
+			return nil, err
 		}
 
 		for _, team := range teams {
@@ -67,24 +75,18 @@ func (p *Provider) checkTeams(ctx context.Context, tokens *oidc.Tokens[*idtoken.
 		}
 	}
 
-	tokens.IDTokenClaims.Claims["roles"] = roles
-
-	if err := p.CheckRoles(tokens); err != nil {
-		return fmt.Errorf("CheckRoles: %w", err)
-	}
-
-	return nil
+	return roles, nil
 }
 
-// checkOrganizations checks if the user is in a specific GitHub organization by accessing the GitHub API.
-func (p *Provider) checkOrganizations(ctx context.Context, tokens *oidc.Tokens[*idtoken.Claims]) error {
+// getOrganizations fetch the users GitHub organization by accessing the GitHub API.
+func (p *Provider) getOrganizations(ctx context.Context, tokens *oidc.Tokens[*idtoken.Claims]) ([]string, error) {
+	var groups []string
+
 	if len(p.Provider.Conf.OAuth2.Validate.Groups) != 0 {
-		return nil
+		return groups, nil
 	}
 
 	apiURL := "https://api.github.com/user/orgs"
-
-	var groups []interface{}
 
 	for {
 		var (
@@ -92,8 +94,8 @@ func (p *Provider) checkOrganizations(ctx context.Context, tokens *oidc.Tokens[*
 			err  error
 		)
 
-		if apiURL, err = get[[]orgType](ctx, tokens.AccessToken, apiURL, &orgs); err != nil {
-			return err
+		if apiURL, err = get[[]orgType](ctx, p.httpClient, tokens.AccessToken, apiURL, &orgs); err != nil {
+			return nil, err
 		}
 
 		for _, org := range orgs {
@@ -105,11 +107,5 @@ func (p *Provider) checkOrganizations(ctx context.Context, tokens *oidc.Tokens[*
 		}
 	}
 
-	tokens.IDTokenClaims.Claims["groups"] = groups
-
-	if err := p.CheckGroups(tokens); err != nil {
-		return fmt.Errorf("CheckGroups: %w", err)
-	}
-
-	return nil
+	return groups, nil
 }

@@ -1,4 +1,4 @@
-package github
+package google
 
 import (
 	"context"
@@ -7,9 +7,10 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
+	"golang.org/x/oauth2"
 )
 
-const Name = "github"
+const Name = "google"
 
 type Provider struct {
 	*generic.Provider
@@ -20,6 +21,11 @@ func NewProvider(ctx context.Context, conf config.Config, httpClient *http.Clien
 	provider, err := generic.NewProvider(ctx, conf, httpClient)
 	if err != nil {
 		return nil, fmt.Errorf("error creating generic provider: %w", err)
+	}
+
+	httpClient, err = getHTTPClient(context.WithValue(ctx, oauth2.HTTPClient, httpClient), conf)
+	if err != nil {
+		return nil, fmt.Errorf("error getting JWT config: %w", err)
 	}
 
 	return &Provider{

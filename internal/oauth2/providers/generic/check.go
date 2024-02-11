@@ -39,18 +39,12 @@ func (p *Provider) CheckGroups(tokens *oidc.Tokens[*idtoken.Claims]) error {
 		return nil
 	}
 
-	tokenGroups, ok := tokens.IDTokenClaims.Claims["groups"]
-	if !ok {
+	if tokens.IDTokenClaims.Groups == nil {
 		return fmt.Errorf("%w: groups", ErrMissingClaim)
 	}
 
-	tokenGroupsList, err := utils.CastToSlice[string](tokenGroups)
-	if err != nil {
-		return fmt.Errorf("unable to decode token groups: %w", err)
-	}
-
 	for _, group := range p.Conf.OAuth2.Validate.Groups {
-		if slices.Contains(tokenGroupsList, group) {
+		if slices.Contains(tokens.IDTokenClaims.Groups, group) {
 			return nil
 		}
 	}
@@ -63,18 +57,12 @@ func (p *Provider) CheckRoles(tokens *oidc.Tokens[*idtoken.Claims]) error {
 		return nil
 	}
 
-	tokenRoles, ok := tokens.IDTokenClaims.Claims["roles"]
-	if !ok {
+	if tokens.IDTokenClaims.Roles == nil {
 		return fmt.Errorf("%w: roles", ErrMissingClaim)
 	}
 
-	tokenRolesList, err := utils.CastToSlice[string](tokenRoles)
-	if err != nil {
-		return fmt.Errorf("unable to decode token roles: %w", err)
-	}
-
 	for _, role := range p.Conf.OAuth2.Validate.Roles {
-		if slices.Contains(tokenRolesList, role) {
+		if slices.Contains(tokens.IDTokenClaims.Roles, role) {
 			return nil
 		}
 	}

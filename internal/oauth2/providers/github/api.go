@@ -17,7 +17,7 @@ var (
 	reLast = regexp.MustCompile("<([^>]+)>; rel=\"last\"")
 )
 
-func get[T any](ctx context.Context, accessToken string, apiURL string, data *T) (string, error) {
+func get[T any](ctx context.Context, httpClient *http.Client, accessToken string, apiURL string, data *T) (string, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
 	if err != nil {
 		return "", fmt.Errorf("error creating request context with URL %s: %w", apiURL, err)
@@ -26,7 +26,7 @@ func get[T any](ctx context.Context, accessToken string, apiURL string, data *T)
 	req.Header.Add("Authorization", utils.StringConcat("Bearer ", accessToken))
 	req.Header.Add("Accept", "application/json")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("error calling GitHub api %s: %w", apiURL, err)
 	} else if resp.StatusCode != http.StatusOK {
