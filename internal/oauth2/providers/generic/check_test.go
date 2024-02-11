@@ -55,8 +55,9 @@ func TestValidateGroups(t *testing.T) {
 		{"groups empty", []string{}, []string{}, ""},
 		{"groups present", []string{"apple"}, []string{}, ""},
 		{"configure one group", []string{"apple"}, []string{"apple"}, ""},
+		{"configure one group, groups not present", nil, []string{"apple"}, ""},
 		{"configure two group, none match", []string{}, []string{"apple", "pear"}, generic.ErrMissingRequiredGroup.Error()},
-		{"configure two group, missing one", []string{"apple"}, []string{"apple", "pear"}, "missing required group: pear"},
+		{"configure two group, missing one", []string{"apple"}, []string{"apple", "pear"}, ""},
 		{"configure two group", []string{"apple", "pear"}, []string{"apple", "pear"}, ""},
 	} {
 		tt := tt
@@ -105,10 +106,11 @@ func TestValidateRoles(t *testing.T) {
 		{"groups not present", nil, []string{}, ""},
 		{"groups empty", []string{}, []string{}, ""},
 		{"groups present", []string{"apple"}, []string{}, ""},
-		{"configure one group", []string{"apple"}, []string{"apple"}, ""},
+		{"configure one role", []string{"apple"}, []string{"apple"}, ""},
+		{"configure one role, role not present", nil, []string{"apple"}, ""},
 		{"configure two role, none match", []string{}, []string{"apple", "pear"}, generic.ErrMissingRequiredRole.Error()},
-		{"configure two group, missing one", []string{"apple"}, []string{"apple", "pear"}, "missing required role: pear"},
-		{"configure two group", []string{"apple", "pear"}, []string{"apple", "pear"}, ""},
+		{"configure two role, missing one", []string{"apple"}, []string{"apple", "pear"}, ""},
+		{"configure two role", []string{"apple", "pear"}, []string{"apple", "pear"}, ""},
 	} {
 		tt := tt
 
