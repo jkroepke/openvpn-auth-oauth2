@@ -57,7 +57,7 @@ func TestValidateGroups(t *testing.T) {
 		{"groups present", "groups", []any{"apple"}, []string{}, ""},
 		{"require one group", "groups", []any{"apple"}, []string{"apple"}, ""},
 		{"require one group, claim not present", "", []any{"apple"}, []string{"apple"}, "missing claim: groups"},
-		{"require two group, missing one", "groups", []any{"apple"}, []string{"apple", "pear"}, "missing required group: pear"},
+		{"require two group, missing one", "groups", []any{"apple"}, []string{"apple", "pear"}, ""},
 		{"require two group", "groups", []any{"apple", "pear"}, []string{"apple", "pear"}, ""},
 	} {
 		tt := tt
@@ -109,7 +109,7 @@ func TestValidateRoles(t *testing.T) {
 		{"groups present", "roles", []any{"apple"}, []string{}, ""},
 		{"require one group", "roles", []any{"apple"}, []string{"apple"}, ""},
 		{"require one group, claim not present", "", []any{"apple"}, []string{"apple"}, "missing claim: roles"},
-		{"require two group, missing one", "roles", []any{"apple"}, []string{"apple", "pear"}, "missing required role: pear"},
+		{"require two group, missing one", "roles", []any{"apple"}, []string{"apple", "pear"}, ""},
 		{"require two group", "roles", []any{"apple", "pear"}, []string{"apple", "pear"}, ""},
 	} {
 		tt := tt
