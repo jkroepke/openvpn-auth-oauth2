@@ -62,6 +62,37 @@ func TestHandler(t *testing.T) {
 			"-",
 		},
 		{
+			"with acr values",
+			config.Config{
+				HTTP: config.HTTP{
+					Secret: testutils.Secret,
+					Check: config.HTTPCheck{
+						IPAddr: false,
+					},
+				},
+				OAuth2: config.OAuth2{
+					Provider:  "generic",
+					Endpoints: config.OAuth2Endpoints{},
+					Scopes:    []string{"openid", "profile"},
+					Validate: config.OAuth2Validate{
+						Acr:    []string{"phr"},
+						Groups: make([]string, 0),
+						Roles:  make([]string, 0),
+						Issuer: true,
+						IPAddr: false,
+					},
+				},
+				OpenVpn: config.OpenVpn{
+					Bypass:        config.OpenVpnBypass{CommonNames: []string{}},
+					AuthTokenUser: true,
+				},
+			},
+			"127.0.0.1",
+			"",
+			true,
+			"-",
+		},
+		{
 			"with template",
 			config.Config{
 				HTTP: config.HTTP{

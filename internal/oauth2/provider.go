@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"github.com/zitadel/oidc/v3/pkg/oidc"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -133,6 +134,10 @@ func (p *Provider) getProviderOptions(providerLogger *expslog.Logger, basePath *
 	verifierOpts := []rp.VerifierOption{
 		rp.WithIssuedAtMaxAge(30 * time.Minute),
 		rp.WithIssuedAtOffset(5 * time.Second),
+	}
+
+	if p.conf.OAuth2.Validate.Acr != nil {
+		verifierOpts = append(verifierOpts, rp.WithACRVerifier(oidc.DefaultACRVerifier(p.conf.OAuth2.Validate.Acr)))
 	}
 
 	if p.conf.OAuth2.Nonce {
