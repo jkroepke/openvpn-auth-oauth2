@@ -38,6 +38,7 @@ linters-settings:
       - tt
     ignore-decls:
       - i int
+      - n int
       - err error
       - ok bool
       - w http.ResponseWriter
