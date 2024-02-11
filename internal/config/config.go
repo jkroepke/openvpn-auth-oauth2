@@ -98,10 +98,15 @@ func FlagSet(name string) *flag.FlagSet {
 		Defaults.HTTP.EnableProxyHeaders,
 		"Use X-Forward-For http header for client ips",
 	)
-	flagSet.TextVar(new(StringSlice),
+	flagSet.String(
 		"provider.google.admin-emails",
-		Defaults.Provider.Google.AdminEmails,
+		Defaults.Provider.Google.AdminEmail,
 		"Admin email for service account to impersonate for google admin api. Used, if oauth2.validate.groups is set.",
+	)
+	flagSet.String(
+		"provider.google.impersonate-account",
+		Defaults.Provider.Google.ImpersonateAccount,
+		"Service account to impersonate if Default Application Credentials used. Used, if oauth2.validate.groups is set.",
 	)
 	flagSet.TextVar(new(Secret),
 		"provider.google.service-account-config",

@@ -47,5 +47,6 @@ linters-settings:
       - wg sync.WaitGroup
       - k *koanf.Koanf
       - mu sync.Mutex
+      - ts oauth2.TokenSource
   lll:
     line-length: 160

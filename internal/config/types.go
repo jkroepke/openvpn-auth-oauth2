@@ -106,8 +106,9 @@ type Provider struct {
 }
 
 type ProviderGoogle struct {
-	ServiceAccountConfig Secret      `koanf:"service-account-config"`
-	AdminEmails          StringSlice `koanf:"admin-emails"`
+	ServiceAccountConfig Secret `koanf:"service-account-config"`
+	AdminEmail           string `koanf:"admin-email"`
+	ImpersonateAccount   string `koanf:"impersonate-account"`
 }
 
 type OpenVPNCommonNameMode int
