@@ -70,19 +70,18 @@ you will need to configure a service account for openvpn-auth-oauth2 to use.
 This account needs Domain-Wide Delegation and permission
 to access the `https://www.googleapis.com/auth/admin.directory.group.readonly` API scope.
 
-1. Create a [service account](https://developers.google.com/identity/protocols/OAuth2ServiceAccount) and download
-   the json file
+1. Create a [service account](https://developers.google.com/identity/protocols/OAuth2ServiceAccount) and
    - if you are using [Application Default Credentials](https://oauth2-proxy.github.io/oauth2-proxy/configuration/oauth_provider#using-application-default-credentials-adc--workload-identity--workload-identity-federation-recommended) (recommended), make sure to assign the Service Account with the `Service Account Token Creator` role.
    - if you are not using Application Default Credentials,
      you will need to create a new key (under **KEYS**) and after that download the Service Account JSON.
      This needs storing in a location accessible by `openvpn-auth-oauth2`
      and you will set the `provider.google.service-account-config` to point at it.
    
-2. Make note of the Client ID for a future step.
+2. Make note of the `Unique ID` for a future step.
 3. Under **"APIs & Auth"**, choose APIs.
 4. Click on [Admin SDK API](https://console.developers.google.com/apis/library/admin.googleapis.com/) and then Enable API.
 5. Follow the steps on https://developers.google.com/admin-sdk/directory/v1/guides/delegation#delegate_domain-wide_authority_to_your_service_account
-   and give the client id from step 2 the following oauth scopes:
+   and give the Unique ID (as Client ID) from step 2 the following oauth scopes:
    ```
    https://www.googleapis.com/auth/admin.directory.group.readonly
    ```
