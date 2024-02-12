@@ -6,8 +6,8 @@ After=network-online.target openvpn.service openvpn@.service openvpn-server@.ser
 PartOf=openvpn.service openvpn@.service openvpn-server@.service
 
 [Service]
-DynamicUser=true
-Group=nogroup
+User=openvpn-auth-oauth2
+Group=openvpn-auth-oauth2
 ExecStart=/usr/bin/openvpn-auth-oauth2
 EnvironmentFile=/etc/sysconfig/openvpn-auth-oauth2
 ProtectSystem=strict
