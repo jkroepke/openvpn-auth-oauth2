@@ -48,6 +48,7 @@ jobs:
           args: release --snapshot
         env:
           GITHUB_TOKEN: ""
+          GPG_KEY_PATH: ""
 
       - uses: codecov/codecov-action@v4
         env:
