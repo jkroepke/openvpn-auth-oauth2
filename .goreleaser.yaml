@@ -67,8 +67,11 @@ nfpms:
         dst: /usr/lib/sysusers.d/
       - src: packaging/usr/lib/systemd/system/
         dst: /usr/lib/systemd/system/
-      - src: packaging/etc/sysconfig/
-        dst: /etc/sysconfig/
+      - src: packaging/etc/sysconfig/openvpn-auth-oauth2
+        dst: /etc/sysconfig/openvpn-auth-oauth2
+        type: "config|noreplace"
+      - src: packaging/etc/openvpn-auth-oauth2/config.yaml
+        dst: /etc/openvpn-auth-oauth2/config.yaml
         type: "config|noreplace"
     scripts:
       postinstall: "packaging/scripts/postinstall.sh"

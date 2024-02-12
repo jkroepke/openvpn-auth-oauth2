@@ -8,44 +8,50 @@ PartOf=openvpn.service openvpn@.service openvpn-server@.service
 [Service]
 # Run as an unprivileged user with random user id.
 DynamicUser=true
-Group=openvpn-auth-oauth2
+User=openvpn-auth-oauth2-dynamic
+Group=openvpn-auth-oauth2-dynamic
+SupplementaryGroups=openvpn-auth-oauth2
+
+ExecStart=/usr/bin/openvpn-auth-oauth2 --config ${CONFIG_FILE}
+NoExecPaths=/
+ExecPaths=/usr/bin/openvpn-auth-oauth2
+
+EnvironmentFile=-/etc/sysconfig/openvpn-auth-oauth2
+LoadCredential=/etc/openvpn-auth-oauth2/
+ConfigurationDirectory=openvpn-auth-oauth2
+ConfigurationDirectoryMode=0750
+ReadWritePaths=-/run/openvpn -/run/openvpn-server
+
+RestartSec=5s
+Restart=on-failure
 
 # We don't need write access anywhere.
-ProtectSystem=strict
-
-# We don't need /home at all, make it inaccessible.
-ProtectHome=true
+AmbientCapabilities=
+CapabilityBoundingSet=
+MemoryDenyWriteExecute=true
+NoNewPrivileges=yes
 PrivateDevices=true
 PrivateTmp=true
+PrivateUsers=yes
+ProcSubset=pid
 ProtectClock=true
+ProtectControlGroups=true
+ProtectHome=true
 ProtectHostname=true
 ProtectKernelLogs=true
 ProtectKernelModules=true
 ProtectKernelTunables=true
-ProtectControlGroups=true
 ProtectProc=noaccess
+ProtectSystem=strict
+RemoveIPC=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 RestrictNamespaces=true
 RestrictRealtime=true
-LockPersonality=true
-MemoryDenyWriteExecute=true
-
-ExecStart=/usr/bin/openvpn-auth-oauth2
-NoExecPaths=/
-ExecPaths=/usr/bin/openvpn-auth-oauth2
-
-EnvironmentFile=/etc/sysconfig/openvpn-auth-oauth2
-
-ConfigurationDirectory=openvpn-auth-oauth2
-ConfigurationDirectoryMode=0750
-
-LoadCredential=/etc/openvpn-auth-oauth2/
-
-ReadWritePaths=-/run/openvpn -/run/openvpn-server
-
-# CapabilityBoundingSet=CAP_NET_BIND_SERVICE
-
-RestartSec=5s
-Restart=on-failure
+RestrictSUIDSGID=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+UMask=0027
 
 [Install]
 WantedBy=multi-user.target

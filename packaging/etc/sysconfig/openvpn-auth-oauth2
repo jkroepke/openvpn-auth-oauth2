@@ -1,3 +1,8 @@
+# This file is sourced by the openvpn-auth-oauth2.service
+
+# CONFIG_FILE is the path to the configuration file and used in the systemd service file only.
+CONFIG_FILE=/etc/openvpn-auth-oauth2/config.yaml
+
 # https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Configuration
 
 CONFIG_OPENVPN_ADDR=unix:///run/openvpn/server.sock
