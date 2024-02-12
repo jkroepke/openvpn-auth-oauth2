@@ -1,3 +1,5 @@
+# https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Configuration
+
 CONFIG_OPENVPN_ADDR=unix:///run/openvpn/server.sock
 CONFIG_OAUTH2_ISSUER=https://login.microsoftonline.com/<tenant-id>/v2.0
 CONFIG_OAUTH2_CLIENT_ID=

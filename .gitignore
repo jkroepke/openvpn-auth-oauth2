@@ -67,5 +67,5 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
-openvpn-auth-oauth2
-openvpn-auth-oauth2.exe
+/openvpn-auth-oauth2
+/openvpn-auth-oauth2.exe

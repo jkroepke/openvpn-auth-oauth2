@@ -47,7 +47,7 @@ jobs:
           version: latest
           args: release --snapshot
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ""
 
       - uses: codecov/codecov-action@v4
         env:
@@ -99,6 +99,13 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: 'go.mod'
+
+      - name: Write gpg sign key
+        run: echo "$GPG_KEY" > "$GPG_KEY_PATH"
+        env:
+          GPG_KEY_PATH: "${{ runner.temp }}/gpgkey.asc"
+          GPG_KEY: ${{ secrets.GPG_KEY }}
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v5
         with:
@@ -107,3 +114,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_CURRENT_TAG: ${{ github.ref_name }}
+          NFPM_PASSPHRASE: ${{ secrets.NFPM_PASSPHRASE }}
+          GPG_KEY_PATH: "${{ runner.temp }}/gpgkey.asc"

@@ -1,14 +1,25 @@
 builds:
   - id: "openvpn-auth-oauth2"
     binary: openvpn-auth-oauth2
+    buildmode: pie
     env:
-      - CGO_ENABLED=0
+      - CGO_ENABLED=1
     goos:
       - linux
     goarch:
       - amd64
       - arm64
     mod_timestamp: '{{ .CommitTimestamp }}'
+    tags:
+      - osusergo
+      - netgo
+      - static_build
+    flags:
+      - -trimpath
+    ldflags:
+      # https://github.com/golang/go/issues/41944#issuecomment-711025202
+      - -linkmode external -extldflags "--static-pie"
+      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser
   - id: "openvpn-auth-oauth2.so"
     binary: openvpn-auth-oauth2
     main: ./pkg/plugin/
@@ -41,14 +52,29 @@ nfpms:
     formats:
       - deb
       - rpm
+    provides:
+      - openvpn-auth-oauth2
+    recommends:
+      - openvpn
     contents:
-      - src: packaging/openvpn-auth-oauth2.service
-        dst: /usr/lib/systemd/system/openvpn-auth-oauth2.service
-      - src: packaging/openvpn-auth-oauth2.sysconfig
-        dst: /etc/sysconfig/openvpn-auth-oauth2
+      - src: packaging/usr/lib/sysusers.d/
+        dst: /usr/lib/sysusers.d/
+      - src: packaging/usr/lib/systemd/system/
+        dst: /usr/lib/systemd/system/
+      - src: packaging/etc/sysconfig/
+        dst: /etc/sysconfig/
         type: "config|noreplace"
-      - src: packaging/config.yaml
-        dst: /usr/share/doc/openvpn-auth-oauth2/examples/auth-oauth2.yaml
+    scripts:
+      postinstall: "packaging/scripts/postinstall.sh"
+      preremove: "packaging/scripts/preremove.sh"
+    rpm:
+      compression: xz
+      signature:
+        key_file: "{{ .Env.GPG_KEY_PATH }}"
+    deb:
+      signature:
+        key_file: "{{ .Env.GPG_KEY_PATH }}"
+
 
 report_sizes: true
 
