@@ -41,6 +41,14 @@ jobs:
           sudo apt-get update -q
           sudo apt-get install --no-install-recommends -qy $PACKAGES
 
+
+      - name: Write gpg sign key
+        if: secrets.GPG_KEY != ''
+        run: echo "$GPG_KEY" > "$GPG_KEY_PATH"
+        env:
+          GPG_KEY_PATH: "${{ secrets.GPG_KEY_PATH }}"
+          GPG_KEY: ${{ secrets.GPG_KEY }}
+
       - name: go build (with goreleaser)
         uses: goreleaser/goreleaser-action@v5
         with:
@@ -104,7 +112,7 @@ jobs:
       - name: Write gpg sign key
         run: echo "$GPG_KEY" > "$GPG_KEY_PATH"
         env:
-          GPG_KEY_PATH: "${{ runner.temp }}/gpgkey.asc"
+          GPG_KEY_PATH: "${{ secrets.GPG_KEY_PATH }}"
           GPG_KEY: ${{ secrets.GPG_KEY }}
 
       - name: Run GoReleaser
@@ -116,4 +124,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_CURRENT_TAG: ${{ github.ref_name }}
           NFPM_PASSPHRASE: ${{ secrets.NFPM_PASSPHRASE }}
-          GPG_KEY_PATH: "${{ runner.temp }}/gpgkey.asc"
+          GPG_KEY_PATH: ${{ secrets.GPG_KEY_PATH }}
