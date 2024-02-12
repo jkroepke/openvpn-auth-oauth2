@@ -46,7 +46,6 @@ ReadWritePaths=-/run/openvpn -/run/openvpn-server
 
 RestartSec=5s
 Restart=on-failure
-TasksMax=1
 
 [Install]
 WantedBy=multi-user.target

@@ -43,7 +43,7 @@ jobs:
 
 
       - name: Write gpg sign key
-        if: secrets.GPG_KEY != ''
+        if: env.GPG_KEY != null
         run: echo "$GPG_KEY" > "$GPG_KEY_PATH"
         env:
           GPG_KEY_PATH: "${{ secrets.GPG_KEY_PATH }}"
