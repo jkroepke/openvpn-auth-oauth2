@@ -19,32 +19,24 @@ services:
       - ./../plugin:/plugin/
     restart: always
     environment:
-      EASYRSA: /usr/local/share/easy-rsa/easyrsa3
+      EASYRSA: /usr/share/easy-rsa/
       EASYRSA_PKI: /etc/openvpn/pki
-      EASYRSA_VARS_FILE: /etc/openvpn/vars
       EASYRSA_BATCH: 1
+      EASYRSA_NO_VARS: 1
       EASYRSA_NO_PASS: 1
       EASYRSA_ALGO: "ed"
+      EASYRSA_CURVE: "ed25519"
       EASYRSA_DN: "cn_only"
       UPN: "${UPN}"
     entrypoint:
       - /bin/sh
       - -ec
       - |-
-        if ! command -v openvpn >/dev/null; then
-          apk add --no-cache openvpn openssl
-        fi
-
         if [ ! -f /etc/openvpn/pki/ca.crt ]; then
-          apk add --no-cache git bash
-          git -c advice.detachedHead=false clone -b v3.1.2 --depth 1 https://github.com/OpenVPN/easy-rsa.git /usr/local/share/easy-rsa/
-          ln -s /usr/local/share/easy-rsa/easyrsa3/easyrsa /usr/local/bin
-          chmod 755 /usr/local/bin/easyrsa
-
-          easyrsa init-pki
-          easyrsa build-ca
-          easyrsa build-server-full server
-          easyrsa build-client-full ${UPN}
+          /usr/share/easy-rsa/easyrsa init-pki nopass
+          /usr/share/easy-rsa/easyrsa build-ca nopass 
+          /usr/share/easy-rsa/easyrsa build-server-full server nopass
+          /usr/share/easy-rsa/easyrsa build-client-full ${UPN} nopass
         fi
 
         cat > "/etc/openvpn/openvpn.conf" <<EOF
