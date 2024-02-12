@@ -29,7 +29,7 @@ jobs:
       - run: go test ./... -timeout 20s -race -covermode=atomic -coverprofile=coverage.out -coverpkg=./...
       - run: go test ./... -bench . -benchmem -count 3
 
-      - name: Install plugin dependencies
+      - name: Install build dependencies
         run: |
           sudo dpkg --add-architecture arm64
           sudo sed -i'' -E 's/^(deb|deb-src) /\1 [arch=amd64,i386] /' /etc/apt/sources.list
@@ -82,7 +82,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Install plugin dependencies
+      - name: Install build dependencies
         run: |
           sudo dpkg --add-architecture arm64
           sudo sed -i'' -E 's/^(deb|deb-src) /\1 [arch=amd64,i386] /' /etc/apt/sources.list

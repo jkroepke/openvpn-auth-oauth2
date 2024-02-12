@@ -27,20 +27,19 @@ func (secret Secret) MarshalText() ([]byte, error) {
 //goland:noinspection GoMixedReceiverTypes
 func (secret *Secret) UnmarshalText(text []byte) error {
 	stringText := string(text)
-	if !strings.HasPrefix(stringText, "file://") {
+	switch {
+	case strings.HasPrefix(stringText, "file://"):
+		file := strings.TrimPrefix(stringText, "file://")
+
+		body, err := os.ReadFile(os.ExpandEnv(file))
+		if err != nil {
+			return fmt.Errorf("unable read secret: %w", err)
+		}
+
+		*secret = Secret(body)
+	default:
 		*secret = Secret(stringText)
-
-		return nil
 	}
-
-	file := strings.TrimPrefix(stringText, "file://")
-
-	body, err := os.ReadFile(file)
-	if err != nil {
-		return fmt.Errorf("unable read secret: %w", err)
-	}
-
-	*secret = Secret(body)
 
 	return nil
 }
