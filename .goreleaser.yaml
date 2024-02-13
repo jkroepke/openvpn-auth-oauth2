@@ -69,6 +69,8 @@ nfpms:
       - src: packaging/usr/lib/systemd/system/
         dst: /usr/lib/systemd/system/
       - src: packaging/etc/sysconfig/openvpn-auth-oauth2
+        file_info:
+          mode: 0640
         dst: /etc/sysconfig/openvpn-auth-oauth2
         type: "config|noreplace"
       - dst: /etc/openvpn-auth-oauth2/
@@ -76,13 +78,14 @@ nfpms:
         file_info:
           owner: root
           group: openvpn-auth-oauth2
+          mode: 0750
       - src: packaging/etc/openvpn-auth-oauth2/config.yaml
         dst: /etc/openvpn-auth-oauth2/config.yaml
         type: "config|noreplace"
         file_info:
           owner: root
           group: openvpn-auth-oauth2
-    umask: 0o027
+          mode: 0640
     scripts:
       preinstall: "packaging/scripts/postinst.sh"
       postinstall: "packaging/scripts/postinst.sh"
@@ -93,6 +96,7 @@ nfpms:
       signature:
         key_file: "{{ .Env.GPG_KEY_PATH }}"
     deb:
+      compression: xz
       signature:
         key_file: "{{ .Env.GPG_KEY_PATH }}"
 
