@@ -23,7 +23,7 @@ services:
     volumes:
       - ./default.preset:/etc/systemd/system-preset/default.preset
       - ./openvpn-auth-oauth2:/usr/bin/openvpn-auth-oauth2
-      - ../../packaging/openvpn-auth-oauth2.service:/etc/systemd/system/openvpn-auth-oauth2.service
+      - ../../packaging/openvpn-auth-oauth2.conf:/etc/systemd/system/openvpn-auth-oauth2.conf
       - ./openvpn-auth-oauth2.conf:/etc/sysconfig/openvpn-auth-oauth2
       - ../data/:/etc/openvpn/
     stop_signal: SIGRTMIN+3

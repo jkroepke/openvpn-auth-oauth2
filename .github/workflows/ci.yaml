@@ -29,7 +29,7 @@ jobs:
       - run: go test ./... -timeout 20s -race -covermode=atomic -coverprofile=coverage.out -coverpkg=./...
       - run: go test ./... -bench . -benchmem -count 3
 
-      - name: Install plugin dependencies
+      - name: Install build dependencies
         run: |
           sudo dpkg --add-architecture arm64
           sudo sed -i'' -E 's/^(deb|deb-src) /\1 [arch=amd64,i386] /' /etc/apt/sources.list
@@ -41,13 +41,22 @@ jobs:
           sudo apt-get update -q
           sudo apt-get install --no-install-recommends -qy $PACKAGES
 
+
+      - name: Write gpg sign key
+        if: env.GPG_KEY != null
+        run: echo "$GPG_KEY" > "$GPG_KEY_PATH"
+        env:
+          GPG_KEY_PATH: "${{ secrets.GPG_KEY_PATH }}"
+          GPG_KEY: ${{ secrets.GPG_KEY }}
+
       - name: go build (with goreleaser)
         uses: goreleaser/goreleaser-action@v5
         with:
           version: latest
           args: release --snapshot
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ""
+          GPG_KEY_PATH: ""
 
       - uses: codecov/codecov-action@v4
         env:
@@ -81,7 +90,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Install plugin dependencies
+      - name: Install build dependencies
         run: |
           sudo dpkg --add-architecture arm64
           sudo sed -i'' -E 's/^(deb|deb-src) /\1 [arch=amd64,i386] /' /etc/apt/sources.list
@@ -99,6 +108,13 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: 'go.mod'
+
+      - name: Write gpg sign key
+        run: echo "$GPG_KEY" > "$GPG_KEY_PATH"
+        env:
+          GPG_KEY_PATH: "${{ secrets.GPG_KEY_PATH }}"
+          GPG_KEY: ${{ secrets.GPG_KEY }}
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v5
         with:
@@ -107,3 +123,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_CURRENT_TAG: ${{ github.ref_name }}
+          NFPM_PASSPHRASE: ${{ secrets.NFPM_PASSPHRASE }}
+          GPG_KEY_PATH: ${{ secrets.GPG_KEY_PATH }}

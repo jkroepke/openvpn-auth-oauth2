@@ -221,6 +221,20 @@ CONFIG_HTTP_LISTEN=:9000
 CONFIG_HTTP_BASE_URL=https://login.example.com
 ```
 
+### Filesystem Permissions
+
+When started by systemd, openvpn runs with a [dynamic arbitrary UID](https://0pointer.net/blog/dynamic-users-with-systemd.html).
+This means that it may not have access to certain files and directories if the appropriate permissions are not set.
+
+Any additional files, such as TLS keys, should be placed under the `/etc/openvpn-auth-oauth2/` directory.
+The owner of these files should be `root` and the group should be `openvpn-auth-oauth2`.
+This ensures that openvpn has the necessary permissions to access and use these files.
+
+When installing the openvpn-auth-oauth2 Linux package,
+it will automatically handle the creation of the openvpn-auth-oauth2 system group.
+This group is used to manage access to the necessary files and directories
+and should be used to manage the permissions of any additional files.
+
 ## Setup OpenVPN server
 
 To connect openvpn-auth-oauth2 with openvpn server, add lines below:
