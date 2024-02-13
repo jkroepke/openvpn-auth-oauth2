@@ -325,6 +325,6 @@ CONFIG_OAUTH2_REFRESH_SECRET= # a static secret to encrypt token. Must be 16, 24
 ## username-as-common-name
 
 If `username-as-common-name` is configured at OpenVPN server,
-ensure that `openvpn.common-name.environment-variable` is set to `username` as well.
+ensure that `openvpn.common-name.environment-variable-name` is set to `username` as well.
 
 This is mandatory, because `username-as-common-name` works after the authentication process.
