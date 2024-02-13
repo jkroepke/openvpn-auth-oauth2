@@ -16,7 +16,7 @@ ExecStart=/usr/bin/openvpn-auth-oauth2 --config ${CONFIG_FILE}
 NoExecPaths=/
 ExecPaths=/usr/bin/openvpn-auth-oauth2
 
-Environment=CONFIG_FILE=/etc/openvpn-auth-oauth2/openvpn-auth-oauth2.yaml
+Environment=CONFIG_FILE=/etc/openvpn-auth-oauth2/config.yaml
 EnvironmentFile=-/etc/sysconfig/openvpn-auth-oauth2
 LoadCredential=openvpn-auth-oauth2:/etc/openvpn-auth-oauth2/
 #ConfigurationDirectory=openvpn-auth-oauth2
@@ -30,11 +30,11 @@ Restart=on-failure
 AmbientCapabilities=
 CapabilityBoundingSet=
 MemoryDenyWriteExecute=true
-NoNewPrivileges=yes
-LockPersonality=
+NoNewPrivileges=true
+LockPersonality=true
 PrivateDevices=true
 PrivateTmp=true
-PrivateUsers=yes
+PrivateUsers=true
 ProcSubset=pid
 ProtectClock=true
 ProtectControlGroups=true
