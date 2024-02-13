@@ -31,6 +31,7 @@ AmbientCapabilities=
 CapabilityBoundingSet=
 MemoryDenyWriteExecute=true
 NoNewPrivileges=yes
+LockPersonality=
 PrivateDevices=true
 PrivateTmp=true
 PrivateUsers=yes
