@@ -123,5 +123,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_CURRENT_TAG: ${{ github.ref_name }}
-          NFPM_openvpn-auth-oauth2_PASSPHRASE: ${{ secrets.NFPM_PASSPHRASE }}
+          NFPM_OPENVPN-AUTH-OAUTH2_PASSPHRASE: ${{ secrets.NFPM_PASSPHRASE }}
           GPG_KEY_PATH: ${{ secrets.GPG_KEY_PATH }}
