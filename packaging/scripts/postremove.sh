@@ -8,3 +8,7 @@ fi
 
 systemctl daemon-reload
 systemctl reset-failed
+
+if id -g openvpn-auth-oauth2 >/dev/null 2>&1; then
+    groupdel openvpn-auth-oauth2 >/dev/null || true
+fi
