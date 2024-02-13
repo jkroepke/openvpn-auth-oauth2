@@ -43,6 +43,7 @@ func BenchmarkFull(b *testing.B) {
 	reader := bufio.NewReader(managementInterfaceConn)
 
 	testutils.SendLine(b, managementInterfaceConn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\r\n")
+	testutils.SendLine(b, managementInterfaceConn, ">HOLD:Waiting for hold release:0\r\n")
 	assert.Equal(b, "hold release", testutils.ReadLine(b, reader))
 	testutils.SendLine(b, managementInterfaceConn, "SUCCESS: hold release succeeded\r\n")
 	assert.Equal(b, "version", testutils.ReadLine(b, reader))

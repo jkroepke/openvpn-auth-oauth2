@@ -66,11 +66,6 @@ func (c *Client) Connect() error {
 	go c.handleClients()
 	go c.handleCommands()
 
-	err = c.releaseManagementHold()
-	if err != nil {
-		return err
-	}
-
 	c.logger.Info("connection to OpenVPN management interface established.")
 
 	err = c.checkManagementInterfaceVersion()

@@ -342,6 +342,7 @@ func TestHandler(t *testing.T) {
 				reader := bufio.NewReader(conn)
 
 				testutils.SendLine(t, conn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\r\n")
+				testutils.SendLine(t, conn, ">HOLD:Waiting for hold release:0\r\n")
 				assert.Equal(t, "hold release", testutils.ReadLine(t, reader))
 				testutils.SendLine(t, conn, "SUCCESS: hold release succeeded\r\n")
 				assert.Equal(t, "version", testutils.ReadLine(t, reader))
