@@ -19,8 +19,8 @@ ExecPaths=/usr/bin/openvpn-auth-oauth2
 Environment=CONFIG_FILE=/etc/openvpn-auth-oauth2/openvpn-auth-oauth2.yaml
 EnvironmentFile=-/etc/sysconfig/openvpn-auth-oauth2
 LoadCredential=/etc/openvpn-auth-oauth2/
-ConfigurationDirectory=openvpn-auth-oauth2
-ConfigurationDirectoryMode=0750
+#ConfigurationDirectory=openvpn-auth-oauth2
+#ConfigurationDirectoryMode=0750
 ReadWritePaths=-/run/openvpn -/run/openvpn-server
 
 RestartSec=5s
