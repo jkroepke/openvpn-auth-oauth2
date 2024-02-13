@@ -36,7 +36,6 @@ func (c *Client) clientConnect(client connection.Client) error {
 		slog.Uint64("kid", client.Kid),
 		slog.String("common_name", client.CommonName),
 		slog.String("reason", client.Reason),
-		slog.String("username", client.Username),
 	)
 
 	logger.Info("new client connection")
@@ -51,7 +50,6 @@ func (c *Client) clientReauth(client connection.Client) error {
 		slog.Uint64("kid", client.Kid),
 		slog.String("common_name", client.CommonName),
 		slog.String("reason", client.Reason),
-		slog.String("username", client.Username),
 	)
 
 	logger.Info("new client reauth")
@@ -134,7 +132,6 @@ func (c *Client) clientEstablished(client connection.Client) {
 		slog.Uint64("cid", client.Cid),
 		slog.String("common_name", client.CommonName),
 		slog.String("reason", client.Reason),
-		slog.String("username", client.Username),
 	)
 }
 
@@ -143,7 +140,6 @@ func (c *Client) clientDisconnect(client connection.Client) {
 		slog.Uint64("cid", client.Cid),
 		slog.String("common_name", client.CommonName),
 		slog.String("reason", client.Reason),
-		slog.String("username", client.Username),
 	)
 
 	logger.Info("client disconnected")

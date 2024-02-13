@@ -96,7 +96,7 @@ func (c *Client) handleMessages() {
 		message = buf.String()
 
 		if strings.HasPrefix(message, ">CLIENT:") {
-			client, err = connection.NewClient(message)
+			client, err = connection.NewClient(c.conf, message)
 			if err != nil {
 				c.errCh <- err
 

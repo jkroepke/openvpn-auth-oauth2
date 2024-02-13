@@ -63,6 +63,9 @@ func TestClientFull(t *testing.T) {
 					Secret:  testutils.Secret,
 				},
 				OpenVpn: config.OpenVpn{
+					CommonName: config.OpenVPNCommonName{
+						EnvironmentVariableName: "common_name",
+					},
 					Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
 				},
 			},
@@ -77,6 +80,9 @@ func TestClientFull(t *testing.T) {
 					Secret:  testutils.Secret,
 				},
 				OpenVpn: config.OpenVpn{
+					CommonName: config.OpenVPNCommonName{
+						EnvironmentVariableName: "common_name",
+					},
 					Bypass:   config.OpenVpnBypass{CommonNames: make([]string, 0)},
 					Password: "password",
 				},
@@ -86,6 +92,23 @@ func TestClientFull(t *testing.T) {
 			nil,
 		},
 		{
+			name: "with username",
+			conf: config.Config{
+				HTTP: config.HTTP{
+					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
+					Secret:  testutils.Secret,
+				},
+				OpenVpn: config.OpenVpn{
+					CommonName: config.OpenVPNCommonName{
+						EnvironmentVariableName: "username",
+					},
+					Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
+				},
+			},
+			client: ">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,username=test\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END\r\n",
+			expect: "client-pending-auth 1 2 \"WEB_AUTH::",
+		},
+		{
 			"with invalid state",
 			config.Config{
 				HTTP: config.HTTP{
@@ -93,6 +116,9 @@ func TestClientFull(t *testing.T) {
 					Secret:  "012345678910111",
 				},
 				OpenVpn: config.OpenVpn{
+					CommonName: config.OpenVPNCommonName{
+						EnvironmentVariableName: "common_name",
+					},
 					Bypass:   config.OpenVpnBypass{CommonNames: make([]string, 0)},
 					Password: "password",
 				},
@@ -109,6 +135,9 @@ func TestClientFull(t *testing.T) {
 					Secret:  testutils.Secret,
 				},
 				OpenVpn: config.OpenVpn{
+					CommonName: config.OpenVPNCommonName{
+						EnvironmentVariableName: "common_name",
+					},
 					Bypass:   config.OpenVpnBypass{CommonNames: make([]string, 0)},
 					Password: "password",
 				},
@@ -125,6 +154,9 @@ func TestClientFull(t *testing.T) {
 					Secret:  testutils.Secret,
 				},
 				OpenVpn: config.OpenVpn{
+					CommonName: config.OpenVPNCommonName{
+						EnvironmentVariableName: "common_name",
+					},
 					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
 					Password: "password",
 				},
@@ -141,6 +173,9 @@ func TestClientFull(t *testing.T) {
 					Secret:  testutils.Secret,
 				},
 				OpenVpn: config.OpenVpn{
+					CommonName: config.OpenVPNCommonName{
+						EnvironmentVariableName: "common_name",
+					},
 					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
 					Password: "password",
 				},
@@ -157,6 +192,9 @@ func TestClientFull(t *testing.T) {
 					Secret:  testutils.Secret,
 				},
 				OpenVpn: config.OpenVpn{
+					CommonName: config.OpenVPNCommonName{
+						EnvironmentVariableName: "common_name",
+					},
 					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
 					Password: "password",
 				},
@@ -173,6 +211,9 @@ func TestClientFull(t *testing.T) {
 					Secret:  testutils.Secret,
 				},
 				OpenVpn: config.OpenVpn{
+					CommonName: config.OpenVPNCommonName{
+						EnvironmentVariableName: "common_name",
+					},
 					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
 					Password: "password",
 				},

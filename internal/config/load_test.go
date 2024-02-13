@@ -100,6 +100,7 @@ openvpn:
         - "test"
         - "test2"
     common-name:
+        environment-variable-name: X509_0_emailAddress
         mode: omit
     password: "1jd93h5b6s82lf03jh5b2hf9"
 http:
@@ -143,7 +144,8 @@ http:
 					AuthTokenUser:      true,
 					AuthPendingTimeout: 2 * time.Minute,
 					CommonName: config.OpenVPNCommonName{
-						Mode: config.CommonNameModeOmit,
+						EnvironmentVariableName: "X509_0_emailAddress",
+						Mode:                    config.CommonNameModeOmit,
 					},
 				},
 				OAuth2: config.OAuth2{

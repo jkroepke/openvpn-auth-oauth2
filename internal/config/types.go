@@ -54,7 +54,8 @@ type OpenVpnBypass struct {
 }
 
 type OpenVPNCommonName struct {
-	Mode OpenVPNCommonNameMode `koanf:"mode"`
+	EnvironmentVariableName string                `koanf:"environment-variable-name"`
+	Mode                    OpenVPNCommonNameMode `koanf:"mode"`
 }
 
 type OAuth2 struct {
