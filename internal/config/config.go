@@ -140,6 +140,14 @@ func FlagSet(name string) *flag.FlagSet {
 		"bypass oauth authentication for CNs. Comma separated list.",
 	)
 	flagSet.String(
+		"openvpn.common-name.environment-variable",
+		Defaults.OpenVpn.CommonName.EnvironmentVariableName,
+		"Name of the environment variable in the OpenVPN management interface which contains the common name. "+
+			"If username-as-common-name is enabled, this should be set to 'username' to use the username as common name. "+
+			"Other values like 'X509_0_emailAddress' are supported. "+
+			"See https://openvpn.net/community-resources/reference-manual-for-openvpn-2-6/#environmental-variables for more information.",
+	)
+	flagSet.String(
 		"openvpn.common-name.mode",
 		Defaults.OpenVpn.CommonName.Mode.String(),
 		"If common names are too long, use md5/sha1 to hash them or omit to skip them. "+

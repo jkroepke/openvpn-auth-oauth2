@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 )
 
 type Client struct {
@@ -12,11 +14,10 @@ type Client struct {
 	Reason     string
 	IPAddr     string
 	CommonName string
-	Username   string
 	IvSSO      string
 }
 
-func NewClient(message string) (Client, error) { //nolint:cyclop
+func NewClient(conf config.Config, message string) (Client, error) { //nolint:cyclop
 	client := Client{}
 
 	var (
@@ -47,10 +48,8 @@ func NewClient(message string) (Client, error) { //nolint:cyclop
 				client.IPAddr = envValue
 			case "untrusted_ip6":
 				client.IPAddr = envValue
-			case "common_name":
+			case conf.OpenVpn.CommonName.EnvironmentVariableName:
 				client.CommonName = envValue
-			case "username":
-				client.Username = envValue
 			case "IV_SSO":
 				client.IvSSO = envValue
 			}

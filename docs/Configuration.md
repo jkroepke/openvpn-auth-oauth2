@@ -87,6 +87,7 @@ openvpn:
         # - "test"
         # - "test2"
     common-name:
+        environment-variable-name: common_name
         mode: plain
     # password: ""
 provider:
@@ -179,6 +180,8 @@ Usage of openvpn-auth-oauth2:
     	Define auth-token-user for all sessions (env: CONFIG_OPENVPN_AUTH__TOKEN__USER) (default true)
   --openvpn.bypass.common-names value
     	bypass oauth authentication for CNs. Comma separated list. (env: CONFIG_OPENVPN_BYPASS_COMMON__NAMES)
+  --openvpn.common-name.environment-variable string
+    	Name of the environment variable in the OpenVPN management interface which contains the common name. If username-as-common-name is enabled, this should be set to 'username' to use the username as common name. Other values like 'X509_0_emailAddress' are supported. See https://openvpn.net/community-resources/reference-manual-for-openvpn-2-6/#environmental-variables for more information. (env: CONFIG_OPENVPN_COMMON__NAME_ENVIRONMENT__VARIABLE) (default "common_name")
   --openvpn.common-name.mode string
     	If common names are too long, use md5/sha1 to hash them or omit to skip them. If omit, oauth2.validate.common-name does not work anymore. Values: [plain,omit] (env: CONFIG_OPENVPN_COMMON__NAME_MODE) (default "plain")
   --openvpn.password value
@@ -318,3 +321,10 @@ CONFIG_OAUTH2_REFRESH_ENABLED=true
 CONFIG_OAUTH2_REFRESH_EXPIRES=8h
 CONFIG_OAUTH2_REFRESH_SECRET= # a static secret to encrypt token. Must be 16, 24 or 32
 ```
+
+## username-as-common-name
+
+If `username-as-common-name` is configured at OpenVPN server,
+ensure that `openvpn.common-name.environment-variable` is set to `username` as well.
+
+This is mandatory, because `username-as-common-name` works after the authentication process.
