@@ -96,7 +96,7 @@ nfpms:
       signature:
         key_file: "{{ .Env.GPG_KEY_PATH }}"
     deb:
-      compression: xz
+      #compression: xz
       signature:
         key_file: "{{ .Env.GPG_KEY_PATH }}"
 
