@@ -252,6 +252,10 @@ management-client-auth
 # management-hold holds the OpenVPN server until openvpn-auth-oauth2 has been connected.
 # In some situation, there is a deadlock where systemd waits for OpenVPN server, not starting
 #management-hold
+
+# If auth-user-pass-optional is not set, the OpenVPN server requires username/password from clients
+# and terminate the connection with an TLS error, if the client does not provide it.
+auth-user-pass-optional
 ```
 
 ```ini
