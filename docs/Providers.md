@@ -43,7 +43,7 @@ Restrict login based on groups can be configured inside the App Registration dir
 Referece: https://learn.microsoft.com/en-us/entra/identity-platform/howto-restrict-your-app-to-a-set-of-users#assign-the-app-to-users-and-groups-to-restrict-access
 
 How require multiple groups, check you could define `CONFIG_OAUTH2_VALIDATE_GROUPS`.
-  
+
 ## Google Cloud / Google Workspace
 
 ### Register an app on google cloud console
@@ -144,6 +144,42 @@ CONFIG_PROVIDER_GOOGLE_SERVICE__ACCOUNT__CONFIG=file://<path-to-json>
 # CONFIG_PROVIDER_GOOGLE_ADMIN__EMAIL=admin@example.com
 ```
 
+## Keycloak
+
+### Register an app as client with Keycloak
+
+1. Login as admin into your Keycloak admin console
+2. Create a new realm or use an existing one
+3. Create a new client
+   - Client ID: `openvpn-auth-oauth2`
+   - Client Type: `OpenID Connect`
+   - Name: `openvpn-auth-oauth2`
+4. On the capability config page, set the following values:
+   - Client authentication: On
+   - Authorization: Off
+   - Authentication flow: `Standard flow` only
+5. On the login settings page, set the following values:
+   - Root URL: `https://openvpn-auth-oauth2.example.com`
+   - Valid Redirect URIs: `https://openvpn-auth-oauth2.example.com/oauth2/callback`
+   - Web Origins: `https://openvpn-auth-oauth2.example.com`
+   - Save
+6. On the credential tab, take note of the Client ID and Client Secret.
+
+### Configuration
+
+Set the following variables in your openvpn-auth-oauth2 configuration file:
+
+```ini
+CONFIG_OAUTH2_ISSUER=https://<keycloak-domain>/auth/realms/<realm-name>
+CONFIG_OAUTH2_CLIENT_ID=openvpn-auth-oauth2
+CONFIG_OAUTH2_CLIENT_SECRET=<client-secret>
+```
+
+### Compare client OpenVPN and Web client IPs. (optional)
+
+There is no known configuration to enrich the token with the client's IP address. 
+If you know how to do this, please let us know.
+
 ## GitHub
 
 ### Caveats
@@ -154,7 +190,7 @@ A user must explicitly [request](https://help.github.com/articles/requesting-org
 openvpn-auth-oauth2 will not have the correct permissions to determine if the user is in that organization otherwise, and the user will
 not be able to log in. This request mechanism is a feature of the GitHub API.
 
-### Register the application in the identity provider¶
+### Register the application in the identity provider
 
 In GitHub, [register](https://github.com/settings/developers) a new application. The callback address should be the /oauth2/callback endpoint of your
 openvpn-auth-oauth2 URL (e.g. https://login.example.com/oauth2/callback).
