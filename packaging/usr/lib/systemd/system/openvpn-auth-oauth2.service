@@ -50,9 +50,10 @@ RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 RestrictNamespaces=true
 RestrictRealtime=true
 RestrictSUIDSGID=true
-SystemCallArchitectures=native
-SystemCallFilter=@system-service
-SystemCallFilter=~@privileged @resources
+#TODO:We currently not now what system calls we need, so we allow all.
+#SystemCallArchitectures=native
+#SystemCallFilter=@system-service
+#SystemCallFilter=~@privileged @resources
 UMask=0027
 
 [Install]
