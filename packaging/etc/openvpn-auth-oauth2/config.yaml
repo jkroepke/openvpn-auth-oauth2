@@ -16,7 +16,6 @@
 #    format: console
 #    level: INFO
 #oauth2:
-#    provider: "google"
 #    authorize-params: "a=c"
 #    client:
 #        id: "test"
@@ -26,6 +25,7 @@
 #        auth: "https://idp/oauth/auth"
 #        token: "https://idp/oauth/token"
 #    issuer: "https://idp"
+#    provider: "generic"
 #    scopes:
 #        - "openid"
 #        - "profile"
