@@ -36,7 +36,7 @@ func NewClient(logger *slog.Logger, conf config.Config, oauth2Client *oauth2.Pro
 
 		commandsBuffer: commandsBuffer,
 
-		errCh:             make(chan error, 2),
+		errCh:             make(chan error, 1),
 		clientsCh:         make(chan connection.Client, 10),
 		commandResponseCh: make(chan string, 10),
 		commandsCh:        make(chan string, 10),

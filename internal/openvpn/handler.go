@@ -108,6 +108,7 @@ func (c *Client) handleMessages() {
 		case ">HOLD:W":
 			c.commandsCh <- "hold release"
 		case "SUCCESS":
+			// SUCCESS: hold release succeeded
 			if message[9:13] == "hold" {
 				c.logger.Info("hold release succeeded")
 
