@@ -35,15 +35,18 @@ func ExpectVersionAndReleaseHold(tb testing.TB, conn net.Conn, reader *bufio.Rea
 	SendLine(tb, conn, ">HOLD:Waiting for hold release:0\r\n")
 
 	var expectedCommand int
+
 	for i := 0; i < 2; i++ {
 		line := ReadLine(tb, reader)
 		switch line {
 		case "hold release":
-			expectedCommand++
 			SendLine(tb, conn, "SUCCESS: hold release succeeded\r\n")
-		case "version":
+
 			expectedCommand++
+		case "version":
 			SendLine(tb, conn, "OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 5\r\nEND\r\n")
+
+			expectedCommand++
 		default:
 			require.Contains(tb, []string{"version", "hold release"}, line)
 		}

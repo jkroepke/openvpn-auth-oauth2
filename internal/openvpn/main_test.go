@@ -458,6 +458,7 @@ func TestSIGHUP(t *testing.T) {
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
+
 	go func() {
 		defer wg.Done()
 
