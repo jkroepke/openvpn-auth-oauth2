@@ -56,6 +56,7 @@ oauth2:
         # auth: "https://idp/oauth/auth"
         # token: "https://idp/oauth/token"
     issuer: "https://idp"
+    # provider: "generic" 
     # scopes:
     #  - "openid"
     #  - "profile"
