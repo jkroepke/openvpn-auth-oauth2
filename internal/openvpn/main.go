@@ -217,6 +217,8 @@ func (c *Client) rawCommand(cmd string) error {
 
 // readMessage .
 func (c *Client) readMessage(buf *bytes.Buffer) error {
+	buf.Reset()
+
 	var line []byte
 
 	for c.scanner.Scan() {

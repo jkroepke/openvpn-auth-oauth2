@@ -95,8 +95,8 @@ func (c *Client) handleMessages() {
 
 		message = buf.String()
 
-		switch {
-		case strings.HasPrefix(message, ">CLIENT:"):
+		switch message[0:7] {
+		case ">CLIENT":
 			client, err = connection.NewClient(c.conf, message)
 			if err != nil {
 				c.errCh <- err
@@ -105,19 +105,19 @@ func (c *Client) handleMessages() {
 			}
 
 			c.clientsCh <- client
-		case strings.HasPrefix(message, ">HOLD:"):
+		case ">HOLD:W":
 			c.commandsCh <- "hold release"
-		case strings.HasPrefix(message, "SUCCESS: hold release succeeded"):
-			c.logger.Info("hold release succeeded")
-		case strings.HasPrefix(message, "SUCCESS:"):
+		case "SUCCESS":
+			if message[9:13] == "hold" {
+				c.logger.Info("hold release succeeded")
+			}
+
 			fallthrough
-		case strings.HasPrefix(message, "ERROR:"):
+		case "ERROR: ":
 			fallthrough
-		case strings.HasPrefix(message, "OpenVPN Version:"):
+		case "OpenVPN":
 			c.commandResponseCh <- message
 		}
-
-		buf.Reset()
 	}
 }
 
