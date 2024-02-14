@@ -160,12 +160,12 @@ func (c *Client) Shutdown() {
 	c.closed = true
 	c.logger.Info("shutdown OpenVPN management connection")
 
+	c.errCh <- nil
 	if c.conn != nil {
 		_ = c.conn.Close()
 	}
 
 	close(c.commandsCh)
-	close(c.errCh)
 }
 
 // SendCommand passes command to a given connection (adds logging and EOL character) and returns the response.
