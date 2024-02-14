@@ -110,6 +110,8 @@ func (c *Client) handleMessages() {
 		case "SUCCESS":
 			if message[9:13] == "hold" {
 				c.logger.Info("hold release succeeded")
+
+				continue
 			}
 
 			fallthrough
