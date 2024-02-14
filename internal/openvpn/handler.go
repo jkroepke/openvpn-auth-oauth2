@@ -65,10 +65,8 @@ func (c *Client) handleMessages() {
 	defer close(c.clientsCh)
 
 	var (
-		err     error
-		buf     bytes.Buffer
-		client  connection.Client
-		message string
+		err error
+		buf bytes.Buffer
 	)
 
 	buf.Grow(4096)
@@ -82,45 +80,41 @@ func (c *Client) handleMessages() {
 				return
 			}
 
-			c.shutdownMu.Lock()
-
-			if !c.closed {
-				c.errCh <- fmt.Errorf("error reading bytes: %w", err)
-			}
-
-			c.shutdownMu.Unlock()
+			c.errCh <- fmt.Errorf("error reading bytes: %w", err)
 
 			return
 		}
 
-		message = buf.String()
+		c.handleMessage(buf.String())
+	}
+}
 
-		switch message[0:7] {
-		case ">CLIENT":
-			client, err = connection.NewClient(c.conf, message)
-			if err != nil {
-				c.errCh <- err
+func (c *Client) handleMessage(message string) {
+	switch message[0:7] {
+	case ">CLIENT":
+		client, err := connection.NewClient(c.conf, message)
+		if err != nil {
+			c.errCh <- err
 
-				return
-			}
-
-			c.clientsCh <- client
-		case ">HOLD:W":
-			c.commandsCh <- "hold release"
-		case "SUCCESS":
-			// SUCCESS: hold release succeeded
-			if message[9:13] == "hold" {
-				c.logger.Info("hold release succeeded")
-
-				continue
-			}
-
-			fallthrough
-		case "ERROR: ":
-			fallthrough
-		case "OpenVPN":
-			c.commandResponseCh <- message
+			return
 		}
+
+		c.clientsCh <- client
+	case ">HOLD:W":
+		c.commandsCh <- "hold release"
+	case "SUCCESS":
+		// SUCCESS: hold release succeeded
+		if message[9:13] == "hold" {
+			c.logger.Info("hold release succeeded")
+
+			return
+		}
+
+		fallthrough
+	case "ERROR: ":
+		fallthrough
+	case "OpenVPN":
+		c.commandResponseCh <- message
 	}
 }
 
