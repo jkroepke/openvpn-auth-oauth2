@@ -28,6 +28,30 @@ import (
 
 const Secret = "0123456789101112"
 
+func ExpectVersionAndReleaseHold(tb testing.TB, conn net.Conn, reader *bufio.Reader) {
+	tb.Helper()
+
+	SendLine(tb, conn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\r\n")
+	SendLine(tb, conn, ">HOLD:Waiting for hold release:0\r\n")
+
+	var expectedCommand int
+	for i := 0; i < 2; i++ {
+		line := ReadLine(tb, reader)
+		switch line {
+		case "hold release":
+			expectedCommand++
+			SendLine(tb, conn, "SUCCESS: hold release succeeded\r\n")
+		case "version":
+			expectedCommand++
+			SendLine(tb, conn, "OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 5\r\nEND\r\n")
+		default:
+			require.Contains(tb, []string{"version", "hold release"}, line)
+		}
+	}
+
+	require.Equal(tb, 2, expectedCommand)
+}
+
 func SendLine(tb testing.TB, conn net.Conn, msg string, a ...any) {
 	tb.Helper()
 

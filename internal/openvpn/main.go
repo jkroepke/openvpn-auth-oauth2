@@ -101,19 +101,6 @@ func (c *Client) setupConnection() error {
 	return err
 }
 
-func (c *Client) releaseManagementHold() error {
-	resp, err := c.SendCommand("hold release")
-	if err != nil {
-		return fmt.Errorf("error from hold release command: %w", err)
-	}
-
-	if !strings.HasPrefix(resp, "SUCCESS:") {
-		return fmt.Errorf("error from hold release command: %w: %s", ErrErrorResponse, resp)
-	}
-
-	return nil
-}
-
 func (c *Client) checkManagementInterfaceVersion() error {
 	resp, err := c.SendCommand("version")
 	if err != nil {

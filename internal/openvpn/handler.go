@@ -106,12 +106,9 @@ func (c *Client) handleMessages() {
 
 			c.clientsCh <- client
 		case strings.HasPrefix(message, ">HOLD:"):
-			err = c.releaseManagementHold()
-			if err != nil {
-				c.errCh <- err
-
-				return
-			}
+			c.commandsCh <- "hold release"
+		case strings.HasPrefix(message, "SUCCESS: hold release succeeded"):
+			c.logger.Info("hold release succeeded")
 		case strings.HasPrefix(message, "SUCCESS:"):
 			fallthrough
 		case strings.HasPrefix(message, "ERROR:"):

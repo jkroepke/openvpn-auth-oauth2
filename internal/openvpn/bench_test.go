@@ -60,12 +60,7 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 	reader := bufio.NewReader(managementInterfaceConn)
 
 	require.NoError(b, err)
-	testutils.SendLine(b, managementInterfaceConn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\r\n")
-	assert.Equal(b, "hold release", testutils.ReadLine(b, reader))
-	testutils.SendLine(b, managementInterfaceConn, "SUCCESS: hold release succeeded\r\n")
-	assert.Equal(b, "version", testutils.ReadLine(b, reader))
-
-	testutils.SendLine(b, managementInterfaceConn, "OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 5\r\nEND\r\n")
+	testutils.ExpectVersionAndReleaseHold(b, managementInterfaceConn, reader)
 
 	tests := []struct {
 		name   string

@@ -12,7 +12,6 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -41,13 +40,7 @@ func BenchmarkFull(b *testing.B) {
 	defer client.Shutdown()
 
 	reader := bufio.NewReader(managementInterfaceConn)
-
-	testutils.SendLine(b, managementInterfaceConn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\r\n")
-	testutils.SendLine(b, managementInterfaceConn, ">HOLD:Waiting for hold release:0\r\n")
-	assert.Equal(b, "hold release", testutils.ReadLine(b, reader))
-	testutils.SendLine(b, managementInterfaceConn, "SUCCESS: hold release succeeded\r\n")
-	assert.Equal(b, "version", testutils.ReadLine(b, reader))
-	testutils.SendLine(b, managementInterfaceConn, "OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 5\r\nEND\r\n")
+	testutils.ExpectVersionAndReleaseHold(b, managementInterfaceConn, reader)
 
 	time.Sleep(time.Millisecond * 100)
 
