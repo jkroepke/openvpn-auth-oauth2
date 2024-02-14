@@ -139,10 +139,9 @@ func TestExecuteConfigFileFound(t *testing.T) {
 		"--oauth2.client.id", clientCredentials.ID,
 	}
 
-	var buf bytes.Buffer
-	_ = io.Writer(&buf)
+	buf := new(testutils.Buffer)
 
-	returnCode := daemon.Execute(args, &buf, "version", "commit", "date")
+	returnCode := daemon.Execute(args, buf, "version", "commit", "date")
 
 	assert.Equal(t, 0, returnCode, buf.String())
 }
