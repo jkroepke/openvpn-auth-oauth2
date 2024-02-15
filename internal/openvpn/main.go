@@ -27,12 +27,9 @@ func NewClient(ctx context.Context, logger *slog.Logger, conf config.Config, oau
 		logger: logger,
 		oauth2: oauth2Client,
 
-		closed: false,
 		connMu: sync.Mutex{},
 
 		commandsBuffer: bytes.Buffer{},
-
-		passthroughConn: io.Discard,
 
 		clientsCh:         make(chan connection.Client, 10),
 		commandResponseCh: make(chan string, 10),
@@ -159,17 +156,15 @@ func (c *Client) checkClientSsoCapabilities(logger *slog.Logger, client connecti
 
 // Shutdown shutdowns the client connection.
 func (c *Client) Shutdown() {
-	c.connMu.Lock()
-	defer c.connMu.Unlock()
-
-	if c.closed {
+	if !c.closed.CompareAndSwap(0, 1) {
 		return
 	}
 
-	c.closed = true
 	c.logger.Info("shutdown OpenVPN management connection")
-
 	c.ctxCancel(nil)
+
+	c.connMu.Lock()
+	defer c.connMu.Unlock()
 
 	if c.conn != nil {
 		_ = c.conn.Close()

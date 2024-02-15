@@ -74,6 +74,8 @@ func (c *Client) handlePassthrough() {
 		}
 
 		c.handlePassthroughClient(conn)
+
+		conn = nil
 	}
 }
 
@@ -117,6 +119,7 @@ func (c *Client) handlePassthroughClient(conn net.Conn) {
 	}
 
 	var buf bytes.Buffer
+
 	buf.Grow(4096)
 
 	errCh := make(chan error, 1)
@@ -126,12 +129,15 @@ func (c *Client) handlePassthroughClient(conn net.Conn) {
 			line := scanner.Bytes()
 
 			if bytes.HasPrefix(line, []byte("client-deny")) || bytes.HasPrefix(line, []byte("client-auth")) || bytes.HasPrefix(line, []byte("hold")) {
+				c.writeToPassthroughClient("ERROR: command not allowed")
 				logger.Warn("passthrough client send client-deny or client-auth message, ignoring...")
+
 				continue
 			}
 
 			if bytes.HasPrefix(line, []byte("version")) {
 				c.writeToPassthroughClient("OpenVPN Version: openvpn-auth-oauth2\nManagement Interface Version: 5\nEND\n")
+
 				continue
 			}
 

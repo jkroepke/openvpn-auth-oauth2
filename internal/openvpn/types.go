@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net"
 	"sync"
+	"sync/atomic"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
@@ -21,7 +22,7 @@ type Client struct {
 	oauth2  *oauth2.Provider
 
 	connMu sync.Mutex
-	closed bool
+	closed atomic.Uint32
 
 	ctx       context.Context //nolint:containedctx
 	ctxCancel context.CancelCauseFunc
