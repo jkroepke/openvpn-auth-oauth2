@@ -82,7 +82,7 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 		go setupDebugListener(logger, conf, done)
 	}
 
-	server := httpserver.NewHTTPServer(ctx, logger, conf, oauth2Client.Handler())
+	server := httpserver.NewHTTPServer(logger, conf, oauth2Client.Handler())
 
 	go func() {
 		if err := server.Listen(); err != nil {
