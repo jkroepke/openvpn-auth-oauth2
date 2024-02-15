@@ -76,13 +76,13 @@ oauth2:
         groups:
         - "test"
         - "test2"
-        roles: 
+        roles:
         - "test"
         - "test2"
         ipaddr: true
         issuer: false
     authorize-params: "a=c"
-    scopes: 
+    scopes:
     - "openid"
     - "profile"
     nonce: true
@@ -103,6 +103,12 @@ openvpn:
         environment-variable-name: X509_0_emailAddress
         mode: omit
     password: "1jd93h5b6s82lf03jh5b2hf9"
+    pass-through:
+        address: "unix:///run/openvpn/pass-through.sock"
+        enabled: true
+        password: "password"
+        socket-group: "group"
+        socket-mode: 0666
 http:
     listen: ":9001"
     secret: "1jd93h5b6s82lf03jh5b2hf9"
@@ -146,6 +152,17 @@ http:
 					CommonName: config.OpenVPNCommonName{
 						EnvironmentVariableName: "X509_0_emailAddress",
 						Mode:                    config.CommonNameModeOmit,
+					},
+					Passthrough: config.OpenVPNPassthrough{
+						Enabled: true,
+						Address: &url.URL{
+							Scheme:   "unix",
+							Path:     "/run/openvpn/pass-through.sock",
+							OmitHost: false,
+						},
+						SocketGroup: "group",
+						SocketMode:  0o666,
+						Password:    "password",
 					},
 				},
 				OAuth2: config.OAuth2{

@@ -335,13 +335,13 @@ func TestHandler(t *testing.T) {
 			go func() {
 				defer wg.Done()
 
-				conn, err := managementInterface.Accept()
+				managementInterfaceConn, err := managementInterface.Accept()
 				require.NoError(t, err) //nolint:testifylint
 
-				defer conn.Close()
-				reader := bufio.NewReader(conn)
+				defer managementInterfaceConn.Close()
+				reader := bufio.NewReader(managementInterfaceConn)
 
-				testutils.ExpectVersionAndReleaseHold(t, conn, reader)
+				testutils.ExpectVersionAndReleaseHold(t, managementInterfaceConn, reader)
 
 				if tt.state != "-" {
 					return
@@ -349,16 +349,14 @@ func TestHandler(t *testing.T) {
 
 				switch {
 				case !tt.preAllow:
-					assert.Equal(t, `client-deny 0 1 "http client ip 127.0.0.1 and vpn ip 127.0.0.2 is different."`, testutils.ReadLine(t, reader))
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, `client-deny 0 1 "http client ip 127.0.0.1 and vpn ip 127.0.0.2 is different."`)
 				case !tt.postAllow:
-					assert.Equal(t, `client-deny 0 1 "client rejected"`, testutils.ReadLine(t, reader))
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, `client-deny 0 1 "client rejected"`)
 				default:
-					assert.Equal(t, "client-auth 0 1", testutils.ReadLine(t, reader))
-					assert.Equal(t, "push \"auth-token-user aWQx\"", testutils.ReadLine(t, reader))
-					assert.Equal(t, "END", testutils.ReadLine(t, reader))
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 0 1\npush \"auth-token-user aWQx\"\nEND")
 				}
 
-				testutils.SendLine(t, conn, "SUCCESS: client-auth command succeeded\r\n")
+				testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
 			}()
 
 			go func() {

@@ -21,6 +21,9 @@ EnvironmentFile=-/etc/sysconfig/openvpn-auth-oauth2
 #LoadCredential=openvpn-auth-oauth2:/etc/openvpn-auth-oauth2/
 #ConfigurationDirectory=openvpn-auth-oauth2
 #ConfigurationDirectoryMode=0750
+
+RuntimeDirectory=openvpn-auth-oauth2
+
 ReadWritePaths=-/run/openvpn -/run/openvpn-server
 
 RestartSec=5s

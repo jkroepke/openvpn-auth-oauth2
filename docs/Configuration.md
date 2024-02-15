@@ -56,7 +56,7 @@ oauth2:
         # auth: "https://idp/oauth/auth"
         # token: "https://idp/oauth/token"
     issuer: "https://idp"
-    # provider: "generic" 
+    # provider: "generic"
     # scopes:
     #  - "openid"
     #  - "profile"
@@ -91,8 +91,8 @@ openvpn:
         environment-variable-name: common_name
         mode: plain
     # password: ""
-    passthrough:
-        address: "unix:///run/openvpn/passthrough.sock"
+    pass-through:
+        address: "unix:///run/openvpn/pass-through.sock"
         enabled: false
         # password: ""
         # socket-group: ""
@@ -191,6 +191,16 @@ Usage of openvpn-auth-oauth2:
     	Name of the environment variable in the OpenVPN management interface which contains the common name. If username-as-common-name is enabled, this should be set to 'username' to use the username as common name. Other values like 'X509_0_emailAddress' are supported. See https://openvpn.net/community-resources/reference-manual-for-openvpn-2-6/#environmental-variables for more information. (env: CONFIG_OPENVPN_COMMON__NAME_ENVIRONMENT__VARIABLE) (default "common_name")
   --openvpn.common-name.mode string
     	If common names are too long, use md5/sha1 to hash them or omit to skip them. If omit, oauth2.validate.common-name does not work anymore. Values: [plain,omit] (env: CONFIG_OPENVPN_COMMON__NAME_MODE) (default "plain")
+  --openvpn.pass-through.address string
+    	The address of the pass-through socket. Must start with unix:// or tcp:// (env: CONFIG_OPENVPN_PASS__THROUGH_ADDRESS) (default "unix:/run/openvpn-auth-oauth2/server.sock")
+  --openvpn.pass-through.enabled
+    	If true, openvpn-auth-oauth2 will setup a pass-through socket for the OpenVPN management interface.  (env: CONFIG_OPENVPN_PASS__THROUGH_ENABLED)
+  --openvpn.pass-through.password value
+    	The password for the pass-through socket. If argument starts with file:// it reads the secret from a file. (env: CONFIG_OPENVPN_PASS__THROUGH_PASSWORD)
+  --openvpn.pass-through.socket-group string
+    	The group for the pass-through socket. Used only, if openvpn.pass-through.address starts with unix:// If empty, the group of the process is used. (env: CONFIG_OPENVPN_PASS__THROUGH_SOCKET__GROUP)
+  --openvpn.pass-through.socket-mode uint
+    	The unix file permission mode for the pass-through socket. Used only, if openvpn.pass-through.address starts with unix:// (env: CONFIG_OPENVPN_PASS__THROUGH_SOCKET__MODE) (default 660)
   --openvpn.password value
     	openvpn management interface password. If argument starts with file:// it reads the secret from a file. (env: CONFIG_OPENVPN_PASSWORD)
   --provider.google.admin-email string
@@ -201,6 +211,7 @@ Usage of openvpn-auth-oauth2:
     	Path to service account config for google admin api. Required, if oauth2.validate.groups is set. If argument starts with file:// it reads the secret from a file. (env: CONFIG_PROVIDER_GOOGLE_SERVICE__ACCOUNT__CONFIG)
   --version
     	show version
+
 ```
 <!-- END USAGE -->
 

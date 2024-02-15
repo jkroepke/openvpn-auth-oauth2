@@ -62,23 +62,23 @@ fmt:
 
 .PHONY: gogci
 gogci:
-	@go run github.com/daixiang0/gci@latest write .
+	@-go run github.com/daixiang0/gci@latest write .
 
 .PHONY: gofumpt
 gofumpt:
-	@go run mvdan.cc/gofumpt@latest -l -w .
+	@-go run mvdan.cc/gofumpt@latest -l -w .
 
 .PHONY: goimports
 goimports:
-	@go run golang.org/x/tools/cmd/goimports@latest -l -w .
+	@-go run golang.org/x/tools/cmd/goimports@latest -l -w .
 
 .PHONY: gowsl
 gowsl:
-	@go run github.com/bombsimon/wsl/v4/cmd...@latest -test=false -fix ./...
+	@-go run github.com/bombsimon/wsl/v4/cmd...@latest -strict-append -test=true -fix ./...
 
 .PHONY: goperfsprint
 goperfsprint:
-	@go run github.com/catenacyber/perfsprint@latest -fix ./...
+	@-go run github.com/catenacyber/perfsprint@latest -fix ./...
 
 .PHONY: golangci
 golangci:

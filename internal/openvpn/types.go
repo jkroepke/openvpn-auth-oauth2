@@ -14,6 +14,11 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
 )
 
+const (
+	SchemeTCP  = "tcp"
+	SchemeUnix = "unix"
+)
+
 type Client struct {
 	conf    config.Config
 	conn    net.Conn

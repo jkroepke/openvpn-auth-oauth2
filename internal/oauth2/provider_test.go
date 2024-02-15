@@ -16,12 +16,15 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/net/nettest"
 )
 
 func TestNewProvider(t *testing.T) {
 	t.Parallel()
 
-	clientListener := testutils.TCPTestListener(t)
+	clientListener, err := nettest.NewLocalListener("tcp")
+	require.NoError(t, err)
+
 	_, resourceServerURL, clientCredentials, err := testutils.SetupResourceServer(t, clientListener)
 	require.NoError(t, err)
 

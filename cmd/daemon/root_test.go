@@ -14,6 +14,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/net/nettest"
 )
 
 func TestExecuteVersion(t *testing.T) {
@@ -99,13 +100,17 @@ func TestExecuteConfigInvalid(t *testing.T) {
 //
 //nolint:paralleltest,nolintlint
 func TestExecuteConfigFileFound(t *testing.T) {
-	clientListener := testutils.TCPTestListener(t)
+	clientListener, err := nettest.NewLocalListener("tcp")
+	require.NoError(t, err)
+
 	defer clientListener.Close()
 
 	resourceServer, _, clientCredentials, err := testutils.SetupResourceServer(t, clientListener)
 	require.NoError(t, err)
 
-	managementInterface := testutils.TCPTestListener(t)
+	managementInterface, err := nettest.NewLocalListener("tcp")
+	require.NoError(t, err)
+
 	defer managementInterface.Close()
 
 	go func() {

@@ -64,7 +64,7 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 		return 1
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithCancelCause(context.Background())
 
 	storageClient := storage.New(conf.OAuth2.Refresh.Secret.String(), conf.OAuth2.Refresh.Expires)
 	oauth2Client := oauth2.New(logger, conf, storageClient)
@@ -86,6 +86,8 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 
 	go func() {
 		if err := server.Listen(); err != nil {
+			cancel(nil)
+
 			logger.Error(fmt.Errorf("error http listener: %w", err).Error())
 			done <- 1
 
@@ -97,7 +99,7 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 
 	go func() {
 		if err := openvpnClient.Connect(); err != nil {
-			logger.Error(fmt.Errorf("error OpenVPN: %w", err).Error())
+			logger.Error(fmt.Errorf("OpenVPN: %w", err).Error())
 			done <- 1
 
 			return
@@ -114,6 +116,8 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 	case returnCode = <-done:
 	case sig := <-termCh:
 		logger.Info("receiving signal: " + sig.String())
+
+		cancel(nil)
 	}
 
 	shutdown(logger, openvpnClient, server)

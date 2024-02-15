@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
@@ -15,9 +16,19 @@ import (
 func (c *Client) handlePassword() error {
 	buf := make([]byte, 15)
 
-	_, err := c.conn.Read(buf)
+	err := c.conn.SetReadDeadline(time.Now().Add(1 * time.Second))
 	if err != nil {
-		return fmt.Errorf("read first message: %w", err)
+		return fmt.Errorf("set read deadline: %w", err)
+	}
+
+	_, err = c.conn.Read(buf)
+	if err != nil {
+		return fmt.Errorf("error probe password: %w", err)
+	}
+
+	err = c.conn.SetReadDeadline(time.Time{})
+	if err != nil {
+		return fmt.Errorf("set read deadline: %w", err)
 	}
 
 	c.logger.Debug(utils.StringConcat("password probe: ", string(buf)))
@@ -110,15 +121,18 @@ func (c *Client) handleMessage(message string) {
 			return
 		}
 
-		if message[9:15] == "client" || message[9:16] == "version" {
-			c.commandResponseCh <- message
+		c.commandResponseCh <- message
+	case ">INFO:O":
+		// welcome message
+		if message == ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\n" {
+			return
 		}
 
-		c.writeToPassthroughClient(message)
+		fallthrough
 	case "ERROR: ", "OpenVPN":
-		c.commandResponseCh <- message
+		fallthrough
 	default:
-		c.writeToPassthroughClient(message)
+		c.commandResponseCh <- message
 	}
 }
 

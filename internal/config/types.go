@@ -47,7 +47,7 @@ type OpenVpn struct {
 	AuthTokenUser      bool               `koanf:"auth-token-user"`
 	AuthPendingTimeout time.Duration      `koanf:"auth-pending-timeout"`
 	CommonName         OpenVPNCommonName  `koanf:"common-name"`
-	Passthrough        OpenVPNPassthrough `koanf:"passthrough"`
+	Passthrough        OpenVPNPassthrough `koanf:"pass-through"`
 }
 
 type OpenVpnBypass struct {

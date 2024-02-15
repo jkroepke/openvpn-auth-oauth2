@@ -19,7 +19,7 @@ const (
 func FlagSet(name string) *flag.FlagSet {
 	flagSet := flag.NewFlagSet(name, flag.ContinueOnError)
 	flagSet.Usage = func() {
-		fmt.Fprintf(flagSet.Output(), "Usage of %s:\n\n", name)
+		_, _ = fmt.Fprintf(flagSet.Output(), "Usage of %s:\n\n", name)
 		// --help should display options with double dash
 		flagSet.VisitAll(func(flag *flag.Flag) {
 			flag.Name = "-" + flag.Name
@@ -154,30 +154,30 @@ func FlagSet(name string) *flag.FlagSet {
 			"If omit, oauth2.validate.common-name does not work anymore. Values: [plain,omit]",
 	)
 	flagSet.Bool(
-		"openvpn.passthrough.enabled",
+		"openvpn.pass-through.enabled",
 		Defaults.OpenVpn.Passthrough.Enabled,
-		"If true, openvpn-auth-oauth2 will setup a passthrough socket for the OpenVPN management interface. ",
+		"If true, openvpn-auth-oauth2 will setup a pass-through socket for the OpenVPN management interface. ",
 	)
 	flagSet.String(
-		"openvpn.passthrough.address",
+		"openvpn.pass-through.address",
 		Defaults.OpenVpn.Passthrough.Address.String(),
-		"The address of the passthrough socket. Must start with unix:// or tcp://",
+		"The address of the pass-through socket. Must start with unix:// or tcp://",
 	)
-	flagSet.TextVar(new(StringSlice),
-		"openvpn.passthrough.password",
+	flagSet.TextVar(new(Secret),
+		"openvpn.pass-through.password",
 		Defaults.OpenVpn.Passthrough.Password,
-		"The password for the passthrough socket. If argument starts with file:// it reads the secret from a file.",
+		"The password for the pass-through socket. If argument starts with file:// it reads the secret from a file.",
 	)
 	flagSet.String(
-		"openvpn.passthrough.socket-group",
+		"openvpn.pass-through.socket-group",
 		Defaults.OpenVpn.Passthrough.SocketGroup,
-		"The group for the passthrough socket. Used only, if openvpn.passthrough.address starts with unix:// "+
+		"The group for the pass-through socket. Used only, if openvpn.pass-through.address starts with unix:// "+
 			"If empty, the group of the process is used.",
 	)
 	flagSet.Uint(
-		"openvpn.passthrough.socket-mode",
+		"openvpn.pass-through.socket-mode",
 		Defaults.OpenVpn.Passthrough.SocketMode,
-		"The unix file permission mode for the passthrough socket. Used only, if openvpn.passthrough.address starts with unix://",
+		"The unix file permission mode for the pass-through socket. Used only, if openvpn.pass-through.address starts with unix://",
 	)
 	flagSet.String(
 		"oauth2.issuer",

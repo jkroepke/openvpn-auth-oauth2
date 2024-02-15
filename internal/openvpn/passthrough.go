@@ -2,40 +2,56 @@ package openvpn
 
 import (
 	"bufio"
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"net"
+	"os"
+	"strings"
+	"sync"
 	"time"
+
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
+// handlePassthrough starts a listener for the passthrough interface. This allows the management interface to be
+// accessed from a different network interface or even from a different machine.
+// The passthrough interface is a simple text-based protocol that allows the client to send commands to the management
+// interface and receive the responses.
+// The passthrough interface is disabled by default. To enable it, set the passthrough.enabled option to true in the
+// configuration file.
+//
+//nolint:cyclop
 func (c *Client) handlePassthrough() {
-	var (
-		conn     net.Conn
-		err      error
-		listener net.Listener
-	)
+	var conn net.Conn
 
-	switch c.conf.OpenVpn.Passthrough.Address.Scheme {
-	case "tcp":
-		listener, err = net.Listen(c.conf.OpenVpn.Passthrough.Address.Scheme, c.conf.OpenVpn.Passthrough.Address.Host)
-	case "unix":
-		listener, err = net.Listen(c.conf.OpenVpn.Passthrough.Address.Scheme, c.conf.OpenVpn.Passthrough.Address.Path)
-	default:
-		err = fmt.Errorf("%w %s", ErrUnknownProtocol, c.conf.OpenVpn.Addr.Scheme)
-	}
+	c.logger.Info("start pass-through listener on " + c.conf.OpenVpn.Passthrough.Address.String())
 
+	listener, closer, err := c.setupPassthroughListener()
 	if err != nil {
-		c.ctxCancel(fmt.Errorf("error setup openvpn management passthrough listener: %w", err))
+		c.ctxCancel(fmt.Errorf("error setup openvpn management pass-through listener: %w", err))
 
 		return
 	}
 
-	defer listener.Close()
+	defer func() {
+		defer closer()
+
+		if r := recover(); r != nil {
+			c.ctxCancel(fmt.Errorf("panic: %v", r))
+		}
+	}()
+
+	connMu := sync.Mutex{}
 
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				c.logger.Warn(fmt.Errorf("panic: %v", r).Error())
+			}
+		}()
+
 		var (
 			err     error
 			message string
@@ -44,7 +60,7 @@ func (c *Client) handlePassthrough() {
 		for {
 			select {
 			case <-c.ctx.Done():
-				listener.Close()
+				closer()
 
 				return // Error somewhere, terminate
 			case message = <-c.passthroughCh:
@@ -52,17 +68,21 @@ func (c *Client) handlePassthrough() {
 					return
 				}
 
+				connMu.Lock()
 				if conn == nil {
 					continue
 				}
 
 				_ = conn.SetWriteDeadline(time.Now().Add(20 * time.Millisecond))
-
 				if _, err = conn.Write([]byte(message + "\n")); err != nil {
-					c.logger.Warn(fmt.Errorf("unable to write message to client %s: %w", conn.RemoteAddr(), err).Error())
+					connMu.Unlock()
+
+					c.logger.Warn(fmt.Errorf("unable to write message to client %w", err).Error(), slog.String("client", conn.RemoteAddr().String()))
 
 					return
 				}
+
+				connMu.Unlock()
 			}
 		}
 	}()
@@ -78,7 +98,9 @@ func (c *Client) handlePassthrough() {
 
 		c.handlePassthroughClient(conn)
 
+		connMu.Lock()
 		conn = nil
+		connMu.Unlock()
 	}
 }
 
@@ -92,12 +114,18 @@ func (c *Client) handlePassthroughClient(conn net.Conn) {
 	defer conn.Close()
 
 	var (
-		buf bytes.Buffer
-		err error
+		err    error
+		logger *slog.Logger
 	)
 
-	logger := c.logger.With(slog.String("client", conn.RemoteAddr().String()))
-	logger.Info("accepted connection")
+	switch c.conf.OpenVpn.Passthrough.Address.Scheme {
+	case SchemeTCP:
+		logger = c.logger.With(slog.String("client", conn.RemoteAddr().String()))
+	case SchemeUnix:
+		logger = c.logger.With(slog.String("client", conn.RemoteAddr().Network()))
+	}
+
+	logger.Info("pass-through: accepted connection")
 
 	scanner := bufio.NewScanner(conn)
 	scanner.Split(bufio.ScanLines)
@@ -109,52 +137,61 @@ func (c *Client) handlePassthroughClient(conn net.Conn) {
 		return
 	}
 
-	buf.Grow(4096)
-
-	errCh := make(chan error, 1)
-
-	go func(errCh chan error) {
-		for scanner.Scan() {
-			line := scanner.Bytes()
-
-			if bytes.HasPrefix(line, []byte("client-deny")) || bytes.HasPrefix(line, []byte("client-auth")) || bytes.HasPrefix(line, []byte("hold")) {
-				c.writeToPassthroughClient("ERROR: command not allowed")
-				logger.Warn("passthrough client send client-deny or client-auth message, ignoring...")
-
-				continue
-			}
-
-			if bytes.HasPrefix(line, []byte("version")) {
-				c.writeToPassthroughClient("OpenVPN Version: openvpn-auth-oauth2\nManagement Interface Version: 5\nEND\n")
-
-				continue
-			}
-
-			if _, err := buf.Write(line); err != nil {
-				errCh <- fmt.Errorf("unable to write string to buffer: %w", err)
-
-				return
-			}
-
-			if _, err := buf.WriteString("\n"); err != nil {
-				errCh <- fmt.Errorf("unable to newline to buffer: %w", err)
-
-				return
-			}
-		}
-
-		errCh <- c.scanner.Err()
-	}(errCh)
-
-	err = <-errCh
-	if err != nil {
+	if err = c.handlePassthroughClientCommands(conn, logger, scanner); err != nil {
 		logger.Warn(err.Error())
 	}
+
+	logger.Info("pass-through: closed connection")
+}
+
+func (c *Client) handlePassthroughClientCommands(conn net.Conn, logger *slog.Logger, scanner *bufio.Scanner) error {
+	var (
+		err  error
+		line string
+		resp string
+	)
+
+	for scanner.Scan() {
+		line = scanner.Text()
+
+		logger.LogAttrs(c.ctx, slog.LevelDebug, "received command", slog.String("command", line))
+
+		switch {
+		case strings.HasPrefix(line, "client-deny"), strings.HasPrefix(line, "client-auth"):
+			c.writeToPassthroughClient("ERROR: command not allowed")
+			logger.Warn("pass-through: client send client-deny or client-auth message, ignoring...")
+
+			continue
+		case strings.HasPrefix(line, "hold"):
+			c.writeToPassthroughClient("SUCCESS: hold release succeeded")
+
+			continue
+		case strings.HasPrefix(line, "exit"):
+			conn.Close()
+
+			return nil
+		case line == "":
+			continue
+		}
+
+		resp, err = c.SendCommand(line, true)
+		if err != nil {
+			logger.Warn(fmt.Errorf("pass-through: error from command '%s': %w", line, err).Error())
+		} else {
+			c.writeToPassthroughClient(strings.TrimSpace(resp))
+		}
+	}
+
+	return fmt.Errorf("pass-through: unable to read from client: %w", c.scanner.Err())
 }
 
 func (c *Client) handlePassthroughClientAuth(conn net.Conn, scanner *bufio.Scanner) error {
 	if c.conf.OpenVpn.Passthrough.Password.String() == "" {
 		return nil
+	}
+
+	if err := conn.SetWriteDeadline(time.Now().Add(20 * time.Millisecond)); err != nil {
+		return fmt.Errorf("unable to set write deadline: %w", err)
 	}
 
 	_, err := conn.Write([]byte("ENTER PASSWORD:"))
@@ -167,11 +204,63 @@ func (c *Client) handlePassthroughClientAuth(conn net.Conn, scanner *bufio.Scann
 			err = io.EOF
 		}
 
-		return fmt.Errorf("unable to read from client: %w", err)
+		return fmt.Errorf("pass-through: unable to read from client: %w", err)
 	}
 
 	if scanner.Text() != c.conf.OpenVpn.Passthrough.Password.String() {
-		return errors.New("client provide invalid password")
+		return errors.New("pass-through: client provide invalid password")
+	}
+
+	return nil
+}
+
+func (c *Client) setupPassthroughListener() (net.Listener, func(), error) {
+	var (
+		err      error
+		listener net.Listener
+		closer   func()
+	)
+
+	switch c.conf.OpenVpn.Passthrough.Address.Scheme {
+	case SchemeTCP:
+		listener, err = net.Listen(c.conf.OpenVpn.Passthrough.Address.Scheme, c.conf.OpenVpn.Passthrough.Address.Host)
+		if err != nil {
+			return nil, nil, fmt.Errorf("error listen: %w", err)
+		}
+
+		closer = func() { listener.Close() }
+	case SchemeUnix:
+		listener, err = net.Listen(c.conf.OpenVpn.Passthrough.Address.Scheme, c.conf.OpenVpn.Passthrough.Address.Path)
+		if err != nil {
+			return nil, nil, fmt.Errorf("error listen: %w", err)
+		}
+
+		if err = c.setupUNIXSocketPermissions(); err != nil {
+			return nil, nil, err
+		}
+
+		closer = func() { listener.Close(); _ = os.Remove(c.conf.OpenVpn.Passthrough.Address.Path) }
+	default:
+		return nil, nil, fmt.Errorf("%w %s", ErrUnknownProtocol, c.conf.OpenVpn.Addr.Scheme)
+	}
+
+	return listener, closer, nil
+}
+
+func (c *Client) setupUNIXSocketPermissions() error {
+	if c.conf.OpenVpn.Passthrough.SocketGroup != "" {
+		gid, err := utils.LookupGroup(c.conf.OpenVpn.Passthrough.SocketGroup)
+		if err != nil {
+			return fmt.Errorf("error lookup group: %w", err)
+		}
+
+		if err = os.Chown(c.conf.OpenVpn.Passthrough.Address.Path, -1, gid); err != nil {
+			return fmt.Errorf("error chown: %w", err)
+		}
+	}
+
+	if err := os.Chmod(c.conf.OpenVpn.Passthrough.Address.Path, os.FileMode(c.conf.OpenVpn.Passthrough.SocketMode)); err != nil {
+		return fmt.Errorf("error chmod: %w", err)
 	}
 
 	return nil

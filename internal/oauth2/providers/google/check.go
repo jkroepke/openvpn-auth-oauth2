@@ -29,7 +29,7 @@ func (p *Provider) CheckUser(
 	return p.Provider.CheckUser(ctx, session, userData, tokens) //nolint:wrapcheck
 }
 
-// fetchGroupsFromAdminAPI fetches the groups of a user from the Google Admin API.
+// fetchGroupsFromAdminAPI fetches the groups of the user from the Google Admin API.
 func (p *Provider) fetchGroupsFromAdminAPI(ctx context.Context, tokens *oidc.Tokens[*idtoken.Claims]) ([]string, error) {
 	// https://developers.google.com/admin-sdk/directory/reference/rest/v1/groups/list
 	apiURL := &url.URL{
