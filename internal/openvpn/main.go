@@ -165,6 +165,7 @@ func (c *Client) Shutdown() {
 	if c.conn != nil {
 		_ = c.conn.Close()
 	}
+
 	close(c.commandsCh)
 }
 
