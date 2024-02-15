@@ -110,9 +110,15 @@ func (c *Client) handleMessage(message string) {
 			return
 		}
 
-		fallthrough
+		if message[9:15] == "client" || message[9:16] == "version" {
+			c.commandResponseCh <- message
+		}
+
+		c.writeToPassthroughClient(message)
 	case "ERROR: ", "OpenVPN":
 		c.commandResponseCh <- message
+	default:
+		c.writeToPassthroughClient(message)
 	}
 }
 

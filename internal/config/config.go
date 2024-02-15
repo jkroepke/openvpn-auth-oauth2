@@ -153,6 +153,32 @@ func FlagSet(name string) *flag.FlagSet {
 		"If common names are too long, use md5/sha1 to hash them or omit to skip them. "+
 			"If omit, oauth2.validate.common-name does not work anymore. Values: [plain,omit]",
 	)
+	flagSet.Bool(
+		"openvpn.passthrough.enabled",
+		Defaults.OpenVpn.Passthrough.Enabled,
+		"If true, openvpn-auth-oauth2 will setup a passthrough socket for the OpenVPN management interface. ",
+	)
+	flagSet.String(
+		"openvpn.passthrough.address",
+		Defaults.OpenVpn.Passthrough.Address.String(),
+		"The address of the passthrough socket. Must start with unix:// or tcp://",
+	)
+	flagSet.TextVar(new(StringSlice),
+		"openvpn.passthrough.password",
+		Defaults.OpenVpn.Passthrough.Password,
+		"The password for the passthrough socket. If argument starts with file:// it reads the secret from a file.",
+	)
+	flagSet.String(
+		"openvpn.passthrough.socket-group",
+		Defaults.OpenVpn.Passthrough.SocketGroup,
+		"The group for the passthrough socket. Used only, if openvpn.passthrough.address starts with unix:// "+
+			"If empty, the group of the process is used.",
+	)
+	flagSet.Uint(
+		"openvpn.passthrough.socket-mode",
+		Defaults.OpenVpn.Passthrough.SocketMode,
+		"The unix file permission mode for the passthrough socket. Used only, if openvpn.passthrough.address starts with unix://",
+	)
 	flagSet.String(
 		"oauth2.issuer",
 		Defaults.OAuth2.Issuer.String(),

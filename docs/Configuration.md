@@ -91,6 +91,12 @@ openvpn:
         environment-variable-name: common_name
         mode: plain
     # password: ""
+    passthrough:
+        address: "unix:///run/openvpn/passthrough.sock"
+        enabled: false
+        # password: ""
+        # socket-group: ""
+        # socket-mode: 660
 provider:
     google:
         admin-email: ""

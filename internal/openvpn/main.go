@@ -32,9 +32,12 @@ func NewClient(ctx context.Context, logger *slog.Logger, conf config.Config, oau
 
 		commandsBuffer: bytes.Buffer{},
 
+		passthroughConn: io.Discard,
+
 		clientsCh:         make(chan connection.Client, 10),
 		commandResponseCh: make(chan string, 10),
 		commandsCh:        make(chan string, 10),
+		passthroughCh:     make(chan string, 10),
 	}
 
 	client.commandsBuffer.Grow(512)
@@ -68,6 +71,10 @@ func (c *Client) Connect() error {
 	go c.handleCommands()
 
 	c.logger.Info("connection to OpenVPN management interface established.")
+
+	if c.conf.OpenVpn.Passthrough.Enabled {
+		go c.handlePassthrough()
+	}
 
 	err = c.checkManagementInterfaceVersion()
 	if err != nil {
