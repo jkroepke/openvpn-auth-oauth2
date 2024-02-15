@@ -247,11 +247,10 @@ func (c *Client) readMessage(buf *bytes.Buffer) error {
 }
 
 func (c *Client) isMessageLineEOF(line []byte) bool {
-	return bytes.HasPrefix(line, []byte(">CLIENT:ENV,END")) ||
-		bytes.HasPrefix(line, []byte("SUCCESS:")) ||
-		bytes.HasPrefix(line, []byte("ERROR:")) ||
-		bytes.HasPrefix(line, []byte("END")) ||
-		bytes.HasPrefix(line, []byte(">HOLD:")) ||
-		bytes.HasPrefix(line, []byte(">INFO:")) ||
-		bytes.HasPrefix(line, []byte(">NOTIFY:"))
+	switch string(line[0:2]) {
+	case "SUC", "ERR", "END", ">HO", ">IN", ">NO":
+		return true
+	default:
+		return bytes.HasPrefix(line, []byte(">CLIENT:ENV,END"))
+	}
 }

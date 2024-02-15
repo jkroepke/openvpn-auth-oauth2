@@ -111,9 +111,7 @@ func (c *Client) handleMessage(message string) {
 		}
 
 		fallthrough
-	case "ERROR: ":
-		fallthrough
-	case "OpenVPN":
+	case "ERROR: ", "OpenVPN":
 		c.commandResponseCh <- message
 	}
 }
