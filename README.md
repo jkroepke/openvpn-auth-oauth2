@@ -47,8 +47,7 @@ of connecting users against OIDC providers like
 
 #### Partial Working
 
-- [OpenVPN Connect v3 for Windows/macOS/Linux](https://openvpn.net/vpn-server-resources/connecting-to-access-server-with-macos/) ([REAUTH issues](https://github.com/OpenVPN/openvpn3/issues/282);
-  workaround: [`--oauth2.refresh.enabled=true`](https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Configuration#non-interactive-session-refresh))
+- [OpenVPN Connect v3 for Windows/macOS/Linux](https://openvpn.net/vpn-server-resources/connecting-to-access-server-with-macos/) ([REAUTH issues](https://github.com/OpenVPN/openvpn3/issues/282); [workaround](https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Debugging-Errors#error-message-received-control-message-push_request-in-openvpn-client-v3)
 
 #### Non-Working
 
