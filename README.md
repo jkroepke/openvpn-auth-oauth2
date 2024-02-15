@@ -47,7 +47,7 @@ of connecting users against OIDC providers like
 
 #### Partial Working
 
-- [OpenVPN Connect v3 for Windows/macOS/Linux] ([workaround](https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Debugging-Errors#error-message-received-control-message-push_request-in-openvpn-client-v3))
+- [OpenVPN Connect v3 for Windows/macOS/Linux](https://openvpn.net/vpn-server-resources/connecting-to-access-server-with-macos/) ([workaround](https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Debugging-Errors#error-message-received-control-message-push_request-in-openvpn-client-v3))
 
 #### Non-Working
 
