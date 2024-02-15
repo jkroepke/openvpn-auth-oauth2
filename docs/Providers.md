@@ -145,7 +145,7 @@ CONFIG_PROVIDER_GOOGLE_SERVICE__ACCOUNT__CONFIG=file://<path-to-json>
 # CONFIG_PROVIDER_GOOGLE_ADMIN__EMAIL=admin@example.com
 # If you see this error `Received control message: 'PUSH_REQUEST'` you need to add these configuration
 # CONFIG_OAUTH2_REFRESH_ENABLED=true
-# CONFIG_OAUTH2_REFRESH_EXPIRES=24h
+# CONFIG_OAUTH2_REFRESH_EXPIRES=24h 
 ```
 
 ## GitHub
