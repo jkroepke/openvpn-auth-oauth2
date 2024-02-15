@@ -33,11 +33,37 @@ I assume, you are using a Chrome-based Browser.
    Example Screenshot:
    ![](./img/debugging-error-cookie-callback.png)
 
-## Error Message `Received control message: 'PUSH_REQUEST'`
+## Error Message `Received control message: 'PUSH_REQUEST'` in OpenVPN Client v3
 
-If you see this message in the Client side, you may want to make sure you added these lines to your oauth configuration file
+Sometimes the client stuck at this stage `Received control message: 'PUSH_REQUEST'` and can't connect, and at the end it will timeout like this message `Connection Timeout`, and you can see in the logs like this:
+
+```ini
+⏎[Feb 14, 2024, 22:28:57] Session is ACTIVE
+⏎[Feb 14, 2024, 22:28:57] EVENT: GET_CONFIG ⏎[Feb 14, 2024, 22:28:57] Sending PUSH_REQUEST to server...
+⏎[Feb 14, 2024, 22:28:58] Sending PUSH_REQUEST to server...
+⏎[Feb 14, 2024, 22:29:00] Sending PUSH_REQUEST to server...
+⏎[Feb 14, 2024, 22:29:03] Sending PUSH_REQUEST to server...
+⏎[Feb 14, 2024, 22:29:06] Sending PUSH_REQUEST to server...
+⏎[Feb 14, 2024, 22:29:09] Sending PUSH_REQUEST to server...
+⏎[Feb 14, 2024, 22:29:12] Sending PUSH_REQUEST to server...
+⏎[Feb 14, 2024, 22:29:15] Sending PUSH_REQUEST to server...
+⏎[Feb 14, 2024, 22:29:18] Sending PUSH_REQUEST to server...
+⏎[Feb 14, 2024, 22:29:21] Sending PUSH_REQUEST to server...
+⏎[Feb 14, 2024, 22:29:24] Sending PUSH_REQUEST to server...
+⏎[Feb 14, 2024, 22:29:27] Sending PUSH_REQUEST to server...
+⏎[Feb 14, 2024, 22:29:29] Raw stats on disconnect:
+ BYTES_IN : 3483
+ BYTES_OUT : 4088
+ PACKETS_IN : 18
+ PACKETS_OUT : 20
+```
+
+If you see this message in the Client side (version3), you may want to make sure you added these lines to your oauth configuration file
 
 ```ini
 CONFIG_OAUTH2_REFRESH_ENABLED=true
 CONFIG_OAUTH2_REFRESH_EXPIRES=24h 
+CONFIG_OAUTH2_REFRESH_SECRET=xxxxxxxxxxxxxxxx # 16 or 24 charachters
 ```
+
+For reference you can read more about this properties in the wiki at this [link](https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Configuration#non-interactive-session-refresh)
