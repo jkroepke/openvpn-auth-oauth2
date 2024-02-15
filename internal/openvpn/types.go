@@ -23,7 +23,7 @@ type Client struct {
 	connMu sync.Mutex
 	closed bool
 
-	ctx       context.Context
+	ctx       context.Context //nolint:containedctx
 	ctxCancel context.CancelCauseFunc
 
 	commandsBuffer bytes.Buffer
