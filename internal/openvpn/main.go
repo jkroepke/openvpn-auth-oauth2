@@ -160,11 +160,11 @@ func (c *Client) Shutdown() {
 	c.closed = true
 	c.logger.Info("shutdown OpenVPN management connection")
 
+	c.ctxCancel(nil)
+
 	if c.conn != nil {
 		_ = c.conn.Close()
 	}
-
-	c.ctxCancel(nil)
 	close(c.commandsCh)
 }
 
