@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io"
 	"log/slog"
 	"net"
 	"time"
@@ -87,17 +86,40 @@ func (c *Client) writeToPassthroughClient(message string) {
 func (c *Client) handlePassthroughClient(conn net.Conn) {
 	defer conn.Close()
 
+	var err error
+
 	logger := c.logger.With(slog.String("client", conn.RemoteAddr().String()))
 	logger.Info("accepted connection")
-
-	errCh := make(chan error, 1)
 
 	scanner := bufio.NewScanner(conn)
 	scanner.Split(bufio.ScanLines)
 	scanner.Buffer(make([]byte, 0, bufio.MaxScanTokenSize), bufio.MaxScanTokenSize)
 
+	if c.conf.OpenVpn.Passthrough.Password.String() != "" {
+		_, err = c.conn.Write([]byte("ENTER PASSWORD:"))
+		if err != nil {
+			logger.Warn(fmt.Errorf("unable to write to client: %w", err).Error())
+			return
+		}
+
+		if !scanner.Scan() {
+			if c.scanner.Err() != nil {
+				logger.Warn(c.scanner.Err().Error())
+			}
+
+			return
+		}
+
+		if scanner.Text() != c.conf.OpenVpn.Passthrough.Password.String() {
+			logger.Warn("client provide invalid password")
+			return
+		}
+	}
+
 	var buf bytes.Buffer
 	buf.Grow(4096)
+
+	errCh := make(chan error, 1)
 
 	go func(errCh chan error) {
 		for scanner.Scan() {
@@ -109,7 +131,7 @@ func (c *Client) handlePassthroughClient(conn net.Conn) {
 			}
 
 			if bytes.HasPrefix(line, []byte("version")) {
-				c.writeToPassthroughClient(string(line))
+				c.writeToPassthroughClient("OpenVPN Version: openvpn-auth-oauth2\nManagement Interface Version: 5\nEND\n")
 				continue
 			}
 
@@ -125,10 +147,12 @@ func (c *Client) handlePassthroughClient(conn net.Conn) {
 				return
 			}
 		}
+
+		errCh <- c.scanner.Err()
 	}(errCh)
 
-	err := <-errCh
-	if err != nil && err != io.EOF {
+	err = <-errCh
+	if err != nil {
 		logger.Warn(err.Error())
 	}
 }
