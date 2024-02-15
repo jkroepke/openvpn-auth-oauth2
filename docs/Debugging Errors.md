@@ -33,4 +33,11 @@ I assume, you are using a Chrome-based Browser.
    Example Screenshot:
    ![](./img/debugging-error-cookie-callback.png)
 
+## Error Message `Received control message: 'PUSH_REQUEST'`
 
+If you see this message in the Client side, you may want to make sure you added these lines to your oauth configuration file
+
+```ini
+CONFIG_OAUTH2_REFRESH_ENABLED=true
+CONFIG_OAUTH2_REFRESH_EXPIRES=24h 
+```
