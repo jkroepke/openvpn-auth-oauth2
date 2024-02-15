@@ -71,6 +71,8 @@ func (c *Client) Connect() error {
 
 	err = c.checkManagementInterfaceVersion()
 	if err != nil {
+		c.Shutdown()
+
 		return err
 	}
 
@@ -249,7 +251,7 @@ func (c *Client) readMessage(buf *bytes.Buffer) error {
 
 func (c *Client) isMessageLineEOF(line []byte) bool {
 	switch string(line[0:2]) {
-	case "SUC", "ERR", "END", ">HO", ">IN", ">NO":
+	case "SU", "ER", "EN", ">H", ">I", ">N":
 		return true
 	default:
 		return bytes.HasPrefix(line, []byte(">CLIENT:ENV,END"))
