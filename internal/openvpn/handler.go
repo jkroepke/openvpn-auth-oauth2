@@ -65,10 +65,8 @@ func (c *Client) handleMessages() {
 	defer close(c.clientsCh)
 
 	var (
-		err     error
-		buf     bytes.Buffer
-		client  connection.Client
-		message string
+		err error
+		buf bytes.Buffer
 	)
 
 	buf.Grow(4096)
@@ -82,35 +80,39 @@ func (c *Client) handleMessages() {
 				return
 			}
 
-			c.shutdownMu.Lock()
-
-			if !c.closed {
-				c.errCh <- fmt.Errorf("error reading bytes: %w", err)
-			}
-
-			c.shutdownMu.Unlock()
+			c.ctxCancel(fmt.Errorf("error reading bytes: %w", err))
 
 			return
 		}
 
-		message = buf.String()
+		c.handleMessage(buf.String())
+	}
+}
 
-		if strings.HasPrefix(message, ">CLIENT:") {
-			client, err = connection.NewClient(c.conf, message)
-			if err != nil {
-				c.errCh <- err
+func (c *Client) handleMessage(message string) {
+	switch message[0:7] {
+	case ">CLIENT":
+		client, err := connection.NewClient(c.conf, message)
+		if err != nil {
+			c.ctxCancel(err)
 
-				return
-			}
-
-			c.clientsCh <- client
-		} else if strings.HasPrefix(message, "SUCCESS:") ||
-			strings.HasPrefix(message, "ERROR:") ||
-			strings.HasPrefix(message, "OpenVPN Version:") {
-			c.commandResponseCh <- message
+			return
 		}
 
-		buf.Reset()
+		c.clientsCh <- client
+	case ">HOLD:W":
+		c.commandsCh <- "hold release"
+	case "SUCCESS":
+		// SUCCESS: hold release succeeded
+		if message[9:13] == "hold" {
+			c.logger.Info("hold release succeeded")
+
+			return
+		}
+
+		fallthrough
+	case "ERROR: ", "OpenVPN":
+		c.commandResponseCh <- message
 	}
 }
 
@@ -122,15 +124,19 @@ func (c *Client) handleClients() {
 	)
 
 	for {
-		client = <-c.clientsCh
-		if client.Reason == "" {
-			return
-		}
+		select {
+		case <-c.ctx.Done():
+			return // Error somewhere, terminate
+		case client = <-c.clientsCh:
+			if client.Reason == "" {
+				return
+			}
 
-		if err = c.processClient(client); err != nil {
-			c.errCh <- err
+			if err = c.processClient(client); err != nil {
+				c.ctxCancel(err)
 
-			return
+				return
+			}
 		}
 	}
 }
@@ -140,15 +146,19 @@ func (c *Client) handleCommands() {
 	var command string
 
 	for {
-		command = <-c.commandsCh
-		if command == "" {
-			return
-		}
+		select {
+		case <-c.ctx.Done():
+			return // Error somewhere, terminate
+		case command = <-c.commandsCh:
+			if command == "" {
+				return
+			}
 
-		if err := c.rawCommand(command); err != nil {
-			c.errCh <- err
+			if err := c.rawCommand(command); err != nil {
+				c.ctxCancel(err)
 
-			return
+				return
+			}
 		}
 	}
 }

@@ -2,6 +2,7 @@ package openvpn_test
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"io"
 	"net/url"
@@ -37,7 +38,7 @@ func TestClientInvalidServer(t *testing.T) {
 	}
 	storageClient := storage.New(testutils.Secret, time.Hour)
 	provider := oauth2.New(logger.Logger, conf, storageClient)
-	client := openvpn.NewClient(logger.Logger, conf, provider)
+	client := openvpn.NewClient(context.Background(), logger.Logger, conf, provider)
 	err := client.Connect()
 	require.Error(t, err)
 	assert.Equal(t, "unable to connect to openvpn management interface tcp://0.0.0.0:1: dial tcp 0.0.0.0:1: connect: connection refused", err.Error())
@@ -237,7 +238,7 @@ func TestClientFull(t *testing.T) {
 
 			storageClient := storage.New(testutils.Secret, time.Hour)
 			provider := oauth2.New(logger.Logger, tt.conf, storageClient)
-			client := openvpn.NewClient(logger.Logger, tt.conf, provider)
+			client := openvpn.NewClient(context.Background(), logger.Logger, tt.conf, provider)
 
 			wg := sync.WaitGroup{}
 			wg.Add(1)
@@ -258,12 +259,7 @@ func TestClientFull(t *testing.T) {
 					testutils.SendLine(t, conn, "SUCCESS: password is correct\r\n")
 				}
 
-				testutils.SendLine(t, conn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\r\n")
-				assert.Equal(t, "hold release", testutils.ReadLine(t, reader))
-				testutils.SendLine(t, conn, "SUCCESS: hold release succeeded\r\n")
-				assert.Equal(t, "version", testutils.ReadLine(t, reader))
-
-				testutils.SendLine(t, conn, "OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 5\r\nEND\r\n")
+				testutils.ExpectVersionAndReleaseHold(t, conn, reader)
 				testutils.SendLine(t, conn, tt.client)
 
 				if tt.err != nil {
@@ -340,7 +336,7 @@ func TestClientInvalidPassword(t *testing.T) {
 
 	storageClient := storage.New(testutils.Secret, time.Hour)
 	provider := oauth2.New(logger.Logger, conf, storageClient)
-	client := openvpn.NewClient(logger.Logger, conf, provider)
+	client := openvpn.NewClient(context.Background(), logger.Logger, conf, provider)
 
 	go func() {
 		conn, err := managementInterface.Accept()
@@ -413,7 +409,7 @@ func TestClientInvalidVersion(t *testing.T) {
 
 			storageClient := storage.New(testutils.Secret, time.Hour)
 			provider := oauth2.New(logger.Logger, conf, storageClient)
-			client := openvpn.NewClient(logger.Logger, conf, provider)
+			client := openvpn.NewClient(context.Background(), logger.Logger, conf, provider)
 
 			go func() {
 				conn, err := managementInterface.Accept()
@@ -423,9 +419,6 @@ func TestClientInvalidVersion(t *testing.T) {
 				reader := bufio.NewReader(conn)
 
 				testutils.SendLine(t, conn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\r\n")
-
-				assert.Equal(t, "hold release", testutils.ReadLine(t, reader))
-				testutils.SendLine(t, conn, "SUCCESS: hold release succeeded\r\n")
 				assert.Equal(t, "version", testutils.ReadLine(t, reader))
 
 				testutils.SendLine(t, conn, tt.version)
@@ -438,4 +431,54 @@ func TestClientInvalidVersion(t *testing.T) {
 			client.Shutdown()
 		})
 	}
+}
+
+func TestSIGHUP(t *testing.T) {
+	t.Parallel()
+
+	logger := testutils.NewTestLogger()
+
+	conf := config.Config{
+		HTTP: config.HTTP{
+			BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
+			Secret:  testutils.Secret,
+		},
+		OpenVpn: config.OpenVpn{
+			Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
+		},
+	}
+
+	managementInterface := testutils.TCPTestListener(t)
+	defer managementInterface.Close()
+
+	conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
+
+	storageClient := storage.New(testutils.Secret, time.Hour)
+	provider := oauth2.New(logger.Logger, conf, storageClient)
+	client := openvpn.NewClient(context.Background(), logger.Logger, conf, provider)
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+
+	go func() {
+		defer wg.Done()
+
+		conn, err := managementInterface.Accept()
+		require.NoError(t, err) //nolint:testifylint
+
+		defer conn.Close()
+		reader := bufio.NewReader(conn)
+
+		testutils.ExpectVersionAndReleaseHold(t, conn, reader)
+
+		for i := 0; i < 10; i++ {
+			testutils.SendLine(t, conn, ">HOLD:Waiting for hold release:0\r\n")
+			assert.Equal(t, "hold release", testutils.ReadLine(t, reader))
+		}
+	}()
+
+	require.NoError(t, client.Connect())
+
+	wg.Wait()
+	client.Shutdown()
 }

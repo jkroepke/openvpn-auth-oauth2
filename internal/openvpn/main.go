@@ -21,26 +21,27 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
-func NewClient(logger *slog.Logger, conf config.Config, oauth2Client *oauth2.Provider) *Client {
-	commandsBuffer := bytes.Buffer{}
-	commandsBuffer.Grow(512)
-
-	return &Client{
+func NewClient(ctx context.Context, logger *slog.Logger, conf config.Config, oauth2Client *oauth2.Provider) *Client {
+	client := &Client{
 		conf:   conf,
 		logger: logger,
 		oauth2: oauth2Client,
 
-		closed:     false,
-		connMu:     sync.Mutex{},
-		shutdownMu: sync.Mutex{},
+		closed: false,
+		connMu: sync.Mutex{},
 
-		commandsBuffer: commandsBuffer,
+		commandsBuffer: bytes.Buffer{},
 
-		errCh:             make(chan error, 1),
 		clientsCh:         make(chan connection.Client, 10),
 		commandResponseCh: make(chan string, 10),
 		commandsCh:        make(chan string, 10),
 	}
+
+	client.commandsBuffer.Grow(512)
+
+	client.ctx, client.ctxCancel = context.WithCancelCause(ctx)
+
+	return client
 }
 
 func (c *Client) Connect() error {
@@ -66,20 +67,19 @@ func (c *Client) Connect() error {
 	go c.handleClients()
 	go c.handleCommands()
 
-	err = c.releaseManagementHold()
-	if err != nil {
-		return err
-	}
-
 	c.logger.Info("connection to OpenVPN management interface established.")
 
 	err = c.checkManagementInterfaceVersion()
 	if err != nil {
+		c.Shutdown()
+
 		return err
 	}
 
-	err = <-c.errCh
-	if err != nil {
+	<-c.ctx.Done()
+
+	err = context.Cause(c.ctx)
+	if !errors.Is(err, context.Canceled) {
 		c.Shutdown()
 
 		return fmt.Errorf("OpenVPN management error: %w", err)
@@ -104,19 +104,6 @@ func (c *Client) setupConnection() error {
 	}
 
 	return err
-}
-
-func (c *Client) releaseManagementHold() error {
-	resp, err := c.SendCommand("hold release")
-	if err != nil {
-		return fmt.Errorf("error from hold release command: %w", err)
-	}
-
-	if !strings.HasPrefix(resp, "SUCCESS:") {
-		return fmt.Errorf("error from hold release command: %w: %s", ErrErrorResponse, resp)
-	}
-
-	return nil
 }
 
 func (c *Client) checkManagementInterfaceVersion() error {
@@ -165,9 +152,6 @@ func (c *Client) checkClientSsoCapabilities(logger *slog.Logger, client connecti
 
 // Shutdown shutdowns the client connection.
 func (c *Client) Shutdown() {
-	c.shutdownMu.Lock()
-	defer c.shutdownMu.Unlock()
-
 	c.connMu.Lock()
 	defer c.connMu.Unlock()
 
@@ -178,12 +162,13 @@ func (c *Client) Shutdown() {
 	c.closed = true
 	c.logger.Info("shutdown OpenVPN management connection")
 
+	c.ctxCancel(nil)
+
 	if c.conn != nil {
 		_ = c.conn.Close()
 	}
 
 	close(c.commandsCh)
-	close(c.errCh)
 }
 
 // SendCommand passes command to a given connection (adds logging and EOL character) and returns the response.
@@ -191,6 +176,8 @@ func (c *Client) SendCommand(cmd string) (string, error) {
 	c.commandsCh <- cmd
 
 	select {
+	case <-c.ctx.Done():
+		return "", ErrConnectionTerminated // Error somewhere, terminate
 	case resp := <-c.commandResponseCh:
 		if resp == "" {
 			cmdFirstLine := strings.SplitN(cmd, "\n", 2)[0]
@@ -235,6 +222,8 @@ func (c *Client) rawCommand(cmd string) error {
 
 // readMessage .
 func (c *Client) readMessage(buf *bytes.Buffer) error {
+	buf.Reset()
+
 	var line []byte
 
 	for c.scanner.Scan() {
@@ -261,11 +250,11 @@ func (c *Client) readMessage(buf *bytes.Buffer) error {
 }
 
 func (c *Client) isMessageLineEOF(line []byte) bool {
-	return bytes.HasPrefix(line, []byte(">CLIENT:ENV,END")) ||
-		bytes.HasPrefix(line, []byte("SUCCESS:")) ||
-		bytes.HasPrefix(line, []byte("ERROR:")) ||
-		bytes.HasPrefix(line, []byte("END")) ||
-		bytes.HasPrefix(line, []byte(">HOLD:")) ||
-		bytes.HasPrefix(line, []byte(">INFO:")) ||
-		bytes.HasPrefix(line, []byte(">NOTIFY:"))
+	switch string(line[0:2]) {
+	// SUCCESS, ERROR, END, >HOLD, >INFO, >NOTIFY
+	case "SU", "ER", "EN", ">H", ">I", ">N":
+		return true
+	default:
+		return bytes.Equal(line, []byte(">CLIENT:ENV,END"))
+	}
 }

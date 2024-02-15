@@ -114,12 +114,7 @@ func TestExecuteConfigFileFound(t *testing.T) {
 
 		reader := bufio.NewReader(conn)
 
-		testutils.SendLine(t, conn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\r\n")
-		assert.Equal(t, "hold release", testutils.ReadLine(t, reader))
-		testutils.SendLine(t, conn, "SUCCESS: hold release succeeded\r\n")
-		assert.Equal(t, "version", testutils.ReadLine(t, reader))
-
-		testutils.SendLine(t, conn, "OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 5\r\nEND\r\n")
+		testutils.ExpectVersionAndReleaseHold(t, conn, reader)
 
 		time.Sleep(100 * time.Millisecond)
 
@@ -144,10 +139,9 @@ func TestExecuteConfigFileFound(t *testing.T) {
 		"--oauth2.client.id", clientCredentials.ID,
 	}
 
-	var buf bytes.Buffer
-	_ = io.Writer(&buf)
+	buf := new(testutils.Buffer)
 
-	returnCode := daemon.Execute(args, &buf, "version", "commit", "date")
+	returnCode := daemon.Execute(args, buf, "version", "commit", "date")
 
 	assert.Equal(t, 0, returnCode, buf.String())
 }

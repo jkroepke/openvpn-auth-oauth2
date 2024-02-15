@@ -2,6 +2,7 @@ package testutils
 
 import (
 	"bufio"
+	"context"
 	"crypto/sha256"
 	"errors"
 	"fmt"
@@ -27,6 +28,33 @@ import (
 )
 
 const Secret = "0123456789101112"
+
+func ExpectVersionAndReleaseHold(tb testing.TB, conn net.Conn, reader *bufio.Reader) {
+	tb.Helper()
+
+	SendLine(tb, conn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\r\n")
+	SendLine(tb, conn, ">HOLD:Waiting for hold release:0\r\n")
+
+	var expectedCommand int
+
+	for i := 0; i < 2; i++ {
+		line := ReadLine(tb, reader)
+		switch line {
+		case "hold release":
+			SendLine(tb, conn, "SUCCESS: hold release succeeded\r\n")
+
+			expectedCommand++
+		case "version":
+			SendLine(tb, conn, "OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 5\r\nEND\r\n")
+
+			expectedCommand++
+		default:
+			require.Contains(tb, []string{"version", "hold release"}, line)
+		}
+	}
+
+	require.Equal(tb, 2, expectedCommand)
+}
 
 func SendLine(tb testing.TB, conn net.Conn, msg string, a ...any) {
 	tb.Helper()
@@ -152,7 +180,7 @@ func SetupMockEnvironment(tb testing.TB, conf config.Config) (config.Config, *op
 
 	storageClient := storage.New(Secret, conf.OAuth2.Refresh.Expires)
 	provider := oauth2.New(logger.Logger, conf, storageClient)
-	openvpnClient := openvpn.NewClient(logger.Logger, conf, provider)
+	openvpnClient := openvpn.NewClient(context.Background(), logger.Logger, conf, provider)
 
 	require.NoError(tb, provider.Initialize(openvpnClient))
 

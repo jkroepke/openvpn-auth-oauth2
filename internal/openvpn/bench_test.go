@@ -2,6 +2,7 @@ package openvpn_test
 
 import (
 	"bufio"
+	"context"
 	"net"
 	"net/url"
 	"strings"
@@ -39,7 +40,7 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 	}
 
 	storageClient := storage.New(testutils.Secret, time.Hour)
-	client := openvpn.NewClient(logger.Logger, conf, oauth2.New(logger.Logger, conf, storageClient))
+	client := openvpn.NewClient(context.Background(), logger.Logger, conf, oauth2.New(logger.Logger, conf, storageClient))
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -60,12 +61,7 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 	reader := bufio.NewReader(managementInterfaceConn)
 
 	require.NoError(b, err)
-	testutils.SendLine(b, managementInterfaceConn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\r\n")
-	assert.Equal(b, "hold release", testutils.ReadLine(b, reader))
-	testutils.SendLine(b, managementInterfaceConn, "SUCCESS: hold release succeeded\r\n")
-	assert.Equal(b, "version", testutils.ReadLine(b, reader))
-
-	testutils.SendLine(b, managementInterfaceConn, "OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 5\r\nEND\r\n")
+	testutils.ExpectVersionAndReleaseHold(b, managementInterfaceConn, reader)
 
 	tests := []struct {
 		name   string

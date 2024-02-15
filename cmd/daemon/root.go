@@ -1,6 +1,7 @@
 package daemon
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -63,9 +64,11 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 		return 1
 	}
 
+	ctx := context.Background()
+
 	storageClient := storage.New(conf.OAuth2.Refresh.Secret.String(), conf.OAuth2.Refresh.Expires)
 	oauth2Client := oauth2.New(logger, conf, storageClient)
-	openvpnClient := openvpn.NewClient(logger, conf, oauth2Client)
+	openvpnClient := openvpn.NewClient(ctx, logger, conf, oauth2Client)
 
 	if err = oauth2Client.Initialize(openvpnClient); err != nil {
 		logger.Error(err.Error())

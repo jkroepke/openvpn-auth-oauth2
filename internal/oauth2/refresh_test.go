@@ -44,12 +44,8 @@ func TestRefreshReAuth(t *testing.T) {
 	defer managementInterfaceConn.Close()
 
 	reader := bufio.NewReader(managementInterfaceConn)
-	testutils.SendLine(t, managementInterfaceConn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\r\n")
-	assert.Equal(t, "hold release", testutils.ReadLine(t, reader))
-	testutils.SendLine(t, managementInterfaceConn, "SUCCESS: hold release succeeded\r\n")
-	assert.Equal(t, "version", testutils.ReadLine(t, reader))
 
-	testutils.SendLine(t, managementInterfaceConn, "OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 5\r\nEND\r\n")
+	testutils.ExpectVersionAndReleaseHold(t, managementInterfaceConn, reader)
 
 	time.Sleep(time.Millisecond * 100)
 

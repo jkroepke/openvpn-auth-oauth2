@@ -1,6 +1,7 @@
 package oauth2_test
 
 import (
+	"context"
 	"net"
 	"net/url"
 	"strings"
@@ -143,7 +144,7 @@ func TestNewProvider(t *testing.T) {
 
 			provider := oauth2.New(logger.Logger, tt.conf, storageClient)
 
-			client := openvpn.NewClient(logger.Logger, tt.conf, provider)
+			client := openvpn.NewClient(context.Background(), logger.Logger, tt.conf, provider)
 			defer client.Shutdown()
 
 			err = provider.Initialize(client)
