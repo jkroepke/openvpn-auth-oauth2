@@ -12,13 +12,15 @@ import (
 )
 
 type Server struct {
+	ctx    context.Context
 	conf   config.Config
 	logger *slog.Logger
 	server *http.Server
 }
 
-func NewHTTPServer(logger *slog.Logger, conf config.Config, fnHandler *http.ServeMux) Server {
+func NewHTTPServer(ctx context.Context, logger *slog.Logger, conf config.Config, fnHandler *http.ServeMux) Server {
 	return Server{
+		ctx:    ctx,
 		conf:   conf,
 		logger: logger,
 		server: &http.Server{

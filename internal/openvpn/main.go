@@ -21,26 +21,27 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
-func NewClient(logger *slog.Logger, conf config.Config, oauth2Client *oauth2.Provider) *Client {
-	commandsBuffer := bytes.Buffer{}
-	commandsBuffer.Grow(512)
-
-	return &Client{
+func NewClient(ctx context.Context, logger *slog.Logger, conf config.Config, oauth2Client *oauth2.Provider) *Client {
+	client := &Client{
 		conf:   conf,
 		logger: logger,
 		oauth2: oauth2Client,
 
-		closed:     false,
-		connMu:     sync.Mutex{},
-		shutdownMu: sync.Mutex{},
+		closed: false,
+		connMu: sync.Mutex{},
 
-		commandsBuffer: commandsBuffer,
+		commandsBuffer: bytes.Buffer{},
 
-		errCh:             make(chan error, 1),
 		clientsCh:         make(chan connection.Client, 10),
 		commandResponseCh: make(chan string, 10),
 		commandsCh:        make(chan string, 10),
 	}
+
+	client.commandsBuffer.Grow(512)
+
+	client.ctx, client.ctxCancel = context.WithCancelCause(ctx)
+
+	return client
 }
 
 func (c *Client) Connect() error {
@@ -73,8 +74,10 @@ func (c *Client) Connect() error {
 		return err
 	}
 
-	err = <-c.errCh
-	if err != nil {
+	<-c.ctx.Done()
+
+	err = context.Cause(c.ctx)
+	if !errors.Is(err, context.Canceled) {
 		c.Shutdown()
 
 		return fmt.Errorf("OpenVPN management error: %w", err)
@@ -147,9 +150,6 @@ func (c *Client) checkClientSsoCapabilities(logger *slog.Logger, client connecti
 
 // Shutdown shutdowns the client connection.
 func (c *Client) Shutdown() {
-	c.shutdownMu.Lock()
-	defer c.shutdownMu.Unlock()
-
 	c.connMu.Lock()
 	defer c.connMu.Unlock()
 
@@ -160,11 +160,11 @@ func (c *Client) Shutdown() {
 	c.closed = true
 	c.logger.Info("shutdown OpenVPN management connection")
 
-	c.errCh <- nil
 	if c.conn != nil {
 		_ = c.conn.Close()
 	}
 
+	c.ctxCancel(nil)
 	close(c.commandsCh)
 }
 
@@ -173,6 +173,8 @@ func (c *Client) SendCommand(cmd string) (string, error) {
 	c.commandsCh <- cmd
 
 	select {
+	case <-c.ctx.Done():
+		return "", ErrConnectionTerminated // Error somewhere, terminate
 	case resp := <-c.commandResponseCh:
 		if resp == "" {
 			cmdFirstLine := strings.SplitN(cmd, "\n", 2)[0]

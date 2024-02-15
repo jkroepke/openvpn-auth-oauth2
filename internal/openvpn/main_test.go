@@ -2,6 +2,7 @@ package openvpn_test
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"io"
 	"net/url"
@@ -37,7 +38,7 @@ func TestClientInvalidServer(t *testing.T) {
 	}
 	storageClient := storage.New(testutils.Secret, time.Hour)
 	provider := oauth2.New(logger.Logger, conf, storageClient)
-	client := openvpn.NewClient(logger.Logger, conf, provider)
+	client := openvpn.NewClient(context.Background(), logger.Logger, conf, provider)
 	err := client.Connect()
 	require.Error(t, err)
 	assert.Equal(t, "unable to connect to openvpn management interface tcp://0.0.0.0:1: dial tcp 0.0.0.0:1: connect: connection refused", err.Error())
@@ -237,7 +238,7 @@ func TestClientFull(t *testing.T) {
 
 			storageClient := storage.New(testutils.Secret, time.Hour)
 			provider := oauth2.New(logger.Logger, tt.conf, storageClient)
-			client := openvpn.NewClient(logger.Logger, tt.conf, provider)
+			client := openvpn.NewClient(context.Background(), logger.Logger, tt.conf, provider)
 
 			wg := sync.WaitGroup{}
 			wg.Add(1)
@@ -335,7 +336,7 @@ func TestClientInvalidPassword(t *testing.T) {
 
 	storageClient := storage.New(testutils.Secret, time.Hour)
 	provider := oauth2.New(logger.Logger, conf, storageClient)
-	client := openvpn.NewClient(logger.Logger, conf, provider)
+	client := openvpn.NewClient(context.Background(), logger.Logger, conf, provider)
 
 	go func() {
 		conn, err := managementInterface.Accept()
@@ -408,7 +409,7 @@ func TestClientInvalidVersion(t *testing.T) {
 
 			storageClient := storage.New(testutils.Secret, time.Hour)
 			provider := oauth2.New(logger.Logger, conf, storageClient)
-			client := openvpn.NewClient(logger.Logger, conf, provider)
+			client := openvpn.NewClient(context.Background(), logger.Logger, conf, provider)
 
 			go func() {
 				conn, err := managementInterface.Accept()
@@ -454,7 +455,7 @@ func TestSIGHUP(t *testing.T) {
 
 	storageClient := storage.New(testutils.Secret, time.Hour)
 	provider := oauth2.New(logger.Logger, conf, storageClient)
-	client := openvpn.NewClient(logger.Logger, conf, provider)
+	client := openvpn.NewClient(context.Background(), logger.Logger, conf, provider)
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)

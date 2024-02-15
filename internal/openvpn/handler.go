@@ -80,7 +80,7 @@ func (c *Client) handleMessages() {
 				return
 			}
 
-			c.errCh <- fmt.Errorf("error reading bytes: %w", err)
+			c.ctxCancel(fmt.Errorf("error reading bytes: %w", err))
 
 			return
 		}
@@ -94,7 +94,7 @@ func (c *Client) handleMessage(message string) {
 	case ">CLIENT":
 		client, err := connection.NewClient(c.conf, message)
 		if err != nil {
-			c.errCh <- err
+			c.ctxCancel(err)
 
 			return
 		}
@@ -126,15 +126,19 @@ func (c *Client) handleClients() {
 	)
 
 	for {
-		client = <-c.clientsCh
-		if client.Reason == "" {
-			return
-		}
+		select {
+		case <-c.ctx.Done():
+			return // Error somewhere, terminate
+		case client = <-c.clientsCh:
+			if client.Reason == "" {
+				return
+			}
 
-		if err = c.processClient(client); err != nil {
-			c.errCh <- err
+			if err = c.processClient(client); err != nil {
+				c.ctxCancel(err)
 
-			return
+				return
+			}
 		}
 	}
 }
@@ -144,15 +148,19 @@ func (c *Client) handleCommands() {
 	var command string
 
 	for {
-		command = <-c.commandsCh
-		if command == "" {
-			return
-		}
+		select {
+		case <-c.ctx.Done():
+			return // Error somewhere, terminate
+		case command = <-c.commandsCh:
+			if command == "" {
+				return
+			}
 
-		if err := c.rawCommand(command); err != nil {
-			c.errCh <- err
+			if err := c.rawCommand(command); err != nil {
+				c.ctxCancel(err)
 
-			return
+				return
+			}
 		}
 	}
 }

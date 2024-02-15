@@ -3,6 +3,7 @@ package openvpn
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"log/slog"
 	"net"
 	"sync"
@@ -19,14 +20,15 @@ type Client struct {
 	logger  *slog.Logger
 	oauth2  *oauth2.Provider
 
-	shutdownMu sync.Mutex
-	connMu     sync.Mutex
-	closed     bool
+	connMu sync.Mutex
+	closed bool
+
+	ctx       context.Context
+	ctxCancel context.CancelCauseFunc
 
 	commandsBuffer bytes.Buffer
 
 	clientsCh         chan connection.Client
 	commandResponseCh chan string
 	commandsCh        chan string
-	errCh             chan error
 }

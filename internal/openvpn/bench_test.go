@@ -2,6 +2,7 @@ package openvpn_test
 
 import (
 	"bufio"
+	"context"
 	"net"
 	"net/url"
 	"strings"
@@ -39,7 +40,7 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 	}
 
 	storageClient := storage.New(testutils.Secret, time.Hour)
-	client := openvpn.NewClient(logger.Logger, conf, oauth2.New(logger.Logger, conf, storageClient))
+	client := openvpn.NewClient(context.Background(), logger.Logger, conf, oauth2.New(logger.Logger, conf, storageClient))
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)

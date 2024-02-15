@@ -2,6 +2,7 @@ package testutils
 
 import (
 	"bufio"
+	"context"
 	"crypto/sha256"
 	"errors"
 	"fmt"
@@ -179,7 +180,7 @@ func SetupMockEnvironment(tb testing.TB, conf config.Config) (config.Config, *op
 
 	storageClient := storage.New(Secret, conf.OAuth2.Refresh.Expires)
 	provider := oauth2.New(logger.Logger, conf, storageClient)
-	openvpnClient := openvpn.NewClient(logger.Logger, conf, provider)
+	openvpnClient := openvpn.NewClient(context.Background(), logger.Logger, conf, provider)
 
 	require.NoError(tb, provider.Initialize(openvpnClient))
 
