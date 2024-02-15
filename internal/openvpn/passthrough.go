@@ -3,7 +3,9 @@ package openvpn
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net"
 	"time"
@@ -43,6 +45,7 @@ func (c *Client) handlePassthrough() {
 			select {
 			case <-c.ctx.Done():
 				listener.Close()
+
 				return // Error somewhere, terminate
 			case message = <-c.passthroughCh:
 				if message == "" {
@@ -88,7 +91,10 @@ func (c *Client) writeToPassthroughClient(message string) {
 func (c *Client) handlePassthroughClient(conn net.Conn) {
 	defer conn.Close()
 
-	var err error
+	var (
+		buf bytes.Buffer
+		err error
+	)
 
 	logger := c.logger.With(slog.String("client", conn.RemoteAddr().String()))
 	logger.Info("accepted connection")
@@ -97,28 +103,11 @@ func (c *Client) handlePassthroughClient(conn net.Conn) {
 	scanner.Split(bufio.ScanLines)
 	scanner.Buffer(make([]byte, 0, bufio.MaxScanTokenSize), bufio.MaxScanTokenSize)
 
-	if c.conf.OpenVpn.Passthrough.Password.String() != "" {
-		_, err = c.conn.Write([]byte("ENTER PASSWORD:"))
-		if err != nil {
-			logger.Warn(fmt.Errorf("unable to write to client: %w", err).Error())
-			return
-		}
+	if err = c.handlePassthroughClientAuth(conn, scanner); err != nil {
+		logger.Warn(err.Error())
 
-		if !scanner.Scan() {
-			if c.scanner.Err() != nil {
-				logger.Warn(c.scanner.Err().Error())
-			}
-
-			return
-		}
-
-		if scanner.Text() != c.conf.OpenVpn.Passthrough.Password.String() {
-			logger.Warn("client provide invalid password")
-			return
-		}
+		return
 	}
-
-	var buf bytes.Buffer
 
 	buf.Grow(4096)
 
@@ -161,4 +150,29 @@ func (c *Client) handlePassthroughClient(conn net.Conn) {
 	if err != nil {
 		logger.Warn(err.Error())
 	}
+}
+
+func (c *Client) handlePassthroughClientAuth(conn net.Conn, scanner *bufio.Scanner) error {
+	if c.conf.OpenVpn.Passthrough.Password.String() == "" {
+		return nil
+	}
+
+	_, err := conn.Write([]byte("ENTER PASSWORD:"))
+	if err != nil {
+		return fmt.Errorf("unable to write to client: %w", err)
+	}
+
+	if !scanner.Scan() {
+		if err = c.scanner.Err(); err != nil {
+			err = io.EOF
+		}
+
+		return fmt.Errorf("unable to read from client: %w", err)
+	}
+
+	if scanner.Text() != c.conf.OpenVpn.Passthrough.Password.String() {
+		return errors.New("client provide invalid password")
+	}
+
+	return nil
 }

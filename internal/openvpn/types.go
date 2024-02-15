@@ -29,8 +29,6 @@ type Client struct {
 
 	commandsBuffer bytes.Buffer
 
-	passthroughConn net.Conn
-
 	clientsCh         chan connection.Client
 	commandResponseCh chan string
 	commandsCh        chan string
