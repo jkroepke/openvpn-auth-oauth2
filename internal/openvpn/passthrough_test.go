@@ -122,6 +122,26 @@ func TestPassthroughFull(t *testing.T) {
 				return conf
 			}(),
 		},
+		{
+			name:   "tcp with password",
+			scheme: openvpn.SchemeTCP,
+			conf: func() config.Config {
+				conf := conf
+				conf.OpenVpn.Passthrough.Password = testutils.Secret
+
+				return conf
+			}(),
+		},
+		{
+			name:   "tcp with invalid password",
+			scheme: openvpn.SchemeTCP,
+			conf: func() config.Config {
+				conf := conf
+				conf.OpenVpn.Passthrough.Password = testutils.Secret
+
+				return conf
+			}(),
+		},
 	}
 
 	for _, tt := range confs {
@@ -262,6 +282,35 @@ func TestPassthroughFull(t *testing.T) {
 				}
 
 				passThroughReader := bufio.NewReader(passThroughConn)
+
+				if tt.conf.OpenVpn.Passthrough.Password != "" {
+					buf := make([]byte, 15)
+
+					_, err = passThroughConn.Read(buf)
+					if err != nil {
+						cancel(fmt.Errorf("reading password prompt: %w", err))
+
+						return
+					}
+
+					assert.Equal(t, "ENTER PASSWORD:", string(buf))
+
+					if strings.Contains(tt.name, "invalid") {
+						testutils.SendAndExpectMessage(t, passThroughConn, passThroughReader,
+							"invalid",
+							"ERROR: bad password",
+						)
+
+						cancel(nil)
+
+						return
+					}
+
+					testutils.SendAndExpectMessage(t, passThroughConn, passThroughReader,
+						tt.conf.OpenVpn.Passthrough.Password.String(),
+						"SUCCESS: password is correct",
+					)
+				}
 
 				for i := 0; i < 10; i++ {
 					testutils.SendAndExpectMessage(t, passThroughConn, passThroughReader,

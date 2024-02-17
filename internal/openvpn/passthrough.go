@@ -74,6 +74,7 @@ func (c *Client) handlePassthrough() {
 				}
 
 				_ = conn.SetWriteDeadline(time.Now().Add(20 * time.Millisecond))
+
 				if _, err = conn.Write([]byte(message + "\n")); err != nil {
 					connMu.Unlock()
 
@@ -208,8 +209,13 @@ func (c *Client) handlePassthroughClientAuth(conn net.Conn, scanner *bufio.Scann
 	}
 
 	if scanner.Text() != c.conf.OpenVpn.Passthrough.Password.String() {
+		_ = conn.SetWriteDeadline(time.Now().Add(20 * time.Millisecond))
+		_, _ = conn.Write([]byte("ERROR: bad password\n"))
+
 		return errors.New("pass-through: client provide invalid password")
 	}
+
+	c.writeToPassthroughClient("SUCCESS: password is correct")
 
 	return nil
 }
