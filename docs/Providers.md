@@ -6,22 +6,21 @@ This page documents the setup at the OIDC provider.
 
 ### Register an app with Microsoft Entra ID
 
-1. Login as admin into tenant
-2. Open [App registrations](https://aad.portal.azure.com/#blade/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/RegisteredApps) in an Azure AD admin center
-3. Click new registration
-4. Pick a name, choose a "Supported account types"-option. Leave the default value if you are not sure.
-5. For redirect uri, choice Web and enter the public endpoint of `openvpn-auth-oauth2`, for
-   example `https://openvpn-auth-oauth2.example.com/oauth2/callback`.
-6. Click register.
-7. Copy the tenant-id and client-id. You need it both as configuration option for `openvpn-auth-oauth2`.
-8. After creation, select `Certificates & secrets` on the left side.
-9. Select the tab `Client secrets` and create a new client secret.
-10. Copy the client-secret. Need it as a configuration option for `openvpn-auth-oauth2`.
-11. Then, select Token configuration on the left side.
-12. Add optional claim
-13. On the right panel, select `ID` as a token type
-14. Select `ipaddr` from the list of claims.
-15. Select Add.
+1. Sign in to your admin account on the tenant.
+2. Navigate to the [App registrations](https://aad.portal.azure.com/#blade/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/RegisteredApps) page in the Azure AD admin center.
+3. Click on the `New registration` button to start the process of registering a new application.
+4. Enter a unique name for your application in the `Name` field.
+5. In the `Supported account types` section, select the appropriate option based on your requirements. If unsure, leave the default value selected.
+6. For the `Redirect URI`, select `Web` from the dropdown menu and input the public endpoint of your `openvpn-auth-oauth2` instance. For example, `https://openvpn-auth-oauth2.example.com/oauth2/callback`.
+7. Click on the `Register` button to create the application.
+8. Once the application is created, navigate to the `Certificates & secrets` section on the left-hand side menu.
+9. In the `Client secrets` tab, click on `New client secret` to generate a new secret for your application.
+10. Copy the generated client secret. This will be used as a configuration option for `openvpn-auth-oauth2`.
+11. Navigate to the `Token configuration` section on the left-hand side menu.
+12. Click on `Add optional claim` to add a new claim to your tokens.
+13. In the right panel, select `ID` as the token type.
+14. From the list of available claims, select `ipaddr`.
+15. Click on `Add` to include this claim in your tokens.
 
 References:
 
