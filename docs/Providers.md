@@ -146,28 +146,25 @@ CONFIG_PROVIDER_GOOGLE_SERVICE__ACCOUNT__CONFIG=file://<path-to-json>
 
 ## Keycloak
 
-### Register an app as client with Keycloak
+### Register an App with Keycloak
 
-1. Login as admin into your Keycloak admin console
-2. Create a new realm or use an existing one
-3. Create a new client
-   - Client ID: `openvpn-auth-oauth2`
-   - Client Type: `OpenID Connect`
-   - Name: `openvpn-auth-oauth2`
-4. On the capability config page, set the following values:
-   - Client authentication: On
-   - Authorization: Off
-   - Authentication flow: `Standard flow` only
-5. On the login settings page, set the following values:
-   - Root URL: `https://openvpn-auth-oauth2.example.com`
-   - Valid Redirect URIs: `https://openvpn-auth-oauth2.example.com/oauth2/callback`
-   - Web Origins: `https://openvpn-auth-oauth2.example.com`
-   - Save
-6. On the credential tab, take note of the Client ID and Client Secret.
+1. Sign in to your admin account on the Keycloak admin console.
+2. Choose an existing realm or create a new one.
+3. Create a new client:
+    - Set the Client ID as `openvpn-auth-oauth2`.
+    - Set the Client Type as `OpenID Connect`.
+    - Name the client as `openvpn-auth-oauth2`.
+4. In the capability configuration page, enable 'Client authentication' and 'Standard flow' for the Authentication flow. Make sure 'Authorization' is turned off.
+5. In the login settings page, set the following values:
+    - Root URL: `https://openvpn-auth-oauth2.example.com`
+    - Valid Redirect URIs: `https://openvpn-auth-oauth2.example.com/oauth2/callback`
+    - Web Origins: `https://openvpn-auth-oauth2.example.com`
+    - Click 'Save'.
+6. Navigate to the 'Credentials' tab and note down the Client ID and Client Secret.
 
 ### Configuration
 
-Set the following variables in your openvpn-auth-oauth2 configuration file:
+Set the following variables in your `openvpn-auth-oauth2` configuration file:
 
 ```ini
 CONFIG_OAUTH2_ISSUER=https://<keycloak-domain>/auth/realms/<realm-name>
@@ -177,8 +174,8 @@ CONFIG_OAUTH2_CLIENT_SECRET=<client-secret>
 
 ### Compare client OpenVPN and Web client IPs. (optional)
 
-There is no known configuration to enrich the token with the client's IP address. 
-If you know how to do this, please let us know.
+Currently, there is no known configuration to enrich the token with the client's IP address in Keycloak.
+If you know how to do this, please contribute to the documentation.
 
 ## GitHub
 
