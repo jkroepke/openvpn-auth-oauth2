@@ -45,6 +45,16 @@ var Defaults = Config{
 		Bypass: OpenVpnBypass{
 			CommonNames: make([]string, 0),
 		},
+		Passthrough: OpenVPNPassthrough{
+			Enabled: false,
+			Address: &url.URL{
+				Scheme:   "unix",
+				Path:     "/run/openvpn-auth-oauth2/server.sock",
+				OmitHost: true,
+			},
+			SocketMode:  660,
+			SocketGroup: "",
+		},
 	},
 	OAuth2: OAuth2{
 		Provider: "generic",

@@ -25,8 +25,8 @@ func (p *Provider) Refresh(ctx context.Context, logger *slog.Logger, refreshToke
 	newTokens, err := rp.RefreshTokens[*oidc.IDTokenClaims](ctx, relyingParty, refreshToken, "", "")
 	// OIDC spec says that nonce is optional for refresh tokens
 	// https://openid.net/specs/openid-connect-core-1_0.html#RefreshTokens
-	// This means that we have to retry the refresh without nonce if we get an error
-	// However, trying to refresh session with same refresh token could lead into an error
+	// This means that we have to retry the refresh without a nonce if we get an error,
+	// However, trying to refresh session with the same refresh token could lead into an error
 	// because refresh token may have a one time use policy
 	// see: https://github.com/zitadel/oidc/issues/509
 	if errors.Is(err, oidc.ErrNonceInvalid) {

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/url"
 	"regexp"
@@ -20,6 +21,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/net/nettest"
 )
 
 func TestClientInvalidServer(t *testing.T) {
@@ -231,7 +233,9 @@ func TestClientFull(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			managementInterface := testutils.TCPTestListener(t)
+			managementInterface, err := nettest.NewLocalListener("tcp")
+			require.NoError(t, err)
+
 			defer managementInterface.Close()
 
 			tt.conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
@@ -254,13 +258,12 @@ func TestClientFull(t *testing.T) {
 				reader := bufio.NewReader(conn)
 
 				if tt.conf.OpenVpn.Password != "" {
-					testutils.SendLine(t, conn, "ENTER PASSWORD:")
-					assert.Equal(t, tt.conf.OpenVpn.Password.String(), testutils.ReadLine(t, reader))
-					testutils.SendLine(t, conn, "SUCCESS: password is correct\r\n")
+					testutils.SendAndExpectMessage(t, conn, reader, "ENTER PASSWORD:", tt.conf.OpenVpn.Password.String())
+					testutils.SendMessage(t, conn, "SUCCESS: password is correct")
 				}
 
 				testutils.ExpectVersionAndReleaseHold(t, conn, reader)
-				testutils.SendLine(t, conn, tt.client)
+				testutils.SendMessage(t, conn, tt.client)
 
 				if tt.err != nil {
 					_, _ = reader.ReadString('\n')
@@ -270,7 +273,7 @@ func TestClientFull(t *testing.T) {
 					return
 				}
 
-				auth := testutils.ReadLine(t, reader)
+				auth := testutils.ReadLine(t, conn, reader)
 
 				if strings.Contains(tt.expect, "WEB_AUTH") {
 					assert.Contains(t, auth, tt.expect)
@@ -278,10 +281,10 @@ func TestClientFull(t *testing.T) {
 					assert.Equal(t, tt.expect, auth)
 				}
 
-				testutils.SendLine(t, conn, "SUCCESS: %s command succeeded\r\n", strings.SplitN(auth, " ", 2)[0])
+				testutils.SendMessage(t, conn, "SUCCESS: %s command succeeded\r\n", strings.SplitN(auth, " ", 2)[0])
 
 				if strings.Contains(auth, "client-deny") {
-					testutils.SendLine(t, conn, ">CLIENT:DISCONNECT,0\r\n>CLIENT:ENV,END\r\n")
+					testutils.SendMessage(t, conn, ">CLIENT:DISCONNECT,0\r\n>CLIENT:ENV,END")
 				} else if strings.Contains(auth, "WEB_AUTH::") {
 					matches := regexp.MustCompile(`state=(.+)"`).FindStringSubmatch(auth)
 					assert.Len(t, matches, 2)
@@ -297,7 +300,7 @@ func TestClientFull(t *testing.T) {
 				}
 			}()
 
-			err := client.Connect()
+			err = client.Connect()
 			if tt.err != nil {
 				require.Error(t, err)
 				assert.Equal(t, tt.err.Error(), err.Error())
@@ -319,7 +322,9 @@ func TestClientInvalidPassword(t *testing.T) {
 
 	logger := testutils.NewTestLogger()
 
-	managementInterface := testutils.TCPTestListener(t)
+	managementInterface, err := nettest.NewLocalListener("tcp")
+	require.NoError(t, err)
+
 	defer managementInterface.Close()
 
 	conf := config.Config{
@@ -345,13 +350,12 @@ func TestClientInvalidPassword(t *testing.T) {
 		defer conn.Close()
 		reader := bufio.NewReader(conn)
 
-		testutils.SendLine(t, conn, "ENTER PASSWORD:")
-		assert.Equal(t, conf.OpenVpn.Password.String(), testutils.ReadLine(t, reader))
-		testutils.SendLine(t, conn, "ERROR: bad password\r\n")
-		testutils.SendLine(t, conn, "\r\n")
+		testutils.SendMessage(t, conn, "ENTER PASSWORD:")
+		testutils.ExpectMessage(t, conn, reader, conf.OpenVpn.Password.String())
+		testutils.SendMessage(t, conn, "ERROR: bad password")
 	}()
 
-	err := client.Connect()
+	err = client.Connect()
 
 	require.Error(t, err)
 	assert.Equal(t, "unable to connect to openvpn management interface: invalid password", err.Error())
@@ -382,17 +386,17 @@ func TestClientInvalidVersion(t *testing.T) {
 		{
 			"invalid parts",
 			"OpenVPN Version: OpenVPN Mock\r\nEND\r\n",
-			"unexpected response from version command: OpenVPN Version: OpenVPN Mock\nEND\n",
+			"OpenVPN management error: unexpected response from version command: OpenVPN Version: OpenVPN Mock\nEND\n",
 		},
 		{
 			"invalid version",
 			"OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version:\r\nEND\r\n",
-			`unable to parse openvpn management interface version: strconv.Atoi: parsing ":": invalid syntax`,
+			`OpenVPN management error: unable to parse openvpn management interface version: strconv.Atoi: parsing ":": invalid syntax`,
 		},
 		{
 			"version to low",
 			"OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 4\r\nEND\r\n",
-			`openvpn-auth-oauth2 requires OpenVPN management interface version 5 or higher`,
+			`OpenVPN management error: openvpn-auth-oauth2 requires OpenVPN management interface version 5 or higher`,
 		},
 	}
 
@@ -402,33 +406,66 @@ func TestClientInvalidVersion(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			managementInterface := testutils.TCPTestListener(t)
+			managementInterface, err := nettest.NewLocalListener("tcp")
+			require.NoError(t, err)
+
 			defer managementInterface.Close()
 
 			conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
 			storageClient := storage.New(testutils.Secret, time.Hour)
 			provider := oauth2.New(logger.Logger, conf, storageClient)
-			client := openvpn.NewClient(context.Background(), logger.Logger, conf, provider)
+			openVPNClient := openvpn.NewClient(context.Background(), logger.Logger, conf, provider)
+
+			ctx, cancel := context.WithCancelCause(context.Background())
+			wg := sync.WaitGroup{}
+			wg.Add(2)
 
 			go func() {
-				conn, err := managementInterface.Accept()
-				require.NoError(t, err) //nolint:testifylint
+				defer wg.Done()
 
-				defer conn.Close()
-				reader := bufio.NewReader(conn)
+				managementInterfaceConn, err := managementInterface.Accept()
+				if err != nil {
+					cancel(fmt.Errorf("accepting connection: %w", err))
 
-				testutils.SendLine(t, conn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\r\n")
-				assert.Equal(t, "version", testutils.ReadLine(t, reader))
+					return
+				}
 
-				testutils.SendLine(t, conn, tt.version)
+				defer managementInterfaceConn.Close()
+				reader := bufio.NewReader(managementInterfaceConn)
+
+				testutils.SendAndExpectMessage(t, managementInterfaceConn, reader,
+					">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info",
+					"version",
+				)
+
+				testutils.SendMessage(t, managementInterfaceConn, tt.version)
+
+				<-ctx.Done()
 			}()
 
-			err := client.Connect()
+			go func() {
+				defer wg.Done()
+
+				err := openVPNClient.Connect()
+				if err != nil {
+					cancel(err)
+
+					return
+				}
+
+				cancel(nil)
+			}()
+
+			<-ctx.Done()
+
+			wg.Wait()
+			openVPNClient.Shutdown()
+
+			err = context.Cause(ctx)
+
 			require.Error(t, err)
 			assert.Equal(t, tt.err, err.Error())
-
-			client.Shutdown()
 		})
 	}
 }
@@ -448,7 +485,9 @@ func TestSIGHUP(t *testing.T) {
 		},
 	}
 
-	managementInterface := testutils.TCPTestListener(t)
+	managementInterface, err := nettest.NewLocalListener("tcp")
+	require.NoError(t, err)
+
 	defer managementInterface.Close()
 
 	conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
@@ -472,8 +511,10 @@ func TestSIGHUP(t *testing.T) {
 		testutils.ExpectVersionAndReleaseHold(t, conn, reader)
 
 		for i := 0; i < 10; i++ {
-			testutils.SendLine(t, conn, ">HOLD:Waiting for hold release:0\r\n")
-			assert.Equal(t, "hold release", testutils.ReadLine(t, reader))
+			testutils.SendAndExpectMessage(t, conn, reader,
+				">HOLD:Waiting for hold release:0",
+				"hold release",
+			)
 		}
 	}()
 

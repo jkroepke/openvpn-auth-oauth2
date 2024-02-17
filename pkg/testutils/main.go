@@ -15,15 +15,18 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	oidcStorage "github.com/zitadel/oidc/v3/example/server/storage"
 	"github.com/zitadel/oidc/v3/pkg/op"
+	"golang.org/x/net/nettest"
 	"golang.org/x/text/language"
 )
 
@@ -32,20 +35,20 @@ const Secret = "0123456789101112"
 func ExpectVersionAndReleaseHold(tb testing.TB, conn net.Conn, reader *bufio.Reader) {
 	tb.Helper()
 
-	SendLine(tb, conn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\r\n")
-	SendLine(tb, conn, ">HOLD:Waiting for hold release:0\r\n")
+	SendMessage(tb, conn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info")
+	SendMessage(tb, conn, ">HOLD:Waiting for hold release:0")
 
 	var expectedCommand int
 
 	for i := 0; i < 2; i++ {
-		line := ReadLine(tb, reader)
+		line := ReadLine(tb, conn, reader)
 		switch line {
 		case "hold release":
-			SendLine(tb, conn, "SUCCESS: hold release succeeded\r\n")
+			SendMessage(tb, conn, "SUCCESS: hold release succeeded")
 
 			expectedCommand++
 		case "version":
-			SendLine(tb, conn, "OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 5\r\nEND\r\n")
+			SendMessage(tb, conn, "OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 5\r\nEND")
 
 			expectedCommand++
 		default:
@@ -56,15 +59,69 @@ func ExpectVersionAndReleaseHold(tb testing.TB, conn net.Conn, reader *bufio.Rea
 	require.Equal(tb, 2, expectedCommand)
 }
 
-func SendLine(tb testing.TB, conn net.Conn, msg string, a ...any) {
+func SendMessage(tb testing.TB, conn net.Conn, sendMessage string, args ...any) {
 	tb.Helper()
 
-	_, err := fmt.Fprintf(conn, msg, a...)
+	err := conn.SetWriteDeadline(time.Now().Add(time.Second * 5))
+	require.NoError(tb, err)
+
+	if sendMessage != "ENTER PASSWORD:" {
+		sendMessage += "\n"
+	}
+
+	_, err = fmt.Fprintf(conn, sendMessage, args...)
 	require.NoError(tb, err)
 }
 
-func ReadLine(tb testing.TB, reader *bufio.Reader) string {
+func ExpectMessage(tb testing.TB, conn net.Conn, reader *bufio.Reader, expectMessage string) {
 	tb.Helper()
+
+	for _, expected := range strings.Split(strings.TrimSpace(expectMessage), "\n") {
+		err := conn.SetReadDeadline(time.Now().Add(time.Second * 5))
+		require.NoError(tb, err, expected, expectMessage)
+
+		line, err := reader.ReadString('\n')
+
+		if err != nil && !errors.Is(err, io.EOF) {
+			require.NoError(tb, err, "expected line: %s\nexpected message:\n%s", expected, expectMessage)
+		}
+
+		assert.Equal(tb, expected, strings.TrimRightFunc(line, unicode.IsSpace))
+	}
+}
+
+func SendAndExpectMessage(tb testing.TB, conn net.Conn, reader *bufio.Reader, sendMessage string, expectMessage string) {
+	tb.Helper()
+
+	err := conn.SetWriteDeadline(time.Now().Add(time.Second * 5))
+	require.NoError(tb, err, "send: %s\n\nexpected message:\n%s", sendMessage, expectMessage)
+
+	if sendMessage != "ENTER PASSWORD:" {
+		sendMessage += "\n"
+	}
+
+	_, err = fmt.Fprint(conn, sendMessage)
+	require.NoError(tb, err, "send: %s\n\nexpected message:\n%s", sendMessage, expectMessage)
+
+	for _, expected := range strings.Split(strings.TrimSpace(expectMessage), "\n") {
+		err := conn.SetReadDeadline(time.Now().Add(time.Second * 5))
+		require.NoError(tb, err, expected, expectMessage)
+
+		line, err := reader.ReadString('\n')
+
+		if err != nil && !errors.Is(err, io.EOF) {
+			require.NoError(tb, err, "send: %s\n\nexpected line: %s\n\nexpected message:\n%s", sendMessage, expected, expectMessage)
+		}
+
+		assert.Equal(tb, expected, strings.TrimRightFunc(line, unicode.IsSpace))
+	}
+}
+
+func ReadLine(tb testing.TB, conn net.Conn, reader *bufio.Reader) string {
+	tb.Helper()
+
+	err := conn.SetReadDeadline(time.Now().Add(time.Second * 5))
+	require.NoError(tb, err)
 
 	line, err := reader.ReadString('\n')
 
@@ -72,7 +129,7 @@ func ReadLine(tb testing.TB, reader *bufio.Reader) string {
 		require.NoError(tb, err)
 	}
 
-	return strings.TrimSpace(line)
+	return strings.TrimRightFunc(line, unicode.IsSpace)
 }
 
 func SetupResourceServer(tb testing.TB, clientListener net.Listener) (*httptest.Server, *url.URL, config.OAuth2Client, error) {
@@ -132,8 +189,11 @@ func SetupMockEnvironment(tb testing.TB, conf config.Config) (config.Config, *op
 
 	logger := NewTestLogger()
 
-	managementInterface := TCPTestListener(tb)
-	clientListener := TCPTestListener(tb)
+	managementInterface, err := nettest.NewLocalListener("tcp")
+	require.NoError(tb, err)
+
+	clientListener, err := nettest.NewLocalListener("tcp")
+	require.NoError(tb, err)
 
 	resourceServer, resourceServerURL, clientCredentials, err := SetupResourceServer(tb, clientListener)
 	require.NoError(tb, err)

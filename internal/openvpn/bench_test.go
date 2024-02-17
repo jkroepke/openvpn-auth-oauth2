@@ -3,10 +3,14 @@ package openvpn_test
 import (
 	"bufio"
 	"context"
+	"errors"
+	"fmt"
+	"io"
 	"net"
 	"net/url"
 	"strings"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 
@@ -17,6 +21,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/net/nettest"
 )
 
 func BenchmarkOpenVPNHandler(b *testing.B) {
@@ -40,7 +45,7 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 	}
 
 	storageClient := storage.New(testutils.Secret, time.Hour)
-	client := openvpn.NewClient(context.Background(), logger.Logger, conf, oauth2.New(logger.Logger, conf, storageClient))
+	openVPNClient := openvpn.NewClient(context.Background(), logger.Logger, conf, oauth2.New(logger.Logger, conf, storageClient))
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -48,8 +53,8 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 	go func() {
 		defer wg.Done()
 
-		err := client.Connect()
-		if err != nil && !strings.HasSuffix(err.Error(), "EOF") {
+		err := openVPNClient.Connect()
+		if err != nil && !errors.Is(err, io.EOF) {
 			require.NoError(b, err) //nolint:testifylint
 		}
 	}()
@@ -85,9 +90,9 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 
 		b.Run(tt.name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				testutils.SendLine(b, managementInterfaceConn, tt.client)
-				assert.Contains(b, testutils.ReadLine(b, reader), "client-pending-auth 0 1 \"WEB_AUTH::")
-				testutils.SendLine(b, managementInterfaceConn, "SUCCESS: client-pending-auth command succeeded\r\n")
+				testutils.SendMessage(b, managementInterfaceConn, tt.client)
+				assert.Contains(b, testutils.ReadLine(b, managementInterfaceConn, reader), "client-pending-auth 0 1 \"WEB_AUTH::")
+				testutils.SendMessage(b, managementInterfaceConn, "SUCCESS: client-pending-auth command succeeded")
 			}
 
 			b.ReportAllocs()
@@ -96,6 +101,183 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 
 	b.StopTimer()
 
-	client.Shutdown()
+	openVPNClient.Shutdown()
 	wg.Wait()
+}
+
+func BenchmarkOpenVPNPassthrough(b *testing.B) {
+	b.StopTimer()
+
+	logger := testutils.NewTestLogger()
+
+	conf := config.Defaults
+	conf.HTTP.Secret = testutils.Secret
+	conf.OpenVpn.Passthrough.Enabled = true
+
+	managementInterface, err := nettest.NewLocalListener("tcp")
+	require.NoError(b, err)
+
+	defer managementInterface.Close()
+
+	passThroughInterface, err := nettest.NewLocalListener("tcp")
+	require.NoError(b, err)
+
+	conf.OpenVpn.Passthrough.Address = &url.URL{Scheme: "tcp", Host: passThroughInterface.Addr().String()}
+	conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
+
+	passThroughInterface.Close()
+
+	storageClient := storage.New(testutils.Secret, time.Hour)
+	provider := oauth2.New(logger.Logger, conf, storageClient)
+	openVPNClient := openvpn.NewClient(context.Background(), logger.Logger, conf, provider)
+
+	defer openVPNClient.Shutdown()
+
+	wg := sync.WaitGroup{}
+
+	ctx, cancel := context.WithCancelCause(context.Background())
+
+	wg.Add(1)
+
+	go func() {
+		defer wg.Done()
+
+		managementInterfaceConn, err := managementInterface.Accept()
+		if err != nil {
+			cancel(fmt.Errorf("accepting connection: %w", err))
+
+			return
+		}
+
+		defer managementInterfaceConn.Close()
+
+		reader := bufio.NewReader(managementInterfaceConn)
+
+		if conf.OpenVpn.Password != "" {
+			testutils.SendMessage(b, managementInterfaceConn, "ENTER PASSWORD:")
+			testutils.ExpectMessage(b, managementInterfaceConn, reader, conf.OpenVpn.Password.String())
+			testutils.SendMessage(b, managementInterfaceConn, "SUCCESS: password is correct")
+		}
+
+		testutils.ExpectVersionAndReleaseHold(b, managementInterfaceConn, reader)
+
+		var message string
+
+		for {
+			line, err := reader.ReadString('\n')
+			if err != nil {
+				cancel(fmt.Errorf("reading line: %w", err))
+
+				return
+			}
+
+			line = strings.TrimSpace(line)
+
+			if line == "exit" {
+				cancel(nil)
+
+				break
+			}
+
+			switch line {
+			case "help":
+				message = OpenVPNManagementInterfaceCommandResultHelp
+			case "status":
+				message = OpenVPNManagementInterfaceCommandResultStatus
+			case "version":
+				message = "OpenVPN Version: openvpn-auth-oauth2\nManagement Interface Version: 5\nEND"
+			case "load-stats":
+				message = "SUCCESS: nclients=0,bytesin=0,bytesout=0"
+			case "pid":
+				message = "SUCCESS: pid=7"
+			case "kill 1":
+				message = "ERROR: common name '1' not found"
+			case "client-kill 1":
+				message = "ERROR: client-kill command failed"
+			default:
+				message = "ERROR: unknown command, enter 'help' for more options"
+			}
+
+			testutils.SendMessage(b, managementInterfaceConn, message+"")
+		}
+	}()
+
+	wg.Add(1)
+
+	go func() {
+		defer wg.Done()
+
+		err := openVPNClient.Connect()
+		if err != nil {
+			cancel(fmt.Errorf("connecting: %w", err))
+
+			return
+		}
+
+		<-ctx.Done()
+	}()
+
+	var passThroughConn net.Conn
+
+	for i := 0; i < 10; i++ {
+		passThroughConn, err = net.DialTimeout(passThroughInterface.Addr().Network(), passThroughInterface.Addr().String(), time.Second)
+		if err == nil {
+			break
+		}
+
+		if errors.Is(err, syscall.ECONNREFUSED) {
+			time.Sleep(100 * time.Millisecond)
+
+			continue
+		}
+
+		require.NoError(b, err)
+	}
+
+	require.NoError(b, err)
+
+	passThroughReader := bufio.NewReader(passThroughConn)
+
+	tests := []struct {
+		command  string
+		response string
+	}{
+		{
+			"pid",
+			"SUCCESS: pid=7",
+		},
+		{
+			"status",
+			OpenVPNManagementInterfaceCommandResultStatus,
+		},
+		{
+			"help",
+			OpenVPNManagementInterfaceCommandResultHelp,
+		},
+	}
+
+	b.ResetTimer()
+	b.StartTimer()
+
+	for _, tt := range tests {
+		tt := tt
+
+		b.Run(tt.command, func(b *testing.B) {
+			testutils.SendAndExpectMessage(b, passThroughConn, passThroughReader, tt.command, tt.response)
+
+			b.ReportAllocs()
+		})
+	}
+
+	b.StopTimer()
+
+	testutils.SendMessage(b, passThroughConn, "exit")
+	openVPNClient.Shutdown()
+	wg.Wait()
+
+	<-ctx.Done()
+
+	if err := context.Cause(ctx); err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, io.EOF) {
+		require.NoError(b, err)
+	}
 }

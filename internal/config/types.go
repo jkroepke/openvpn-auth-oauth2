@@ -41,12 +41,13 @@ type Log struct {
 }
 
 type OpenVpn struct {
-	Addr               *url.URL          `koanf:"addr"`
-	Password           Secret            `koanf:"password"`
-	Bypass             OpenVpnBypass     `koanf:"bypass"`
-	AuthTokenUser      bool              `koanf:"auth-token-user"`
-	AuthPendingTimeout time.Duration     `koanf:"auth-pending-timeout"`
-	CommonName         OpenVPNCommonName `koanf:"common-name"`
+	Addr               *url.URL           `koanf:"addr"`
+	Password           Secret             `koanf:"password"`
+	Bypass             OpenVpnBypass      `koanf:"bypass"`
+	AuthTokenUser      bool               `koanf:"auth-token-user"`
+	AuthPendingTimeout time.Duration      `koanf:"auth-pending-timeout"`
+	CommonName         OpenVPNCommonName  `koanf:"common-name"`
+	Passthrough        OpenVPNPassthrough `koanf:"pass-through"`
 }
 
 type OpenVpnBypass struct {
@@ -95,6 +96,14 @@ type OAuth2Refresh struct {
 	Enabled bool          `koanf:"enabled"`
 	Expires time.Duration `koanf:"expires"`
 	Secret  Secret        `koanf:"secret"`
+}
+
+type OpenVPNPassthrough struct {
+	Enabled     bool     `koanf:"enabled"`
+	Address     *url.URL `koanf:"address"`
+	Password    Secret   `koanf:"password"`
+	SocketMode  uint     `koanf:"socket-mode"`
+	SocketGroup string   `koanf:"socket-group"`
 }
 
 type Debug struct {

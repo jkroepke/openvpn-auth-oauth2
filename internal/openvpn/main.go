@@ -27,7 +27,6 @@ func NewClient(ctx context.Context, logger *slog.Logger, conf config.Config, oau
 		logger: logger,
 		oauth2: oauth2Client,
 
-		closed: false,
 		connMu: sync.Mutex{},
 
 		commandsBuffer: bytes.Buffer{},
@@ -35,6 +34,7 @@ func NewClient(ctx context.Context, logger *slog.Logger, conf config.Config, oau
 		clientsCh:         make(chan connection.Client, 10),
 		commandResponseCh: make(chan string, 10),
 		commandsCh:        make(chan string, 10),
+		passthroughCh:     make(chan string, 10),
 	}
 
 	client.commandsBuffer.Grow(512)
@@ -69,17 +69,19 @@ func (c *Client) Connect() error {
 
 	c.logger.Info("connection to OpenVPN management interface established.")
 
-	err = c.checkManagementInterfaceVersion()
-	if err != nil {
-		c.Shutdown()
+	if c.conf.OpenVpn.Passthrough.Enabled {
+		go c.handlePassthrough()
+	}
 
-		return err
+	err = c.checkManagementInterfaceVersion()
+	if err != nil && !errors.Is(err, ErrConnectionTerminated) {
+		c.ctxCancel(err)
 	}
 
 	<-c.ctx.Done()
 
 	err = context.Cause(c.ctx)
-	if !errors.Is(err, context.Canceled) {
+	if err != nil && !errors.Is(err, context.Canceled) {
 		c.Shutdown()
 
 		return fmt.Errorf("OpenVPN management error: %w", err)
@@ -95,10 +97,10 @@ func (c *Client) setupConnection() error {
 	var err error
 
 	switch c.conf.OpenVpn.Addr.Scheme {
-	case "tcp":
-		c.conn, err = net.Dial(c.conf.OpenVpn.Addr.Scheme, c.conf.OpenVpn.Addr.Host)
-	case "unix":
-		c.conn, err = net.Dial(c.conf.OpenVpn.Addr.Scheme, c.conf.OpenVpn.Addr.Path)
+	case SchemeTCP:
+		c.conn, err = net.DialTimeout(c.conf.OpenVpn.Addr.Scheme, c.conf.OpenVpn.Addr.Host, 1*time.Second)
+	case SchemeUnix:
+		c.conn, err = net.DialTimeout(c.conf.OpenVpn.Addr.Scheme, c.conf.OpenVpn.Addr.Path, 1*time.Second)
 	default:
 		err = fmt.Errorf("unable to connect to openvpn management interface: %w %s", ErrUnknownProtocol, c.conf.OpenVpn.Addr.Scheme)
 	}
@@ -107,7 +109,11 @@ func (c *Client) setupConnection() error {
 }
 
 func (c *Client) checkManagementInterfaceVersion() error {
-	resp, err := c.SendCommand("version")
+	resp, err := c.SendCommand("version", false)
+	if resp == "" {
+		return nil
+	}
+
 	if err != nil {
 		return fmt.Errorf("error from version command: %w", err)
 	}
@@ -152,17 +158,15 @@ func (c *Client) checkClientSsoCapabilities(logger *slog.Logger, client connecti
 
 // Shutdown shutdowns the client connection.
 func (c *Client) Shutdown() {
-	c.connMu.Lock()
-	defer c.connMu.Unlock()
-
-	if c.closed {
+	if !c.closed.CompareAndSwap(0, 1) {
 		return
 	}
 
-	c.closed = true
 	c.logger.Info("shutdown OpenVPN management connection")
-
 	c.ctxCancel(nil)
+
+	c.connMu.Lock()
+	defer c.connMu.Unlock()
 
 	if c.conn != nil {
 		_ = c.conn.Close()
@@ -172,13 +176,21 @@ func (c *Client) Shutdown() {
 }
 
 // SendCommand passes command to a given connection (adds logging and EOL character) and returns the response.
-func (c *Client) SendCommand(cmd string) (string, error) {
+func (c *Client) SendCommand(cmd string, passTrough bool) (string, error) {
+	if c.closed.Load() == 1 {
+		return "", nil
+	}
+
 	c.commandsCh <- cmd
 
 	select {
 	case <-c.ctx.Done():
 		return "", ErrConnectionTerminated // Error somewhere, terminate
 	case resp := <-c.commandResponseCh:
+		if passTrough {
+			return resp, nil
+		}
+
 		if resp == "" {
 			cmdFirstLine := strings.SplitN(cmd, "\n", 2)[0]
 
@@ -200,7 +212,7 @@ func (c *Client) SendCommand(cmd string) (string, error) {
 
 // SendCommandf passes command to a given connection (adds logging and EOL character) and returns the response.
 func (c *Client) SendCommandf(format string, a ...any) (string, error) {
-	return c.SendCommand(fmt.Sprintf(format, a...))
+	return c.SendCommand(fmt.Sprintf(format, a...), false)
 }
 
 // rawCommand passes command to a given connection (adds logging and EOL character).
@@ -212,6 +224,10 @@ func (c *Client) rawCommand(cmd string) error {
 	c.commandsBuffer.Reset()
 	c.commandsBuffer.WriteString(cmd)
 	c.commandsBuffer.WriteString("\n")
+
+	if err := c.conn.SetWriteDeadline(time.Now().Add(time.Second)); err != nil {
+		return fmt.Errorf("unable to set read deadline: %w", err)
+	}
 
 	if _, err := c.commandsBuffer.WriteTo(c.conn); err != nil {
 		return fmt.Errorf("unable to write into OpenVPN management connection: %w", err)

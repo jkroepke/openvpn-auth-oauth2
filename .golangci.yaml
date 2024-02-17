@@ -31,6 +31,8 @@ issues:
         - wrapcheck
         - maintidx
         - dogsled
+        - contextcheck
+        - dupword
 
 linters-settings:
   varnamelen:
@@ -38,6 +40,7 @@ linters-settings:
       - tt
     ignore-decls:
       - i int
+      - a ...any
       - err error
       - ok bool
       - w http.ResponseWriter
