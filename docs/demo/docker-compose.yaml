@@ -142,8 +142,8 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:latest
     environment:
-      # KEYCLOAK_ADMIN: admin
-      # KEYCLOAK_ADMIN_PASSWORD:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: insecure
       KC_HOSTNAME_STRICT: "false"
       KC_FILE: "/openvpn-auth-oauth2-realm.json"
     networks:
