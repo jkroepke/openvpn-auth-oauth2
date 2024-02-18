@@ -42,7 +42,7 @@ func TestOAuth2AuthStyleUnmarshalText(t *testing.T) {
 
 	var oAuth2AuthStyle config.OAuth2AuthStyle
 
-	require.NoError(t, oAuth2AuthStyle.UnmarshalText([]byte("AuthStyleAutoDetect")))
+	require.NoError(t, oAuth2AuthStyle.UnmarshalText([]byte("AuthStyleInHeader")))
 	assert.Equal(t, config.OAuth2AuthStyle(oauth2.AuthStyleInHeader), oAuth2AuthStyle)
 
 	require.NoError(t, oAuth2AuthStyle.UnmarshalText([]byte("AuthStyleInParams")))
