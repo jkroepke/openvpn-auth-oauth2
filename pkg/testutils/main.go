@@ -96,11 +96,12 @@ func SendAndExpectMessage(tb testing.TB, conn net.Conn, reader *bufio.Reader, se
 	err := conn.SetWriteDeadline(time.Now().Add(time.Second * 5))
 	require.NoError(tb, err, "send: %s\n\nexpected message:\n%s", sendMessage, expectMessage)
 
-	if sendMessage != "ENTER PASSWORD:" {
-		sendMessage += "\n"
+	if sendMessage == "ENTER PASSWORD:" {
+		_, err = fmt.Fprint(conn, sendMessage)
+	} else {
+		_, err = fmt.Fprintln(conn, sendMessage)
 	}
 
-	_, err = fmt.Fprint(conn, sendMessage)
 	require.NoError(tb, err, "send: %s\n\nexpected message:\n%s", sendMessage, expectMessage)
 
 	for _, expected := range strings.Split(strings.TrimSpace(expectMessage), "\n") {

@@ -134,7 +134,10 @@ const (
 
 //goland:noinspection GoMixedReceiverTypes
 func (s OpenVPNCommonNameMode) String() string {
-	text, _ := s.MarshalText()
+	text, err := s.MarshalText()
+	if err != nil {
+		panic(err)
+	}
 
 	return string(text)
 }
@@ -170,7 +173,10 @@ type OAuth2AuthStyle oauth2.AuthStyle
 
 //goland:noinspection GoMixedReceiverTypes
 func (s OAuth2AuthStyle) String() string {
-	text, _ := s.MarshalText()
+	text, err := s.MarshalText()
+	if err != nil {
+		panic(err)
+	}
 
 	return string(text)
 }

@@ -37,6 +37,15 @@ func TestCNModeMarshalText(t *testing.T) {
 	assert.Equal(t, []byte("omit"), commonNameMode)
 }
 
+func TestCNModeString(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, "plain", config.CommonNameModePlain.String())
+	assert.Equal(t, "omit", config.CommonNameModeOmit.String())
+
+	assert.Panics(t, func() { _ = config.OpenVPNCommonNameMode(-1).String() }, "The code did not panic")
+}
+
 func TestOAuth2AuthStyleUnmarshalText(t *testing.T) {
 	t.Parallel()
 
@@ -71,6 +80,20 @@ func TestOAuth2AuthStyleMarshalText(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, []byte("AuthStyleAutoDetect"), oAuth2AuthStyle)
+
+	oAuth2AuthStyle, err = config.OAuth2AuthStyle(-1).MarshalText()
+
+	require.Error(t, err)
+}
+
+func TestOAuth2AuthStyleString(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, "AuthStyleInHeader", config.OAuth2AuthStyle(oauth2.AuthStyleInHeader).String())
+	assert.Equal(t, "AuthStyleInParams", config.OAuth2AuthStyle(oauth2.AuthStyleInParams).String())
+	assert.Equal(t, "AuthStyleAutoDetect", config.OAuth2AuthStyle(oauth2.AuthStyleAutoDetect).String())
+
+	assert.Panics(t, func() { _ = config.OAuth2AuthStyle(-1).String() }, "The code did not panic")
 }
 
 func TestOAuth2AuthStyleGetAuthStyle(t *testing.T) {
