@@ -62,3 +62,5 @@ require (
 	google.golang.org/protobuf v1.32.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/zitadel/oidc/v3 v3.11.1 => github.com/jkroepke/oidc/v3 v3.0.0-20240218204042-97e1d1dd1d37

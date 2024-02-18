@@ -166,6 +166,7 @@ func (p *Provider) getProviderOptions(providerLogger *expslog.Logger, basePath *
 		rp.WithLogger(providerLogger),
 		rp.WithCookieHandler(cookieHandler),
 		rp.WithVerifierOpts(verifierOpts...),
+		rp.WithAuthStyle(p.conf.OAuth2.AuthStyle.AuthStyle()),
 		rp.WithHTTPClient(&http.Client{Transport: utils.NewUserAgentTransport(nil)}),
 		rp.WithErrorHandler(func(w http.ResponseWriter, _ *http.Request, errorType string, errorDesc string, encryptedSession string) {
 			errorHandler(w, p.conf, p.logger, p.openvpn, http.StatusInternalServerError, errorType, errorDesc, encryptedSession)

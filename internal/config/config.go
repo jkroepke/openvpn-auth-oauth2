@@ -229,6 +229,13 @@ func FlagSet(name string) *flag.FlagSet {
 		Defaults.OAuth2.Nonce,
 		"If true, a nonce will be defined on the auth URL which is expected inside the token.",
 	)
+	flagSet.TextVar(new(OAuth2AuthStyle),
+		"oauth2.auth-style",
+		Defaults.OAuth2.AuthStyle,
+		"Auth style represents how requests for tokens are authenticated to the server. "+
+			"Possible values: AuthStyleAutoDetect, AuthStyleInParams, AuthStyleInHeader. "+
+			"See https://pkg.go.dev/golang.org/x/oauth2#AuthStyle",
+	)
 	flagSet.Bool(
 		"oauth2.refresh.enabled",
 		Defaults.OAuth2.Refresh.Enabled,
