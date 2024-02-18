@@ -198,11 +198,11 @@ func (s OAuth2AuthStyle) MarshalText() ([]byte, error) {
 func (s *OAuth2AuthStyle) UnmarshalText(text []byte) error {
 	config := strings.ToLower(string(text))
 	switch config {
-	case "AuthStyleAutoDetect":
+	case strings.ToLower("AuthStyleAutoDetect"):
 		*s = OAuth2AuthStyle(oauth2.AuthStyleAutoDetect)
-	case "AuthStyleInParams":
+	case strings.ToLower("AuthStyleInParams"):
 		*s = OAuth2AuthStyle(oauth2.AuthStyleInParams)
-	case "AuthStyleInHeader":
+	case strings.ToLower("AuthStyleInHeader"):
 		*s = OAuth2AuthStyle(oauth2.AuthStyleInHeader)
 	default:
 		return fmt.Errorf("unknown auth-style %d", s)

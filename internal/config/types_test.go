@@ -60,7 +60,7 @@ func TestOAuth2AuthStyleMarshalText(t *testing.T) {
 	oAuth2AuthStyle, err := config.OAuth2AuthStyle(oauth2.AuthStyleInHeader).MarshalText()
 
 	require.NoError(t, err)
-	assert.Equal(t, []byte("AuthStyleAutoDetect"), oAuth2AuthStyle)
+	assert.Equal(t, []byte("AuthStyleInHeader"), oAuth2AuthStyle)
 
 	oAuth2AuthStyle, err = config.OAuth2AuthStyle(oauth2.AuthStyleInParams).MarshalText()
 
