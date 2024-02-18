@@ -42,13 +42,13 @@ func TestOAuth2AuthStyleUnmarshalText(t *testing.T) {
 
 	var oAuth2AuthStyle config.OAuth2AuthStyle
 
-	require.NoError(t, oAuth2AuthStyle.UnmarshalText([]byte("header")))
+	require.NoError(t, oAuth2AuthStyle.UnmarshalText([]byte("AuthStyleAutoDetect")))
 	assert.Equal(t, config.OAuth2AuthStyle(oauth2.AuthStyleInHeader), oAuth2AuthStyle)
 
-	require.NoError(t, oAuth2AuthStyle.UnmarshalText([]byte("params")))
+	require.NoError(t, oAuth2AuthStyle.UnmarshalText([]byte("AuthStyleInParams")))
 	assert.Equal(t, config.OAuth2AuthStyle(oauth2.AuthStyleInParams), oAuth2AuthStyle)
 
-	require.NoError(t, oAuth2AuthStyle.UnmarshalText([]byte("auto")))
+	require.NoError(t, oAuth2AuthStyle.UnmarshalText([]byte("AuthStyleAutoDetect")))
 	assert.Equal(t, config.OAuth2AuthStyle(oauth2.AuthStyleAutoDetect), oAuth2AuthStyle)
 
 	require.Error(t, oAuth2AuthStyle.UnmarshalText([]byte("unknown")))
@@ -60,15 +60,28 @@ func TestOAuth2AuthStyleMarshalText(t *testing.T) {
 	oAuth2AuthStyle, err := config.OAuth2AuthStyle(oauth2.AuthStyleInHeader).MarshalText()
 
 	require.NoError(t, err)
-	assert.Equal(t, []byte("header"), oAuth2AuthStyle)
+	assert.Equal(t, []byte("AuthStyleAutoDetect"), oAuth2AuthStyle)
 
 	oAuth2AuthStyle, err = config.OAuth2AuthStyle(oauth2.AuthStyleInParams).MarshalText()
 
 	require.NoError(t, err)
-	assert.Equal(t, []byte("params"), oAuth2AuthStyle)
+	assert.Equal(t, []byte("AuthStyleInParams"), oAuth2AuthStyle)
 
 	oAuth2AuthStyle, err = config.OAuth2AuthStyle(oauth2.AuthStyleAutoDetect).MarshalText()
 
 	require.NoError(t, err)
-	assert.Equal(t, []byte("auto"), oAuth2AuthStyle)
+	assert.Equal(t, []byte("AuthStyleAutoDetect"), oAuth2AuthStyle)
+}
+
+func TestOAuth2AuthStyleGetAuthStyle(t *testing.T) {
+	t.Parallel()
+
+	oAuth2AuthStyle := config.OAuth2AuthStyle(oauth2.AuthStyleInHeader).AuthStyle()
+	assert.Equal(t, oauth2.AuthStyleInHeader, oAuth2AuthStyle)
+
+	oAuth2AuthStyle = config.OAuth2AuthStyle(oauth2.AuthStyleInParams).AuthStyle()
+	assert.Equal(t, oauth2.AuthStyleInParams, oAuth2AuthStyle)
+
+	oAuth2AuthStyle = config.OAuth2AuthStyle(oauth2.AuthStyleAutoDetect).AuthStyle()
+	assert.Equal(t, oauth2.AuthStyleAutoDetect, oAuth2AuthStyle)
 }
