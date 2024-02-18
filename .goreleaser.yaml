@@ -55,6 +55,8 @@ archives:
 
 nfpms:
   - id: openvpn-auth-oauth2
+    builds:
+      - openvpn-auth-oauth2
     homepage: https://github.com/jkroepke/openvpn-auth-oauth2
     maintainer: Jan-Otto Kröpke <github@jkroepke.de>
     section: net
