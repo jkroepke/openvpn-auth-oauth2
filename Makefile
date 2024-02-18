@@ -28,6 +28,14 @@ clean: ## clean builds dir
 .PHONY: check
 check: test lint golangci ## Run all checks locally
 
+.PHONY: update
+update: ## Run dependency updates
+	@go get -u ./...
+	@go mod tidy
+	@cd pkg/plugin && go mod tidy
+	@go work sync
+
+
 .PHONY: build
 ifeq ($(OS),Windows_NT)
 build: clean openvpn-auth-oauth2.exe  ## Build openvpn-auth-oauth2
