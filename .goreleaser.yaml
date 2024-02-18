@@ -47,6 +47,11 @@ builds:
 
 archives:
   - id: openvpn-auth-oauth2
+    builds:
+        - openvpn-auth-oauth2
+    format: tar.xz
+    files:
+        - LICENSE.txt
 
 nfpms:
   - id: openvpn-auth-oauth2
