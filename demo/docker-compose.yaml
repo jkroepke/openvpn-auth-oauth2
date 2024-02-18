@@ -1,0 +1,183 @@
+services:
+  openvpn:
+    init: true
+    image: openvpn-auth-oauth2/openvpn
+    build:
+      context: .
+      args:
+        GIT_BRANCH: release/2.6
+      #language=dockerfile
+      dockerfile_inline: |
+        FROM ubuntu:22.04
+        ARG GIT_BRANCH
+        ARG DEBIAN_FRONTEND=noninteractive
+        RUN apt update -qqy \
+            && apt install -qqy git build-essential autoconf automake libtool pkg-config libnl-genl-3-dev libcap-ng-dev \
+                libssl-dev liblz4-dev liblzo2-dev libpam0g-dev python3-docutils easy-rsa
+
+        WORKDIR /build/
+
+        RUN git clone --depth 1 https://github.com/OpenVPN/openvpn.git --branch $${GIT_BRANCH} --single-branch .
+        RUN autoreconf -i -v -f
+        RUN ./configure
+        RUN make
+        RUN make install
+    cap_add:
+      - NET_ADMIN
+    networks:
+      openvpn-auth-oauth2:
+        aliases:
+          - openvpn
+    devices:
+      - /dev/net/tun
+    ports:
+      - "1196:1196/udp"
+    volumes:
+      - openvpn:/etc/openvpn/server
+      - ./config/client/:/etc/openvpn/client/
+      - ./openvpn-server.conf:/etc/openvpn/openvpn.conf
+    environment:
+      EASYRSA: /usr/share/easy-rsa/
+      EASYRSA_PKI: /etc/openvpn/server/pki
+      EASYRSA_BATCH: 1
+      EASYRSA_NO_VARS: 1
+      EASYRSA_NO_PASS: 1
+      EASYRSA_ALGO: "ed"
+      EASYRSA_CURVE: "ed25519"
+      EASYRSA_DN: "cn_only"
+    entrypoint:
+      - /bin/sh
+      - -ec
+      #language=shell script
+      - |-
+        if [ ! -f /etc/openvpn/server/pki/ca.crt ]; then
+          /usr/share/easy-rsa/easyrsa init-pki nopass
+          /usr/share/easy-rsa/easyrsa build-ca nopass
+          /usr/share/easy-rsa/easyrsa build-server-full server nopass
+          /usr/share/easy-rsa/easyrsa build-server-full client nopass
+        fi
+        if [ ! -f /etc/openvpn/server/ta.key ]; then
+          openvpn --genkey tls-crypt-v2-server /etc/openvpn/server/ta.key
+          openvpn --tls-crypt-v2 /etc/openvpn/server/ta.key --genkey tls-crypt-v2-client /etc/openvpn/server/ta-client.key
+        fi
+
+        if [ ! -f /etc/openvpn/server/password.txt ]; then
+          printf password > /etc/openvpn/server/password.txt
+          chmod 400 /etc/openvpn/server/password.txt
+        fi
+
+        cat > "/etc/openvpn/client/client.ovpn" <<EOF
+        client
+        dev tun
+        persist-tun
+
+        cipher AES-256-GCM
+
+        nobind
+
+        remote 127.0.0.1 1196 udp4
+        remote-cert-tls server
+        resolv-retry infinite
+
+        tls-cert-profile preferred
+        tls-version-min 1.3
+        auth SHA512
+
+        <ca>
+        $(cat /etc/openvpn/server/pki/ca.crt)
+        </ca>
+
+        <key>
+        $(cat /etc/openvpn/server/pki/private/client.key)
+        </key>
+        <cert>
+        $(openssl x509 -in /etc/openvpn/server/pki/issued/client.crt)
+        </cert>
+
+        <tls-crypt-v2>
+        $(cat /etc/openvpn/server/ta-client.key)
+        </tls-crypt-v2>
+        EOF
+
+        exec openvpn --config "/etc/openvpn/openvpn.conf"
+  openvpn-auth-oauth2:
+    image: openvpn-auth-oauth2/openvpn-auth-oauth2
+    build:
+      context: .
+      args:
+        GIT_BRANCH: release/2.6
+      #language=dockerfile
+      dockerfile_inline: |
+        FROM golang:1.22-alpine
+
+        RUN go install github.com/jkroepke/openvpn-auth-oauth2@latest
+    restart: unless-stopped
+    depends_on:
+      openvpn:
+        condition: service_started
+      keycloak:
+        condition: service_healthy
+    networks:
+      openvpn-auth-oauth2:
+        aliases:
+          - openvpn-auth-oauth2
+    environment:
+      CONFIG_HTTP_LISTEN: ":9000"
+      CONFIG_HTTP_BASEURL: "http://localhost:9000/"
+      CONFIG_HTTP_SECRET: "1jd93h5b6s82lf03jh5b2hf9"
+      CONFIG_OPENVPN_ADDR: "tcp://openvpn:8081"
+      CONFIG_OPENVPN_PASSWORD: "password"
+      CONFIG_OAUTH2_ISSUER: "http://localhost:8080/realms/openvpn-auth-oauth2"
+      CONFIG_OAUTH2_ENDPOINT_DISCOVERY: "http://keycloak:8080/realms/openvpn-auth-oauth2/.well-known/openid-configuration"
+      CONFIG_OAUTH2_VALIDATE_ISSUER: "false"
+      CONFIG_OAUTH2_REFRESH_ENABLED: "true"
+      CONFIG_OAUTH2_REFRESH_SECRET: "1jd93h5b6s82lf03jh5b2hf9"
+      CONFIG_OAUTH2_CLIENT_ID: "openvpn-auth-oauth2"
+      CONFIG_OAUTH2_CLIENT_SECRET: "zSkHo6iq8AEZ9W725JqomqkZGhfOG8jL"
+    ports:
+      - "9000:9000/tcp"
+      - "9092:9092/tcp"
+    command:
+      - /go/bin/openvpn-auth-oauth2
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    environment:
+      # KEYCLOAK_ADMIN: admin
+      # KEYCLOAK_ADMIN_PASSWORD:
+      KC_HOSTNAME_STRICT: "false"
+      KC_FILE: "/openvpn-auth-oauth2-realm.json"
+    networks:
+      openvpn-auth-oauth2:
+        aliases:
+          - keycloak
+    healthcheck:
+      test:
+        - CMD
+        - sh
+        - -c
+        # doing black magic to check if the realm is imported - container does not have curl or wget
+        - >-
+          exec 5<>/dev/tcp/127.0.0.1/8080
+          && echo -e "HEAD /realms/openvpn-auth-oauth2/.well-known/openid-configuration HTTP/1.1\r\nHost: localhost:8080\r\nConnection: close\r\n\r\n" >&5
+          && grep -q "HTTP/1.1 200 OK" - <&5
+      interval: 30s
+      timeout: 10s
+      retries: 4
+      start_period: 30s
+      start_interval: 5s
+    user: "1000"
+    volumes:
+      - keycloak:/opt/keycloak/data/
+      - ./keycloak-realm.json:/opt/keycloak/data/import/openvpn-auth-oauth2-realm.json
+    ports:
+      - "8080:8080/tcp"
+    command:
+      - start-dev
+      - --import-realm
+
+volumes:
+  openvpn: {}
+  keycloak: {}
+
+networks:
+  openvpn-auth-oauth2:  {}
