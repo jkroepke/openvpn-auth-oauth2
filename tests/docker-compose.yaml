@@ -34,11 +34,11 @@ services:
       - |-
         if [ ! -f /etc/openvpn/pki/ca.crt ]; then
           /usr/share/easy-rsa/easyrsa init-pki nopass
-          /usr/share/easy-rsa/easyrsa build-ca nopass 
+          /usr/share/easy-rsa/easyrsa build-ca nopass
           /usr/share/easy-rsa/easyrsa build-server-full server nopass
           /usr/share/easy-rsa/easyrsa build-client-full ${UPN} nopass
         fi
-        
+
         if [ ! -f /etc/openvpn/password.txt ]; then
           printf password > /etc/openvpn/password.txt
         fi

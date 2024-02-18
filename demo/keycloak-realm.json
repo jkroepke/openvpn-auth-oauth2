@@ -1,0 +1,88 @@
+{
+  "keycloakVersion": "23.0.6",
+  "realm": "openvpn-auth-oauth2",
+  "displayName": "openvpn-auth-oauth2 DEMO",
+  "displayNameHtml": "openvpn-auth-oauth2 DEMO<br>USER: demo / PASSWORD: <span style=\"text-transform: lowercase;\">demo123</span></div>",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "registrationEmailAsUsername": false,
+  "rememberMe": true,
+  "verifyEmail": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": false,
+  "permanentLockout": false,
+  "requiredCredentials": [
+    "password"
+  ],
+  "attributes": {
+    "frontendUrl": "http://localhost:8080"
+  },
+  "clients": [
+    {
+      "enabled": true,
+      "protocol": "openid-connect",
+      "clientId": "openvpn-auth-oauth2",
+      "name": "openvpn-auth-oauth2",
+      "rootUrl": "http://localhost:9000",
+      "adminUrl": "http://localhost:9000",
+      "baseUrl": "http://localhost:9000",
+      "surrogateAuthRequired": false,
+      "alwaysDisplayInConsole": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "zSkHo6iq8AEZ9W725JqomqkZGhfOG8jL",
+      "redirectUris": [
+        "http://localhost:9000/oauth2/callback"
+      ],
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "publicClient": false,
+      "frontchannelLogout": false,
+      "attributes": {
+        "client.secret.creation.time": "1708260958",
+        "login_theme": "keycloak",
+        "oauth2.device.authorization.grant.enabled": "false",
+        "backchannel.logout.revoke.offline.tokens": "false",
+        "use.refresh.tokens": "true",
+        "oidc.ciba.grant.enabled": "false",
+        "backchannel.logout.session.required": "false",
+        "client_credentials.use_refresh_token": "false",
+        "tls.client.certificate.bound.access.tokens": "false",
+        "require.pushed.authorization.requests": "false",
+        "acr.loa.map": "{}",
+        "display.on.consent.screen": "false",
+        "pkce.code.challenge.method": "S256",
+        "token.response.type.bearer.lower-case": "false"
+      },
+      "fullScopeAllowed": true
+    }
+  ],
+  "users": [
+    {
+      "username": "demo",
+      "email": "demo@example.com",
+      "enabled": true,
+      "totp": false,
+      "emailVerified": true,
+      "firstName": "DEMO",
+      "lastName": "User",
+      "realmRoles": [
+        "default-roles-openvpn-auth-oauth2"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "demo123"
+        }
+      ]
+    }
+  ]
+}
