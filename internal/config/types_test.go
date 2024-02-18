@@ -35,6 +35,10 @@ func TestCNModeMarshalText(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, []byte("omit"), commonNameMode)
+
+	_, err = config.OpenVPNCommonNameMode(-1).MarshalText()
+
+	require.Error(t, err)
 }
 
 func TestCNModeString(t *testing.T) {
@@ -81,7 +85,7 @@ func TestOAuth2AuthStyleMarshalText(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []byte("AuthStyleAutoDetect"), oAuth2AuthStyle)
 
-	oAuth2AuthStyle, err = config.OAuth2AuthStyle(-1).MarshalText()
+	_, err = config.OAuth2AuthStyle(-1).MarshalText()
 
 	require.Error(t, err)
 }
