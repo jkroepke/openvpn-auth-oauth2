@@ -366,9 +366,9 @@ func TestPassthroughFull(t *testing.T) {
 					)
 				}
 
-				testutils.SendMessage(t, passThroughConn, "exit")
-
 				if tt.scheme == openvpn.SchemeUnix {
+					testutils.SendMessage(t, passThroughConn, "exit")
+
 					stat, err := os.Stat(passThroughInterface.Addr().String())
 					if err != nil {
 						cancel(fmt.Errorf("stat: %w", err))
@@ -381,6 +381,8 @@ func TestPassthroughFull(t *testing.T) {
 
 					assert.Equal(t, tt.conf.OpenVpn.Passthrough.SocketGroup, strconv.Itoa(int(gid.Gid)))
 					assert.Equal(t, os.FileMode(tt.conf.OpenVpn.Passthrough.SocketMode), stat.Mode().Perm())
+				} else {
+					testutils.SendMessage(t, passThroughConn, "quit")
 				}
 
 				cancel(nil)
