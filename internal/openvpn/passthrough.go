@@ -75,7 +75,7 @@ func (c *Client) handlePassthrough() {
 
 				_ = conn.SetWriteDeadline(time.Now().Add(20 * time.Millisecond))
 
-				if _, err = conn.Write([]byte(message + "\n")); err != nil {
+				if _, err = conn.Write([]byte(message + "\r\n")); err != nil {
 					connMu.Unlock()
 
 					c.logger.Warn(fmt.Errorf("unable to write message to client %w", err).Error(), slog.String("client", conn.RemoteAddr().String()))
@@ -167,7 +167,7 @@ func (c *Client) handlePassthroughClientCommands(conn net.Conn, logger *slog.Log
 			c.writeToPassthroughClient("SUCCESS: hold release succeeded")
 
 			continue
-		case strings.HasPrefix(line, "exit"):
+		case strings.HasPrefix(line, "exit"), strings.HasPrefix(line, "quit"):
 			conn.Close()
 
 			return nil
