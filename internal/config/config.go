@@ -281,7 +281,7 @@ func FlagSet(name string) *flag.FlagSet {
 	flagSet.Bool(
 		"oauth2.validate.common-name-case-sensitive",
 		Defaults.OAuth2.Validate.CommonNameCaseSensitive,
-		"If true, openvpn-auth-oauth2 will validate the common case in insensitive mode",
+		"If true, openvpn-auth-oauth2 will validate the common case in sensitive mode",
 	)
 	flagSet.TextVar(new(StringSlice),
 		"oauth2.scopes",
