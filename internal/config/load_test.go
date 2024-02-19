@@ -73,7 +73,7 @@ oauth2:
         secret: "test"
     validate:
         common-name: "preffered_username"
-        common-name-case-sensitive: true"
+        common-name-case-sensitive: true
         groups:
         - "test"
         - "test2"
