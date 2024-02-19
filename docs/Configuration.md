@@ -64,7 +64,10 @@ oauth2:
         acr:
         #  - "phr"
         #  - "phrh"
-        common-name: ""
+        common-name:
+            environment-variable-name: X509_0_emailAddress
+            mode: plain
+            case-sensitive: false
         # groups:
         #  - "test"
         #  - "test2"

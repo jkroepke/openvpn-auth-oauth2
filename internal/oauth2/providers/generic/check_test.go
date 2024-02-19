@@ -2,6 +2,7 @@ package generic_test
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"testing"
 
@@ -150,17 +151,139 @@ func TestValidateCommonName(t *testing.T) {
 
 	for _, tt := range []struct {
 		name               string
-		tokenClaim         string
 		tokenCommonName    string
 		requiredCommonName string
-		commonNameMode     config.OpenVPNCommonNameMode
-		err                string
+		conf               config.Config
+		err                error
 	}{
-		{"sub empty", "sub", "apple", "", config.CommonNameModePlain, "common_name mismatch: openvpn client is empty"},
-		{"sub required", "sub", "apple", "apple", config.CommonNameModePlain, ""},
-		{"sub required wrong", "sub", "pear", "apple", config.CommonNameModePlain, "common_name mismatch: openvpn client: apple - oidc token: pear"},
-		{"nonexists claim", "nonexists", "pear", "apple", config.CommonNameModePlain, "missing claim: nonexists"},
-		{"sub omit", "sub", "apple", config.CommonNameModeOmitValue, config.CommonNameModeOmit, "common_name mismatch: openvpn client is empty"},
+		{
+			"sub empty",
+			"apple",
+			"",
+			config.Config{
+				OpenVpn: config.OpenVpn{
+					CommonName: config.OpenVPNCommonName{
+						Mode: config.CommonNameModePlain,
+					},
+				},
+				OAuth2: config.OAuth2{
+					Validate: config.OAuth2Validate{
+						CommonName: "sub",
+					},
+				},
+			},
+			errors.New("common_name mismatch: openvpn client is empty"),
+		},
+		{
+			"sub required",
+			"apple",
+			"apple",
+			config.Config{
+				OpenVpn: config.OpenVpn{
+					CommonName: config.OpenVPNCommonName{
+						Mode: config.CommonNameModePlain,
+					},
+				},
+				OAuth2: config.OAuth2{
+					Validate: config.OAuth2Validate{
+						CommonName: "sub",
+					},
+				},
+			},
+			nil,
+		},
+		{
+			"sub required case insensitive",
+			"APPLE",
+			"apple",
+			config.Config{
+				OpenVpn: config.OpenVpn{
+					CommonName: config.OpenVPNCommonName{
+						Mode: config.CommonNameModePlain,
+					},
+				},
+				OAuth2: config.OAuth2{
+					Validate: config.OAuth2Validate{
+						CommonName:              "sub",
+						CommonNameCaseSensitive: false,
+					},
+				},
+			},
+			nil,
+		},
+		{
+			"sub required wrong case insensitive",
+			"APPLE",
+			"apple",
+			config.Config{
+				OpenVpn: config.OpenVpn{
+					CommonName: config.OpenVPNCommonName{
+						Mode: config.CommonNameModePlain,
+					},
+				},
+				OAuth2: config.OAuth2{
+					Validate: config.OAuth2Validate{
+						CommonName:              "sub",
+						CommonNameCaseSensitive: true,
+					},
+				},
+			},
+			errors.New("common_name mismatch: openvpn client: apple - oidc token: APPLE"),
+		},
+		{
+			"sub required wrong",
+			"pear",
+			"apple",
+			config.Config{
+				OpenVpn: config.OpenVpn{
+					CommonName: config.OpenVPNCommonName{
+						Mode: config.CommonNameModePlain,
+					},
+				},
+				OAuth2: config.OAuth2{
+					Validate: config.OAuth2Validate{
+						CommonName: "sub",
+					},
+				},
+			},
+			errors.New("common_name mismatch: openvpn client: apple - oidc token: pear"),
+		},
+		{
+			"nonexists claim",
+			"pear",
+			"apple",
+			config.Config{
+				OpenVpn: config.OpenVpn{
+					CommonName: config.OpenVPNCommonName{
+						Mode: config.CommonNameModePlain,
+					},
+				},
+				OAuth2: config.OAuth2{
+					Validate: config.OAuth2Validate{
+						CommonName: "nonexists",
+					},
+				},
+			},
+			errors.New("missing claim: nonexists"),
+		},
+		{
+			"sub omit",
+			"apple",
+			config.CommonNameModeOmitValue,
+			config.Config{
+				OpenVpn: config.OpenVpn{
+					CommonName: config.OpenVPNCommonName{
+						Mode: config.CommonNameModeOmit,
+					},
+				},
+				OAuth2: config.OAuth2{
+					Validate: config.OAuth2Validate{
+						CommonName: "sub",
+					},
+				},
+			},
+			errors.New("common_name mismatch: openvpn client is empty"),
+		},
 	} {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
@@ -174,32 +297,19 @@ func TestValidateCommonName(t *testing.T) {
 				},
 			}
 
-			conf := config.Config{
-				OpenVpn: config.OpenVpn{
-					CommonName: config.OpenVPNCommonName{
-						Mode: tt.commonNameMode,
-					},
-				},
-				OAuth2: config.OAuth2{
-					Validate: config.OAuth2Validate{
-						CommonName: tt.tokenClaim,
-					},
-				},
-			}
-
 			session := state.State{
 				CommonName: tt.requiredCommonName,
 			}
 
-			provider, err := generic.NewProvider(context.Background(), conf, http.DefaultClient)
+			provider, err := generic.NewProvider(context.Background(), tt.conf, http.DefaultClient)
 			require.NoError(t, err)
 
 			err = provider.CheckCommonName(session, token)
-			if tt.err == "" {
+			if tt.err == nil {
 				require.NoError(t, err)
 			} else {
 				require.Error(t, err)
-				assert.Equal(t, tt.err, err.Error())
+				assert.EqualError(t, tt.err, err.Error())
 			}
 		})
 	}
