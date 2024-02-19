@@ -65,6 +65,7 @@ oauth2:
         #  - "phr"
         #  - "phrh"
         common-name: ""
+        common-name-case-sensitive: false
         # groups:
         #  - "test"
         #  - "test2"
@@ -171,6 +172,8 @@ Usage of openvpn-auth-oauth2:
     	oauth2 required acr values. Comma separated list. Example: phr,phrh (env: CONFIG_OAUTH2_VALIDATE_ACR)
   --oauth2.validate.common-name string
     	validate common_name from OpenVPN with IDToken claim. For example: preferred_username or sub (env: CONFIG_OAUTH2_VALIDATE_COMMON__NAME)
+  --oauth2.validate.common-name-case-sensitive
+    	If true, openvpn-auth-oauth2 will validate the common case in sensitive mode (env: CONFIG_OAUTH2_VALIDATE_COMMON__NAME__CASE__SENSITIVE)
   --oauth2.validate.groups value
     	oauth2 required user groups. If multiple groups are configured, the user needs to be least in one group. Comma separated list. Example: group1,group2,group3 (env: CONFIG_OAUTH2_VALIDATE_GROUPS)
   --oauth2.validate.ipaddr
@@ -189,8 +192,8 @@ Usage of openvpn-auth-oauth2:
     	bypass oauth authentication for CNs. Comma separated list. (env: CONFIG_OPENVPN_BYPASS_COMMON__NAMES)
   --openvpn.common-name.environment-variable string
     	Name of the environment variable in the OpenVPN management interface which contains the common name. If username-as-common-name is enabled, this should be set to 'username' to use the username as common name. Other values like 'X509_0_emailAddress' are supported. See https://openvpn.net/community-resources/reference-manual-for-openvpn-2-6/#environmental-variables for more information. (env: CONFIG_OPENVPN_COMMON__NAME_ENVIRONMENT__VARIABLE) (default "common_name")
-  --openvpn.common-name.mode string
-    	If common names are too long, use md5/sha1 to hash them or omit to skip them. If omit, oauth2.validate.common-name does not work anymore. Values: [plain,omit] (env: CONFIG_OPENVPN_COMMON__NAME_MODE) (default "plain")
+  --openvpn.common-name.mode value
+    	If common names are too long, use md5/sha1 to hash them or omit to skip them. If omit, oauth2.validate.common-name does not work anymore. Values: [plain,omit] (env: CONFIG_OPENVPN_COMMON__NAME_MODE) (default plain)
   --openvpn.pass-through.address string
     	The address of the pass-through socket. Must start with unix:// or tcp:// (env: CONFIG_OPENVPN_PASS__THROUGH_ADDRESS) (default "unix:/run/openvpn-auth-oauth2/server.sock")
   --openvpn.pass-through.enabled

@@ -147,9 +147,9 @@ func FlagSet(name string) *flag.FlagSet {
 			"Other values like 'X509_0_emailAddress' are supported. "+
 			"See https://openvpn.net/community-resources/reference-manual-for-openvpn-2-6/#environmental-variables for more information.",
 	)
-	flagSet.String(
+	flagSet.TextVar(new(OpenVPNCommonNameMode),
 		"openvpn.common-name.mode",
-		Defaults.OpenVpn.CommonName.Mode.String(),
+		Defaults.OpenVpn.CommonName.Mode,
 		"If common names are too long, use md5/sha1 to hash them or omit to skip them. "+
 			"If omit, oauth2.validate.common-name does not work anymore. Values: [plain,omit]",
 	)
@@ -277,6 +277,11 @@ func FlagSet(name string) *flag.FlagSet {
 		"oauth2.validate.common-name",
 		Defaults.OAuth2.Validate.CommonName,
 		"validate common_name from OpenVPN with IDToken claim. For example: preferred_username or sub",
+	)
+	flagSet.Bool(
+		"oauth2.validate.common-name-case-sensitive",
+		Defaults.OAuth2.Validate.CommonNameCaseSensitive,
+		"If true, openvpn-auth-oauth2 will validate the common case in sensitive mode",
 	)
 	flagSet.TextVar(new(StringSlice),
 		"oauth2.scopes",
