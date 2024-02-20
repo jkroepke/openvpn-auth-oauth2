@@ -135,6 +135,7 @@ func checkClientIPAddr(r *http.Request, logger *slog.Logger, session state.State
 	return true, 0, ""
 }
 
+//nolint:cyclop
 func (p *Provider) oauth2Callback() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sendCacheHeaders(w)
