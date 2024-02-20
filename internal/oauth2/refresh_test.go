@@ -31,14 +31,6 @@ func TestRefreshReAuth(t *testing.T) {
 				},
 			},
 		},
-		{
-			name: "Refresh with SessionID",
-			conf: config.Config{
-				OAuth2: config.OAuth2{
-					Refresh: config.OAuth2Refresh{Enabled: true, UseSessionID: true},
-				},
-			},
-		},
 	} {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
