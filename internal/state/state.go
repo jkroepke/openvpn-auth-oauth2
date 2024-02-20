@@ -25,6 +25,7 @@ type ClientIdentifier struct {
 	Kid                  uint64
 	AuthFailedReasonFile string
 	AuthControlFile      string
+	AuthToken            string
 }
 
 func New(client ClientIdentifier, ipaddr, commonName string) State {

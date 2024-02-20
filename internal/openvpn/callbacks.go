@@ -3,7 +3,10 @@ package openvpn
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/zitadel/oidc/v3/pkg/crypto"
 	"log/slog"
+	"strings"
+	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 )
@@ -14,8 +17,21 @@ func (c *Client) AcceptClient(logger *slog.Logger, client state.ClientIdentifier
 	var err error
 
 	if c.conf.OpenVpn.AuthTokenUser {
-		tokenUsername := base64.StdEncoding.EncodeToString([]byte(username))
-		_, err = c.SendCommandf("client-auth %d %d\npush \"auth-token-user %s\"\nEND", client.Cid, client.Kid, tokenUsername)
+		var cmds = []string{
+			fmt.Sprintf(`client-auth %d %d`, client.Cid, client.Kid),
+		}
+
+		if client.AuthToken == "" {
+			tokenUsername := base64.StdEncoding.EncodeToString([]byte(username))
+			cmds = append(cmds, fmt.Sprintf("push \"auth-token-user %s\"", tokenUsername))
+			encryptedBytes, err := crypto.EncryptBytesAES([]byte(fmt.Sprintf("%s|%d", tokenUsername, time.Now().Unix())), c.conf.HTTP.Secret.String())
+			if err == nil {
+				client.AuthToken = base64.StdEncoding.EncodeToString(encryptedBytes)
+				cmds = append(cmds, fmt.Sprintf("push \"auth-token AUTH-TOKEN:%s\"", client.AuthToken))
+			}
+		}
+		cmds = append(cmds, "END")
+		_, err = c.SendCommandf(strings.Join(cmds, "\n"))
 	} else {
 		_, err = c.SendCommandf(`client-auth-nt %d %d`, client.Cid, client.Kid)
 	}

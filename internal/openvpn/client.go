@@ -2,14 +2,15 @@ package openvpn
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
-	"log/slog"
-	"slices"
-	"strings"
-
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
+	"github.com/zitadel/oidc/v3/pkg/crypto"
+	"log/slog"
+	"slices"
+	"strings"
 )
 
 func (c *Client) processClient(client connection.Client) error {
@@ -72,6 +73,13 @@ func (c *Client) handleClientAuthentication(logger *slog.Logger, client connecti
 		Kid: client.Kid,
 	}
 
+	if strings.HasPrefix(client.Env["password"], "AUTH-TOKEN:") && c.checkAuthToken(logger, client) {
+		return nil
+	} else {
+		logger.Error("failed to re-auth auth token")
+		// fallback to WEBAUTH
+	}
+
 	commonName := utils.TransformCommonName(c.conf.OpenVpn.CommonName.Mode, client.CommonName)
 
 	session := state.New(ClientIdentifier, client.IPAddr, commonName)
@@ -104,7 +112,7 @@ func (c *Client) checkAuthBypass(logger *slog.Logger, client connection.Client) 
 	}
 
 	logger.Info("client bypass authentication")
-	c.AcceptClient(logger, state.ClientIdentifier{Cid: client.Cid, Kid: client.Kid}, client.CommonName)
+	c.AcceptClient(logger, state.ClientIdentifier{Cid: client.Cid, Kid: client.Kid}, client.GetUserName())
 
 	return true
 }
@@ -121,6 +129,48 @@ func (c *Client) checkReauth(logger *slog.Logger, client connection.Client) bool
 
 	if ok {
 		c.AcceptClient(logger, state.ClientIdentifier{Cid: client.Cid, Kid: client.Kid}, client.CommonName)
+	}
+
+	return ok
+}
+
+func (c *Client) checkAuthToken(logger *slog.Logger, client connection.Client) bool {
+	if !c.conf.OpenVpn.AuthTokenUser {
+		return false
+	}
+
+	var ok bool
+
+	var err error
+
+	var ClientIdentifier = state.ClientIdentifier{
+		Cid: client.Cid,
+		Kid: client.Kid,
+	}
+
+	authTokenString := client.Env["password"][11:]
+	ps, err := base64.StdEncoding.DecodeString(authTokenString)
+
+	if err == nil {
+		deCryptBytes, err := crypto.DecryptBytesAES(ps, c.conf.HTTP.Secret.String())
+		if err == nil {
+			payload := strings.Split(string(deCryptBytes), "|")
+			if len(payload) == 2 {
+				// todo check auth-token lifetime with a configurable value
+			}
+
+			ClientIdentifier.AuthToken = authTokenString
+
+			ok = true
+		} else {
+			logger.Error(err.Error())
+		}
+	} else {
+		logger.Error(err.Error())
+	}
+
+	if ok {
+		c.AcceptClient(logger, ClientIdentifier, client.GetUserName())
 	}
 
 	return ok

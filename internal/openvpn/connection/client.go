@@ -15,10 +15,22 @@ type Client struct {
 	IPAddr     string
 	CommonName string
 	IvSSO      string
+	Env        map[string]string
+}
+
+func (client *Client) GetUserName() string {
+	commonName := client.CommonName
+	if client.Env["username"] != "" {
+		commonName = client.Env["username"]
+	}
+
+	return commonName
 }
 
 func NewClient(conf config.Config, message string) (Client, error) { //nolint:cyclop
-	client := Client{}
+	client := Client{
+		Env: make(map[string]string),
+	}
 
 	var (
 		err  error
@@ -42,7 +54,7 @@ func NewClient(conf config.Config, message string) (Client, error) { //nolint:cy
 			if envKey == "" || envValue == "" {
 				continue
 			}
-
+			client.Env[envKey] = envValue
 			switch envKey {
 			case "untrusted_ip":
 				client.IPAddr = envValue
