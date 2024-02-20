@@ -43,6 +43,7 @@ linters-settings:
       - a ...any
       - err error
       - ok bool
+      - id string
       - w http.ResponseWriter
       - r *http.Request
       - l net.Listener

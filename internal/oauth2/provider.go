@@ -247,7 +247,7 @@ func errorHandler(
 }
 
 func (p *Provider) GetNonce(id string) string {
-	bs := make([]byte, len(id)+len(p.conf.HTTP.Secret.String()))
+	bs := make([]byte, 0, len(id)+len(p.conf.HTTP.Secret.String()))
 	bs = append(bs, []byte(id)...)
 	bs = append(bs, p.conf.HTTP.Secret.String()...)
 	nonce := sha256.Sum256(bs)

@@ -16,6 +16,8 @@ const (
 )
 
 // FlagSet configure the command line parser using the [flag] library.
+//
+//nolint:maintidx
 func FlagSet(name string) *flag.FlagSet {
 	flagSet := flag.NewFlagSet(name, flag.ContinueOnError)
 	flagSet.Usage = func() {
