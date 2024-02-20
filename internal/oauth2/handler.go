@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -66,8 +67,8 @@ func (p *Provider) oauth2Start() http.Handler {
 		}
 
 		logger := p.logger.With(
-			slog.Uint64("cid", session.Client.Cid),
-			slog.Uint64("kid", session.Client.Kid),
+			slog.Uint64("cid", session.Client.CID),
+			slog.Uint64("kid", session.Client.KID),
 			slog.String("common_name", session.CommonName),
 		)
 
@@ -84,8 +85,14 @@ func (p *Provider) oauth2Start() http.Handler {
 		logger.Info("initialize authorization via oauth2")
 
 		authorizeParams := p.authorizeParams
+
 		if p.conf.OAuth2.Nonce {
-			authorizeParams = append(authorizeParams, rp.WithURLParam("nonce", p.GetNonce(session.Client.Cid)))
+			id := strconv.FormatUint(session.Client.CID, 10)
+			if p.conf.OAuth2.Refresh.UseSessionID {
+				id = session.Client.SessionID
+			}
+
+			authorizeParams = append(authorizeParams, rp.WithURLParam("nonce", p.GetNonce(id)))
 		}
 
 		rp.AuthURLHandler(func() string {
@@ -150,14 +157,19 @@ func (p *Provider) oauth2Callback() http.Handler {
 		}
 
 		logger := p.logger.With(
-			slog.Uint64("cid", session.Client.Cid),
-			slog.Uint64("kid", session.Client.Kid),
+			slog.Uint64("cid", session.Client.CID),
+			slog.Uint64("kid", session.Client.KID),
 			slog.String("common_name", session.CommonName),
 		)
 		ctx = logging.ToContext(ctx, log.NewZitadelLogger(logger))
 
 		if p.conf.OAuth2.Nonce {
-			ctx = context.WithValue(ctx, types.CtxNonce{}, p.GetNonce(session.Client.Cid))
+			id := strconv.FormatUint(session.Client.CID, 10)
+			if p.conf.OAuth2.Refresh.UseSessionID {
+				id = session.Client.SessionID
+			}
+
+			ctx = context.WithValue(ctx, types.CtxNonce{}, p.GetNonce(id))
 			r = r.WithContext(ctx)
 		}
 
@@ -200,9 +212,15 @@ func (p *Provider) oauth2Callback() http.Handler {
 
 			if p.conf.OAuth2.Refresh.Enabled {
 				refreshToken := p.OIDC.GetRefreshToken(tokens)
+
+				id := strconv.FormatUint(session.Client.CID, 10)
+				if p.conf.OAuth2.Refresh.UseSessionID {
+					id = session.Client.SessionID
+				}
+
 				if refreshToken == "" {
 					p.logger.Warn("oauth2.refresh is enabled, but provider does not return refresh token")
-				} else if err = p.storage.Set(session.Client.Cid, refreshToken); err != nil {
+				} else if err = p.storage.Set(id, refreshToken); err != nil {
 					logger.Warn(err.Error())
 				}
 			}

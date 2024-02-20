@@ -69,7 +69,10 @@ services:
         user nobody
         group nogroup
 
-        #auth-gen-token
+        # Does not work in containers
+        disable-dco
+
+        auth-gen-token 60 external-auth
         management 0.0.0.0 8081 /etc/openvpn/password.txt
         #management 0.0.0.0 8081
         management-hold
@@ -77,7 +80,8 @@ services:
 
         #plugin /plugin/openvpn-auth-oauth2.so /plugin/config.yaml
 
-        reneg-sec 60
+        reneg-sec 30
+        hand-window 15
         auth-user-pass-optional
         EOF
 

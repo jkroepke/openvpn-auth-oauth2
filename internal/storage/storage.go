@@ -50,7 +50,7 @@ func (s *Storage) collect() {
 	}
 }
 
-func (s *Storage) Set(client uint64, token string) error {
+func (s *Storage) Set(client string, token string) error {
 	encryptedBytes, err := crypto.EncryptBytesAES([]byte(token), s.encryptionKey)
 	if err != nil {
 		return fmt.Errorf("decrypt error: %w", err)
@@ -61,7 +61,7 @@ func (s *Storage) Set(client uint64, token string) error {
 	return nil
 }
 
-func (s *Storage) Get(client uint64) (string, error) {
+func (s *Storage) Get(client string) (string, error) {
 	data, ok := s.data.Load(client)
 	if !ok {
 		return "", ErrNotExists
@@ -75,6 +75,6 @@ func (s *Storage) Get(client uint64) (string, error) {
 	return string(token), nil
 }
 
-func (s *Storage) Delete(client uint64) {
+func (s *Storage) Delete(client string) {
 	s.data.Delete(client)
 }

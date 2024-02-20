@@ -15,11 +15,11 @@ import (
 )
 
 // RefreshClientAuth initiate a non-interactive authentication against the sso provider.
-func (p *Provider) RefreshClientAuth(clientID uint64, logger *slog.Logger) (bool, error) {
+func (p *Provider) RefreshClientAuth(id string, logger *slog.Logger) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	refreshToken, err := p.storage.Get(clientID)
+	refreshToken, err := p.storage.Get(id)
 	if err != nil {
 		if errors.Is(err, storage.ErrNotExists) {
 			return false, nil
@@ -29,7 +29,7 @@ func (p *Provider) RefreshClientAuth(clientID uint64, logger *slog.Logger) (bool
 	}
 
 	if p.conf.OAuth2.Nonce {
-		ctx = context.WithValue(ctx, types.CtxNonce{}, p.GetNonce(clientID))
+		ctx = context.WithValue(ctx, types.CtxNonce{}, p.GetNonce(id))
 	}
 
 	logger.Info("initiate non-interactive authentication via refresh token")
@@ -41,7 +41,7 @@ func (p *Provider) RefreshClientAuth(clientID uint64, logger *slog.Logger) (bool
 
 	logger.Info("successful authenticate via refresh token")
 
-	if err = p.storage.Set(clientID, refreshToken); err != nil {
+	if err = p.storage.Set(id, refreshToken); err != nil {
 		return true, fmt.Errorf("error from token store: %w", err)
 	}
 
@@ -49,8 +49,12 @@ func (p *Provider) RefreshClientAuth(clientID uint64, logger *slog.Logger) (bool
 }
 
 // ClientDisconnect purges the refresh token from the [storage.Storage].
-func (p *Provider) ClientDisconnect(clientID uint64, logger *slog.Logger) {
-	refreshToken, err := p.storage.Get(clientID)
+func (p *Provider) ClientDisconnect(id string, logger *slog.Logger) {
+	if p.conf.OAuth2.Refresh.UseSessionID {
+		return
+	}
+
+	refreshToken, err := p.storage.Get(id)
 	if err != nil {
 		return
 	}
@@ -64,5 +68,5 @@ func (p *Provider) ClientDisconnect(clientID uint64, logger *slog.Logger) {
 		}
 	}
 
-	p.storage.Delete(clientID)
+	p.storage.Delete(id)
 }

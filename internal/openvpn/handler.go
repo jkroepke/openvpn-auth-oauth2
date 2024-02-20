@@ -103,6 +103,8 @@ func (c *Client) handleMessages() {
 func (c *Client) handleMessage(message string) {
 	switch message[0:7] {
 	case ">CLIENT":
+		c.logger.Debug(message)
+
 		client, err := connection.NewClient(c.conf, message)
 		if err != nil {
 			c.ctxCancel(err)

@@ -151,7 +151,7 @@ func (c *Client) checkClientSsoCapabilities(logger *slog.Logger, client connecti
 
 	errorSsoNotSupported := "OpenVPN Client does not support SSO authentication via webauth"
 	logger.Warn(errorSsoNotSupported)
-	c.DenyClient(logger, state.ClientIdentifier{Cid: client.Cid, Kid: client.Kid}, errorSsoNotSupported)
+	c.DenyClient(logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, errorSsoNotSupported)
 
 	return false
 }

@@ -9,12 +9,14 @@ import (
 )
 
 type Client struct {
-	Kid        uint64
-	Cid        uint64
-	Reason     string
-	IPAddr     string
-	CommonName string
-	IvSSO      string
+	KID          uint64
+	CID          uint64
+	Reason       string
+	IPAddr       string
+	CommonName   string
+	SessionID    string
+	SessionState string
+	IvSSO        string
 }
 
 func NewClient(conf config.Config, message string) (Client, error) { //nolint:cyclop
@@ -33,7 +35,7 @@ func NewClient(conf config.Config, message string) (Client, error) { //nolint:cy
 		line = strings.TrimSpace(line)
 
 		if client.Reason == "" && isClientReason(line) {
-			client.Reason, client.Cid, client.Kid, err = parseClientReason(line)
+			client.Reason, client.CID, client.KID, err = parseClientReason(line)
 			if err != nil {
 				return Client{}, err
 			}
@@ -52,6 +54,10 @@ func NewClient(conf config.Config, message string) (Client, error) { //nolint:cy
 				client.CommonName = envValue
 			case "IV_SSO":
 				client.IvSSO = envValue
+			case "session_id":
+				client.SessionID = envValue
+			case "session_state":
+				client.SessionState = envValue
 			}
 		}
 	}

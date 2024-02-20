@@ -374,7 +374,7 @@ func TestHandler(t *testing.T) {
 			session := tt.state
 
 			if tt.state == "-" {
-				sessionState := state.New(state.ClientIdentifier{Cid: 0, Kid: 1}, tt.ipaddr, "name")
+				sessionState := state.New(state.ClientIdentifier{CID: 0, KID: 1}, tt.ipaddr, "name")
 				require.NoError(t, sessionState.Encode(tt.conf.HTTP.Secret.String()))
 
 				session = sessionState.Encoded()

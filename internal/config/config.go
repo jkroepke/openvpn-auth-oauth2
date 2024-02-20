@@ -245,6 +245,12 @@ func FlagSet(name string) *flag.FlagSet {
 		"Required, if oauth2.refresh.enabled=true. Random generated secret for token encryption. "+
 			"Must be 16, 24 or 32 characters. If argument starts with file:// it reads the secret from a file.",
 	)
+	flagSet.Bool(
+		"oauth2.refresh.use-session-id",
+		Defaults.OAuth2.Refresh.UseSessionID,
+		"If true, openvpn-auth-oauth2 will use the session_id to refresh sessions on initial auth. "+
+			"Requires 'auth-token-gen [lifetime] external-auth' on OpenVPN server.",
+	)
 	flagSet.TextVar(new(StringSlice),
 		"oauth2.validate.acr",
 		Defaults.OAuth2.Validate.Acr,
