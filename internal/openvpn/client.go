@@ -10,6 +10,7 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/crypto"
 	"log/slog"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -155,8 +156,10 @@ func (c *Client) checkAuthToken(logger *slog.Logger, client connection.Client) b
 		deCryptBytes, err := crypto.DecryptBytesAES(ps, c.conf.HTTP.Secret.String())
 		if err == nil {
 			payload := strings.Split(string(deCryptBytes), "|")
-			if len(payload) == 2 {
+			if len(payload) == 2 && payload[1] != "" {
+				t, _ := strconv.ParseInt(payload[1], 10, 0)
 				// todo check auth-token lifetime with a configurable value
+				_ = t
 			}
 
 			ClientIdentifier.AuthToken = authTokenString
