@@ -19,83 +19,134 @@ import (
 func TestRefreshReAuth(t *testing.T) {
 	t.Parallel()
 
-	_, client, managementInterface, _, _, httpClient, _, shutdownFn := testutils.SetupMockEnvironment(t, config.Config{
-		OAuth2: config.OAuth2{
-			Refresh: config.OAuth2Refresh{Enabled: true},
+	for _, tt := range []struct {
+		name string
+		conf config.Config
+	}{
+		{
+			name: "Refresh",
+			conf: config.Config{
+				OAuth2: config.OAuth2{
+					Refresh: config.OAuth2Refresh{Enabled: true},
+				},
+			},
 		},
-	})
-	defer shutdownFn()
+		{
+			name: "Refresh with SessionID",
+			conf: config.Config{
+				OAuth2: config.OAuth2{
+					Refresh: config.OAuth2Refresh{Enabled: true, UseSessionID: true},
+				},
+			},
+		},
+	} {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	wg := sync.WaitGroup{}
-	wg.Add(1)
+			conf, client, managementInterface, _, _, httpClient, _, shutdownFn := testutils.SetupMockEnvironment(t, tt.conf)
+			defer shutdownFn()
 
-	go func() {
-		defer wg.Done()
+			wg := sync.WaitGroup{}
+			wg.Add(1)
 
-		err := client.Connect()
-		if err != nil && !strings.HasSuffix(err.Error(), "EOF") {
-			require.NoError(t, err) //nolint:testifylint
-		}
-	}()
+			go func() {
+				defer wg.Done()
 
-	managementInterfaceConn, err := managementInterface.Accept()
-	require.NoError(t, err)
+				err := client.Connect()
+				if err != nil && !strings.HasSuffix(err.Error(), "EOF") {
+					require.NoError(t, err) //nolint:testifylint
+				}
+			}()
 
-	defer managementInterfaceConn.Close()
+			managementInterfaceConn, err := managementInterface.Accept()
+			require.NoError(t, err)
 
-	reader := bufio.NewReader(managementInterfaceConn)
+			defer managementInterfaceConn.Close()
 
-	testutils.ExpectVersionAndReleaseHold(t, managementInterfaceConn, reader)
+			reader := bufio.NewReader(managementInterfaceConn)
 
-	time.Sleep(time.Millisecond * 100)
+			testutils.ExpectVersionAndReleaseHold(t, managementInterfaceConn, reader)
 
-	testutils.SendMessage(t, managementInterfaceConn, ">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END")
+			time.Sleep(time.Millisecond * 100)
 
-	auth := testutils.ReadLine(t, managementInterfaceConn, reader)
-	assert.Contains(t, auth, "client-pending-auth 1 2 \"WEB_AUTH::")
-	testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: %s command succeeded\r\n", strings.SplitN(auth, " ", 2)[0])
+			testutils.SendMessage(t, managementInterfaceConn, ">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END")
 
-	authURL := strings.TrimPrefix(strings.Split(auth, `"`)[1], "WEB_AUTH::")
+			auth := testutils.ReadLine(t, managementInterfaceConn, reader)
+			assert.Contains(t, auth, "client-pending-auth 1 2 \"WEB_AUTH::")
+			testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: %s command succeeded", strings.SplitN(auth, " ", 2)[0])
 
-	request, err := http.NewRequestWithContext(context.Background(), http.MethodGet, authURL, nil)
-	require.NoError(t, err)
+			authURL := strings.TrimPrefix(strings.Split(auth, `"`)[1], "WEB_AUTH::")
 
-	wg.Add(1)
+			request, err := http.NewRequestWithContext(context.Background(), http.MethodGet, authURL, nil)
+			require.NoError(t, err)
 
-	go func() {
-		defer wg.Done()
+			wg.Add(1)
 
-		testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth-nt 1 2")
-		testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
-	}()
+			go func() {
+				defer wg.Done()
 
-	resp, err := httpClient.Do(request)
-	require.NoError(t, err)
-	require.Equal(t, http.StatusOK, resp.StatusCode)
+				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth-nt 1 2")
+				testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
+			}()
 
-	_, err = io.Copy(io.Discard, resp.Body)
-	require.NoError(t, err)
+			resp, err := httpClient.Do(request)
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, resp.StatusCode)
 
-	_ = resp.Body.Close()
+			_, err = io.Copy(io.Discard, resp.Body)
+			require.NoError(t, err)
 
-	// Testing ReAuth
-	testutils.SendAndExpectMessage(t, managementInterfaceConn, reader,
-		">CLIENT:REAUTH,1,3\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END",
-		"client-auth-nt 1 3",
-	)
-	testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
+			_ = resp.Body.Close()
 
-	// Test Disconnect
-	testutils.SendMessage(t, managementInterfaceConn, ">CLIENT:DISCONNECT,1\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END")
+			// Testing ReAuth
+			testutils.SendAndExpectMessage(t, managementInterfaceConn, reader,
+				">CLIENT:REAUTH,1,3\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,sesson_state=AuthenticatedEmptyUser\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END",
+				"client-auth-nt 1 3",
+			)
+			testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
 
-	// Test ReAuth after DC
-	testutils.SendMessage(t, managementInterfaceConn, ">CLIENT:REAUTH,1,3\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END")
+			// Test Disconnect
+			testutils.SendMessage(t, managementInterfaceConn, ">CLIENT:DISCONNECT,1\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,sesson_state=AuthenticatedEmptyUser\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END")
 
-	assert.Contains(t, testutils.ReadLine(t, managementInterfaceConn, reader), "client-pending-auth 1 3 \"WEB_AUTH::")
-	testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: %s command succeeded\r\n", strings.SplitN(auth, " ", 2)[0])
+			// Test ReAuth after DC
+			testutils.SendMessage(t, managementInterfaceConn, ">CLIENT:REAUTH,1,3\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,sesson_state=AuthenticatedEmptyUser\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END")
 
-	time.Sleep(time.Millisecond * 50)
+			auth = testutils.ReadLine(t, managementInterfaceConn, reader)
 
-	client.Shutdown()
-	wg.Wait()
+			if conf.OAuth2.Refresh.UseSessionID {
+				assert.Contains(t, auth, "client-auth-nt 1 3")
+			} else {
+				assert.Contains(t, auth, "client-pending-auth 1 3 \"WEB_AUTH::")
+			}
+
+			testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: %s command succeeded", strings.SplitN(auth, " ", 2)[0])
+
+			// Test ReAuth after DC with different CID
+			testutils.SendMessage(t, managementInterfaceConn, ">CLIENT:CONNECT,2,3\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,sesson_state=AuthenticatedEmptyUser\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END")
+
+			auth = testutils.ReadLine(t, managementInterfaceConn, reader)
+
+			if conf.OAuth2.Refresh.UseSessionID {
+				assert.Contains(t, auth, "client-auth-nt 2 3")
+			} else {
+				assert.Contains(t, auth, "client-pending-auth 2 3 \"WEB_AUTH::")
+			}
+
+			testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: %s command succeeded", strings.SplitN(auth, " ", 2)[0])
+
+			// Test ReAuth after DC with different CID with invalid session
+			testutils.SendMessage(t, managementInterfaceConn, ">CLIENT:CONNECT,3,3\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,sesson_state=Expired\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END")
+
+			auth = testutils.ReadLine(t, managementInterfaceConn, reader)
+
+			assert.Contains(t, auth, "client-pending-auth 3 3 \"WEB_AUTH::")
+			testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: %s command succeeded", strings.SplitN(auth, " ", 2)[0])
+
+			time.Sleep(time.Millisecond * 50)
+
+			client.Shutdown()
+			wg.Wait()
+		})
+	}
 }

@@ -58,16 +58,14 @@ func (c *Client) clientReauth(client connection.Client) error {
 
 	logger.Info("new client reauth")
 
-	if c.checkAuthSessionState(client) && c.checkReauth(logger, client) {
-		return nil
-	}
-
 	return c.handleClientAuthentication(logger, client)
 }
 
 // handleClientAuthentication holds the shared authentication logic for CONNECT and REAUTH events.
 func (c *Client) handleClientAuthentication(logger *slog.Logger, client connection.Client) error {
-	if c.checkAuthBypass(logger, client) || !c.checkClientSsoCapabilities(logger, client) {
+	if c.checkAuthBypass(logger, client) ||
+		!c.checkClientSsoCapabilities(logger, client) ||
+		(c.checkAuthSessionState(client) && c.checkReauth(logger, client)) {
 		return nil
 	}
 

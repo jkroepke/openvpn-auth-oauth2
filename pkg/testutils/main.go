@@ -66,7 +66,7 @@ func SendMessage(tb testing.TB, conn net.Conn, sendMessage string, args ...any) 
 	require.NoError(tb, err)
 
 	if sendMessage != "ENTER PASSWORD:" {
-		sendMessage += "\n"
+		sendMessage += "\r\n"
 	}
 
 	_, err = fmt.Fprintf(conn, sendMessage, args...)

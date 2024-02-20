@@ -175,7 +175,6 @@ func TestPassthroughFull(t *testing.T) {
 			defer openVPNClient.Shutdown()
 
 			wg := sync.WaitGroup{}
-
 			ctx, cancel := context.WithCancelCause(context.Background())
 
 			wg.Add(1)
