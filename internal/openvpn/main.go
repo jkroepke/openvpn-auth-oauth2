@@ -32,9 +32,9 @@ func NewClient(ctx context.Context, logger *slog.Logger, conf config.Config, oau
 		commandsBuffer: bytes.Buffer{},
 
 		clientsCh:         make(chan connection.Client, 10),
-		commandResponseCh: make(chan string, 1),
-		commandsCh:        make(chan string, 1),
-		passthroughCh:     make(chan string, 1),
+		commandResponseCh: make(chan string, 10),
+		commandsCh:        make(chan string, 10),
+		passthroughCh:     make(chan string, 10),
 	}
 
 	client.commandsBuffer.Grow(512)
