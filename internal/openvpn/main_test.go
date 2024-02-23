@@ -594,3 +594,76 @@ func TestDeadLocks(t *testing.T) {
 		})
 	}
 }
+
+func TestInvalidCommandResponses(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name    string
+		message string
+	}{
+		{
+			name:    "empty SUCCESS",
+			message: "SUCCESS:   ",
+		},
+		{
+			name:    "empty ERROR",
+			message: "ERROR:    ",
+		},
+	} {
+		tt := tt
+
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			logger := testutils.NewTestLogger()
+
+			conf := config.Config{
+				HTTP: config.HTTP{
+					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
+					Secret:  testutils.Secret,
+				},
+				OpenVpn: config.OpenVpn{
+					Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
+				},
+			}
+
+			managementInterface, err := nettest.NewLocalListener("tcp")
+			require.NoError(t, err)
+
+			defer managementInterface.Close()
+
+			conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
+
+			storageClient := storage.New(testutils.Secret, time.Hour)
+			provider := oauth2.New(logger.Logger, conf, storageClient)
+			client := openvpn.NewClient(context.Background(), logger.Logger, conf, provider)
+
+			wg := sync.WaitGroup{}
+			wg.Add(1)
+
+			go func() {
+				defer wg.Done()
+
+				conn, err := managementInterface.Accept()
+				require.NoError(t, err) //nolint:testifylint
+
+				defer conn.Close()
+				reader := bufio.NewReader(conn)
+
+				testutils.ExpectVersionAndReleaseHold(t, conn, reader)
+				testutils.SendAndExpectMessage(t, conn, reader,
+					">HOLD:Waiting for hold release:0",
+					"hold release",
+				)
+
+				testutils.SendMessage(t, conn, tt.message)
+			}()
+
+			require.NoError(t, client.Connect())
+
+			wg.Wait()
+			client.Shutdown()
+		})
+	}
+}
