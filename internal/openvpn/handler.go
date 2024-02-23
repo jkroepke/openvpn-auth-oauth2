@@ -100,8 +100,8 @@ func (c *Client) handleMessages() {
 	}
 }
 
+//nolint:cyclop
 func (c *Client) handleMessage(message string) {
-	//nolint:cyclop
 	switch message[0:7] {
 	case ">CLIENT":
 		client, err := connection.NewClient(c.conf, message)
