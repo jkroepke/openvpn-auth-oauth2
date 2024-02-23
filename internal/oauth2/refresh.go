@@ -5,19 +5,26 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strconv"
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/log"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
 	"github.com/zitadel/logging"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
 )
 
 // RefreshClientAuth initiate a non-interactive authentication against the sso provider.
-func (p *Provider) RefreshClientAuth(id string, logger *slog.Logger) (bool, error) {
+func (p *Provider) RefreshClientAuth(logger *slog.Logger, client connection.Client) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
+
+	id := strconv.FormatUint(client.CID, 10)
+	if p.conf.OAuth2.Refresh.UseSessionID && client.SessionID != "" {
+		id = client.SessionID
+	}
 
 	refreshToken, err := p.storage.Get(id)
 	if err != nil {
@@ -34,7 +41,7 @@ func (p *Provider) RefreshClientAuth(id string, logger *slog.Logger) (bool, erro
 
 	logger.Info("initiate non-interactive authentication via refresh token")
 
-	refreshToken, err = p.OIDC.Refresh(ctx, logger, refreshToken, p.RelyingParty)
+	refreshToken, err = p.OIDC.Refresh(ctx, logger, client, refreshToken, p.RelyingParty)
 	if err != nil {
 		return false, fmt.Errorf("error from token exchange: %w", err)
 	}
@@ -49,10 +56,12 @@ func (p *Provider) RefreshClientAuth(id string, logger *slog.Logger) (bool, erro
 }
 
 // ClientDisconnect purges the refresh token from the [storage.Storage].
-func (p *Provider) ClientDisconnect(id string, logger *slog.Logger) {
+func (p *Provider) ClientDisconnect(logger *slog.Logger, client connection.Client) {
 	if p.conf.OAuth2.Refresh.UseSessionID {
 		return
 	}
+
+	id := strconv.FormatUint(client.CID, 10)
 
 	refreshToken, err := p.storage.Get(id)
 	if err != nil {

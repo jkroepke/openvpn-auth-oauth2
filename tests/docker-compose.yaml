@@ -74,10 +74,9 @@ services:
         disable-dco
         duplicate-cn
 
-        #management 0.0.0.0 8081 /etc/openvpn/password.txt
-        #management 0.0.0.0 8081
-        #management-hold
-        #management-client-auth
+        management 0.0.0.0 8081 /etc/openvpn/password.txt
+        management-hold
+        management-client-auth
 
         #plugin /plugin/openvpn-auth-oauth2.so /plugin/config.yaml
 
@@ -85,12 +84,6 @@ services:
         hand-window 15
         auth-gen-token 300 external-auth
         auth-user-pass-optional
-        push "auth-token-user dXNlcg=="
-        auth-user-pass-optional
-        script-security 2
-        auth-user-pass-verify /bin/true via-env
-        #management 0.0.0.0 8081
-        #management-client-auth
 
         EOF
 
