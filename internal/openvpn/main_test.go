@@ -224,7 +224,7 @@ func TestClientFull(t *testing.T) {
 			">CLIENT:FOO,0\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END\r\n",
 			"",
 			//nolint:revive
-			errors.New("OpenVPN management error: unable to parse client reason from message: >CLIENT:FOO,0\n>CLIENT:ENV,common_name=bypass\n>CLIENT:ENV,END\n"),
+			errors.New("OpenVPN management error: unable to parse client reason from message: >CLIENT:FOO,0\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END\r\n"),
 		},
 	}
 
@@ -386,7 +386,7 @@ func TestClientInvalidVersion(t *testing.T) {
 		{
 			"invalid parts",
 			"OpenVPN Version: OpenVPN Mock\r\nEND\r\n",
-			"OpenVPN management error: unexpected response from version command: OpenVPN Version: OpenVPN Mock\nEND\n",
+			"OpenVPN management error: unexpected response from version command: OpenVPN Version: OpenVPN Mock\r\nEND\r\n",
 		},
 		{
 			"invalid version",

@@ -86,7 +86,7 @@ func ExpectMessage(tb testing.TB, conn net.Conn, reader *bufio.Reader, expectMes
 			require.NoError(tb, err, "expected line: %s\nexpected message:\n%s", expected, expectMessage)
 		}
 
-		assert.Equal(tb, expected, strings.TrimRightFunc(line, unicode.IsSpace))
+		assert.Equal(tb, strings.TrimRightFunc(expected, unicode.IsSpace), strings.TrimRightFunc(line, unicode.IsSpace))
 	}
 }
 
@@ -114,7 +114,7 @@ func SendAndExpectMessage(tb testing.TB, conn net.Conn, reader *bufio.Reader, se
 			require.NoError(tb, err, "send: %s\n\nexpected line: %s\n\nexpected message:\n%s", sendMessage, expected, expectMessage)
 		}
 
-		assert.Equal(tb, expected, strings.TrimRightFunc(line, unicode.IsSpace))
+		assert.Equal(tb, strings.TrimRightFunc(expected, unicode.IsSpace), strings.TrimRightFunc(line, unicode.IsSpace))
 	}
 }
 

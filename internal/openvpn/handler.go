@@ -114,8 +114,6 @@ func (c *Client) handleMessage(message string) {
 		c.clientsCh <- client
 	case ">HOLD:W":
 		c.commandsCh <- "hold release"
-	case ">NOTIFY":
-		c.writeToPassthroughClient(message)
 	case "SUCCESS":
 		// SUCCESS: hold release succeeded
 		if len(message) >= 13 && message[9:13] == "hold" {
@@ -124,18 +122,19 @@ func (c *Client) handleMessage(message string) {
 			return
 		}
 
+		fallthrough
+	// Managem is the beginning of the help response
+	case "ERROR: ", "OpenVPN", "Managem":
 		c.commandResponseCh <- message
 	case ">INFO:O":
 		// welcome message
-		if message == ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\n" {
+		if message == ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\r\n" {
 			return
 		}
 
 		fallthrough
-	case "ERROR: ", "OpenVPN":
-		fallthrough
 	default:
-		c.commandResponseCh <- message
+		c.writeToPassthroughClient(message)
 	}
 }
 

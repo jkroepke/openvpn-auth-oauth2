@@ -64,7 +64,7 @@ func (c *Client) handlePassthrough() {
 
 				return // Error somewhere, terminate
 			case message = <-c.passthroughCh:
-				if message == "" {
+				if message == "" || message == "\r\n" {
 					return
 				}
 
@@ -210,7 +210,7 @@ func (c *Client) handlePassthroughClientAuth(conn net.Conn, scanner *bufio.Scann
 
 	if scanner.Text() != c.conf.OpenVpn.Passthrough.Password.String() {
 		_ = conn.SetWriteDeadline(time.Now().Add(20 * time.Millisecond))
-		_, _ = conn.Write([]byte("ERROR: bad password\n"))
+		_, _ = conn.Write([]byte("ERROR: bad password\r\n"))
 
 		return errors.New("pass-through: client provide invalid password")
 	}
