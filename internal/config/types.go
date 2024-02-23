@@ -87,12 +87,13 @@ type OAuth2Endpoints struct {
 }
 
 type OAuth2Validate struct {
-	Acr        StringSlice `koanf:"acr"`
-	Groups     StringSlice `koanf:"groups"`
-	Roles      StringSlice `koanf:"roles"`
-	IPAddr     bool        `koanf:"ipaddr"`
-	Issuer     bool        `koanf:"issuer"`
-	CommonName string      `koanf:"common-name"`
+	Acr                     StringSlice `koanf:"acr"`
+	Groups                  StringSlice `koanf:"groups"`
+	Roles                   StringSlice `koanf:"roles"`
+	IPAddr                  bool        `koanf:"ipaddr"`
+	Issuer                  bool        `koanf:"issuer"`
+	CommonName              string      `koanf:"common-name"`
+	CommonNameCaseSensitive bool        `koanf:"common-name-case-sensitive"`
 }
 
 type OAuth2Refresh struct {

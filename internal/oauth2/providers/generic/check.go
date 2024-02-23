@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
@@ -85,6 +86,12 @@ func (p *Provider) CheckCommonName(session state.State, tokens *oidc.Tokens[*idt
 	}
 
 	tokenCommonName = utils.TransformCommonName(p.Conf.OpenVpn.CommonName.Mode, tokenCommonName)
+
+	if !p.Conf.OAuth2.Validate.CommonNameCaseSensitive {
+		session.CommonName = strings.ToLower(session.CommonName)
+		tokenCommonName = strings.ToLower(tokenCommonName)
+	}
+
 	if tokenCommonName != session.CommonName {
 		return fmt.Errorf("common_name %w: openvpn client: %s - oidc token: %s",
 			ErrMismatch, session.CommonName, tokenCommonName)

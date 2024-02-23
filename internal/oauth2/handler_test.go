@@ -103,7 +103,7 @@ func TestHandler(t *testing.T) {
 					Check: config.HTTPCheck{
 						IPAddr: false,
 					},
-					CallbackTemplate: template.Must(template.New("README.md").ParseFiles("./../../README.md")),
+					CallbackTemplate: template.Must(template.New("LICENSE.txt").ParseFiles("./../../LICENSE.txt")),
 				},
 				OAuth2: config.OAuth2{
 					Provider:  "generic",
@@ -446,7 +446,7 @@ func TestHandler(t *testing.T) {
 			_ = resp.Body.Close()
 
 			if conf.HTTP.CallbackTemplate != config.Defaults.HTTP.CallbackTemplate {
-				require.Contains(t, string(body), "openvpn-auth-oauth2 is a management client for OpenVPN that handles the single sign-on")
+				require.Contains(t, string(body), "Permission is hereby granted")
 			}
 
 			assert.NotEmpty(t, resp.Header.Get("Set-Cookie"))

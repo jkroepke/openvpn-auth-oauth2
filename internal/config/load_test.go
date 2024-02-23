@@ -74,6 +74,7 @@ oauth2:
         secret: "test"
     validate:
         common-name: "preffered_username"
+        common-name-case-sensitive: true
         groups:
         - "test"
         - "test2"
@@ -194,11 +195,12 @@ http:
 						Secret:  "1jd93h5b6s82lf03jh5b2hf9",
 					},
 					Validate: config.OAuth2Validate{
-						CommonName: "preffered_username",
-						IPAddr:     true,
-						Issuer:     false,
-						Groups:     []string{"test", "test2"},
-						Roles:      []string{"test", "test2"},
+						CommonName:              "preffered_username",
+						CommonNameCaseSensitive: true,
+						IPAddr:                  true,
+						Issuer:                  false,
+						Groups:                  []string{"test", "test2"},
+						Roles:                   []string{"test", "test2"},
 					},
 				},
 			},
