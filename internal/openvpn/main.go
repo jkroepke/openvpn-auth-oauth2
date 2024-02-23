@@ -245,6 +245,10 @@ func (c *Client) readMessage(buf *bytes.Buffer) error {
 	for c.scanner.Scan() {
 		line = c.scanner.Bytes()
 
+		if len(line) == 0 {
+			continue
+		}
+
 		if _, err := buf.Write(line); err != nil {
 			return fmt.Errorf("unable to write string to buffer: %w", err)
 		}

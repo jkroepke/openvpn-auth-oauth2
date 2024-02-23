@@ -100,6 +100,7 @@ func (c *Client) handleMessages() {
 	}
 }
 
+//nolint:cyclop
 func (c *Client) handleMessage(message string) {
 	switch message[0:7] {
 	case ">CLIENT":
@@ -113,9 +114,11 @@ func (c *Client) handleMessage(message string) {
 		c.clientsCh <- client
 	case ">HOLD:W":
 		c.commandsCh <- "hold release"
+	case ">NOTIFY":
+		c.writeToPassthroughClient(message)
 	case "SUCCESS":
 		// SUCCESS: hold release succeeded
-		if message[9:13] == "hold" {
+		if len(message) >= 13 && message[9:13] == "hold" {
 			c.logger.Info("hold release succeeded")
 
 			return
