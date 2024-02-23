@@ -38,6 +38,7 @@ func (c *Client) clientConnect(client connection.Client) error {
 		slog.String("common_name", client.CommonName),
 		slog.String("reason", client.Reason),
 		slog.String("session_id", client.SessionID),
+		slog.String("session_state", client.SessionState),
 	)
 
 	logger.Info("new client connection")
@@ -123,7 +124,7 @@ func (c *Client) checkReauth(logger *slog.Logger, client connection.Client) bool
 	}
 
 	id := strconv.FormatUint(client.CID, 10)
-	if c.conf.OAuth2.Refresh.UseSessionID {
+	if c.conf.OAuth2.Refresh.UseSessionID && client.SessionID != "" {
 		id = client.SessionID
 	}
 
@@ -153,6 +154,8 @@ func (c *Client) clientEstablished(client connection.Client) {
 		slog.Uint64("cid", client.CID),
 		slog.String("common_name", client.CommonName),
 		slog.String("reason", client.Reason),
+		slog.String("session_id", client.SessionID),
+		slog.String("session_state", client.SessionState),
 	)
 }
 
@@ -161,12 +164,14 @@ func (c *Client) clientDisconnect(client connection.Client) {
 		slog.Uint64("cid", client.CID),
 		slog.String("common_name", client.CommonName),
 		slog.String("reason", client.Reason),
+		slog.String("session_id", client.SessionID),
+		slog.String("session_state", client.SessionState),
 	)
 
 	logger.Info("client disconnected")
 
 	id := strconv.FormatUint(client.CID, 10)
-	if c.conf.OAuth2.Refresh.UseSessionID {
+	if c.conf.OAuth2.Refresh.UseSessionID && client.SessionID != "" {
 		id = client.SessionID
 	}
 

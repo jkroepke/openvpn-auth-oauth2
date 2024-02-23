@@ -88,7 +88,7 @@ func (p *Provider) oauth2Start() http.Handler {
 
 		if p.conf.OAuth2.Nonce {
 			id := strconv.FormatUint(session.Client.CID, 10)
-			if p.conf.OAuth2.Refresh.UseSessionID {
+			if p.conf.OAuth2.Refresh.UseSessionID && session.Client.SessionID != "" {
 				id = session.Client.SessionID
 			}
 
@@ -166,7 +166,7 @@ func (p *Provider) oauth2Callback() http.Handler {
 		ctx = logging.ToContext(ctx, log.NewZitadelLogger(logger))
 
 		id := strconv.FormatUint(session.Client.CID, 10)
-		if p.conf.OAuth2.Refresh.UseSessionID {
+		if p.conf.OAuth2.Refresh.UseSessionID && session.Client.SessionID != "" {
 			id = session.Client.SessionID
 		}
 

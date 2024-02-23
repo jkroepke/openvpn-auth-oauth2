@@ -280,6 +280,12 @@ management-client-auth
 # If auth-user-pass-optional is not set, the OpenVPN server requires username/password from clients
 # and terminate the connection with an TLS error, if the client does not provide it.
 auth-user-pass-optional
+
+# Enable auth-token-gen to allow non-interactive session refresh
+# Mandatory for mobile devices, because auth-token works across disconnects
+# The lifetime of the token must be the same as the refresh token in openvpn-auth-oauth2
+# 8 hours = 28800 seconds
+auth-gen-token 28800 external-auth
 ```
 
 ```ini
@@ -367,6 +373,7 @@ CONFIG_OAUTH2_REFRESH_ENABLED=true
 CONFIG_OAUTH2_REFRESH_EXPIRES=8h
 CONFIG_OAUTH2_REFRESH_SECRET= # a static secret to encrypt token. Must be 16, 24 or 32
 CONFIG_OAUTH2_REFRESH_USE__SESSION__ID=true
+CONFIG_OPENVPN_AUTH__TOKEN__USER=true
 ```
 
 ## username-as-common-name
