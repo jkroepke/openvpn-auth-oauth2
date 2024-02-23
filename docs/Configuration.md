@@ -76,6 +76,7 @@ oauth2:
         issuer: true
     nonce: true
     pkce: true
+    auth-style: "AuthStyleInParams"
     refresh:
         enabled: false
         expires: 8h0m0s
@@ -142,6 +143,8 @@ Usage of ./openvpn-auth-oauth2:
     	log format. json or console (env: CONFIG_LOG_FORMAT) (default "console")
   --log.level value
     	log level (env: CONFIG_LOG_LEVEL) (default INFO)
+  --oauth2.auth-style value
+    	Auth style represents how requests for tokens are authenticated to the server. Possible values: AuthStyleAutoDetect, AuthStyleInParams, AuthStyleInHeader. See https://pkg.go.dev/golang.org/x/oauth2#AuthStyle (env: CONFIG_OAUTH2_AUTH__STYLE) (default AuthStyleInParams)
   --oauth2.authorize-params string
     	additional url query parameter to authorize endpoint (env: CONFIG_OAUTH2_AUTHORIZE__PARAMS)
   --oauth2.client.id string
@@ -218,7 +221,6 @@ Usage of ./openvpn-auth-oauth2:
     	Path to service account config for google admin api. Required, if oauth2.validate.groups is set. If argument starts with file:// it reads the secret from a file. (env: CONFIG_PROVIDER_GOOGLE_SERVICE__ACCOUNT__CONFIG)
   --version
     	show version
-
 ```
 <!-- END USAGE -->
 

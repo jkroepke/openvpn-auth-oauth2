@@ -353,7 +353,7 @@ func TestHandler(t *testing.T) {
 				case !tt.postAllow:
 					testutils.ExpectMessage(t, managementInterfaceConn, reader, `client-deny 0 1 "client rejected"`)
 				default:
-					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 0 1\npush \"auth-token-user aWQx\"\nEND")
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 0 1\r\npush \"auth-token-user aWQx\"\r\nEND")
 				}
 
 				testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")

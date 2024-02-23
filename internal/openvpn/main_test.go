@@ -239,7 +239,7 @@ func TestClientFull(t *testing.T) {
 			">CLIENT:FOO,0\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END\r\n",
 			"",
 			//nolint:revive
-			errors.New("OpenVPN management error: unable to parse client reason from message: >CLIENT:FOO,0\n>CLIENT:ENV,common_name=bypass\n>CLIENT:ENV,END\n"),
+			errors.New("OpenVPN management error: unable to parse client reason from message: >CLIENT:FOO,0\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END\r\n"),
 		},
 	}
 
@@ -401,7 +401,7 @@ func TestClientInvalidVersion(t *testing.T) {
 		{
 			"invalid parts",
 			"OpenVPN Version: OpenVPN Mock\r\nEND\r\n",
-			"OpenVPN management error: unexpected response from version command: OpenVPN Version: OpenVPN Mock\nEND\n",
+			"OpenVPN management error: unexpected response from version command: OpenVPN Version: OpenVPN Mock\r\nEND\r\n",
 		},
 		{
 			"invalid version",
@@ -537,4 +537,148 @@ func TestSIGHUP(t *testing.T) {
 
 	wg.Wait()
 	client.Shutdown()
+}
+
+func TestDeadLocks(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name    string
+		message string
+	}{
+		{
+			name:    "explicit-exit-notify",
+			message: ">NOTIFY:info,remote-exit,EXIT",
+		},
+		{
+			name:    "empty-lines",
+			message: "\r\n",
+		},
+	} {
+		tt := tt
+
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			logger := testutils.NewTestLogger()
+
+			conf := config.Config{
+				HTTP: config.HTTP{
+					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
+					Secret:  testutils.Secret,
+				},
+				OpenVpn: config.OpenVpn{
+					Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
+				},
+			}
+
+			managementInterface, err := nettest.NewLocalListener("tcp")
+			require.NoError(t, err)
+
+			defer managementInterface.Close()
+
+			conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
+
+			storageClient := storage.New(testutils.Secret, time.Hour)
+			provider := oauth2.New(logger.Logger, conf, storageClient)
+			client := openvpn.NewClient(context.Background(), logger.Logger, conf, provider)
+
+			wg := sync.WaitGroup{}
+			wg.Add(1)
+
+			go func() {
+				defer wg.Done()
+
+				conn, err := managementInterface.Accept()
+				require.NoError(t, err) //nolint:testifylint
+
+				defer conn.Close()
+				reader := bufio.NewReader(conn)
+
+				testutils.ExpectVersionAndReleaseHold(t, conn, reader)
+
+				for i := 0; i < 12; i++ {
+					testutils.SendMessage(t, conn, tt.message)
+				}
+			}()
+
+			require.NoError(t, client.Connect())
+
+			wg.Wait()
+			client.Shutdown()
+		})
+	}
+}
+
+func TestInvalidCommandResponses(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name    string
+		message string
+	}{
+		{
+			name:    "empty SUCCESS",
+			message: "SUCCESS:   ",
+		},
+		{
+			name:    "empty ERROR",
+			message: "ERROR:    ",
+		},
+	} {
+		tt := tt
+
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			logger := testutils.NewTestLogger()
+
+			conf := config.Config{
+				HTTP: config.HTTP{
+					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
+					Secret:  testutils.Secret,
+				},
+				OpenVpn: config.OpenVpn{
+					Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
+				},
+			}
+
+			managementInterface, err := nettest.NewLocalListener("tcp")
+			require.NoError(t, err)
+
+			defer managementInterface.Close()
+
+			conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
+
+			storageClient := storage.New(testutils.Secret, time.Hour)
+			provider := oauth2.New(logger.Logger, conf, storageClient)
+			client := openvpn.NewClient(context.Background(), logger.Logger, conf, provider)
+
+			wg := sync.WaitGroup{}
+			wg.Add(1)
+
+			go func() {
+				defer wg.Done()
+
+				conn, err := managementInterface.Accept()
+				require.NoError(t, err) //nolint:testifylint
+
+				defer conn.Close()
+				reader := bufio.NewReader(conn)
+
+				testutils.ExpectVersionAndReleaseHold(t, conn, reader)
+				testutils.SendAndExpectMessage(t, conn, reader,
+					">HOLD:Waiting for hold release:0",
+					"hold release",
+				)
+
+				testutils.SendMessage(t, conn, tt.message)
+			}()
+
+			require.NoError(t, client.Connect())
+
+			wg.Wait()
+			client.Shutdown()
+		})
+	}
 }

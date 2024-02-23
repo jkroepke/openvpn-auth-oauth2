@@ -31,7 +31,7 @@ func NewClient(conf config.Config, message string) (Client, error) { //nolint:cy
 	clientMessage := message
 
 	for ok {
-		line, clientMessage, ok = strings.Cut(clientMessage, "\n")
+		line, clientMessage, ok = strings.Cut(clientMessage, "\r\n")
 		line = strings.TrimSpace(line)
 
 		if client.Reason == "" && isClientReason(line) {

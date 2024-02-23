@@ -21,7 +21,7 @@ const (
 func FlagSet(name string) *flag.FlagSet {
 	flagSet := flag.NewFlagSet(name, flag.ContinueOnError)
 	flagSet.Usage = func() {
-		_, _ = fmt.Fprintf(flagSet.Output(), "Usage of %s:\n\n", name)
+		_, _ = fmt.Fprintf(flagSet.Output(), "Usage of %s:\r\n\r\n", name)
 		// --help should display options with double dash
 		flagSet.VisitAll(func(flag *flag.Flag) {
 			flag.Name = "-" + flag.Name
@@ -230,6 +230,13 @@ func FlagSet(name string) *flag.FlagSet {
 		"oauth2.nonce",
 		Defaults.OAuth2.Nonce,
 		"If true, a nonce will be defined on the auth URL which is expected inside the token.",
+	)
+	flagSet.TextVar(new(OAuth2AuthStyle),
+		"oauth2.auth-style",
+		Defaults.OAuth2.AuthStyle,
+		"Auth style represents how requests for tokens are authenticated to the server. "+
+			"Possible values: AuthStyleAutoDetect, AuthStyleInParams, AuthStyleInHeader. "+
+			"See https://pkg.go.dev/golang.org/x/oauth2#AuthStyle",
 	)
 	flagSet.Bool(
 		"oauth2.refresh.enabled",

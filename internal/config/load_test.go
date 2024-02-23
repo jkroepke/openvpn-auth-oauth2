@@ -12,6 +12,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/oauth2"
 )
 
 func TestLoad(t *testing.T) {
@@ -83,6 +84,7 @@ oauth2:
         ipaddr: true
         issuer: false
     authorize-params: "a=c"
+    auth-style: "AuthStyleInHeader"
     scopes:
     - "openid"
     - "profile"
@@ -183,9 +185,10 @@ http:
 						ID:     "test",
 						Secret: "test",
 					},
-					Nonce:  true,
-					Pkce:   true,
-					Scopes: []string{"openid", "profile"},
+					Nonce:     true,
+					Pkce:      true,
+					Scopes:    []string{"openid", "profile"},
+					AuthStyle: config.OAuth2AuthStyle(oauth2.AuthStyleInHeader),
 					Refresh: config.OAuth2Refresh{
 						Enabled: true,
 						Expires: 10 * time.Hour,

@@ -252,7 +252,7 @@ func writeError(w http.ResponseWriter, logger *slog.Logger, conf config.Config, 
 
 	err := conf.HTTP.CallbackTemplate.Execute(w, map[string]string{
 		"title":   "Access denied",
-		"message": fmt.Sprintf("Error ID: %s\nPlease contact your administrator for help.", errorID),
+		"message": fmt.Sprintf("Error ID: %s\r\nPlease contact your administrator for help.", errorID),
 		"success": "false",
 	})
 	if err != nil {

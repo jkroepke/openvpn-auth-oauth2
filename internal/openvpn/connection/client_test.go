@@ -124,7 +124,7 @@ func TestNewClientConnection(t *testing.T) {
 			config.Defaults,
 			[]string{">CLIENT:unknown", ">CLIENT:ENV,name1=val1", ">CLIENT:ENV,name2", ">CLIENT:ENV,END"},
 			connection.Client{},
-			"unable to parse client reason from message: >CLIENT:unknown\n>CLIENT:ENV,name1=val1\n>CLIENT:ENV,name2\n>CLIENT:ENV,END",
+			"unable to parse client reason from message: >CLIENT:unknown\r\n>CLIENT:ENV,name1=val1\r\n>CLIENT:ENV,name2\r\n>CLIENT:ENV,END",
 		},
 		{
 			"client invalid reason",
@@ -139,7 +139,7 @@ func TestNewClientConnection(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			message := strings.Join(tt.lines, "\n")
+			message := strings.Join(tt.lines, "\r\n")
 
 			clientConnection, err := connection.NewClient(tt.conf, message)
 			if tt.err == "" {

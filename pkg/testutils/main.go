@@ -86,7 +86,7 @@ func ExpectMessage(tb testing.TB, conn net.Conn, reader *bufio.Reader, expectMes
 			require.NoError(tb, err, "expected line: %s\nexpected message:\n%s", expected, expectMessage)
 		}
 
-		assert.Equal(tb, expected, strings.TrimRightFunc(line, unicode.IsSpace))
+		assert.Equal(tb, strings.TrimRightFunc(expected, unicode.IsSpace), strings.TrimRightFunc(line, unicode.IsSpace))
 	}
 }
 
@@ -96,11 +96,12 @@ func SendAndExpectMessage(tb testing.TB, conn net.Conn, reader *bufio.Reader, se
 	err := conn.SetWriteDeadline(time.Now().Add(time.Second * 5))
 	require.NoError(tb, err, "send: %s\n\nexpected message:\n%s", sendMessage, expectMessage)
 
-	if sendMessage != "ENTER PASSWORD:" {
-		sendMessage += "\n"
+	if sendMessage == "ENTER PASSWORD:" {
+		_, err = fmt.Fprint(conn, sendMessage)
+	} else {
+		_, err = fmt.Fprintln(conn, sendMessage)
 	}
 
-	_, err = fmt.Fprint(conn, sendMessage)
 	require.NoError(tb, err, "send: %s\n\nexpected message:\n%s", sendMessage, expectMessage)
 
 	for _, expected := range strings.Split(strings.TrimSpace(expectMessage), "\n") {
@@ -113,7 +114,7 @@ func SendAndExpectMessage(tb testing.TB, conn net.Conn, reader *bufio.Reader, se
 			require.NoError(tb, err, "send: %s\n\nexpected line: %s\n\nexpected message:\n%s", sendMessage, expected, expectMessage)
 		}
 
-		assert.Equal(tb, expected, strings.TrimRightFunc(line, unicode.IsSpace))
+		assert.Equal(tb, strings.TrimRightFunc(expected, unicode.IsSpace), strings.TrimRightFunc(line, unicode.IsSpace))
 	}
 }
 

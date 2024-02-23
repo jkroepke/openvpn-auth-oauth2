@@ -36,7 +36,7 @@ Replace `<package_file>` with the name of the downloaded file.
 ## Manual Installation
 
 If you prefer to build the binary yourself, follow these steps:
-1. Ensure you have Golang and Make installed on your system.
+1. Ensure you have [golang](https://go.dev/doc/install) and Make installed on your system.
 2. Download the source code from our [releases page](https://github.com/jkroepke/openvpn-auth-oauth2/releases/latest).
 3. Open a terminal.
 4. Navigate to the directory where you downloaded the source code.

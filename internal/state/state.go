@@ -108,7 +108,7 @@ func (state *State) Encode(secretKey string) error {
 	data.WriteString(encodeString(state.CommonName))
 	data.WriteString(" ")
 	data.WriteString(strconv.FormatInt(state.Issued, 10))
-	data.WriteString("\n")
+	data.WriteString("\r\n")
 
 	encrypted, err := crypto.EncryptBytesAES(data.Bytes(), secretKey)
 	if err != nil {

@@ -122,7 +122,7 @@ func (c *Client) checkManagementInterfaceVersion() error {
 		return fmt.Errorf("error from version command: %w: %s", ErrErrorResponse, resp)
 	}
 
-	versionParts := strings.Split(resp, "\n")
+	versionParts := strings.Split(resp, "\r\n")
 
 	if len(versionParts) != 4 {
 		return fmt.Errorf("unexpected response from version command: %s", resp)
@@ -192,21 +192,21 @@ func (c *Client) SendCommand(cmd string, passTrough bool) (string, error) {
 		}
 
 		if resp == "" {
-			cmdFirstLine := strings.SplitN(cmd, "\n", 2)[0]
+			cmdFirstLine := strings.SplitN(cmd, "\r\n", 2)[0]
 
 			return "", fmt.Errorf("command error '%s': %w", cmdFirstLine, ErrEmptyResponse)
 		}
 
 		if strings.HasPrefix(resp, "ERROR:") {
-			cmdFirstLine := strings.SplitN(cmd, "\n", 2)[0]
+			cmdFirstLine := strings.SplitN(cmd, "\r\n", 2)[0]
 			c.logger.Warn(fmt.Sprintf("command error '%s': %s", cmdFirstLine, resp))
 		}
 
 		return resp, nil
 	case <-time.After(10 * time.Second):
-		cmdFirstLine := strings.SplitN(cmd, "\n", 2)[0]
+		cmdFirstLine := strings.SplitN(cmd, "\r\n", 2)[0]
 
-		return "", fmt.Errorf("command error '%s': %w", cmdFirstLine, ErrTimeout)
+		return "", fmt.Errorf("command timeout '%s': %w", cmdFirstLine, ErrTimeout)
 	}
 }
 
@@ -223,7 +223,7 @@ func (c *Client) rawCommand(cmd string) error {
 
 	c.commandsBuffer.Reset()
 	c.commandsBuffer.WriteString(cmd)
-	c.commandsBuffer.WriteString("\n")
+	c.commandsBuffer.WriteString("\r\n")
 
 	if err := c.conn.SetWriteDeadline(time.Now().Add(time.Second)); err != nil {
 		return fmt.Errorf("unable to set read deadline: %w", err)
@@ -245,11 +245,15 @@ func (c *Client) readMessage(buf *bytes.Buffer) error {
 	for c.scanner.Scan() {
 		line = c.scanner.Bytes()
 
+		if len(line) == 0 {
+			continue
+		}
+
 		if _, err := buf.Write(line); err != nil {
 			return fmt.Errorf("unable to write string to buffer: %w", err)
 		}
 
-		if _, err := buf.WriteString("\n"); err != nil {
+		if _, err := buf.WriteString("\r\n"); err != nil {
 			return fmt.Errorf("unable to write newline to buffer: %w", err)
 		}
 

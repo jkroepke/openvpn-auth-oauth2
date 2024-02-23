@@ -100,6 +100,7 @@ func (c *Client) handleMessages() {
 	}
 }
 
+//nolint:cyclop
 func (c *Client) handleMessage(message string) {
 	switch message[0:7] {
 	case ">CLIENT":
@@ -117,24 +118,25 @@ func (c *Client) handleMessage(message string) {
 		c.commandsCh <- "hold release"
 	case "SUCCESS":
 		// SUCCESS: hold release succeeded
-		if message[9:13] == "hold" {
+		if len(message) >= 13 && message[9:13] == "hold" {
 			c.logger.Info("hold release succeeded")
 
 			return
 		}
 
+		fallthrough
+	// Managem is the beginning of the help response
+	case "ERROR: ", "OpenVPN", "Managem":
 		c.commandResponseCh <- message
 	case ">INFO:O":
 		// welcome message
-		if message == ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\n" {
+		if message == ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\r\n" {
 			return
 		}
 
 		fallthrough
-	case "ERROR: ", "OpenVPN":
-		fallthrough
 	default:
-		c.commandResponseCh <- message
+		c.writeToPassthroughClient(message)
 	}
 }
 
