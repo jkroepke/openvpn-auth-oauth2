@@ -7,6 +7,8 @@ import (
 	"strings"
 	"text/template"
 	"time"
+
+	"golang.org/x/oauth2"
 )
 
 type Config struct {
@@ -68,6 +70,7 @@ type OAuth2 struct {
 	Scopes          StringSlice     `koanf:"scopes"`
 	Nonce           bool            `koanf:"nonce"`
 	Pkce            bool            `koanf:"pkce"`
+	AuthStyle       OAuth2AuthStyle `koanf:"auth-style"`
 	Validate        OAuth2Validate  `koanf:"validate"`
 	Refresh         OAuth2Refresh   `koanf:"refresh"`
 }
@@ -132,7 +135,10 @@ const (
 
 //goland:noinspection GoMixedReceiverTypes
 func (s OpenVPNCommonNameMode) String() string {
-	text, _ := s.MarshalText()
+	text, err := s.MarshalText()
+	if err != nil {
+		panic(err)
+	}
 
 	return string(text)
 }
@@ -159,6 +165,54 @@ func (s *OpenVPNCommonNameMode) UnmarshalText(text []byte) error {
 		*s = CommonNameModeOmit
 	default:
 		return fmt.Errorf("invalid value %s", config)
+	}
+
+	return nil
+}
+
+type OAuth2AuthStyle oauth2.AuthStyle
+
+//goland:noinspection GoMixedReceiverTypes
+func (s OAuth2AuthStyle) String() string {
+	text, err := s.MarshalText()
+	if err != nil {
+		panic(err)
+	}
+
+	return string(text)
+}
+
+//goland:noinspection GoMixedReceiverTypes
+func (s OAuth2AuthStyle) AuthStyle() oauth2.AuthStyle {
+	return oauth2.AuthStyle(s)
+}
+
+//goland:noinspection GoMixedReceiverTypes
+func (s OAuth2AuthStyle) MarshalText() ([]byte, error) {
+	switch s {
+	case OAuth2AuthStyle(oauth2.AuthStyleAutoDetect):
+		return []byte("AuthStyleAutoDetect"), nil
+	case OAuth2AuthStyle(oauth2.AuthStyleInParams):
+		return []byte("AuthStyleInParams"), nil
+	case OAuth2AuthStyle(oauth2.AuthStyleInHeader):
+		return []byte("AuthStyleInHeader"), nil
+	default:
+		return nil, fmt.Errorf("unknown auth-style %d", s)
+	}
+}
+
+//goland:noinspection GoMixedReceiverTypes
+func (s *OAuth2AuthStyle) UnmarshalText(text []byte) error {
+	config := strings.ToLower(string(text))
+	switch config {
+	case strings.ToLower("AuthStyleAutoDetect"):
+		*s = OAuth2AuthStyle(oauth2.AuthStyleAutoDetect)
+	case strings.ToLower("AuthStyleInParams"):
+		*s = OAuth2AuthStyle(oauth2.AuthStyleInParams)
+	case strings.ToLower("AuthStyleInHeader"):
+		*s = OAuth2AuthStyle(oauth2.AuthStyleInHeader)
+	default:
+		return fmt.Errorf("unknown auth-style %d", s)
 	}
 
 	return nil

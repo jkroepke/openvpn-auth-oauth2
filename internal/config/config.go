@@ -16,6 +16,8 @@ const (
 )
 
 // FlagSet configure the command line parser using the [flag] library.
+//
+//nolint:maintidx
 func FlagSet(name string) *flag.FlagSet {
 	flagSet := flag.NewFlagSet(name, flag.ContinueOnError)
 	flagSet.Usage = func() {
@@ -228,6 +230,13 @@ func FlagSet(name string) *flag.FlagSet {
 		"oauth2.nonce",
 		Defaults.OAuth2.Nonce,
 		"If true, a nonce will be defined on the auth URL which is expected inside the token.",
+	)
+	flagSet.TextVar(new(OAuth2AuthStyle),
+		"oauth2.auth-style",
+		Defaults.OAuth2.AuthStyle,
+		"Auth style represents how requests for tokens are authenticated to the server. "+
+			"Possible values: AuthStyleAutoDetect, AuthStyleInParams, AuthStyleInHeader. "+
+			"See https://pkg.go.dev/golang.org/x/oauth2#AuthStyle",
 	)
 	flagSet.Bool(
 		"oauth2.refresh.enabled",

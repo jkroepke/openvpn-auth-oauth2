@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/ui"
+	"golang.org/x/oauth2"
 )
 
 //nolint:gochecknoglobals
@@ -64,9 +65,10 @@ var Defaults = Config{
 			Discovery: &url.URL{Scheme: "", Host: ""},
 			Token:     &url.URL{Scheme: "", Host: ""},
 		},
-		Pkce:   true,
-		Nonce:  true,
-		Client: OAuth2Client{},
+		Pkce:      true,
+		Nonce:     true,
+		AuthStyle: OAuth2AuthStyle(oauth2.AuthStyleInParams),
+		Client:    OAuth2Client{},
 		Validate: OAuth2Validate{
 			Groups: make([]string, 0),
 			Roles:  make([]string, 0),

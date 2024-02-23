@@ -256,6 +256,18 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 		},
 	}
 
+	b.Cleanup(func() {
+		testutils.SendMessage(b, passThroughConn, "exit")
+		openVPNClient.Shutdown()
+		wg.Wait()
+
+		<-ctx.Done()
+
+		if err := context.Cause(ctx); err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, io.EOF) {
+			require.NoError(b, err)
+		}
+	})
+
 	b.ResetTimer()
 	b.StartTimer()
 
@@ -270,14 +282,4 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 	}
 
 	b.StopTimer()
-
-	testutils.SendMessage(b, passThroughConn, "exit")
-	openVPNClient.Shutdown()
-	wg.Wait()
-
-	<-ctx.Done()
-
-	if err := context.Cause(ctx); err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, io.EOF) {
-		require.NoError(b, err)
-	}
 }
