@@ -15,7 +15,7 @@ func (c *Client) AcceptClient(logger *slog.Logger, client state.ClientIdentifier
 
 	if c.conf.OpenVpn.AuthTokenUser {
 		tokenUsername := base64.StdEncoding.EncodeToString([]byte(username))
-		_, err = c.SendCommandf("client-auth %d %d\npush \"auth-token-user %s\"\nEND", client.Cid, client.Kid, tokenUsername)
+		_, err = c.SendCommandf("client-auth %d %d\r\npush \"auth-token-user %s\"\r\nEND", client.Cid, client.Kid, tokenUsername)
 	} else {
 		_, err = c.SendCommandf(`client-auth-nt %d %d`, client.Cid, client.Kid)
 	}

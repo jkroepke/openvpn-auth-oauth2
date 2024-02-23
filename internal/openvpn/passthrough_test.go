@@ -227,7 +227,7 @@ func TestPassthroughFull(t *testing.T) {
 					case "status":
 						message = OpenVPNManagementInterfaceCommandResultStatus
 					case "version":
-						message = "OpenVPN Version: openvpn-auth-oauth2\nManagement Interface Version: 5\nEND"
+						message = "OpenVPN Version: openvpn-auth-oauth2\r\nManagement Interface Version: 5\r\nEND"
 					case "load-stats":
 						message = "SUCCESS: nclients=0,bytesin=0,bytesout=0"
 					case "pid":
@@ -345,7 +345,7 @@ func TestPassthroughFull(t *testing.T) {
 
 					testutils.SendAndExpectMessage(t, passThroughConn, passThroughReader,
 						"version",
-						"OpenVPN Version: openvpn-auth-oauth2\nManagement Interface Version: 5\nEND",
+						"OpenVPN Version: openvpn-auth-oauth2\r\nManagement Interface Version: 5\r\nEND",
 					)
 
 					testutils.SendAndExpectMessage(t, passThroughConn, passThroughReader,
