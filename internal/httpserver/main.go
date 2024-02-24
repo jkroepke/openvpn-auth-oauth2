@@ -54,9 +54,8 @@ func (s *Server) Listen() error {
 			return err
 		}
 
-		s.server.TLSConfig = &tls.Config{
-			GetCertificate: s.GetCertificateFunc(),
-		}
+		s.server.TLSConfig = new(tls.Config)
+		s.server.TLSConfig.GetCertificate = s.GetCertificateFunc()
 
 		err = s.server.ListenAndServeTLS("", "")
 	} else {
@@ -75,7 +74,7 @@ func (s *Server) Listen() error {
 }
 
 func (s *Server) GetCertificateFunc() func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
-	return func(clientHello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+	return func(_ *tls.ClientHelloInfo) (*tls.Certificate, error) {
 		s.tlsCertificateMu.RLock()
 		defer s.tlsCertificateMu.RUnlock()
 
