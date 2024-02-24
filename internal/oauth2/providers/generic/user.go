@@ -12,6 +12,7 @@ func (p *Provider) GetUser(_ context.Context, tokens *oidc.Tokens[*idtoken.Claim
 	var (
 		preferredUsername string
 		subject           string
+		email             string
 	)
 
 	if tokens.IDTokenClaims != nil {
@@ -20,10 +21,12 @@ func (p *Provider) GetUser(_ context.Context, tokens *oidc.Tokens[*idtoken.Claim
 
 	if tokens.IDTokenClaims != nil {
 		subject = tokens.IDTokenClaims.Subject
+		email = tokens.IDTokenClaims.EMail
 	}
 
 	return types.UserData{
 		PreferredUsername: preferredUsername,
 		Subject:           subject,
+		Email:             email,
 	}, nil
 }

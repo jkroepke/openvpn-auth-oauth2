@@ -51,7 +51,9 @@ How require multiple groups, check you could define `CONFIG_OAUTH2_VALIDATE_GROU
 1. Login as admin into your [Google console](https://console.cloud.google.com/).
 2. In the project Dashboard center pane, choose **"APIs & Services"**.
 3. If necessary, complete the `OAuth consent screen` wizard. You will probably want to create an `Internal` application.
-   - If you reuse an existing application, your users may already have given consent for the usage of this application, which may not include refresh tokens. If this is the case, add `CONFIG_OAUTH2_AUTHORIZE__PARAMS="prompt=consent"` to your configuration.
+   - If you reuse an existing application, your users may already have given consent for the usage of this application,
+     which may not include refresh tokens.
+     If this is the case, add `CONFIG_OAUTH2_AUTHORIZE__PARAMS="prompt=consent"` to your configuration.
 4. In the left Nav pane, choose **"Credentials"**.
 5. In the center pane, choose **"OAuth consent screen"** tab. Fill in **"Product name shown to users"** and hit save.
 6. In the center pane, choose **"Credentials"** tab.
@@ -65,67 +67,7 @@ How require multiple groups, check you could define `CONFIG_OAUTH2_VALIDATE_GROU
 
 ### Restrict auth to specific Google Groups in your domain. (optional)
 
-To allow openvpn-auth-oauth2 to fetch group information from Google,
-you will need to configure a service account for openvpn-auth-oauth2 to use.
-This account needs Domain-Wide Delegation and permission
-to access the `https://www.googleapis.com/auth/admin.directory.group.readonly` API scope.
-
-1. Create a [service account](https://developers.google.com/identity/protocols/OAuth2ServiceAccount) and
-   - if you are using [Application Default Credentials](https://oauth2-proxy.github.io/oauth2-proxy/configuration/oauth_provider#using-application-default-credentials-adc--workload-identity--workload-identity-federation-recommended) (recommended), make sure to assign the Service Account with the `Service Account Token Creator` role.
-   - if you are not using Application Default Credentials,
-     you will need to create a new key (under **KEYS**) and after that download the Service Account JSON.
-     This needs storing in a location accessible by `openvpn-auth-oauth2`
-     and you will set the `provider.google.service-account-config` to point at it.
-   
-2. Make note of the `Unique ID` for a future step.
-3. Under **"APIs & Auth"**, choose APIs.
-4. Click on [Admin SDK API](https://console.developers.google.com/apis/library/admin.googleapis.com/) and then Enable API.
-5. Follow the steps on https://developers.google.com/admin-sdk/directory/v1/guides/delegation#delegate_domain-wide_authority_to_your_service_account
-   and give the Unique ID (as Client ID) from step 2 the following oauth scopes:
-   ```
-   https://www.googleapis.com/auth/admin.directory.group.readonly
-   ```
-6. Follow the steps on https://support.google.com/a/answer/60757 to enable Admin API access.
-7. Permit access to the Admin SDK API for the service account.
-   
-   **Only one of the following is required:**
-   * **Assign a role to a service account (preferred)**
-     1. In the Google Admin console, go [**Account** > **Admin roles**](https://admin.google.com/ac/roles) page.
-     2. Point to the role that you want to assign (e.g. Groups reader), and then click **Assign admin**
-     3. Click **Assign service accounts**
-     4. Enter the email address of the service account.
-     5. Click **Add > Assign role**.
-
-   * **Admin impersonation**
-
-     Create or choose an existing administrative email address on the Gmail domain
-     to assign to the `providers.google.admin-emails` flag.
-     This email will be impersonated by this client to make calls to the Admin SDK.
-   
-8. Create or choose an existing email group and set that email to the `oauth2.validate.groups` flag.
-   You can pass multiple instances of this flag with different groups,
-   and the user will be checked against all the provided groups.
-9. If not using Application Default Credentials, Lock down the permissions on the json file downloaded from step 1
-   so only `openvpn-auth-oauth2` is able to read the file
-   and set the path to the file in the `provider.google.service-account-config=file://<path-to-json>` flag.
-
-#### Using Application Default Credentials (ADC) / Workload Identity / Workload Identity Federation (recommended)
-
-openvpn-auth-oauth2 can make use of [Application Default Credentials](https://cloud.google.com/docs/authentication/application-default-credentials)
-if `provider.google.service-account-config` is unset.
-
-When deployed within GCP, this means that it can automatically use the service account attached to the resource. 
-When deployed to GKE, ADC can be leveraged through a feature called Workload Identity. 
-Follow Google's [guide](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity)
-to set up Workload Identity.
-When deployed outside GCP,
-[Workload Identity Federation](https://cloud.google.com/docs/authentication/provide-credentials-adc#wlif) might be an option.
-
-Google Directory API requires a service account to access the group information.
-If Workload Identity is used, `provider.google.impersonate-account` should be set to the full email address of the service account used (`service-account-name@<project_id>.iam.gserviceaccount.com`).
-
-Reference:
-- https://cloud.google.com/iam/docs/service-account-impersonation
+1. Click on [Google Cloud Identity API](https://console.cloud.google.com/apis/api/cloudidentity.googleapis.com/) and then Enable API.
 
 ### Configuration
 
@@ -136,12 +78,9 @@ CONFIG_OAUTH2_PROVIDER=google
 CONFIG_OAUTH2_ISSUER=https://accounts.google.com
 CONFIG_OAUTH2_CLIENT_ID=162738495-xxxxx.apps.googleusercontent.com
 CONFIG_OAUTH2_CLIENT_SECRET=GOCSPX-xxxxxxxx
-# If using ADC
-CONFIG_PROVIDER_GOOGLE_IMPERSONATE__ACCOUNT=service-account-name@<project_id>.iam.gserviceaccount.com
-# If not using ADC
-CONFIG_PROVIDER_GOOGLE_SERVICE__ACCOUNT__CONFIG=file://<path-to-json>
-# If Group Read role not assigned in Admin console.
-# CONFIG_PROVIDER_GOOGLE_ADMIN__EMAIL=admin@example.com
+
+# In case non-interactive login is not working, add the following line to your configuration:
+CONFIG_OAUTH2_AUTHORIZE__PARAMS="prompt=consent"
 ```
 
 ## Keycloak

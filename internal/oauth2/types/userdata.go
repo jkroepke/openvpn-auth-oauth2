@@ -6,6 +6,7 @@ import (
 
 type UserData struct {
 	Subject           string
+	Email             string
 	PreferredUsername string
 }
 

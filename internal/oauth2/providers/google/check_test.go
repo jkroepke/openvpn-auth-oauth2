@@ -123,13 +123,14 @@ func TestValidateGroups(t *testing.T) {
 
 			httpClient := &http.Client{
 				Transport: &roundTripperFunc{
-					fn: func(req *http.Request) (*http.Response, error) {
+					fn: func(_ *http.Request) (*http.Response, error) {
 						resp := httptest.NewRecorder()
 						if strings.Contains(tt.tokenGroups, "error") {
 							resp.WriteHeader(http.StatusInternalServerError)
 						}
 
 						_, _ = resp.WriteString(tt.tokenGroups)
+
 						return resp.Result(), nil
 					},
 				},
@@ -138,7 +139,7 @@ func TestValidateGroups(t *testing.T) {
 			provider, err := google.NewProvider(context.Background(), conf, httpClient)
 			require.NoError(t, err)
 
-			err = provider.CheckUser(context.Background(), state.State{}, types.UserData{Subject: "ID"}, token)
+			err = provider.CheckUser(context.Background(), state.State{}, types.UserData{Email: "ID"}, token)
 
 			if tt.err == "" {
 				require.NoError(t, err)

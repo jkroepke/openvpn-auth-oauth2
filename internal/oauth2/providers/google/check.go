@@ -2,7 +2,7 @@ package google
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
@@ -18,7 +18,7 @@ func (p *Provider) CheckUser(
 ) error {
 	if len(p.Conf.OAuth2.Validate.Groups) > 0 {
 		if tokens.AccessToken == "" {
-			return fmt.Errorf("access token is empty")
+			return errors.New("access token is empty")
 		}
 
 		groups, err := p.fetchGroupsFromIdentityAPI(ctx, userData, tokens)

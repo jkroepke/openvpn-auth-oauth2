@@ -33,7 +33,7 @@ type apiError struct {
 // fetchGroupsFromIdentityAPI fetches the groups from a user using the Google Identity API.
 func (p *Provider) fetchGroupsFromIdentityAPI(ctx context.Context, userData types.UserData, tokens *oidc.Tokens[*idtoken.Claims]) ([]string, error) {
 	// https://developers.google.com/admin-sdk/directory/reference/rest/v1/groups/list
-	apiQuery := fmt.Sprintf("query=member_key_id=='%s'", userData.Subject)
+	apiQuery := fmt.Sprintf("query=member_key_id=='%s'", userData.Email)
 	apiURL := &url.URL{
 		Scheme:   "https",
 		Host:     "cloudidentity.googleapis.com",

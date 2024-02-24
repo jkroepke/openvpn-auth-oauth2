@@ -100,11 +100,6 @@ openvpn:
         # password: ""
         # socket-group: ""
         # socket-mode: 660
-provider:
-    google:
-        admin-email: ""
-        impersonate-account: ""
-        service-account-config: ""
 ```
 </details>
 
@@ -213,12 +208,6 @@ Usage of ./openvpn-auth-oauth2:
     	The unix file permission mode for the pass-through socket. Used only, if openvpn.pass-through.address starts with unix:// (env: CONFIG_OPENVPN_PASS__THROUGH_SOCKET__MODE) (default 660)
   --openvpn.password value
     	openvpn management interface password. If argument starts with file:// it reads the secret from a file. (env: CONFIG_OPENVPN_PASSWORD)
-  --provider.google.admin-email string
-    	Admin email for service account to impersonate for google admin api. Used, if oauth2.validate.groups is set. (env: CONFIG_PROVIDER_GOOGLE_ADMIN__EMAIL)
-  --provider.google.impersonate-account string
-    	Service account to impersonate if Default Application Credentials used. Used, if oauth2.validate.groups is set. (env: CONFIG_PROVIDER_GOOGLE_IMPERSONATE__ACCOUNT)
-  --provider.google.service-account-config value
-    	Path to service account config for google admin api. Required, if oauth2.validate.groups is set. If argument starts with file:// it reads the secret from a file. (env: CONFIG_PROVIDER_GOOGLE_SERVICE__ACCOUNT__CONFIG)
   --version
     	show version
 ```

@@ -62,8 +62,3 @@
 #        environment-variable-name: common_name
 #        mode: plain
 #    password: ""
-#provider:
-#    google:
-#        admin-email: ""
-#        impersonate-account: ""
-#        service-account-config: ""
