@@ -338,7 +338,7 @@ The [certbot](https://certbot.eff.org/instructions) is a recommended tool to get
 Alternatively,
 you can use [acme.sh](https://acme.sh/), which is a pure Unix shell script implementing ACME client protocol.
 
-Please not that
+openvpn-auth-oauth2 requires a SIGHUP to reload the TLS certificate.
 
 ```bash
 
