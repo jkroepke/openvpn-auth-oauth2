@@ -22,7 +22,7 @@ var (
 type PluginHandle struct {
 	logger *slog.Logger
 	conf   config.Config
-	server httpserver.Server
+	server *httpserver.Server
 }
 
 func main() {
