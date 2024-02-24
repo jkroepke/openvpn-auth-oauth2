@@ -50,6 +50,7 @@
 #        expires: 8h0m0s
 #        # secret: ""
 #        use-session-id: false
+#        validate-user: true
 #openvpn:
 #    addr: "unix:///run/openvpn/server.sock"
 #    auth-token-user: true
@@ -62,8 +63,3 @@
 #        environment-variable-name: common_name
 #        mode: plain
 #    password: ""
-#provider:
-#    google:
-#        admin-email: ""
-#        impersonate-account: ""
-#        service-account-config: ""

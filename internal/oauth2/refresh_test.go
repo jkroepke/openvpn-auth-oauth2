@@ -11,6 +11,9 @@ import (
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/github"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/google"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,15 +30,42 @@ func TestRefreshReAuth(t *testing.T) {
 			name: "Refresh",
 			conf: config.Config{
 				OAuth2: config.OAuth2{
-					Refresh: config.OAuth2Refresh{Enabled: true},
+					Refresh: config.OAuth2Refresh{Enabled: true, ValidateUser: true, UseSessionID: false},
 				},
 			},
 		},
 		{
-			name: "Refresh with SessionID",
+			name: "Refresh with ValidateUser=false",
 			conf: config.Config{
 				OAuth2: config.OAuth2{
-					Refresh: config.OAuth2Refresh{Enabled: true, UseSessionID: true},
+					Refresh: config.OAuth2Refresh{Enabled: true, ValidateUser: false, UseSessionID: false},
+				},
+			},
+		},
+		{
+			name: "Refresh with SessionID=true + ValidateUser=false",
+			conf: config.Config{
+				OAuth2: config.OAuth2{
+					Refresh: config.OAuth2Refresh{Enabled: true, ValidateUser: false, UseSessionID: true},
+				},
+			},
+		},
+		{
+			name: "Refresh with provider=google",
+			conf: config.Config{
+				OAuth2: config.OAuth2{
+					Provider: google.Name,
+					Scopes:   []string{types.ScopeEmail, types.ScopeProfile, types.ScopeOpenID, types.ScopeOfflineAccess},
+					Refresh:  config.OAuth2Refresh{Enabled: true, ValidateUser: true, UseSessionID: false},
+				},
+			},
+		},
+		{
+			name: "Refresh with provider=github",
+			conf: config.Config{
+				OAuth2: config.OAuth2{
+					Provider: github.Name,
+					Refresh:  config.OAuth2Refresh{Enabled: true, ValidateUser: true, UseSessionID: false},
 				},
 			},
 		},
@@ -44,7 +74,14 @@ func TestRefreshReAuth(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			conf, client, managementInterface, _, _, httpClient, _, shutdownFn := testutils.SetupMockEnvironment(t, tt.conf)
+			conf, client, managementInterface, _, _, httpClient, logger, shutdownFn := testutils.SetupMockEnvironment(t, tt.conf)
+
+			t.Cleanup(func() {
+				if t.Failed() {
+					t.Log(logger.String())
+				}
+			})
+
 			defer shutdownFn()
 
 			wg := sync.WaitGroup{}

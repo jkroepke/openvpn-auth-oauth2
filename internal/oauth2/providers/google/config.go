@@ -13,12 +13,16 @@ func (p *Provider) GetProviderConfig(conf config.Config) (types.ProviderConfig, 
 		return types.ProviderConfig{}, err //nolint:wrapcheck
 	}
 
-	if conf.OAuth2.Refresh.Enabled {
-		// Enable offline access to getAPI a refresh token
-		providerConfig.AuthCodeOptions = []oauth2.AuthCodeOption{oauth2.AccessTypeOffline}
+	if conf.OAuth2.Refresh.Enabled && conf.OAuth2.Refresh.ValidateUser {
+		// Enable offline access to api a refresh token
+		providerConfig.AuthCodeOptions = []oauth2.AuthCodeOption{oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("prompt", "consent")}
 	}
 
 	providerConfig.Scopes = []string{types.ScopeEmail, types.ScopeProfile, types.ScopeOpenID}
+	if len(conf.OAuth2.Validate.Groups) > 0 {
+		// Enable offline access to api a refresh token
+		providerConfig.Scopes = append(providerConfig.Scopes, "https://www.googleapis.com/auth/cloud-identity.groups.readonly")
+	}
 
 	return providerConfig, nil
 }

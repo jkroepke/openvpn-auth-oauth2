@@ -8,7 +8,6 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
@@ -35,5 +34,5 @@ type oidcProvider interface {
 	GetName() string
 	GetRefreshToken(tokens *oidc.Tokens[*idtoken.Claims]) string
 	GetUser(ctx context.Context, tokens *oidc.Tokens[*idtoken.Claims]) (types.UserData, error)
-	Refresh(ctx context.Context, logger *slog.Logger, client connection.Client, refreshToken string, relyingParty rp.RelyingParty) (string, error)
+	Refresh(ctx context.Context, logger *slog.Logger, token string, relyingParty rp.RelyingParty) (*oidc.Tokens[*idtoken.Claims], error)
 }

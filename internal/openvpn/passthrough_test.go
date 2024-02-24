@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	http2 "net/http"
 	"net/url"
 	"os"
 	"strconv"
@@ -169,7 +170,7 @@ func TestPassthroughFull(t *testing.T) {
 			passThroughInterface.Close()
 
 			storageClient := storage.New(testutils.Secret, time.Hour)
-			provider := oauth2.New(logger.Logger, tt.conf, storageClient)
+			provider := oauth2.New(logger.Logger, tt.conf, storageClient, http2.DefaultClient)
 			openVPNClient := openvpn.NewClient(context.Background(), logger.Logger, tt.conf, provider)
 
 			defer openVPNClient.Shutdown()

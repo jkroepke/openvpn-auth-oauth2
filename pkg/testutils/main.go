@@ -22,6 +22,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	oidcStorage "github.com/zitadel/oidc/v3/example/server/storage"
@@ -151,7 +152,9 @@ func SendAndExpectMessage(tb testing.TB, conn net.Conn, reader *bufio.Reader, se
 			return false
 		}
 
-		assert.Equal(tb, strings.TrimRightFunc(expected, unicode.IsSpace), strings.TrimRightFunc(line, unicode.IsSpace))
+		if !assert.Equal(tb, strings.TrimRightFunc(expected, unicode.IsSpace), strings.TrimRightFunc(line, unicode.IsSpace)) {
+			return false
+		}
 	}
 
 	return true
@@ -278,8 +281,70 @@ func SetupMockEnvironment(tb testing.TB, conf config.Config) (config.Config, *op
 		conf.OAuth2.Refresh.Expires = time.Hour
 	}
 
+	httpRoundTripperFunc := func(rt http.RoundTripper, req *http.Request) (*http.Response, error) {
+		switch req.URL.Host {
+		case "cloudidentity.googleapis.com":
+			resp := httptest.NewRecorder()
+			_, _ = resp.WriteString(`{"memberships": [], "nextPageToken": ""}`)
+
+			return resp.Result(), nil
+		case "api.github.com":
+			switch req.URL.Path {
+			case "/user":
+				resp := httptest.NewRecorder()
+				_, _ = resp.WriteString(`{"login": "test-user", "id": 123456, "email": "test-user@localhost"}`)
+				resp.Header().Set("Content-Type", "application/json")
+
+				return resp.Result(), nil
+			case "/user/orgs", "/user/teams":
+				resp := httptest.NewRecorder()
+				_, _ = resp.WriteString(`[]`)
+				resp.Header().Set("Content-Type", "application/json")
+
+				return resp.Result(), nil
+			default:
+				return rt.RoundTrip(req) //nolint:wrapcheck
+			}
+
+		case "github.com":
+			// https://blog.seriesci.com/how-to-mock-oauth-in-go/
+			switch req.URL.Path {
+			case "/login/oauth/authorize":
+				state := req.FormValue("state")
+				redirectURI := req.FormValue("redirect_uri")
+
+				uri, err := url.Parse(redirectURI)
+				if err != nil {
+					return nil, err //nolint:wrapcheck
+				}
+
+				v := url.Values{}
+				v.Set("code", "code")
+				v.Set("state", state)
+				uri.RawQuery = v.Encode()
+
+				resp := httptest.NewRecorder()
+				resp.Header().Set("Location", uri.String())
+				resp.WriteHeader(http.StatusTemporaryRedirect)
+
+				return resp.Result(), nil
+			case "/login/oauth/access_token":
+				resp := httptest.NewRecorder()
+				resp.Header().Set("Content-Type", "application/x-www-form-urlencoded; charset=utf-8")
+				_, _ = resp.WriteString(`access_token=gho_mock&scope=read%3Aorg%2Cuser%3Aemail&token_type=bearer`)
+
+				return resp.Result(), nil
+			}
+
+			return rt.RoundTrip(req) //nolint:wrapcheck
+		default:
+			return rt.RoundTrip(req) //nolint:wrapcheck
+		}
+	}
+
+	httpClient := &http.Client{Transport: utils.NewUserAgentTransport(&RoundTripperFunc{Rt: http.DefaultTransport, Fn: httpRoundTripperFunc})}
 	storageClient := storage.New(Secret, conf.OAuth2.Refresh.Expires)
-	provider := oauth2.New(logger.Logger, conf, storageClient)
+	provider := oauth2.New(logger.Logger, conf, storageClient, httpClient)
 	openvpnClient := openvpn.NewClient(context.Background(), logger.Logger, conf, provider)
 
 	require.NoError(tb, provider.Initialize(openvpnClient))
@@ -289,14 +354,15 @@ func SetupMockEnvironment(tb testing.TB, conf config.Config) (config.Config, *op
 	httpClientListener.Listener = clientListener
 	httpClientListener.Start()
 
-	httpClient := httpClientListener.Client()
+	httpClientListenerClient := httpClientListener.Client()
+	httpClientListenerClient.Transport = httpClient.Transport
 
 	jar, err := cookiejar.New(nil)
 	require.NoError(tb, err)
 
-	httpClient.Jar = jar
+	httpClientListenerClient.Jar = jar
 
-	return conf, openvpnClient, managementInterface, provider, httpClientListener, httpClient, logger, func() {
+	return conf, openvpnClient, managementInterface, provider, httpClientListener, httpClientListenerClient, logger, func() {
 		defer managementInterface.Close()
 		defer clientListener.Close()
 		defer resourceServer.Close()

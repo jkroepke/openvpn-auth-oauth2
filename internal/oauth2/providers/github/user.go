@@ -28,6 +28,7 @@ func (p *Provider) GetUser(ctx context.Context, tokens *oidc.Tokens[*idtoken.Cla
 
 	return types.UserData{
 		PreferredUsername: user.Login,
+		Email:             user.Email,
 		Subject:           strconv.Itoa(user.ID),
 	}, nil
 }

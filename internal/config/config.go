@@ -17,7 +17,7 @@ const (
 
 // FlagSet configure the command line parser using the [flag] library.
 //
-//nolint:maintidx
+
 func FlagSet(name string) *flag.FlagSet {
 	flagSet := flag.NewFlagSet(name, flag.ContinueOnError)
 	flagSet.Usage = func() {
@@ -99,22 +99,6 @@ func FlagSet(name string) *flag.FlagSet {
 		"http.enable-proxy-headers",
 		Defaults.HTTP.EnableProxyHeaders,
 		"Use X-Forward-For http header for client ips",
-	)
-	flagSet.String(
-		"provider.google.admin-email",
-		Defaults.Provider.Google.AdminEmail,
-		"Admin email for service account to impersonate for google admin api. Used, if oauth2.validate.groups is set.",
-	)
-	flagSet.String(
-		"provider.google.impersonate-account",
-		Defaults.Provider.Google.ImpersonateAccount,
-		"Service account to impersonate if Default Application Credentials used. Used, if oauth2.validate.groups is set.",
-	)
-	flagSet.TextVar(new(Secret),
-		"provider.google.service-account-config",
-		Defaults.Provider.Google.ServiceAccountConfig,
-		"Path to service account config for google admin api. Required, if oauth2.validate.groups is set. "+
-			"If argument starts with file:// it reads the secret from a file.",
 	)
 	flagSet.String(
 		"openvpn.addr",
@@ -259,6 +243,12 @@ func FlagSet(name string) *flag.FlagSet {
 		Defaults.OAuth2.Refresh.UseSessionID,
 		"If true, openvpn-auth-oauth2 will use the session_id to refresh sessions on initial auth. "+
 			"Requires 'auth-token-gen [lifetime] external-auth' on OpenVPN server.",
+	)
+	flagSet.Bool(
+		"oauth2.refresh.validate-user",
+		Defaults.OAuth2.Refresh.ValidateUser,
+		"If true, openvpn-auth-oauth2 will validate the user against the OIDC provider on each refresh. "+
+			"Usefully, if API limits are exceeded or OIDC provider can't deliver an refresh token.",
 	)
 	flagSet.TextVar(new(StringSlice),
 		"oauth2.validate.acr",

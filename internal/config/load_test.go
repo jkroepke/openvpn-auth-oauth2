@@ -94,6 +94,8 @@ oauth2:
         enabled: true
         expires: 10h0m0s
         secret: "1jd93h5b6s82lf03jh5b2hf9"
+        use-session-id: true
+        validate-user: true
 openvpn:
     addr: "unix:///run/openvpn/server2.sock"
     auth-token-user: true
@@ -190,9 +192,11 @@ http:
 					Scopes:    []string{"openid", "profile"},
 					AuthStyle: config.OAuth2AuthStyle(oauth2.AuthStyleInHeader),
 					Refresh: config.OAuth2Refresh{
-						Enabled: true,
-						Expires: 10 * time.Hour,
-						Secret:  "1jd93h5b6s82lf03jh5b2hf9",
+						Enabled:      true,
+						Expires:      10 * time.Hour,
+						Secret:       "1jd93h5b6s82lf03jh5b2hf9",
+						UseSessionID: true,
+						ValidateUser: true,
 					},
 					Validate: config.OAuth2Validate{
 						CommonName:              "preffered_username",
