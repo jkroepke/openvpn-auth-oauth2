@@ -92,11 +92,11 @@ func (s *Server) Reload() error {
 		return fmt.Errorf("tls.LoadX509KeyPair: %w", err)
 	}
 
+	s.tlsCertificateMu.Lock()
+
 	if s.tlsCertificate != nil {
 		s.logger.Info("reloading TLS certificate")
 	}
-
-	s.tlsCertificateMu.Lock()
 
 	s.tlsCertificate = &certs
 
