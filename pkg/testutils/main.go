@@ -76,7 +76,7 @@ func SendMessage(tb testing.TB, conn net.Conn, sendMessage string, args ...any) 
 	}
 
 	err := conn.SetWriteDeadline(time.Now().Add(time.Second * 5))
-	if !assert.NoError(tb, err) {
+	if !assert.NoError(tb, err) { //nolint:testifylint
 		return false
 	}
 
@@ -85,6 +85,7 @@ func SendMessage(tb testing.TB, conn net.Conn, sendMessage string, args ...any) 
 	}
 
 	_, err = fmt.Fprintf(conn, sendMessage, args...)
+
 	return assert.NoError(tb, err)
 }
 
@@ -98,14 +99,14 @@ func ExpectMessage(tb testing.TB, conn net.Conn, reader *bufio.Reader, expectMes
 
 	for _, expected := range strings.Split(strings.TrimSpace(expectMessage), "\n") {
 		err = conn.SetReadDeadline(time.Now().Add(time.Second * 5))
-		if !assert.NoError(tb, err, expected, expectMessage) {
+		if !assert.NoError(tb, err, expected, expectMessage) { //nolint:testifylint
 			return false
 		}
 
 		line, err = reader.ReadString('\n')
 
 		if err != nil && !errors.Is(err, io.EOF) {
-			if !assert.NoError(tb, err, "expected line: %s\nexpected message:\n%s", expected, expectMessage) {
+			if !assert.NoError(tb, err, "expected line: %s\nexpected message:\n%s", expected, expectMessage) { //nolint:testifylint
 				return false
 			}
 		}
@@ -138,12 +139,13 @@ func SendAndExpectMessage(tb testing.TB, conn net.Conn, reader *bufio.Reader, se
 
 	for _, expected := range strings.Split(strings.TrimSpace(expectMessage), "\n") {
 		err = conn.SetReadDeadline(time.Now().Add(time.Second * 5))
-		if !assert.NoError(tb, err, expected, expectMessage) {
+		if !assert.NoError(tb, err, expected, expectMessage) { //nolint:testifylint
 			return false
 		}
 
 		line, err = reader.ReadString('\n')
 
+		//nolint:testifylint
 		if err != nil && !errors.Is(err, io.EOF) && !assert.NoError(tb, err,
 			"send: %s\n\nexpected line: %s\n\nexpected message:\n%s", sendMessage, expected, expectMessage) {
 			return false
