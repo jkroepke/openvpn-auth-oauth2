@@ -31,20 +31,12 @@ func TestRefreshReAuth(t *testing.T) {
 				},
 			},
 		},
-		{
-			name: "Refresh with SessionID",
-			conf: config.Config{
-				OAuth2: config.OAuth2{
-					Refresh: config.OAuth2Refresh{Enabled: true, UseSessionID: true},
-				},
-			},
-		},
 	} {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			conf, client, managementInterface, _, _, httpClient, _, shutdownFn := testutils.SetupMockEnvironment(t, tt.conf)
+			_, client, managementInterface, _, _, httpClient, _, shutdownFn := testutils.SetupMockEnvironment(t, tt.conf)
 			defer shutdownFn()
 
 			wg := sync.WaitGroup{}
@@ -113,12 +105,7 @@ func TestRefreshReAuth(t *testing.T) {
 			testutils.SendMessage(t, managementInterfaceConn, ">CLIENT:REAUTH,1,3\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,session_state=AuthenticatedEmptyUser\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END")
 
 			auth = testutils.ReadLine(t, managementInterfaceConn, reader)
-
-			if conf.OAuth2.Refresh.UseSessionID {
-				assert.Contains(t, auth, "client-auth-nt 1 3")
-			} else {
-				assert.Contains(t, auth, "client-pending-auth 1 3 \"WEB_AUTH::")
-			}
+			assert.Contains(t, auth, "client-pending-auth 1 3 \"WEB_AUTH::")
 
 			testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: %s command succeeded", strings.SplitN(auth, " ", 2)[0])
 
@@ -126,12 +113,7 @@ func TestRefreshReAuth(t *testing.T) {
 			testutils.SendMessage(t, managementInterfaceConn, ">CLIENT:CONNECT,2,3\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,session_state=AuthenticatedEmptyUser\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END")
 
 			auth = testutils.ReadLine(t, managementInterfaceConn, reader)
-
-			if conf.OAuth2.Refresh.UseSessionID {
-				assert.Contains(t, auth, "client-auth-nt 2 3")
-			} else {
-				assert.Contains(t, auth, "client-pending-auth 2 3 \"WEB_AUTH::")
-			}
+			assert.Contains(t, auth, "client-pending-auth 2 3 \"WEB_AUTH::")
 
 			testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: %s command succeeded", strings.SplitN(auth, " ", 2)[0])
 
@@ -139,12 +121,7 @@ func TestRefreshReAuth(t *testing.T) {
 			testutils.SendMessage(t, managementInterfaceConn, ">CLIENT:CONNECT,3,3\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,session_state=Expired\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END")
 
 			auth = testutils.ReadLine(t, managementInterfaceConn, reader)
-
-			if conf.OAuth2.Refresh.UseSessionID {
-				assert.Equal(t, "client-deny 3 3 \"session state invalid or expired\"", auth)
-			} else {
-				assert.Contains(t, auth, "client-pending-auth 3 3 \"WEB_AUTH::")
-			}
+			assert.Contains(t, auth, "client-pending-auth 3 3 \"WEB_AUTH::")
 
 			testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: %s command succeeded", strings.SplitN(auth, " ", 2)[0])
 

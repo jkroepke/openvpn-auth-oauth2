@@ -22,9 +22,6 @@ func (p *Provider) RefreshClientAuth(logger *slog.Logger, client connection.Clie
 	defer cancel()
 
 	id := strconv.FormatUint(client.CID, 10)
-	if p.conf.OAuth2.Refresh.UseSessionID && client.SessionID != "" {
-		id = client.SessionID
-	}
 
 	refreshToken, err := p.storage.Get(id)
 	if err != nil {
@@ -57,10 +54,6 @@ func (p *Provider) RefreshClientAuth(logger *slog.Logger, client connection.Clie
 
 // ClientDisconnect purges the refresh token from the [storage.Storage].
 func (p *Provider) ClientDisconnect(logger *slog.Logger, client connection.Client) {
-	if p.conf.OAuth2.Refresh.UseSessionID {
-		return
-	}
-
 	id := strconv.FormatUint(client.CID, 10)
 
 	refreshToken, err := p.storage.Get(id)

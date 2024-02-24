@@ -70,24 +70,3 @@ CONFIG_OAUTH2_REFRESH_SECRET= # 16 or 24 characters
 ```
 
 For reference, you can read more about these properties in the wiki at this [link](https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Configuration#non-interactive-session-refresh)
-
-
-## Mobile clients: OpenVPN connect won't be reconnecting after unless App is opened
-
-If you are using the OpenVPN Connect app on your mobile device, you may have noticed that the app won't reconnect after a connection loss unless you open the app.
-This is a known issue and is caused by the app being put to sleep by the operating system. To fix this, configure
-
-**OpenVPN Server Configuration**
-```
-auth-token-gen [lifetime] external-auth
-```
-
-**openvpn-auth-oauth2 Configuration**
-```ini
-CONFIG_OAUTH2_REFRESH_ENABLED=true
-CONFIG_OAUTH2_REFRESH_EXPIRES=8h
-CONFIG_OAUTH2_REFRESH_SECRET= # a static secret to encrypt token. Must be 16, 24 or 32
-CONFIG_OAUTH2_REFRESH_USE__SESSION__ID=true
-```
-
-For reference, you can read more about these properties in the wiki at this [link](https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Configuration#non-interactive-session-refresh)

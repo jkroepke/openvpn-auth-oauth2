@@ -49,7 +49,6 @@
 #        enabled: false
 #        expires: 8h0m0s
 #        # secret: ""
-#        use-session-id: false
 #openvpn:
 #    addr: "unix:///run/openvpn/server.sock"
 #    auth-token-user: true

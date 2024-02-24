@@ -122,15 +122,6 @@ func (c *Client) checkReauth(logger *slog.Logger, client connection.Client) bool
 		return false
 	}
 
-	if c.conf.OAuth2.Refresh.UseSessionID &&
-		(client.SessionID == "" ||
-			!(client.SessionState == "Initial" || client.SessionState == "AuthenticatedEmptyUser" || client.SessionState == "Authenticated")) {
-		logger.Warn("client session state invalid or expired. Denying client")
-		c.DenyClient(logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, "session state invalid or expired")
-
-		return true
-	}
-
 	ok, err := c.oauth2.RefreshClientAuth(logger, client)
 	if err != nil {
 		logger.Warn(err.Error())
