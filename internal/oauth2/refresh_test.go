@@ -35,18 +35,18 @@ func TestRefreshReAuth(t *testing.T) {
 			},
 		},
 		{
-			name: "Refresh with SessionID",
-			conf: config.Config{
-				OAuth2: config.OAuth2{
-					Refresh: config.OAuth2Refresh{Enabled: true, ValidateUser: true, UseSessionID: true},
-				},
-			},
-		},
-		{
 			name: "Refresh with ValidateUser=false",
 			conf: config.Config{
 				OAuth2: config.OAuth2{
 					Refresh: config.OAuth2Refresh{Enabled: true, ValidateUser: false, UseSessionID: false},
+				},
+			},
+		},
+		{
+			name: "Refresh with SessionID=true + ValidateUser=false",
+			conf: config.Config{
+				OAuth2: config.OAuth2{
+					Refresh: config.OAuth2Refresh{Enabled: true, ValidateUser: false, UseSessionID: true},
 				},
 			},
 		},
@@ -75,6 +75,11 @@ func TestRefreshReAuth(t *testing.T) {
 			t.Parallel()
 
 			conf, client, managementInterface, _, _, httpClient, logger, shutdownFn := testutils.SetupMockEnvironment(t, tt.conf)
+			t.Cleanup(func() {
+				if t.Failed() {
+					t.Log(logger.String())
+				}
+			})
 			defer shutdownFn()
 
 			wg := sync.WaitGroup{}
@@ -130,13 +135,10 @@ func TestRefreshReAuth(t *testing.T) {
 			_ = resp.Body.Close()
 
 			// Testing ReAuth
-			if !testutils.SendAndExpectMessage(t, managementInterfaceConn, reader,
+			testutils.SendAndExpectMessage(t, managementInterfaceConn, reader,
 				">CLIENT:REAUTH,1,3\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,session_state=AuthenticatedEmptyUser\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END",
 				"client-auth-nt 1 3",
-			) {
-				t.Log(logger.String())
-				t.FailNow()
-			}
+			)
 			testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
 
 			// Test Disconnect
@@ -146,7 +148,12 @@ func TestRefreshReAuth(t *testing.T) {
 			testutils.SendMessage(t, managementInterfaceConn, ">CLIENT:REAUTH,1,3\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,session_state=AuthenticatedEmptyUser\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END")
 
 			auth = testutils.ReadLine(t, managementInterfaceConn, reader)
-			assert.Contains(t, auth, "client-pending-auth 1 3 \"WEB_AUTH::")
+
+			if conf.OAuth2.Refresh.UseSessionID {
+				assert.Contains(t, auth, "client-auth-nt 1 3")
+			} else {
+				assert.Contains(t, auth, "client-pending-auth 1 3 \"WEB_AUTH::")
+			}
 
 			testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: %s command succeeded", strings.SplitN(auth, " ", 2)[0])
 

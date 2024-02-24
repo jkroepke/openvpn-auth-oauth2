@@ -116,7 +116,7 @@ func TestValidateGroups(t *testing.T) {
 
 			httpClient := &http.Client{
 				Transport: &testutils.RoundTripperFunc{
-					Fn: func(_ *http.Request) (*http.Response, error) {
+					Fn: func(_ http.RoundTripper, _ *http.Request) (*http.Response, error) {
 						resp := httptest.NewRecorder()
 						if strings.Contains(tt.tokenGroups, "error") {
 							resp.WriteHeader(http.StatusInternalServerError)
