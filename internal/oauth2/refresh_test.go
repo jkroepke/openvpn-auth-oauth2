@@ -143,8 +143,9 @@ func TestRefreshReAuth(t *testing.T) {
 			if conf.OAuth2.Refresh.UseSessionID {
 				assert.Equal(t, "client-deny 3 3 \"session state invalid or expired\"", auth)
 			} else {
-				assert.Contains(t, auth, "client-pending-auth 2 3 \"WEB_AUTH::")
+				assert.Contains(t, auth, "client-pending-auth 3 3 \"WEB_AUTH::")
 			}
+
 			testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: %s command succeeded", strings.SplitN(auth, " ", 2)[0])
 
 			time.Sleep(time.Millisecond * 50)
