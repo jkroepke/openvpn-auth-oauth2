@@ -1,6 +1,6 @@
 name: ❓ Question
 description: Something is not cleae.
-labels: [ question ]
+labels: [ ❓ question ]
 body:
   - type: textarea
     attributes:
