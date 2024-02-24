@@ -78,11 +78,16 @@ func (s *Server) GetCertificateFunc() func(*tls.ClientHelloInfo) (*tls.Certifica
 	return func(clientHello *tls.ClientHelloInfo) (*tls.Certificate, error) {
 		s.tlsCertificateMu.RLock()
 		defer s.tlsCertificateMu.RUnlock()
+
 		return s.tlsCertificate, nil
 	}
 }
 
 func (s *Server) Reload() error {
+	if !s.conf.HTTP.TLS {
+		return nil
+	}
+
 	certs, err := tls.LoadX509KeyPair(s.conf.HTTP.CertFile, s.conf.HTTP.KeyFile)
 	if err != nil {
 		return fmt.Errorf("tls.LoadX509KeyPair: %w", err)
