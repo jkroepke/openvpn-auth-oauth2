@@ -75,11 +75,13 @@ func TestRefreshReAuth(t *testing.T) {
 			t.Parallel()
 
 			conf, client, managementInterface, _, _, httpClient, logger, shutdownFn := testutils.SetupMockEnvironment(t, tt.conf)
+
 			t.Cleanup(func() {
 				if t.Failed() {
 					t.Log(logger.String())
 				}
 			})
+
 			defer shutdownFn()
 
 			wg := sync.WaitGroup{}
