@@ -30,6 +30,7 @@ func NewMockRoundTripper(rt http.RoundTripper) *MockRoundTripper {
 	return &MockRoundTripper{rt}
 }
 
+//nolint:cyclop
 func (f *MockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	switch req.URL.Host {
 	case "cloudidentity.googleapis.com":

@@ -54,6 +54,12 @@ func TestValidateGroups(t *testing.T) {
 			"error getting GitHub organizations: access token is empty",
 		},
 		{
+			"http status error",
+			`error`,
+			[]string{"apple"},
+			"error getting GitHub organizations: error from GitHub API https://api.github.com/user/orgs: http status code: 500; message: error",
+		},
+		{
 			"invalid json",
 			`ERROR`,
 			[]string{"apple"},
@@ -164,6 +170,12 @@ func TestValidateRoles(t *testing.T) {
 			"error getting GitHub teams: access token is empty",
 		},
 		{
+			"http status error",
+			`error`,
+			[]string{"apple"},
+			"error getting GitHub teams: error from GitHub API https://api.github.com/user/teams: http status code: 500; message: error",
+		},
+		{
 			"invalid json",
 			`ERROR`,
 			[]string{"apple"},
@@ -213,7 +225,7 @@ func TestValidateRoles(t *testing.T) {
 			}
 
 			httpClient := &http.Client{
-				Transport: testutils.NewRoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+				Transport: testutils.NewRoundTripperFunc(func(_ *http.Request) (*http.Response, error) {
 					resp := httptest.NewRecorder()
 					if strings.Contains(tt.userTeams, "error") {
 						resp.WriteHeader(http.StatusInternalServerError)

@@ -44,6 +44,12 @@ func TestGetUser(t *testing.T) {
 			"access token is empty",
 		},
 		{
+			"http status error",
+			`error`,
+			types.UserData{},
+			"error from GitHub API https://api.github.com/user: http status code: 500; message: error",
+		},
+		{
 			"invalid json",
 			`ERROR`,
 			types.UserData{},
@@ -76,7 +82,7 @@ func TestGetUser(t *testing.T) {
 			}
 
 			httpClient := &http.Client{
-				Transport: testutils.NewRoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+				Transport: testutils.NewRoundTripperFunc(func(_ *http.Request) (*http.Response, error) {
 					resp := httptest.NewRecorder()
 					if strings.Contains(tt.user, "error") {
 						resp.WriteHeader(http.StatusInternalServerError)
