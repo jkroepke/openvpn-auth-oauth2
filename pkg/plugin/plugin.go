@@ -10,6 +10,7 @@ import "C"
 import (
 	"fmt"
 	"log/slog"
+	http2 "net/http"
 	"net/url"
 	"os"
 	"slices"
@@ -76,7 +77,7 @@ func openvpn_plugin_open_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_
 	}
 
 	storageClient := storage.New(conf.OAuth2.Refresh.Secret.String(), conf.OAuth2.Refresh.Expires)
-	provider := oauth2.New(logger, conf, storageClient)
+	provider := oauth2.New(logger, conf, storageClient, http2.DefaultClient)
 
 	if err = provider.Initialize(handle); err != nil {
 		logger.Error(err.Error())

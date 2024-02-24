@@ -19,7 +19,6 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 	"github.com/zitadel/logging"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
 	httphelper "github.com/zitadel/oidc/v3/pkg/http"
@@ -29,12 +28,12 @@ import (
 )
 
 // New returns a [Provider] instance.
-func New(logger *slog.Logger, conf config.Config, storageClient *storage.Storage) *Provider {
+func New(logger *slog.Logger, conf config.Config, storageClient *storage.Storage, httpClient *http.Client) *Provider {
 	return &Provider{
 		storage:    storageClient,
 		conf:       conf,
 		logger:     logger,
-		httpClient: &http.Client{Transport: utils.NewUserAgentTransport(nil)},
+		httpClient: httpClient,
 	}
 }
 
@@ -166,7 +165,7 @@ func (p *Provider) getProviderOptions(providerLogger *expslog.Logger, basePath *
 		rp.WithCookieHandler(cookieHandler),
 		rp.WithVerifierOpts(verifierOpts...),
 		rp.WithAuthStyle(p.conf.OAuth2.AuthStyle.AuthStyle()),
-		rp.WithHTTPClient(&http.Client{Transport: utils.NewUserAgentTransport(nil)}),
+		rp.WithHTTPClient(p.httpClient),
 		rp.WithErrorHandler(func(w http.ResponseWriter, _ *http.Request, errorType string, errorDesc string, encryptedSession string) {
 			errorHandler(w, p.conf, p.logger, p.openvpn, http.StatusInternalServerError, errorType, errorDesc, encryptedSession)
 		}),

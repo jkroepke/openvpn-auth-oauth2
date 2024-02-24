@@ -20,6 +20,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
 // Execute runs the main program logic of openvpn-auth-oauth2.
@@ -66,8 +67,9 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 
 	ctx, cancel := context.WithCancelCause(context.Background())
 
+	httpClient := &http.Client{Transport: utils.NewUserAgentTransport(nil)}
 	storageClient := storage.New(conf.OAuth2.Refresh.Secret.String(), conf.OAuth2.Refresh.Expires)
-	oauth2Client := oauth2.New(logger, conf, storageClient)
+	oauth2Client := oauth2.New(logger, conf, storageClient, httpClient)
 	openvpnClient := openvpn.NewClient(ctx, logger, conf, oauth2Client)
 
 	if err = oauth2Client.Initialize(openvpnClient); err != nil {

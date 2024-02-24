@@ -13,19 +13,12 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/google"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
+	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 	"golang.org/x/oauth2"
 )
-
-type roundTripperFunc struct {
-	fn func(req *http.Request) (*http.Response, error)
-}
-
-func (f *roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
-	return f.fn(req)
-}
 
 func TestValidateGroups(t *testing.T) {
 	t.Parallel()
@@ -122,8 +115,8 @@ func TestValidateGroups(t *testing.T) {
 			}
 
 			httpClient := &http.Client{
-				Transport: &roundTripperFunc{
-					fn: func(_ *http.Request) (*http.Response, error) {
+				Transport: &testutils.RoundTripperFunc{
+					Fn: func(_ *http.Request) (*http.Response, error) {
 						resp := httptest.NewRecorder()
 						if strings.Contains(tt.tokenGroups, "error") {
 							resp.WriteHeader(http.StatusInternalServerError)
