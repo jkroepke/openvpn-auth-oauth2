@@ -1,6 +1,6 @@
 name: 🐞 Bug
 description: Something is not working as indended.
-labels: [ bug ]
+labels: [ 🐞 bug ]
 body:
   - type: textarea
     attributes:
