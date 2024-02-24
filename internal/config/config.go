@@ -244,6 +244,12 @@ func FlagSet(name string) *flag.FlagSet {
 		"If true, openvpn-auth-oauth2 will use the session_id to refresh sessions on initial auth. "+
 			"Requires 'auth-token-gen [lifetime] external-auth' on OpenVPN server.",
 	)
+	flagSet.Bool(
+		"oauth2.refresh.validate-user",
+		Defaults.OAuth2.Refresh.ValidateUser,
+		"If true, openvpn-auth-oauth2 will validate the user against the OIDC provider on each refresh. "+
+			"Usefully, if API limits are exceeded or OIDC provider can't deliver an refresh token.",
+	)
 	flagSet.TextVar(new(StringSlice),
 		"oauth2.validate.acr",
 		Defaults.OAuth2.Validate.Acr,

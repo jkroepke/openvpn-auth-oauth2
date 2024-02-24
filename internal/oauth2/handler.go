@@ -213,7 +213,11 @@ func (p *Provider) oauth2Callback() http.Handler {
 			p.openvpn.AcceptClient(logger, session.Client, getAuthTokenUsername(session, user))
 
 			if p.conf.OAuth2.Refresh.Enabled {
-				refreshToken := p.OIDC.GetRefreshToken(tokens)
+				refreshToken := "TOKEN"
+				if p.conf.OAuth2.Refresh.ValidateUser {
+					refreshToken = p.OIDC.GetRefreshToken(tokens)
+				}
+
 				if refreshToken == "" {
 					p.logger.Warn("oauth2.refresh is enabled, but provider does not return refresh token")
 				} else if err = p.storage.Set(id, refreshToken); err != nil {

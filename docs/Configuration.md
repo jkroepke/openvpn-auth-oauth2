@@ -82,6 +82,7 @@ oauth2:
         expires: 8h0m0s
         # secret: ""
         use-session-id: false
+        validate-user: true
 openvpn:
     addr: "unix:///run/openvpn/server.sock"
     auth-token-user: true
@@ -108,7 +109,6 @@ openvpn:
 <!-- BEGIN USAGE -->
 ```
 Usage of openvpn-auth-oauth2:
-Usage of ./openvpn-auth-oauth2:
 
   --config string
     	path to one .yaml config file (env: CONFIG_CONFIG)
@@ -168,6 +168,8 @@ Usage of ./openvpn-auth-oauth2:
     	Required, if oauth2.refresh.enabled=true. Random generated secret for token encryption. Must be 16, 24 or 32 characters. If argument starts with file:// it reads the secret from a file. (env: CONFIG_OAUTH2_REFRESH_SECRET)
   --oauth2.refresh.use-session-id
     	If true, openvpn-auth-oauth2 will use the session_id to refresh sessions on initial auth. Requires 'auth-token-gen [lifetime] external-auth' on OpenVPN server. (env: CONFIG_OAUTH2_REFRESH_USE__SESSION__ID)
+  --oauth2.refresh.validate-user
+    	If true, openvpn-auth-oauth2 will validate the user against the OIDC provider on each refresh. Usefully, if API limits are exceeded or OIDC provider can't deliver an refresh token. (env: CONFIG_OAUTH2_REFRESH_VALIDATE__USER) (default true)
   --oauth2.scopes value
     	oauth2 token scopes. Defaults depends on oauth2.provider. Comma separated list. Example: openid,profile,email (env: CONFIG_OAUTH2_SCOPES)
   --oauth2.validate.acr value
@@ -329,21 +331,27 @@ you can use [acme.sh](https://acme.sh/), which is a pure Unix shell script imple
 
 openvpn-auth-oauth2 requires a [`SIGHUP` signal](https://en.wikipedia.org/wiki/SIGHUP) to reload the TLS certificate.
 
-```bash
-
 ## Non-interactive session refresh
 
-With default settings, openvpn-auth-oauth2 does not store any tokens from the users. This requires an interactive login from user on
-each authentication, included on TLS soft-resets (if `reneg-sec` is triggered).
+## Non-Interactive Session Refresh in openvpn-auth-oauth2
 
-The interactive login can be avoided by requesting [refresh tokens](https://auth0.com/blog/refresh-tokens-what-are-they-and-when-to-use-them/)
-(via oauth2 scope `offline_access`; enabled by default) and store the token inside openvpn-auth-oauth2.
+By default, `openvpn-auth-oauth2` doesn't store user tokens.
+This means users must log in interactively each time they authenticate, including during TLS soft-resets
+(triggered by `reneg-sec`).
 
-If enabled (via `--oauth2.refresh.enabled=true`), `openvpn-auth-oauth2` will store the oauth2 refresh token in an in-memory key-value store.
-`openvpn-auth-oauth2` is using AES to encrypt the tokens.
-The token will be bound to the OpenVPN client ID.
-While on initially connect the interactive login is still mandatory, `openvpn-auth-oauth2` tries to initiate a non-interactive login with the refresh
-token against the OIDC provider and fallbacks to interactive login, if unsuccessful.
+However, you can change this behavior by enabling the `oauth2.refresh.enabled=true` setting.
+This allows `openvpn-auth-oauth2` to store either the connection ID or SessionID (`oauth2.refresh.use-session-id=true`),
+accepting connections without additional login checks.
+
+When `oauth2.refresh.validate-user=true` is set, `openvpn-auth-oauth2`
+requests a [refresh token](https://auth0.com/blog/refresh-tokens-what-are-they-and-when-to-use-them/)
+during the initial connection and stores it.
+
+The refresh tokens are stored in an in-memory key-value store and encrypted using AES.
+Each token is tied to either the OpenVPN client ID or OpenVPN session ID.
+
+If a non-interactive login attempt with the refresh token fails against the OIDC provider,
+the system reverts to an interactive login process.
 
 References:
 
@@ -353,23 +361,24 @@ References:
 
 ### Non-interactive session refresh across disconnects
 
-If you want to enable non-interactive session refresh across disconnects, you need to enable
-`auth-token-gen [lifetime] external-auth` on OpenVPN server.
+To facilitate non-interactive session refresh across disconnects,
+you must enable `auth-token-gen [lifetime] external-auth` on the OpenVPN server.
 
-`[lifetime]` is the lifetime of the token in seconds.
-The lifetime can't be extended after the initial token has been generated.
-For example, if the lifetime is set to 8 hours,
-the client will be disconnected after 8 hours after initial auth and needs to re-authenticate.
+- `[lifetime]` represents the duration of the token in seconds.
+  Once generated, the token's lifetime cannot be extended.
+  For instance, setting the lifetime to 8 hours means
+  the client will disconnect after 8 hours from the initial authentication and will need to re-authenticate.
 
-The lifetime can be set to 0 to disable the lifetime check.
+- Setting the lifetime to 0 disables the lifetime check,
+  which can be beneficial for mobile devices with unstable connections or during device sleep cycles.
 
-This is useful on mobile devices, where the connection is not stable or the device goes to sleep.
+If `auth-gen-token-secret [keyfile]` is configured, OpenVPN access server restarts can verify auth-tokens.
+To generate a new secret, utilize `openvpn --genkey auth-token [keyfile]`.
 
-If `auth-gen-token-secret [keyfile]` is set, auth-tokens can be verified by OpenVPN access server restarts. You can
-generate a new secret with `openvpn --genkey auth-token [keyfile]`.
-
-**Note**: This file should be kept secret to the server as anyone that has access to this file will be able to generate
-auth tokens that the OpenVPN server will accept as valid.
+**Note**:
+Keep the keyfile secret
+as anyone with access to it can generate auth tokens that the OpenVPN server will recognize as valid.
+It's crucial to safeguard this file on the server.
 
 References:
 
@@ -385,7 +394,20 @@ CONFIG_OPENVPN_AUTH__TOKEN__USER=true
 
 ## username-as-common-name
 
-If `username-as-common-name` is configured at OpenVPN server,
-ensure that `openvpn.common-name.environment-variable-name` is set to `username` as well.
+When configuring `username-as-common-name` on the OpenVPN server,
+it's essential to ensure that `openvpn.common-name.environment-variable-name` is also set to `username`.
 
-This is mandatory, because `username-as-common-name` works after the authentication process.
+This configuration is mandatory because `username-as-common-name` operates after the authentication process.
+Matching the environment variable name to `username` ensures seamless functionality.
+
+### Note Regarding Passing Usernames from OAuth2 Provider to OpenVPN
+
+It's important to note that currently,
+there is no mechanism to pass the username from the OAuth2 provider back to OpenVPN.
+OpenVPN does not offer such an interface at present.
+This limitation applies to scenarios where the IP persistence file or statistics may contain empty usernames.
+
+For future enhancements in this area,
+we encourage users to up-vote the relevant feature requests on the OpenVPN GitHub repository.
+You can find and support these requests at the following link:
+[Feature Request on GitHub](https://github.com/OpenVPN/openvpn/issues/299)

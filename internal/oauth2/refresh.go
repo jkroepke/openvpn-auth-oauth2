@@ -11,6 +11,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/log"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
 	"github.com/zitadel/logging"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
@@ -35,15 +36,31 @@ func (p *Provider) RefreshClientAuth(logger *slog.Logger, client connection.Clie
 		return false, fmt.Errorf("error from token store: %w", err)
 	}
 
+	if !p.conf.OAuth2.Refresh.ValidateUser {
+		return true, nil
+	}
+
 	if p.conf.OAuth2.Nonce {
 		ctx = context.WithValue(ctx, types.CtxNonce{}, p.GetNonce(id))
 	}
 
 	logger.Info("initiate non-interactive authentication via refresh token")
 
-	refreshToken, err = p.OIDC.Refresh(ctx, logger, client, refreshToken, p.RelyingParty)
+	tokens, err := p.OIDC.Refresh(ctx, logger, refreshToken, p.RelyingParty)
 	if err != nil {
 		return false, fmt.Errorf("error from token exchange: %w", err)
+	}
+
+	session := state.New(state.ClientIdentifier{CID: client.CID, KID: client.KID}, client.IPAddr, client.CommonName)
+
+	user, err := p.OIDC.GetUser(ctx, tokens)
+	if err != nil {
+		return false, fmt.Errorf("error fetch user data: %w", err)
+	}
+
+	err = p.OIDC.CheckUser(ctx, session, user, tokens)
+	if err != nil {
+		return false, fmt.Errorf("error check user data: %w", err)
 	}
 
 	logger.Info("successful authenticate via refresh token")

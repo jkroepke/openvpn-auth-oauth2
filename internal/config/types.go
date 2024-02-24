@@ -100,6 +100,7 @@ type OAuth2Refresh struct {
 	Expires      time.Duration `koanf:"expires"`
 	Secret       Secret        `koanf:"secret"`
 	UseSessionID bool          `koanf:"use-session-id"`
+	ValidateUser bool          `koanf:"validate-user"`
 }
 
 type OpenVPNPassthrough struct {

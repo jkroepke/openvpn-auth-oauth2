@@ -53,7 +53,6 @@ How require multiple groups, check you could define `CONFIG_OAUTH2_VALIDATE_GROU
 3. If necessary, complete the `OAuth consent screen` wizard. You will probably want to create an `Internal` application.
    - If you reuse an existing application, your users may already have given consent for the usage of this application,
      which may not include refresh tokens.
-     If this is the case, add `CONFIG_OAUTH2_AUTHORIZE__PARAMS="prompt=consent"` to your configuration.
 4. In the left Nav pane, choose **"Credentials"**.
 5. In the center pane, choose **"OAuth consent screen"** tab. Fill in **"Product name shown to users"** and hit save.
 6. In the center pane, choose **"Credentials"** tab.
@@ -78,9 +77,6 @@ CONFIG_OAUTH2_PROVIDER=google
 CONFIG_OAUTH2_ISSUER=https://accounts.google.com
 CONFIG_OAUTH2_CLIENT_ID=162738495-xxxxx.apps.googleusercontent.com
 CONFIG_OAUTH2_CLIENT_SECRET=GOCSPX-xxxxxxxx
-
-# In case non-interactive login is not working, add the following line to your configuration:
-CONFIG_OAUTH2_AUTHORIZE__PARAMS="prompt=consent"
 ```
 
 ## Keycloak

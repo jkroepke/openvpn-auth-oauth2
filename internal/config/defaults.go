@@ -76,7 +76,8 @@ var Defaults = Config{
 			Issuer: true,
 		},
 		Refresh: OAuth2Refresh{
-			Expires: time.Hour * 8,
+			Expires:      time.Hour * 8,
+			ValidateUser: true,
 		},
 		Scopes: []string{},
 	},
