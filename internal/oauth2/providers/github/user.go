@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"strconv"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
@@ -19,6 +20,10 @@ type userType struct {
 }
 
 func (p *Provider) GetUser(ctx context.Context, tokens *oidc.Tokens[*idtoken.Claims]) (types.UserData, error) {
+	if tokens.AccessToken == "" {
+		return types.UserData{}, errors.New("access token is empty")
+	}
+
 	var user userType
 
 	_, err := get[userType](ctx, p.httpClient, tokens.AccessToken, "https://api.github.com/user", &user)

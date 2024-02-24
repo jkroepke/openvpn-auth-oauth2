@@ -202,6 +202,8 @@ func TestPassthroughFull(t *testing.T) {
 				}
 
 				testutils.ExpectVersionAndReleaseHold(t, managementInterfaceConn, reader)
+				testutils.SendMessage(t, managementInterfaceConn, "")
+				testutils.SendMessage(t, managementInterfaceConn, "\r\n")
 
 				var message string
 
@@ -313,6 +315,10 @@ func TestPassthroughFull(t *testing.T) {
 				}
 
 				for i := 0; i < 10; i++ {
+					testutils.SendMessage(t, passThroughConn, "")
+					testutils.SendMessage(t, passThroughConn, "\n")
+					testutils.SendMessage(t, passThroughConn, "\r\n")
+
 					testutils.SendAndExpectMessage(t, passThroughConn, passThroughReader,
 						"hold",
 						"SUCCESS: hold release succeeded",

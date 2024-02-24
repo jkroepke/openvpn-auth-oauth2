@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"regexp"
 
@@ -28,15 +29,22 @@ func get[T any](ctx context.Context, httpClient *http.Client, accessToken string
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("error calling GitHub api %s: %w", apiURL, err)
-	} else if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("error from GitHub api %s http status code: %d", apiURL, resp.StatusCode)
+		return "", fmt.Errorf("error calling GitHub API %s: %w", apiURL, err)
 	}
 
-	defer resp.Body.Close()
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("unable to read body from GitHub API %s: http status code: %d; error: %w", apiURL, resp.StatusCode, err)
+	}
 
-	if err = json.NewDecoder(resp.Body).Decode(data); err != nil {
-		return "", fmt.Errorf("unable to decode json: %w", err)
+	resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("error from GitHub API %s: http status code: %d; message: %s", apiURL, resp.StatusCode, respBody)
+	}
+
+	if err = json.Unmarshal(respBody, data); err != nil {
+		return "", fmt.Errorf("unable to decode JSON from GitHub API %s: '%s': %w", apiURL, respBody, err)
 	}
 
 	return getPagination(apiURL, resp), nil
