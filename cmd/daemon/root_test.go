@@ -123,13 +123,13 @@ func TestExecuteConfigFileFound(t *testing.T) {
 
 		time.Sleep(100 * time.Millisecond)
 
-		p, err := os.FindProcess(os.Getpid())
+		process, err := os.FindProcess(os.Getpid())
 		if err != nil {
 			panic(err)
 		}
 
-		_ = p.Signal(syscall.SIGHUP)
-		_ = p.Signal(syscall.SIGINT)
+		_ = process.Signal(syscall.SIGHUP)
+		_ = process.Signal(syscall.SIGINT)
 	}()
 
 	t.Setenv("CONFIG_OPENVPN_ADDR", utils.StringConcat(managementInterface.Addr().Network(), "://", managementInterface.Addr().String()))
