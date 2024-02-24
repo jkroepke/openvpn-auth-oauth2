@@ -70,7 +70,7 @@ func TestRefreshReAuth(t *testing.T) {
 
 			time.Sleep(time.Millisecond * 100)
 
-			testutils.SendMessage(t, managementInterfaceConn, ">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END")
+			testutils.SendMessage(t, managementInterfaceConn, ">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,session_state=Initial\r\n>CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END")
 
 			auth := testutils.ReadLine(t, managementInterfaceConn, reader)
 			assert.Contains(t, auth, "client-pending-auth 1 2 \"WEB_AUTH::")
@@ -140,7 +140,11 @@ func TestRefreshReAuth(t *testing.T) {
 
 			auth = testutils.ReadLine(t, managementInterfaceConn, reader)
 
-			assert.Contains(t, auth, "client-pending-auth 3 3 \"WEB_AUTH::")
+			if conf.OAuth2.Refresh.UseSessionID {
+				assert.Equal(t, "client-deny 3 3 \"session state invalid or expired\"", auth)
+			} else {
+				assert.Contains(t, auth, "client-pending-auth 2 3 \"WEB_AUTH::")
+			}
 			testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: %s command succeeded", strings.SplitN(auth, " ", 2)[0])
 
 			time.Sleep(time.Millisecond * 50)

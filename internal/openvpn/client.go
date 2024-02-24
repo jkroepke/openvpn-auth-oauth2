@@ -65,7 +65,6 @@ func (c *Client) clientReauth(client connection.Client) error {
 func (c *Client) handleClientAuthentication(logger *slog.Logger, client connection.Client) error {
 	if c.checkAuthBypass(logger, client) ||
 		!c.checkClientSsoCapabilities(logger, client) ||
-		!c.checkAuthSessionState(logger, client) ||
 		c.checkReauth(logger, client) {
 		return nil
 	}
@@ -123,8 +122,13 @@ func (c *Client) checkReauth(logger *slog.Logger, client connection.Client) bool
 		return false
 	}
 
-	if !(c.conf.OAuth2.Refresh.UseSessionID && (client.SessionState == "AuthenticatedEmptyUser" || client.SessionState == "Authenticated")) {
-		return false
+	if c.conf.OAuth2.Refresh.UseSessionID &&
+		(client.SessionID == "" ||
+			!(client.SessionState == "Initial" || client.SessionState == "AuthenticatedEmptyUser" || client.SessionState == "Authenticated")) {
+		logger.Warn("client session state invalid or expired. Denying client")
+		c.DenyClient(logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, "session state invalid or expired")
+
+		return true
 	}
 
 	ok, err := c.oauth2.RefreshClientAuth(logger, client)
@@ -137,22 +141,6 @@ func (c *Client) checkReauth(logger *slog.Logger, client connection.Client) bool
 	}
 
 	return ok
-}
-
-func (c *Client) checkAuthSessionState(logger *slog.Logger, client connection.Client) bool {
-	if !c.conf.OAuth2.Refresh.UseSessionID || client.SessionID == "" { // SessionID is empty, we can't refresh
-		return true
-	}
-
-	if client.SessionState == "Initial" || client.SessionState == "AuthenticatedEmptyUser" || client.SessionState == "Authenticated" {
-		return true
-	}
-
-	logger.Warn("client session state invalid or expired. Denying client")
-
-	c.DenyClient(logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, "session state invalid or expired")
-
-	return false
 }
 
 func (c *Client) clientEstablished(client connection.Client) {
