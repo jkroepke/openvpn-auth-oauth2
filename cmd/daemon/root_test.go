@@ -128,6 +128,7 @@ func TestExecuteConfigFileFound(t *testing.T) {
 			panic(err)
 		}
 
+		_ = p.Signal(syscall.SIGHUP)
 		_ = p.Signal(syscall.SIGINT)
 	}()
 
