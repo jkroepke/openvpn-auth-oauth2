@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
@@ -20,18 +21,20 @@ func (p *Provider) GetRefreshToken(tokens *oidc.Tokens[*idtoken.Claims]) string 
 
 // Refresh use the [oauth2.Token.AccessToken] from initial authentication and call the REST API if the user is still present
 // inside the required groups.
-func (p *Provider) Refresh(ctx context.Context, _ *slog.Logger, accessToken string, _ rp.RelyingParty) (string, error) {
+func (p *Provider) Refresh(ctx context.Context, _ *slog.Logger, client connection.Client, accessToken string, _ rp.RelyingParty) (string, error) {
 	token := &oidc.Tokens[*idtoken.Claims]{
 		Token:         &oauth2.Token{AccessToken: accessToken},
 		IDTokenClaims: &idtoken.Claims{},
 	}
+
+	session := state.New(state.ClientIdentifier{CID: client.CID, KID: client.KID}, client.IPAddr, client.CommonName)
 
 	user, err := p.GetUser(ctx, token)
 	if err != nil {
 		return "", fmt.Errorf("error fetch user data: %w", err)
 	}
 
-	err = p.CheckUser(ctx, state.State{}, user, token)
+	err = p.CheckUser(ctx, session, user, token)
 	if err != nil {
 		return "", fmt.Errorf("error check user data: %w", err)
 	}

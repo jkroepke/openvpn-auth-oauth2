@@ -32,10 +32,12 @@ func (c *Client) processClient(client connection.Client) error {
 // clientConnect handles CONNECT events from OpenVPN management interface.
 func (c *Client) clientConnect(client connection.Client) error {
 	logger := c.logger.With(
-		slog.Uint64("cid", client.Cid),
-		slog.Uint64("kid", client.Kid),
+		slog.Uint64("cid", client.CID),
+		slog.Uint64("kid", client.KID),
 		slog.String("common_name", client.CommonName),
 		slog.String("reason", client.Reason),
+		slog.String("session_id", client.SessionID),
+		slog.String("session_state", client.SessionState),
 	)
 
 	logger.Info("new client connection")
@@ -46,35 +48,41 @@ func (c *Client) clientConnect(client connection.Client) error {
 // clientReauth handles REAUTH events from OpenVPN management interface.
 func (c *Client) clientReauth(client connection.Client) error {
 	logger := c.logger.With(
-		slog.Uint64("cid", client.Cid),
-		slog.Uint64("kid", client.Kid),
+		slog.Uint64("cid", client.CID),
+		slog.Uint64("kid", client.KID),
 		slog.String("common_name", client.CommonName),
 		slog.String("reason", client.Reason),
+		slog.String("session_id", client.SessionID),
+		slog.String("session_state", client.SessionState),
 	)
 
 	logger.Info("new client reauth")
-
-	if c.checkReauth(logger, client) {
-		return nil
-	}
 
 	return c.handleClientAuthentication(logger, client)
 }
 
 // handleClientAuthentication holds the shared authentication logic for CONNECT and REAUTH events.
 func (c *Client) handleClientAuthentication(logger *slog.Logger, client connection.Client) error {
-	if c.checkAuthBypass(logger, client) || !c.checkClientSsoCapabilities(logger, client) {
+	if c.checkAuthBypass(logger, client) ||
+		!c.checkClientSsoCapabilities(logger, client) ||
+		c.checkReauth(logger, client) {
 		return nil
 	}
 
 	ClientIdentifier := state.ClientIdentifier{
-		Cid: client.Cid,
-		Kid: client.Kid,
+		CID:       client.CID,
+		KID:       client.KID,
+		SessionID: client.SessionID,
 	}
 
 	commonName := utils.TransformCommonName(c.conf.OpenVpn.CommonName.Mode, client.CommonName)
 
-	session := state.New(ClientIdentifier, client.IPAddr, commonName)
+	var ipAddr string
+	if c.conf.OAuth2.Validate.IPAddr {
+		ipAddr = client.IPAddr
+	}
+
+	session := state.New(ClientIdentifier, ipAddr, commonName)
 	if err := session.Encode(c.conf.HTTP.Secret.String()); err != nil {
 		return fmt.Errorf("error encoding state: %w", err)
 	}
@@ -90,7 +98,7 @@ func (c *Client) handleClientAuthentication(logger *slog.Logger, client connecti
 
 	logger.Info("start pending auth")
 
-	_, err := c.SendCommandf(`client-pending-auth %d %d "WEB_AUTH::%s" %.0f`, client.Cid, client.Kid, startURL, c.conf.OpenVpn.AuthPendingTimeout.Seconds())
+	_, err := c.SendCommandf(`client-pending-auth %d %d "WEB_AUTH::%s" %.0f`, client.CID, client.KID, startURL, c.conf.OpenVpn.AuthPendingTimeout.Seconds())
 	if err != nil {
 		logger.Warn(err.Error())
 	}
@@ -104,7 +112,7 @@ func (c *Client) checkAuthBypass(logger *slog.Logger, client connection.Client) 
 	}
 
 	logger.Info("client bypass authentication")
-	c.AcceptClient(logger, state.ClientIdentifier{Cid: client.Cid, Kid: client.Kid}, client.CommonName)
+	c.AcceptClient(logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, client.CommonName)
 
 	return true
 }
@@ -114,13 +122,22 @@ func (c *Client) checkReauth(logger *slog.Logger, client connection.Client) bool
 		return false
 	}
 
-	ok, err := c.oauth2.RefreshClientAuth(client.Cid, logger)
+	if c.conf.OAuth2.Refresh.UseSessionID &&
+		(client.SessionID == "" ||
+			!(client.SessionState == "Initial" || client.SessionState == "AuthenticatedEmptyUser" || client.SessionState == "Authenticated")) {
+		logger.Warn("client session state invalid or expired. Denying client")
+		c.DenyClient(logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, "session state invalid or expired")
+
+		return true
+	}
+
+	ok, err := c.oauth2.RefreshClientAuth(logger, client)
 	if err != nil {
 		logger.Warn(err.Error())
 	}
 
 	if ok {
-		c.AcceptClient(logger, state.ClientIdentifier{Cid: client.Cid, Kid: client.Kid}, client.CommonName)
+		c.AcceptClient(logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, client.CommonName)
 	}
 
 	return ok
@@ -129,19 +146,24 @@ func (c *Client) checkReauth(logger *slog.Logger, client connection.Client) bool
 func (c *Client) clientEstablished(client connection.Client) {
 	c.logger.LogAttrs(context.Background(),
 		slog.LevelInfo, "client established",
-		slog.Uint64("cid", client.Cid),
+		slog.Uint64("cid", client.CID),
 		slog.String("common_name", client.CommonName),
 		slog.String("reason", client.Reason),
+		slog.String("session_id", client.SessionID),
+		slog.String("session_state", client.SessionState),
 	)
 }
 
 func (c *Client) clientDisconnect(client connection.Client) {
 	logger := c.logger.With(
-		slog.Uint64("cid", client.Cid),
+		slog.Uint64("cid", client.CID),
 		slog.String("common_name", client.CommonName),
 		slog.String("reason", client.Reason),
+		slog.String("session_id", client.SessionID),
+		slog.String("session_state", client.SessionState),
 	)
 
 	logger.Info("client disconnected")
-	c.oauth2.ClientDisconnect(client.Cid, logger)
+
+	c.oauth2.ClientDisconnect(logger, client)
 }

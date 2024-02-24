@@ -11,7 +11,8 @@ services:
     devices:
       - /dev/net/tun
     ports:
-      - "0.0.0.0:1194:1194/udp"
+      - "1194:1194/tcp"
+      - "1194:1194/udp"
       - "8081:8081/tcp"
     volumes:
       - ./:/tests/:ro
@@ -46,7 +47,7 @@ services:
         cat > "/etc/openvpn/openvpn.conf" <<EOF
         dev tun0
         server 100.64.0.0 255.255.255.0
-        verb 3
+        verb 4
         ca /etc/openvpn/pki/ca.crt
         key /etc/openvpn/pki/private/server.key
         cert /etc/openvpn/pki/issued/server.crt
@@ -69,16 +70,21 @@ services:
         user nobody
         group nogroup
 
-        #auth-gen-token
+        # Does not work in containers
+        disable-dco
+        duplicate-cn
+
         management 0.0.0.0 8081 /etc/openvpn/password.txt
-        #management 0.0.0.0 8081
         management-hold
         management-client-auth
 
         #plugin /plugin/openvpn-auth-oauth2.so /plugin/config.yaml
 
         reneg-sec 60
+        hand-window 15
+        auth-gen-token 300 external-auth
         auth-user-pass-optional
+
         EOF
 
         cat > "/etc/openvpn/${UPN}.ovpn" <<EOF

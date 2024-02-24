@@ -71,6 +71,11 @@ func TestClientFull(t *testing.T) {
 					},
 					Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
 				},
+				OAuth2: config.OAuth2{
+					Validate: config.OAuth2Validate{
+						IPAddr: true,
+					},
+				},
 			},
 			client: ">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END\r\n",
 			expect: "client-pending-auth 1 2 \"WEB_AUTH::",
@@ -89,6 +94,11 @@ func TestClientFull(t *testing.T) {
 					Bypass:   config.OpenVpnBypass{CommonNames: make([]string, 0)},
 					Password: "password",
 				},
+				OAuth2: config.OAuth2{
+					Validate: config.OAuth2Validate{
+						IPAddr: true,
+					},
+				},
 			},
 			">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END\r\n",
 			"client-pending-auth 1 2 \"WEB_AUTH::",
@@ -106,6 +116,11 @@ func TestClientFull(t *testing.T) {
 						EnvironmentVariableName: "username",
 					},
 					Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
+				},
+				OAuth2: config.OAuth2{
+					Validate: config.OAuth2Validate{
+						IPAddr: true,
+					},
 				},
 			},
 			client: ">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,username=test\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END\r\n",
@@ -293,8 +308,8 @@ func TestClientFull(t *testing.T) {
 					err := sessionState.Decode(tt.conf.HTTP.Secret.String())
 					require.NoError(t, err) //nolint:testifylint
 
-					assert.Equal(t, uint64(1), sessionState.Client.Cid)
-					assert.Equal(t, uint64(2), sessionState.Client.Kid)
+					assert.Equal(t, uint64(1), sessionState.Client.CID)
+					assert.Equal(t, uint64(2), sessionState.Client.KID)
 					assert.Equal(t, "test", sessionState.CommonName)
 					assert.Equal(t, "127.0.0.1", sessionState.Ipaddr)
 				}

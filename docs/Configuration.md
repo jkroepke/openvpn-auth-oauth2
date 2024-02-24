@@ -81,6 +81,7 @@ oauth2:
         enabled: false
         expires: 8h0m0s
         # secret: ""
+        use-session-id: false
 openvpn:
     addr: "unix:///run/openvpn/server.sock"
     auth-token-user: true
@@ -112,6 +113,7 @@ provider:
 <!-- BEGIN USAGE -->
 ```
 Usage of openvpn-auth-oauth2:
+Usage of ./openvpn-auth-oauth2:
 
   --config string
     	path to one .yaml config file (env: CONFIG_CONFIG)
@@ -169,6 +171,8 @@ Usage of openvpn-auth-oauth2:
     	TTL of stored oauth2 token. (env: CONFIG_OAUTH2_REFRESH_EXPIRES) (default 8h0m0s)
   --oauth2.refresh.secret value
     	Required, if oauth2.refresh.enabled=true. Random generated secret for token encryption. Must be 16, 24 or 32 characters. If argument starts with file:// it reads the secret from a file. (env: CONFIG_OAUTH2_REFRESH_SECRET)
+  --oauth2.refresh.use-session-id
+    	If true, openvpn-auth-oauth2 will use the session_id to refresh sessions on initial auth. Requires 'auth-token-gen [lifetime] external-auth' on OpenVPN server. (env: CONFIG_OAUTH2_REFRESH_USE__SESSION__ID)
   --oauth2.scopes value
     	oauth2 token scopes. Defaults depends on oauth2.provider. Comma separated list. Example: openid,profile,email (env: CONFIG_OAUTH2_SCOPES)
   --oauth2.validate.acr value
@@ -278,6 +282,12 @@ management-client-auth
 # If auth-user-pass-optional is not set, the OpenVPN server requires username/password from clients
 # and terminate the connection with an TLS error, if the client does not provide it.
 auth-user-pass-optional
+
+# Enable auth-token-gen to allow non-interactive session refresh
+# Mandatory for mobile devices, because auth-token works across disconnects
+# The lifetime of the token must be the same as the refresh token in openvpn-auth-oauth2
+# 8 hours = 28800 seconds
+auth-gen-token 28800 external-auth
 ```
 
 ```ini
@@ -343,10 +353,29 @@ References:
 - https://curity.io/resources/learn/oauth-refresh/
 - https://developer.okta.com/docs/guides/refresh-tokens/main/
 
+### Non-interactive session refresh across disconnects
+
+If you want to enable non-interactive session refresh across disconnects, you need to enable
+`auth-token-gen [lifetime] external-auth` on OpenVPN server.
+
+This is useful on mobile devices, where the connection is not stable or the device goes to sleep.
+
+If `auth-gen-token-secret [keyfile]` is set, auth-tokens can be verified by OpenVPN access server restarts. You can
+generate a new secret with `openvpn --genkey auth-token [keyfile]`.
+
+**Note**: This file should be kept secret to the server as anyone that has access to this file will be able to generate
+auth tokens that the OpenVPN server will accept as valid.
+
+References:
+
+- https://openvpn.net/community-resources/reference-manual-for-openvpn-2-6/#server-options
+
 ```ini
 CONFIG_OAUTH2_REFRESH_ENABLED=true
 CONFIG_OAUTH2_REFRESH_EXPIRES=8h
 CONFIG_OAUTH2_REFRESH_SECRET= # a static secret to encrypt token. Must be 16, 24 or 32
+CONFIG_OAUTH2_REFRESH_USE__SESSION__ID=true
+CONFIG_OPENVPN_AUTH__TOKEN__USER=true
 ```
 
 ## username-as-common-name

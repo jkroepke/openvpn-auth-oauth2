@@ -97,9 +97,10 @@ type OAuth2Validate struct {
 }
 
 type OAuth2Refresh struct {
-	Enabled bool          `koanf:"enabled"`
-	Expires time.Duration `koanf:"expires"`
-	Secret  Secret        `koanf:"secret"`
+	Enabled      bool          `koanf:"enabled"`
+	Expires      time.Duration `koanf:"expires"`
+	Secret       Secret        `koanf:"secret"`
+	UseSessionID bool          `koanf:"use-session-id"`
 }
 
 type OpenVPNPassthrough struct {

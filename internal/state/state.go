@@ -21,8 +21,9 @@ type State struct {
 }
 
 type ClientIdentifier struct {
-	Cid                  uint64
-	Kid                  uint64
+	CID                  uint64
+	KID                  uint64
+	SessionID            string
 	AuthFailedReasonFile string
 	AuthControlFile      string
 }
@@ -58,10 +59,11 @@ func (state *State) Decode(secretKey string) error {
 	}
 
 	_, err = fmt.Fscanln(bytes.NewReader(data),
-		&state.Client.Cid,
-		&state.Client.Kid,
+		&state.Client.CID,
+		&state.Client.KID,
 		&state.Client.AuthFailedReasonFile,
 		&state.Client.AuthControlFile,
+		&state.Client.SessionID,
 		&state.Ipaddr,
 		&state.CommonName,
 		&state.Issued,
@@ -72,6 +74,8 @@ func (state *State) Decode(secretKey string) error {
 
 	state.Client.AuthFailedReasonFile = decodeString(state.Client.AuthFailedReasonFile)
 	state.Client.AuthControlFile = decodeString(state.Client.AuthControlFile)
+	state.Client.SessionID = decodeString(state.Client.SessionID)
+	state.Ipaddr = decodeString(state.Ipaddr)
 	state.CommonName = decodeString(state.CommonName)
 
 	issuedSince := time.Since(time.Unix(state.Issued, 0))
@@ -89,15 +93,17 @@ func (state *State) Encode(secretKey string) error {
 	var data bytes.Buffer
 
 	data.Grow(512)
-	data.WriteString(strconv.FormatUint(state.Client.Cid, 10))
+	data.WriteString(strconv.FormatUint(state.Client.CID, 10))
 	data.WriteString(" ")
-	data.WriteString(strconv.FormatUint(state.Client.Kid, 10))
+	data.WriteString(strconv.FormatUint(state.Client.KID, 10))
 	data.WriteString(" ")
 	data.WriteString(encodeString(state.Client.AuthFailedReasonFile))
 	data.WriteString(" ")
 	data.WriteString(encodeString(state.Client.AuthControlFile))
 	data.WriteString(" ")
-	data.WriteString(state.Ipaddr)
+	data.WriteString(encodeString(state.Client.SessionID))
+	data.WriteString(" ")
+	data.WriteString(encodeString(state.Ipaddr))
 	data.WriteString(" ")
 	data.WriteString(encodeString(state.CommonName))
 	data.WriteString(" ")

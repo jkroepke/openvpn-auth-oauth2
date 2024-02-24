@@ -2,9 +2,9 @@
 
 ## named cookie not present
 
-Debugging this issue is a bit hard. At least here is a step by step guide to debug the cookie handling on the browser.
+Debugging this issue is a bit hard. At least here is a step-by-step guide to debug the cookie handling in the browser.
 
-I assume, you are using a Chrome-based Browser.
+I assume you are using a Chrome-based Browser.
 
 ### Requirements
 
@@ -24,20 +24,22 @@ I assume, you are using a Chrome-based Browser.
 3. Paste the link on the tab where the browser console is opened.
 4. Continue the auth flow.
 5. On the access-denied screen, check the Browser Console for any errors.
-6. Then goto the Network tab again. There is a request with `/oauth2/start` or just `start`.
+6. Then get the Network tab again.
+   There is a request with `/oauth2/start` or just `start`.
    Click on Cookies and check if the response cookie is present.
    Example Screenshot:
    ![](./img/debugging-error-cookie-start.png)
-7. Then goto the Network tab again. There is a request with `/oauth2/callback` or just `callback`.
+7. Then get the Network tab again.
+   There is a request with `/oauth2/callback` or just `callback`.
    Click on Cookies and check if the request cookie is present.
    Example Screenshot:
    ![](./img/debugging-error-cookie-callback.png)
 
 ## Error Message `Received control message: 'PUSH_REQUEST'` in OpenVPN Client v3
 
-Sometimes the client stuck at this stage `Received control message: 'PUSH_REQUEST'` and can't connect, and at the end it will timeout like this message `Connection Timeout`, and you can see in the logs like this:
+Sometimes the client stuck at this stage `Received control message: 'PUSH_REQUEST'` and can't connect, and at the end it will time out like this message `Connection Timeout`, and you can see in the logs like this:
 
-```ini
+```
 ⏎[Feb 14, 2024, 22:28:57] Session is ACTIVE
 ⏎[Feb 14, 2024, 22:28:57] EVENT: GET_CONFIG ⏎[Feb 14, 2024, 22:28:57] Sending PUSH_REQUEST to server...
 ⏎[Feb 14, 2024, 22:28:58] Sending PUSH_REQUEST to server...
@@ -58,12 +60,34 @@ Sometimes the client stuck at this stage `Received control message: 'PUSH_REQUES
  PACKETS_OUT : 20
 ```
 
-If you see this message in the Client side (version3), you may want to make sure you added these lines to your oauth configuration file
+If you see this message on the Client side (version3),
+you may want to make sure you add these lines to your oauth configuration file
 
 ```ini
 CONFIG_OAUTH2_REFRESH_ENABLED=true
-CONFIG_OAUTH2_REFRESH_EXPIRES=24h 
-CONFIG_OAUTH2_REFRESH_SECRET=xxxxxxxxxxxxxxxx # 16 or 24 charachters
+CONFIG_OAUTH2_REFRESH_EXPIRES=24h
+CONFIG_OAUTH2_REFRESH_SECRET= # 16 or 24 characters
 ```
 
-For reference you can read more about this properties in the wiki at this [link](https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Configuration#non-interactive-session-refresh)
+For reference, you can read more about these properties in the wiki at this [link](https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Configuration#non-interactive-session-refresh)
+
+
+## Mobile clients: OpenVPN connect won't be reconnecting after unless App is opened
+
+If you are using the OpenVPN Connect app on your mobile device, you may have noticed that the app won't reconnect after a connection loss unless you open the app.
+This is a known issue and is caused by the app being put to sleep by the operating system. To fix this, configure
+
+**OpenVPN Server Configuration**
+```
+auth-token-gen [lifetime] external-auth
+```
+
+**openvpn-auth-oauth2 Configuration**
+```ini
+CONFIG_OAUTH2_REFRESH_ENABLED=true
+CONFIG_OAUTH2_REFRESH_EXPIRES=8h
+CONFIG_OAUTH2_REFRESH_SECRET= # a static secret to encrypt token. Must be 16, 24 or 32
+CONFIG_OAUTH2_REFRESH_USE__SESSION__ID=true
+```
+
+For reference, you can read more about these properties in the wiki at this [link](https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Configuration#non-interactive-session-refresh)

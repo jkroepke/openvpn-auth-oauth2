@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -66,8 +67,8 @@ func (p *Provider) oauth2Start() http.Handler {
 		}
 
 		logger := p.logger.With(
-			slog.Uint64("cid", session.Client.Cid),
-			slog.Uint64("kid", session.Client.Kid),
+			slog.Uint64("cid", session.Client.CID),
+			slog.Uint64("kid", session.Client.KID),
 			slog.String("common_name", session.CommonName),
 		)
 
@@ -84,8 +85,14 @@ func (p *Provider) oauth2Start() http.Handler {
 		logger.Info("initialize authorization via oauth2")
 
 		authorizeParams := p.authorizeParams
+
 		if p.conf.OAuth2.Nonce {
-			authorizeParams = append(authorizeParams, rp.WithURLParam("nonce", p.GetNonce(session.Client.Cid)))
+			id := strconv.FormatUint(session.Client.CID, 10)
+			if p.conf.OAuth2.Refresh.UseSessionID && session.Client.SessionID != "" {
+				id = session.Client.SessionID
+			}
+
+			authorizeParams = append(authorizeParams, rp.WithURLParam("nonce", p.GetNonce(id)))
 		}
 
 		rp.AuthURLHandler(func() string {
@@ -128,6 +135,7 @@ func checkClientIPAddr(r *http.Request, logger *slog.Logger, session state.State
 	return true, 0, ""
 }
 
+//nolint:cyclop
 func (p *Provider) oauth2Callback() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sendCacheHeaders(w)
@@ -150,14 +158,20 @@ func (p *Provider) oauth2Callback() http.Handler {
 		}
 
 		logger := p.logger.With(
-			slog.Uint64("cid", session.Client.Cid),
-			slog.Uint64("kid", session.Client.Kid),
+			slog.Uint64("cid", session.Client.CID),
+			slog.Uint64("kid", session.Client.KID),
+			slog.String("session_id", session.Client.SessionID),
 			slog.String("common_name", session.CommonName),
 		)
 		ctx = logging.ToContext(ctx, log.NewZitadelLogger(logger))
 
+		id := strconv.FormatUint(session.Client.CID, 10)
+		if p.conf.OAuth2.Refresh.UseSessionID && session.Client.SessionID != "" {
+			id = session.Client.SessionID
+		}
+
 		if p.conf.OAuth2.Nonce {
-			ctx = context.WithValue(ctx, types.CtxNonce{}, p.GetNonce(session.Client.Cid))
+			ctx = context.WithValue(ctx, types.CtxNonce{}, p.GetNonce(id))
 			r = r.WithContext(ctx)
 		}
 
@@ -202,7 +216,7 @@ func (p *Provider) oauth2Callback() http.Handler {
 				refreshToken := p.OIDC.GetRefreshToken(tokens)
 				if refreshToken == "" {
 					p.logger.Warn("oauth2.refresh is enabled, but provider does not return refresh token")
-				} else if err = p.storage.Set(session.Client.Cid, refreshToken); err != nil {
+				} else if err = p.storage.Set(id, refreshToken); err != nil {
 					logger.Warn(err.Error())
 				}
 			}
