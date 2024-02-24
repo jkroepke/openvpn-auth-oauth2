@@ -303,7 +303,7 @@ func SetupMockEnvironment(tb testing.TB, conf config.Config) (config.Config, *op
 
 				return resp.Result(), nil
 			default:
-				return rt.RoundTrip(req)
+				return rt.RoundTrip(req) //nolint:wrapcheck
 			}
 
 		case "github.com":
@@ -313,32 +313,32 @@ func SetupMockEnvironment(tb testing.TB, conf config.Config) (config.Config, *op
 				state := req.FormValue("state")
 				redirectURI := req.FormValue("redirect_uri")
 
-				u, err := url.Parse(redirectURI)
+				uri, err := url.Parse(redirectURI)
 				if err != nil {
-					return nil, err
+					return nil, err //nolint:wrapcheck
 				}
 
 				v := url.Values{}
 				v.Set("code", "code")
 				v.Set("state", state)
-				u.RawQuery = v.Encode()
+				uri.RawQuery = v.Encode()
 
 				resp := httptest.NewRecorder()
-				resp.Header().Set("Location", u.String())
+				resp.Header().Set("Location", uri.String())
 				resp.WriteHeader(http.StatusTemporaryRedirect)
 
 				return resp.Result(), nil
 			case "/login/oauth/access_token":
 				resp := httptest.NewRecorder()
 				resp.Header().Set("Content-Type", "application/x-www-form-urlencoded; charset=utf-8")
-				resp.WriteString(`access_token=gho_mock&scope=read%3Aorg%2Cuser%3Aemail&token_type=bearer`)
+				_, _ = resp.WriteString(`access_token=gho_mock&scope=read%3Aorg%2Cuser%3Aemail&token_type=bearer`)
 
 				return resp.Result(), nil
 			}
 
-			return rt.RoundTrip(req)
+			return rt.RoundTrip(req) //nolint:wrapcheck
 		default:
-			return rt.RoundTrip(req)
+			return rt.RoundTrip(req) //nolint:wrapcheck
 		}
 	}
 

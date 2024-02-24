@@ -45,6 +45,7 @@ linters-settings:
       - ok bool
       - id string
       - w http.ResponseWriter
+      - rt http.RoundTripper
       - r *http.Request
       - l net.Listener
       - t reflect.Type
