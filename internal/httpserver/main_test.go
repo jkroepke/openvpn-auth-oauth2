@@ -5,7 +5,6 @@ import (
 	gohttp "net/http"
 	"net/url"
 	"os"
-	"sync"
 	"testing"
 	"time"
 
@@ -13,7 +12,6 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/httpserver"
 	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
 	"github.com/madflojo/testcerts"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -54,7 +52,7 @@ func TestNewHTTPServer(t *testing.T) {
 					TLS:     true,
 				},
 			},
-			errors.New("ListenAndServeTLS: open : no such file or directory"),
+			errors.New("tls.LoadX509KeyPair: open : no such file or directory"),
 		},
 		{
 			"https listener",
@@ -82,26 +80,21 @@ func TestNewHTTPServer(t *testing.T) {
 
 			svr := httpserver.NewHTTPServer(logger.Logger, tt.conf, mux)
 
-			wg := sync.WaitGroup{}
-			wg.Add(1)
+			errCh := make(chan error, 1)
 
 			go func() {
-				defer wg.Done()
-
-				err := svr.Listen()
-
-				if tt.err == nil {
-					require.NoError(t, err) //nolint:testifylint
-				} else {
-					require.Error(t, err) //nolint:testifylint
-					assert.Equal(t, tt.err.Error(), err.Error())
-				}
+				errCh <- svr.Listen()
 			}()
 
-			time.Sleep(50 * time.Millisecond)
+			if tt.err == nil {
+				time.Sleep(50 * time.Millisecond)
 
-			require.NoError(t, svr.Shutdown())
-			wg.Wait()
+				require.NoError(t, svr.Reload())
+				require.NoError(t, svr.Shutdown())
+				require.NoError(t, <-errCh)
+			} else {
+				require.EqualError(t, <-errCh, tt.err.Error())
+			}
 		})
 	}
 }

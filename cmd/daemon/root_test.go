@@ -113,40 +113,60 @@ func TestExecuteConfigFileFound(t *testing.T) {
 
 	defer managementInterface.Close()
 
+	stopCh := make(chan struct{}, 1)
+
 	go func() {
 		conn, err := managementInterface.Accept()
-		require.NoError(t, err) //nolint:testifylint
+		defer func() {
+			if conn != nil {
+				_ = conn.Close()
+			}
+		}()
+
+		if !assert.NoError(t, err) {
+			stopCh <- struct{}{}
+
+			return
+		}
 
 		reader := bufio.NewReader(conn)
 
 		testutils.ExpectVersionAndReleaseHold(t, conn, reader)
-
 		time.Sleep(100 * time.Millisecond)
 
-		p, err := os.FindProcess(os.Getpid())
-		if err != nil {
-			panic(err)
+		process, err := os.FindProcess(os.Getpid())
+		if !assert.NoError(t, err) {
+			stopCh <- struct{}{}
+
+			return
 		}
 
-		_ = p.Signal(syscall.SIGINT)
+		_ = process.Signal(syscall.SIGHUP)
+		_ = process.Signal(syscall.SIGINT)
 	}()
 
-	t.Setenv("CONFIG_OPENVPN_ADDR", utils.StringConcat(managementInterface.Addr().Network(), "://", managementInterface.Addr().String()))
-	t.Setenv("CONFIG_LOG_FORMAT", "console")
-	t.Setenv("CONFIG_LOG_LEVEL", "warn")
+	go func() {
+		t.Setenv("CONFIG_OPENVPN_ADDR", utils.StringConcat(managementInterface.Addr().Network(), "://", managementInterface.Addr().String()))
+		t.Setenv("CONFIG_LOG_FORMAT", "console")
+		t.Setenv("CONFIG_LOG_LEVEL", "warn")
 
-	args := []string{
-		"openvpn-auth-oauth2",
-		"--config=../../config.example.yaml",
-		"--http.secret=0123456789101112",
-		"--http.listen=127.0.0.1:0",
-		"--oauth2.issuer", resourceServer.URL,
-		"--oauth2.client.id", clientCredentials.ID,
-	}
+		args := []string{
+			"openvpn-auth-oauth2",
+			"--config=../../config.example.yaml",
+			"--http.secret=0123456789101112",
+			"--http.listen=127.0.0.1:0",
+			"--oauth2.issuer", resourceServer.URL,
+			"--oauth2.client.id", clientCredentials.ID,
+		}
 
-	buf := new(testutils.Buffer)
+		buf := new(testutils.Buffer)
 
-	returnCode := daemon.Execute(args, buf, "version", "commit", "date")
+		returnCode := daemon.Execute(args, buf, "version", "commit", "date")
 
-	assert.Equal(t, 0, returnCode, buf.String())
+		assert.Equal(t, 0, returnCode, buf.String())
+
+		stopCh <- struct{}{}
+	}()
+
+	<-stopCh
 }

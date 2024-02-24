@@ -44,7 +44,7 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 	}
 
 	if flagSet.Lookup("version").Value.String() == "true" {
-		fmt.Fprintf(logWriter, "version: %s\ncommit: %s\ndate: %s\ngo: %s\n", version, commit, date, runtime.Version())
+		_, _ = fmt.Fprintf(logWriter, "version: %s\ncommit: %s\ndate: %s\ngo: %s\n", version, commit, date, runtime.Version())
 
 		return 0
 	}
@@ -109,15 +109,30 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 	}()
 
 	termCh := make(chan os.Signal, 1)
-	signal.Notify(termCh, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(termCh, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM)
 
 	var returnCode int
-	select {
-	case returnCode = <-done:
-	case sig := <-termCh:
-		logger.Info("receiving signal: " + sig.String())
 
-		cancel(nil)
+loop:
+	for {
+		select {
+		case returnCode = <-done:
+			break loop
+		case sig := <-termCh:
+			logger.Info("receiving signal: " + sig.String())
+			switch sig {
+			case syscall.SIGHUP:
+				if err = server.Reload(); err == nil {
+					continue
+				}
+
+				fallthrough
+			default:
+				cancel(err)
+
+				break loop
+			}
+		}
 	}
 
 	shutdown(logger, openvpnClient, server)
@@ -152,7 +167,7 @@ func setupDebugListener(logger *slog.Logger, conf config.Config, done chan int) 
 	done <- 0
 }
 
-func shutdown(logger *slog.Logger, openvpnClient *openvpn.Client, server httpserver.Server) {
+func shutdown(logger *slog.Logger, openvpnClient *openvpn.Client, server *httpserver.Server) {
 	openvpnClient.Shutdown()
 
 	logger.Info("start graceful shutdown of http listener")

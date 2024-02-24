@@ -17,7 +17,7 @@ services:
     volumes:
       - ./:/tests/:ro
       - ./data:/etc/openvpn
-      - ./../plugin:/plugin/
+      - ./../pkg/plugin:/plugin/
     restart: always
     environment:
       EASYRSA: /usr/share/easy-rsa/
