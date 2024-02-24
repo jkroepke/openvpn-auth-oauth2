@@ -32,11 +32,16 @@ import (
 
 const Secret = "0123456789101112"
 
-func ExpectVersionAndReleaseHold(tb testing.TB, conn net.Conn, reader *bufio.Reader) {
+func ExpectVersionAndReleaseHold(tb testing.TB, conn net.Conn, reader *bufio.Reader) bool {
 	tb.Helper()
 
-	SendMessage(tb, conn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info")
-	SendMessage(tb, conn, ">HOLD:Waiting for hold release:0")
+	if !SendMessage(tb, conn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info") {
+		return false
+	}
+
+	if !SendMessage(tb, conn, ">HOLD:Waiting for hold release:0") {
+		return false
+	}
 
 	var expectedCommand int
 
@@ -52,49 +57,72 @@ func ExpectVersionAndReleaseHold(tb testing.TB, conn net.Conn, reader *bufio.Rea
 
 			expectedCommand++
 		default:
-			require.Contains(tb, []string{"version", "hold release"}, line)
+			assert.Contains(tb, []string{"version", "hold release"}, line)
+
+			return false
 		}
 	}
 
-	require.Equal(tb, 2, expectedCommand)
+	return assert.Equal(tb, 2, expectedCommand)
 }
 
-func SendMessage(tb testing.TB, conn net.Conn, sendMessage string, args ...any) {
+func SendMessage(tb testing.TB, conn net.Conn, sendMessage string, args ...any) bool {
 	tb.Helper()
 
+	if conn == nil {
+		assert.Fail(tb, "connection is nil")
+
+		return false
+	}
+
 	err := conn.SetWriteDeadline(time.Now().Add(time.Second * 5))
-	require.NoError(tb, err)
+	if !assert.NoError(tb, err) {
+		return false
+	}
 
 	if sendMessage != "ENTER PASSWORD:" {
 		sendMessage += "\r\n"
 	}
 
 	_, err = fmt.Fprintf(conn, sendMessage, args...)
-	require.NoError(tb, err)
+	return assert.NoError(tb, err)
 }
 
-func ExpectMessage(tb testing.TB, conn net.Conn, reader *bufio.Reader, expectMessage string) {
+func ExpectMessage(tb testing.TB, conn net.Conn, reader *bufio.Reader, expectMessage string) bool {
 	tb.Helper()
 
-	for _, expected := range strings.Split(strings.TrimSpace(expectMessage), "\n") {
-		err := conn.SetReadDeadline(time.Now().Add(time.Second * 5))
-		require.NoError(tb, err, expected, expectMessage)
+	var (
+		err  error
+		line string
+	)
 
-		line, err := reader.ReadString('\n')
+	for _, expected := range strings.Split(strings.TrimSpace(expectMessage), "\n") {
+		err = conn.SetReadDeadline(time.Now().Add(time.Second * 5))
+		if !assert.NoError(tb, err, expected, expectMessage) {
+			return false
+		}
+
+		line, err = reader.ReadString('\n')
 
 		if err != nil && !errors.Is(err, io.EOF) {
-			require.NoError(tb, err, "expected line: %s\nexpected message:\n%s", expected, expectMessage)
+			if !assert.NoError(tb, err, "expected line: %s\nexpected message:\n%s", expected, expectMessage) {
+				return false
+			}
 		}
 
 		assert.Equal(tb, strings.TrimRightFunc(expected, unicode.IsSpace), strings.TrimRightFunc(line, unicode.IsSpace))
 	}
+
+	return true
 }
 
-func SendAndExpectMessage(tb testing.TB, conn net.Conn, reader *bufio.Reader, sendMessage string, expectMessage string) {
+func SendAndExpectMessage(tb testing.TB, conn net.Conn, reader *bufio.Reader, sendMessage string, expectMessage string) bool {
 	tb.Helper()
 
 	err := conn.SetWriteDeadline(time.Now().Add(time.Second * 5))
-	require.NoError(tb, err, "send: %s\n\nexpected message:\n%s", sendMessage, expectMessage)
+	if !assert.NoError(tb, err, "send: %s\n\nexpected message:\n%s", sendMessage, expectMessage) {
+		return false
+	}
 
 	if sendMessage == "ENTER PASSWORD:" {
 		_, err = fmt.Fprint(conn, sendMessage)
@@ -102,20 +130,29 @@ func SendAndExpectMessage(tb testing.TB, conn net.Conn, reader *bufio.Reader, se
 		_, err = fmt.Fprintln(conn, sendMessage)
 	}
 
-	require.NoError(tb, err, "send: %s\n\nexpected message:\n%s", sendMessage, expectMessage)
+	if !assert.NoError(tb, err, "send: %s\n\nexpected message:\n%s", sendMessage, expectMessage) {
+		return false
+	}
+
+	var line string
 
 	for _, expected := range strings.Split(strings.TrimSpace(expectMessage), "\n") {
-		err := conn.SetReadDeadline(time.Now().Add(time.Second * 5))
-		require.NoError(tb, err, expected, expectMessage)
+		err = conn.SetReadDeadline(time.Now().Add(time.Second * 5))
+		if !assert.NoError(tb, err, expected, expectMessage) {
+			return false
+		}
 
-		line, err := reader.ReadString('\n')
+		line, err = reader.ReadString('\n')
 
-		if err != nil && !errors.Is(err, io.EOF) {
-			require.NoError(tb, err, "send: %s\n\nexpected line: %s\n\nexpected message:\n%s", sendMessage, expected, expectMessage)
+		if err != nil && !errors.Is(err, io.EOF) && !assert.NoError(tb, err,
+			"send: %s\n\nexpected line: %s\n\nexpected message:\n%s", sendMessage, expected, expectMessage) {
+			return false
 		}
 
 		assert.Equal(tb, strings.TrimRightFunc(expected, unicode.IsSpace), strings.TrimRightFunc(line, unicode.IsSpace))
 	}
+
+	return true
 }
 
 func ReadLine(tb testing.TB, conn net.Conn, reader *bufio.Reader) string {
