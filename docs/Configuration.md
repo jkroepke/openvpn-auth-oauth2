@@ -333,6 +333,15 @@ export DOMAIN_NAME=vpn.example.com
 openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes -keyout server.key -out server.crt -subj "/CN=$DOMAIN_NAME" -addext "subjectAltName=DNS:$DOMAIN_NAME"
 ```
 
+You can also use [Let's Encrypt](https://letsencrypt.org/) to get public SSL certificates for free.
+The [certbot](https://certbot.eff.org/instructions) is a recommended tool to get SSL certificates.
+Alternatively,
+you can use [acme.sh](https://acme.sh/), which is a pure Unix shell script implementing ACME client protocol.
+
+Please not that
+
+```bash
+
 ## Non-interactive session refresh
 
 With default settings, openvpn-auth-oauth2 does not store any tokens from the users. This requires an interactive login from user on
@@ -357,6 +366,13 @@ References:
 
 If you want to enable non-interactive session refresh across disconnects, you need to enable
 `auth-token-gen [lifetime] external-auth` on OpenVPN server.
+
+`[lifetime]` is the lifetime of the token in seconds.
+The lifetime can't be extended after the initial token has been generated.
+For example, if the lifetime is set to 8 hours,
+the client will be disconnected after 8 hours after initial auth and needs to re-authenticate.
+
+The lifetime can be set to 0 to disable the lifetime check.
 
 This is useful on mobile devices, where the connection is not stable or the device goes to sleep.
 
