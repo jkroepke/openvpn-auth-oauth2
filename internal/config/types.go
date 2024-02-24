@@ -12,13 +12,12 @@ import (
 )
 
 type Config struct {
-	ConfigFile string   `koanf:"config"`
-	Debug      Debug    `koanf:"debug"`
-	Log        Log      `koanf:"log"`
-	HTTP       HTTP     `koanf:"http"`
-	OpenVpn    OpenVpn  `koanf:"openvpn"`
-	OAuth2     OAuth2   `koanf:"oauth2"`
-	Provider   Provider `koanf:"provider"`
+	ConfigFile string  `koanf:"config"`
+	Debug      Debug   `koanf:"debug"`
+	Log        Log     `koanf:"log"`
+	HTTP       HTTP    `koanf:"http"`
+	OpenVpn    OpenVpn `koanf:"openvpn"`
+	OAuth2     OAuth2  `koanf:"oauth2"`
 }
 
 type HTTP struct {
@@ -114,16 +113,6 @@ type OpenVPNPassthrough struct {
 type Debug struct {
 	Pprof  bool   `koanf:"pprof"`
 	Listen string `koanf:"listen"`
-}
-
-type Provider struct {
-	Google ProviderGoogle `koanf:"google"`
-}
-
-type ProviderGoogle struct {
-	ServiceAccountConfig Secret `koanf:"service-account-config"`
-	AdminEmail           string `koanf:"admin-email"`
-	ImpersonateAccount   string `koanf:"impersonate-account"`
 }
 
 type OpenVPNCommonNameMode int
