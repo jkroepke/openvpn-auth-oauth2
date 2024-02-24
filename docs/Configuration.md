@@ -333,8 +333,6 @@ openvpn-auth-oauth2 requires a [`SIGHUP` signal](https://en.wikipedia.org/wiki/S
 
 ## Non-interactive session refresh
 
-## Non-Interactive Session Refresh in openvpn-auth-oauth2
-
 By default, `openvpn-auth-oauth2` doesn't store user tokens.
 This means users must log in interactively each time they authenticate, including during TLS soft-resets
 (triggered by `reneg-sec`).
