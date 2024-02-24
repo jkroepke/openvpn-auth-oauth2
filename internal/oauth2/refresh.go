@@ -18,6 +18,8 @@ import (
 )
 
 // RefreshClientAuth initiate a non-interactive authentication against the sso provider.
+//
+//nolint:cyclop
 func (p *Provider) RefreshClientAuth(logger *slog.Logger, client connection.Client) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
