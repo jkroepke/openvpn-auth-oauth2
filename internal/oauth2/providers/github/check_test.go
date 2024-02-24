@@ -20,6 +20,8 @@ import (
 	"golang.org/x/oauth2"
 )
 
+const EmptyToken = "access token is empty"
+
 func TestValidateGroups(t *testing.T) {
 	t.Parallel()
 
@@ -48,7 +50,7 @@ func TestValidateGroups(t *testing.T) {
 			"",
 		},
 		{
-			"access token is empty",
+			EmptyToken,
 			`ERROR`,
 			[]string{"apple"},
 			"error getting GitHub organizations: access token is empty",
@@ -96,7 +98,7 @@ func TestValidateGroups(t *testing.T) {
 				IDTokenClaims: &idtoken.Claims{},
 			}
 
-			if tt.name == "access token is empty" {
+			if tt.name == EmptyToken {
 				token.AccessToken = ""
 			}
 
@@ -109,7 +111,7 @@ func TestValidateGroups(t *testing.T) {
 			}
 
 			httpClient := &http.Client{
-				Transport: testutils.NewRoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+				Transport: testutils.NewRoundTripperFunc(func(_ *http.Request) (*http.Response, error) {
 					resp := httptest.NewRecorder()
 					if strings.Contains(tt.userOrgs, "error") {
 						resp.WriteHeader(http.StatusInternalServerError)
@@ -164,7 +166,7 @@ func TestValidateRoles(t *testing.T) {
 			"",
 		},
 		{
-			"access token is empty",
+			EmptyToken,
 			`ERROR`,
 			[]string{"apple"},
 			"error getting GitHub teams: access token is empty",
@@ -212,7 +214,7 @@ func TestValidateRoles(t *testing.T) {
 				IDTokenClaims: &idtoken.Claims{},
 			}
 
-			if tt.name == "access token is empty" {
+			if tt.name == EmptyToken {
 				token.AccessToken = ""
 			}
 
