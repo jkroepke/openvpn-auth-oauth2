@@ -27,7 +27,7 @@ jobs:
 
       - run: go build
       - run: go test ./... -timeout 20s -race -covermode=atomic -coverprofile=coverage.out -coverpkg=./...
-      - run: go test ./... -timeout 20s -bench . -benchmem -count 3
+      - run: go test ./... -timeout 20s -bench . -benchmem -count 3 -cpuprofile default.pgo
 
       - name: Install build dependencies
         run: |
