@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
@@ -16,7 +17,6 @@ type orgType struct {
 }
 
 type teamType struct {
-	Name string  `json:"name"`
 	Org  orgType `json:"organization"`
 	Slug string  `json:"slug"`
 }
@@ -29,30 +29,34 @@ func (p *Provider) CheckUser(
 	//nolint:exhaustruct
 	tokens.IDTokenClaims = &idtoken.Claims{}
 
-	orgs, err := p.getOrganizations(ctx, tokens)
-	if err != nil {
-		return fmt.Errorf("error getting GitHub organizations: %w", err)
+	if len(p.Conf.OAuth2.Validate.Groups) > 0 {
+		organizations, err := p.getOrganizations(ctx, tokens)
+		if err != nil {
+			return fmt.Errorf("error getting GitHub organizations: %w", err)
+		}
+
+		tokens.IDTokenClaims.Groups = organizations
 	}
 
-	tokens.IDTokenClaims.Groups = orgs
+	if len(p.Conf.OAuth2.Validate.Roles) > 0 {
+		teams, err := p.getTeams(ctx, tokens)
+		if err != nil {
+			return fmt.Errorf("error getting GitHub teams: %w", err)
+		}
 
-	teams, err := p.getTeams(ctx, tokens)
-	if err != nil {
-		return fmt.Errorf("error getting GitHub teams: %w", err)
+		tokens.IDTokenClaims.Roles = teams
 	}
-
-	tokens.IDTokenClaims.Roles = teams
 
 	return p.Provider.CheckUser(ctx, state, userData, tokens) //nolint:wrapcheck
 }
 
 // getTeams fetch the users GitHub team by accessing the GitHub API.
 func (p *Provider) getTeams(ctx context.Context, tokens *oidc.Tokens[*idtoken.Claims]) ([]string, error) {
-	var roles []string
-
-	if len(p.Provider.Conf.OAuth2.Validate.Roles) != 0 {
-		return roles, nil
+	if tokens.AccessToken == "" {
+		return nil, errors.New("access token is empty")
 	}
+
+	var roles []string
 
 	apiURL := "https://api.github.com/user/teams"
 
@@ -80,11 +84,11 @@ func (p *Provider) getTeams(ctx context.Context, tokens *oidc.Tokens[*idtoken.Cl
 
 // getOrganizations fetch the users GitHub organization by accessing the GitHub API.
 func (p *Provider) getOrganizations(ctx context.Context, tokens *oidc.Tokens[*idtoken.Claims]) ([]string, error) {
-	var groups []string
-
-	if len(p.Provider.Conf.OAuth2.Validate.Groups) != 0 {
-		return groups, nil
+	if tokens.AccessToken == "" {
+		return nil, errors.New("access token is empty")
 	}
+
+	var groups []string
 
 	apiURL := "https://api.github.com/user/orgs"
 

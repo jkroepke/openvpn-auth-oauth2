@@ -99,8 +99,6 @@ func get[T any](ctx context.Context, httpClient *http.Client, accessToken string
 		return fmt.Errorf("error from Google API %s: http status code: %d; message: %s", apiURL, resp.StatusCode, apiErr.Error.Message)
 	}
 
-	defer resp.Body.Close()
-
 	if err = json.Unmarshal(respBody, data); err != nil {
 		return fmt.Errorf("unable to decode JSON from Google API %s: '%s': %w", apiURL, respBody, err)
 	}

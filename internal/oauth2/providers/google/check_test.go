@@ -48,6 +48,12 @@ func TestValidateGroups(t *testing.T) {
 			"",
 		},
 		{
+			"groups present with nextPageToken",
+			`{"memberships": [{"groupKey": {"id": "apple@google.com"}}], "nextPageToken": "token"}`,
+			[]string{},
+			"",
+		},
+		{
 			"configure one group",
 			`{"memberships": [{"groupKey": {"id": "apple@google.com"}}], "nextPageToken": ""}`,
 			[]string{"apple@google.com"},
@@ -102,7 +108,7 @@ func TestValidateGroups(t *testing.T) {
 				IDTokenClaims: &idtoken.Claims{},
 			}
 
-			if tt.err == "access token is empty" {
+			if tt.name == "access token is empty" {
 				token.AccessToken = ""
 			}
 
@@ -115,18 +121,20 @@ func TestValidateGroups(t *testing.T) {
 			}
 
 			httpClient := &http.Client{
-				Transport: &testutils.RoundTripperFunc{
-					Fn: func(_ http.RoundTripper, _ *http.Request) (*http.Response, error) {
-						resp := httptest.NewRecorder()
-						if strings.Contains(tt.tokenGroups, "error") {
-							resp.WriteHeader(http.StatusInternalServerError)
-						}
+				Transport: testutils.NewRoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+					resp := httptest.NewRecorder()
+					if strings.Contains(tt.tokenGroups, "error") {
+						resp.WriteHeader(http.StatusInternalServerError)
+					}
 
+					if req.URL.Query().Has("pageToken") {
+						_, _ = resp.WriteString(`{"memberships": [], "nextPageToken": ""}`)
+					} else {
 						_, _ = resp.WriteString(tt.tokenGroups)
+					}
 
-						return resp.Result(), nil
-					},
-				},
+					return resp.Result(), nil
+				}),
 			}
 
 			provider, err := google.NewProvider(context.Background(), conf, httpClient)
