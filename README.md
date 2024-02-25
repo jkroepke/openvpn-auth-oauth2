@@ -7,6 +7,10 @@
 
 # openvpn-auth-oauth2
 
+⭐ Don't forget to star this repository! ⭐
+
+## About
+
 [`openvpn-auth-oauth2`](https://github.com/jkroepke/openvpn-auth-oauth2) is a management client for OpenVPN that handles
 the single sign-on (SSO) authentication against various OIDC providers. This project aims to simplify the process of
 integrating OpenVPN with OIDC providers such as
