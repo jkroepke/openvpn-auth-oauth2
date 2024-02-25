@@ -3,21 +3,21 @@ changelog:
     labels:
       - chore
   categories:
-    - title: Breaking Changes 🛠
+    - title: 💥 Breaking Changes
       labels:
-        - breaking-change
-    - title: Exciting New Features 🎉
+        - 💥 breaking-change
+    - title: ✨ Exciting New Features
       labels:
-        - enhancement
-    - title: Bug Fixes 🔧
+        - ✨ enhancement
+    - title: 🐞 Bug Fixes
       labels:
-        - bug
-    - title: Dependencies 🤖
+        - 🐞 bug
+    - title: 🛠️ Dependencies
       labels:
-        - dependencies
-    - title: Documentation 📖
+        - 🛠️ dependencies
+    - title: 📖 Documentation
       labels:
-        - docs
+        - 📖 docs
     - title: Other Changes
       labels:
         - "*"
