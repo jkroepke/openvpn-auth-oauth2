@@ -24,7 +24,7 @@ func TestNewClientConnection(t *testing.T) {
 			"client CONNECT",
 			config.Defaults,
 			[]string{
-				">CLIENT:ADDRESS,127.0.1.1,1",
+				">CLIENT:ADDRESS,0,127.0.1.1,1",
 				">CLIENT:CONNECT,0,1",
 				">CLIENT:ENV,common_name=common_name",
 				">CLIENT:ENV,username=username",

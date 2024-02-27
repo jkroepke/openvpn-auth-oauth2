@@ -48,7 +48,7 @@ func NewClient(conf config.Config, message string) (Client, error) { //nolint:cy
 				return Client{}, fmt.Errorf("unable to parse line: %s", line)
 			}
 
-			client.VPNAddress, _, found = strings.Cut(vpnIP, ",")
+			_, client.VPNAddress, found = strings.Cut(vpnIP, ",")
 			if !found {
 				return Client{}, fmt.Errorf("unable to parse line: %s", line)
 			}
