@@ -57,8 +57,11 @@ services:
         persist-tun
         explicit-exit-notify
 
-        #verify-client-cert none
-        #username-as-common-name
+        verify-client-cert none
+        username-as-common-name
+
+        status /etc/openvpn/openvpn-status.log
+        ifconfig-pool-persist /etc/openvpn/ipp.txt
 
         tls-cert-profile preferred
 

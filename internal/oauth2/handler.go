@@ -67,6 +67,7 @@ func (p *Provider) oauth2Start() http.Handler {
 		}
 
 		logger := p.logger.With(
+			slog.String("ip", fmt.Sprintf("%s:%s", session.IPAddr, session.IPPort)),
 			slog.Uint64("cid", session.Client.CID),
 			slog.Uint64("kid", session.Client.KID),
 			slog.String("common_name", session.CommonName),
@@ -125,8 +126,8 @@ func checkClientIPAddr(r *http.Request, logger *slog.Logger, session state.State
 		}
 	}
 
-	if clientIP != session.Ipaddr {
-		reason := utils.StringConcat("http client ip ", clientIP, " and vpn ip ", session.Ipaddr, " is different.")
+	if clientIP != session.IPAddr {
+		reason := utils.StringConcat("http client ip ", clientIP, " and vpn ip ", session.IPAddr, " is different.")
 		logger.Warn(reason)
 
 		return false, http.StatusForbidden, reason
@@ -158,6 +159,7 @@ func (p *Provider) oauth2Callback() http.Handler {
 		}
 
 		logger := p.logger.With(
+			slog.String("ip", fmt.Sprintf("%s:%s", session.IPAddr, session.IPPort)),
 			slog.Uint64("cid", session.Client.CID),
 			slog.Uint64("kid", session.Client.KID),
 			slog.String("session_id", session.Client.SessionID),

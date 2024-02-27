@@ -24,16 +24,21 @@ func TestNewClientConnection(t *testing.T) {
 			"client CONNECT",
 			config.Defaults,
 			[]string{
+				">CLIENT:ADDRESS,127.0.1.1,1",
 				">CLIENT:CONNECT,0,1",
 				">CLIENT:ENV,common_name=common_name",
 				">CLIENT:ENV,username=username",
 				">CLIENT:ENV,untrusted_ip=127.0.0.1",
+				">CLIENT:ENV,untrusted_port=12345",
 				">CLIENT:ENV,IV_SSO=webauth",
 				">CLIENT:ENV,session_id=K3waLcCGyUuzkdXh",
 				">CLIENT:ENV,END",
 			},
 			connection.Client{
-				CID: 0, KID: 1, Reason: "CONNECT", CommonName: "common_name", IPAddr: "127.0.0.1", IvSSO: "webauth", SessionID: "K3waLcCGyUuzkdXh",
+				CID: 0, KID: 1, Reason: "CONNECT", CommonName: "common_name",
+				IPAddr: "127.0.0.1", IPPort: "12345",
+				VPNAddress: "127.0.1.1", IvSSO: "webauth",
+				SessionID: "K3waLcCGyUuzkdXh",
 			},
 			"",
 		},
@@ -118,6 +123,34 @@ func TestNewClientConnection(t *testing.T) {
 				CID: 1, KID: 2, Reason: "CR_RESPONSE",
 			},
 			"",
+		},
+		{
+			"invalid CLIENT:ADDRESS line",
+			config.Defaults,
+			[]string{
+				">CLIENT:ADDRESS,127.0.0.1",
+				">CLIENT:CR_RESPONSE,1,2,YmFzZTY0",
+				">CLIENT:ENV,name1=val1",
+				">CLIENT:ENV,END",
+			},
+			connection.Client{
+				CID: 1, KID: 2, Reason: "CR_RESPONSE",
+			},
+			"unable to parse line: >CLIENT:ADDRESS,127.0.0.1",
+		},
+		{
+			"invalid CLIENT:ADDRESS line 2",
+			config.Defaults,
+			[]string{
+				">CLIENT:ADDRESS",
+				">CLIENT:CR_RESPONSE,1,2,YmFzZTY0",
+				">CLIENT:ENV,name1=val1",
+				">CLIENT:ENV,END",
+			},
+			connection.Client{
+				CID: 1, KID: 2, Reason: "CR_RESPONSE",
+			},
+			"unable to parse line: >CLIENT:ADDRESS",
 		},
 		{
 			"client invalid reason",

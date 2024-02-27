@@ -312,7 +312,7 @@ func TestClientFull(t *testing.T) {
 					assert.Equal(t, uint64(1), sessionState.Client.CID)
 					assert.Equal(t, uint64(2), sessionState.Client.KID)
 					assert.Equal(t, "test", sessionState.CommonName)
-					assert.Equal(t, "127.0.0.1", sessionState.Ipaddr)
+					assert.Equal(t, "127.0.0.1", sessionState.IPAddr)
 				}
 			}()
 

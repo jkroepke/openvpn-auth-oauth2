@@ -109,9 +109,9 @@ func (p *Provider) CheckIPAddress(session state.State, tokens *oidc.Tokens[*idto
 		return fmt.Errorf("%w: ipaddr", ErrMissingClaim)
 	}
 
-	if tokens.IDTokenClaims.IPAddr != session.Ipaddr {
+	if tokens.IDTokenClaims.IPAddr != session.IPAddr {
 		return fmt.Errorf("ipaddr %w: openvpn client: %s - oidc token: %s",
-			ErrMismatch, tokens.IDTokenClaims.IPAddr, session.Ipaddr)
+			ErrMismatch, tokens.IDTokenClaims.IPAddr, session.IPAddr)
 	}
 
 	return nil

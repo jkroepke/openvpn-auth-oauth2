@@ -234,6 +234,7 @@ func errorHandler(
 	session := state.NewEncoded(encryptedSession)
 	if err := session.Decode(conf.HTTP.Secret.String()); err == nil {
 		logger = logger.With(
+			slog.String("ip", fmt.Sprintf("%s:%s", session.IPAddr, session.IPPort)),
 			slog.Uint64("cid", session.Client.CID),
 			slog.Uint64("kid", session.Client.KID),
 			slog.String("common_name", session.CommonName),

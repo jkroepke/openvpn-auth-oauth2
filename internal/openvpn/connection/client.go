@@ -13,6 +13,8 @@ type Client struct {
 	CID          uint64
 	Reason       string
 	IPAddr       string
+	IPPort       string
+	VPNAddress   string
 	CommonName   string
 	SessionID    string
 	SessionState string
@@ -34,12 +36,23 @@ func NewClient(conf config.Config, message string) (Client, error) { //nolint:cy
 		line, clientMessage, ok = strings.Cut(clientMessage, "\r\n")
 		line = strings.TrimSpace(line)
 
-		if client.Reason == "" && isClientReason(line) {
+		switch {
+		case client.Reason == "" && isClientReason(line):
 			client.Reason, client.CID, client.KID, err = parseClientReason(line)
 			if err != nil {
 				return Client{}, err
 			}
-		} else if strings.HasPrefix(line, ">CLIENT:ENV,") {
+		case strings.HasPrefix(line, ">CLIENT:ADDRESS"):
+			vpnIP, found := strings.CutPrefix(line, ">CLIENT:ADDRESS,")
+			if !found {
+				return Client{}, fmt.Errorf("unable to parse line: %s", line)
+			}
+
+			client.VPNAddress, _, found = strings.Cut(vpnIP, ",")
+			if !found {
+				return Client{}, fmt.Errorf("unable to parse line: %s", line)
+			}
+		case strings.HasPrefix(line, ">CLIENT:ENV,"):
 			envKey, envValue := parseClientEnv(line)
 			if envKey == "" || envValue == "" {
 				continue
@@ -50,6 +63,8 @@ func NewClient(conf config.Config, message string) (Client, error) { //nolint:cy
 				client.IPAddr = envValue
 			case "untrusted_ip6":
 				client.IPAddr = envValue
+			case "untrusted_port":
+				client.IPPort = envValue
 			case conf.OpenVpn.CommonName.EnvironmentVariableName:
 				client.CommonName = envValue
 			case "IV_SSO":
