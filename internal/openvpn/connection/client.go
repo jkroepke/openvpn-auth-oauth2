@@ -94,6 +94,7 @@ func parseClientVPNAddress(line string) (string, error) {
 	if !found {
 		return "", fmt.Errorf("unable to parse line: %s", line)
 	}
+
 	return vpnIP, nil
 }
 
