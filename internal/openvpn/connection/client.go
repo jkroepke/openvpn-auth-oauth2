@@ -43,14 +43,9 @@ func NewClient(conf config.Config, message string) (Client, error) { //nolint:cy
 				return Client{}, err
 			}
 		case strings.HasPrefix(line, ">CLIENT:ADDRESS"):
-			vpnIP, found := strings.CutPrefix(line, ">CLIENT:ADDRESS,")
-			if !found {
-				return Client{}, fmt.Errorf("unable to parse line: %s", line)
-			}
-
-			client.VPNAddress, _, found = strings.Cut(vpnIP, ",")
-			if !found {
-				return Client{}, fmt.Errorf("unable to parse line: %s", line)
+			client.VPNAddress, err = parseClientVPNAddress(line)
+			if err != nil {
+				return Client{}, err
 			}
 		case strings.HasPrefix(line, ">CLIENT:ENV,"):
 			envKey, envValue := parseClientEnv(line)
@@ -82,6 +77,25 @@ func NewClient(conf config.Config, message string) (Client, error) { //nolint:cy
 	}
 
 	return client, nil
+}
+
+func parseClientVPNAddress(line string) (string, error) {
+	vpnIP, found := strings.CutPrefix(line, ">CLIENT:ADDRESS,")
+	if !found {
+		return "", fmt.Errorf("unable to parse line: %s", line)
+	}
+
+	_, vpnIP, found = strings.Cut(vpnIP, ",")
+	if !found {
+		return "", fmt.Errorf("unable to parse line: %s", line)
+	}
+
+	vpnIP, _, found = strings.Cut(vpnIP, ",")
+	if !found {
+		return "", fmt.Errorf("unable to parse line: %s", line)
+	}
+
+	return vpnIP, nil
 }
 
 func parseClientEnv(line string) (string, string) {
