@@ -13,7 +13,8 @@ import (
 
 type State struct {
 	Client     ClientIdentifier
-	Ipaddr     string
+	IPAddr     string
+	IPPort     string
 	CommonName string
 	Issued     int64
 
@@ -28,10 +29,11 @@ type ClientIdentifier struct {
 	AuthControlFile      string
 }
 
-func New(client ClientIdentifier, ipaddr, commonName string) State {
+func New(client ClientIdentifier, ipAddr, ipPort, commonName string) State {
 	return State{
 		Client:     client,
-		Ipaddr:     ipaddr,
+		IPAddr:     ipAddr,
+		IPPort:     ipPort,
 		CommonName: commonName,
 		Issued:     time.Now().Round(time.Second).Unix(),
 	}
@@ -64,7 +66,8 @@ func (state *State) Decode(secretKey string) error {
 		&state.Client.AuthFailedReasonFile,
 		&state.Client.AuthControlFile,
 		&state.Client.SessionID,
-		&state.Ipaddr,
+		&state.IPAddr,
+		&state.IPPort,
 		&state.CommonName,
 		&state.Issued,
 	)
@@ -75,7 +78,8 @@ func (state *State) Decode(secretKey string) error {
 	state.Client.AuthFailedReasonFile = decodeString(state.Client.AuthFailedReasonFile)
 	state.Client.AuthControlFile = decodeString(state.Client.AuthControlFile)
 	state.Client.SessionID = decodeString(state.Client.SessionID)
-	state.Ipaddr = decodeString(state.Ipaddr)
+	state.IPAddr = decodeString(state.IPAddr)
+	state.IPPort = decodeString(state.IPPort)
 	state.CommonName = decodeString(state.CommonName)
 
 	issuedSince := time.Since(time.Unix(state.Issued, 0))
@@ -103,7 +107,9 @@ func (state *State) Encode(secretKey string) error {
 	data.WriteString(" ")
 	data.WriteString(encodeString(state.Client.SessionID))
 	data.WriteString(" ")
-	data.WriteString(encodeString(state.Ipaddr))
+	data.WriteString(encodeString(state.IPAddr))
+	data.WriteString(" ")
+	data.WriteString(encodeString(state.IPPort))
 	data.WriteString(" ")
 	data.WriteString(encodeString(state.CommonName))
 	data.WriteString(" ")

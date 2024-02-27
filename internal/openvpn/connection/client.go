@@ -13,6 +13,7 @@ type Client struct {
 	CID          uint64
 	Reason       string
 	IPAddr       string
+	IPPort       string
 	CommonName   string
 	SessionID    string
 	SessionState string
@@ -50,6 +51,8 @@ func NewClient(conf config.Config, message string) (Client, error) { //nolint:cy
 				client.IPAddr = envValue
 			case "untrusted_ip6":
 				client.IPAddr = envValue
+			case "untrusted_port":
+				client.IPPort = envValue
 			case conf.OpenVpn.CommonName.EnvironmentVariableName:
 				client.CommonName = envValue
 			case "IV_SSO":

@@ -32,6 +32,7 @@ func (c *Client) processClient(client connection.Client) error {
 // clientConnect handles CONNECT events from OpenVPN management interface.
 func (c *Client) clientConnect(client connection.Client) error {
 	logger := c.logger.With(
+		slog.String("ip", fmt.Sprintf("%s:%s", client.IPAddr, client.IPPort)),
 		slog.Uint64("cid", client.CID),
 		slog.Uint64("kid", client.KID),
 		slog.String("common_name", client.CommonName),
@@ -48,6 +49,7 @@ func (c *Client) clientConnect(client connection.Client) error {
 // clientReauth handles REAUTH events from OpenVPN management interface.
 func (c *Client) clientReauth(client connection.Client) error {
 	logger := c.logger.With(
+		slog.String("ip", fmt.Sprintf("%s:%s", client.IPAddr, client.IPPort)),
 		slog.Uint64("cid", client.CID),
 		slog.Uint64("kid", client.KID),
 		slog.String("common_name", client.CommonName),
@@ -77,12 +79,7 @@ func (c *Client) handleClientAuthentication(logger *slog.Logger, client connecti
 
 	commonName := utils.TransformCommonName(c.conf.OpenVpn.CommonName.Mode, client.CommonName)
 
-	var ipAddr string
-	if c.conf.OAuth2.Validate.IPAddr {
-		ipAddr = client.IPAddr
-	}
-
-	session := state.New(ClientIdentifier, ipAddr, commonName)
+	session := state.New(ClientIdentifier, client.IPAddr, client.IPPort, commonName)
 	if err := session.Encode(c.conf.HTTP.Secret.String()); err != nil {
 		return fmt.Errorf("error encoding state: %w", err)
 	}
@@ -151,6 +148,7 @@ func (c *Client) checkReauth(logger *slog.Logger, client connection.Client) bool
 func (c *Client) clientEstablished(client connection.Client) {
 	c.logger.LogAttrs(context.Background(),
 		slog.LevelInfo, "client established",
+		slog.String("ip", fmt.Sprintf("%s:%s", client.IPAddr, client.IPPort)),
 		slog.Uint64("cid", client.CID),
 		slog.String("common_name", client.CommonName),
 		slog.String("reason", client.Reason),
@@ -161,6 +159,7 @@ func (c *Client) clientEstablished(client connection.Client) {
 
 func (c *Client) clientDisconnect(client connection.Client) {
 	logger := c.logger.With(
+		slog.String("ip", fmt.Sprintf("%s:%s", client.IPAddr, client.IPPort)),
 		slog.Uint64("cid", client.CID),
 		slog.String("common_name", client.CommonName),
 		slog.String("reason", client.Reason),

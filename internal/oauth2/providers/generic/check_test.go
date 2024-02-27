@@ -354,7 +354,7 @@ func TestValidateIpAddr(t *testing.T) {
 			}
 
 			session := state.State{
-				Ipaddr: tt.requiredIPAddr,
+				IPAddr: tt.requiredIPAddr,
 			}
 
 			provider, err := generic.NewProvider(context.Background(), conf, http.DefaultClient)

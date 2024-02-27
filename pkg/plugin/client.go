@@ -14,6 +14,7 @@ type Client struct {
 	AuthPendingFile      string
 	AuthControlFile      string
 	IpAddr               string
+	IpPort               string
 	CommonName           string
 }
 
@@ -34,6 +35,8 @@ func NewClient(pointer unsafe.Pointer) Client {
 			client.IpAddr = envParts[1]
 		case "untrusted_ip6":
 			client.IpAddr = envParts[1]
+		case "untrusted_port":
+			client.IpPort = envParts[1]
 		case "common_name":
 			client.CommonName = envParts[1]
 		default:

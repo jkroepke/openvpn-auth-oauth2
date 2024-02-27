@@ -53,7 +53,7 @@ func (p *Provider) RefreshClientAuth(logger *slog.Logger, client connection.Clie
 		return false, fmt.Errorf("error from token exchange: %w", err)
 	}
 
-	session := state.New(state.ClientIdentifier{CID: client.CID, KID: client.KID}, client.IPAddr, client.CommonName)
+	session := state.New(state.ClientIdentifier{CID: client.CID, KID: client.KID}, client.IPAddr, client.IPPort, client.CommonName)
 
 	user, err := p.OIDC.GetUser(ctx, tokens)
 	if err != nil {
