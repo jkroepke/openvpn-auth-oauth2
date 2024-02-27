@@ -43,12 +43,12 @@ func NewClient(conf config.Config, message string) (Client, error) { //nolint:cy
 				return Client{}, err
 			}
 		case strings.HasPrefix(line, ">CLIENT:ADDRESS"):
-			vpnIp, found := strings.CutPrefix(line, ">CLIENT:ADDRESS,")
+			vpnIP, found := strings.CutPrefix(line, ">CLIENT:ADDRESS,")
 			if !found {
 				return Client{}, fmt.Errorf("unable to parse line: %s", line)
 			}
 
-			client.VPNAddress, _, found = strings.Cut(vpnIp, ",")
+			client.VPNAddress, _, found = strings.Cut(vpnIP, ",")
 			if !found {
 				return Client{}, fmt.Errorf("unable to parse line: %s", line)
 			}
