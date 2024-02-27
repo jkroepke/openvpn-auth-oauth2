@@ -36,22 +36,23 @@ func NewClient(conf config.Config, message string) (Client, error) { //nolint:cy
 		line, clientMessage, ok = strings.Cut(clientMessage, "\r\n")
 		line = strings.TrimSpace(line)
 
-		if client.Reason == "" && isClientReason(line) {
+		switch {
+		case client.Reason == "" && isClientReason(line):
 			client.Reason, client.CID, client.KID, err = parseClientReason(line)
 			if err != nil {
 				return Client{}, err
 			}
-		} else if strings.HasPrefix(line, ">CLIENT:ADDRESS") {
-			_, vpnIp, found := strings.Cut(line, ",")
+		case strings.HasPrefix(line, ">CLIENT:ADDRESS"):
+			vpnIp, found := strings.CutPrefix(line, ">CLIENT:ADDRESS,")
 			if !found {
 				return Client{}, fmt.Errorf("unable to parse line: %s", line)
 			}
 
-			_, client.VPNAddress, found = strings.Cut(vpnIp, ",")
+			client.VPNAddress, _, found = strings.Cut(vpnIp, ",")
 			if !found {
 				return Client{}, fmt.Errorf("unable to parse line: %s", line)
 			}
-		} else if strings.HasPrefix(line, ">CLIENT:ENV,") {
+		case strings.HasPrefix(line, ">CLIENT:ENV,"):
 			envKey, envValue := parseClientEnv(line)
 			if envKey == "" || envValue == "" {
 				continue
