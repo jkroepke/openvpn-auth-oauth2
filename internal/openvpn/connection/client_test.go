@@ -24,6 +24,7 @@ func TestNewClientConnection(t *testing.T) {
 			"client CONNECT",
 			config.Defaults,
 			[]string{
+				">CLIENT:ADDRESS,127.0.0.1,1",
 				">CLIENT:CONNECT,0,1",
 				">CLIENT:ENV,common_name=common_name",
 				">CLIENT:ENV,username=username",
@@ -118,6 +119,34 @@ func TestNewClientConnection(t *testing.T) {
 				CID: 1, KID: 2, Reason: "CR_RESPONSE",
 			},
 			"",
+		},
+		{
+			"invalid CLIENT:ADDRESS line",
+			config.Defaults,
+			[]string{
+				">CLIENT:ADDRESS,127.0.0.1",
+				">CLIENT:CR_RESPONSE,1,2,YmFzZTY0",
+				">CLIENT:ENV,name1=val1",
+				">CLIENT:ENV,END",
+			},
+			connection.Client{
+				CID: 1, KID: 2, Reason: "CR_RESPONSE",
+			},
+			"unable to parse line: >CLIENT:ADDRESS,127.0.0.1",
+		},
+		{
+			"invalid CLIENT:ADDRESS line 2",
+			config.Defaults,
+			[]string{
+				">CLIENT:ADDRESS",
+				">CLIENT:CR_RESPONSE,1,2,YmFzZTY0",
+				">CLIENT:ENV,name1=val1",
+				">CLIENT:ENV,END",
+			},
+			connection.Client{
+				CID: 1, KID: 2, Reason: "CR_RESPONSE",
+			},
+			"unable to parse line: >CLIENT:ADDRESS",
 		},
 		{
 			"client invalid reason",

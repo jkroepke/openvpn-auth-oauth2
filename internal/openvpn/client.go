@@ -149,6 +149,7 @@ func (c *Client) clientEstablished(client connection.Client) {
 	c.logger.LogAttrs(context.Background(),
 		slog.LevelInfo, "client established",
 		slog.String("ip", fmt.Sprintf("%s:%s", client.IPAddr, client.IPPort)),
+		slog.String("vpn_ip", client.VPNAddress),
 		slog.Uint64("cid", client.CID),
 		slog.String("common_name", client.CommonName),
 		slog.String("reason", client.Reason),

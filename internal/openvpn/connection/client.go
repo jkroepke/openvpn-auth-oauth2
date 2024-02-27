@@ -14,6 +14,7 @@ type Client struct {
 	Reason       string
 	IPAddr       string
 	IPPort       string
+	VPNAddress   string
 	CommonName   string
 	SessionID    string
 	SessionState string
@@ -39,6 +40,16 @@ func NewClient(conf config.Config, message string) (Client, error) { //nolint:cy
 			client.Reason, client.CID, client.KID, err = parseClientReason(line)
 			if err != nil {
 				return Client{}, err
+			}
+		} else if strings.HasPrefix(line, ">CLIENT:ADDRESS") {
+			_, vpnIp, found := strings.Cut(line, ",")
+			if !found {
+				return Client{}, fmt.Errorf("unable to parse line: %s", line)
+			}
+
+			_, client.VPNAddress, found = strings.Cut(vpnIp, ",")
+			if !found {
+				return Client{}, fmt.Errorf("unable to parse line: %s", line)
 			}
 		} else if strings.HasPrefix(line, ">CLIENT:ENV,") {
 			envKey, envValue := parseClientEnv(line)
