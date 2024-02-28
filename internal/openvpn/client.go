@@ -99,7 +99,8 @@ func (c *Client) handleClientAuthentication(logger *slog.Logger, client connecti
 	if len(startURL) >= 245 {
 		c.DenyClient(logger, ClientIdentifier, "internal error")
 
-		return fmt.Errorf("url %s (%d chars) too long! OpenVPN support up to 245 chars. Try --openvpn.common-name.mode=omit or --log.vpn-client-ip=false to avoid this error",
+		return fmt.Errorf("url %s (%d chars) too long! OpenVPN support up to 245 chars. "+
+			"Try --openvpn.common-name.mode=omit or --log.vpn-client-ip=false to avoid this error",
 			startURL, len(startURL))
 	}
 
