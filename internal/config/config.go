@@ -17,7 +17,7 @@ const (
 
 // FlagSet configure the command line parser using the [flag] library.
 //
-
+//nolint:maintidx
 func FlagSet(name string) *flag.FlagSet {
 	flagSet := flag.NewFlagSet(name, flag.ContinueOnError)
 	flagSet.Usage = func() {
@@ -43,6 +43,11 @@ func FlagSet(name string) *flag.FlagSet {
 		"debug.listen",
 		Defaults.Debug.Listen,
 		"listen address for go profiling endpoint",
+	)
+	flagSet.Bool(
+		"log.vpn-client-ip",
+		Defaults.Log.VPNClientIP,
+		"log IP of VPN client. Useful to have an identifier between OpenVPN and openvpn-auth-oauth2.",
 	)
 	flagSet.String(
 		"log.format",

@@ -15,6 +15,7 @@
 #log:
 #    format: console
 #    level: INFO
+#    vpn-client-ip: true
 #oauth2:
 #    authorize-params: "a=c"
 #    client:

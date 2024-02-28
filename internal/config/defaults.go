@@ -16,8 +16,9 @@ var Defaults = Config{
 		Listen: ":9001",
 	},
 	Log: Log{
-		Format: "console",
-		Level:  slog.LevelInfo,
+		Format:      "console",
+		Level:       slog.LevelInfo,
+		VPNClientIP: true,
 	},
 	HTTP: HTTP{
 		BaseURL: &url.URL{

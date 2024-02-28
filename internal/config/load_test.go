@@ -67,6 +67,7 @@ debug:
 log:
     format: json
     level: DEBUG
+    vpn-client-ip: false
 oauth2:
     issuer: "https://company.zitadel.cloud"
     client:
@@ -127,8 +128,9 @@ http:
 					Listen: ":9002",
 				},
 				Log: config.Log{
-					Format: "json",
-					Level:  slog.LevelDebug,
+					Format:      "json",
+					Level:       slog.LevelDebug,
+					VPNClientIP: false,
 				},
 				HTTP: config.HTTP{
 					Listen:             ":9001",

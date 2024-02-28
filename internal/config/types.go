@@ -37,8 +37,9 @@ type HTTPCheck struct {
 }
 
 type Log struct {
-	Format string     `koanf:"format"`
-	Level  slog.Level `koanf:"level"`
+	Format      string     `koanf:"format"`
+	Level       slog.Level `koanf:"level"`
+	VPNClientIP bool       `koanf:"vpn-client-ip"`
 }
 
 type OpenVpn struct {
