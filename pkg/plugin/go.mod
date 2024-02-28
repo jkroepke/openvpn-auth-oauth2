@@ -26,11 +26,10 @@ require (
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/muhlemmer/gu v0.3.1 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
-	github.com/zitadel/logging v0.5.0 // indirect
-	github.com/zitadel/oidc/v3 v3.12.0 // indirect
+	github.com/zitadel/logging v0.6.0 // indirect
+	github.com/zitadel/oidc/v3 v3.13.0 // indirect
 	github.com/zitadel/schema v1.3.0 // indirect
-	golang.org/x/crypto v0.19.0 // indirect
-	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225 // indirect
+	golang.org/x/crypto v0.20.0 // indirect
 	golang.org/x/oauth2 v0.17.0 // indirect
 	golang.org/x/sys v0.17.0 // indirect
 	golang.org/x/text v0.14.0 // indirect

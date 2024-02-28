@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/log"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
@@ -89,7 +88,7 @@ func (p *Provider) ClientDisconnect(logger *slog.Logger, client connection.Clien
 
 	logger.Debug("revoke refresh token")
 
-	ctx := logging.ToContext(context.Background(), log.NewZitadelLogger(logger))
+	ctx := logging.ToContext(context.Background(), logger)
 	if err = rp.RevokeToken(ctx, p.RelyingParty, refreshToken, "refresh_token"); err != nil {
 		if !errors.Is(err, rp.ErrRelyingPartyNotSupportRevokeCaller) {
 			logger.Warn("refresh token revoke error: " + err.Error())
