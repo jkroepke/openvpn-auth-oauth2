@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/log"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/github"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/google"
@@ -23,7 +22,6 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
 	httphelper "github.com/zitadel/oidc/v3/pkg/http"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
-	expslog "golang.org/x/exp/slog"
 	"golang.org/x/oauth2"
 )
 
@@ -68,11 +66,9 @@ func (p *Provider) Initialize(openvpn OpenVPN) error {
 		})
 	}
 
-	providerLogger := log.NewZitadelLogger(p.logger)
-
 	basePath := p.conf.HTTP.BaseURL.JoinPath("/oauth2/")
 	redirectURI := basePath.JoinPath("/callback").String()
-	options := p.getProviderOptions(providerLogger, basePath)
+	options := p.getProviderOptions(basePath)
 
 	scopes := p.conf.OAuth2.Scopes
 	if len(scopes) == 0 {
@@ -95,7 +91,7 @@ func (p *Provider) Initialize(openvpn OpenVPN) error {
 		}
 
 		p.RelyingParty, err = rp.NewRelyingPartyOIDC(
-			logging.ToContext(context.Background(), providerLogger),
+			logging.ToContext(ctx, p.logger),
 			p.conf.OAuth2.Issuer.String(),
 			p.conf.OAuth2.Client.ID,
 			p.conf.OAuth2.Client.Secret.String(),
@@ -127,7 +123,7 @@ func (p *Provider) Initialize(openvpn OpenVPN) error {
 	return nil
 }
 
-func (p *Provider) getProviderOptions(providerLogger *expslog.Logger, basePath *url.URL) []rp.Option {
+func (p *Provider) getProviderOptions(basePath *url.URL) []rp.Option {
 	cookieKey := []byte(p.conf.HTTP.Secret)
 	cookieOpt := []httphelper.CookieHandlerOpt{
 		httphelper.WithMaxAge(int(p.conf.OpenVpn.AuthPendingTimeout.Seconds()) + 5),
@@ -161,7 +157,7 @@ func (p *Provider) getProviderOptions(providerLogger *expslog.Logger, basePath *
 	}
 
 	options := []rp.Option{
-		rp.WithLogger(providerLogger),
+		rp.WithLogger(p.logger),
 		rp.WithCookieHandler(cookieHandler),
 		rp.WithVerifierOpts(verifierOpts...),
 		rp.WithAuthStyle(p.conf.OAuth2.AuthStyle.AuthStyle()),

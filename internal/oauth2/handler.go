@@ -15,7 +15,6 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/log"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/ui"
@@ -165,7 +164,8 @@ func (p *Provider) oauth2Callback() http.Handler {
 			slog.String("session_id", session.Client.SessionID),
 			slog.String("common_name", session.CommonName),
 		)
-		ctx = logging.ToContext(ctx, log.NewZitadelLogger(logger))
+
+		ctx = logging.ToContext(ctx, logger)
 
 		id := strconv.FormatUint(session.Client.CID, 10)
 		if p.conf.OAuth2.Refresh.UseSessionID && session.Client.SessionID != "" {

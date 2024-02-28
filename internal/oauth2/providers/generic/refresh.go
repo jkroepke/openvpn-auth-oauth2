@@ -7,7 +7,6 @@ import (
 	"log/slog"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/log"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/zitadel/logging"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
@@ -20,7 +19,7 @@ func (p *Provider) GetRefreshToken(tokens *oidc.Tokens[*idtoken.Claims]) string 
 
 // Refresh initiates a non-interactive authentication against the sso provider.
 func (p *Provider) Refresh(ctx context.Context, logger *slog.Logger, refreshToken string, relyingParty rp.RelyingParty) (*oidc.Tokens[*idtoken.Claims], error) {
-	ctx = logging.ToContext(ctx, log.NewZitadelLogger(logger))
+	ctx = logging.ToContext(ctx, logger)
 
 	tokens, err := rp.RefreshTokens[*idtoken.Claims](ctx, relyingParty, refreshToken, "", "")
 	// OIDC spec says that nonce is optional for refresh tokens
