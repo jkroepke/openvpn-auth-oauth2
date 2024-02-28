@@ -79,7 +79,17 @@ func (c *Client) handleClientAuthentication(logger *slog.Logger, client connecti
 
 	commonName := utils.TransformCommonName(c.conf.OpenVpn.CommonName.Mode, client.CommonName)
 
-	session := state.New(ClientIdentifier, client.IPAddr, client.IPPort, commonName)
+	var (
+		ipAddr string
+		ipPort string
+	)
+
+	if c.conf.Log.VPNClientIP || c.conf.OAuth2.Validate.IPAddr {
+		ipAddr = client.IPAddr
+		ipPort = client.IPPort
+	}
+
+	session := state.New(ClientIdentifier, ipAddr, ipPort, commonName)
 	if err := session.Encode(c.conf.HTTP.Secret.String()); err != nil {
 		return fmt.Errorf("error encoding state: %w", err)
 	}
@@ -89,7 +99,7 @@ func (c *Client) handleClientAuthentication(logger *slog.Logger, client connecti
 	if len(startURL) >= 245 {
 		c.DenyClient(logger, ClientIdentifier, "internal error")
 
-		return fmt.Errorf("url %s (%d chars) too long! OpenVPN support up to 245 chars. Try --openvpn.common-name.mode to avoid this error",
+		return fmt.Errorf("url %s (%d chars) too long! OpenVPN support up to 245 chars. Try --openvpn.common-name.mode=omit or --log.vpn-client-ip=false to avoid this error",
 			startURL, len(startURL))
 	}
 

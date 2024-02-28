@@ -44,6 +44,11 @@ func FlagSet(name string) *flag.FlagSet {
 		Defaults.Debug.Listen,
 		"listen address for go profiling endpoint",
 	)
+	flagSet.Bool(
+		"log.vpn-client-ip",
+		Defaults.Log.VPNClientIP,
+		"log IP of VPN client. Useful to have an identifier between OpenVPN and openvpn-auth-oauth2.",
+	)
 	flagSet.String(
 		"log.format",
 		Defaults.Log.Format,

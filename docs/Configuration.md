@@ -46,6 +46,7 @@ http:
 log:
     format: console
     level: INFO
+    vpn-client-ip: true
 oauth2:
     authorize-params: "a=c"
     client:
@@ -138,6 +139,8 @@ Usage of openvpn-auth-oauth2:
     	log format. json or console (env: CONFIG_LOG_FORMAT) (default "console")
   --log.level value
     	log level (env: CONFIG_LOG_LEVEL) (default INFO)
+  --log.vpn-client-ip
+    	log IP of VPN client. Useful to have an identifier between OpenVPN and openvpn-auth-oauth2. (env: CONFIG_LOG_VPN__CLIENT__IP) (default true)
   --oauth2.auth-style value
     	Auth style represents how requests for tokens are authenticated to the server. Possible values: AuthStyleAutoDetect, AuthStyleInParams, AuthStyleInHeader. See https://pkg.go.dev/golang.org/x/oauth2#AuthStyle (env: CONFIG_OAUTH2_AUTH__STYLE) (default AuthStyleInParams)
   --oauth2.authorize-params string
