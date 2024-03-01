@@ -334,6 +334,21 @@ you can use [acme.sh](https://acme.sh/), which is a pure Unix shell script imple
 
 openvpn-auth-oauth2 requires a [`SIGHUP` signal](https://en.wikipedia.org/wiki/SIGHUP) to reload the TLS certificate.
 
+## Custom Login Templates
+
+openvpn-auth-oauth2 supports custom templates for the login page. The template must be a valid HTML file.
+
+The default template is here:
+[index.gohtml](https://github.com/jkroepke/openvpn-auth-oauth2/blob/main/internal/ui/index.gohtml)
+
+Available variables:
+
+- `{{.success}}`: Indicates if the login was successful
+- `{{.title}}`: `Access Denied` or `Access Granted`
+- `{{.message}}`: Potential error message or success message
+
+The [go template engine](https://pkg.go.dev/text/template) is used to render the HTML file.
+
 ## Non-interactive session refresh
 
 By default, `openvpn-auth-oauth2` doesn't store user tokens.
@@ -392,23 +407,3 @@ CONFIG_OAUTH2_REFRESH_SECRET= # a static secret to encrypt token. Must be 16, 24
 CONFIG_OAUTH2_REFRESH_USE__SESSION__ID=true
 CONFIG_OPENVPN_AUTH__TOKEN__USER=true
 ```
-
-## username-as-common-name
-
-When configuring `username-as-common-name` on the OpenVPN server,
-it's essential to ensure that `openvpn.common-name.environment-variable-name` is also set to `username`.
-
-This configuration is mandatory because `username-as-common-name` operates after the authentication process.
-Matching the environment variable name to `username` ensures seamless functionality.
-
-### Note Regarding Passing Usernames from OAuth2 Provider to OpenVPN
-
-It's important to note that currently,
-there is no mechanism to pass the username from the OAuth2 provider back to OpenVPN.
-OpenVPN does not offer such an interface at present.
-This limitation applies to scenarios where the IP persistence file or statistics may contain empty usernames.
-
-For future enhancements in this area,
-we encourage users to up-vote the relevant feature requests on the OpenVPN GitHub repository.
-You can find and support these requests at the following link:
-[Feature Request on GitHub](https://github.com/OpenVPN/openvpn/issues/299)
