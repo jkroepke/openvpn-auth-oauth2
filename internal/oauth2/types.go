@@ -33,6 +33,6 @@ type oidcProvider interface {
 	GetProviderConfig(conf config.Config) (types.ProviderConfig, error)
 	GetName() string
 	GetRefreshToken(tokens *oidc.Tokens[*idtoken.Claims]) string
-	GetUser(ctx context.Context, tokens *oidc.Tokens[*idtoken.Claims]) (types.UserData, error)
+	GetUser(ctx context.Context, logger *slog.Logger, tokens *oidc.Tokens[*idtoken.Claims]) (types.UserData, error)
 	Refresh(ctx context.Context, logger *slog.Logger, token string, relyingParty rp.RelyingParty) (*oidc.Tokens[*idtoken.Claims], error)
 }

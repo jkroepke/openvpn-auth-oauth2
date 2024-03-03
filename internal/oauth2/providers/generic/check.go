@@ -40,6 +40,10 @@ func (p *Provider) CheckGroups(tokens *oidc.Tokens[*idtoken.Claims]) error {
 		return nil
 	}
 
+	if tokens.IDTokenClaims == nil {
+		return fmt.Errorf("%w: id_token", ErrMissingClaim)
+	}
+
 	if tokens.IDTokenClaims.Groups == nil {
 		return fmt.Errorf("%w: groups", ErrMissingClaim)
 	}
@@ -56,6 +60,10 @@ func (p *Provider) CheckGroups(tokens *oidc.Tokens[*idtoken.Claims]) error {
 func (p *Provider) CheckRoles(tokens *oidc.Tokens[*idtoken.Claims]) error {
 	if len(p.Conf.OAuth2.Validate.Roles) == 0 {
 		return nil
+	}
+
+	if tokens.IDTokenClaims == nil {
+		return fmt.Errorf("%w: id_token", ErrMissingClaim)
 	}
 
 	if tokens.IDTokenClaims.Roles == nil {
@@ -78,6 +86,14 @@ func (p *Provider) CheckCommonName(session state.State, tokens *oidc.Tokens[*idt
 
 	if session.CommonName == "" || session.CommonName == config.CommonNameModeOmitValue {
 		return fmt.Errorf("common_name %w: openvpn client is empty", ErrMismatch)
+	}
+
+	if tokens.IDTokenClaims == nil {
+		return fmt.Errorf("%w: id_token", ErrMissingClaim)
+	}
+
+	if tokens.IDTokenClaims.Claims == nil {
+		return fmt.Errorf("%w: id_token.claims", ErrMissingClaim)
 	}
 
 	tokenCommonName, ok := tokens.IDTokenClaims.Claims[p.Conf.OAuth2.Validate.CommonName].(string)
@@ -103,6 +119,10 @@ func (p *Provider) CheckCommonName(session state.State, tokens *oidc.Tokens[*idt
 func (p *Provider) CheckIPAddress(session state.State, tokens *oidc.Tokens[*idtoken.Claims]) error {
 	if !p.Conf.OAuth2.Validate.IPAddr {
 		return nil
+	}
+
+	if tokens.IDTokenClaims == nil {
+		return fmt.Errorf("%w: id_token", ErrMissingClaim)
 	}
 
 	if tokens.IDTokenClaims.IPAddr == "" {

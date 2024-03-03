@@ -54,7 +54,7 @@ func (p *Provider) RefreshClientAuth(logger *slog.Logger, client connection.Clie
 
 	session := state.New(state.ClientIdentifier{CID: client.CID, KID: client.KID}, client.IPAddr, client.IPPort, client.CommonName)
 
-	user, err := p.OIDC.GetUser(ctx, tokens)
+	user, err := p.OIDC.GetUser(ctx, logger, tokens)
 	if err != nil {
 		return false, fmt.Errorf("error fetch user data: %w", err)
 	}

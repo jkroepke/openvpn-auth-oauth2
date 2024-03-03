@@ -189,7 +189,7 @@ func (p *Provider) oauth2Callback() http.Handler {
 				)
 			}
 
-			user, err := p.OIDC.GetUser(ctx, tokens)
+			user, err := p.OIDC.GetUser(ctx, logger, tokens)
 			if err != nil {
 				p.openvpn.DenyClient(logger, session.Client, "unable to fetch user data")
 				writeError(w, logger, p.conf, http.StatusInternalServerError, "fetchUser", err.Error())

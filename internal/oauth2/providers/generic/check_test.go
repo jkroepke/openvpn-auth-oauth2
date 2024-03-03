@@ -10,6 +10,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
+	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
@@ -36,11 +37,94 @@ func TestCheckUser(t *testing.T) {
 	provider, err := generic.NewProvider(context.Background(), conf, http.DefaultClient)
 	require.NoError(t, err)
 
-	userData, err := provider.GetUser(context.Background(), token)
+	userData, err := provider.GetUser(context.Background(), testutils.NewTestLogger().Logger, token)
 	require.NoError(t, err)
 
 	err = provider.CheckUser(context.Background(), state.State{}, userData, token)
 	require.NoError(t, err)
+}
+
+func TestInvalidToken(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name  string
+		conf  config.Config
+		token *oidc.Tokens[*idtoken.Claims]
+		err   error
+	}{
+		{
+			"nil without validation",
+			config.Config{
+				OAuth2: config.OAuth2{
+					Validate: config.OAuth2Validate{},
+				},
+			},
+			&oidc.Tokens[*idtoken.Claims]{
+				IDTokenClaims: nil,
+			},
+			nil,
+		},
+		{
+			"nil with group",
+			config.Config{
+				OAuth2: config.OAuth2{
+					Validate: config.OAuth2Validate{
+						Groups: []string{"apple"},
+					},
+				},
+			},
+			&oidc.Tokens[*idtoken.Claims]{
+				IDTokenClaims: nil,
+			},
+			generic.ErrMissingClaim,
+		},
+		{
+			"nil with roles",
+			config.Config{
+				OAuth2: config.OAuth2{
+					Validate: config.OAuth2Validate{
+						Roles: []string{"apple"},
+					},
+				},
+			},
+			&oidc.Tokens[*idtoken.Claims]{
+				IDTokenClaims: nil,
+			},
+			generic.ErrMissingClaim,
+		},
+		{
+			"nil with username",
+			config.Config{
+				OAuth2: config.OAuth2{
+					Validate: config.OAuth2Validate{
+						CommonName: "sub",
+					},
+				},
+			},
+			&oidc.Tokens[*idtoken.Claims]{
+				IDTokenClaims: nil,
+			},
+			generic.ErrMissingClaim,
+		},
+	} {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			provider, err := generic.NewProvider(context.Background(), tt.conf, http.DefaultClient)
+			require.NoError(t, err)
+
+			userData, err := provider.GetUser(context.Background(), testutils.NewTestLogger().Logger, tt.token)
+			require.NoError(t, err)
+
+			err = provider.CheckUser(context.Background(), state.State{CommonName: "user"}, userData, tt.token)
+			if tt.err == nil {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+				assert.ErrorIs(t, err, tt.err)
+			}
+		})
+	}
 }
 
 func TestValidateGroups(t *testing.T) {
