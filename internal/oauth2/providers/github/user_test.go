@@ -97,7 +97,7 @@ func TestGetUser(t *testing.T) {
 			provider, err := github.NewProvider(context.Background(), conf, httpClient)
 			require.NoError(t, err)
 
-			userData, err := provider.GetUser(context.Background(), logger, token)
+			userData, err := provider.GetUser(context.Background(), testutils.NewTestLogger().Logger, token)
 
 			if tt.err == "" {
 				require.NoError(t, err)

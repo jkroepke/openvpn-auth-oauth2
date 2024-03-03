@@ -110,6 +110,8 @@ func TestInvalidToken(t *testing.T) {
 	} {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			provider, err := generic.NewProvider(context.Background(), tt.conf, http.DefaultClient)
 			require.NoError(t, err)
 
