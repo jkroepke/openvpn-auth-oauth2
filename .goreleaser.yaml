@@ -96,6 +96,11 @@ nfpms:
           mode: 0640
       - src: 3rdpartylicenses/
         dst: /usr/share/doc/openvpn-auth-oauth2/3rdpartylicenses/
+        type: tree
+        file_info:
+          owner: root
+          group: root
+          mode: 0644
     scripts:
       preinstall: "packaging/scripts/postinst.sh"
       postinstall: "packaging/scripts/postinst.sh"
