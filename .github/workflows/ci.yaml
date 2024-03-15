@@ -41,6 +41,8 @@ jobs:
           sudo apt-get update -q
           sudo apt-get install --no-install-recommends -qy $PACKAGES
 
+      - name: Generate licenses
+        run: go run github.com/google/go-licenses@latest save . --save_path=3rdpartylicenses
 
       - name: Write gpg sign key
         if: env.GPG_KEY != null
@@ -108,6 +110,9 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: 'go.mod'
+
+      - name: Generate licenses
+        run: go run github.com/google/go-licenses@latest save . --save_path=3rdpartylicenses
 
       - name: Write gpg sign key
         run: echo "$GPG_KEY" > "$GPG_KEY_PATH"

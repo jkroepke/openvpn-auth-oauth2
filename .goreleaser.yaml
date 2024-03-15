@@ -52,6 +52,7 @@ archives:
     format: tar.xz
     files:
         - LICENSE.txt
+        - 3rdpartylicenses/**/*
 
 nfpms:
   - id: openvpn-auth-oauth2
