@@ -95,3 +95,7 @@ golangci:
 .PHONY: golangci-fix
 golangci-fix:
 	@go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.56.1 run ./... --fix
+
+.PHONY: 3rdpartylicenses
+3rdpartylicenses:
+	@go run github.com/google/go-licenses@latest save . --save_path=3rdpartylicenses
