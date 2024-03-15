@@ -94,6 +94,8 @@ nfpms:
           owner: root
           group: openvpn-auth-oauth2
           mode: 0640
+      - src: 3rdpartylicenses/
+        dst: /usr/share/doc/openvpn-auth-oauth2/3rdpartylicenses/
     scripts:
       preinstall: "packaging/scripts/postinst.sh"
       postinstall: "packaging/scripts/postinst.sh"
