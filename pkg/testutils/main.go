@@ -284,9 +284,9 @@ func SetupMockEnvironment(tb testing.TB, conf config.Config) (config.Config, *op
 	httpClient := &http.Client{Transport: NewMockRoundTripper(utils.NewUserAgentTransport(nil))}
 	storageClient := storage.New(Secret, conf.OAuth2.Refresh.Expires)
 	provider := oauth2.New(logger.Logger, conf, storageClient, httpClient)
-	openvpnClient := openvpn.NewClient(context.Background(), logger.Logger, conf, provider)
+	openvpnClient := openvpn.New(context.Background(), logger.Logger, conf, provider)
 
-	require.NoError(tb, provider.Initialize(openvpnClient))
+	require.NoError(tb, provider.Initialize(context.Background(), openvpnClient))
 
 	httpClientListener := httptest.NewUnstartedServer(provider.Handler())
 	httpClientListener.Listener.Close()

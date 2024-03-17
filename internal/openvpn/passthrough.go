@@ -15,6 +15,8 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
+const writeTimeout = 20 * time.Millisecond
+
 // handlePassthrough starts a listener for the passthrough interface. This allows the management interface to be
 // accessed from a different network interface or even from a different machine.
 // The passthrough interface is a simple text-based protocol that allows the client to send commands to the management
@@ -73,7 +75,7 @@ func (c *Client) handlePassthrough() {
 					continue
 				}
 
-				_ = conn.SetWriteDeadline(time.Now().Add(20 * time.Millisecond))
+				_ = conn.SetWriteDeadline(time.Now().Add(writeTimeout))
 
 				if _, err = conn.Write([]byte(message + "\r\n")); err != nil {
 					connMu.Unlock()
@@ -191,7 +193,7 @@ func (c *Client) handlePassthroughClientAuth(conn net.Conn, scanner *bufio.Scann
 		return nil
 	}
 
-	if err := conn.SetWriteDeadline(time.Now().Add(20 * time.Millisecond)); err != nil {
+	if err := conn.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil {
 		return fmt.Errorf("unable to set write deadline: %w", err)
 	}
 
@@ -209,7 +211,7 @@ func (c *Client) handlePassthroughClientAuth(conn net.Conn, scanner *bufio.Scann
 	}
 
 	if scanner.Text() != c.conf.OpenVpn.Passthrough.Password.String() {
-		_ = conn.SetWriteDeadline(time.Now().Add(20 * time.Millisecond))
+		_ = conn.SetWriteDeadline(time.Now().Add(writeTimeout))
 		_, _ = conn.Write([]byte("ERROR: bad password\r\n"))
 
 		return errors.New("pass-through: client provide invalid password")

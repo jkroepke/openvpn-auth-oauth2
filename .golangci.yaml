@@ -14,12 +14,9 @@ linters:
     - depguard
     - exhaustruct
     - gomnd
-    - dupl
-    - forbidigo
     - funlen
     - ireturn
     - goerr113
-    - gomoddirectives
 
 issues:
   exclude-rules:
@@ -33,6 +30,8 @@ issues:
         - dogsled
         - contextcheck
         - dupword
+        - dupl
+        - funlen
 
 linters-settings:
   varnamelen:

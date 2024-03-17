@@ -1,12 +1,9 @@
 package config
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"log/slog"
-	"net/url"
-	"slices"
 	"strings"
 )
 
@@ -16,8 +13,6 @@ const (
 )
 
 // FlagSet configure the command line parser using the [flag] library.
-//
-//nolint:maintidx
 func FlagSet(name string) *flag.FlagSet {
 	flagSet := flag.NewFlagSet(name, flag.ContinueOnError)
 	flagSet.Usage = func() {
@@ -35,6 +30,34 @@ func FlagSet(name string) *flag.FlagSet {
 		"path to one .yaml config file",
 	)
 	flagSet.Bool(
+		"version",
+		false,
+		"show version",
+	)
+
+	flagSetDebug(flagSet)
+	flagSetLog(flagSet)
+	flagSetHTTP(flagSet)
+	flagSetOpenVPN(flagSet)
+	flagSetOAuth2(flagSet)
+
+	flagSet.VisitAll(func(flag *flag.Flag) {
+		if flag.Name == "version" {
+			return
+		}
+
+		env := strings.ToUpper(flag.Name)
+		env = strings.ReplaceAll(env, ".", "_")
+		env = strings.ReplaceAll(env, "-", "__")
+
+		flag.Usage += fmt.Sprintf(" (env: %s%s)", envPrefix, env)
+	})
+
+	return flagSet
+}
+
+func flagSetDebug(flagSet *flag.FlagSet) {
+	flagSet.Bool(
 		"debug.pprof",
 		Defaults.Debug.Pprof,
 		"Enables go profiling endpoint. This should be never exposed.",
@@ -44,6 +67,9 @@ func FlagSet(name string) *flag.FlagSet {
 		Defaults.Debug.Listen,
 		"listen address for go profiling endpoint",
 	)
+}
+
+func flagSetLog(flagSet *flag.FlagSet) {
 	flagSet.Bool(
 		"log.vpn-client-ip",
 		Defaults.Log.VPNClientIP,
@@ -59,6 +85,9 @@ func FlagSet(name string) *flag.FlagSet {
 		Defaults.Log.Level,
 		"log level",
 	)
+}
+
+func flagSetHTTP(flagSet *flag.FlagSet) {
 	flagSet.String(
 		"http.listen",
 		Defaults.HTTP.Listen,
@@ -105,6 +134,9 @@ func FlagSet(name string) *flag.FlagSet {
 		Defaults.HTTP.EnableProxyHeaders,
 		"Use X-Forward-For http header for client ips",
 	)
+}
+
+func flagSetOpenVPN(flagSet *flag.FlagSet) {
 	flagSet.String(
 		"openvpn.addr",
 		Defaults.OpenVpn.Addr.String(),
@@ -170,6 +202,9 @@ func FlagSet(name string) *flag.FlagSet {
 		Defaults.OpenVpn.Passthrough.SocketMode,
 		"The unix file permission mode for the pass-through socket. Used only, if openvpn.pass-through.address starts with unix://",
 	)
+}
+
+func flagSetOAuth2(flagSet *flag.FlagSet) {
 	flagSet.String(
 		"oauth2.issuer",
 		Defaults.OAuth2.Issuer.String(),
@@ -299,94 +334,4 @@ func FlagSet(name string) *flag.FlagSet {
 		"oauth2 token scopes. Defaults depends on oauth2.provider. Comma separated list. "+
 			"Example: openid,profile,email",
 	)
-	flagSet.Bool(
-		"version",
-		false,
-		"show version",
-	)
-
-	flagSet.VisitAll(func(flag *flag.Flag) {
-		if flag.Name == "version" {
-			return
-		}
-
-		env := strings.ToUpper(flag.Name)
-		env = strings.ReplaceAll(env, ".", "_")
-		env = strings.ReplaceAll(env, "-", "__")
-
-		flag.Usage += fmt.Sprintf(" (env: %s%s)", envPrefix, env)
-	})
-
-	return flagSet
-}
-
-// Validate validates the config.
-func Validate(mode int, conf Config) error { //nolint:cyclop
-	for key, value := range map[string]string{
-		"oauth2.client.id": conf.OAuth2.Client.ID,
-	} {
-		if value == "" {
-			return fmt.Errorf("%s is %w", key, ErrRequired)
-		}
-	}
-
-	for key, value := range map[string]Secret{
-		"http.secret":          conf.HTTP.Secret,
-		"oauth2.client.secret": conf.OAuth2.Client.Secret,
-	} {
-		if value.String() == "" {
-			return fmt.Errorf("%s is %w", key, ErrRequired)
-		}
-	}
-
-	for key, value := range map[string]*url.URL{
-		"http.baseurl":  conf.HTTP.BaseURL,
-		"oauth2.issuer": conf.OAuth2.Issuer,
-	} {
-		if IsURLEmpty(value) {
-			return fmt.Errorf("%s is %w", key, ErrRequired)
-		}
-	}
-
-	if !slices.Contains([]int{16, 24, 32}, len(conf.HTTP.Secret)) {
-		return errors.New("http.secret requires a length of 16, 24 or 32")
-	}
-
-	for key, uri := range map[string]*url.URL{
-		"http.baseurl":              conf.HTTP.BaseURL,
-		"oauth2.issuer":             conf.OAuth2.Issuer,
-		"oauth2.endpoint.discovery": conf.OAuth2.Endpoints.Discovery,
-		"oauth2.endpoint.token":     conf.OAuth2.Endpoints.Token,
-		"oauth2.endpoint.auth":      conf.OAuth2.Endpoints.Auth,
-	} {
-		if IsURLEmpty(uri) {
-			continue
-		}
-
-		if !slices.Contains([]string{"http", "https"}, uri.Scheme) {
-			return fmt.Errorf("%s: invalid URL. only http:// or https:// scheme supported", key)
-		}
-	}
-
-	if conf.OAuth2.Refresh.Enabled {
-		if !slices.Contains([]int{16, 24, 32}, len(conf.OAuth2.Refresh.Secret)) {
-			return errors.New("oauth2.refresh.secret requires a length of 16, 24 or 32")
-		}
-	}
-
-	if mode == ManagementClient {
-		for key, value := range map[string]*url.URL{
-			"openvpn.addr": conf.OpenVpn.Addr,
-		} {
-			if IsURLEmpty(value) {
-				return fmt.Errorf("%s is %w", key, ErrRequired)
-			}
-		}
-
-		if !slices.Contains([]string{"tcp", "unix"}, conf.OpenVpn.Addr.Scheme) {
-			return errors.New("openvpn.addr: invalid URL. only tcp://addr or unix://addr scheme supported")
-		}
-	}
-
-	return nil
 }

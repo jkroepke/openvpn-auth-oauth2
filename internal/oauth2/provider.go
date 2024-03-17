@@ -36,12 +36,10 @@ func New(logger *slog.Logger, conf config.Config, storageClient *storage.Storage
 }
 
 // Initialize initiate the discovery of OIDC provider.
-func (p *Provider) Initialize(openvpn OpenVPN) error {
+func (p *Provider) Initialize(ctx context.Context, openvpn OpenVPN) error {
 	var err error
 
 	p.openvpn = openvpn
-
-	ctx := context.Background()
 
 	p.OIDC, err = newOidcProvider(ctx, p.conf, p.httpClient)
 	if err != nil {

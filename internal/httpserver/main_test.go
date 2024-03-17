@@ -1,6 +1,7 @@
 package httpserver_test
 
 import (
+	"context"
 	"errors"
 	gohttp "net/http"
 	"net/url"
@@ -78,7 +79,7 @@ func TestNewHTTPServer(t *testing.T) {
 			mux := gohttp.NewServeMux()
 			mux.Handle("/", gohttp.NotFoundHandler())
 
-			svr := httpserver.NewHTTPServer(logger.Logger, tt.conf, mux)
+			svr := httpserver.NewHTTPServer(context.Background(), logger.Logger, tt.conf, mux)
 
 			errCh := make(chan error, 1)
 
