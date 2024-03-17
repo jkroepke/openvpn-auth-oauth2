@@ -168,15 +168,15 @@ func TestPassthroughFull(t *testing.T) {
 			}
 
 			passThroughInterface.Close()
+			ctx, cancel := context.WithCancel(context.Background())
 
 			storageClient := storage.New(testutils.Secret, time.Hour)
 			provider := oauth2.New(logger.Logger, tt.conf, storageClient, http2.DefaultClient)
-			openVPNClient := openvpn.New(context.Background(), logger.Logger, tt.conf, provider)
+			openVPNClient := openvpn.New(ctx, logger.Logger, tt.conf, provider)
 
 			defer openVPNClient.Shutdown()
 
 			wg := sync.WaitGroup{}
-			ctx, cancel := context.WithCancelCause(context.Background())
 
 			wg.Add(1)
 
@@ -185,7 +185,8 @@ func TestPassthroughFull(t *testing.T) {
 
 				managementInterfaceConn, err := managementInterface.Accept()
 				if err != nil {
-					cancel(fmt.Errorf("accepting connection: %w", err))
+					assert.NoError(t, fmt.Errorf("accepting connection: %w", err))
+					cancel()
 
 					return
 				}
@@ -210,7 +211,11 @@ func TestPassthroughFull(t *testing.T) {
 				for {
 					line, err := reader.ReadString('\n')
 					if err != nil {
-						cancel(fmt.Errorf("reading line: %w", err))
+						if !errors.Is(err, io.EOF) {
+							assert.NoError(t, err)
+						}
+
+						cancel()
 
 						return
 					}
@@ -218,7 +223,7 @@ func TestPassthroughFull(t *testing.T) {
 					line = strings.TrimSpace(line)
 
 					if line == "exit" {
-						cancel(nil)
+						cancel()
 
 						break
 					}
@@ -253,7 +258,8 @@ func TestPassthroughFull(t *testing.T) {
 
 				err := openVPNClient.Connect()
 				if err != nil {
-					cancel(fmt.Errorf("connecting: %w", err))
+					assert.NoError(t, fmt.Errorf("connecting: %w", err))
+					cancel()
 
 					return
 				}
@@ -265,6 +271,7 @@ func TestPassthroughFull(t *testing.T) {
 
 			go func() {
 				defer wg.Done()
+				defer cancel()
 
 				var passThroughConn net.Conn
 
@@ -277,9 +284,7 @@ func TestPassthroughFull(t *testing.T) {
 					time.Sleep(50 * time.Millisecond)
 				}
 
-				if err != nil {
-					cancel(fmt.Errorf("dialing: %w", err))
-
+				if !assert.NoError(t, err) {
 					return
 				}
 
@@ -289,9 +294,7 @@ func TestPassthroughFull(t *testing.T) {
 					buf := make([]byte, 15)
 
 					_, err = passThroughConn.Read(buf)
-					if err != nil {
-						cancel(fmt.Errorf("reading password prompt: %w", err))
-
+					if !assert.NoError(t, err) {
 						return
 					}
 
@@ -302,8 +305,6 @@ func TestPassthroughFull(t *testing.T) {
 							"invalid",
 							"ERROR: bad password",
 						)
-
-						cancel(nil)
 
 						return
 					}
@@ -376,9 +377,7 @@ func TestPassthroughFull(t *testing.T) {
 					testutils.SendMessage(t, passThroughConn, "exit")
 
 					stat, err := os.Stat(passThroughInterface.Addr().String())
-					if err != nil {
-						cancel(fmt.Errorf("stat: %w", err))
-
+					if !assert.NoError(t, err) {
 						return
 					}
 
@@ -390,18 +389,12 @@ func TestPassthroughFull(t *testing.T) {
 				} else {
 					testutils.SendMessage(t, passThroughConn, "quit")
 				}
-
-				cancel(nil)
 			}()
 
 			<-ctx.Done()
 
 			openVPNClient.Shutdown()
 			wg.Wait()
-
-			if err := context.Cause(ctx); err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, io.EOF) {
-				require.NoError(t, err)
-			}
 		})
 	}
 }
