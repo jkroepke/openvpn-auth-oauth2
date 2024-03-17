@@ -1,3 +1,7 @@
+before:
+  hooks:
+    - go run github.com/google/go-licenses@latest save . --save_path=3rdpartylicenses
+
 builds:
   - id: "openvpn-auth-oauth2"
     binary: openvpn-auth-oauth2
