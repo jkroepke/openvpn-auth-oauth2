@@ -154,6 +154,7 @@ func TestExecuteConfigFileFound(t *testing.T) {
 			"openvpn-auth-oauth2",
 			"--config=../../config.example.yaml",
 			"--debug.pprof",
+			"--debug.listen=127.0.0.1:0",
 			"--http.secret=0123456789101112",
 			"--http.listen=127.0.0.1:0",
 			"--oauth2.issuer", resourceServer.URL,
