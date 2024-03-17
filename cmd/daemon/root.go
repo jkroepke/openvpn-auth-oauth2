@@ -66,13 +66,13 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 	}
 
 	ctx, cancel := context.WithCancelCause(context.Background())
-
 	httpClient := &http.Client{Transport: utils.NewUserAgentTransport(nil)}
+
 	storageClient := storage.New(conf.OAuth2.Refresh.Secret.String(), conf.OAuth2.Refresh.Expires)
 	oauth2Client := oauth2.New(logger, conf, storageClient, httpClient)
-	openvpnClient := openvpn.NewClient(ctx, logger, conf, oauth2Client)
+	openvpnClient := openvpn.New(ctx, logger, conf, oauth2Client)
 
-	if err = oauth2Client.Initialize(openvpnClient); err != nil {
+	if err = oauth2Client.Initialize(ctx, openvpnClient); err != nil {
 		logger.Error(err.Error())
 
 		return 1
@@ -84,12 +84,10 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 		go setupDebugListener(logger, conf, done)
 	}
 
-	server := httpserver.NewHTTPServer(logger, conf, oauth2Client.Handler())
+	server := httpserver.NewHTTPServer(ctx, logger, conf, oauth2Client.Handler())
 
 	go func() {
 		if err := server.Listen(); err != nil {
-			cancel(nil)
-
 			logger.Error(fmt.Errorf("error http listener: %w", err).Error())
 			done <- 1
 
@@ -119,6 +117,8 @@ loop:
 	for {
 		select {
 		case returnCode = <-done:
+			cancel(nil)
+
 			break loop
 		case sig := <-termCh:
 			logger.Info("receiving signal: " + sig.String())

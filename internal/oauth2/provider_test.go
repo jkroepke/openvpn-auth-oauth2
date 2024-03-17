@@ -145,13 +145,13 @@ func TestNewProvider(t *testing.T) {
 			tt.conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
 			storageClient := storage.New(testutils.Secret, time.Hour)
-
 			provider := oauth2.New(logger.Logger, tt.conf, storageClient, http2.DefaultClient)
+			ctx := context.Background()
 
-			client := openvpn.NewClient(context.Background(), logger.Logger, tt.conf, provider)
+			client := openvpn.New(ctx, logger.Logger, tt.conf, provider)
 			defer client.Shutdown()
 
-			err = provider.Initialize(client)
+			err = provider.Initialize(ctx, client)
 			if tt.err != "" {
 				require.Error(t, err)
 				assert.Equal(t, tt.err, strings.TrimSpace(err.Error()))

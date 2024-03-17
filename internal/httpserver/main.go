@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -22,7 +23,7 @@ type Server struct {
 	tlsCertificateMu sync.RWMutex
 }
 
-func NewHTTPServer(logger *slog.Logger, conf config.Config, fnHandler *http.ServeMux) *Server {
+func NewHTTPServer(ctx context.Context, logger *slog.Logger, conf config.Config, fnHandler *http.ServeMux) *Server {
 	return &Server{
 		conf:   conf,
 		logger: logger,
@@ -33,6 +34,9 @@ func NewHTTPServer(logger *slog.Logger, conf config.Config, fnHandler *http.Serv
 			WriteTimeout:      3 * time.Second,
 			ErrorLog:          slog.NewLogLogger(logger.Handler(), slog.LevelError),
 			Handler:           fnHandler,
+			BaseContext: func(_ net.Listener) context.Context {
+				return ctx
+			},
 		},
 		tlsCertificateMu: sync.RWMutex{},
 	}
@@ -66,8 +70,12 @@ func (s *Server) Listen() error {
 		err = s.server.ListenAndServe()
 	}
 
-	if err != nil && !errors.Is(err, http.ErrServerClosed) {
-		return fmt.Errorf("ListenAndServeTLS: %w", err)
+	if err != nil {
+		if !errors.Is(err, http.ErrServerClosed) {
+			return fmt.Errorf("error http listening: %w", err)
+		}
+
+		s.logger.Info("http server closed")
 	}
 
 	return nil

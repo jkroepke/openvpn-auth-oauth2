@@ -46,7 +46,7 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 	}
 
 	storageClient := storage.New(testutils.Secret, time.Hour)
-	openVPNClient := openvpn.NewClient(context.Background(), logger.Logger, conf, oauth2.New(logger.Logger, conf, storageClient, http2.DefaultClient))
+	openVPNClient := openvpn.New(context.Background(), logger.Logger, conf, oauth2.New(logger.Logger, conf, storageClient, http2.DefaultClient))
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -130,7 +130,7 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 
 	storageClient := storage.New(testutils.Secret, time.Hour)
 	provider := oauth2.New(logger.Logger, conf, storageClient, http2.DefaultClient)
-	openVPNClient := openvpn.NewClient(context.Background(), logger.Logger, conf, provider)
+	openVPNClient := openvpn.New(context.Background(), logger.Logger, conf, provider)
 
 	defer openVPNClient.Shutdown()
 
