@@ -74,7 +74,7 @@ func TestRefreshReAuth(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			conf, openVPNClient, managementInterface, _, _, httpClient, logger, shutdownFn := testutils.SetupMockEnvironment(t, context.Background(), tt.conf)
+			conf, openVPNClient, managementInterface, _, _, httpClient, logger, shutdownFn := testutils.SetupMockEnvironment(context.Background(), t, tt.conf)
 
 			t.Cleanup(func() {
 				if t.Failed() {

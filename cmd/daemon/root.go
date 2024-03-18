@@ -12,8 +12,8 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"sync"
 	"syscall"
-	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/httpserver"
@@ -66,6 +66,8 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 	}
 
 	ctx, cancel := context.WithCancelCause(context.Background())
+	defer cancel(nil)
+
 	httpClient := &http.Client{Transport: utils.NewUserAgentTransport(nil)}
 
 	storageClient := storage.New(conf.OAuth2.Refresh.Secret.String(), conf.OAuth2.Refresh.Expires)
@@ -78,73 +80,90 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 		return 1
 	}
 
-	done := make(chan int, 1)
+	wg := sync.WaitGroup{}
+	defer wg.Wait()
 
 	if conf.Debug.Pprof {
-		go setupDebugListener(logger, conf, done)
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			if err := setupDebugListener(ctx, logger, conf); err != nil {
+				cancel(fmt.Errorf("error debug http listener: %w", err))
+
+				return
+			}
+
+			cancel(nil)
+		}()
 	}
 
-	server := httpserver.NewHTTPServer(ctx, logger, conf, oauth2Client.Handler())
+	server := httpserver.NewHTTPServer("server", logger, conf.HTTP, oauth2Client.Handler())
+
+	wg.Add(1)
 
 	go func() {
-		if err := server.Listen(); err != nil {
-			logger.Error(fmt.Errorf("error http listener: %w", err).Error())
-			done <- 1
+		defer wg.Done()
+
+		if err := server.Listen(ctx); err != nil {
+			cancel(fmt.Errorf("error http listener: %w", err))
 
 			return
 		}
 
-		done <- 0
+		cancel(nil)
 	}()
 
+	wg.Add(1)
+
 	go func() {
+		defer wg.Done()
+
 		if err := openvpnClient.Connect(); err != nil {
-			logger.Error(fmt.Errorf("OpenVPN: %w", err).Error())
-			done <- 1
+			cancel(fmt.Errorf("OpenVPN: %w", err))
 
 			return
 		}
 
-		done <- 0
+		cancel(nil)
 	}()
 
 	termCh := make(chan os.Signal, 1)
 	signal.Notify(termCh, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM)
 
-	var returnCode int
+	logger.Info(
+		"openvpn-auth-oauth2 started with base url " + conf.HTTP.BaseURL.String(),
+	)
 
-loop:
 	for {
 		select {
-		case returnCode = <-done:
-			cancel(nil)
+		case <-ctx.Done():
+			err = ctx.Err()
+			if err != nil && !errors.Is(err, context.Canceled) {
+				return 1
+			}
 
-			break loop
+			return 0
 		case sig := <-termCh:
 			logger.Info("receiving signal: " + sig.String())
+
 			switch sig {
 			case syscall.SIGHUP:
-				if err = server.Reload(); err == nil {
-					continue
+				if err = server.Reload(); err != nil {
+					err := fmt.Errorf("error reloading http server: %w", err)
+					logger.Error(err.Error())
+
+					cancel(err)
 				}
-
-				fallthrough
 			default:
-				cancel(err)
-
-				break loop
+				cancel(nil)
 			}
 		}
 	}
-
-	shutdown(logger, openvpnClient, server)
-
-	return returnCode
 }
 
-func setupDebugListener(logger *slog.Logger, conf config.Config, done chan int) {
-	logger.Warn("start HTTP debug server on " + conf.Debug.Listen)
-
+func setupDebugListener(ctx context.Context, logger *slog.Logger, conf config.Config) error {
 	mux := http.NewServeMux()
 	mux.Handle("/", http.RedirectHandler("/debug/pprof/", http.StatusTemporaryRedirect))
 	mux.HandleFunc("/debug/pprof/", pprof.Index)
@@ -153,34 +172,9 @@ func setupDebugListener(logger *slog.Logger, conf config.Config, done chan int) 
 	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
 
-	server := &http.Server{
-		Addr:              conf.Debug.Listen,
-		ReadHeaderTimeout: 3 * time.Second,
-		Handler:           mux,
-	}
+	server := httpserver.NewHTTPServer("debug", logger, config.HTTP{Listen: conf.Debug.Listen}, mux)
 
-	if err := server.ListenAndServe(); err != nil {
-		logger.Error(fmt.Errorf("error http debug listener: %w", err).Error())
-		done <- 1
-
-		return
-	}
-
-	done <- 0
-}
-
-func shutdown(logger *slog.Logger, openvpnClient *openvpn.Client, server *httpserver.Server) {
-	openvpnClient.Shutdown()
-
-	logger.Info("start graceful shutdown of http listener")
-
-	if err := server.Shutdown(); err != nil {
-		logger.Error(fmt.Errorf("error graceful shutdown: %w", err).Error())
-
-		return
-	}
-
-	logger.Info("http listener successfully terminated")
+	return server.Listen(ctx) //nolint:wrapcheck
 }
 
 func defaultLogger(writer io.Writer) *slog.Logger {

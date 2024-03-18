@@ -81,11 +81,11 @@ func (c *Client) Connect() error {
 	}
 
 	<-c.ctx.Done()
+	c.Shutdown()
 
 	err = context.Cause(c.ctx)
-	if err != nil && !errors.Is(err, context.Canceled) {
-		c.Shutdown()
 
+	if err != nil && !errors.Is(err, context.Canceled) {
 		return fmt.Errorf("OpenVPN management error: %w", err)
 	}
 

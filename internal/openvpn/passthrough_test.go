@@ -168,6 +168,7 @@ func TestPassthroughFull(t *testing.T) {
 			}
 
 			passThroughInterface.Close()
+
 			ctx, cancel := context.WithCancel(context.Background())
 
 			storageClient := storage.New(testutils.Secret, time.Hour)

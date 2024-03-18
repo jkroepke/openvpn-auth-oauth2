@@ -24,7 +24,7 @@ const writeTimeout = 20 * time.Millisecond
 // The passthrough interface is disabled by default. To enable it, set the passthrough.enabled option to true in the
 // configuration file.
 //
-//nolint:cyclop
+//nolint:cyclop,gocognit
 func (c *Client) handlePassthrough() {
 	var conn net.Conn
 
@@ -62,7 +62,16 @@ func (c *Client) handlePassthrough() {
 		for {
 			select {
 			case <-c.ctx.Done():
+				c.logger.Info("shutdown OpenVPN pass-through connection")
 				closer()
+
+				connMu.Lock()
+
+				if conn != nil {
+					conn.Close()
+				}
+
+				connMu.Unlock()
 
 				return // Error somewhere, terminate
 			case message = <-c.passthroughCh:
@@ -91,8 +100,14 @@ func (c *Client) handlePassthrough() {
 	}()
 
 	for {
+		connMu.Lock()
+
+		conn = nil
 		// Listen for an incoming connection.
 		conn, err = listener.Accept()
+
+		connMu.Unlock()
+
 		if err != nil {
 			c.ctxCancel(fmt.Errorf("error accepting: %w", err))
 
@@ -100,10 +115,6 @@ func (c *Client) handlePassthrough() {
 		}
 
 		c.handlePassthroughClient(conn)
-
-		connMu.Lock()
-		conn = nil
-		connMu.Unlock()
 	}
 }
 

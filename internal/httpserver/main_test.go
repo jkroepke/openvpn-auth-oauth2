@@ -79,21 +79,25 @@ func TestNewHTTPServer(t *testing.T) {
 			mux := gohttp.NewServeMux()
 			mux.Handle("/", gohttp.NotFoundHandler())
 
-			svr := httpserver.NewHTTPServer(context.Background(), logger.Logger, tt.conf, mux)
+			svr := httpserver.NewHTTPServer("server", logger.Logger, tt.conf.HTTP, mux)
+
+			ctx, cancel := context.WithCancel(context.Background())
 
 			errCh := make(chan error, 1)
 
 			go func() {
-				errCh <- svr.Listen()
+				errCh <- svr.Listen(ctx)
 			}()
 
 			if tt.err == nil {
-				time.Sleep(50 * time.Millisecond)
-
 				require.NoError(t, svr.Reload())
-				require.NoError(t, svr.Shutdown())
+
+				time.Sleep(50 * time.Millisecond)
+				cancel()
+
 				require.NoError(t, <-errCh)
 			} else {
+				cancel()
 				require.EqualError(t, <-errCh, tt.err.Error())
 			}
 		})
