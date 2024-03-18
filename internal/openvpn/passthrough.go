@@ -65,14 +65,6 @@ func (c *Client) handlePassthrough() {
 				c.logger.Info("shutdown OpenVPN pass-through connection")
 				closer()
 
-				connMu.Lock()
-
-				if conn != nil {
-					conn.Close()
-				}
-
-				connMu.Unlock()
-
 				return // Error somewhere, terminate
 			case message = <-c.passthroughCh:
 				if message == "" || message == "\r\n" {
@@ -100,14 +92,8 @@ func (c *Client) handlePassthrough() {
 	}()
 
 	for {
-		connMu.Lock()
-
-		conn = nil
 		// Listen for an incoming connection.
 		conn, err = listener.Accept()
-
-		connMu.Unlock()
-
 		if err != nil {
 			c.ctxCancel(fmt.Errorf("error accepting: %w", err))
 
@@ -115,6 +101,10 @@ func (c *Client) handlePassthrough() {
 		}
 
 		c.handlePassthroughClient(conn)
+
+		connMu.Lock()
+		conn = nil
+		connMu.Unlock()
 	}
 }
 
