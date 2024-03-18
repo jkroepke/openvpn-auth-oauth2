@@ -86,9 +86,10 @@ func openvpn_plugin_open_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_
 		return C.OPENVPN_PLUGIN_FUNC_ERROR
 	}
 
-	handle.server = httpserver.NewHTTPServer(context.Background(), logger, conf, provider.Handler())
+	handle.server = httpserver.NewHTTPServer("server", logger, conf.HTTP, provider.Handler())
+
 	go func() {
-		if err := handle.server.Listen(); err != nil {
+		if err := handle.server.Listen(context.Background()); err != nil {
 			logger.Error(fmt.Errorf("error http listener: %w", err).Error())
 			os.Exit(1)
 		}
@@ -156,8 +157,6 @@ func openvpn_plugin_close_v1(pluginHandle C.openvpn_plugin_handle_t) {
 		return
 	}
 
-	_ = handle.server.Shutdown()
-
 	handle.logger.Info("plugin closed")
 }
 
@@ -168,8 +167,6 @@ func openvpn_plugin_abort_v1(pluginHandle C.openvpn_plugin_handle_t) {
 	if handle == nil {
 		return
 	}
-
-	_ = handle.server.Shutdown()
 
 	handle.logger.Info("plugin abort")
 }

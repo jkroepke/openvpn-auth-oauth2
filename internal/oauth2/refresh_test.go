@@ -74,7 +74,7 @@ func TestRefreshReAuth(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			conf, client, managementInterface, _, _, httpClient, logger, shutdownFn := testutils.SetupMockEnvironment(t, tt.conf)
+			conf, openVPNClient, managementInterface, _, _, httpClient, logger, shutdownFn := testutils.SetupMockEnvironment(context.Background(), t, tt.conf)
 
 			t.Cleanup(func() {
 				if t.Failed() {
@@ -90,7 +90,7 @@ func TestRefreshReAuth(t *testing.T) {
 			go func() {
 				defer wg.Done()
 
-				err := client.Connect()
+				err := openVPNClient.Connect()
 				if err != nil && !strings.HasSuffix(err.Error(), "EOF") {
 					require.NoError(t, err) //nolint:testifylint
 				}
@@ -187,7 +187,7 @@ func TestRefreshReAuth(t *testing.T) {
 
 			time.Sleep(time.Millisecond * 50)
 
-			client.Shutdown()
+			openVPNClient.Shutdown()
 			wg.Wait()
 		})
 	}

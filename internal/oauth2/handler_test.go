@@ -17,7 +17,6 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestHandler(t *testing.T) {
@@ -328,17 +327,24 @@ func TestHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			conf, client, managementInterface, _, httpClientListener, httpClient, logger, shutdownFn := testutils.SetupMockEnvironment(t, tt.conf)
+			ctx, cancel := context.WithCancel(context.Background())
+
+			conf, client, managementInterface, _, httpClientListener, httpClient, logger, shutdownFn := testutils.SetupMockEnvironment(ctx, t, tt.conf)
 			defer shutdownFn()
 
 			wg := sync.WaitGroup{}
-			wg.Add(2)
+			wg.Add(3)
 
 			go func() {
 				defer wg.Done()
 
 				managementInterfaceConn, err := managementInterface.Accept()
-				require.NoError(t, err) //nolint:testifylint
+				if err != nil {
+					assert.NoError(t, fmt.Errorf("accepting connection: %w", err))
+					cancel()
+
+					return
+				}
 
 				defer managementInterfaceConn.Close()
 				reader := bufio.NewReader(managementInterfaceConn)
@@ -367,95 +373,132 @@ func TestHandler(t *testing.T) {
 				err := client.Connect()
 
 				if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, openvpn.ErrConnectionTerminated) {
-					require.NoError(t, err) //nolint:testifylint
+					assert.NoError(t, err)
+					cancel()
+
+					return
 				}
 			}()
 
-			time.Sleep(time.Millisecond * 100)
+			go func() {
+				defer wg.Done()
+				defer cancel()
 
-			session := tt.state
+				time.Sleep(time.Millisecond * 100)
 
-			if tt.state == "-" {
-				sessionState := state.New(state.ClientIdentifier{CID: 0, KID: 1}, tt.ipaddr, "12345", "name")
-				require.NoError(t, sessionState.Encode(tt.conf.HTTP.Secret.String()))
+				session := tt.state
 
-				session = sessionState.Encoded()
-			}
+				if tt.state == "-" {
+					sessionState := state.New(state.ClientIdentifier{CID: 0, KID: 1}, tt.ipaddr, "12345", "name")
+					err := sessionState.Encode(tt.conf.HTTP.Secret.String())
 
-			request, err := http.NewRequestWithContext(context.Background(), http.MethodGet,
-				fmt.Sprintf("%s/oauth2/start?state=%s", httpClientListener.URL, session),
-				nil,
-			)
+					if !assert.NoError(t, err) {
+						return
+					}
 
-			require.NoError(t, err)
+					session = sessionState.Encoded()
+				}
 
-			if tt.xForwardedFor != "" {
-				request.Header.Set("X-Forwarded-For", tt.xForwardedFor)
-			}
+				request, err := http.NewRequestWithContext(context.Background(), http.MethodGet,
+					fmt.Sprintf("%s/oauth2/start?state=%s", httpClientListener.URL, session),
+					nil,
+				)
 
-			httpClient.CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
-				return http.ErrUseLastResponse
-			}
+				if !assert.NoError(t, err) {
+					return
+				}
 
-			resp, err := httpClient.Do(request)
-			require.NoError(t, err)
+				if tt.xForwardedFor != "" {
+					request.Header.Set("X-Forwarded-For", tt.xForwardedFor)
+				}
 
-			_, err = io.Copy(io.Discard, resp.Body)
-			require.NoError(t, err)
-			resp.Body.Close()
+				httpClient.CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
+					return http.ErrUseLastResponse
+				}
 
-			if tt.state != "-" {
-				assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+				resp, err := httpClient.Do(request)
+				if !assert.NoError(t, err) {
+					return
+				}
 
-				return
-			}
+				_, err = io.Copy(io.Discard, resp.Body)
+				if !assert.NoError(t, err) {
+					return
+				}
 
-			if !tt.preAllow {
-				require.Equal(t, http.StatusForbidden, resp.StatusCode)
+				resp.Body.Close()
 
-				return
-			}
+				if tt.state != "-" {
+					assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 
-			require.Equal(t, http.StatusFound, resp.StatusCode)
+					return
+				}
 
-			assert.NotEmpty(t, resp.Header.Get("Set-Cookie"))
-			assert.Contains(t, resp.Header.Get("Set-Cookie"), "state=")
-			assert.Contains(t, resp.Header.Get("Set-Cookie"), "Path=/oauth2/")
-			assert.Contains(t, resp.Header.Get("Set-Cookie"), "HttpOnly")
-			assert.Contains(t, resp.Header.Get("Set-Cookie"), "Max-Age=5")
+				if !tt.preAllow {
+					assert.Equal(t, http.StatusForbidden, resp.StatusCode)
 
-			require.NotEmpty(t, resp.Header.Get("Location"))
+					return
+				}
 
-			httpClient.CheckRedirect = nil
+				if !assert.Equal(t, http.StatusFound, resp.StatusCode) {
+					return
+				}
 
-			request, err = http.NewRequestWithContext(context.Background(), http.MethodGet, resp.Header.Get("Location"), nil)
-			require.NoError(t, err)
+				assert.NotEmpty(t, resp.Header.Get("Set-Cookie"))
+				assert.Contains(t, resp.Header.Get("Set-Cookie"), "state=")
+				assert.Contains(t, resp.Header.Get("Set-Cookie"), "Path=/oauth2/")
+				assert.Contains(t, resp.Header.Get("Set-Cookie"), "HttpOnly")
+				assert.Contains(t, resp.Header.Get("Set-Cookie"), "Max-Age=5")
 
-			resp, err = httpClient.Do(request)
-			require.NoError(t, err)
+				if !assert.NotEmpty(t, resp.Header.Get("Location")) {
+					return
+				}
 
-			body, err := io.ReadAll(resp.Body)
-			require.NoError(t, err)
+				httpClient.CheckRedirect = nil
 
-			if !tt.postAllow {
-				require.Equal(t, http.StatusForbidden, resp.StatusCode, logger.GetLogs(), string(body))
+				request, err = http.NewRequestWithContext(context.Background(), http.MethodGet, resp.Header.Get("Location"), nil)
+				if !assert.NoError(t, err) {
+					return
+				}
 
-				return
-			}
+				resp, err = httpClient.Do(request)
+				if !assert.NoError(t, err) {
+					return
+				}
 
-			require.Equal(t, http.StatusOK, resp.StatusCode, logger.GetLogs(), string(body))
+				body, err := io.ReadAll(resp.Body)
+				if !assert.NoError(t, err) {
+					return
+				}
 
-			_ = resp.Body.Close()
+				if !tt.postAllow {
+					assert.Equal(t, http.StatusForbidden, resp.StatusCode, logger.GetLogs(), string(body))
 
-			if conf.HTTP.CallbackTemplate != config.Defaults.HTTP.CallbackTemplate {
-				require.Contains(t, string(body), "Permission is hereby granted")
-			}
+					return
+				}
 
-			assert.NotEmpty(t, resp.Header.Get("Set-Cookie"))
-			assert.Contains(t, resp.Header.Get("Set-Cookie"), "state=")
-			assert.Contains(t, resp.Header.Get("Set-Cookie"), "Path=/oauth2/")
-			assert.Contains(t, resp.Header.Get("Set-Cookie"), "HttpOnly")
-			assert.Contains(t, resp.Header.Get("Set-Cookie"), "Max-Age=0")
+				if !assert.Equal(t, http.StatusOK, resp.StatusCode, logger.GetLogs(), string(body)) {
+					return
+				}
+
+				_ = resp.Body.Close()
+
+				if conf.HTTP.CallbackTemplate != config.Defaults.HTTP.CallbackTemplate {
+					if !assert.Contains(t, string(body), "Permission is hereby granted") {
+						return
+					}
+				}
+
+				assert.NotEmpty(t, resp.Header.Get("Set-Cookie"))
+				assert.Contains(t, resp.Header.Get("Set-Cookie"), "state=")
+				assert.Contains(t, resp.Header.Get("Set-Cookie"), "Path=/oauth2/")
+				assert.Contains(t, resp.Header.Get("Set-Cookie"), "HttpOnly")
+				assert.Contains(t, resp.Header.Get("Set-Cookie"), "Max-Age=0")
+
+				cancel()
+			}()
+
+			<-ctx.Done()
 
 			client.Shutdown()
 			wg.Wait()

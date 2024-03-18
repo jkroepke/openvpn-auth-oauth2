@@ -62,6 +62,7 @@ func (c *Client) handlePassthrough() {
 		for {
 			select {
 			case <-c.ctx.Done():
+				c.logger.Info("shutdown OpenVPN pass-through connection")
 				closer()
 
 				return // Error somewhere, terminate

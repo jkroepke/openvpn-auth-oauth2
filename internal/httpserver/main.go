@@ -3,7 +3,6 @@ package httpserver
 import (
 	"context"
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"log/slog"
 	"net"
@@ -15,7 +14,8 @@ import (
 )
 
 type Server struct {
-	conf   config.Config
+	name   string
+	conf   config.HTTP
 	logger *slog.Logger
 	server *http.Server
 
@@ -23,59 +23,70 @@ type Server struct {
 	tlsCertificateMu sync.RWMutex
 }
 
-func NewHTTPServer(ctx context.Context, logger *slog.Logger, conf config.Config, fnHandler *http.ServeMux) *Server {
+func NewHTTPServer(name string, logger *slog.Logger, conf config.HTTP, fnHandler *http.ServeMux) *Server {
 	return &Server{
+		name:   name,
 		conf:   conf,
 		logger: logger,
 		server: &http.Server{
-			Addr:              conf.HTTP.Listen,
+			Addr:              conf.Listen,
 			ReadHeaderTimeout: 3 * time.Second,
 			ReadTimeout:       3 * time.Second,
 			WriteTimeout:      3 * time.Second,
 			ErrorLog:          slog.NewLogLogger(logger.Handler(), slog.LevelError),
 			Handler:           fnHandler,
-			BaseContext: func(_ net.Listener) context.Context {
-				return ctx
-			},
 		},
 		tlsCertificateMu: sync.RWMutex{},
 	}
 }
 
-func (s *Server) Listen() error {
+func (s *Server) Listen(ctx context.Context) error {
 	if s.server == nil {
 		return nil
 	}
 
-	var err error
+	s.server.BaseContext = func(_ net.Listener) context.Context { return ctx }
 
-	if s.conf.HTTP.TLS {
+	var errCh chan error
+
+	if s.conf.TLS {
 		s.logger.Info(fmt.Sprintf(
-			"start HTTPS server listener on %s with base url %s", s.conf.HTTP.Listen, s.conf.HTTP.BaseURL.String(),
+			"start HTTPS %s listener on %s", s.name, s.conf.Listen,
 		))
 
-		if err = s.Reload(); err != nil {
+		if err := s.Reload(); err != nil {
 			return err
 		}
 
 		s.server.TLSConfig = new(tls.Config)
 		s.server.TLSConfig.GetCertificate = s.GetCertificateFunc()
 
-		err = s.server.ListenAndServeTLS("", "")
+		go func() {
+			errCh <- s.server.ListenAndServeTLS("", "")
+		}()
 	} else {
 		s.logger.Info(fmt.Sprintf(
-			"start HTTP server listener on %s with base url %s", s.conf.HTTP.Listen, s.conf.HTTP.BaseURL.String(),
+			"start HTTP %s listener on %s", s.name, s.conf.Listen,
 		))
 
-		err = s.server.ListenAndServe()
+		go func() {
+			errCh <- s.server.ListenAndServeTLS("", "")
+		}()
 	}
 
-	if err != nil {
-		if !errors.Is(err, http.ErrServerClosed) {
-			return fmt.Errorf("error http listening: %w", err)
+	select {
+	case <-ctx.Done():
+		s.logger.Info(fmt.Sprintf("start graceful shutdown of http %s listener", s.name))
+
+		if err := s.shutdown(); err != nil { //nolint:contextcheck
+			s.logger.Error(fmt.Errorf("error graceful shutdown %s: %w", s.name, err).Error())
+
+			return nil
 		}
 
-		s.logger.Info("http server closed")
+		s.logger.Info(fmt.Sprintf("http %s listener successfully terminated", s.name))
+	case err := <-errCh:
+		return fmt.Errorf("error http %s listening: %w", s.name, err)
 	}
 
 	return nil
@@ -91,11 +102,11 @@ func (s *Server) GetCertificateFunc() func(*tls.ClientHelloInfo) (*tls.Certifica
 }
 
 func (s *Server) Reload() error {
-	if !s.conf.HTTP.TLS {
+	if !s.conf.TLS {
 		return nil
 	}
 
-	certs, err := tls.LoadX509KeyPair(s.conf.HTTP.CertFile, s.conf.HTTP.KeyFile)
+	certs, err := tls.LoadX509KeyPair(s.conf.CertFile, s.conf.KeyFile)
 	if err != nil {
 		return fmt.Errorf("tls.LoadX509KeyPair: %w", err)
 	}
@@ -113,7 +124,7 @@ func (s *Server) Reload() error {
 	return nil
 }
 
-func (s *Server) Shutdown() error {
+func (s *Server) shutdown() error {
 	if s.server == nil {
 		return nil
 	}
