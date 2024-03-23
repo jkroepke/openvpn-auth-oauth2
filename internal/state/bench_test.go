@@ -16,7 +16,7 @@ func BenchmarkState(b *testing.B) {
 	b.StartTimer()
 
 	b.Run("encode", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for range b.N {
 			_ = token.Encode(encryptionKey)
 		}
 
@@ -30,7 +30,7 @@ func BenchmarkState(b *testing.B) {
 	b.StartTimer()
 
 	b.Run("decode", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for range b.N {
 			_ = encodedToken.Decode(encryptionKey)
 		}
 

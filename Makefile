@@ -90,11 +90,11 @@ goperfsprint:
 
 .PHONY: golangci
 golangci:
-	@go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.56.1 run ./...
+	@go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.57.1 run ./...
 
 .PHONY: golangci-fix
 golangci-fix:
-	@go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.56.1 run ./... --fix
+	@go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.57.1 run ./... --fix
 
 .PHONY: 3rdpartylicenses
 3rdpartylicenses:

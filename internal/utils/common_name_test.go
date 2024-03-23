@@ -27,8 +27,6 @@ func TestTransformCommonName(t *testing.T) {
 			"hello world",
 		},
 	} {
-		tt := tt
-
 		t.Run(tt.mode.String(), func(t *testing.T) {
 			t.Parallel()
 

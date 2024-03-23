@@ -44,7 +44,6 @@ func TestFlagSet(t *testing.T) {
 			},
 		},
 	} {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -248,8 +247,6 @@ func TestValidate(t *testing.T) {
 			"",
 		},
 	} {
-		tt := tt
-
 		t.Run(tt.err, func(t *testing.T) {
 			t.Parallel()
 

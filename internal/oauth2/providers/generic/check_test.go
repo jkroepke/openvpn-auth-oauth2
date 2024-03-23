@@ -108,7 +108,6 @@ func TestInvalidToken(t *testing.T) {
 			generic.ErrMissingClaim,
 		},
 	} {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -147,8 +146,6 @@ func TestValidateGroups(t *testing.T) {
 		{"configure two group, missing one", []string{"apple"}, []string{"apple", "pear"}, ""},
 		{"configure two group", []string{"apple", "pear"}, []string{"apple", "pear"}, ""},
 	} {
-		tt := tt
-
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -199,8 +196,6 @@ func TestValidateRoles(t *testing.T) {
 		{"configure two role, missing one", []string{"apple"}, []string{"apple", "pear"}, ""},
 		{"configure two role", []string{"apple", "pear"}, []string{"apple", "pear"}, ""},
 	} {
-		tt := tt
-
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -371,7 +366,6 @@ func TestValidateCommonName(t *testing.T) {
 			errors.New("common_name mismatch: openvpn client is empty"),
 		},
 	} {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -418,8 +412,6 @@ func TestValidateIpAddr(t *testing.T) {
 		{"sub required wrong", true, true, "pear", "apple", "ipaddr mismatch: openvpn client: pear - oidc token: apple"},
 		{"nonexists claim", true, false, "pear", "apple", "missing claim: ipaddr"},
 	} {
-		tt := tt
-
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 

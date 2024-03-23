@@ -33,8 +33,6 @@ func TestIsUrlEmpty(t *testing.T) {
 			false,
 		},
 	} {
-		tt := tt
-
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			assert.Equal(t, tt.expect, config.IsURLEmpty(tt.url))
