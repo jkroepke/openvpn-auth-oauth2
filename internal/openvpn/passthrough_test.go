@@ -314,6 +314,8 @@ func TestPassthroughFull(t *testing.T) {
 					)
 				}
 
+				testutils.ExpectMessage(t, passThroughConn, passThroughReader, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info")
+
 				for range 10 {
 					testutils.SendMessage(t, passThroughConn, "")
 					testutils.SendMessage(t, passThroughConn, "\n")
@@ -373,7 +375,7 @@ func TestPassthroughFull(t *testing.T) {
 				}
 
 				if tt.scheme == openvpn.SchemeUnix {
-					testutils.SendMessage(t, passThroughConn, "exit")
+					testutils.SendMessage(t, passThroughConn, " exit ")
 
 					stat, err := os.Stat(passThroughInterface.Addr().String())
 					if !assert.NoError(t, err) {
@@ -386,7 +388,7 @@ func TestPassthroughFull(t *testing.T) {
 					assert.Equal(t, tt.conf.OpenVpn.Passthrough.SocketGroup, strconv.Itoa(int(gid.Gid)))
 					assert.Equal(t, os.FileMode(tt.conf.OpenVpn.Passthrough.SocketMode), stat.Mode().Perm())
 				} else {
-					testutils.SendMessage(t, passThroughConn, "quit")
+					testutils.SendMessage(t, passThroughConn, " quit ")
 				}
 			}()
 

@@ -72,7 +72,7 @@ func (c *Client) handlePassthrough() {
 				}
 
 				connMu.Lock()
-				if conn == nil {
+				if conn == nil || c.passthroughConnected.Load() == 0 {
 					continue
 				}
 
@@ -101,6 +101,8 @@ func (c *Client) handlePassthrough() {
 		}
 
 		c.handlePassthroughClient(conn)
+
+		c.passthroughConnected.Store(0)
 
 		connMu.Lock()
 		conn = nil
@@ -141,6 +143,9 @@ func (c *Client) handlePassthroughClient(conn net.Conn) {
 		return
 	}
 
+	c.writeToPassthroughClient(">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info")
+	c.passthroughConnected.CompareAndSwap(0, 1)
+
 	if err = c.handlePassthroughClientCommands(conn, logger, scanner); err != nil {
 		logger.Warn(err.Error())
 	}
@@ -156,7 +161,7 @@ func (c *Client) handlePassthroughClientCommands(conn net.Conn, logger *slog.Log
 	)
 
 	for scanner.Scan() {
-		line = scanner.Text()
+		line = strings.TrimSpace(scanner.Text())
 
 		logger.LogAttrs(c.ctx, slog.LevelDebug, "received command", slog.String("command", line))
 
@@ -166,11 +171,11 @@ func (c *Client) handlePassthroughClientCommands(conn net.Conn, logger *slog.Log
 			logger.Warn("pass-through: client send client-deny or client-auth message, ignoring...")
 
 			continue
-		case strings.HasPrefix(line, "hold"):
+		case line == "hold":
 			c.writeToPassthroughClient("SUCCESS: hold release succeeded")
 
 			continue
-		case strings.HasPrefix(line, "exit"), strings.HasPrefix(line, "quit"):
+		case line == "exit", line == "quit":
 			conn.Close()
 
 			return nil
