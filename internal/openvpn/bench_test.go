@@ -183,6 +183,8 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 				message = OpenVPNManagementInterfaceCommandResultHelp
 			case "status":
 				message = OpenVPNManagementInterfaceCommandResultStatus
+			case "status 2":
+				message = OpenVPNManagementInterfaceCommandResultStatus2
 			case "version":
 				message = "OpenVPN Version: openvpn-auth-oauth2\r\nManagement Interface Version: 5\r\nEND"
 			case "load-stats":
@@ -248,6 +250,10 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 		{
 			"status",
 			OpenVPNManagementInterfaceCommandResultStatus,
+		},
+		{
+			"status 2",
+			OpenVPNManagementInterfaceCommandResultStatus2,
 		},
 		{
 			"help",
