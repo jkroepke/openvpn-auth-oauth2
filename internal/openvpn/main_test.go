@@ -417,6 +417,8 @@ func TestClientInvalidVersion(t *testing.T) {
 
 	for _, tt := range versions {
 		t.Run(tt.name, func(t *testing.T) {
+			conf := conf
+
 			t.Parallel()
 
 			managementInterface, err := nettest.NewLocalListener("tcp")

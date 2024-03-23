@@ -38,4 +38,6 @@ type Client struct {
 	commandResponseCh chan string
 	commandsCh        chan string
 	passthroughCh     chan string
+
+	passthroughConnected atomic.Uint32
 }
