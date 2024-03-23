@@ -162,6 +162,9 @@ func (c *Client) handlePassthroughClientCommands(conn net.Conn, logger *slog.Log
 
 	for scanner.Scan() {
 		line = strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
+		}
 
 		logger.LogAttrs(c.ctx, slog.LevelDebug, "received command", slog.String("command", line))
 
