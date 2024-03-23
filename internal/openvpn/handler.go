@@ -126,7 +126,7 @@ func (c *Client) handleMessage(message string) {
 
 		fallthrough
 	// Managem is the beginning of the help response
-	case "ERROR: ", "OpenVPN", "Managem":
+	case "ERROR: ", "OpenVPN", "Managem", "TITLE,O", "TITLE\tO":
 		c.commandResponseCh <- message
 	case ">INFO:O":
 		// welcome message

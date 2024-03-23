@@ -2,6 +2,8 @@ name: CI
 
 env:
   PACKAGES: openvpn crossbuild-essential-arm64 libssl-dev:arm64
+  # renovate: github=golangci/golangci-lint
+  GO_LINT_CI_VERSION: v1.57.1
 
 on:
   workflow_dispatch:
@@ -78,7 +80,7 @@ jobs:
         uses: golangci/golangci-lint-action@v4
         with:
           args: --out-format "github-actions,colored-line-number"
-          version: v1.57.1
+          version: ${{ env.GO_LINT_CI_VERSION }}
 
   publish:
     name: Publish package

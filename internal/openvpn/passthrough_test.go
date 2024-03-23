@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net"
-	http2 "net/http"
+	"net/http"
 	"net/url"
 	"os"
 	"strconv"
@@ -86,6 +86,24 @@ test n                 : Produce n lines of output for testing/debugging.
 username type u        : Enter username u for a queried OpenVPN username.
 verb [n]               : Set log verbosity level to n, or show if n is absent.
 version [n]            : Set client's version to n or show current version of daemon.
+END
+`
+
+const OpenVPNManagementInterfaceCommandResultStatus2 = `TITLE,OpenVPN 2.6.9 [git:release/2.6/6640a10bf6d84eee] x86_64-pc-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [MH/PKTINFO] [AEAD] [DCO] built on Mar 16 2024
+TIME,2024-03-23 16:00:26,1711209626
+HEADER,CLIENT_LIST,Common Name,Real Address,Virtual Address,Virtual IPv6 Address,Bytes Received,Bytes Sent,Connected Since,Connected Since (time_t),Username,Client ID,Peer ID,Data Channel Cipher
+HEADER,ROUTING_TABLE,Virtual Address,Common Name,Real Address,Last Ref,Last Ref (time_t)
+GLOBAL_STATS,Max bcast/mcast queue length,0
+GLOBAL_STATS,dco_enabled,0
+END
+`
+
+const OpenVPNManagementInterfaceCommandResultStatus3 = `TITLE	OpenVPN 2.6.9 [git:release/2.6/6640a10bf6d84eee] x86_64-pc-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [MH/PKTINFO] [AEAD] [DCO] built on Mar 16 2024
+TIME	2024-03-23 16:00:26	1711209626
+HEADER	CLIENT_LIST	Common Name	Real Address	Virtual Address	Virtual IPv6 Address	Bytes Received	Bytes Sent	Connected Since	Connected Since (time_t)	Username	Client ID	Peer ID	Data Channel Cipher
+HEADER	ROUTING_TABLE	Virtual Address	Common Name	Real Address	Last Ref	Last Ref (time_t)
+GLOBAL_STATS	Max bcast/mcast queue length	0
+GLOBAL_STATS	dco_enabled	0
 END
 `
 
@@ -170,7 +188,7 @@ func TestPassthroughFull(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 
 			storageClient := storage.New(testutils.Secret, time.Hour)
-			provider := oauth2.New(logger.Logger, tt.conf, storageClient, http2.DefaultClient)
+			provider := oauth2.New(logger.Logger, tt.conf, storageClient, http.DefaultClient)
 			openVPNClient := openvpn.New(ctx, logger.Logger, tt.conf, provider)
 
 			defer openVPNClient.Shutdown()
@@ -232,6 +250,10 @@ func TestPassthroughFull(t *testing.T) {
 						message = OpenVPNManagementInterfaceCommandResultHelp
 					case "status":
 						message = OpenVPNManagementInterfaceCommandResultStatus
+					case "status 2":
+						message = OpenVPNManagementInterfaceCommandResultStatus2
+					case "status 3":
+						message = OpenVPNManagementInterfaceCommandResultStatus3
 					case "version":
 						message = "OpenVPN Version: openvpn-auth-oauth2\r\nManagement Interface Version: 5\r\nEND"
 					case "load-stats":
@@ -364,6 +386,16 @@ func TestPassthroughFull(t *testing.T) {
 					testutils.SendAndExpectMessage(t, passThroughConn, passThroughReader,
 						"help",
 						OpenVPNManagementInterfaceCommandResultHelp,
+					)
+
+					testutils.SendAndExpectMessage(t, passThroughConn, passThroughReader,
+						"status 2",
+						OpenVPNManagementInterfaceCommandResultStatus2,
+					)
+
+					testutils.SendAndExpectMessage(t, passThroughConn, passThroughReader,
+						"status 3",
+						OpenVPNManagementInterfaceCommandResultStatus3,
 					)
 				}
 

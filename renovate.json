@@ -1,10 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:base"
-  ],
-  "schedule": [
-    "before 3am on the first day of the month"
+    "config:recommended"
   ],
   "labels": [
     "🛠️ dependencies"
@@ -15,5 +12,18 @@
   ],
   "ignoreDeps": [
     "github.com/jkroepke/openvpn-auth-oauth2"
+  ],
+  "regexManagers": [
+    {
+      "fileMatch": [
+        "(^|/).+\\.yaml$",
+        "Makefile"
+      ],
+      "matchStrings": [
+        "\\s*#\\s?renovate: (?<datasource>.*?)=(?<depName>.*?)(\\s+versioning=(?<versioning>.*?))?\\s+[\\w+\\.\\-]+(?:[:=]|\\s+\\S+)\\s*[\\\"']?(?<currentValue>[\\w+\\.\\-]*)(?:@(?<currentDigest>sha256:[a-f0-9]+))?[\\\"']?"
+      ],
+      "datasourceTemplate": "{{#if (equals datasource 'github')}}github-tags{{else}}{{{datasource}}}{{/if}}",
+      "versioningTemplate": "{{#if (equals datasource 'docker')}}docker{{else if versioning}}{{{versioning}}}{{else}}semver{{/if}}"
+    }
   ]
 }

@@ -7,6 +7,9 @@ WHITE  := $(shell tput -Txterm setaf 7)
 CYAN   := $(shell tput -Txterm setaf 6)
 RESET  := $(shell tput -Txterm sgr0)
 
+# renovate: github=golangci/golangci-lint
+GO_LINT_CI_VERSION := v1.57.1
+
 ##
 # Targets
 ##
@@ -90,11 +93,11 @@ goperfsprint:
 
 .PHONY: golangci
 golangci:
-	@go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.57.1 run ./...
+	@go run github.com/golangci/golangci-lint/cmd/golangci-lint@${GO_LINT_CI_VERSION} run ./...
 
 .PHONY: golangci-fix
 golangci-fix:
-	@go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.57.1 run ./... --fix
+	@go run github.com/golangci/golangci-lint/cmd/golangci-lint@${GO_LINT_CI_VERSION} run ./... --fix
 
 .PHONY: 3rdpartylicenses
 3rdpartylicenses:
