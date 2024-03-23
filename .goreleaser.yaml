@@ -21,6 +21,7 @@ builds:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser
     overrides:
       - goos: linux
+        goarch: '{{ .Arch }}'
         ldflags:
           # https://github.com/golang/go/issues/41944#issuecomment-711025202
           - -linkmode external -extldflags "--static-pie"
