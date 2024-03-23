@@ -1,7 +1,7 @@
 name: CI
 
 env:
-  PACKAGES: openvpn
+  PACKAGES: openvpn crossbuild-essential-arm64 libssl-dev:arm64
 
 on:
   workflow_dispatch:
