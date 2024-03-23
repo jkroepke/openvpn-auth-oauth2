@@ -5,15 +5,6 @@ before:
 builds:
   - id: "openvpn-auth-oauth2"
     binary: openvpn-auth-oauth2
-    buildmode: '{{ if eq .Os "linux"}}pie{{ end }}'
-    env:
-      - CGO_ENABLED={{ if eq .Os "linux"}}1{{ else }}0{{ end }}
-      - >-
-        {{- if eq .Arch "amd64"}}CC=x86_64-linux-gnu-gcc{{- end }}
-        {{- if eq .Arch "arm64"}}CC=aarch64-linux-gnu-gcc{{- end }}
-      - >-
-        {{- if eq .Arch "amd64"}}CXX=x86_64-linux-gnu-g++{{- end }}
-        {{- if eq .Arch "arm64"}}CXX=aarch64-linux-gnu-g++{{- end }}
     goos:
       - linux
       - freebsd
@@ -25,13 +16,7 @@ builds:
     flags:
       - -trimpath
     ldflags:
-      # https://github.com/golang/go/issues/41944#issuecomment-711025202
-      - -linkmode external -extldflags "--static-pie"
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser
-    tags:
-      - osusergo
-      - netgo
-      - static_build
   - id: "openvpn-auth-oauth2.so"
     binary: openvpn-auth-oauth2
     main: ./pkg/plugin/
