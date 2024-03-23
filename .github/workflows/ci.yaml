@@ -78,6 +78,7 @@ jobs:
         uses: golangci/golangci-lint-action@v4
         with:
           args: --out-format "github-actions,colored-line-number"
+          version: v1.57.1
 
   publish:
     name: Publish package
@@ -117,7 +118,7 @@ jobs:
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v5
         with:
-          version: v1.57.1
+          version: latest
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
