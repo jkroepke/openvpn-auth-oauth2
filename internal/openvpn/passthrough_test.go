@@ -146,8 +146,6 @@ func TestPassthroughFull(t *testing.T) {
 	}
 
 	for _, tt := range confs {
-		tt := tt
-
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -276,7 +274,7 @@ func TestPassthroughFull(t *testing.T) {
 
 				var passThroughConn net.Conn
 
-				for i := 0; i < 100; i++ {
+				for range 100 {
 					passThroughConn, err = net.DialTimeout(passThroughInterface.Addr().Network(), passThroughInterface.Addr().String(), time.Second)
 					if err == nil {
 						break
@@ -316,7 +314,7 @@ func TestPassthroughFull(t *testing.T) {
 					)
 				}
 
-				for i := 0; i < 10; i++ {
+				for range 10 {
 					testutils.SendMessage(t, passThroughConn, "")
 					testutils.SendMessage(t, passThroughConn, "\n")
 					testutils.SendMessage(t, passThroughConn, "\r\n")
@@ -367,7 +365,7 @@ func TestPassthroughFull(t *testing.T) {
 					)
 				}
 
-				for i := 0; i < 10; i++ {
+				for range 10 {
 					testutils.SendAndExpectMessage(t, passThroughConn, passThroughReader,
 						"help",
 						OpenVPNManagementInterfaceCommandResultHelp,

@@ -22,8 +22,6 @@ func TestLookupGroup(t *testing.T) {
 		{"-", 0, fmt.Errorf("error lookup group: %w", user.UnknownGroupError("-"))},
 		{"", 0, fmt.Errorf("error lookup group: %w", user.UnknownGroupError(""))},
 	} {
-		tt := tt
-
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 

@@ -167,8 +167,6 @@ func TestNewClientConnection(t *testing.T) {
 			"unable to parse line '>CLIENT:CONNECT': message invalid",
 		},
 	} {
-		tt := tt
-
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 

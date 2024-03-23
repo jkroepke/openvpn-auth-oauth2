@@ -245,7 +245,6 @@ func TestClientFull(t *testing.T) {
 	}
 
 	for _, tt := range confs {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -417,8 +416,6 @@ func TestClientInvalidVersion(t *testing.T) {
 	}
 
 	for _, tt := range versions {
-		tt, conf := tt, conf
-
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -526,7 +523,7 @@ func TestSIGHUP(t *testing.T) {
 
 		testutils.ExpectVersionAndReleaseHold(t, conn, reader)
 
-		for i := 0; i < 10; i++ {
+		for range 10 {
 			testutils.SendAndExpectMessage(t, conn, reader,
 				">HOLD:Waiting for hold release:0",
 				"hold release",
@@ -556,8 +553,6 @@ func TestDeadLocks(t *testing.T) {
 			message: "\r\n",
 		},
 	} {
-		tt := tt
-
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -598,7 +593,7 @@ func TestDeadLocks(t *testing.T) {
 
 				testutils.ExpectVersionAndReleaseHold(t, conn, reader)
 
-				for i := 0; i < 12; i++ {
+				for range 12 {
 					testutils.SendMessage(t, conn, tt.message)
 				}
 			}()
@@ -627,8 +622,6 @@ func TestInvalidCommandResponses(t *testing.T) {
 			message: "ERROR:    ",
 		},
 	} {
-		tt := tt
-
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 

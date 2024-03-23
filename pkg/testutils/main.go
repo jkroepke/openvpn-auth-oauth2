@@ -46,7 +46,7 @@ func ExpectVersionAndReleaseHold(tb testing.TB, conn net.Conn, reader *bufio.Rea
 
 	var expectedCommand int
 
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		line := ReadLine(tb, conn, reader)
 		switch line {
 		case "hold release":

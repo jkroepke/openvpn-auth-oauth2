@@ -187,6 +187,8 @@ func (p *Provider) oauth2Callback() http.Handler {
 					slog.String("idtoken.email", tokens.IDTokenClaims.EMail),
 					slog.String("idtoken.preferred_username", tokens.IDTokenClaims.PreferredUsername),
 				)
+
+				logger.Debug("claims", "claims", tokens.IDTokenClaims.Claims)
 			}
 
 			user, err := p.OIDC.GetUser(ctx, logger, tokens)

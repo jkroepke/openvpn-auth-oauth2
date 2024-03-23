@@ -87,10 +87,8 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 	b.StartTimer()
 
 	for _, tt := range tests {
-		tt := tt
-
 		b.Run(tt.name, func(b *testing.B) {
-			for i := 0; i < b.N; i++ {
+			for range b.N {
 				testutils.SendMessage(b, managementInterfaceConn, tt.client)
 				assert.Contains(b, testutils.ReadLine(b, managementInterfaceConn, reader), "client-pending-auth 0 1 \"WEB_AUTH::")
 				testutils.SendMessage(b, managementInterfaceConn, "SUCCESS: client-pending-auth command succeeded")
@@ -220,7 +218,7 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 
 	var passThroughConn net.Conn
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		passThroughConn, err = net.DialTimeout(passThroughInterface.Addr().Network(), passThroughInterface.Addr().String(), time.Second)
 		if err == nil {
 			break
@@ -273,8 +271,6 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 	b.StartTimer()
 
 	for _, tt := range tests {
-		tt := tt
-
 		b.Run(tt.command, func(b *testing.B) {
 			testutils.SendAndExpectMessage(b, passThroughConn, passThroughReader, tt.command, tt.response)
 
