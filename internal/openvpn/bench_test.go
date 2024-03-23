@@ -267,6 +267,8 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 		}
 	})
 
+	testutils.ExpectMessage(b, passThroughConn, passThroughReader, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info")
+
 	b.ResetTimer()
 	b.StartTimer()
 
