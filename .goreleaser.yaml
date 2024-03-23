@@ -5,31 +5,40 @@ before:
 builds:
   - id: "openvpn-auth-oauth2"
     binary: openvpn-auth-oauth2
-    buildmode: pie
     env:
-      - CGO_ENABLED=1
-      - >-
-        {{- if eq .Arch "amd64"}}CC=x86_64-linux-gnu-gcc{{- end }}
-        {{- if eq .Arch "arm64"}}CC=aarch64-linux-gnu-gcc{{- end }}
-      - >-
-        {{- if eq .Arch "amd64"}}CXX=x86_64-linux-gnu-g++{{- end }}
-        {{- if eq .Arch "arm64"}}CXX=aarch64-linux-gnu-g++{{- end }}
+      - CGO_ENABLED=0
     goos:
       - linux
+      - freebsd
+      - openbsd
     goarch:
       - amd64
       - arm64
     mod_timestamp: '{{ .CommitTimestamp }}'
-    tags:
-      - osusergo
-      - netgo
-      - static_build
     flags:
       - -trimpath
     ldflags:
-      # https://github.com/golang/go/issues/41944#issuecomment-711025202
-      - -linkmode external -extldflags "--static-pie"
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser
+    overrides:
+      - goos: linux
+        ldflags:
+          # https://github.com/golang/go/issues/41944#issuecomment-711025202
+          - -linkmode external -extldflags "--static-pie"
+          - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser
+        buildmode: pie
+        env:
+          - CGO_ENABLED=1
+          - >-
+            {{- if eq .Arch "amd64"}}CC=x86_64-linux-gnu-gcc{{- end }}
+            {{- if eq .Arch "arm64"}}CC=aarch64-linux-gnu-gcc{{- end }}
+          - >-
+            {{- if eq .Arch "amd64"}}CXX=x86_64-linux-gnu-g++{{- end }}
+            {{- if eq .Arch "arm64"}}CXX=aarch64-linux-gnu-g++{{- end }}
+        tags:
+          - osusergo
+          - netgo
+          - static_build
+
   - id: "openvpn-auth-oauth2.so"
     binary: openvpn-auth-oauth2
     main: ./pkg/plugin/
