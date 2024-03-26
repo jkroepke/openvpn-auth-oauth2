@@ -67,6 +67,8 @@ nfpms:
         dst: /usr/lib/sysusers.d/
       - src: packaging/usr/lib/systemd/system/
         dst: /usr/lib/systemd/system/
+      - src: packaging/etc/apparmor.d/
+        dst: /etc/apparmor.d/
       - src: packaging/etc/sysconfig/openvpn-auth-oauth2
         file_info:
           mode: 0640
