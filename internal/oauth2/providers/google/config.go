@@ -15,7 +15,7 @@ func (p *Provider) GetProviderConfig(conf config.Config) (types.ProviderConfig, 
 
 	if conf.OAuth2.Refresh.Enabled && conf.OAuth2.Refresh.ValidateUser {
 		// Enable offline access to api a refresh token
-		providerConfig.AuthCodeOptions = []oauth2.AuthCodeOption{oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("prompt", "consent")}
+		providerConfig.AuthCodeOptions = []oauth2.AuthCodeOption{oauth2.AccessTypeOffline, oauth2.ApprovalForce}
 	}
 
 	providerConfig.Scopes = []string{types.ScopeEmail, types.ScopeProfile, types.ScopeOpenID}
