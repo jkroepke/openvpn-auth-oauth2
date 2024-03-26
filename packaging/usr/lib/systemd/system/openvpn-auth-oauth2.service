@@ -1,3 +1,5 @@
+#suppress inspection "DuplicateKeyInSection" for whole file
+
 [Unit]
 Description=OpenVPN authenticator
 Documentation=https://github.com/jkroepke/openvpn-auth-oauth2
@@ -53,10 +55,10 @@ RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 RestrictNamespaces=true
 RestrictRealtime=true
 RestrictSUIDSGID=true
-#TODO:We currently not now what system calls we need, so we allow all.
-#SystemCallArchitectures=native
-#SystemCallFilter=@system-service
-#SystemCallFilter=~@privileged @resources
+SystemCallArchitectures=native
+SystemCallFilter=@io-event @file-system @basic-io @system-service
+SystemCallFilter=~@clock @debug @module @mount @obsolete @reboot @setuid @swap
+SystemCallErrorNumber=EPERM
 UMask=0027
 
 [Install]
