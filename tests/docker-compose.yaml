@@ -6,6 +6,8 @@ services:
     image: local/openvpn
     build:
       dockerfile: Dockerfile
+      args:
+        GIT_BRANCH: release/2.6
     cap_add:
       - NET_ADMIN
     devices:
@@ -47,7 +49,7 @@ services:
         cat > "/etc/openvpn/openvpn.conf" <<EOF
         dev tun0
         server 100.64.0.0 255.255.255.0
-        verb 4
+        verb 3
         ca /etc/openvpn/pki/ca.crt
         key /etc/openvpn/pki/private/server.key
         cert /etc/openvpn/pki/issued/server.crt

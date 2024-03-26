@@ -22,10 +22,13 @@ services:
     cgroup: private
     volumes:
       - ./default.preset:/etc/systemd/system-preset/default.preset
-      - ./openvpn-auth-oauth2:/usr/bin/openvpn-auth-oauth2
-      - ../../packaging/openvpn-auth-oauth2.conf:/etc/systemd/system/openvpn-auth-oauth2.conf
-      - ./openvpn-auth-oauth2.conf:/etc/sysconfig/openvpn-auth-oauth2
+      - ../../dist/openvpn-auth-oauth2_linux_amd64_v1/openvpn-auth-oauth2:/usr/bin/openvpn-auth-oauth2
+      - ../../packaging/etc/openvpn-auth-oauth2/config.yaml:/etc/openvpn-auth-oauth2/config.yaml
+      - ../../packaging/usr/lib/systemd/system/openvpn-auth-oauth2.service:/etc/systemd/system/openvpn-auth-oauth2.service
+      - ./openvpn-auth-oauth2.sysconfig:/etc/sysconfig/openvpn-auth-oauth2
       - ../data/:/etc/openvpn/
     stop_signal: SIGRTMIN+3
     entrypoint:
-      - /lib/systemd/systemd
+      - /bin/sh
+      - -c
+      - "groupadd openvpn-auth-oauth2 && exec /lib/systemd/systemd"

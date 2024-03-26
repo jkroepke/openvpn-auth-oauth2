@@ -71,3 +71,4 @@ $RECYCLE.BIN/
 /openvpn-auth-oauth2.exe
 /3rdpartylicenses/
 /local/
+/tests/**/*.sysconfig
