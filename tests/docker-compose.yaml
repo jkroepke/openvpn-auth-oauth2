@@ -76,11 +76,11 @@ services:
         group nogroup
 
         # Does not work in containers
-        #disable-dco
+        disable-dco
         duplicate-cn
 
         management 0.0.0.0 8081 /etc/openvpn/password.txt
-        #management-hold
+        management-hold
         management-client-auth
 
         #plugin /plugin/openvpn-auth-oauth2.so /plugin/config.yaml
