@@ -142,6 +142,7 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 			err = context.Cause(ctx)
 			if err != nil && !errors.Is(err, context.Canceled) {
 				logger.Error(err.Error())
+
 				return 1
 			}
 

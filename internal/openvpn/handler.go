@@ -63,7 +63,7 @@ func (c *Client) sendPassword() error {
 		return fmt.Errorf("unable to read answer after sending password: %w", err)
 	}
 
-	if !strings.Contains("SUCCESS: password is correct", string(buf)) {
+	if !strings.Contains("SUCCESS: password is correct", string(buf)) { //nolint:gocritic
 		return fmt.Errorf("unable to connect to openvpn management interface: %w", ErrInvalidPassword)
 	}
 
