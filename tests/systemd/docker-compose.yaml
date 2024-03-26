@@ -5,6 +5,7 @@ services:
     build:
       dockerfile: Dockerfile
     privileged: true
+
     tty: true
     ports:
       - "0.0.0.0:1195:1194/udp"
@@ -24,6 +25,7 @@ services:
       - ./default.preset:/etc/systemd/system-preset/default.preset
       - ../../dist/openvpn-auth-oauth2_linux_amd64_v1/openvpn-auth-oauth2:/usr/bin/openvpn-auth-oauth2
       - ../../packaging/etc/openvpn-auth-oauth2/config.yaml:/etc/openvpn-auth-oauth2/config.yaml
+      - ../../packaging/etc/apparmor.d/usr.bin.openvpn-auth-oauth2:/etc/apparmor.d/usr.bin.openvpn-auth-oauth2
       - ../../packaging/usr/lib/systemd/system/openvpn-auth-oauth2.service:/etc/systemd/system/openvpn-auth-oauth2.service
       - ./openvpn-auth-oauth2.sysconfig:/etc/sysconfig/openvpn-auth-oauth2
       - ../data/:/etc/openvpn/
@@ -31,4 +33,4 @@ services:
     entrypoint:
       - /bin/sh
       - -c
-      - "groupadd openvpn-auth-oauth2 && exec /lib/systemd/systemd"
+      - "exec /lib/systemd/systemd"
