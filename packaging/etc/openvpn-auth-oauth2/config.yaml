@@ -2,6 +2,7 @@
 #  pprof: false
 #  listen: :9001
 #http:
+#  assets-path: "" # Example: "/etc/openvpn-auth-oauth2/assets/"
 #  baseurl: "http://localhost:9000/"
 #  cert: ""
 #  check:
