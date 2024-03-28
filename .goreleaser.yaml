@@ -13,6 +13,8 @@ builds:
       - amd64
       - arm64
     mod_timestamp: '{{ .CommitTimestamp }}'
+    env:
+      - CGO_ENABLED=0
     flags:
       - -trimpath
     ldflags:
