@@ -1,0 +1,19 @@
+# vim:syntax=apparmor
+
+abi <abi/3.0>,
+
+include <tunables/global>
+
+/usr/bin/openvpn-auth-oauth2 flags=(attach_disconnected) {
+  include <abstractions/base>
+  include <abstractions/nameservice>
+
+  @{etc_ro}/openvpn-auth-oauth2/config.yaml r,
+
+  @{run}/openvpn{,-server}/* rw,
+
+  @{sys}/kernel/mm/{hugepages,transparent_hugepage}/{,**} r,
+
+  # Site-specific additions and overrides. See local/README for details.
+  include if exists <local/usr.bin.openvpn-auth-oauth2>
+}

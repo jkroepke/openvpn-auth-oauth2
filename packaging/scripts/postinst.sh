@@ -6,6 +6,12 @@ if ! command -v systemctl >/dev/null 2>&1; then
   exit 0
 fi
 
+if command -v apparmor_parser >/dev/null 2>&1 && command -v aa-enabled >/dev/null 2>&1; then
+  if aa-enabled --quiet 2>/dev/null; then
+    apparmor_parser -r -T -W /etc/apparmor.d/usr.bin.openvpn-auth-oauth2 || true
+  fi
+fi
+
 systemctl --system daemon-reload >/dev/null || true
 
 if systemctl is-active --quiet openvpn-auth-oauth2; then
