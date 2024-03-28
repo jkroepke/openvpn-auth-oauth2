@@ -7,7 +7,7 @@ The default template is here:
 
 Available variables:
 
-- `{{.title}}`: `Access Denied` or `Access Granted`
+- `{{.title}}`: `Access denied` or `Access granted`
 - `{{.message}}`: Potential error message or success message
 - `{{.errorID}}`: ErrorID of an error, if present
 
