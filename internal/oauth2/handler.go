@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -30,16 +31,20 @@ type OpenVPN interface {
 }
 
 func (p *Provider) Handler() *http.ServeMux {
-	staticFs, err := fs.Sub(ui.Static, "static")
+	staticFs, err := fs.Sub(ui.Static, "assets")
 	if err != nil {
 		panic(err)
+	}
+
+	if p.conf.HTTP.AssetsPath != "" {
+		staticFs = utils.NewOverlayFS(staticFs, os.DirFS(p.conf.HTTP.AssetsPath))
 	}
 
 	basePath := strings.TrimSuffix(p.conf.HTTP.BaseURL.Path, "/")
 
 	mux := http.NewServeMux()
 	mux.Handle("/", http.NotFoundHandler())
-	mux.Handle(fmt.Sprintf("GET %s/static/", basePath), http.StripPrefix(utils.StringConcat(basePath, "/static/"), http.FileServer(http.FS(staticFs))))
+	mux.Handle(fmt.Sprintf("GET %s/assets/", basePath), http.StripPrefix(utils.StringConcat(basePath, "/assets/"), http.FileServerFS(staticFs)))
 	mux.Handle(fmt.Sprintf("GET %s/oauth2/start", basePath), p.oauth2Start())
 	mux.Handle(fmt.Sprintf("GET %s/oauth2/callback", basePath), p.oauth2Callback())
 
@@ -260,8 +265,8 @@ func writeError(w http.ResponseWriter, logger *slog.Logger, conf config.Config, 
 
 	err := conf.HTTP.CallbackTemplate.Execute(w, map[string]string{
 		"title":   "Access denied",
-		"message": fmt.Sprintf("Error ID: %s\r\nPlease contact your administrator for help.", errorID),
-		"success": "false",
+		"message": "Please contact your administrator.",
+		"errorID": errorID,
 	})
 	if err != nil {
 		logger.Error("executing template:", err)
@@ -275,7 +280,7 @@ func writeSuccess(w http.ResponseWriter, conf config.Config, logger *slog.Logger
 	err := conf.HTTP.CallbackTemplate.Execute(w, map[string]string{
 		"title":   "Access granted",
 		"message": "You can close this window now.",
-		"success": "true",
+		"errorID": "",
 	})
 	if err != nil {
 		logger.Error(fmt.Sprintf("executing template: %s", err))

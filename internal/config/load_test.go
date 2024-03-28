@@ -119,6 +119,7 @@ http:
     listen: ":9001"
     secret: "1jd93h5b6s82lf03jh5b2hf9"
     enable-proxy-headers: true
+    assets-path: "."
     check:
         ipaddr: true
 `,
@@ -143,6 +144,7 @@ http:
 						Scheme: "http",
 						Host:   "localhost:9000",
 					},
+					AssetsPath: ".",
 				},
 				OpenVpn: config.OpenVpn{
 					Addr: &url.URL{

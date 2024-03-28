@@ -134,6 +134,11 @@ func flagSetHTTP(flagSet *flag.FlagSet) {
 		Defaults.HTTP.EnableProxyHeaders,
 		"Use X-Forward-For http header for client ips",
 	)
+	flagSet.String(
+		"http.assets-path",
+		Defaults.HTTP.AssetsPath,
+		"Custom path to the assets directory. Files in this directory will be served under /assets/ and having an higher priority than the embedded assets.",
+	)
 }
 
 func flagSetOpenVPN(flagSet *flag.FlagSet) {

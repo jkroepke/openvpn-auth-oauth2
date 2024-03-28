@@ -2,27 +2,30 @@
 <html lang="en">
 <head>
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'none'; style-src 'self'; img-src 'self'; script-src 'sha256-7SYgPploBR3v25GCGZqhzo+r1EWDQ6bvZ+mn7tzpxOw='">
+        content="default-src 'none'; style-src 'self'; img-src 'self'; connect-src 'self'; script-src 'self' 'sha256-7SYgPploBR3v25GCGZqhzo+r1EWDQ6bvZ+mn7tzpxOw='">
 
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>OpenVPN SSO Login</title>
-  <link rel="stylesheet" href="../static/mvp.css">
-  <link rel="icon" href="../static/favicon.png" sizes="192x192"/>
+  <link rel="stylesheet" href="../assets/mvp.css">
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="icon" href="../assets/favicon.png" sizes="192x192"/>
 </head>
 <body>
 <header>
-  <h1>{{ .title }}</h1>
+  <h1 id="title" data-i18n>{{ .title }}</h1>
 </header>
 <main>
   <hr>
   <section>
-    <h2>{{ .message }}</h2>
+    {{- if .errorID }}
+    <h2 id="errorID"><span data-i18n>Error ID</span>: {{ .errorID }}</h2>
+    {{- end }}
+    <h2 id="message" data-i18n>{{ .message }}</h2>
   </section>
 </main>
-{{- if eq .success "true" }}
-<script>setTimeout(window.close,10000)</script>
-{{- end }}
+<script src="../assets/i18n.js"></script>
+{{- if not .errorID }}<script>setTimeout(window.close,10000)</script>{{ end }}
 </body>
 </html>

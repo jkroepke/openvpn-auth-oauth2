@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"os"
 	"slices"
 )
 
@@ -72,6 +73,12 @@ func Validate(mode int, conf Config) error { //nolint:cyclop
 
 		if !slices.Contains([]string{"tcp", "unix"}, conf.OpenVpn.Addr.Scheme) {
 			return errors.New("openvpn.addr: invalid URL. only tcp://addr or unix://addr scheme supported")
+		}
+	}
+
+	if conf.HTTP.AssetsPath != "" {
+		if _, err := os.ReadDir(conf.HTTP.AssetsPath); err != nil {
+			return fmt.Errorf("http.assets-path: %w", err)
 		}
 	}
 
