@@ -11,6 +11,8 @@ import (
 )
 
 func TestNewOverlayFS(t *testing.T) {
+	t.Parallel()
+
 	baseFS := fstest.MapFS{
 		"base": &fstest.MapFile{
 			Data: []byte("base"),
@@ -35,6 +37,6 @@ func TestNewOverlayFS(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []byte("base"), content)
 
-	content, err = fs.ReadFile(ofs, "nonexistent")
+	_, err = fs.ReadFile(ofs, "nonexistent")
 	require.Error(t, err)
 }

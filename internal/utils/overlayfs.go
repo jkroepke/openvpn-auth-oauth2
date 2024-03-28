@@ -17,5 +17,5 @@ func (f *OverlayFS) Open(name string) (fs.File, error) {
 		}
 	}
 
-	return f.fs.Open(name)
+	return f.fs.Open(name) //nolint:wrapcheck
 }
