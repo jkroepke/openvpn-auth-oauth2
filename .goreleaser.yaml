@@ -98,7 +98,7 @@ nfpms:
           group: root
           mode: 0644
     scripts:
-      preinstall: "packaging/scripts/postinst.sh"
+      preinstall: "packaging/scripts/preinst.sh"
       postinstall: "packaging/scripts/postinst.sh"
       preremove: "packaging/scripts/preremove.sh"
       postremove: "packaging/scripts/postremove.sh"
