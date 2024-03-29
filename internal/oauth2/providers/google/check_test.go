@@ -43,56 +43,56 @@ func TestValidateGroups(t *testing.T) {
 		},
 		{
 			"groups present",
-			`{"memberships": [{"groupKey": {"id": "apple@google.com"}}], "nextPageToken": ""}`,
+			`{"memberships": [{"name": "groups/000000000000000/memberships/123456789101112131415", "memberKey": {"id": "user@example.com"}, "roles": [{"name": "MEMBER"}], "preferredMemberKey": {"id": "user@example.com"}}], "nextPageToken": ""}`,
 			[]string{},
 			"",
 		},
 		{
 			"groups present with nextPageToken",
-			`{"memberships": [{"groupKey": {"id": "apple@google.com"}}], "nextPageToken": "token"}`,
+			`{"memberships": [{"name": "groups/000000000000000/memberships/123456789101112131415", "memberKey": {"id": "user@example.com"}, "roles": [{"name": "MEMBER"}], "preferredMemberKey": {"id": "user@example.com"}}], "nextPageToken": "token"}`,
 			[]string{},
 			"",
 		},
 		{
 			"configure one group",
-			`{"memberships": [{"groupKey": {"id": "apple@google.com"}}], "nextPageToken": ""}`,
-			[]string{"apple@google.com"},
+			`{"memberships": [{"name": "groups/000000000000000/memberships/123456789101112131415", "memberKey": {"id": "user@example.com"}, "roles": [{"name": "MEMBER"}], "preferredMemberKey": {"id": "user@example.com"}}], "nextPageToken": ""}`,
+			[]string{"000000000000000"},
 			"",
 		},
 		{
 			"access token is empty",
 			`ERROR`,
-			[]string{"apple"},
+			[]string{"000000000000000"},
 			"access token is empty",
 		},
 		{
 			"invalid json",
 			`ERROR`,
-			[]string{"apple"},
-			"unable to decode JSON from Google API https://cloudidentity.googleapis.com/v1/groups/-/memberships:searchDirectGroups?query=member_key_id=='ID': 'ERROR': invalid character 'E' looking for beginning of value",
+			[]string{"000000000000000"},
+			"unable to decode JSON from Google API https://cloudidentity.googleapis.com/v1/groups/000000000000000/memberships: 'ERROR': invalid character 'E' looking for beginning of value",
 		},
 		{
-			"configure one group, groups not present",
+			"got error from API",
 			`{"error": {"message": "error"}}`,
-			[]string{"apple"},
-			"error from Google API https://cloudidentity.googleapis.com/v1/groups/-/memberships:searchDirectGroups?query=member_key_id=='ID': http status code: 500; message: error",
+			[]string{"000000000000000"},
+			"error from Google API https://cloudidentity.googleapis.com/v1/groups/000000000000000/memberships: http status code: 500; message: error",
 		},
 		{
 			"configure two group, none match",
-			`{"memberships": [{"groupKey": {"id": "pineapple@google.com"}}], "nextPageToken": ""}`,
-			[]string{"apple@google.com", "pear@google.com"},
+			`{"memberships": [{"name": "groups/000000000000002/memberships/123456789101112131416", "memberKey": {"id": "user@example.com"}, "roles": [{"name": "MEMBER"}], "preferredMemberKey": {"id": "user@example.com"}}], "nextPageToken": ""}`,
+			[]string{"000000000000000", "000000000000001"},
 			generic.ErrMissingRequiredGroup.Error(),
 		},
 		{
 			"configure two group, missing one",
-			`{"memberships": [{"groupKey": {"id": "apple@google.com"}}], "nextPageToken": ""}`,
-			[]string{"apple@google.com", "pear@google.com"},
+			`{"memberships": [{"name": "groups/000000000000000/memberships/123456789101112131415", "memberKey": {"id": "user@example.com"}, "roles": [{"name": "MEMBER"}], "preferredMemberKey": {"id": "user@example.com"}}], "nextPageToken": ""}`,
+			[]string{"000000000000000", "000000000000001"},
 			"",
 		},
 		{
 			"configure two group",
-			`{"memberships": [{"groupKey": {"id": "apple@google.com"}},{"groupKey": {"id": "pear@google.com"}}], "nextPageToken": ""}`,
-			[]string{"apple@google.com", "pear@google.com"},
+			`{"memberships": [{"name": "groups/000000000000000/memberships/123456789101112131415", "memberKey": {"id": "user@example.com"}, "roles": [{"name": "MEMBER"}], "preferredMemberKey": {"id": "user@example.com"}},{"name": "groups/000000000000001/memberships/123456789101112131415", "memberKey": {"id": "user@example.com"}, "roles": [{"name": "MEMBER"}], "preferredMemberKey": {"id": "user@example.com"}}], "nextPageToken": ""}`,
+			[]string{"000000000000000", "000000000000001"},
 			"",
 		},
 	} {
@@ -138,7 +138,7 @@ func TestValidateGroups(t *testing.T) {
 			provider, err := google.NewProvider(context.Background(), conf, httpClient)
 			require.NoError(t, err)
 
-			err = provider.CheckUser(context.Background(), state.State{}, types.UserData{Email: "ID"}, token)
+			err = provider.CheckUser(context.Background(), state.State{}, types.UserData{Subject: "123456789101112131415"}, token)
 
 			if tt.err == "" {
 				require.NoError(t, err)
