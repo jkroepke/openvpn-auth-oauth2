@@ -30,6 +30,7 @@ type HTTP struct {
 	CallbackTemplate   *template.Template `koanf:"template"`
 	Check              HTTPCheck          `koanf:"check"`
 	EnableProxyHeaders bool               `koanf:"enable-proxy-headers"`
+	AssetsPath         string             `koanf:"assets-path"`
 }
 
 type HTTPCheck struct {

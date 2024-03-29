@@ -33,6 +33,7 @@ debug:
     pprof: false
     listen: :9001
 http:
+    assets-path: "" # Example: "/etc/openvpn-auth-oauth2/assets/"
     baseurl: "http://localhost:9000/"
     cert: ""
     check:
@@ -117,6 +118,8 @@ Usage of openvpn-auth-oauth2:
     	listen address for go profiling endpoint (env: CONFIG_DEBUG_LISTEN) (default ":9001")
   --debug.pprof
     	Enables go profiling endpoint. This should be never exposed. (env: CONFIG_DEBUG_PPROF)
+  --http.assets-path string
+    	Custom path to the assets directory. Files in this directory will be served under /assets/ and having an higher priority than the embedded assets. (env: CONFIG_HTTP_ASSETS__PATH)
   --http.baseurl string
     	listen addr for client listener (env: CONFIG_HTTP_BASEURL) (default "http://localhost:9000")
   --http.cert string
@@ -336,18 +339,7 @@ openvpn-auth-oauth2 requires a [`SIGHUP` signal](https://en.wikipedia.org/wiki/S
 
 ## Custom Login Templates
 
-openvpn-auth-oauth2 supports custom templates for the login page. The template must be a valid HTML file.
-
-The default template is here:
-[index.gohtml](https://github.com/jkroepke/openvpn-auth-oauth2/blob/main/internal/ui/index.gohtml)
-
-Available variables:
-
-- `{{.success}}`: Indicates if the login was successful
-- `{{.title}}`: `Access Denied` or `Access Granted`
-- `{{.message}}`: Potential error message or success message
-
-The [go template engine](https://pkg.go.dev/text/template) is used to render the HTML file.
+See [Layout Customization](Layout%20Customization) for more information
 
 ## Non-interactive session refresh
 
