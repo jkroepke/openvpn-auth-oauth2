@@ -57,7 +57,7 @@ RestrictRealtime=true
 RestrictSUIDSGID=true
 SystemCallArchitectures=native
 SystemCallFilter=@io-event @file-system @basic-io @system-service
-SystemCallFilter=~@clock @debug @module @mount @obsolete @reboot @setuid @swap
+SystemCallFilter=~@clock @debug @module @mount @obsolete @privileged @reboot @resources @setuid @swap
 SystemCallErrorNumber=EPERM
 UMask=0027
 

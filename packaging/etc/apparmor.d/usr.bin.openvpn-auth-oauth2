@@ -8,7 +8,7 @@ include <tunables/global>
   include <abstractions/base>
   include <abstractions/nameservice>
 
-  @{etc_ro}/openvpn-auth-oauth2/config.yaml r,
+  @{etc_ro}/openvpn-auth-oauth2/** r,
 
   @{run}/openvpn{,-server}/* rw,
 
