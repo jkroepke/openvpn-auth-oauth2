@@ -124,11 +124,7 @@ func TestPassthroughFull(t *testing.T) {
 		{
 			name:   "tcp default",
 			scheme: openvpn.SchemeTCP,
-			conf: func() config.Config {
-				conf := conf
-
-				return conf
-			}(),
+			conf:   conf,
 		},
 		{
 			name:   "unix default",
