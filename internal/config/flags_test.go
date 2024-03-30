@@ -90,15 +90,15 @@ func TestValidate(t *testing.T) {
 	t.Parallel()
 
 	for _, tt := range []struct {
-		conf config.Config
+		conf *config.Config
 		err  string
 	}{
 		{
-			config.Config{},
+			&config.Config{},
 			"oauth2.client.id is required",
 		},
 		{
-			config.Config{
+			&config.Config{
 				OAuth2: config.OAuth2{
 					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
 				},
@@ -106,7 +106,7 @@ func TestValidate(t *testing.T) {
 			"http.secret is required",
 		},
 		{
-			config.Config{
+			&config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{},
 					Secret:  testutils.Secret,
@@ -118,7 +118,7 @@ func TestValidate(t *testing.T) {
 			"oauth2.client.secret is required",
 		},
 		{
-			config.Config{
+			&config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{},
 					Secret:  testutils.Secret,
@@ -131,7 +131,7 @@ func TestValidate(t *testing.T) {
 			"http.baseurl is required",
 		},
 		{
-			config.Config{
+			&config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
@@ -144,7 +144,7 @@ func TestValidate(t *testing.T) {
 			"oauth2.issuer is required",
 		},
 		{
-			config.Config{
+			&config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
@@ -157,7 +157,7 @@ func TestValidate(t *testing.T) {
 			"openvpn.addr is required",
 		},
 		{
-			config.Config{
+			&config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  "invalid",
@@ -173,7 +173,7 @@ func TestValidate(t *testing.T) {
 			"http.secret requires a length of 16, 24 or 32",
 		},
 		{
-			config.Config{
+			&config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{Scheme: "invalid", Host: "localhost"},
 					Secret:  testutils.Secret,
@@ -189,7 +189,7 @@ func TestValidate(t *testing.T) {
 			"http.baseurl: invalid URL. only http:// or https:// scheme supported",
 		},
 		{
-			config.Config{
+			&config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
@@ -205,7 +205,7 @@ func TestValidate(t *testing.T) {
 			"openvpn.addr: invalid URL. only tcp://addr or unix://addr scheme supported",
 		},
 		{
-			config.Config{
+			&config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
@@ -224,7 +224,7 @@ func TestValidate(t *testing.T) {
 			"oauth2.refresh.secret requires a length of 16, 24 or 32",
 		},
 		{
-			config.Config{
+			&config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,

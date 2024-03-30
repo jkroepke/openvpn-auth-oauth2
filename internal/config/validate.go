@@ -9,7 +9,7 @@ import (
 )
 
 // Validate validates the config.
-func Validate(mode int, conf Config) error { //nolint:cyclop
+func Validate(mode int, conf *Config) error { //nolint:cyclop
 	for key, value := range map[string]string{
 		"oauth2.client.id": conf.OAuth2.Client.ID,
 	} {

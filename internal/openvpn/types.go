@@ -20,7 +20,7 @@ const (
 )
 
 type Client struct {
-	conf    config.Config
+	conf    *config.Config
 	conn    net.Conn
 	scanner *bufio.Scanner
 	logger  *slog.Logger

@@ -100,7 +100,7 @@ func TestValidateGroups(t *testing.T) {
 				token.AccessToken = ""
 			}
 
-			conf := config.Config{
+			conf := &config.Config{
 				OAuth2: config.OAuth2{
 					Validate: config.OAuth2Validate{
 						Groups: tt.requiredGroups,
@@ -214,7 +214,7 @@ func TestValidateRoles(t *testing.T) {
 				token.AccessToken = ""
 			}
 
-			conf := config.Config{
+			conf := &config.Config{
 				OAuth2: config.OAuth2{
 					Validate: config.OAuth2Validate{
 						Roles: tt.requiredRoles,

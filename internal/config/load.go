@@ -16,24 +16,24 @@ import (
 
 const envPrefix = "CONFIG_"
 
-func Load(mode int, configFile string, flagSet *flag.FlagSet) (Config, error) {
+func Load(mode int, configFile string, flagSet *flag.FlagSet) (*Config, error) {
 	var err error
 
 	k := koanf.New(".")
 
 	if err := k.Load(structs.Provider(Defaults, "koanf"), nil); err != nil {
-		return Config{}, fmt.Errorf("loading defaults: %w", err)
+		return nil, fmt.Errorf("loading defaults: %w", err)
 	}
 
 	if configFile != "" {
 		if err := k.Load(file.Provider(configFile), yaml.Parser()); err != nil {
-			return Config{}, fmt.Errorf("file provider: %w", err)
+			return nil, fmt.Errorf("file provider: %w", err)
 		}
 	}
 
 	if flagSet != nil {
 		if err = k.Load(basicflag.Provider(flagSet, ".", &basicflag.Opt{KeyMap: k}), nil); err != nil {
-			return Config{}, fmt.Errorf("posflag provider: %w", err)
+			return nil, fmt.Errorf("posflag provider: %w", err)
 		}
 	}
 
@@ -48,10 +48,10 @@ func Load(mode int, configFile string, flagSet *flag.FlagSet) (Config, error) {
 		}), nil,
 	)
 	if err != nil {
-		return Config{}, fmt.Errorf("env provider: %w", err)
+		return nil, fmt.Errorf("env provider: %w", err)
 	}
 
-	var conf Config
+	var conf *Config
 	unmarshalConf := koanf.UnmarshalConf{
 		DecoderConfig: &mapstructure.DecoderConfig{
 			DecodeHook: mapstructure.ComposeDecodeHookFunc(
@@ -67,11 +67,11 @@ func Load(mode int, configFile string, flagSet *flag.FlagSet) (Config, error) {
 	}
 
 	if err = k.UnmarshalWithConf("", &conf, unmarshalConf); err != nil {
-		return Config{}, fmt.Errorf("error unmarschal config: %w", err)
+		return nil, fmt.Errorf("error unmarschal config: %w", err)
 	}
 
 	if err = Validate(mode, conf); err != nil {
-		return Config{}, fmt.Errorf("validation error: %w", err)
+		return nil, fmt.Errorf("validation error: %w", err)
 	}
 
 	return conf, nil

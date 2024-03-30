@@ -7,7 +7,7 @@ import (
 )
 
 // GetProviderConfig implements the [github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2.Provider] interface.
-func (p *Provider) GetProviderConfig(conf config.Config) (types.ProviderConfig, error) {
+func (p *Provider) GetProviderConfig(conf *config.Config) (types.ProviderConfig, error) {
 	providerConfig, err := p.Provider.GetProviderConfig(conf)
 	if err != nil {
 		return types.ProviderConfig{}, err //nolint:wrapcheck

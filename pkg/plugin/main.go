@@ -21,7 +21,7 @@ var (
 
 type PluginHandle struct {
 	logger *slog.Logger
-	conf   config.Config
+	conf   *config.Config
 	server *httpserver.Server
 }
 

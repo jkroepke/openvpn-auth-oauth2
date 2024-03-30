@@ -9,7 +9,7 @@ import (
 )
 
 // GetProviderConfig implements the [github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2.Provider] interface.
-func (p *Provider) GetProviderConfig(conf config.Config) (types.ProviderConfig, error) {
+func (p *Provider) GetProviderConfig(conf *config.Config) (types.ProviderConfig, error) {
 	scopes := []string{types.ScopeOpenID, types.ScopeProfile, types.ScopeOfflineAccess}
 
 	if config.IsURLEmpty(conf.OAuth2.Endpoints.Token) && config.IsURLEmpty(conf.OAuth2.Endpoints.Auth) {

@@ -165,7 +165,7 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 	}
 }
 
-func setupDebugListener(ctx context.Context, logger *slog.Logger, conf config.Config) error {
+func setupDebugListener(ctx context.Context, logger *slog.Logger, conf *config.Config) error {
 	mux := http.NewServeMux()
 	mux.Handle("/", http.RedirectHandler("/debug/pprof/", http.StatusTemporaryRedirect))
 	mux.HandleFunc("/debug/pprof/", pprof.Index)
@@ -185,7 +185,7 @@ func defaultLogger(writer io.Writer) *slog.Logger {
 	}))
 }
 
-func configureLogger(conf config.Config, writer io.Writer) (*slog.Logger, error) {
+func configureLogger(conf *config.Config, writer io.Writer) (*slog.Logger, error) {
 	opts := &slog.HandlerOptions{
 		AddSource: false,
 		Level:     conf.Log.Level,

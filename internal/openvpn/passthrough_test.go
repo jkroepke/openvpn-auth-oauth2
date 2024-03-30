@@ -119,42 +119,48 @@ func TestPassthroughFull(t *testing.T) {
 	confs := []struct {
 		name   string
 		scheme string
-		conf   config.Config
+		conf   *config.Config
 	}{
 		{
 			name:   "tcp default",
 			scheme: openvpn.SchemeTCP,
-			conf:   conf,
-		},
-		{
-			name:   "unix default",
-			scheme: openvpn.SchemeUnix,
-			conf: func() config.Config {
+			conf: func() *config.Config {
 				conf := conf
 				conf.OpenVpn.Passthrough.SocketMode = 0o0600
 				conf.OpenVpn.Passthrough.SocketGroup = strconv.Itoa(os.Getgid())
 
-				return conf
+				return &conf
+			}(),
+		},
+		{
+			name:   "unix default",
+			scheme: openvpn.SchemeUnix,
+			conf: func() *config.Config {
+				conf := conf
+				conf.OpenVpn.Passthrough.SocketMode = 0o0600
+				conf.OpenVpn.Passthrough.SocketGroup = strconv.Itoa(os.Getgid())
+
+				return &conf
 			}(),
 		},
 		{
 			name:   "tcp with password",
 			scheme: openvpn.SchemeTCP,
-			conf: func() config.Config {
+			conf: func() *config.Config {
 				conf := conf
 				conf.OpenVpn.Passthrough.Password = testutils.Secret
 
-				return conf
+				return &conf
 			}(),
 		},
 		{
 			name:   "tcp with invalid password",
 			scheme: openvpn.SchemeTCP,
-			conf: func() config.Config {
+			conf: func() *config.Config {
 				conf := conf
 				conf.OpenVpn.Passthrough.Password = testutils.Secret
 
-				return conf
+				return &conf
 			}(),
 		},
 	}

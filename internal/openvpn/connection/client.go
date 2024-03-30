@@ -21,7 +21,7 @@ type Client struct {
 	IvSSO        string
 }
 
-func NewClient(conf config.Config, message string) (Client, error) { //nolint:cyclop
+func NewClient(conf *config.Config, message string) (Client, error) { //nolint:cyclop
 	client := Client{}
 
 	var (

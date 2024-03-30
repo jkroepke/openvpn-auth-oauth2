@@ -24,11 +24,11 @@ func TestRefreshReAuth(t *testing.T) {
 
 	for _, tt := range []struct {
 		name string
-		conf config.Config
+		conf *config.Config
 	}{
 		{
 			name: "Refresh",
-			conf: config.Config{
+			conf: &config.Config{
 				OAuth2: config.OAuth2{
 					Refresh: config.OAuth2Refresh{Enabled: true, ValidateUser: true, UseSessionID: false},
 				},
@@ -36,7 +36,7 @@ func TestRefreshReAuth(t *testing.T) {
 		},
 		{
 			name: "Refresh with ValidateUser=false",
-			conf: config.Config{
+			conf: &config.Config{
 				OAuth2: config.OAuth2{
 					Refresh: config.OAuth2Refresh{Enabled: true, ValidateUser: false, UseSessionID: false},
 				},
@@ -44,7 +44,7 @@ func TestRefreshReAuth(t *testing.T) {
 		},
 		{
 			name: "Refresh with SessionID=true + ValidateUser=false",
-			conf: config.Config{
+			conf: &config.Config{
 				OAuth2: config.OAuth2{
 					Refresh: config.OAuth2Refresh{Enabled: true, ValidateUser: false, UseSessionID: true},
 				},
@@ -52,7 +52,7 @@ func TestRefreshReAuth(t *testing.T) {
 		},
 		{
 			name: "Refresh with provider=google",
-			conf: config.Config{
+			conf: &config.Config{
 				OAuth2: config.OAuth2{
 					Provider: google.Name,
 					Scopes:   []string{types.ScopeEmail, types.ScopeProfile, types.ScopeOpenID, types.ScopeOfflineAccess},
@@ -62,7 +62,7 @@ func TestRefreshReAuth(t *testing.T) {
 		},
 		{
 			name: "Refresh with provider=github",
-			conf: config.Config{
+			conf: &config.Config{
 				OAuth2: config.OAuth2{
 					Provider: github.Name,
 					Refresh:  config.OAuth2Refresh{Enabled: true, ValidateUser: true, UseSessionID: false},

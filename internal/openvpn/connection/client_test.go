@@ -15,14 +15,14 @@ func TestNewClientConnection(t *testing.T) {
 
 	for _, tt := range []struct {
 		name             string
-		conf             config.Config
+		conf             *config.Config
 		lines            []string
 		clientConnection connection.Client
 		err              string
 	}{
 		{
 			"client CONNECT",
-			config.Defaults,
+			&config.Defaults,
 			[]string{
 				">CLIENT:ADDRESS,0,127.0.1.1,1",
 				">CLIENT:CONNECT,0,1",
@@ -44,7 +44,7 @@ func TestNewClientConnection(t *testing.T) {
 		},
 		{
 			"client CONNECT ipv6",
-			config.Defaults,
+			&config.Defaults,
 			[]string{
 				">CLIENT:CONNECT,0,1",
 				">CLIENT:ENV,common_name=common_name",
@@ -61,8 +61,8 @@ func TestNewClientConnection(t *testing.T) {
 		},
 		{
 			"client CONNECT username-as-common-name",
-			(func() config.Config {
-				conf := config.Defaults
+			(func() *config.Config {
+				conf := &config.Defaults
 				conf.OpenVpn.CommonName.EnvironmentVariableName = "username"
 
 				return conf
@@ -82,42 +82,42 @@ func TestNewClientConnection(t *testing.T) {
 		},
 		{
 			"client CONNECT invalid cid",
-			config.Defaults,
+			&config.Defaults,
 			[]string{">CLIENT:CONNECT,k,2", ">CLIENT:ENV,name1=val1", ">CLIENT:ENV,name2=", ">CLIENT:ENV,END"},
 			connection.Client{CID: 1, KID: 2, Reason: "CONNECT"},
 			"unable to parse cid: strconv.ParseUint: parsing \"k\": invalid syntax",
 		},
 		{
 			"client CONNECT invalid kid",
-			config.Defaults,
+			&config.Defaults,
 			[]string{">CLIENT:CONNECT,1,k", ">CLIENT:ENV,name1=val1", ">CLIENT:ENV,name2=", ">CLIENT:ENV,END"},
 			connection.Client{CID: 1, KID: 2, Reason: "CONNECT"},
 			"unable to parse kid: strconv.ParseUint: parsing \"k\": invalid syntax",
 		},
 		{
 			"client REAUTH",
-			config.Defaults,
+			&config.Defaults,
 			[]string{">CLIENT:REAUTH,1,2", ">CLIENT:ENV,common_name=common_name", ">CLIENT:ENV,name2=", ">CLIENT:ENV,END"},
 			connection.Client{CID: 1, KID: 2, Reason: "REAUTH", CommonName: "common_name"},
 			"",
 		},
 		{
 			"client ESTABLISHED",
-			config.Defaults,
+			&config.Defaults,
 			[]string{">CLIENT:ESTABLISHED,1", ">CLIENT:ENV,END"},
 			connection.Client{CID: 1, KID: 0, Reason: "ESTABLISHED"},
 			"",
 		},
 		{
 			"client DISCONNECT",
-			config.Defaults,
+			&config.Defaults,
 			[]string{">CLIENT:DISCONNECT,1", ">CLIENT:ENV,name1=val1", ">CLIENT:ENV,name2=", ">CLIENT:ENV,END"},
 			connection.Client{CID: 1, KID: 0, Reason: "DISCONNECT"},
 			"",
 		},
 		{
 			"client CR_RESPONSE",
-			config.Defaults,
+			&config.Defaults,
 			[]string{">CLIENT:CR_RESPONSE,1,2,YmFzZTY0", ">CLIENT:ENV,name1=val1", ">CLIENT:ENV,END"},
 			connection.Client{
 				CID: 1, KID: 2, Reason: "CR_RESPONSE",
@@ -126,7 +126,7 @@ func TestNewClientConnection(t *testing.T) {
 		},
 		{
 			"invalid CLIENT:ADDRESS line",
-			config.Defaults,
+			&config.Defaults,
 			[]string{
 				">CLIENT:ADDRESS,127.0.0.1",
 				">CLIENT:CR_RESPONSE,1,2,YmFzZTY0",
@@ -140,7 +140,7 @@ func TestNewClientConnection(t *testing.T) {
 		},
 		{
 			"invalid CLIENT:ADDRESS line 2",
-			config.Defaults,
+			&config.Defaults,
 			[]string{
 				">CLIENT:ADDRESS",
 				">CLIENT:CR_RESPONSE,1,2,YmFzZTY0",
@@ -154,14 +154,14 @@ func TestNewClientConnection(t *testing.T) {
 		},
 		{
 			"client invalid reason",
-			config.Defaults,
+			&config.Defaults,
 			[]string{">CLIENT:unknown", ">CLIENT:ENV,name1=val1", ">CLIENT:ENV,name2", ">CLIENT:ENV,END"},
 			connection.Client{},
 			"unable to parse client reason from message: >CLIENT:unknown\r\n>CLIENT:ENV,name1=val1\r\n>CLIENT:ENV,name2\r\n>CLIENT:ENV,END",
 		},
 		{
 			"client invalid reason",
-			config.Defaults,
+			&config.Defaults,
 			[]string{">CLIENT:CONNECT", ">CLIENT:ENV,name1=val1", ">CLIENT:ENV,name2", ">CLIENT:ENV,END"},
 			connection.Client{},
 			"unable to parse line '>CLIENT:CONNECT': message invalid",

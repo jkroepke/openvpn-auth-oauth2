@@ -112,7 +112,7 @@ func sendCacheHeaders(w http.ResponseWriter) {
 	w.Header().Set("Expires", "0")
 }
 
-func checkClientIPAddr(r *http.Request, logger *slog.Logger, session state.State, conf config.Config) (bool, int, string) {
+func checkClientIPAddr(r *http.Request, logger *slog.Logger, session state.State, conf *config.Config) (bool, int, string) {
 	clientIP, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		logger.Warn(err.Error())
@@ -250,7 +250,7 @@ func getAuthTokenUsername(session state.State, user types.UserData) string {
 	return username
 }
 
-func writeError(w http.ResponseWriter, logger *slog.Logger, conf config.Config, httpCode int, errorType, errorDesc string) {
+func writeError(w http.ResponseWriter, logger *slog.Logger, conf *config.Config, httpCode int, errorType, errorDesc string) {
 	if httpCode == http.StatusUnauthorized {
 		httpCode = http.StatusForbidden
 	}
@@ -276,7 +276,7 @@ func writeError(w http.ResponseWriter, logger *slog.Logger, conf config.Config, 
 	}
 }
 
-func writeSuccess(w http.ResponseWriter, conf config.Config, logger *slog.Logger) {
+func writeSuccess(w http.ResponseWriter, conf *config.Config, logger *slog.Logger) {
 	err := conf.HTTP.CallbackTemplate.Execute(w, map[string]string{
 		"title":   "Access granted",
 		"message": "You can close this window now.",

@@ -24,7 +24,7 @@ func TestHandler(t *testing.T) {
 
 	tests := []struct {
 		name          string
-		conf          config.Config
+		conf          *config.Config
 		ipaddr        string
 		xForwardedFor string
 		preAllow      bool
@@ -33,7 +33,7 @@ func TestHandler(t *testing.T) {
 	}{
 		{
 			"default",
-			config.Config{
+			&config.Config{
 				HTTP: config.HTTP{
 					Secret: testutils.Secret,
 					Check: config.HTTPCheck{
@@ -64,7 +64,7 @@ func TestHandler(t *testing.T) {
 		},
 		{
 			"with acr values",
-			config.Config{
+			&config.Config{
 				HTTP: config.HTTP{
 					Secret: testutils.Secret,
 					Check: config.HTTPCheck{
@@ -98,7 +98,7 @@ func TestHandler(t *testing.T) {
 		},
 		{
 			"with template",
-			config.Config{
+			&config.Config{
 				HTTP: config.HTTP{
 					Secret: testutils.Secret,
 					Check: config.HTTPCheck{
@@ -130,7 +130,7 @@ func TestHandler(t *testing.T) {
 		},
 		{
 			"with ipaddr",
-			config.Config{
+			&config.Config{
 				HTTP: config.HTTP{
 					Secret: testutils.Secret,
 					Check: config.HTTPCheck{
@@ -161,7 +161,7 @@ func TestHandler(t *testing.T) {
 		},
 		{
 			"with ipaddr + forwarded-for",
-			config.Config{
+			&config.Config{
 				HTTP: config.HTTP{
 					Secret: testutils.Secret,
 					Check: config.HTTPCheck{
@@ -193,7 +193,7 @@ func TestHandler(t *testing.T) {
 		},
 		{
 			"with ipaddr + disabled forwarded-for",
-			config.Config{
+			&config.Config{
 				HTTP: config.HTTP{
 					Secret: testutils.Secret,
 					Check: config.HTTPCheck{
@@ -225,7 +225,7 @@ func TestHandler(t *testing.T) {
 		},
 		{
 			"with ipaddr + multiple forwarded-for",
-			config.Config{
+			&config.Config{
 				HTTP: config.HTTP{
 					Secret: testutils.Secret,
 					Check: config.HTTPCheck{
@@ -257,7 +257,7 @@ func TestHandler(t *testing.T) {
 		},
 		{
 			"with empty state",
-			config.Config{
+			&config.Config{
 				HTTP: config.HTTP{
 					Secret: testutils.Secret,
 					Check: config.HTTPCheck{
@@ -289,7 +289,7 @@ func TestHandler(t *testing.T) {
 		},
 		{
 			"with invalid state",
-			config.Config{
+			&config.Config{
 				HTTP: config.HTTP{
 					Secret: testutils.Secret,
 					Check: config.HTTPCheck{

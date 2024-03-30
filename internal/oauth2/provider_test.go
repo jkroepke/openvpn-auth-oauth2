@@ -33,12 +33,12 @@ func TestNewProvider(t *testing.T) {
 
 	tests := []struct {
 		name string
-		conf config.Config
+		conf *config.Config
 		err  string
 	}{
 		{
 			"default",
-			config.Config{
+			&config.Config{
 				HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "localhost"}},
 				OAuth2: config.OAuth2{
 					Issuer:    resourceServerURL,
@@ -51,7 +51,7 @@ func TestNewProvider(t *testing.T) {
 		},
 		{
 			"with custom discovery",
-			config.Config{
+			&config.Config{
 				HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "localhost"}},
 				OAuth2: config.OAuth2{
 					Issuer:   resourceServerURL,
@@ -66,7 +66,7 @@ func TestNewProvider(t *testing.T) {
 		},
 		{
 			"with invalid custom discovery",
-			config.Config{
+			&config.Config{
 				HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "localhost"}},
 				OAuth2: config.OAuth2{
 					Issuer:   resourceServerURL,
@@ -81,7 +81,7 @@ func TestNewProvider(t *testing.T) {
 		},
 		{
 			"with custom endpoints",
-			config.Config{
+			&config.Config{
 				HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "localhost"}},
 				OAuth2: config.OAuth2{
 					Issuer:   resourceServerURL,
@@ -98,7 +98,7 @@ func TestNewProvider(t *testing.T) {
 		},
 		{
 			"with missing custom endpoints",
-			config.Config{
+			&config.Config{
 				HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "localhost"}},
 				OAuth2: config.OAuth2{
 					Issuer:   resourceServerURL,
@@ -114,7 +114,7 @@ func TestNewProvider(t *testing.T) {
 		},
 		{
 			"with pkce",
-			config.Config{
+			&config.Config{
 				HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "localhost"}},
 				OAuth2: config.OAuth2{
 					Issuer:   resourceServerURL,

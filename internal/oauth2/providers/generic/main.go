@@ -10,10 +10,10 @@ import (
 const Name = "generic"
 
 type Provider struct {
-	Conf config.Config
+	Conf *config.Config
 }
 
-func NewProvider(_ context.Context, conf config.Config, _ *http.Client) (*Provider, error) {
+func NewProvider(_ context.Context, conf *config.Config, _ *http.Client) (*Provider, error) {
 	return &Provider{
 		Conf: conf,
 	}, nil

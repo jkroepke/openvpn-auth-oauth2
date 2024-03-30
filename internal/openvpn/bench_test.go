@@ -34,7 +34,7 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 
 	defer managementInterface.Close()
 
-	conf := config.Config{
+	conf := &config.Config{
 		HTTP: config.HTTP{
 			BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 			Secret:  testutils.Secret,
@@ -109,7 +109,7 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 
 	logger := testutils.NewTestLogger()
 
-	conf := config.Defaults
+	conf := &config.Defaults
 	conf.HTTP.Secret = testutils.Secret
 	conf.OpenVpn.Passthrough.Enabled = true
 

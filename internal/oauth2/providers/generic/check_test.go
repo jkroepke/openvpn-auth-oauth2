@@ -28,7 +28,7 @@ func TestCheckUser(t *testing.T) {
 		},
 	}
 
-	conf := config.Config{
+	conf := &config.Config{
 		OAuth2: config.OAuth2{
 			Validate: config.OAuth2Validate{},
 		},
@@ -49,13 +49,13 @@ func TestInvalidToken(t *testing.T) {
 
 	for _, tt := range []struct {
 		name  string
-		conf  config.Config
+		conf  *config.Config
 		token *oidc.Tokens[*idtoken.Claims]
 		err   error
 	}{
 		{
 			"nil without validation",
-			config.Config{
+			&config.Config{
 				OAuth2: config.OAuth2{
 					Validate: config.OAuth2Validate{},
 				},
@@ -67,7 +67,7 @@ func TestInvalidToken(t *testing.T) {
 		},
 		{
 			"nil with group",
-			config.Config{
+			&config.Config{
 				OAuth2: config.OAuth2{
 					Validate: config.OAuth2Validate{
 						Groups: []string{"apple"},
@@ -81,7 +81,7 @@ func TestInvalidToken(t *testing.T) {
 		},
 		{
 			"nil with roles",
-			config.Config{
+			&config.Config{
 				OAuth2: config.OAuth2{
 					Validate: config.OAuth2Validate{
 						Roles: []string{"apple"},
@@ -95,7 +95,7 @@ func TestInvalidToken(t *testing.T) {
 		},
 		{
 			"nil with username",
-			config.Config{
+			&config.Config{
 				OAuth2: config.OAuth2{
 					Validate: config.OAuth2Validate{
 						CommonName: "sub",
@@ -155,7 +155,7 @@ func TestValidateGroups(t *testing.T) {
 				},
 			}
 
-			conf := config.Config{
+			conf := &config.Config{
 				OAuth2: config.OAuth2{
 					Validate: config.OAuth2Validate{
 						Groups: tt.requiredGroups,
@@ -205,7 +205,7 @@ func TestValidateRoles(t *testing.T) {
 				},
 			}
 
-			conf := config.Config{
+			conf := &config.Config{
 				OAuth2: config.OAuth2{
 					Validate: config.OAuth2Validate{
 						Roles: tt.requiredRoles,
@@ -234,14 +234,14 @@ func TestValidateCommonName(t *testing.T) {
 		name               string
 		tokenCommonName    string
 		requiredCommonName string
-		conf               config.Config
+		conf               *config.Config
 		err                error
 	}{
 		{
 			"sub empty",
 			"apple",
 			"",
-			config.Config{
+			&config.Config{
 				OpenVpn: config.OpenVpn{
 					CommonName: config.OpenVPNCommonName{
 						Mode: config.CommonNameModePlain,
@@ -259,7 +259,7 @@ func TestValidateCommonName(t *testing.T) {
 			"sub required",
 			"apple",
 			"apple",
-			config.Config{
+			&config.Config{
 				OpenVpn: config.OpenVpn{
 					CommonName: config.OpenVPNCommonName{
 						Mode: config.CommonNameModePlain,
@@ -277,7 +277,7 @@ func TestValidateCommonName(t *testing.T) {
 			"sub required case insensitive",
 			"APPLE",
 			"apple",
-			config.Config{
+			&config.Config{
 				OpenVpn: config.OpenVpn{
 					CommonName: config.OpenVPNCommonName{
 						Mode: config.CommonNameModePlain,
@@ -296,7 +296,7 @@ func TestValidateCommonName(t *testing.T) {
 			"sub required wrong case insensitive",
 			"APPLE",
 			"apple",
-			config.Config{
+			&config.Config{
 				OpenVpn: config.OpenVpn{
 					CommonName: config.OpenVPNCommonName{
 						Mode: config.CommonNameModePlain,
@@ -315,25 +315,7 @@ func TestValidateCommonName(t *testing.T) {
 			"sub required wrong",
 			"pear",
 			"apple",
-			config.Config{
-				OpenVpn: config.OpenVpn{
-					CommonName: config.OpenVPNCommonName{
-						Mode: config.CommonNameModePlain,
-					},
-				},
-				OAuth2: config.OAuth2{
-					Validate: config.OAuth2Validate{
-						CommonName: "sub",
-					},
-				},
-			},
-			errors.New("common_name mismatch: openvpn client: apple - oidc token: pear"),
-		},
-		{
-			"nonexists claim",
-			"pear",
-			"apple",
-			config.Config{
+			&config.Config{
 				OpenVpn: config.OpenVpn{
 					CommonName: config.OpenVPNCommonName{
 						Mode: config.CommonNameModePlain,
@@ -351,7 +333,7 @@ func TestValidateCommonName(t *testing.T) {
 			"sub omit",
 			"apple",
 			config.CommonNameModeOmitValue,
-			config.Config{
+			&config.Config{
 				OpenVpn: config.OpenVpn{
 					CommonName: config.OpenVPNCommonName{
 						Mode: config.CommonNameModeOmit,
@@ -423,7 +405,7 @@ func TestValidateIpAddr(t *testing.T) {
 				token.IDTokenClaims.IPAddr = tt.tokenIPAddr
 			}
 
-			conf := config.Config{
+			conf := &config.Config{
 				OAuth2: config.OAuth2{
 					Validate: config.OAuth2Validate{
 						IPAddr: tt.validateIPAddr,

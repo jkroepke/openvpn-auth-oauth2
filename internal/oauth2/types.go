@@ -15,7 +15,7 @@ import (
 )
 
 type Provider struct {
-	conf    config.Config
+	conf    *config.Config
 	logger  *slog.Logger
 	storage *storage.Storage
 
@@ -30,7 +30,7 @@ type Provider struct {
 
 type oidcProvider interface {
 	CheckUser(ctx context.Context, session state.State, user types.UserData, tokens *oidc.Tokens[*idtoken.Claims]) error
-	GetProviderConfig(conf config.Config) (types.ProviderConfig, error)
+	GetProviderConfig(conf *config.Config) (types.ProviderConfig, error)
 	GetName() string
 	GetRefreshToken(tokens *oidc.Tokens[*idtoken.Claims]) string
 	GetUser(ctx context.Context, logger *slog.Logger, tokens *oidc.Tokens[*idtoken.Claims]) (types.UserData, error)

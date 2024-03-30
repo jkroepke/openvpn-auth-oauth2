@@ -26,7 +26,7 @@ import (
 )
 
 // New returns a [Provider] instance.
-func New(logger *slog.Logger, conf config.Config, storageClient *storage.Storage, httpClient *http.Client) *Provider {
+func New(logger *slog.Logger, conf *config.Config, storageClient *storage.Storage, httpClient *http.Client) *Provider {
 	return &Provider{
 		storage:    storageClient,
 		conf:       conf,
@@ -197,7 +197,7 @@ func GetAuthorizeParams(authorizeParams string) ([]rp.URLParamOpt, error) {
 	return params, nil
 }
 
-func newOidcProvider(ctx context.Context, conf config.Config, httpClient *http.Client) (oidcProvider, error) {
+func newOidcProvider(ctx context.Context, conf *config.Config, httpClient *http.Client) (oidcProvider, error) {
 	var (
 		err      error
 		provider oidcProvider
@@ -222,7 +222,7 @@ func newOidcProvider(ctx context.Context, conf config.Config, httpClient *http.C
 }
 
 func errorHandler(
-	w http.ResponseWriter, conf config.Config, logger *slog.Logger, openvpn OpenVPN,
+	w http.ResponseWriter, conf *config.Config, logger *slog.Logger, openvpn OpenVPN,
 	httpStatus int, errorType string, errorDesc string, encryptedSession string,
 ) {
 	session := state.NewEncoded(encryptedSession)

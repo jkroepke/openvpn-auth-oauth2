@@ -70,7 +70,7 @@ func TestGetUser(t *testing.T) {
 				token.AccessToken = ""
 			}
 
-			conf := config.Config{
+			conf := &config.Config{
 				OAuth2: config.OAuth2{
 					Validate: config.OAuth2Validate{
 						Groups: []string{},

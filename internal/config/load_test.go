@@ -21,13 +21,13 @@ func TestLoad(t *testing.T) {
 	for _, tt := range []struct {
 		name       string
 		configFile string
-		conf       config.Config
+		conf       *config.Config
 		err        error
 	}{
 		{
 			"empty file",
 			"",
-			config.Config{},
+			&config.Config{},
 			errors.New("validation error: oauth2.client.id is required"),
 		},
 		{
@@ -42,7 +42,7 @@ oauth2:
 http:
     secret: "1jd93h5b6s82lf03jh5b2hf9"
 `,
-			func() config.Config {
+			func() *config.Config {
 				conf := config.Defaults
 				conf.HTTP.CallbackTemplate = nil
 				conf.HTTP.Secret = "1jd93h5b6s82lf03jh5b2hf9"
@@ -53,7 +53,7 @@ http:
 				conf.OAuth2.Client.ID = "test"
 				conf.OAuth2.Client.Secret = "test"
 
-				return conf
+				return &conf
 			}(),
 			nil,
 		},
@@ -123,7 +123,7 @@ http:
     check:
         ipaddr: true
 `,
-			config.Config{
+			&config.Config{
 				Debug: config.Debug{
 					Pprof:  true,
 					Listen: ":9002",
@@ -229,13 +229,15 @@ http:
 			require.NoError(t, err)
 
 			conf, err := config.Load(config.ManagementClient, file.Name(), flag.NewFlagSet("openvpn-auth-oauth2", flag.ContinueOnError))
-			conf.HTTP.CallbackTemplate = nil
 
 			if tt.err != nil {
 				require.Error(t, err)
 				assert.Equal(t, tt.err.Error(), err.Error())
 			} else {
 				require.NoError(t, err)
+				require.NotNil(t, conf)
+
+				conf.HTTP.CallbackTemplate = nil
 				assert.Equal(t, tt.conf, conf)
 			}
 		})

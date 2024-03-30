@@ -29,7 +29,7 @@ func TestClientInvalidServer(t *testing.T) {
 	t.Parallel()
 
 	logger := testutils.NewTestLogger()
-	conf := config.Config{
+	conf := &config.Config{
 		HTTP: config.HTTP{
 			BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 			Secret:  testutils.Secret,
@@ -54,14 +54,14 @@ func TestClientFull(t *testing.T) {
 
 	confs := []struct {
 		name   string
-		conf   config.Config
+		conf   *config.Config
 		client string
 		expect string
 		err    error
 	}{
 		{
 			name: "without password",
-			conf: config.Config{
+			conf: &config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
@@ -83,7 +83,7 @@ func TestClientFull(t *testing.T) {
 		},
 		{
 			"with password",
-			config.Config{
+			&config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
@@ -107,7 +107,7 @@ func TestClientFull(t *testing.T) {
 		},
 		{
 			name: "with username",
-			conf: config.Config{
+			conf: &config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
@@ -129,7 +129,7 @@ func TestClientFull(t *testing.T) {
 		},
 		{
 			"with invalid state",
-			config.Config{
+			&config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  "012345678910111",
@@ -148,7 +148,7 @@ func TestClientFull(t *testing.T) {
 		},
 		{
 			"client without IV_SSO",
-			config.Config{
+			&config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
@@ -167,7 +167,7 @@ func TestClientFull(t *testing.T) {
 		},
 		{
 			"client bypass",
-			config.Config{
+			&config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
@@ -186,7 +186,7 @@ func TestClientFull(t *testing.T) {
 		},
 		{
 			"client established",
-			config.Config{
+			&config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
@@ -205,7 +205,7 @@ func TestClientFull(t *testing.T) {
 		},
 		{
 			"client disconnected",
-			config.Config{
+			&config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
@@ -224,7 +224,7 @@ func TestClientFull(t *testing.T) {
 		},
 		{
 			"client invalid reason",
-			config.Config{
+			&config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
@@ -342,7 +342,7 @@ func TestClientInvalidPassword(t *testing.T) {
 
 	defer managementInterface.Close()
 
-	conf := config.Config{
+	conf := &config.Config{
 		HTTP: config.HTTP{
 			BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 			Secret:  testutils.Secret,
@@ -383,16 +383,6 @@ func TestClientInvalidVersion(t *testing.T) {
 
 	logger := testutils.NewTestLogger()
 
-	conf := config.Config{
-		HTTP: config.HTTP{
-			BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
-			Secret:  testutils.Secret,
-		},
-		OpenVpn: config.OpenVpn{
-			Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
-		},
-	}
-
 	versions := []struct {
 		name    string
 		version string
@@ -417,7 +407,15 @@ func TestClientInvalidVersion(t *testing.T) {
 
 	for _, tt := range versions {
 		t.Run(tt.name, func(t *testing.T) {
-			conf := conf
+			conf := &config.Config{
+				HTTP: config.HTTP{
+					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
+					Secret:  testutils.Secret,
+				},
+				OpenVpn: config.OpenVpn{
+					Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
+				},
+			}
 
 			t.Parallel()
 
@@ -490,7 +488,7 @@ func TestSIGHUP(t *testing.T) {
 
 	logger := testutils.NewTestLogger()
 
-	conf := config.Config{
+	conf := &config.Config{
 		HTTP: config.HTTP{
 			BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 			Secret:  testutils.Secret,
@@ -560,7 +558,7 @@ func TestDeadLocks(t *testing.T) {
 
 			logger := testutils.NewTestLogger()
 
-			conf := config.Config{
+			conf := &config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
@@ -629,7 +627,7 @@ func TestInvalidCommandResponses(t *testing.T) {
 
 			logger := testutils.NewTestLogger()
 
-			conf := config.Config{
+			conf := &config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
