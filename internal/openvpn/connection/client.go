@@ -37,11 +37,6 @@ func NewClient(conf config.Config, message string) (Client, error) { //nolint:cy
 		line = strings.TrimSpace(line)
 
 		switch {
-		case client.Reason == "" && isClientReason(line):
-			client.Reason, client.CID, client.KID, err = parseClientReason(line)
-			if err != nil {
-				return Client{}, err
-			}
 		case strings.HasPrefix(line, ">CLIENT:ADDRESS"):
 			client.VPNAddress, err = parseClientVPNAddress(line)
 			if err != nil {
@@ -68,6 +63,11 @@ func NewClient(conf config.Config, message string) (Client, error) { //nolint:cy
 				client.SessionID = envValue
 			case "session_state":
 				client.SessionState = envValue
+			}
+		case client.Reason == "" && isClientReason(line):
+			client.Reason, client.CID, client.KID, err = parseClientReason(line)
+			if err != nil {
+				return Client{}, err
 			}
 		}
 	}
