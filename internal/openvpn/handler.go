@@ -99,48 +99,56 @@ func (c *Client) handleMessages() {
 			return
 		}
 
-		c.handleMessage(buf.String())
+		if err = c.handleMessage(buf.String()); err != nil {
+			c.ctxCancel(err)
+		}
 	}
 }
 
-//nolint:cyclop
-func (c *Client) handleMessage(message string) {
-	switch message[0:7] {
-	case ">CLIENT":
-		c.logger.Debug(message)
+func (c *Client) handleMessage(message string) error {
+	if message[0] == '>' {
+		switch message[0:6] {
+		case ">CLIEN":
+			return c.handleClientMessage(message)
+		case ">HOLD:":
+			c.commandsCh <- "hold release"
+		case ">INFO:":
+			// welcome message
+			if message == ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\r\n" {
+				return nil
+			}
 
-		client, err := connection.NewClient(c.conf, message)
-		if err != nil {
-			c.ctxCancel(err)
-
-			return
+			c.commandResponseCh <- message
+		default:
+			c.writeToPassthroughClient(message)
 		}
 
-		c.clientsCh <- client
-	case ">HOLD:W":
-		c.commandsCh <- "hold release"
-	case "SUCCESS":
-		// SUCCESS: hold release succeeded
-		if len(message) >= 13 && message[9:13] == "hold" {
-			c.logger.Info("hold release succeeded")
-
-			return
-		}
-
-		fallthrough
-	// Managem is the beginning of the help response
-	case "ERROR: ", "OpenVPN", "Managem", "TITLE,O", "TITLE\tO":
-		c.commandResponseCh <- message
-	case ">INFO:O":
-		// welcome message
-		if message == ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\r\n" {
-			return
-		}
-
-		fallthrough
-	default:
-		c.writeToPassthroughClient(message)
+		return nil
 	}
+
+	// SUCCESS: hold release succeeded
+	if len(message) >= 13 && message[9:13] == "hold" {
+		c.logger.Info("hold release succeeded")
+
+		return nil
+	}
+
+	c.commandResponseCh <- message
+
+	return nil
+}
+
+func (c *Client) handleClientMessage(message string) error {
+	c.logger.Debug(message)
+
+	client, err := connection.NewClient(c.conf, message)
+	if err != nil {
+		return fmt.Errorf("error parsing client message: %w", err)
+	}
+
+	c.clientsCh <- client
+
+	return nil
 }
 
 // handlePassword receive a new message from clientsCh and process them.

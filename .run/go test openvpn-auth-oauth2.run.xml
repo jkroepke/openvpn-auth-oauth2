@@ -2,7 +2,7 @@
   <configuration default="false" name="go test openvpn-auth-oauth2" type="GoTestRunConfiguration" factoryName="Go Test" nameIsGenerated="true">
     <module name="openvpn-auth-oauth2" />
     <working_directory value="$PROJECT_DIR$" />
-    <go_parameters value="-race" />
+    <go_parameters value="-race -count 10" />
     <kind value="DIRECTORY" />
     <package value="github.com/jkroepke/openvpn-auth-oauth2" />
     <directory value="$PROJECT_DIR$" />
