@@ -142,9 +142,11 @@ func TestNewProvider(t *testing.T) {
 
 			tt.conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
-			storageClient := storage.New(testutils.Secret, time.Hour)
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			storageClient := storage.New(ctx, testutils.Secret, time.Hour)
 			provider := oauth2.New(logger.Logger, tt.conf, storageClient, http2.DefaultClient)
-			ctx := context.Background()
 
 			client := openvpn.New(ctx, logger.Logger, tt.conf, provider)
 			defer client.Shutdown()

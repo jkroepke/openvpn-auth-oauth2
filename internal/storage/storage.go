@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -20,33 +21,36 @@ type item struct {
 	expires time.Time
 }
 
-func New(encryptionKey string, expires time.Duration) *Storage {
+func New(ctx context.Context, encryptionKey string, expires time.Duration) *Storage {
 	storage := &Storage{
 		encryptionKey,
 		expires,
 		sync.Map{},
 	}
-	go storage.collect()
+	go storage.collect(ctx)
 
 	return storage
 }
 
-func (s *Storage) collect() {
+func (s *Storage) collect(ctx context.Context) {
 	for {
-		time.Sleep(time.Minute * 5)
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(time.Minute * 5):
+			s.data.Range(func(client, data any) bool {
+				entry, ok := data.(item)
+				if !ok {
+					panic(data)
+				}
 
-		s.data.Range(func(client, data any) bool {
-			entry, ok := data.(item)
-			if !ok {
-				panic(data)
-			}
+				if entry.expires.Compare(time.Now()) == -1 {
+					s.data.Delete(client)
+				}
 
-			if entry.expires.Compare(time.Now()) == -1 {
-				s.data.Delete(client)
-			}
-
-			return true
-		})
+				return true
+			})
+		}
 	}
 }
 

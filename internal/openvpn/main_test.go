@@ -39,9 +39,13 @@ func TestClientInvalidServer(t *testing.T) {
 			Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
 		},
 	}
-	storageClient := storage.New(testutils.Secret, time.Hour)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	storageClient := storage.New(ctx, testutils.Secret, time.Hour)
 	provider := oauth2.New(logger.Logger, conf, storageClient, http2.DefaultClient)
-	client := openvpn.New(context.Background(), logger.Logger, conf, provider)
+	client := openvpn.New(ctx, logger.Logger, conf, provider)
 	err := client.Connect()
 	require.Error(t, err)
 	assert.Equal(t, "unable to connect to openvpn management interface tcp://0.0.0.0:1: dial tcp 0.0.0.0:1: connect: connection refused", err.Error())
@@ -255,9 +259,12 @@ func TestClientFull(t *testing.T) {
 
 			tt.conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
-			storageClient := storage.New(testutils.Secret, time.Hour)
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			storageClient := storage.New(ctx, testutils.Secret, time.Hour)
 			provider := oauth2.New(logger.Logger, tt.conf, storageClient, http2.DefaultClient)
-			client := openvpn.New(context.Background(), logger.Logger, tt.conf, provider)
+			client := openvpn.New(ctx, logger.Logger, tt.conf, provider)
 
 			wg := sync.WaitGroup{}
 			wg.Add(1)
@@ -354,9 +361,12 @@ func TestClientInvalidPassword(t *testing.T) {
 		},
 	}
 
-	storageClient := storage.New(testutils.Secret, time.Hour)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	storageClient := storage.New(ctx, testutils.Secret, time.Hour)
 	provider := oauth2.New(logger.Logger, conf, storageClient, http2.DefaultClient)
-	client := openvpn.New(context.Background(), logger.Logger, conf, provider)
+	client := openvpn.New(ctx, logger.Logger, conf, provider)
 
 	go func() {
 		conn, err := managementInterface.Accept()
@@ -428,11 +438,13 @@ func TestClientInvalidVersion(t *testing.T) {
 
 			conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
-			storageClient := storage.New(testutils.Secret, time.Hour)
-			provider := oauth2.New(logger.Logger, conf, storageClient, http2.DefaultClient)
-			openVPNClient := openvpn.New(context.Background(), logger.Logger, conf, provider)
-
 			ctx, cancel := context.WithCancelCause(context.Background())
+			defer cancel(nil)
+
+			storageClient := storage.New(ctx, testutils.Secret, time.Hour)
+			provider := oauth2.New(logger.Logger, conf, storageClient, http2.DefaultClient)
+			openVPNClient := openvpn.New(ctx, logger.Logger, conf, provider)
+
 			wg := sync.WaitGroup{}
 			wg.Add(2)
 
@@ -507,9 +519,12 @@ func TestSIGHUP(t *testing.T) {
 
 	conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
-	storageClient := storage.New(testutils.Secret, time.Hour)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	storageClient := storage.New(ctx, testutils.Secret, time.Hour)
 	provider := oauth2.New(logger.Logger, conf, storageClient, http2.DefaultClient)
-	client := openvpn.New(context.Background(), logger.Logger, conf, provider)
+	client := openvpn.New(ctx, logger.Logger, conf, provider)
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -577,9 +592,12 @@ func TestDeadLocks(t *testing.T) {
 
 			conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
-			storageClient := storage.New(testutils.Secret, time.Hour)
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			storageClient := storage.New(ctx, testutils.Secret, time.Hour)
 			provider := oauth2.New(logger.Logger, conf, storageClient, http2.DefaultClient)
-			client := openvpn.New(context.Background(), logger.Logger, conf, provider)
+			client := openvpn.New(ctx, logger.Logger, conf, provider)
 
 			wg := sync.WaitGroup{}
 			wg.Add(1)
@@ -646,9 +664,12 @@ func TestInvalidCommandResponses(t *testing.T) {
 
 			conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
-			storageClient := storage.New(testutils.Secret, time.Hour)
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			storageClient := storage.New(ctx, testutils.Secret, time.Hour)
 			provider := oauth2.New(logger.Logger, conf, storageClient, http2.DefaultClient)
-			client := openvpn.New(context.Background(), logger.Logger, conf, provider)
+			client := openvpn.New(ctx, logger.Logger, conf, provider)
 
 			wg := sync.WaitGroup{}
 			wg.Add(1)

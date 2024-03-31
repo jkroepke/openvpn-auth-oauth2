@@ -282,7 +282,7 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 	}
 
 	httpClient := &http.Client{Transport: NewMockRoundTripper(utils.NewUserAgentTransport(nil))}
-	storageClient := storage.New(Secret, conf.OAuth2.Refresh.Expires)
+	storageClient := storage.New(ctx, Secret, conf.OAuth2.Refresh.Expires)
 	provider := oauth2.New(logger.Logger, conf, storageClient, httpClient)
 	openvpnClient := openvpn.New(ctx, logger.Logger, conf, provider)
 
