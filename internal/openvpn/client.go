@@ -141,12 +141,7 @@ func (c *Client) checkReauth(logger *slog.Logger, client connection.Client) bool
 		return true
 	}
 
-	var (
-		err error
-		ok  bool
-	)
-
-	ok, err = c.oauth2.RefreshClientAuth(logger, client)
+	ok, err := c.oauth2.RefreshClientAuth(logger, client)
 	if err != nil {
 		logger.Warn(err.Error())
 	}
