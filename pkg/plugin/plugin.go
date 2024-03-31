@@ -77,10 +77,11 @@ func openvpn_plugin_open_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_
 		conf:   conf,
 	}
 
-	storageClient := storage.New(conf.OAuth2.Refresh.Secret.String(), conf.OAuth2.Refresh.Expires)
+	ctx := context.Background()
+	storageClient := storage.New(ctx, conf.OAuth2.Refresh.Secret.String(), conf.OAuth2.Refresh.Expires)
 	provider := oauth2.New(logger, conf, storageClient, http2.DefaultClient)
 
-	if err = provider.Initialize(context.Background(), handle); err != nil {
+	if err = provider.Initialize(ctx, handle); err != nil {
 		logger.Error(err.Error())
 
 		return C.OPENVPN_PLUGIN_FUNC_ERROR
@@ -129,14 +130,15 @@ func openvpn_plugin_func_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_
 		AuthFailedReasonFile: client.AuthFailedReasonFile,
 	}
 	session := state.New(clientIdentifier, client.IpAddr, client.IpPort, client.CommonName)
-	if err := session.Encode(handle.conf.HTTP.Secret.String()); err != nil {
+	encodedSession, err := session.Encode(handle.conf.HTTP.Secret.String())
+	if err != nil {
 		handle.logger.Error(fmt.Errorf("encoding state: %w", err).Error())
 		return C.OPENVPN_PLUGIN_FUNC_ERROR
 	}
 
 	startURL := utils.StringConcat(
 		strings.TrimSuffix(handle.conf.HTTP.BaseURL.String(), "/"),
-		"/oauth2/start?state=", url.QueryEscape(session.Encoded()),
+		"/oauth2/start?state=", url.QueryEscape(encodedSession),
 	)
 
 	pendingAuth := fmt.Sprintf("%.0f\nwebauth\nWEB_AUTH::%s", handle.conf.OpenVpn.AuthPendingTimeout.Seconds(), startURL)

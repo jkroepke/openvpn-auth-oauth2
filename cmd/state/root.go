@@ -14,8 +14,8 @@ func Execute(args []string, logWriter io.Writer, _, _, _ string) int {
 		return 1
 	}
 
-	session := state.NewEncoded(args[4])
-	if err := session.Decode(args[3]); err != nil {
+	session, err := state.NewWithEncodedToken(args[4], args[3])
+	if err != nil {
 		fmt.Fprintln(logWriter, err)
 
 		return 1

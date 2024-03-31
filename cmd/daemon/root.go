@@ -70,7 +70,7 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 
 	httpClient := &http.Client{Transport: utils.NewUserAgentTransport(nil)}
 
-	storageClient := storage.New(conf.OAuth2.Refresh.Secret.String(), conf.OAuth2.Refresh.Expires)
+	storageClient := storage.New(ctx, conf.OAuth2.Refresh.Secret.String(), conf.OAuth2.Refresh.Expires)
 	oauth2Client := oauth2.New(logger, conf, storageClient, httpClient)
 	openvpnClient := openvpn.New(ctx, logger, conf, oauth2Client)
 

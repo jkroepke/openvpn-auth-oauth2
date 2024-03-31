@@ -225,8 +225,8 @@ func errorHandler(
 	w http.ResponseWriter, conf config.Config, logger *slog.Logger, openvpn OpenVPN,
 	httpStatus int, errorType string, errorDesc string, encryptedSession string,
 ) {
-	session := state.NewEncoded(encryptedSession)
-	if err := session.Decode(conf.HTTP.Secret.String()); err == nil {
+	session, err := state.NewWithEncodedToken(encryptedSession, conf.HTTP.Secret.String())
+	if err == nil {
 		logger = logger.With(
 			slog.String("ip", fmt.Sprintf("%s:%s", session.IPAddr, session.IPPort)),
 			slog.Uint64("cid", session.Client.CID),

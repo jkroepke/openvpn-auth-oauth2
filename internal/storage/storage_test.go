@@ -1,6 +1,7 @@
 package storage_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -13,7 +14,10 @@ import (
 func TestStorage(t *testing.T) {
 	t.Parallel()
 
-	storageClient := storage.New(testutils.Secret, time.Millisecond*400)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	storageClient := storage.New(ctx, testutils.Secret, time.Millisecond*400)
 	require.NoError(t, storageClient.Set("0", "TEST0"))
 	require.NoError(t, storageClient.Set("1", "TEST1"))
 

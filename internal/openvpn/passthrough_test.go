@@ -182,8 +182,9 @@ func TestPassthroughFull(t *testing.T) {
 			passThroughInterface.Close()
 
 			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
 
-			storageClient := storage.New(testutils.Secret, time.Hour)
+			storageClient := storage.New(ctx, testutils.Secret, time.Hour)
 			provider := oauth2.New(logger.Logger, tt.conf, storageClient, http.DefaultClient)
 			openVPNClient := openvpn.New(ctx, logger.Logger, tt.conf, provider)
 
