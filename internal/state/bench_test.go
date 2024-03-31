@@ -5,6 +5,7 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
+	"github.com/stretchr/testify/require"
 )
 
 func BenchmarkState(b *testing.B) {
@@ -17,7 +18,7 @@ func BenchmarkState(b *testing.B) {
 
 	b.Run("encode", func(b *testing.B) {
 		for range b.N {
-			_ = token.Encode(encryptionKey)
+			_, _ = token.Encode(encryptionKey)
 		}
 
 		b.ReportAllocs()
@@ -25,13 +26,14 @@ func BenchmarkState(b *testing.B) {
 
 	b.StopTimer()
 
-	encodedToken := state.NewEncoded(token.Encoded())
+	encodedTokenString, err := token.Encode(encryptionKey)
+	require.NoError(b, err)
 
 	b.StartTimer()
 
 	b.Run("decode", func(b *testing.B) {
 		for range b.N {
-			_ = encodedToken.Decode(encryptionKey)
+			_, _ = state.NewWithEncodedToken(encodedTokenString, encryptionKey)
 		}
 
 		b.ReportAllocs()

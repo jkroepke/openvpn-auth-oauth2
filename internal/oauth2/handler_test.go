@@ -384,17 +384,17 @@ func TestHandler(t *testing.T) {
 
 				time.Sleep(time.Millisecond * 100)
 
+				var err error
+
 				session := tt.state
 
 				if tt.state == "-" {
 					sessionState := state.New(state.ClientIdentifier{CID: 0, KID: 1}, tt.ipaddr, "12345", "name")
-					err := sessionState.Encode(tt.conf.HTTP.Secret.String())
+					session, err = sessionState.Encode(tt.conf.HTTP.Secret.String())
 
 					if !assert.NoError(t, err) {
 						return
 					}
-
-					session = sessionState.Encoded()
 				}
 
 				request, err := http.NewRequestWithContext(context.Background(), http.MethodGet,

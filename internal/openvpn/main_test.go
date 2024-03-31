@@ -311,8 +311,7 @@ func TestClientFull(t *testing.T) {
 					matches := regexp.MustCompile(`state=(.+)"`).FindStringSubmatch(auth)
 					assert.Len(t, matches, 2)
 
-					sessionState := state.NewEncoded(matches[1])
-					err := sessionState.Decode(tt.conf.HTTP.Secret.String())
+					sessionState, err := state.NewWithEncodedToken(matches[1], tt.conf.HTTP.Secret.String())
 					require.NoError(t, err) //nolint:testifylint
 
 					assert.Equal(t, uint64(1), sessionState.Client.CID)

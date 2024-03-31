@@ -90,11 +90,13 @@ func (c *Client) handleClientAuthentication(logger *slog.Logger, client connecti
 	}
 
 	session := state.New(ClientIdentifier, ipAddr, ipPort, commonName)
-	if err := session.Encode(c.conf.HTTP.Secret.String()); err != nil {
+
+	encodedSession, err := session.Encode(c.conf.HTTP.Secret.String())
+	if err != nil {
 		return fmt.Errorf("error encoding state: %w", err)
 	}
 
-	startURL := utils.StringConcat(strings.TrimSuffix(c.conf.HTTP.BaseURL.String(), "/"), "/oauth2/start?state=", session.Encoded())
+	startURL := utils.StringConcat(strings.TrimSuffix(c.conf.HTTP.BaseURL.String(), "/"), "/oauth2/start?state=", encodedSession)
 
 	if len(startURL) >= 245 {
 		c.DenyClient(logger, ClientIdentifier, "internal error")
@@ -106,7 +108,7 @@ func (c *Client) handleClientAuthentication(logger *slog.Logger, client connecti
 
 	logger.Info("start pending auth")
 
-	_, err := c.SendCommandf(`client-pending-auth %d %d "WEB_AUTH::%s" %.0f`, client.CID, client.KID, startURL, c.conf.OpenVpn.AuthPendingTimeout.Seconds())
+	_, err = c.SendCommandf(`client-pending-auth %d %d "WEB_AUTH::%s" %.0f`, client.CID, client.KID, startURL, c.conf.OpenVpn.AuthPendingTimeout.Seconds())
 	if err != nil {
 		logger.Warn(err.Error())
 	}

@@ -17,8 +17,6 @@ type State struct {
 	IPPort     string
 	CommonName string
 	Issued     int64
-
-	encoded string
 }
 
 type ClientIdentifier struct {
@@ -39,25 +37,25 @@ func New(client ClientIdentifier, ipAddr, ipPort, commonName string) State {
 	}
 }
 
-func NewEncoded(state string) State {
-	return State{
-		encoded: state,
+func NewWithEncodedToken(encodedState, secretKey string) (State, error) {
+	state := State{}
+
+	if err := state.decode(encodedState, secretKey); err != nil {
+		return State{}, err
 	}
+
+	return state, nil
 }
 
-func (state *State) Encoded() string {
-	return state.encoded
-}
-
-func (state *State) Decode(secretKey string) error {
-	encrypted, err := base64.RawURLEncoding.DecodeString(state.encoded)
+func (state *State) decode(encodedState, secretKey string) error {
+	encrypted, err := base64.RawURLEncoding.DecodeString(encodedState)
 	if err != nil {
-		return fmt.Errorf("base64 decode %s: %w", state.encoded, err)
+		return fmt.Errorf("base64 decode %s: %w", encodedState, err)
 	}
 
 	data, err := crypto.DecryptBytesAES(encrypted, secretKey)
 	if err != nil {
-		return fmt.Errorf("decrypt aes %s: %w", state.encoded, err)
+		return fmt.Errorf("decrypt aes %s: %w", encodedState, err)
 	}
 
 	_, err = fmt.Fscanln(bytes.NewReader(data),
@@ -93,7 +91,7 @@ func (state *State) Decode(secretKey string) error {
 	return nil
 }
 
-func (state *State) Encode(secretKey string) error {
+func (state *State) Encode(secretKey string) (string, error) {
 	var data bytes.Buffer
 
 	data.Grow(512)
@@ -118,12 +116,10 @@ func (state *State) Encode(secretKey string) error {
 
 	encrypted, err := crypto.EncryptBytesAES(data.Bytes(), secretKey)
 	if err != nil {
-		return fmt.Errorf("encrypt aes: %w", err)
+		return "", fmt.Errorf("encrypt aes: %w", err)
 	}
 
-	state.encoded = base64.RawURLEncoding.EncodeToString(encrypted)
-
-	return nil
+	return base64.RawURLEncoding.EncodeToString(encrypted), nil
 }
 
 func encodeString(text string) string {
