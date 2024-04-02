@@ -52,7 +52,8 @@ body:
     attributes:
       label: openvpn-auth-oauth2 logs
       description: |
-        Log of openvpn-auth-oauth2
+        Log of openvpn-auth-oauth2. Output of `journalctl -flu openvpn-auth-oauth2` and `dmesg | grep openvpn`, if openvpn-auth-oauth2 is installed as linux package.
+        ⚠️ Without proving logs, I unable to assist here. ⚠️ 
       render: shell
     validations:
       required: false
