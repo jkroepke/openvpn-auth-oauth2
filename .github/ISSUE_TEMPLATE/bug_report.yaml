@@ -10,14 +10,16 @@ body:
         When I do <X>, <Y> happens and I see the error message attached below:
         ```...```
     validations:
-      required: false
+      required: true
+  
   - type: textarea
     attributes:
       label: Expected Behavior
       description: A concise description of what you expected to happen.
       placeholder: When I do <X>, <Z> should happen instead.
     validations:
-      required: false
+      required: true
+  
   - type: textarea
     attributes:
       label: Steps To Reproduce
@@ -30,6 +32,7 @@ body:
       render: Markdown
     validations:
       required: false
+  
   - type: textarea
     attributes:
       label: Environment
@@ -47,7 +50,8 @@ body:
         - OpenVPN Client (flavor, OS):
         - OIDC Provider:
     validations:
-      required: false
+      required: true
+  
   - type: textarea
     attributes:
       label: openvpn-auth-oauth2 logs
@@ -56,7 +60,7 @@ body:
         ⚠️ Without proving logs, I unable to assist here. ⚠️ 
       render: shell
     validations:
-      required: false
+      required: true
 
   - type: textarea
     attributes:
