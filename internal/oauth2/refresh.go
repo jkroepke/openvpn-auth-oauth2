@@ -78,7 +78,7 @@ func (p *Provider) ClientDisconnect(ctx context.Context, logger *slog.Logger, cl
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	if p.conf.OAuth2.Refresh.UseSessionID {
+	if p.conf.OAuth2.Refresh.UseSessionID || p.conf.OAuth2.Refresh.ValidateUser == false {
 		return
 	}
 
