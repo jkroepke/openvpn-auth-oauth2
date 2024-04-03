@@ -43,7 +43,6 @@ func (p *Provider) checkGroupMembership(ctx context.Context, groupID string, use
 	)
 
 	for {
-
 		if err = get[groupMembershipPage](ctx, p.httpClient, tokens.AccessToken, apiURL, &result); err != nil {
 			return false, err
 		}
