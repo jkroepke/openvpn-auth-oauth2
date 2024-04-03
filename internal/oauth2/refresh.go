@@ -74,7 +74,10 @@ func (p *Provider) RefreshClientAuth(logger *slog.Logger, client connection.Clie
 }
 
 // ClientDisconnect purges the refresh token from the [storage.Storage].
-func (p *Provider) ClientDisconnect(logger *slog.Logger, client connection.Client) {
+func (p *Provider) ClientDisconnect(ctx context.Context, logger *slog.Logger, client connection.Client) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
 	if p.conf.OAuth2.Refresh.UseSessionID {
 		return
 	}
@@ -83,17 +86,29 @@ func (p *Provider) ClientDisconnect(logger *slog.Logger, client connection.Clien
 
 	refreshToken, err := p.storage.Get(id)
 	if err != nil {
+		logger.Warn(fmt.Errorf("error from token store: %w", err).Error())
 		return
 	}
 
-	logger.Debug("revoke refresh token")
+	p.storage.Delete(id)
 
-	ctx := logging.ToContext(context.Background(), logger)
-	if err = rp.RevokeToken(ctx, p.RelyingParty, refreshToken, "refresh_token"); err != nil {
-		if !errors.Is(err, rp.ErrRelyingPartyNotSupportRevokeCaller) {
-			logger.Warn("refresh token revoke error: " + err.Error())
+	tokens, err := p.OIDC.Refresh(ctx, logger, refreshToken, p.RelyingParty)
+	if err != nil {
+		logger.Warn(fmt.Errorf("error from token exchange: %w", err).Error())
+	} else if tokens.IDToken != "" {
+		_, err = rp.EndSession(ctx, p.RelyingParty, tokens.IDToken, "", "")
+		if err != nil {
+			logger.Warn(fmt.Errorf("error end session: %w", err).Error())
 		}
 	}
 
-	p.storage.Delete(id)
+	logger.Debug("revoke refresh token")
+	ctx = logging.ToContext(ctx, logger)
+	if err = rp.RevokeToken(ctx, p.RelyingParty, refreshToken, "refresh_token"); err != nil {
+		if !errors.Is(err, rp.ErrRelyingPartyNotSupportRevokeCaller) {
+			logger.Warn(fmt.Errorf("refresh token revoke error: %w", err).Error())
+		}
+	}
+
+	return
 }
