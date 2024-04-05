@@ -67,8 +67,7 @@ func TestIT(t *testing.T) {
 
 			var cert, key string
 
-			tr := &http.Transport{}
-
+			httpTransport := &http.Transport{}
 			protocol := "http"
 
 			if tt.conf.HTTP.TLS {
@@ -86,10 +85,10 @@ func TestIT(t *testing.T) {
 				certPool := x509.NewCertPool()
 				certPool.AddCert(caCert)
 
-				tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+				httpTransport.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12, RootCAs: certPool}
 			}
 
-			httpClient := &http.Client{Transport: utils.NewUserAgentTransport(tr)}
+			httpClient := &http.Client{Transport: utils.NewUserAgentTransport(httpTransport)}
 			httpClient.Jar = jar
 
 			go func() {
@@ -134,7 +133,7 @@ func TestIT(t *testing.T) {
 
 				testutils.ExpectVersionAndReleaseHold(t, managementInterfaceConn, reader)
 
-				if !assert.NoError(t, testutils.WaitUntilListening(httpListener), buf.String()) {
+				if !assert.NoError(t, testutils.WaitUntilListening(t, httpListener), buf.String()) {
 					cancel()
 
 					return

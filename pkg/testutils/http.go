@@ -2,11 +2,13 @@ package testutils
 
 import (
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"syscall"
+	"testing"
 	"time"
 )
 
@@ -96,13 +98,15 @@ func (f *MockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) 
 	}
 }
 
-func WaitUntilListening(listener net.Listener) error {
+func WaitUntilListening(tb testing.TB, listener net.Listener) error {
+	tb.Helper()
+
 	var err error
 
 	for range 10 {
 		_, err = net.DialTimeout(listener.Addr().Network(), listener.Addr().String(), 100*time.Millisecond)
 		if err == nil {
-			break
+			return nil
 		}
 
 		if errors.Is(err, syscall.ECONNREFUSED) {
@@ -112,5 +116,5 @@ func WaitUntilListening(listener net.Listener) error {
 		}
 	}
 
-	return err
+	return fmt.Errorf("listener not listening: %w", err)
 }
