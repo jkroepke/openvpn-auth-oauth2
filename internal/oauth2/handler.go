@@ -196,7 +196,7 @@ func (p *Provider) oauth2Callback() http.Handler {
 				logger.Debug("claims", "claims", tokens.IDTokenClaims.Claims)
 			}
 
-			user, err := p.OIDC.GetUser(ctx, logger, tokens)
+			user, err := p.Provider.GetUser(ctx, logger, tokens)
 			if err != nil {
 				p.openvpn.DenyClient(logger, session.Client, "unable to fetch user data")
 				writeError(w, logger, p.conf, http.StatusInternalServerError, "fetchUser", err.Error())
@@ -209,7 +209,7 @@ func (p *Provider) oauth2Callback() http.Handler {
 				slog.String("user.preferred_username", user.PreferredUsername),
 			)
 
-			err = p.OIDC.CheckUser(ctx, session, user, tokens)
+			err = p.Provider.CheckUser(ctx, session, user, tokens)
 			if err != nil {
 				p.openvpn.DenyClient(logger, session.Client, "client rejected")
 				writeError(w, logger, p.conf, http.StatusInternalServerError, "user validation", err.Error())
@@ -224,7 +224,7 @@ func (p *Provider) oauth2Callback() http.Handler {
 			if p.conf.OAuth2.Refresh.Enabled {
 				refreshToken := types.EmptyToken
 				if p.conf.OAuth2.Refresh.ValidateUser {
-					refreshToken = p.OIDC.GetRefreshToken(tokens)
+					refreshToken = p.Provider.GetRefreshToken(tokens)
 				}
 
 				if refreshToken == "" {

@@ -12,8 +12,6 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
-	"github.com/zitadel/logging"
-	"github.com/zitadel/oidc/v3/pkg/client/rp"
 )
 
 // RefreshClientAuth initiate a non-interactive authentication against the sso provider.
@@ -47,19 +45,19 @@ func (p *Provider) RefreshClientAuth(logger *slog.Logger, client connection.Clie
 
 	logger.Info("initiate non-interactive authentication via refresh token")
 
-	tokens, err := p.OIDC.Refresh(ctx, logger, refreshToken, p.RelyingParty)
+	tokens, err := p.Provider.Refresh(ctx, logger, refreshToken)
 	if err != nil {
 		return false, fmt.Errorf("error from token exchange: %w", err)
 	}
 
 	session := state.New(state.ClientIdentifier{CID: client.CID, KID: client.KID}, client.IPAddr, client.IPPort, client.CommonName)
 
-	user, err := p.OIDC.GetUser(ctx, logger, tokens)
+	user, err := p.Provider.GetUser(ctx, logger, tokens)
 	if err != nil {
 		return false, fmt.Errorf("error fetch user data: %w", err)
 	}
 
-	err = p.OIDC.CheckUser(ctx, session, user, tokens)
+	err = p.Provider.CheckUser(ctx, session, user, tokens)
 	if err != nil {
 		return false, fmt.Errorf("error check user data: %w", err)
 	}
@@ -92,22 +90,19 @@ func (p *Provider) ClientDisconnect(ctx context.Context, logger *slog.Logger, cl
 
 	p.storage.Delete(id)
 
-	tokens, err := p.OIDC.Refresh(ctx, logger, refreshToken, p.RelyingParty)
+	tokens, err := p.Provider.Refresh(ctx, logger, refreshToken)
 	if err != nil {
 		logger.Warn(fmt.Errorf("error from token exchange: %w", err).Error())
 	} else if tokens.IDToken != "" {
-		_, err = rp.EndSession(ctx, p.RelyingParty, tokens.IDToken, "", "")
+		err = p.Provider.EndSession(ctx, logger, tokens.IDToken)
 		if err != nil {
-			logger.Warn(fmt.Errorf("error end session: %w", err).Error())
+			logger.Warn(err.Error())
 		}
 	}
 
 	logger.Debug("revoke refresh token")
-	ctx = logging.ToContext(ctx, logger)
-	if err = rp.RevokeToken(ctx, p.RelyingParty, refreshToken, "refresh_token"); err != nil {
-		if !errors.Is(err, rp.ErrRelyingPartyNotSupportRevokeCaller) {
-			logger.Warn(fmt.Errorf("refresh token revoke error: %w", err).Error())
-		}
+	if err = p.Provider.RevokeRefreshToken(ctx, logger, refreshToken); err != nil {
+		logger.Warn(err.Error())
 	}
 
 	return

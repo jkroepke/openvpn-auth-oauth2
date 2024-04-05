@@ -41,12 +41,12 @@ func (p *Provider) Initialize(ctx context.Context, openvpn OpenVPN) error {
 
 	p.openvpn = openvpn
 
-	p.OIDC, err = newOidcProvider(ctx, p.conf, p.httpClient)
+	p.Provider, err = newOidcProvider(ctx, p.conf, p.httpClient)
 	if err != nil {
 		return err
 	}
 
-	providerConfig, err := p.OIDC.GetProviderConfig(p.conf)
+	providerConfig, err := p.Provider.GetProviderConfig(p.conf)
 	if err != nil {
 		return fmt.Errorf("error getting providerConfig: %w", err)
 	}
@@ -77,14 +77,14 @@ func (p *Provider) Initialize(ctx context.Context, openvpn OpenVPN) error {
 		if !config.IsURLEmpty(p.conf.OAuth2.Endpoints.Discovery) {
 			p.logger.Info(fmt.Sprintf(
 				"discover oidc auto configuration with provider %s for issuer %s with custom discovery url %s",
-				p.OIDC.GetName(), p.conf.OAuth2.Issuer.String(), p.conf.OAuth2.Endpoints.Discovery.String(),
+				p.Provider.GetName(), p.conf.OAuth2.Issuer.String(), p.conf.OAuth2.Endpoints.Discovery.String(),
 			))
 
 			options = append(options, rp.WithCustomDiscoveryUrl(p.conf.OAuth2.Endpoints.Discovery.String()))
 		} else {
 			p.logger.Info(fmt.Sprintf(
 				"discover oidc auto configuration with provider %s for issuer %s",
-				p.OIDC.GetName(), p.conf.OAuth2.Issuer.String(),
+				p.Provider.GetName(), p.conf.OAuth2.Issuer.String(),
 			))
 		}
 
@@ -100,7 +100,7 @@ func (p *Provider) Initialize(ctx context.Context, openvpn OpenVPN) error {
 	} else {
 		p.logger.Info(fmt.Sprintf(
 			"manually configure oauth2 provider with provider %s and providerConfig %s and %s",
-			p.OIDC.GetName(), providerConfig.AuthURL, providerConfig.TokenURL,
+			p.Provider.GetName(), providerConfig.AuthURL, providerConfig.TokenURL,
 		))
 
 		rpConfig := &oauth2.Config{
