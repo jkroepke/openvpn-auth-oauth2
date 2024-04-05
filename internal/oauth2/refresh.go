@@ -45,7 +45,7 @@ func (p *Provider) RefreshClientAuth(logger *slog.Logger, client connection.Clie
 
 	logger.Info("initiate non-interactive authentication via refresh token")
 
-	tokens, err := p.Provider.Refresh(ctx, logger, refreshToken)
+	tokens, err := p.Provider.Refresh(ctx, logger, p.RelyingParty, refreshToken)
 	if err != nil {
 		return false, fmt.Errorf("error from token exchange: %w", err)
 	}
@@ -76,7 +76,7 @@ func (p *Provider) ClientDisconnect(ctx context.Context, logger *slog.Logger, cl
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	if p.conf.OAuth2.Refresh.UseSessionID || p.conf.OAuth2.Refresh.ValidateUser == false {
+	if p.conf.OAuth2.Refresh.UseSessionID {
 		return
 	}
 
@@ -85,25 +85,33 @@ func (p *Provider) ClientDisconnect(ctx context.Context, logger *slog.Logger, cl
 	refreshToken, err := p.storage.Get(id)
 	if err != nil {
 		logger.Warn(fmt.Errorf("error from token store: %w", err).Error())
+
 		return
 	}
 
 	p.storage.Delete(id)
 
-	tokens, err := p.Provider.Refresh(ctx, logger, refreshToken)
-	if err != nil {
-		logger.Warn(fmt.Errorf("error from token exchange: %w", err).Error())
-	} else if tokens.IDToken != "" {
-		err = p.Provider.EndSession(ctx, logger, tokens.IDToken)
+	if !p.conf.OAuth2.Refresh.ValidateUser {
+		return
+	}
+
+	if p.conf.OAuth2.EndSession {
+		logger.Info("initiate end session via refresh token")
+
+		tokens, err := p.Provider.Refresh(ctx, logger, p.RelyingParty, refreshToken)
 		if err != nil {
-			logger.Warn(err.Error())
+			logger.Warn(fmt.Errorf("error from token exchange: %w", err).Error())
+		} else if tokens.IDToken != "" {
+			err = p.Provider.EndSession(ctx, logger, p.RelyingParty, tokens.IDToken)
+			if err != nil {
+				logger.Warn(err.Error())
+			}
 		}
 	}
 
 	logger.Debug("revoke refresh token")
-	if err = p.Provider.RevokeRefreshToken(ctx, logger, refreshToken); err != nil {
+
+	if err = p.Provider.RevokeRefreshToken(ctx, logger, p.RelyingParty, refreshToken); err != nil {
 		logger.Warn(err.Error())
 	}
-
-	return
 }

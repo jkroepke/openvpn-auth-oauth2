@@ -136,7 +136,7 @@ func flagSetHTTP(flagSet *flag.FlagSet) {
 	)
 	flagSet.String(
 		"http.assets-path",
-		Defaults.HTTP.AssetsPath,
+		Defaults.HTTP.AssetPath,
 		"Custom path to the assets directory. Files in this directory will be served under /assets/ and having an higher priority than the embedded assets.",
 	)
 }
@@ -252,13 +252,18 @@ func flagSetOAuth2(flagSet *flag.FlagSet) {
 	)
 	flagSet.Bool(
 		"oauth2.pkce",
-		Defaults.OAuth2.Pkce,
+		Defaults.OAuth2.PKCE,
 		"If true, Proof Key for Code Exchange (PKCE) RFC 7636 is used for token exchange.",
 	)
 	flagSet.Bool(
 		"oauth2.nonce",
 		Defaults.OAuth2.Nonce,
 		"If true, a nonce will be defined on the auth URL which is expected inside the token.",
+	)
+	flagSet.Bool(
+		"oauth2.end-session",
+		Defaults.OAuth2.EndSession,
+		"If true, openvpn-auth-oauth2 will send a logout request to the OIDC provider on disconnect.",
 	)
 	flagSet.TextVar(new(OAuth2AuthStyle),
 		"oauth2.auth-style",

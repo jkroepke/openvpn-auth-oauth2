@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
+	"github.com/zitadel/oidc/v3/pkg/client/rp"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 	"golang.org/x/oauth2"
 )
@@ -17,19 +18,19 @@ func (p *Provider) GetRefreshToken(tokens *oidc.Tokens[*idtoken.Claims]) string 
 
 // Refresh use the [oauth2.Token.AccessToken] from initial authentication and call the REST API if the user is still present
 // inside the required groups.
-func (p *Provider) Refresh(_ context.Context, _ *slog.Logger, refreshToken string) (*oidc.Tokens[*idtoken.Claims], error) {
+func (p *Provider) Refresh(_ context.Context, _ *slog.Logger, _ rp.RelyingParty, refreshToken string) (*oidc.Tokens[*idtoken.Claims], error) {
 	return &oidc.Tokens[*idtoken.Claims]{
 		Token:         &oauth2.Token{AccessToken: refreshToken},
 		IDTokenClaims: &idtoken.Claims{},
 	}, nil
 }
 
-func (p *Provider) EndSession(_ context.Context, _ *slog.Logger, _ string) error {
+func (p *Provider) EndSession(_ context.Context, _ *slog.Logger, _ rp.RelyingParty, _ string) error {
 	// GitHub doesn't support end session
 	return nil
 }
 
-func (p *Provider) RevokeRefreshToken(_ context.Context, _ *slog.Logger, _ string) error {
+func (p *Provider) RevokeRefreshToken(_ context.Context, _ *slog.Logger, _ rp.RelyingParty, _ string) error {
 	// GitHub doesn't support revoke token
 	return nil
 }

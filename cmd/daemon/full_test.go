@@ -118,15 +118,13 @@ func TestFull(t *testing.T) {
 
 			go func() {
 				managementInterfaceConn, err := managementInterface.Accept()
-				defer func() {
-					managementInterfaceConn.Close()
-				}()
-
 				if !assert.NoError(t, err) {
 					cancel()
 
 					return
 				}
+
+				defer managementInterfaceConn.Close()
 
 				reader := bufio.NewReader(managementInterfaceConn)
 

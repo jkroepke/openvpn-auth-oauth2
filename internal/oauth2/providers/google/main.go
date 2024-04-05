@@ -7,7 +7,6 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
-	"github.com/zitadel/oidc/v3/pkg/client/rp"
 )
 
 const Name = "google"
@@ -17,8 +16,8 @@ type Provider struct {
 	httpClient *http.Client
 }
 
-func NewProvider(ctx context.Context, conf config.Config, rp rp.RelyingParty, httpClient *http.Client) (*Provider, error) {
-	provider, err := generic.NewProvider(ctx, conf, rp, httpClient)
+func NewProvider(ctx context.Context, conf config.Config, httpClient *http.Client) (*Provider, error) {
+	provider, err := generic.NewProvider(ctx, conf, httpClient)
 	if err != nil {
 		return nil, fmt.Errorf("error creating generic provider: %w", err)
 	}

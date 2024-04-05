@@ -36,8 +36,8 @@ func (p *Provider) Handler() *http.ServeMux {
 		panic(err)
 	}
 
-	if p.conf.HTTP.AssetsPath != "" {
-		staticFs = utils.NewOverlayFS(staticFs, os.DirFS(p.conf.HTTP.AssetsPath))
+	if p.conf.HTTP.AssetPath != "" {
+		staticFs = utils.NewOverlayFS(staticFs, os.DirFS(p.conf.HTTP.AssetPath))
 	}
 
 	basePath := strings.TrimSuffix(p.conf.HTTP.BaseURL.Path, "/")

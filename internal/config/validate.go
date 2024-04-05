@@ -36,7 +36,7 @@ func Validate(mode int, conf Config) error { //nolint:cyclop
 		}
 	}
 
-	if !slices.Contains([]int{16, 24, 32}, len(conf.HTTP.Secret)) {
+	if !slices.Contains([]int{16, 24, 32}, len(conf.HTTP.Secret.String())) {
 		return errors.New("http.secret requires a length of 16, 24 or 32")
 	}
 
@@ -76,9 +76,18 @@ func Validate(mode int, conf Config) error { //nolint:cyclop
 		}
 	}
 
-	if conf.HTTP.AssetsPath != "" {
-		if _, err := os.ReadDir(conf.HTTP.AssetsPath); err != nil {
+	if conf.HTTP.AssetPath != "" {
+		if _, err := os.ReadDir(conf.HTTP.AssetPath); err != nil {
 			return fmt.Errorf("http.assets-path: %w", err)
+		}
+	}
+
+	if conf.OAuth2.EndSession {
+		if conf.OAuth2.Refresh.ValidateUser {
+			return errors.New("oauth2.refresh.validate-user is set to true, no refresh token will be stored which is mandatory for end session")
+		}
+		if conf.OAuth2.Refresh.UseSessionID {
+			return errors.New("oauth2.refresh.use-session-id is set to true, it's expected to hold the users session across multiple connections")
 		}
 	}
 

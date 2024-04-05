@@ -57,6 +57,7 @@ oauth2:
         # discovery: "https://idp/.well-known/openid-configuration"
         # auth: "https://idp/oauth/auth"
         # token: "https://idp/oauth/token"
+    end-session: false
     issuer: "https://idp"
     # provider: "generic"
     # scopes:
@@ -152,6 +153,8 @@ Usage of openvpn-auth-oauth2:
     	oauth2 client id (env: CONFIG_OAUTH2_CLIENT_ID)
   --oauth2.client.secret value
     	oauth2 client secret. If argument starts with file:// it reads the secret from a file. (env: CONFIG_OAUTH2_CLIENT_SECRET)
+  --oauth2.end-session
+    	If true, openvpn-auth-oauth2 will send a logout request to the OIDC provider on disconnect. (env: CONFIG_OAUTH2_END__SESSION)
   --oauth2.endpoint.auth string
     	custom oauth2 auth endpoint (env: CONFIG_OAUTH2_ENDPOINT_AUTH)
   --oauth2.endpoint.discovery string

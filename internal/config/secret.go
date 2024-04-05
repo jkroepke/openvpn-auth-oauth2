@@ -6,6 +6,10 @@ import (
 	"strings"
 )
 
+// Secret represents a secret value that can be a plain string or a file path.
+// If the value starts with "file://", it is treated as a file path, and the secret value is read from the file.
+// The "file://" syntax supports environment variables.
+// For example, "file://$HOME/my_secret.txt" would read the secret from the "my_secret.txt" file in the user's home directory.
 type Secret string
 
 // String reassembles the Secret into a valid string.

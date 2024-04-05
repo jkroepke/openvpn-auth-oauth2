@@ -1,20 +1,13 @@
 package daemon_test
 
 import (
-	"bufio"
 	"bytes"
 	"io"
-	"os"
-	"syscall"
 	"testing"
-	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/cmd/daemon"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"golang.org/x/net/nettest"
 )
 
 func TestExecuteVersion(t *testing.T) {
@@ -63,18 +56,31 @@ func TestExecuteConfigInvalid(t *testing.T) {
 		},
 		{
 			"invalid log format",
-			[]string{"", "--config=../../config.example.yaml", "--log.format=invalid", "--log.level=warn", "--http.secret=1234567891011213"},
+			[]string{"", "--config=../../config.example.yaml", "--log.format=invalid", "--log.level=warn", "--http.secret=" + testutils.Secret},
 			"error configure logging: unknown log format: invalid",
 		},
 		{
 			"invalid log level",
-			[]string{"", "--config=../../config.example.yaml", "--log.format=console", "--log.level=invalid", "--http.secret=1234567891111213"},
+			[]string{"", "--config=../../config.example.yaml", "--log.format=console", "--log.level=invalid", "--http.secret=" + testutils.Secret},
 			`error parsing cli args: invalid value \"invalid\" for flag -log.level: slog: level string \"invalid\": unknown name`,
 		},
 		{
 			"error oidc provider",
-			[]string{"", "--config=../../config.example.yaml", "--log.format=console", "--log.level=info", "--http.secret=1234567891111213"},
+			[]string{"", "--config=../../config.example.yaml", "--log.format=console", "--log.level=info", "--http.secret=" + testutils.Secret},
 			`error oauth2 provider`,
+		},
+		{
+			"error http listener",
+			[]string{"", "--config=../../config.example.yaml", "--log.format=console", "--log.level=info", "--http.secret=" + testutils.Secret,
+				"--http.listen=127.0.0.1:100000", "--oauth2.endpoint.token=http://127.0.0.1:10000/token", "--oauth2.endpoint.auth=http://127.0.0.1:10000/auth"},
+			`error http listener: error http server listening: listen tcp: address 100000: invalid port`,
+		},
+		{
+			"error http debug listener",
+			[]string{"", "--config=../../config.example.yaml", "--log.format=console", "--log.level=info", "--http.secret=" + testutils.Secret,
+				"--debug.pprof=true", "--debug.listen=127.0.0.1:100000", "--oauth2.endpoint.token=http://127.0.0.1:10000/token",
+				"--oauth2.endpoint.auth=http://127.0.0.1:10000/auth"},
+			`error debug http listener: error http debug listening: listen tcp: address 100000: invalid port`,
 		},
 	}
 
@@ -91,83 +97,4 @@ func TestExecuteConfigInvalid(t *testing.T) {
 			assert.Contains(t, buf.String(), tt.err)
 		})
 	}
-}
-
-// TestExecuteConfigFileFound tests the main program logic of openvpn-auth-oauth2 with a valid config file.
-// It sets up a resource server, a management interface and a client.
-// It then starts the main program logic.
-//
-//nolint:paralleltest,nolintlint
-func TestExecuteConfigFileFound(t *testing.T) {
-	clientListener, err := nettest.NewLocalListener("tcp")
-	require.NoError(t, err)
-
-	defer clientListener.Close()
-
-	resourceServer, _, clientCredentials, err := testutils.SetupResourceServer(t, clientListener)
-	require.NoError(t, err)
-
-	managementInterface, err := nettest.NewLocalListener("tcp")
-	require.NoError(t, err)
-
-	defer managementInterface.Close()
-
-	stopCh := make(chan struct{}, 1)
-
-	go func() {
-		conn, err := managementInterface.Accept()
-		defer func() {
-			if conn != nil {
-				_ = conn.Close()
-			}
-		}()
-
-		if !assert.NoError(t, err) {
-			stopCh <- struct{}{}
-
-			return
-		}
-
-		reader := bufio.NewReader(conn)
-
-		testutils.ExpectVersionAndReleaseHold(t, conn, reader)
-		time.Sleep(100 * time.Millisecond)
-
-		process, err := os.FindProcess(os.Getpid())
-		if !assert.NoError(t, err) {
-			stopCh <- struct{}{}
-
-			return
-		}
-
-		_ = process.Signal(syscall.SIGHUP)
-		_ = process.Signal(syscall.SIGINT)
-	}()
-
-	go func() {
-		t.Setenv("CONFIG_OPENVPN_ADDR", utils.StringConcat(managementInterface.Addr().Network(), "://", managementInterface.Addr().String()))
-		t.Setenv("CONFIG_LOG_FORMAT", "console")
-		t.Setenv("CONFIG_LOG_LEVEL", "warn")
-
-		args := []string{
-			"openvpn-auth-oauth2",
-			"--config=../../config.example.yaml",
-			"--debug.pprof",
-			"--debug.listen=127.0.0.1:0",
-			"--http.secret=0123456789101112",
-			"--http.listen=127.0.0.1:0",
-			"--oauth2.issuer", resourceServer.URL,
-			"--oauth2.client.id", clientCredentials.ID,
-		}
-
-		buf := new(testutils.Buffer)
-
-		returnCode := daemon.Execute(args, buf, "version", "commit", "date")
-
-		assert.Equal(t, 0, returnCode, buf.String())
-
-		stopCh <- struct{}{}
-	}()
-
-	<-stopCh
 }

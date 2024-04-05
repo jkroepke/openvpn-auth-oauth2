@@ -30,7 +30,7 @@ type HTTP struct {
 	CallbackTemplate   *template.Template `koanf:"template"`
 	Check              HTTPCheck          `koanf:"check"`
 	EnableProxyHeaders bool               `koanf:"enable-proxy-headers"`
-	AssetsPath         string             `koanf:"assets-path"`
+	AssetPath          string             `koanf:"assets-path"`
 }
 
 type HTTPCheck struct {
@@ -63,17 +63,18 @@ type OpenVPNCommonName struct {
 }
 
 type OAuth2 struct {
-	Issuer          *url.URL        `koanf:"issuer"`
-	Provider        string          `koanf:"provider"`
-	AuthorizeParams string          `koanf:"authorize-params"`
-	Endpoints       OAuth2Endpoints `koanf:"endpoint"`
-	Client          OAuth2Client    `koanf:"client"`
-	Scopes          StringSlice     `koanf:"scopes"`
-	Nonce           bool            `koanf:"nonce"`
-	Pkce            bool            `koanf:"pkce"`
 	AuthStyle       OAuth2AuthStyle `koanf:"auth-style"`
-	Validate        OAuth2Validate  `koanf:"validate"`
+	AuthorizeParams string          `koanf:"authorize-params"`
+	Client          OAuth2Client    `koanf:"client"`
+	Endpoints       OAuth2Endpoints `koanf:"endpoint"`
+	EndSession      bool            `koanf:"end-session"`
+	Issuer          *url.URL        `koanf:"issuer"`
+	Nonce           bool            `koanf:"nonce"`
+	PKCE            bool            `koanf:"pkce"`
+	Provider        string          `koanf:"provider"`
 	Refresh         OAuth2Refresh   `koanf:"refresh"`
+	Scopes          StringSlice     `koanf:"scopes"`
+	Validate        OAuth2Validate  `koanf:"validate"`
 }
 
 type OAuth2Client struct {

@@ -168,7 +168,7 @@ func (p *Provider) getProviderOptions(basePath *url.URL) []rp.Option {
 		}),
 	}
 
-	if p.conf.OAuth2.Pkce {
+	if p.conf.OAuth2.PKCE {
 		options = append(options, rp.WithPKCE(cookieHandler))
 	}
 

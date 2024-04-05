@@ -36,7 +36,7 @@ type oidcProvider interface {
 	GetUser(ctx context.Context, logger *slog.Logger, tokens *oidc.Tokens[*idtoken.Claims]) (types.UserData, error)
 
 	// Refresh initiates a non-interactive authentication against the sso provider.
-	Refresh(ctx context.Context, logger *slog.Logger, refreshToken string) (*oidc.Tokens[*idtoken.Claims], error)
-	EndSession(ctx context.Context, logger *slog.Logger, idToken string) error
-	RevokeRefreshToken(ctx context.Context, logger *slog.Logger, refreshToken string) error
+	Refresh(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, refreshToken string) (*oidc.Tokens[*idtoken.Claims], error)
+	EndSession(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, idToken string) error
+	RevokeRefreshToken(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, refreshToken string) error
 }

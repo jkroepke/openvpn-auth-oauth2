@@ -119,7 +119,7 @@ func TestNewProvider(t *testing.T) {
 				OAuth2: config.OAuth2{
 					Issuer:   resourceServerURL,
 					Provider: generic.Name,
-					Pkce:     true,
+					PKCE:     true,
 					Client:   clientCredentials,
 					Endpoints: config.OAuth2Endpoints{
 						Discovery: &url.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-configuration"},
