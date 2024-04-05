@@ -32,5 +32,5 @@ If you want to provide custom localization, you have to configure `http.assets-p
 create a new directory named `i18n` and put your localization files in there. The file name must be the language code
 followed by `.json`. For example, `en.json` for English.
 
-Instead providing a custom localization file locally, think about to submit a pull request to the project to provide
+Instead, providing a custom localization file locally, think about to submit a pull request to the project to provide
 the localization for everyone.

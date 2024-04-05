@@ -50,16 +50,16 @@ func (s *Server) Listen(ctx context.Context) error {
 	errCh := make(chan error)
 
 	if s.conf.TLS {
-		s.logger.Info(fmt.Sprintf(
-			"start HTTPS %s listener on %s", s.name, s.conf.Listen,
-		))
-
 		if err := s.Reload(); err != nil {
 			return err
 		}
 
 		s.server.TLSConfig = new(tls.Config)
 		s.server.TLSConfig.GetCertificate = s.GetCertificateFunc()
+
+		s.logger.Info(fmt.Sprintf(
+			"start HTTPS %s listener on %s", s.name, s.conf.Listen,
+		))
 
 		go func() {
 			errCh <- s.server.ListenAndServeTLS("", "")

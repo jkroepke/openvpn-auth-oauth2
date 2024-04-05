@@ -52,5 +52,6 @@ linters-settings:
       - k *koanf.Koanf
       - mu sync.Mutex
       - ts oauth2.TokenSource
+      - ca *testcerts.CertificateAuthority
   lll:
     line-length: 160

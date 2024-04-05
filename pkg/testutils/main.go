@@ -182,10 +182,11 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener) (*httptest.
 		clientListener.Addr().String(),
 		"SECRET",
 		fmt.Sprintf("http://%s/oauth2/callback", clientListener.Addr().String()),
+		fmt.Sprintf("https://%s/oauth2/callback", clientListener.Addr().String()),
 	)
 
 	clients := map[string]*oidcStorage.Client{
-		clientListener.Addr().String(): client,
+		client.GetID(): client,
 	}
 
 	opStorage := oidcStorage.NewStorageWithClients(oidcStorage.NewUserStore("http://localhost"), clients)
@@ -219,7 +220,7 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener) (*httptest.
 		return nil, nil, config.OAuth2Client{}, err //nolint:wrapcheck
 	}
 
-	return resourceServer, resourceServerURL, config.OAuth2Client{ID: clientListener.Addr().String(), Secret: "SECRET"}, nil
+	return resourceServer, resourceServerURL, config.OAuth2Client{ID: client.GetID(), Secret: "SECRET"}, nil
 }
 
 // SetupMockEnvironment setups an OpenVPN and IDP mock
