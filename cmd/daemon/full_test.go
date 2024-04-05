@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	"io"
 	"net/http"
@@ -23,7 +22,7 @@ import (
 	"golang.org/x/net/nettest"
 )
 
-func TestIT(t *testing.T) {
+func TestFull(t *testing.T) {
 	t.Parallel()
 
 	for _, tt := range []struct {
@@ -73,19 +72,19 @@ func TestIT(t *testing.T) {
 			if tt.conf.HTTP.TLS {
 				protocol = "https"
 
-				cert, key, err = testcerts.GenerateCertsToTempFile(t.TempDir())
+				ca := testcerts.NewCA()
+
+				keyPair, err := ca.NewKeyPair("127.0.0.1")
 				require.NoError(t, err)
 
-				clientTLSCert, err := tls.LoadX509KeyPair(cert, key)
+				certFile, keyFile, err := keyPair.ToTempFile(t.TempDir())
 				require.NoError(t, err)
 
-				caCert, err := x509.ParseCertificate(clientTLSCert.Certificate[0])
-				require.NoError(t, err)
+				cert = certFile.Name()
+				key = keyFile.Name()
 
-				certPool := x509.NewCertPool()
-				certPool.AddCert(caCert)
-
-				httpTransport.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12, RootCAs: certPool}
+				//nolint:gosec // https://github.com/madflojo/testcerts/issues/8
+				httpTransport.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12, RootCAs: ca.CertPool(), InsecureSkipVerify: true}
 			}
 
 			httpClient := &http.Client{Transport: utils.NewUserAgentTransport(httpTransport)}
