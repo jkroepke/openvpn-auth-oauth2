@@ -169,7 +169,7 @@ func ReadLine(tb testing.TB, conn net.Conn, reader *bufio.Reader) string {
 	line, err := reader.ReadString('\n')
 
 	if err != nil && !errors.Is(err, io.EOF) {
-		require.NoError(tb, err)
+		assert.NoError(tb, err)
 	}
 
 	return strings.TrimRightFunc(line, unicode.IsSpace)
@@ -182,10 +182,11 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener) (*httptest.
 		clientListener.Addr().String(),
 		"SECRET",
 		fmt.Sprintf("http://%s/oauth2/callback", clientListener.Addr().String()),
+		fmt.Sprintf("https://%s/oauth2/callback", clientListener.Addr().String()),
 	)
 
 	clients := map[string]*oidcStorage.Client{
-		clientListener.Addr().String(): client,
+		client.GetID(): client,
 	}
 
 	opStorage := oidcStorage.NewStorageWithClients(oidcStorage.NewUserStore("http://localhost"), clients)
@@ -219,7 +220,7 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener) (*httptest.
 		return nil, nil, config.OAuth2Client{}, err //nolint:wrapcheck
 	}
 
-	return resourceServer, resourceServerURL, config.OAuth2Client{ID: clientListener.Addr().String(), Secret: "SECRET"}, nil
+	return resourceServer, resourceServerURL, config.OAuth2Client{ID: client.GetID(), Secret: "SECRET"}, nil
 }
 
 // SetupMockEnvironment setups an OpenVPN and IDP mock

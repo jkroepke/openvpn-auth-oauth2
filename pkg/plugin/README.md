@@ -7,5 +7,5 @@ This is a native OpenVPN plugin (`openvpn-auth-oauth2.so`) that authenticates us
 The plugin has some security issues and is not recommended for production use:
 
 - The plugin exposes an HTTP server that listens on all interfaces. This is a security risk, because it exposes the
-  OpenVPN server to the public. If there is an security breach in the plugin, an attacker could gain access to the
+  OpenVPN server to the public. If there is a security breach in the plugin, an attacker could gain access to the
   all sensitive data where the OpenVPN server has access to.
