@@ -62,8 +62,7 @@ func (s *Server) Listen(ctx context.Context) error {
 		))
 
 		go func() {
-			err := s.server.ListenAndServeTLS("", "")
-			errCh <- err
+			errCh <- s.server.ListenAndServeTLS("", "")
 		}()
 	} else {
 		s.logger.Info(fmt.Sprintf(
