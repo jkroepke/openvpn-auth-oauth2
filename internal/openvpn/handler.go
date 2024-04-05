@@ -89,7 +89,7 @@ func (c *Client) handleMessages() {
 		if err = c.readMessage(&buf); err != nil {
 			if errors.Is(err, io.EOF) {
 				c.logger.Warn("OpenVPN management interface connection terminated")
-				c.Shutdown()
+				c.ctxCancel(nil)
 
 				return
 			}

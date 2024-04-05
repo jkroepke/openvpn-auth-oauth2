@@ -92,7 +92,7 @@ func get[T any](ctx context.Context, httpClient *http.Client, accessToken string
 	if resp.StatusCode != http.StatusOK {
 		var apiErr apiError
 
-		if err == nil && bytes.HasPrefix(respBody, []byte("{")) {
+		if bytes.HasPrefix(respBody, []byte("{")) {
 			_ = json.Unmarshal(respBody, &apiErr)
 		}
 

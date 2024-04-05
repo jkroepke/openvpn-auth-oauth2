@@ -47,19 +47,19 @@ func (s *Server) Listen(ctx context.Context) error {
 
 	s.server.BaseContext = func(_ net.Listener) context.Context { return ctx }
 
-	var errCh chan error
+	errCh := make(chan error)
 
 	if s.conf.TLS {
-		s.logger.Info(fmt.Sprintf(
-			"start HTTPS %s listener on %s", s.name, s.conf.Listen,
-		))
-
 		if err := s.Reload(); err != nil {
 			return err
 		}
 
 		s.server.TLSConfig = new(tls.Config)
 		s.server.TLSConfig.GetCertificate = s.GetCertificateFunc()
+
+		s.logger.Info(fmt.Sprintf(
+			"start HTTPS %s listener on %s", s.name, s.conf.Listen,
+		))
 
 		go func() {
 			errCh <- s.server.ListenAndServeTLS("", "")
@@ -70,11 +70,13 @@ func (s *Server) Listen(ctx context.Context) error {
 		))
 
 		go func() {
-			errCh <- s.server.ListenAndServeTLS("", "")
+			errCh <- s.server.ListenAndServe()
 		}()
 	}
 
 	select {
+	case err := <-errCh:
+		return fmt.Errorf("error http %s listening: %w", s.name, err)
 	case <-ctx.Done():
 		s.logger.Info(fmt.Sprintf("start graceful shutdown of http %s listener", s.name))
 
@@ -85,8 +87,6 @@ func (s *Server) Listen(ctx context.Context) error {
 		}
 
 		s.logger.Info(fmt.Sprintf("http %s listener successfully terminated", s.name))
-	case err := <-errCh:
-		return fmt.Errorf("error http %s listening: %w", s.name, err)
 	}
 
 	return nil

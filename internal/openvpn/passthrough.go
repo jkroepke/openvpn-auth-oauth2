@@ -129,6 +129,8 @@ func (c *Client) handlePassthroughClient(conn net.Conn) {
 		logger = c.logger.With(slog.String("client", conn.RemoteAddr().String()))
 	case SchemeUnix:
 		logger = c.logger.With(slog.String("client", conn.RemoteAddr().Network()))
+	default:
+		panic(fmt.Errorf("%w %s", ErrUnknownProtocol, c.conf.OpenVpn.Passthrough.Address.Scheme))
 	}
 
 	logger.Info("pass-through: accepted connection")
@@ -182,8 +184,6 @@ func (c *Client) handlePassthroughClientCommands(conn net.Conn, logger *slog.Log
 			conn.Close()
 
 			return nil
-		case line == "":
-			continue
 		}
 
 		resp, err = c.SendCommand(line, true)

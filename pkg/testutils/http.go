@@ -1,9 +1,15 @@
 package testutils
 
 import (
+	"errors"
+	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"syscall"
+	"testing"
+	"time"
 )
 
 type RoundTripperFunc struct {
@@ -90,4 +96,25 @@ func (f *MockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) 
 	default:
 		return f.rt.RoundTrip(req) //nolint:wrapcheck
 	}
+}
+
+func WaitUntilListening(tb testing.TB, listener net.Listener) error {
+	tb.Helper()
+
+	var err error
+
+	for range 10 {
+		_, err = net.DialTimeout(listener.Addr().Network(), listener.Addr().String(), 100*time.Millisecond)
+		if err == nil {
+			return nil
+		}
+
+		if errors.Is(err, syscall.ECONNREFUSED) {
+			time.Sleep(100 * time.Millisecond)
+
+			continue
+		}
+	}
+
+	return fmt.Errorf("listener not listening: %w", err)
 }
