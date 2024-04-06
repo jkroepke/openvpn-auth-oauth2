@@ -18,11 +18,15 @@ When setting up `username-as-common-name` on the OpenVPN server, it's crucial to
 
 This configuration is indispensable because `username-as-common-name` functions post-authentication. Aligning the environment variable name with `username` guarantees smooth operation.
 
+On authentication, it's expected that common-name is not the values of the username. That may mis-leading, because after authentication, the common name has the correct value at OpenVPN logs.
+
+**Upstream Issue:** [OpenVPN/openvpn #498](https://github.com/OpenVPN/openvpn/issues/498#issuecomment-1939194149)
+
 ## Options error: No client-side authentication method is specified.
 
 Although openvpn-auth-oauth2 theoretically doesn't require client-side authentication, the OpenVPN client expects it.
 
-**Upstream Issue:** [GitHub Issue #501](https://github.com/OpenVPN/openvpn/issues/501) (Please react with :+1: if you're affected.)
+**Upstream Issue:** [OpenVPN/openvpn #501](https://github.com/OpenVPN/openvpn/issues/501) (Please react with :+1: if you're affected.)
 
 **Potential Workarounds:**
 
