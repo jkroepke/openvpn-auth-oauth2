@@ -91,7 +91,6 @@ oauth2:
     - "profile"
     nonce: true
     pkce: true
-    end-session: false
     refresh:
         enabled: true
         expires: 10h0m0s
@@ -192,11 +191,10 @@ http:
 						ID:     "test",
 						Secret: "test",
 					},
-					Nonce:      true,
-					PKCE:       true,
-					EndSession: false,
-					Scopes:     []string{"openid", "profile"},
-					AuthStyle:  config.OAuth2AuthStyle(oauth2.AuthStyleInHeader),
+					Nonce:     true,
+					PKCE:      true,
+					Scopes:    []string{"openid", "profile"},
+					AuthStyle: config.OAuth2AuthStyle(oauth2.AuthStyleInHeader),
 					Refresh: config.OAuth2Refresh{
 						Enabled:      true,
 						Expires:      10 * time.Hour,

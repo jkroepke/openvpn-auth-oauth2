@@ -95,20 +95,6 @@ func (p *Provider) ClientDisconnect(ctx context.Context, logger *slog.Logger, cl
 		return
 	}
 
-	if p.conf.OAuth2.EndSession {
-		logger.Info("initiate end session via refresh token")
-
-		tokens, err := p.Provider.Refresh(ctx, logger, p.RelyingParty, refreshToken)
-		if err != nil {
-			logger.Warn(fmt.Errorf("error from token exchange: %w", err).Error())
-		} else if tokens.IDToken != "" {
-			err = p.Provider.EndSession(ctx, logger, p.RelyingParty, tokens.IDToken)
-			if err != nil {
-				logger.Warn(err.Error())
-			}
-		}
-	}
-
 	logger.Debug("revoke refresh token")
 
 	if err = p.Provider.RevokeRefreshToken(ctx, logger, p.RelyingParty, refreshToken); err != nil {

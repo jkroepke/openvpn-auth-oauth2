@@ -40,17 +40,6 @@ func (p *Provider) Refresh(ctx context.Context, logger *slog.Logger, relyingPart
 	return tokens, nil
 }
 
-func (p *Provider) EndSession(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, idToken string) error {
-	ctx = logging.ToContext(ctx, logger)
-
-	_, err := rp.EndSession(ctx, relyingParty, idToken, "", "")
-	if err != nil {
-		return fmt.Errorf("error from end session: %w", err)
-	}
-
-	return nil
-}
-
 func (p *Provider) RevokeRefreshToken(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, refreshToken string) error {
 	ctx = logging.ToContext(ctx, logger)
 

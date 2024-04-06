@@ -233,56 +233,6 @@ func TestValidate(t *testing.T) {
 					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
 					Issuer: &url.URL{Scheme: "http", Host: "localhost"},
 					Refresh: config.OAuth2Refresh{
-						Enabled:      true,
-						Secret:       testutils.Secret,
-						ValidateUser: true,
-					},
-					EndSession: true,
-					Endpoints: config.OAuth2Endpoints{
-						Discovery: &url.URL{Scheme: "http", Host: "localhost"},
-					},
-				},
-				OpenVpn: config.OpenVpn{
-					Addr: &url.URL{Scheme: "tcp", Host: "127.0.0.1:9000"},
-				},
-			},
-			"oauth2.refresh.validate-user is set to true, no refresh token will be stored which is mandatory for end session",
-		},
-		{
-			config.Config{
-				HTTP: config.HTTP{
-					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.Secret,
-				},
-				OAuth2: config.OAuth2{
-					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
-					Issuer: &url.URL{Scheme: "http", Host: "localhost"},
-					Refresh: config.OAuth2Refresh{
-						Enabled:      true,
-						Secret:       testutils.Secret,
-						UseSessionID: true,
-					},
-					EndSession: true,
-					Endpoints: config.OAuth2Endpoints{
-						Discovery: &url.URL{Scheme: "http", Host: "localhost"},
-					},
-				},
-				OpenVpn: config.OpenVpn{
-					Addr: &url.URL{Scheme: "tcp", Host: "127.0.0.1:9000"},
-				},
-			},
-			"oauth2.refresh.use-session-id is set to true, it's expected to hold the users session across multiple connections",
-		},
-		{
-			config.Config{
-				HTTP: config.HTTP{
-					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.Secret,
-				},
-				OAuth2: config.OAuth2{
-					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
-					Issuer: &url.URL{Scheme: "http", Host: "localhost"},
-					Refresh: config.OAuth2Refresh{
 						Enabled: true,
 						Secret:  testutils.Secret,
 					},

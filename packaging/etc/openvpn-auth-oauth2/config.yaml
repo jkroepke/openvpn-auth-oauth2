@@ -26,7 +26,6 @@
 #    discovery: "https://idp/.well-known/openid-configuration"
 #    auth: "https://idp/oauth/auth"
 #    token: "https://idp/oauth/token"
-#  end-session: false
 #  issuer: "https://idp"
 #  provider: "generic"
 #  scopes:

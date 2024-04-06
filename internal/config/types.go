@@ -67,7 +67,6 @@ type OAuth2 struct {
 	AuthorizeParams string          `koanf:"authorize-params"`
 	Client          OAuth2Client    `koanf:"client"`
 	Endpoints       OAuth2Endpoints `koanf:"endpoint"`
-	EndSession      bool            `koanf:"end-session"`
 	Issuer          *url.URL        `koanf:"issuer"`
 	Nonce           bool            `koanf:"nonce"`
 	PKCE            bool            `koanf:"pkce"`

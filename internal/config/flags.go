@@ -260,11 +260,6 @@ func flagSetOAuth2(flagSet *flag.FlagSet) {
 		Defaults.OAuth2.Nonce,
 		"If true, a nonce will be defined on the auth URL which is expected inside the token.",
 	)
-	flagSet.Bool(
-		"oauth2.end-session",
-		Defaults.OAuth2.EndSession,
-		"If true, openvpn-auth-oauth2 will send a logout request to the OIDC provider on disconnect.",
-	)
 	flagSet.TextVar(new(OAuth2AuthStyle),
 		"oauth2.auth-style",
 		Defaults.OAuth2.AuthStyle,

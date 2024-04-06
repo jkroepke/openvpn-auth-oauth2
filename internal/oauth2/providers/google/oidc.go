@@ -17,10 +17,6 @@ func (p *Provider) Refresh(ctx context.Context, logger *slog.Logger, relyingPart
 	return p.Provider.Refresh(ctx, logger, relyingParty, refreshToken) //nolint:wrapcheck
 }
 
-func (p *Provider) EndSession(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, idToken string) error {
-	return p.Provider.EndSession(ctx, logger, relyingParty, idToken) //nolint:wrapcheck
-}
-
 func (p *Provider) RevokeRefreshToken(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, refreshToken string) error {
 	return p.Provider.RevokeRefreshToken(ctx, logger, relyingParty, refreshToken) //nolint:wrapcheck
 }

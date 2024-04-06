@@ -37,6 +37,5 @@ type oidcProvider interface {
 
 	// Refresh initiates a non-interactive authentication against the sso provider.
 	Refresh(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, refreshToken string) (*oidc.Tokens[*idtoken.Claims], error)
-	EndSession(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, idToken string) error
 	RevokeRefreshToken(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, refreshToken string) error
 }

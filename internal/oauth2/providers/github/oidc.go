@@ -25,11 +25,6 @@ func (p *Provider) Refresh(_ context.Context, _ *slog.Logger, _ rp.RelyingParty,
 	}, nil
 }
 
-func (p *Provider) EndSession(_ context.Context, _ *slog.Logger, _ rp.RelyingParty, _ string) error {
-	// GitHub doesn't support end session
-	return nil
-}
-
 func (p *Provider) RevokeRefreshToken(_ context.Context, _ *slog.Logger, _ rp.RelyingParty, _ string) error {
 	// GitHub doesn't support revoke token
 	return nil
