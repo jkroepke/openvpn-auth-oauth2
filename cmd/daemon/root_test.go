@@ -8,6 +8,8 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/cmd/daemon"
 	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/net/nettest"
 )
 
 func TestExecuteVersion(t *testing.T) {
@@ -95,10 +97,15 @@ func TestExecuteConfigInvalid(t *testing.T) {
 			var buf bytes.Buffer
 			_ = io.Writer(&buf)
 
-			returnCode := daemon.Execute(tt.args, &buf, "version", "commit", "date")
+			managementInterface, err := nettest.NewLocalListener("tcp")
+			require.NoError(t, err)
+
+			defer managementInterface.Close()
+
+			returnCode := daemon.Execute(append(tt.args, "--openvpn.addr=tcp://"+managementInterface.Addr().String()), &buf, "version", "commit", "date")
 
 			assert.Equal(t, 1, returnCode, buf.String())
-			assert.Contains(t, buf.String(), tt.err)
+			assert.Contains(t, buf.String(), tt.err, buf.String())
 		})
 	}
 }
