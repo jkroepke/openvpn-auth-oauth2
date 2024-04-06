@@ -18,7 +18,7 @@ func (p *Provider) GetRefreshToken(tokens *oidc.Tokens[*idtoken.Claims]) string 
 }
 
 // Refresh initiates a non-interactive authentication against the sso provider.
-func (p *Provider) Refresh(ctx context.Context, logger *slog.Logger, refreshToken string, relyingParty rp.RelyingParty) (*oidc.Tokens[*idtoken.Claims], error) {
+func (p *Provider) Refresh(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, refreshToken string) (*oidc.Tokens[*idtoken.Claims], error) {
 	ctx = logging.ToContext(ctx, logger)
 
 	tokens, err := rp.RefreshTokens[*idtoken.Claims](ctx, relyingParty, refreshToken, "", "")
@@ -38,4 +38,15 @@ func (p *Provider) Refresh(ctx context.Context, logger *slog.Logger, refreshToke
 	}
 
 	return tokens, nil
+}
+
+func (p *Provider) RevokeRefreshToken(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, refreshToken string) error {
+	ctx = logging.ToContext(ctx, logger)
+
+	err := rp.RevokeToken(ctx, relyingParty, refreshToken, "refresh_token")
+	if err != nil && !errors.Is(err, rp.ErrRelyingPartyNotSupportRevokeCaller) {
+		return fmt.Errorf("error from revoke token: %w", err)
+	}
+
+	return nil
 }

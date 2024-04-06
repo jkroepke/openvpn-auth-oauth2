@@ -144,7 +144,7 @@ http:
 						Scheme: "http",
 						Host:   "localhost:9000",
 					},
-					AssetsPath: ".",
+					AssetPath: ".",
 				},
 				OpenVpn: config.OpenVpn{
 					Addr: &url.URL{
@@ -192,7 +192,7 @@ http:
 						Secret: "test",
 					},
 					Nonce:     true,
-					Pkce:      true,
+					PKCE:      true,
 					Scopes:    []string{"openid", "profile"},
 					AuthStyle: config.OAuth2AuthStyle(oauth2.AuthStyleInHeader),
 					Refresh: config.OAuth2Refresh{

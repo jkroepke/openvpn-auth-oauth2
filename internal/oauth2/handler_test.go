@@ -83,7 +83,7 @@ func TestHandler(t *testing.T) {
 						IPAddr: false,
 					},
 					Nonce: true,
-					Pkce:  true,
+					PKCE:  true,
 				},
 				OpenVpn: config.OpenVpn{
 					Bypass:        config.OpenVpnBypass{CommonNames: []string{}},

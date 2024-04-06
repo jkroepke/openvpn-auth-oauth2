@@ -18,9 +18,14 @@ func (p *Provider) GetRefreshToken(tokens *oidc.Tokens[*idtoken.Claims]) string 
 
 // Refresh use the [oauth2.Token.AccessToken] from initial authentication and call the REST API if the user is still present
 // inside the required groups.
-func (p *Provider) Refresh(_ context.Context, _ *slog.Logger, refreshToken string, _ rp.RelyingParty) (*oidc.Tokens[*idtoken.Claims], error) {
+func (p *Provider) Refresh(_ context.Context, _ *slog.Logger, _ rp.RelyingParty, refreshToken string) (*oidc.Tokens[*idtoken.Claims], error) {
 	return &oidc.Tokens[*idtoken.Claims]{
 		Token:         &oauth2.Token{AccessToken: refreshToken},
 		IDTokenClaims: &idtoken.Claims{},
 	}, nil
+}
+
+func (p *Provider) RevokeRefreshToken(_ context.Context, _ *slog.Logger, _ rp.RelyingParty, _ string) error {
+	// GitHub doesn't support revoke token
+	return nil
 }

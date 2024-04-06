@@ -12,8 +12,6 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
-	"github.com/zitadel/logging"
-	"github.com/zitadel/oidc/v3/pkg/client/rp"
 )
 
 // RefreshClientAuth initiate a non-interactive authentication against the sso provider.
@@ -47,19 +45,19 @@ func (p *Provider) RefreshClientAuth(logger *slog.Logger, client connection.Clie
 
 	logger.Info("initiate non-interactive authentication via refresh token")
 
-	tokens, err := p.OIDC.Refresh(ctx, logger, refreshToken, p.RelyingParty)
+	tokens, err := p.Provider.Refresh(ctx, logger, p.RelyingParty, refreshToken)
 	if err != nil {
 		return false, fmt.Errorf("error from token exchange: %w", err)
 	}
 
 	session := state.New(state.ClientIdentifier{CID: client.CID, KID: client.KID}, client.IPAddr, client.IPPort, client.CommonName)
 
-	user, err := p.OIDC.GetUser(ctx, logger, tokens)
+	user, err := p.Provider.GetUser(ctx, logger, tokens)
 	if err != nil {
 		return false, fmt.Errorf("error fetch user data: %w", err)
 	}
 
-	err = p.OIDC.CheckUser(ctx, session, user, tokens)
+	err = p.Provider.CheckUser(ctx, session, user, tokens)
 	if err != nil {
 		return false, fmt.Errorf("error check user data: %w", err)
 	}
@@ -74,7 +72,10 @@ func (p *Provider) RefreshClientAuth(logger *slog.Logger, client connection.Clie
 }
 
 // ClientDisconnect purges the refresh token from the [storage.Storage].
-func (p *Provider) ClientDisconnect(logger *slog.Logger, client connection.Client) {
+func (p *Provider) ClientDisconnect(ctx context.Context, logger *slog.Logger, client connection.Client) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
 	if p.conf.OAuth2.Refresh.UseSessionID {
 		return
 	}
@@ -83,17 +84,20 @@ func (p *Provider) ClientDisconnect(logger *slog.Logger, client connection.Clien
 
 	refreshToken, err := p.storage.Get(id)
 	if err != nil {
+		logger.Warn(fmt.Errorf("error from token store: %w", err).Error())
+
+		return
+	}
+
+	p.storage.Delete(id)
+
+	if !p.conf.OAuth2.Refresh.ValidateUser {
 		return
 	}
 
 	logger.Debug("revoke refresh token")
 
-	ctx := logging.ToContext(context.Background(), logger)
-	if err = rp.RevokeToken(ctx, p.RelyingParty, refreshToken, "refresh_token"); err != nil {
-		if !errors.Is(err, rp.ErrRelyingPartyNotSupportRevokeCaller) {
-			logger.Warn("refresh token revoke error: " + err.Error())
-		}
+	if err = p.Provider.RevokeRefreshToken(ctx, logger, p.RelyingParty, refreshToken); err != nil {
+		logger.Warn(err.Error())
 	}
-
-	p.storage.Delete(id)
 }

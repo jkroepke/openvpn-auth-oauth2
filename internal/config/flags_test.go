@@ -257,7 +257,7 @@ func TestValidate(t *testing.T) {
 				require.Error(t, err)
 
 				if tt.err != "-" {
-					assert.Equal(t, tt.err, err.Error())
+					assert.EqualError(t, err, tt.err)
 				}
 			}
 		})

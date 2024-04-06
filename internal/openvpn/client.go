@@ -178,5 +178,5 @@ func (c *Client) clientDisconnect(client connection.Client) {
 
 	logger.Info("client disconnected")
 
-	c.oauth2.ClientDisconnect(logger, client)
+	c.oauth2.ClientDisconnect(c.ctx, logger, client)
 }

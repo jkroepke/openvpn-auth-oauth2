@@ -23,7 +23,7 @@ type Provider struct {
 
 	rp.RelyingParty
 
-	OIDC            oidcProvider
+	Provider        oidcProvider
 	openvpn         OpenVPN
 	authorizeParams []rp.URLParamOpt
 }
@@ -34,5 +34,8 @@ type oidcProvider interface {
 	GetName() string
 	GetRefreshToken(tokens *oidc.Tokens[*idtoken.Claims]) string
 	GetUser(ctx context.Context, logger *slog.Logger, tokens *oidc.Tokens[*idtoken.Claims]) (types.UserData, error)
-	Refresh(ctx context.Context, logger *slog.Logger, token string, relyingParty rp.RelyingParty) (*oidc.Tokens[*idtoken.Claims], error)
+
+	// Refresh initiates a non-interactive authentication against the sso provider.
+	Refresh(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, refreshToken string) (*oidc.Tokens[*idtoken.Claims], error)
+	RevokeRefreshToken(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, refreshToken string) error
 }

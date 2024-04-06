@@ -136,7 +136,7 @@ func flagSetHTTP(flagSet *flag.FlagSet) {
 	)
 	flagSet.String(
 		"http.assets-path",
-		Defaults.HTTP.AssetsPath,
+		Defaults.HTTP.AssetPath,
 		"Custom path to the assets directory. Files in this directory will be served under /assets/ and having an higher priority than the embedded assets.",
 	)
 }
@@ -252,7 +252,7 @@ func flagSetOAuth2(flagSet *flag.FlagSet) {
 	)
 	flagSet.Bool(
 		"oauth2.pkce",
-		Defaults.OAuth2.Pkce,
+		Defaults.OAuth2.PKCE,
 		"If true, Proof Key for Code Exchange (PKCE) RFC 7636 is used for token exchange.",
 	)
 	flagSet.Bool(
