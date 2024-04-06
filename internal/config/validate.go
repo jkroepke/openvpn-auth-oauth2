@@ -9,7 +9,9 @@ import (
 )
 
 // Validate validates the config.
-func Validate(mode int, conf Config) error { //nolint:cyclop
+//
+//nolint:cyclop nolint:gocognit
+func Validate(mode int, conf Config) error {
 	for key, value := range map[string]string{
 		"oauth2.client.id": conf.OAuth2.Client.ID,
 	} {
