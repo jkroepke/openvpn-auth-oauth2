@@ -86,6 +86,7 @@ func Validate(mode int, conf Config) error { //nolint:cyclop
 		if conf.OAuth2.Refresh.ValidateUser {
 			return errors.New("oauth2.refresh.validate-user is set to true, no refresh token will be stored which is mandatory for end session")
 		}
+
 		if conf.OAuth2.Refresh.UseSessionID {
 			return errors.New("oauth2.refresh.use-session-id is set to true, it's expected to hold the users session across multiple connections")
 		}
