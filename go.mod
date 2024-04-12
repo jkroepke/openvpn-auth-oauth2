@@ -13,7 +13,7 @@ require (
 	github.com/madflojo/testcerts v1.1.1
 	github.com/stretchr/testify v1.9.0
 	github.com/zitadel/logging v0.6.0
-	github.com/zitadel/oidc/v3 v3.19.0
+	github.com/zitadel/oidc/v3 v3.21.0
 	golang.org/x/net v0.24.0
 	golang.org/x/oauth2 v0.19.0
 	golang.org/x/text v0.14.0
@@ -25,7 +25,7 @@ require (
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-chi/chi/v5 v5.0.12 // indirect
-	github.com/go-jose/go-jose/v3 v3.0.3 // indirect
+	github.com/go-jose/go-jose/v4 v4.0.1 // indirect
 	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
