@@ -3,6 +3,7 @@ package internal_test
 import (
 	"bufio"
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -28,8 +30,8 @@ func BenchmarkFull(b *testing.B) {
 		defer wg.Done()
 
 		err := client.Connect()
-		if err != nil && !strings.HasSuffix(err.Error(), "EOF") {
-			require.NoError(b, err) //nolint:testifylint
+		if err != nil && !errors.Is(err, io.EOF) {
+			assert.NoError(b, err)
 		}
 	}()
 

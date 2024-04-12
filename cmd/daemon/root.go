@@ -69,7 +69,6 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 	defer cancel(nil)
 
 	httpClient := &http.Client{Transport: utils.NewUserAgentTransport(nil)}
-
 	storageClient := storage.New(ctx, conf.OAuth2.Refresh.Secret.String(), conf.OAuth2.Refresh.Expires)
 	oauth2Client := oauth2.New(logger, conf, storageClient, httpClient)
 	openvpnClient := openvpn.New(ctx, logger, conf, oauth2Client)
@@ -89,13 +88,7 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 		go func() {
 			defer wg.Done()
 
-			if err := setupDebugListener(ctx, logger, conf); err != nil {
-				cancel(fmt.Errorf("error debug http listener: %w", err))
-
-				return
-			}
-
-			cancel(nil)
+			cancel(setupDebugListener(ctx, logger, conf))
 		}()
 	}
 
@@ -176,7 +169,12 @@ func setupDebugListener(ctx context.Context, logger *slog.Logger, conf config.Co
 
 	server := httpserver.NewHTTPServer("debug", logger, config.HTTP{Listen: conf.Debug.Listen}, mux)
 
-	return server.Listen(ctx) //nolint:wrapcheck
+	err := server.Listen(ctx)
+	if err != nil {
+		return fmt.Errorf("error debug http listener: %w", err)
+	}
+
+	return nil
 }
 
 func defaultLogger(writer io.Writer) *slog.Logger {

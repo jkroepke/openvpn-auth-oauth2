@@ -2,11 +2,12 @@
   <configuration default="false" name="go test openvpn-auth-oauth2" type="GoTestRunConfiguration" factoryName="Go Test" nameIsGenerated="true">
     <module name="openvpn-auth-oauth2" />
     <working_directory value="$PROJECT_DIR$" />
-    <go_parameters value="-race -count 10" />
+    <go_parameters value="-race -count 10 -coverprofile coverage.out -coverpkg=./... -covermode=atomic" />
     <kind value="DIRECTORY" />
-    <package value="github.com/jkroepke/openvpn-auth-oauth2" />
+    <package value="./..." />
     <directory value="$PROJECT_DIR$" />
     <filePath value="$PROJECT_DIR$" />
+    <output_directory value="$PROJECT_DIR$" />
     <framework value="gotest" />
     <method v="2" />
   </configuration>

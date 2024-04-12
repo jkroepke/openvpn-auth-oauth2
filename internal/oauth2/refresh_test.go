@@ -3,6 +3,7 @@ package oauth2_test
 import (
 	"bufio"
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -90,8 +91,8 @@ func TestRefreshReAuth(t *testing.T) {
 				defer wg.Done()
 
 				err := openVPNClient.Connect()
-				if err != nil && !strings.HasSuffix(err.Error(), "EOF") {
-					require.NoError(t, err) //nolint:testifylint
+				if err != nil && !errors.Is(err, io.EOF) {
+					assert.NoError(t, err)
 				}
 			}()
 
