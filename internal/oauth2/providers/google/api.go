@@ -15,12 +15,10 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
-type groupPage struct {
+type groupMembershipPage struct {
 	NextPageToken string `json:"nextPageToken"`
 	Memberships   []struct {
-		GroupKey struct {
-			ID string `json:"id"`
-		} `json:"groupKey"`
+		Name string `json:"name"`
 	} `json:"memberships"`
 }
 
@@ -30,41 +28,39 @@ type apiError struct {
 	} `json:"error"`
 }
 
-// fetchGroupsFromIdentityAPI fetches the groups from a user using the Google Identity API.
-func (p *Provider) fetchGroupsFromIdentityAPI(ctx context.Context, userData types.UserData, tokens *oidc.Tokens[*idtoken.Claims]) ([]string, error) {
+// checkGroupMembership fetches the groups from a user using the Google Identity API.
+func (p *Provider) checkGroupMembership(ctx context.Context, groupID string, userData types.UserData, tokens *oidc.Tokens[*idtoken.Claims]) (bool, error) {
 	// https://cloud.google.com/identity/docs/reference/rest/v1beta1/groups.memberships/searchDirectGroups
-	apiQuery := fmt.Sprintf("query=member_key_id=='%s'", userData.Email)
 	apiURL := &url.URL{
-		Scheme:   "https",
-		Host:     "cloudidentity.googleapis.com",
-		Path:     "/v1/groups/-/memberships:searchDirectGroups",
-		RawQuery: apiQuery,
+		Scheme: "https",
+		Host:   "cloudidentity.googleapis.com",
+		Path:   fmt.Sprintf("/v1/groups/%s/memberships", groupID),
 	}
 
-	var groups []string
+	var (
+		result groupMembershipPage
+		err    error
+	)
 
 	for {
-		var (
-			result groupPage
-			err    error
-		)
-
-		if err = get[groupPage](ctx, p.httpClient, tokens.AccessToken, apiURL, &result); err != nil {
-			return nil, err
+		if err = get[groupMembershipPage](ctx, p.httpClient, tokens.AccessToken, apiURL, &result); err != nil {
+			return false, err
 		}
 
-		for _, group := range result.Memberships {
-			groups = append(groups, group.GroupKey.ID)
+		for _, membership := range result.Memberships {
+			if fmt.Sprintf("groups/%s/memberships/%s", groupID, userData.Subject) == membership.Name {
+				return true, nil
+			}
 		}
 
 		if result.NextPageToken == "" {
 			break
 		}
 
-		apiURL.RawQuery = fmt.Sprintf("%s&pageToken=%s", apiQuery, result.NextPageToken)
+		apiURL.RawQuery = "pageToken=" + result.NextPageToken
 	}
 
-	return groups, nil
+	return false, nil
 }
 
 // get calls the Google API and decodes the response into the data struct.

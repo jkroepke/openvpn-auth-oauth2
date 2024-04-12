@@ -17,16 +17,22 @@ func (p *Provider) CheckUser(
 	tokens *oidc.Tokens[*idtoken.Claims],
 ) error {
 	if len(p.Conf.OAuth2.Validate.Groups) > 0 {
+		tokens.IDTokenClaims.Groups = []string{}
+
 		if tokens.AccessToken == "" {
 			return errors.New("access token is empty")
 		}
 
-		groups, err := p.fetchGroupsFromIdentityAPI(ctx, userData, tokens)
-		if err != nil {
-			return err
-		}
+		for _, group := range p.Conf.OAuth2.Validate.Groups {
+			isMember, err := p.checkGroupMembership(ctx, group, userData, tokens)
+			if err != nil {
+				return err
+			}
 
-		tokens.IDTokenClaims.Groups = groups
+			if isMember {
+				tokens.IDTokenClaims.Groups = append(tokens.IDTokenClaims.Groups, group)
+			}
+		}
 	}
 
 	return p.Provider.CheckUser(ctx, session, userData, tokens) //nolint:wrapcheck
