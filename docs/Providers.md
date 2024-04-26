@@ -113,6 +113,23 @@ CONFIG_OAUTH2_CLIENT_ID=openvpn-auth-oauth2
 CONFIG_OAUTH2_CLIENT_SECRET=<client-secret>
 ```
 
+### Role Mapping for openvpn-auth-oauth2 (optional)
+
+openvpn-auth-oauth2 expects roles to be passed in the `roles` claim of the JWT token.
+If you are using Keycloak, you can map the roles to the `roles` claim in the token. To do this, follow these steps:
+
+1. Sign in to your admin account on the Keycloak admin console.
+2. On the left-hand side menu, navigate to `Client scopes`.
+3. Click on `Roles`.
+4. In the `Mappers` tab, select `client roles`.
+5. Set `Token Claim Name` from `resource_access.${client_id}.roles` to `roles`
+6. Set `Add to ID token` to `ON`
+7. Click `Save`
+8. In the `Mappers` tab, select `realm roles`.
+9. Set `Token Claim Name` from `resource_access.${client_id}.roles` to `roles`
+10. Set `Add to ID token` to `ON`
+11. Click `Save`
+
 ### Compare client OpenVPN and Web client IPs. (optional)
 
 Currently, there is no known configuration to enrich the token with the client's IP address in Keycloak.

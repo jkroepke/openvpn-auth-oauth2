@@ -166,6 +166,7 @@ func (p *Provider) getProviderOptions(basePath *url.URL) []rp.Option {
 		rp.WithUnauthorizedHandler(func(w http.ResponseWriter, _ *http.Request, desc string, encryptedSession string) {
 			errorHandler(w, p.conf, p.logger, p.openvpn, http.StatusUnauthorized, "Unauthorized", desc, encryptedSession)
 		}),
+		rp.WithSigningAlgsFromDiscovery(),
 	}
 
 	if p.conf.OAuth2.PKCE {
