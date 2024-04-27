@@ -2,7 +2,6 @@ module github.com/jkroepke/openvpn-auth-oauth2/pkg/plugin
 
 go 1.22
 
-toolchain go1.22.0
 
 require github.com/jkroepke/openvpn-auth-oauth2 v0.0.0-00000000000000-000000000000
 
