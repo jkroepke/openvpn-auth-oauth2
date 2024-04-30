@@ -73,6 +73,8 @@ func (c *Client) handlePassthrough() {
 
 				connMu.Lock()
 				if conn == nil || c.passthroughConnected.Load() == 0 {
+					connMu.Unlock()
+
 					continue
 				}
 
