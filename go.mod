@@ -13,7 +13,7 @@ require (
 	github.com/madflojo/testcerts v1.1.1
 	github.com/stretchr/testify v1.9.0
 	github.com/zitadel/logging v0.6.0
-	github.com/zitadel/oidc/v3 v3.22.1
+	github.com/zitadel/oidc/v3 v3.23.0
 	golang.org/x/net v0.24.0
 	golang.org/x/oauth2 v0.19.0
 	golang.org/x/text v0.14.0
