@@ -1,4 +1,4 @@
-module github.com/jkroepke/openvpn-auth-oauth2
+module github.com/melboyscout/openvpn-auth-oauth2
 
 go 1.22
 
