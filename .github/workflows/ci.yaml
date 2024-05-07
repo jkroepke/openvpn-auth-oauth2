@@ -76,7 +76,7 @@ jobs:
           go-version-file: 'go.mod'
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v5
+        uses: golangci/golangci-lint-action@v6
         with:
           args: --out-format "github-actions,colored-line-number"
           version: ${{ env.GO_LINT_CI_VERSION }}
