@@ -8,7 +8,7 @@ CYAN   := $(shell tput -Txterm setaf 6)
 RESET  := $(shell tput -Txterm sgr0)
 
 # renovate: github=golangci/golangci-lint
-GO_LINT_CI_VERSION := v1.57.2
+GO_LINT_CI_VERSION := v1.58.0
 
 ##
 # Targets
