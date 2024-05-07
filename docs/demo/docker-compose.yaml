@@ -1,5 +1,6 @@
 services:
   openvpn:
+    container_name: openvpn
     init: true
     image: openvpn-auth-oauth2/openvpn
     build:
@@ -113,6 +114,7 @@ services:
 
         exec openvpn --config "/etc/openvpn/openvpn.conf"
   openvpn-auth-oauth2:
+    container_name: openvpn-auth-oauth2
     image: openvpn-auth-oauth2/openvpn-auth-oauth2
     build:
       context: .
