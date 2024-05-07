@@ -269,10 +269,8 @@ func writeError(w http.ResponseWriter, logger *slog.Logger, conf config.Config, 
 		"errorID": errorID,
 	})
 	if err != nil {
-		logger.Error("executing template:", err)
+		logger.Error(fmt.Errorf("executing template: %w", err).Error())
 		w.WriteHeader(http.StatusInternalServerError)
-
-		return
 	}
 }
 
@@ -283,7 +281,7 @@ func writeSuccess(w http.ResponseWriter, conf config.Config, logger *slog.Logger
 		"errorID": "",
 	})
 	if err != nil {
-		logger.Error(fmt.Sprintf("executing template: %s", err))
+		logger.Error(fmt.Errorf("executing template: %w", err).Error())
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 }

@@ -16,7 +16,9 @@ linters:
     - gomnd
     - funlen
     - ireturn
-    - goerr113
+    - err113
+    - execinquery
+    - mnd
 
 issues:
   exclude-rules:
