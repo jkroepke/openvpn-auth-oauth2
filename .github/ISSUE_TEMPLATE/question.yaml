@@ -1,5 +1,5 @@
 name: ❓ Question
-description: Something is not cleae.
+description: Something is not clear.
 labels: [ ❓ question ]
 body:
   - type: textarea
@@ -11,6 +11,20 @@ body:
         There is no way to make it larger and more shiny.
     validations:
       required: false
+
+  - type: textarea
+    attributes:
+      label: openvpn-auth-oauth2 logs
+      description: |
+        Log of openvpn-auth-oauth2. Output of `journalctl -flu openvpn-auth-oauth2` and `dmesg | grep openvpn`, if openvpn-auth-oauth2 is installed as linux package.
+        ⚠️ Without proving logs, I unable to assist in case of issues. ⚠️ 
+      render: shell
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: Please not that openvpn-auth-oauth2 requires an OpenVPN server version 2.6.2 or higher.
 
   - type: textarea
     attributes:
@@ -28,3 +42,4 @@ body:
         - OpenVPN Client (flavor, OS):
     validations:
       required: false
+

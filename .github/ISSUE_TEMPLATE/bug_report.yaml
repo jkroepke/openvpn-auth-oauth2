@@ -2,6 +2,10 @@ name: 🐞 Bug
 description: Something is not working as indended.
 labels: [ 🐞 bug ]
 body:
+  - type: markdown
+    attributes:
+      value: Thanks for taking the time to fill out this bug report!
+  
   - type: textarea
     attributes:
       label: Current Behavior
@@ -32,6 +36,10 @@ body:
       render: Markdown
     validations:
       required: false
+
+  - type: markdown
+    attributes:
+      value: Please not that openvpn-auth-oauth2 requires an OpenVPN server version 2.6.2 or higher.
   
   - type: textarea
     attributes:
