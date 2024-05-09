@@ -114,7 +114,7 @@ func (c *Client) handleMessage(message string) error {
 			c.commandsCh <- "hold release"
 		case ">INFO:":
 			// welcome message
-			if message == ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\r\n" {
+			if strings.HasPrefix(message, ">INFO:OpenVPN Management Interface Version") {
 				return nil
 			}
 
