@@ -153,11 +153,11 @@ Usage of openvpn-auth-oauth2:
   --oauth2.client.secret value
     	oauth2 client secret. If argument starts with file:// it reads the secret from a file. (env: CONFIG_OAUTH2_CLIENT_SECRET)
   --oauth2.endpoint.auth string
-    	custom oauth2 auth endpoint (env: CONFIG_OAUTH2_ENDPOINT_AUTH)
+    	The flag is used to specify a custom OAuth2 authorization endpoint. (env: CONFIG_OAUTH2_ENDPOINT_AUTH)
   --oauth2.endpoint.discovery string
-    	custom oauth2 discovery url (env: CONFIG_OAUTH2_ENDPOINT_DISCOVERY)
+    	The flag is used to set a custom OAuth2 discovery URL. This URL retrieves the provider's configuration details. (env: CONFIG_OAUTH2_ENDPOINT_DISCOVERY)
   --oauth2.endpoint.token string
-    	custom oauth2 token endpoint (env: CONFIG_OAUTH2_ENDPOINT_TOKEN)
+    	The flag is used to specify a custom OAuth2 token endpoint. (env: CONFIG_OAUTH2_ENDPOINT_TOKEN)
   --oauth2.issuer string
     	oauth2 issuer (env: CONFIG_OAUTH2_ISSUER)
   --oauth2.nonce

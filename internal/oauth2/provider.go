@@ -103,6 +103,10 @@ func (p *Provider) Initialize(ctx context.Context, openvpn OpenVPN) error {
 			p.Provider.GetName(), providerConfig.AuthURL, providerConfig.TokenURL,
 		))
 
+		if p.Provider.GetName() == generic.Name {
+			p.logger.Warn("generic provider with manual configuration is used. Validation of user data is not possible.")
+		}
+
 		rpConfig := &oauth2.Config{
 			ClientID:     p.conf.OAuth2.Client.ID,
 			ClientSecret: p.conf.OAuth2.Client.Secret.String(),

@@ -18,6 +18,11 @@ func (p *Provider) GetUser(_ context.Context, logger *slog.Logger, tokens *oidc.
 
 	if tokens.IDTokenClaims == nil {
 		if tokens.IDToken == "" {
+			// if tokens.Token.Extra("id_token") != nil {
+			// 	logger.Warn("The provider has returned an 'id_token', however, it was configured as an OAUTH2 provider. " +
+			// 		"As a result, user data validation cannot be performed. If you have defined endpoints in the configuration, please remove them and retry.")
+			// 	logger.Debug("id_token", "id_token", tokens.Token.Extra("id_token"))
+			// } else {
 			logger.Warn("provider did not return a id_token. Validation of user data is not possible.")
 		} else {
 			logger.Warn("provider did return a id_token, but it was not parsed correctly. Validation of user data is not possible." +
