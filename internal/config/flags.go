@@ -228,17 +228,17 @@ func flagSetOAuth2(flagSet *flag.FlagSet) {
 	flagSet.String(
 		"oauth2.endpoint.discovery",
 		Defaults.OAuth2.Endpoints.Discovery.String(),
-		"custom oauth2 discovery url",
+		"The flag is used to set a custom OAuth2 discovery URL. This URL retrieves the provider's configuration details.",
 	)
 	flagSet.String(
 		"oauth2.endpoint.auth",
 		Defaults.OAuth2.Endpoints.Auth.String(),
-		"custom oauth2 auth endpoint",
+		"The flag is used to specify a custom OAuth2 authorization endpoint.",
 	)
 	flagSet.String(
 		"oauth2.endpoint.token",
 		Defaults.OAuth2.Endpoints.Token.String(),
-		"custom oauth2 token endpoint",
+		"The flag is used to specify a custom OAuth2 token endpoint.",
 	)
 	flagSet.String(
 		"oauth2.client.id",

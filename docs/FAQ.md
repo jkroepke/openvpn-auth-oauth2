@@ -48,3 +48,7 @@ A: Although openvpn-auth-oauth2 theoretically doesn't require client-side authen
 ## Q: Can a Remember Me function be implemented in openvpn-auth-oauth2?
 
 A: No, it is not feasible to implement a Remember Me function directly within openvpn-auth-oauth2 or OpenVPN. This limitation arises from the inability of openvpn-auth-oauth2 to store client cookies. While some OIDC providers like Keycloak offer a Remember Me feature, enabling automatic login would require implementation within the OIDC provider's settings rather than within openvpn-auth-oauth2 itself.
+
+## Q: In logs, I see `Provider did not return a id_token. Validation of user data is not possible.`, but my provider is returning an id_token.
+
+A: This could happen, if `oauth2.endpoint.auth` and `oauth2.endpoint.token` are defined. In this case, the underlying works in OAUTH2 mode, and the id_token is not recognized. If you want to use the user validation, you should remove `oauth2.endpoint.auth` and `oauth2.endpoint.token` from your configuration.
