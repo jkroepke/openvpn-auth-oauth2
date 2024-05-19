@@ -25,11 +25,11 @@ func TestHandler(t *testing.T) {
 	tests := []struct {
 		name          string
 		conf          config.Config
-		ipaddr        string
+		state         state.State
+		invalidState  bool
 		xForwardedFor string
 		preAllow      bool
 		postAllow     bool
-		state         string
 	}{
 		{
 			"default",
@@ -56,11 +56,42 @@ func TestHandler(t *testing.T) {
 					AuthTokenUser: true,
 				},
 			},
-			"127.0.0.1",
+			state.New(state.ClientIdentifier{CID: 0, KID: 1}, "127.0.0.1", "12345", "name"),
+			false,
 			"",
 			true,
 			true,
-			"-",
+		},
+		{
+			"with username defined",
+			config.Config{
+				HTTP: config.HTTP{
+					Secret: testutils.Secret,
+					Check: config.HTTPCheck{
+						IPAddr: false,
+					},
+				},
+				OAuth2: config.OAuth2{
+					Provider:  "generic",
+					Endpoints: config.OAuth2Endpoints{},
+					Scopes:    []string{"openid", "profile"},
+					Validate: config.OAuth2Validate{
+						Groups: make([]string, 0),
+						Roles:  make([]string, 0),
+						Issuer: true,
+						IPAddr: false,
+					},
+				},
+				OpenVpn: config.OpenVpn{
+					Bypass:        config.OpenVpnBypass{CommonNames: []string{}},
+					AuthTokenUser: true,
+				},
+			},
+			state.New(state.ClientIdentifier{CID: 0, KID: 1, UsernameIsDefined: 1}, "127.0.0.1", "12345", "name"),
+			false,
+			"",
+			true,
+			true,
 		},
 		{
 			"with acr values",
@@ -90,11 +121,11 @@ func TestHandler(t *testing.T) {
 					AuthTokenUser: true,
 				},
 			},
-			"127.0.0.1",
+			state.New(state.ClientIdentifier{CID: 0, KID: 1}, "127.0.0.1", "12345", "name"),
+			false,
 			"",
 			true,
 			false,
-			"-",
 		},
 		{
 			"with template",
@@ -122,11 +153,11 @@ func TestHandler(t *testing.T) {
 					AuthTokenUser: true,
 				},
 			},
-			"127.0.0.1",
+			state.New(state.ClientIdentifier{CID: 0, KID: 1}, "127.0.0.1", "12345", "name"),
+			false,
 			"",
 			true,
 			true,
-			"-",
 		},
 		{
 			"with ipaddr",
@@ -153,11 +184,11 @@ func TestHandler(t *testing.T) {
 					AuthTokenUser: true,
 				},
 			},
-			"127.0.0.1",
+			state.New(state.ClientIdentifier{CID: 0, KID: 1}, "127.0.0.1", "12345", "name"),
+			false,
 			"",
 			true,
 			true,
-			"-",
 		},
 		{
 			"with ipaddr + forwarded-for",
@@ -185,11 +216,11 @@ func TestHandler(t *testing.T) {
 					AuthTokenUser: true,
 				},
 			},
-			"127.0.0.2",
+			state.New(state.ClientIdentifier{CID: 0, KID: 1}, "127.0.0.2", "12345", "name"),
+			false,
 			"127.0.0.2",
 			true,
 			true,
-			"-",
 		},
 		{
 			"with ipaddr + disabled forwarded-for",
@@ -217,11 +248,11 @@ func TestHandler(t *testing.T) {
 					AuthTokenUser: true,
 				},
 			},
-			"127.0.0.2",
+			state.New(state.ClientIdentifier{CID: 0, KID: 1}, "127.0.0.2", "12345", "name"),
+			false,
 			"127.0.0.2",
 			false,
 			false,
-			"-",
 		},
 		{
 			"with ipaddr + multiple forwarded-for",
@@ -249,11 +280,11 @@ func TestHandler(t *testing.T) {
 					AuthTokenUser: true,
 				},
 			},
-			"127.0.0.2",
+			state.New(state.ClientIdentifier{CID: 0, KID: 1}, "127.0.0.2", "12345", "name"),
+			false,
 			"127.0.0.2, 8.8.8.8",
 			true,
 			true,
-			"-",
 		},
 		{
 			"with empty state",
@@ -281,11 +312,11 @@ func TestHandler(t *testing.T) {
 					AuthTokenUser: true,
 				},
 			},
-			"127.0.0.1",
+			state.State{},
+			false,
 			"127.0.0.1",
 			true,
 			true,
-			"",
 		},
 		{
 			"with invalid state",
@@ -313,11 +344,11 @@ func TestHandler(t *testing.T) {
 					AuthTokenUser: true,
 				},
 			},
-			"127.0.0.1",
+			state.State{},
+			true,
 			"127.0.0.1",
 			true,
 			true,
-			"test",
 		},
 	}
 
@@ -349,7 +380,7 @@ func TestHandler(t *testing.T) {
 
 				testutils.ExpectVersionAndReleaseHold(t, managementInterfaceConn, reader)
 
-				if tt.state != "-" {
+				if tt.state == (state.State{}) {
 					return
 				}
 
@@ -358,6 +389,8 @@ func TestHandler(t *testing.T) {
 					testutils.ExpectMessage(t, managementInterfaceConn, reader, `client-deny 0 1 "http client ip 127.0.0.1 and vpn ip 127.0.0.2 is different."`)
 				case !tt.postAllow:
 					testutils.ExpectMessage(t, managementInterfaceConn, reader, `client-deny 0 1 "client rejected"`)
+				case tt.state.Client.UsernameIsDefined == 1:
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth-nt 0 1")
 				default:
 					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 0 1\r\npush \"auth-token-user aWQx\"\r\nEND")
 				}
@@ -384,14 +417,18 @@ func TestHandler(t *testing.T) {
 
 				time.Sleep(time.Millisecond * 100)
 
-				var err error
+				var (
+					session string
+					err     error
+				)
 
-				session := tt.state
-
-				if tt.state == "-" {
-					sessionState := state.New(state.ClientIdentifier{CID: 0, KID: 1}, tt.ipaddr, "12345", "name")
-					session, err = sessionState.Encode(tt.conf.HTTP.Secret.String())
-
+				switch {
+				case tt.invalidState:
+					session = "invalid"
+				case tt.state == (state.State{}):
+					session = ""
+				default:
+					session, err = tt.state.Encode(tt.conf.HTTP.Secret.String())
 					if !assert.NoError(t, err) {
 						return
 					}
@@ -426,7 +463,7 @@ func TestHandler(t *testing.T) {
 
 				resp.Body.Close()
 
-				if tt.state != "-" {
+				if tt.state == (state.State{}) {
 					assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 
 					return

@@ -23,6 +23,7 @@ type ClientIdentifier struct {
 	CID                  uint64
 	KID                  uint64
 	SessionID            string
+	UsernameIsDefined    int
 	AuthFailedReasonFile string
 	AuthControlFile      string
 }
@@ -64,6 +65,7 @@ func (state *State) decode(encodedState, secretKey string) error {
 		&state.Client.AuthFailedReasonFile,
 		&state.Client.AuthControlFile,
 		&state.Client.SessionID,
+		&state.Client.UsernameIsDefined,
 		&state.IPAddr,
 		&state.IPPort,
 		&state.CommonName,
@@ -104,6 +106,8 @@ func (state *State) Encode(secretKey string) (string, error) {
 	data.WriteString(encodeString(state.Client.AuthControlFile))
 	data.WriteString(" ")
 	data.WriteString(encodeString(state.Client.SessionID))
+	data.WriteString(" ")
+	data.WriteString(strconv.Itoa(state.Client.UsernameIsDefined))
 	data.WriteString(" ")
 	data.WriteString(encodeString(state.IPAddr))
 	data.WriteString(" ")

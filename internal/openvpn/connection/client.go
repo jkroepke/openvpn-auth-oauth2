@@ -9,16 +9,17 @@ import (
 )
 
 type Client struct {
-	KID          uint64
-	CID          uint64
-	Reason       string
-	IPAddr       string
-	IPPort       string
-	VPNAddress   string
-	CommonName   string
-	SessionID    string
-	SessionState string
-	IvSSO        string
+	KID               uint64
+	CID               uint64
+	Reason            string
+	IPAddr            string
+	IPPort            string
+	VPNAddress        string
+	CommonName        string
+	UsernameIsDefined int
+	SessionID         string
+	SessionState      string
+	IvSSO             string
 }
 
 func NewClient(conf config.Config, message string) (Client, error) { //nolint:cyclop
@@ -57,12 +58,17 @@ func NewClient(conf config.Config, message string) (Client, error) { //nolint:cy
 				client.IPPort = envValue
 			case conf.OpenVpn.CommonName.EnvironmentVariableName:
 				client.CommonName = envValue
+				if conf.OpenVpn.CommonName.EnvironmentVariableName == "username" {
+					client.UsernameIsDefined = 1
+				}
 			case "IV_SSO":
 				client.IvSSO = envValue
 			case "session_id":
 				client.SessionID = envValue
 			case "session_state":
 				client.SessionState = envValue
+			case "username":
+				client.UsernameIsDefined = 1
 			}
 		case client.Reason == "" && isClientReason(line):
 			client.Reason, client.CID, client.KID, err = parseClientReason(line)
