@@ -87,7 +87,7 @@ oauth2:
         validate-user: true
 openvpn:
     addr: "unix:///run/openvpn/server.sock"
-    auth-token-user: true
+    auth-token-user: false
     auth-pending-timeout: 2m
     bypass:
         # common-names:
@@ -197,7 +197,7 @@ Usage of openvpn-auth-oauth2:
   --openvpn.auth-pending-timeout duration
     	How long OpenVPN server wait until user is authenticated (env: CONFIG_OPENVPN_AUTH__PENDING__TIMEOUT) (default 3m0s)
   --openvpn.auth-token-user
-    	Define auth-token-user for all sessions (env: CONFIG_OPENVPN_AUTH__TOKEN__USER) (default true)
+    	Override the username of a session with the username from the token by using auth-token-user, if the client username is empty (env: CONFIG_OPENVPN_AUTH__TOKEN__USER) (default true)
   --openvpn.bypass.common-names value
     	bypass oauth authentication for CNs. Comma separated list. (env: CONFIG_OPENVPN_BYPASS_COMMON__NAMES)
   --openvpn.common-name.environment-variable string

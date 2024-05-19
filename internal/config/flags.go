@@ -155,7 +155,7 @@ func flagSetOpenVPN(flagSet *flag.FlagSet) {
 	flagSet.Bool(
 		"openvpn.auth-token-user",
 		Defaults.OpenVpn.AuthTokenUser,
-		"Define auth-token-user for all sessions",
+		"Override the username of a session with the username from the token by using auth-token-user, if the client username is empty",
 	)
 	flagSet.Duration(
 		"openvpn.auth-pending-timeout",

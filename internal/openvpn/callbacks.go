@@ -13,7 +13,7 @@ func (c *Client) AcceptClient(logger *slog.Logger, client state.ClientIdentifier
 
 	var err error
 
-	if c.conf.OpenVpn.AuthTokenUser {
+	if c.conf.OpenVpn.AuthTokenUser && client.UsernameIsDefined == 0 {
 		tokenUsername := base64.StdEncoding.EncodeToString([]byte(username))
 		_, err = c.SendCommandf("client-auth %d %d\r\npush \"auth-token-user %s\"\r\nEND", client.CID, client.KID, tokenUsername)
 	} else {

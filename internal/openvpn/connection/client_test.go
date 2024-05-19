@@ -38,7 +38,7 @@ func TestNewClientConnection(t *testing.T) {
 				CID: 0, KID: 1, Reason: "CONNECT", CommonName: "common_name",
 				IPAddr: "127.0.0.1", IPPort: "12345",
 				VPNAddress: "127.0.1.1", IvSSO: "webauth",
-				SessionID: "K3waLcCGyUuzkdXh",
+				SessionID: "K3waLcCGyUuzkdXh", UsernameIsDefined: 1,
 			},
 			"",
 		},
@@ -55,7 +55,8 @@ func TestNewClientConnection(t *testing.T) {
 				">CLIENT:ENV,END",
 			},
 			connection.Client{
-				CID: 0, KID: 1, Reason: "CONNECT", CommonName: "common_name", IPAddr: "::1", IvSSO: "webauth", SessionID: "K3waLcCGyUuzkdXh",
+				CID: 0, KID: 1, Reason: "CONNECT", CommonName: "common_name",
+				IPAddr: "::1", IvSSO: "webauth", SessionID: "K3waLcCGyUuzkdXh", UsernameIsDefined: 1,
 			},
 			"",
 		},
@@ -76,7 +77,7 @@ func TestNewClientConnection(t *testing.T) {
 				">CLIENT:ENV,END",
 			},
 			connection.Client{
-				CID: 0, KID: 1, Reason: "CONNECT", CommonName: "username", IPAddr: "127.0.0.1", IvSSO: "webauth",
+				CID: 0, KID: 1, Reason: "CONNECT", CommonName: "username", IPAddr: "127.0.0.1", IvSSO: "webauth", UsernameIsDefined: 1,
 			},
 			"",
 		},
