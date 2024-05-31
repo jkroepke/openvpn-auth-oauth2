@@ -19,4 +19,4 @@ jobs:
         with:
           check_filenames: true
           # When using this Action in other repos, the --skip option below can be removed
-          skip: ./.git,go.mod,go.sum,./internal/ui/assets/i18n
+          skip: ./.git,./CODE_OF_CONDUCT.md,go.mod,go.sum,go.work,go.work.sum,./internal/ui/assets/i18n
