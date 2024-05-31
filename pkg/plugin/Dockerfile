@@ -9,7 +9,7 @@ RUN dpkg --add-architecture arm64  \
     && apt update  \
     && apt install --no-install-recommends curl ca-certificates libssl-dev build-essential openvpn libssl-dev:arm64 crossbuild-essential-arm64 -y
 
-RUN curl -sSfL https://go.dev/dl/go${GO_VERSION}.linux-${GO_ARCH}.tar.gz | tar xzf - -C /usr/local/  \
+RUN curl --proto "=https" --tlsv1.2 -sSf -L https://go.dev/dl/go${GO_VERSION}.linux-${GO_ARCH}.tar.gz | tar xzf - -C /usr/local/  \
     && ln -s /usr/local/go/bin/go /usr/local/bin/go  \
     && go version
 
