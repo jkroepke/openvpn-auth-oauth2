@@ -178,7 +178,7 @@ func (c *Client) Shutdown() {
 }
 
 // SendCommand passes command to a given connection (adds logging and EOL character) and returns the response.
-func (c *Client) SendCommand(cmd string, passTrough bool) (string, error) {
+func (c *Client) SendCommand(cmd string, passthrough bool) (string, error) {
 	if c.closed.Load() == 1 {
 		return "", nil
 	}
@@ -189,7 +189,7 @@ func (c *Client) SendCommand(cmd string, passTrough bool) (string, error) {
 	case <-c.ctx.Done():
 		return "", ErrConnectionTerminated // Error somewhere, terminate
 	case resp := <-c.commandResponseCh:
-		if passTrough {
+		if passthrough {
 			return resp, nil
 		}
 

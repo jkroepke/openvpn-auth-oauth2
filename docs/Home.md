@@ -25,18 +25,18 @@ sequenceDiagram
     Browser->>+openvpn-auth-oauth2: connect https://openvpn.example.com
     openvpn-auth-oauth2->>+OAuth2 Provider: redirects
     actor User
-    Note over OAuth2 Provider,User: User enter credentuals
-    OAuth2 Provider-->>-openvpn-auth-oauth2: Login Successfull
+    Note over OAuth2 Provider,User: User enter credentials
+    OAuth2 Provider-->>-openvpn-auth-oauth2: Login Successful
     Note over openvpn-auth-oauth2: Store refresh token, if provided
-    openvpn-auth-oauth2-->>-Browser: Login Successfull
+    openvpn-auth-oauth2-->>-Browser: Login Successful
     openvpn-auth-oauth2->>OpenVPN Server: client-auth
 
-    Note over OpenVPN Client,OpenVPN Server: connection etablished
+    Note over OpenVPN Client,OpenVPN Server: connection established
     OpenVPN Client->>+OpenVPN Server: Session refresh (reneg-sec)
     OpenVPN Server->>+openvpn-auth-oauth2: ">CLIENT:REAUTH"
     alt has refresh token
     openvpn-auth-oauth2->>+OAuth2 Provider: "Non-interactive login via refresh token"
-    OAuth2 Provider-->>-openvpn-auth-oauth2: Login Successfull
+    OAuth2 Provider-->>-openvpn-auth-oauth2: Login Successful
     else has no refresh token
     Note over openvpn-auth-oauth2,OAuth2 Provider: Traditional login, see above
     end

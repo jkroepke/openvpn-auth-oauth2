@@ -38,9 +38,9 @@ CONFIG_OAUTH2_CLIENT_SECRET=$CLIENT_SECRET
 
 ### Restrict auth to specific groups in your directory. (optional)
 
-Restrict login based on groups can be configured inside the App Registration directly. This is generally prefered, since users get the notice from Azure that they are not part of the group and the login would be denied.
+Restrict login based on groups can be configured inside the App Registration directly. This is generally preferred, since users get the notice from Azure that they are not part of the group and the login would be denied.
 
-Referece: https://learn.microsoft.com/en-us/entra/identity-platform/howto-restrict-your-app-to-a-set-of-users#assign-the-app-to-users-and-groups-to-restrict-access
+Reference: https://learn.microsoft.com/en-us/entra/identity-platform/howto-restrict-your-app-to-a-set-of-users#assign-the-app-to-users-and-groups-to-restrict-access
 
 How require multiple groups, check you could define `CONFIG_OAUTH2_VALIDATE_GROUPS`.
 

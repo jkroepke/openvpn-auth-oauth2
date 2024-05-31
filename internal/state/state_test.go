@@ -64,7 +64,7 @@ func TestState_WithSpace(t *testing.T) {
 
 	encryptionKey := testutils.Secret
 
-	token := state.New(state.ClientIdentifier{CID: 1, KID: 2}, "127.0.0.1", "12345", "te st")
+	token := state.New(state.ClientIdentifier{CID: 1, KID: 2}, "127.0.0.1", "12345", "t e s t")
 
 	encodedTokenString, err := token.Encode(encryptionKey)
 
