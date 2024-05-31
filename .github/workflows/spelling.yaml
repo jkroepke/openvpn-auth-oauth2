@@ -1,0 +1,22 @@
+name: Spell checking
+
+# Trigger on pull requests, and pushes to master branch.
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  codespell:
+    name: Check for spelling errors
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: codespell-project/actions-codespell@406322ec52dd7b488e48c1c4b82e2a8b3a1bf630
+        with:
+          check_filenames: true
+          # When using this Action in other repos, the --skip option below can be removed
+          skip: ./.git,go.mod,go.sum
