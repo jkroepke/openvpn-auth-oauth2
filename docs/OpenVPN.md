@@ -24,7 +24,7 @@
 - [OpenVPN Community Client for Windows 2.6.0+](https://openvpn.net/community-downloads/)
 - [Tunnelblick](https://tunnelblick.net/) [4.0.0beta10+](https://github.com/Tunnelblick/Tunnelblick/issues/676)
 - [OpenVPN 3 core library 3.9+](https://github.com/OpenVPN/openvpn3)
-- [Viscosity](https://www.sparklabs.com/viscosity)
+- [Viscosity](https://www.sparklabs.com/viscosity) (**Note:** Visocity denies non-https endpoints by default.)
 
 #### Partial Working
 
