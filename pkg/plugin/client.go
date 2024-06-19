@@ -21,6 +21,7 @@ type Client struct {
 func NewClient(pointer unsafe.Pointer) Client {
 	envp := (*[1 << 28]*C.char)(pointer)[:128:128]
 	var client Client
+
 	for i := 0; envp[i] != nil; i++ {
 		envParts := strings.SplitN(C.GoString(envp[i]), "=", 2)
 		switch envParts[0] {
