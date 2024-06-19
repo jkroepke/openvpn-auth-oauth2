@@ -71,7 +71,6 @@ How require multiple groups, check you could define `CONFIG_OAUTH2_VALIDATE_GROU
 3. The URL of the group page should follow this pattern: `https://admin.google.com/ac/groups/<ID>`. Replace `<ID>` with the actual ID of the group. Make sure to copy this ID for future use. If there are multiple groups, repeat this step for each one.
 4. Insert the copied ID(s) into the `CONFIG_OAUTH2_VALIDATE_GROUPS` configuration setting in your `openvpn-auth-oauth2` setup.
 
-
 ### Configuration
 
 Set the following variables in your openvpn-auth-oauth2 configuration file:
@@ -84,6 +83,14 @@ CONFIG_OAUTH2_CLIENT_SECRET=GOCSPX-xxxxxxxx
 
 # CONFIG_OAUTH2_VALIDATE_GROUPS=03x8tuzt3hqdv5v
 ```
+
+### Google consent screen always asking for permission grant
+
+If `oauth2.refresh.enabled` is set to `true`, Google SSO will always ask for permission grant. On technical side,
+this is because the `approval_prompt=force` is set on URL to obtain a refresh token. openvpn-auth-oauth2 requires a
+refresh token to validate the user on re-auth.
+
+To avoid this, you can set `oauth2.refresh.validate-user` to `false`. Read more about this in the [Configuration](Configuration.md#non-interactive-session-refresh) page.
 
 ## Keycloak
 

@@ -367,6 +367,18 @@ References:
 - https://curity.io/resources/learn/oauth-refresh/
 - https://developer.okta.com/docs/guides/refresh-tokens/main/
 
+Here is the corrected version of your text:
+
+### Security Considerations
+
+If `oauth2.refresh.validate-user` is set to `false`, a refresh token is not requested and validated against the OIDC
+provider.
+openvpn-auth-oauth2 assumes the user is still valid and allows the user to connect without further validation.
+
+Example: If the user opens a VPN connection and the user is deleted from the OIDC provider, the connection remains valid
+until the connection lifetime is reached. Restarting the OpenVPN server will invalidate the connection unless
+[non-interactive session refresh across disconnects](#non-interactive-session-refresh-across-disconnects) is configured.
+
 ### Non-interactive session refresh across disconnects
 
 To facilitate non-interactive session refresh across disconnects,
