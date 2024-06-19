@@ -1,7 +1,8 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "config:recommended",
+    "helpers:pinGitHubActionDigestsToSemver"
   ],
   "labels": [
     "🛠️ dependencies"
@@ -13,6 +14,14 @@
   "ignoreDeps": [
     "github.com/jkroepke/openvpn-auth-oauth2"
   ],
+  "packageRules": [
+    {
+      "groupName": "GitHub Actions",
+      "matchManagers": [
+        "github-actions"
+      ]
+    }
+  ],
   "regexManagers": [
     {
       "fileMatch": [
@@ -22,7 +31,7 @@
       "matchStrings": [
         "\\s*#\\s?renovate: (?<datasource>.*?)=(?<depName>.*?)(\\s+versioning=(?<versioning>.*?))?\\s+[\\w+\\.\\-]+(?:[:=]|\\s+\\S+)\\s*[\\\"']?(?<currentValue>[\\w+\\.\\-]*)(?:@(?<currentDigest>sha256:[a-f0-9]+))?[\\\"']?"
       ],
-      "datasourceTemplate": "{{#if (equals datasource 'github')}}github-tags{{else}}{{{datasource}}}{{/if}}",
+      "datasourceTemplate": "{{#if (equals datasource 'github')}}github-releasesh{{else}}{{{datasource}}}{{/if}}",
       "versioningTemplate": "{{#if (equals datasource 'docker')}}docker{{else if versioning}}{{{versioning}}}{{else}}semver{{/if}}"
     }
   ]
