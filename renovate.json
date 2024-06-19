@@ -31,7 +31,7 @@
       "matchStrings": [
         "\\s*#\\s?renovate: (?<datasource>.*?)=(?<depName>.*?)(\\s+versioning=(?<versioning>.*?))?\\s+[\\w+\\.\\-]+(?:[:=]|\\s+\\S+)\\s*[\\\"']?(?<currentValue>[\\w+\\.\\-]*)(?:@(?<currentDigest>sha256:[a-f0-9]+))?[\\\"']?"
       ],
-      "datasourceTemplate": "{{#if (equals datasource 'github')}}github-releasesh{{else}}{{{datasource}}}{{/if}}",
+      "datasourceTemplate": "{{#if (equals datasource 'github')}}github-releases{{else}}{{{datasource}}}{{/if}}",
       "versioningTemplate": "{{#if (equals datasource 'docker')}}docker{{else if versioning}}{{{versioning}}}{{else}}semver{{/if}}"
     }
   ]
