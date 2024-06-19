@@ -51,7 +51,7 @@ jobs:
           GPG_KEY: ${{ secrets.GPG_KEY }}
 
       - name: go build (with goreleaser)
-        uses: goreleaser/goreleaser-action@v5
+        uses: goreleaser/goreleaser-action@v6
         with:
           version: latest
           args: release --snapshot
@@ -117,7 +117,7 @@ jobs:
           GPG_KEY: ${{ secrets.GPG_KEY }}
 
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v5
+        uses: goreleaser/goreleaser-action@v6
         with:
           version: latest
           args: release --clean
