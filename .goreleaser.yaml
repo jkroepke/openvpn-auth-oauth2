@@ -1,3 +1,4 @@
+version: 2
 before:
   hooks:
     - rm -rf 3rdpartylicenses

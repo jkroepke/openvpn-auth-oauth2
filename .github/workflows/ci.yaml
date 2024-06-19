@@ -4,6 +4,8 @@ env:
   PACKAGES: openvpn crossbuild-essential-arm64 libssl-dev:arm64
   # renovate: github=golangci/golangci-lint
   GO_LINT_CI_VERSION: v1.59.1
+  # renovate: github=goreleaser/goreleaser
+  GORELEASER_VERSION: v2.0.1
 
 on:
   workflow_dispatch:
@@ -53,7 +55,7 @@ jobs:
       - name: go build (with goreleaser)
         uses: goreleaser/goreleaser-action@v6
         with:
-          version: latest
+          version: ${{ env.GORELEASER_VERSION }}
           args: release --snapshot
         env:
           GITHUB_TOKEN: ""
@@ -119,7 +121,7 @@ jobs:
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
-          version: latest
+          version: ${{ env.GORELEASER_VERSION }}
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

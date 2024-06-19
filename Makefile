@@ -1,11 +1,11 @@
 ##
 # Console Colors
 ##
-GREEN  := $(shell tput -Txterm setaf 2)
-YELLOW := $(shell tput -Txterm setaf 3)
-WHITE  := $(shell tput -Txterm setaf 7)
-CYAN   := $(shell tput -Txterm setaf 6)
-RESET  := $(shell tput -Txterm sgr0)
+GREEN  := $(shell echo -e "\033[0;32m")
+YELLOW := $(shell echo -e "\033[0;33m")
+WHITE  := $(shell echo -e "\033[0;37m")
+CYAN   := $(shell echo -e "\033[0;36m")
+RESET  := $(shell echo -e "\033[0m")
 
 # renovate: github=golangci/golangci-lint
 GO_LINT_CI_VERSION := v1.59.1
@@ -46,7 +46,6 @@ else
 build: clean openvpn-auth-oauth2
 endif
 
-
 openvpn-auth-oauth2:
 	@go build -o openvpn-auth-oauth2 .
 
@@ -64,40 +63,22 @@ test:  ## Test openvpn-auth-oauth2
 .PHONY: lint
 lint: golangci  ## Run linter
 
-.PHONY: format
-format: fmt goimports gogci gofumpt gowsl goperfsprint golangci-fix ## Format source code
 
-.PHONY: fmt
+.PHONY: fmt  ## Format code
 fmt:
 	@go fmt ./...
-
-.PHONY: gogci
-gogci:
 	@-go run github.com/daixiang0/gci@latest write .
-
-.PHONY: gofumpt
-gofumpt:
 	@-go run mvdan.cc/gofumpt@latest -l -w .
-
-.PHONY: goimports
-goimports:
 	@-go run golang.org/x/tools/cmd/goimports@latest -l -w .
-
-.PHONY: gowsl
-gowsl:
 	@-go run github.com/bombsimon/wsl/v4/cmd...@latest -strict-append -test=true -fix ./...
-
-.PHONY: goperfsprint
-goperfsprint:
 	@-go run github.com/catenacyber/perfsprint@latest -fix ./...
+	@-go run github.com/tetafro/godot/cmd/godot@latest -w .
+	# @-go run go run github.com/ssgreg/nlreturn/v2/cmd/nlreturn@latest -fix ./...
+	@go run github.com/golangci/golangci-lint/cmd/golangci-lint@${GO_LINT_CI_VERSION} run ./... --fix
 
 .PHONY: golangci
 golangci:
 	@go run github.com/golangci/golangci-lint/cmd/golangci-lint@${GO_LINT_CI_VERSION} run ./...
-
-.PHONY: golangci-fix
-golangci-fix:
-	@go run github.com/golangci/golangci-lint/cmd/golangci-lint@${GO_LINT_CI_VERSION} run ./... --fix
 
 .PHONY: 3rdpartylicenses
 3rdpartylicenses:
