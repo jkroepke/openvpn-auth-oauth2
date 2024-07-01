@@ -437,6 +437,8 @@ func TestHandler(t *testing.T) {
 					return
 				}
 
+				resp.Body.Close()
+
 				if !assert.Equal(t, http.StatusOK, resp.StatusCode) {
 					return
 				}
