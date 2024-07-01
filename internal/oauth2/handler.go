@@ -44,6 +44,10 @@ func (p *Provider) Handler() *http.ServeMux {
 
 	mux := http.NewServeMux()
 	mux.Handle("/", http.NotFoundHandler())
+	mux.Handle(fmt.Sprintf("GET %s/ready", basePath), http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("OK"))
+	}))
 	mux.Handle(fmt.Sprintf("GET %s/assets/", basePath), http.StripPrefix(utils.StringConcat(basePath, "/assets/"), http.FileServerFS(staticFs)))
 	mux.Handle(fmt.Sprintf("GET %s/oauth2/start", basePath), p.oauth2Start())
 	mux.Handle(fmt.Sprintf("GET %s/oauth2/callback", basePath), p.oauth2Callback())

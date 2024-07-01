@@ -422,6 +422,27 @@ func TestHandler(t *testing.T) {
 					err     error
 				)
 
+				request, err := http.NewRequestWithContext(context.Background(), http.MethodGet, httpClientListener.URL+"/ready", nil)
+				if !assert.NoError(t, err) {
+					return
+				}
+
+				resp, err := httpClient.Do(request)
+				if !assert.NoError(t, err) {
+					return
+				}
+
+				_, err = io.Copy(io.Discard, resp.Body)
+				if !assert.NoError(t, err) {
+					return
+				}
+
+				resp.Body.Close()
+
+				if !assert.Equal(t, http.StatusOK, resp.StatusCode) {
+					return
+				}
+
 				switch {
 				case tt.invalidState:
 					session = "invalid"
@@ -434,7 +455,7 @@ func TestHandler(t *testing.T) {
 					}
 				}
 
-				request, err := http.NewRequestWithContext(context.Background(), http.MethodGet,
+				request, err = http.NewRequestWithContext(context.Background(), http.MethodGet,
 					fmt.Sprintf("%s/oauth2/start?state=%s", httpClientListener.URL, session),
 					nil,
 				)
@@ -451,7 +472,7 @@ func TestHandler(t *testing.T) {
 					return http.ErrUseLastResponse
 				}
 
-				resp, err := httpClient.Do(request)
+				resp, err = httpClient.Do(request)
 				if !assert.NoError(t, err) {
 					return
 				}
@@ -505,6 +526,8 @@ func TestHandler(t *testing.T) {
 				if !assert.NoError(t, err) {
 					return
 				}
+
+				resp.Body.Close()
 
 				if !tt.postAllow {
 					assert.Equal(t, http.StatusForbidden, resp.StatusCode, logger.GetLogs(), string(body))
