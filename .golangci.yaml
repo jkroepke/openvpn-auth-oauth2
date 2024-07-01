@@ -24,6 +24,7 @@ issues:
         - dupword
         - dupl
         - funlen
+        - gocyclo
 
 linters-settings:
   varnamelen:

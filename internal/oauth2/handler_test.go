@@ -426,6 +426,7 @@ func TestHandler(t *testing.T) {
 				if !assert.NoError(t, err) {
 					return
 				}
+
 				resp, err := httpClient.Do(request)
 				if !assert.NoError(t, err) {
 					return
@@ -523,6 +524,8 @@ func TestHandler(t *testing.T) {
 				if !assert.NoError(t, err) {
 					return
 				}
+
+				resp.Body.Close()
 
 				if !tt.postAllow {
 					assert.Equal(t, http.StatusForbidden, resp.StatusCode, logger.GetLogs(), string(body))
