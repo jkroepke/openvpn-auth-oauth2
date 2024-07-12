@@ -5,6 +5,7 @@
 [![GitHub all releases](https://img.shields.io/github/downloads/jkroepke/openvpn-auth-oauth2/total?logo=github)](https://github.com/jkroepke/openvpn-auth-oauth2/releases/latest)
 [![Go Report Card](https://goreportcard.com/badge/github.com/jkroepke/openvpn-auth-oauth2)](https://goreportcard.com/report/github.com/jkroepke/openvpn-auth-oauth2)
 [![codecov](https://codecov.io/gh/jkroepke/openvpn-auth-oauth2/graph/badge.svg?token=66VT000UYO)](https://codecov.io/gh/jkroepke/openvpn-auth-oauth2)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fjkroepke%2Fopenvpn-auth-oauth2.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fjkroepke%2Fopenvpn-auth-oauth2?ref=badge_shield)
 
 # openvpn-auth-oauth2
 
@@ -47,6 +48,9 @@ For information on the OpenVPN version requirements, please refer to the [OpenVP
 
 This project is licensed under the [MIT License](LICENSE.txt).
 
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fjkroepke%2Fopenvpn-auth-oauth2.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fjkroepke%2Fopenvpn-auth-oauth2?ref=badge_large)
+
 ## Acknowledgements
 
 Thanks to JetBrains IDEs and Sparklabs for their support.
@@ -65,7 +69,3 @@ Thanks to JetBrains IDEs and Sparklabs for their support.
     </tr>
   </tbody>
 </table>
-
-
-
-
