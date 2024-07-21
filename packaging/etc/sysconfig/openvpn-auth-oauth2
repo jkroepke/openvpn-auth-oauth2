@@ -1,16 +1,40 @@
-# This file is sourced by the openvpn-auth-oauth2.service
-
-# CONFIG_FILE is the path to the configuration file and used in the systemd service file only.
-CONFIG_FILE=/etc/openvpn-auth-oauth2/config.yaml
-
+# ------------------------------------------------------------------------------
+# openvpn-auth-oauth2 Environment File
+# ------------------------------------------------------------------------------
+# This file is sourced by the openvpn-auth-oauth2 systemd service. It contains
+# environment variable settings that are used when the service is started via
+# systemd.
+#
+# Please note:
+# 1. This environment file is only utilized when openvpn-auth-oauth2 is started
+#    as a systemd service.
+# 2. Settings defined in this file will override the corresponding settings
+#    defined in the main configuration file of openvpn-auth-oauth2.
+#
+# To apply changes to this file, you must reload the systemd service by running:
+#    sudo systemctl daemon-reload
+#    sudo systemctl restart openvpn-auth-oauth2
+#
+# For more information, please refer to the documentation:
 # https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Configuration
+#
+# ------------------------------------------------------------------------------
+# Environment Variables
+# ------------------------------------------------------------------------------
+
+## CONFIG_FILE is the path to the configuration file. Defaults to /etc/openvpn-auth-oauth2/config.yaml
+#CONFIG_FILE=/etc/openvpn-auth-oauth2/config.yaml
 
 CONFIG_OPENVPN_ADDR=unix:///run/openvpn/server.sock
-CONFIG_OAUTH2_ISSUER=https://login.microsoftonline.com/<tenant-id>/v2.0
-CONFIG_OAUTH2_CLIENT_ID=
-CONFIG_OAUTH2_CLIENT_SECRET=
-CONFIG_HTTP_LISTEN=:9000
-# Define a random value with 16 or 24 characters
-CONFIG_HTTP_SECRET=
-# Define the public http endpoint here.
-CONFIG_HTTP_BASEURL=http://localhost:9000
+
+## Define OIDC related settings
+#CONFIG_OAUTH2_ISSUER=https://login.microsoftonline.com/<tenant-id>/v2.0
+#CONFIG_OAUTH2_CLIENT_ID=
+#CONFIG_OAUTH2_CLIENT_SECRET=
+#CONFIG_HTTP_LISTEN=:9000
+
+## Define a random value with 16 or 24 characters
+#CONFIG_HTTP_SECRET=
+
+## Define the public http endpoint here.
+#CONFIG_HTTP_BASEURL=http://localhost:9000
