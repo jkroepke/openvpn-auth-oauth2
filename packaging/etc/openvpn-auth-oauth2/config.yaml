@@ -54,7 +54,7 @@
 #    use-session-id: false
 #    validate-user: true
 #openvpn:
-#  addr: "unix:///run/openvpn/server.sock"
+#  addr: "unix:///run/openvpn/server.sock"  # This is overridden by /etc/sysconfig/openvpn-auth-oauth2
 #  auth-token-user: true
 #  auth-pending-timeout: 2m
 #  bypass:
