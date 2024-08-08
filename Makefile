@@ -1,11 +1,11 @@
 ##
 # Console Colors
 ##
-GREEN  := \033[0;32m
-YELLOW := \033[0;33m
-WHITE  := \033[0;37m
-CYAN   := \033[0;36m
-RESET  := \033[0m
+GREEN  := $(shell printf "\033[0;32m")
+YELLOW := $(shell printf "\033[0;33m")
+WHITE  := $(shell printf "\033[0;37m")
+CYAN   := $(shell printf "\033[0;36m")
+RESET  := $(shell printf "\033[0m")
 
 # Get the current working directory
 CURRENT_DIR := $(CURDIR)
@@ -30,7 +30,7 @@ endif
 help: ## show this help.
 	@echo "Project: $(PROJECT_NAME)"
 	@echo 'Usage:'
-	@printf "  ${GREEN}make${RESET} ${YELLOW}<target>${RESET}\n"
+	@echo "  ${GREEN}make${RESET} ${YELLOW}<target>${RESET}"
 	@echo ''
 	@echo 'Targets:'
 	@awk 'BEGIN {FS = ":.*?## "} { \

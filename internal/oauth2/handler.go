@@ -144,7 +144,6 @@ func checkClientIPAddr(r *http.Request, logger *slog.Logger, session state.State
 	return true, 0, ""
 }
 
-//nolint:cyclop
 func (p *Provider) oauth2Callback() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sendCacheHeaders(w)
@@ -176,72 +175,81 @@ func (p *Provider) oauth2Callback() http.Handler {
 
 		ctx = logging.ToContext(ctx, logger)
 
-		id := strconv.FormatUint(session.Client.CID, 10)
+		clientID := strconv.FormatUint(session.Client.CID, 10)
 		if p.conf.OAuth2.Refresh.UseSessionID && session.Client.SessionID != "" {
-			id = session.Client.SessionID
+			clientID = session.Client.SessionID
 		}
 
 		if p.conf.OAuth2.Nonce {
-			ctx = context.WithValue(ctx, types.CtxNonce{}, p.GetNonce(id))
+			ctx = context.WithValue(ctx, types.CtxNonce{}, p.GetNonce(clientID))
 			r = r.WithContext(ctx)
 		}
 
-		rp.CodeExchangeHandler(func(
-			w http.ResponseWriter, _ *http.Request, tokens *oidc.Tokens[*idtoken.Claims], _ string,
-			_ rp.RelyingParty,
-		) {
-			if tokens.IDTokenClaims != nil {
-				logger = logger.With(
-					slog.String("idtoken.subject", tokens.IDTokenClaims.Subject),
-					slog.String("idtoken.email", tokens.IDTokenClaims.EMail),
-					slog.String("idtoken.preferred_username", tokens.IDTokenClaims.PreferredUsername),
-				)
+		rp.CodeExchangeHandler(
+			p.postCodeExchangeHandler(logger, session, clientID),
+			p.RelyingParty,
+		).ServeHTTP(w, r)
+	})
+}
 
-				logger.Debug("claims", "claims", tokens.IDTokenClaims.Claims)
-			}
-
-			user, err := p.Provider.GetUser(ctx, logger, tokens)
-			if err != nil {
-				p.openvpn.DenyClient(logger, session.Client, "unable to fetch user data")
-				writeError(w, logger, p.conf, http.StatusInternalServerError, "fetchUser", err.Error())
-
-				return
-			}
-
+func (p *Provider) postCodeExchangeHandler(
+	logger *slog.Logger, session state.State, clientID string,
+) rp.CodeExchangeCallback[*idtoken.Claims] {
+	return func(
+		w http.ResponseWriter, r *http.Request, tokens *oidc.Tokens[*idtoken.Claims], _ string,
+		_ rp.RelyingParty,
+	) {
+		if tokens.IDTokenClaims != nil {
 			logger = logger.With(
-				slog.String("user.subject", user.Subject),
-				slog.String("user.preferred_username", user.PreferredUsername),
+				slog.String("idtoken.subject", tokens.IDTokenClaims.Subject),
+				slog.String("idtoken.email", tokens.IDTokenClaims.EMail),
+				slog.String("idtoken.preferred_username", tokens.IDTokenClaims.PreferredUsername),
 			)
 
-			err = p.Provider.CheckUser(ctx, session, user, tokens)
-			if err != nil {
-				p.openvpn.DenyClient(logger, session.Client, "client rejected")
-				writeError(w, logger, p.conf, http.StatusInternalServerError, "user validation", err.Error())
+			logger.Debug("claims", "claims", tokens.IDTokenClaims.Claims)
+		}
 
-				return
+		user, err := p.Provider.GetUser(r.Context(), logger, tokens)
+		if err != nil {
+			p.openvpn.DenyClient(logger, session.Client, "unable to fetch user data")
+			writeError(w, logger, p.conf, http.StatusInternalServerError, "fetchUser", err.Error())
+
+			return
+		}
+
+		logger = logger.With(
+			slog.String("user.subject", user.Subject),
+			slog.String("user.preferred_username", user.PreferredUsername),
+		)
+
+		err = p.Provider.CheckUser(r.Context(), session, user, tokens)
+		if err != nil {
+			p.openvpn.DenyClient(logger, session.Client, "client rejected")
+			writeError(w, logger, p.conf, http.StatusInternalServerError, "user validation", err.Error())
+
+			return
+		}
+
+		logger.Info("successful authorization via oauth2")
+
+		p.openvpn.AcceptClient(logger, session.Client, getAuthTokenUsername(session, user))
+
+		if p.conf.OAuth2.Refresh.Enabled {
+			refreshToken := types.EmptyToken
+			if p.conf.OAuth2.Refresh.ValidateUser {
+				refreshToken, err = p.Provider.GetRefreshToken(tokens)
+				if err != nil {
+					p.logger.Warn(fmt.Errorf("oauth2.refresh is enabled, but %w", err).Error())
+				}
 			}
 
-			logger.Info("successful authorization via oauth2")
-
-			p.openvpn.AcceptClient(logger, session.Client, getAuthTokenUsername(session, user))
-
-			if p.conf.OAuth2.Refresh.Enabled {
-				refreshToken := types.EmptyToken
-				if p.conf.OAuth2.Refresh.ValidateUser {
-					refreshToken, err = p.Provider.GetRefreshToken(tokens)
-					if err != nil {
-						p.logger.Warn(fmt.Errorf("oauth2.refresh is enabled, but %w", err).Error())
-					}
-				}
-
-				if err = p.storage.Set(id, refreshToken); err != nil {
-					logger.Warn(err.Error())
-				}
+			if err = p.storage.Set(clientID, refreshToken); err != nil {
+				logger.Warn(err.Error())
 			}
+		}
 
-			writeSuccess(w, p.conf, logger)
-		}, p.RelyingParty).ServeHTTP(w, r)
-	})
+		writeSuccess(w, p.conf, logger)
+	}
 }
 
 func getAuthTokenUsername(session state.State, user types.UserData) string {
