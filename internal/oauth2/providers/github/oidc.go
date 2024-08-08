@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
@@ -12,8 +13,12 @@ import (
 
 // GetRefreshToken returns the [oauth2.Token.AccessToken] of the user, since it does not expire.
 // OAuth2 App on GitHub doesn't provide a refresh token.
-func (p *Provider) GetRefreshToken(tokens *oidc.Tokens[*idtoken.Claims]) string {
-	return tokens.AccessToken
+func (p *Provider) GetRefreshToken(tokens *oidc.Tokens[*idtoken.Claims]) (string, error) {
+	if tokens == nil {
+		return "", errors.New("no tokens provided")
+	}
+
+	return tokens.AccessToken, nil
 }
 
 // Refresh use the [oauth2.Token.AccessToken] from initial authentication and call the REST API if the user is still present

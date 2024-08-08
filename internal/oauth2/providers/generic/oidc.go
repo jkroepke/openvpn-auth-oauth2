@@ -13,8 +13,16 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
-func (p *Provider) GetRefreshToken(tokens *oidc.Tokens[*idtoken.Claims]) string {
-	return tokens.RefreshToken
+func (p *Provider) GetRefreshToken(tokens *oidc.Tokens[*idtoken.Claims]) (string, error) {
+	if tokens == nil {
+		return "", errors.New("no tokens provided")
+	}
+
+	if tokens.RefreshToken == "" {
+		return "", errors.New("no refresh token received from provider")
+	}
+
+	return tokens.RefreshToken, nil
 }
 
 // Refresh initiates a non-interactive authentication against the sso provider.
