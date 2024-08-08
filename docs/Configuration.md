@@ -200,8 +200,8 @@ Usage of openvpn-auth-oauth2:
     	Override the username of a session with the username from the token by using auth-token-user, if the client username is empty (env: CONFIG_OPENVPN_AUTH__TOKEN__USER) (default true)
   --openvpn.bypass.common-names value
     	bypass oauth authentication for CNs. Comma separated list. (env: CONFIG_OPENVPN_BYPASS_COMMON__NAMES)
-  --openvpn.common-name.environment-variable string
-    	Name of the environment variable in the OpenVPN management interface which contains the common name. If username-as-common-name is enabled, this should be set to 'username' to use the username as common name. Other values like 'X509_0_emailAddress' are supported. See https://openvpn.net/community-resources/reference-manual-for-openvpn-2-6/#environmental-variables for more information. (env: CONFIG_OPENVPN_COMMON__NAME_ENVIRONMENT__VARIABLE) (default "common_name")
+  --openvpn.common-name.environment-variable-name string
+        Name of the environment variable in the OpenVPN management interface which contains the common name. If username-as-common-name is enabled, this should be set to 'username' to use the username as common name. Other values like 'X509_0_emailAddress' are supported. See https://openvpn.net/community-resources/reference-manual-for-openvpn-2-6/#environmental-variables for more information. (env: CONFIG_OPENVPN_COMMON__NAME_ENVIRONMENT__VARIABLE__NAME) (default "common_name")
   --openvpn.common-name.mode value
     	If common names are too long, use md5/sha1 to hash them or omit to skip them. If omit, oauth2.validate.common-name does not work anymore. Values: [plain,omit] (env: CONFIG_OPENVPN_COMMON__NAME_MODE) (default plain)
   --openvpn.pass-through.address string
