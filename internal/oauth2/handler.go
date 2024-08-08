@@ -228,12 +228,13 @@ func (p *Provider) oauth2Callback() http.Handler {
 			if p.conf.OAuth2.Refresh.Enabled {
 				refreshToken := types.EmptyToken
 				if p.conf.OAuth2.Refresh.ValidateUser {
-					refreshToken = p.Provider.GetRefreshToken(tokens)
+					refreshToken, err = p.Provider.GetRefreshToken(tokens)
+					if err != nil {
+						p.logger.Warn(fmt.Errorf("oauth2.refresh is enabled, but %w", err).Error())
+					}
 				}
 
-				if refreshToken == "" {
-					p.logger.Warn("oauth2.refresh is enabled, but provider does not return refresh token")
-				} else if err = p.storage.Set(id, refreshToken); err != nil {
+				if err = p.storage.Set(id, refreshToken); err != nil {
 					logger.Warn(err.Error())
 				}
 			}
