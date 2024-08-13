@@ -3,7 +3,7 @@ module github.com/jkroepke/openvpn-auth-oauth2
 go 1.22
 
 require (
-	github.com/go-viper/mapstructure/v2 v2.0.0
+	github.com/go-viper/mapstructure/v2 v2.1.0
 	github.com/knadh/koanf/parsers/yaml v0.1.0
 	github.com/knadh/koanf/providers/basicflag v1.0.0
 	github.com/knadh/koanf/providers/env v0.1.0
@@ -13,7 +13,7 @@ require (
 	github.com/madflojo/testcerts v1.2.0
 	github.com/stretchr/testify v1.9.0
 	github.com/zitadel/logging v0.6.0
-	github.com/zitadel/oidc/v3 v3.26.1
+	github.com/zitadel/oidc/v3 v3.27.0
 	golang.org/x/net v0.28.0
 	golang.org/x/oauth2 v0.22.0
 	golang.org/x/text v0.17.0
