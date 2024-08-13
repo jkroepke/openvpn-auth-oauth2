@@ -32,7 +32,7 @@ type oidcProvider interface {
 	CheckUser(ctx context.Context, session state.State, user types.UserData, tokens *oidc.Tokens[*idtoken.Claims]) error
 	GetProviderConfig(conf config.Config) (types.ProviderConfig, error)
 	GetName() string
-	GetRefreshToken(tokens *oidc.Tokens[*idtoken.Claims]) string
+	GetRefreshToken(tokens *oidc.Tokens[*idtoken.Claims]) (string, error)
 	GetUser(ctx context.Context, logger *slog.Logger, tokens *oidc.Tokens[*idtoken.Claims]) (types.UserData, error)
 
 	// Refresh initiates a non-interactive authentication against the sso provider.

@@ -64,6 +64,11 @@ func (p *Provider) RefreshClientAuth(logger *slog.Logger, client connection.Clie
 
 	logger.Info("successful authenticate via refresh token")
 
+	refreshToken, err = p.Provider.GetRefreshToken(tokens)
+	if err != nil {
+		p.logger.Warn(fmt.Errorf("oauth2.refresh is enabled, but %w", err).Error())
+	}
+
 	if err = p.storage.Set(id, refreshToken); err != nil {
 		return true, fmt.Errorf("error from token store: %w", err)
 	}

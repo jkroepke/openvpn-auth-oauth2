@@ -1,22 +1,36 @@
 ##
 # Console Colors
 ##
-GREEN  := $(shell echo -e "\033[0;32m")
-YELLOW := $(shell echo -e "\033[0;33m")
-WHITE  := $(shell echo -e "\033[0;37m")
-CYAN   := $(shell echo -e "\033[0;36m")
-RESET  := $(shell echo -e "\033[0m")
+GREEN  := $(shell printf "\033[0;32m")
+YELLOW := $(shell printf "\033[0;33m")
+WHITE  := $(shell printf "\033[0;37m")
+CYAN   := $(shell printf "\033[0;36m")
+RESET  := $(shell printf "\033[0m")
 
-# renovate: github=golangci/golangci-lint
-GO_LINT_CI_VERSION := v1.59.1
+# Get the current working directory
+CURRENT_DIR := $(CURDIR)
+
+# Get the directory name of the current working directory
+PROJECT_NAME := $(notdir $(CURRENT_DIR))
+
+# Get the GOOS value
+GOOS := $(shell go env GOOS)
+
+# Determine the output file extension based on the GOOS value
+ifeq ($(GOOS),windows)
+    EXT := .exe
+else
+    EXT :=
+endif
 
 ##
 # Targets
 ##
 .PHONY: help
 help: ## show this help.
+	@echo "Project: $(PROJECT_NAME)"
 	@echo 'Usage:'
-	@echo '  ${GREEN}make${RESET} ${YELLOW}<target>${RESET}'
+	@echo "  ${GREEN}make${RESET} ${YELLOW}<target>${RESET}"
 	@echo ''
 	@echo 'Targets:'
 	@awk 'BEGIN {FS = ":.*?## "} { \
@@ -26,55 +40,43 @@ help: ## show this help.
 
 .PHONY: clean
 clean: ## clean builds dir
-	@rm -rf openvpn-auth-oauth2 openvpn-auth-oauth2.exe dist/
+	@rm -rf "$(PROJECT_NAME)" "$(PROJECT_NAME).exe" dist/
 
 .PHONY: check
 check: test lint golangci ## Run all checks locally
 
 .PHONY: update
-update: ## Run dependency updates
+update:  ## Run dependency updates
 	@go get -u ./...
 	@go mod tidy
-	@cd pkg/plugin && go mod tidy
+	@go -C tools get -u
+	@go -C tools mod tidy
+	@go -C pkg/plugin mod tidy
 	@go work sync
 
+.PHONY: build  ## Build the project
+build: clean $(PROJECT_NAME)
 
-.PHONY: build
-ifeq ($(OS),Windows_NT)
-build: clean openvpn-auth-oauth2.exe  ## Build openvpn-auth-oauth2
-else
-build: clean openvpn-auth-oauth2
-endif
-
-openvpn-auth-oauth2:
-	@go build -o openvpn-auth-oauth2 .
-
-openvpn-auth-oauth2.exe:
-	@go build -o openvpn-auth-oauth2.exe .
-
-.Phony: build-debug
-build-debug: ## Build openvpn-auth-oauth2 with debug flags
-	@go build -gcflags="-l=4 -m=2" -o openvpn-auth-oauth2 .
+$(PROJECT_NAME):
+	@go build -o $(PROJECT_NAME)$(EXT) .
 
 .PHONY: test
-test:  ## Test openvpn-auth-oauth2
+test:  ## Test the project
 	@go test -race ./...
 
 .PHONY: lint
 lint: golangci  ## Run linter
 
-
 .PHONY: fmt  ## Format code
-fmt:
-	@go fmt ./...
-	@-go run github.com/daixiang0/gci@latest write .
-	@-go run mvdan.cc/gofumpt@latest -l -w .
-	@-go run golang.org/x/tools/cmd/goimports@latest -l -w .
-	@-go run github.com/bombsimon/wsl/v4/cmd...@latest -strict-append -test=true -fix ./...
-	@-go run github.com/catenacyber/perfsprint@latest -fix ./...
-	@-go run github.com/tetafro/godot/cmd/godot@latest -w .
-	# @-go run go run github.com/ssgreg/nlreturn/v2/cmd/nlreturn@latest -fix ./...
-	@go run github.com/golangci/golangci-lint/cmd/golangci-lint@${GO_LINT_CI_VERSION} run ./... --fix
+fmt: install-tools
+	@-go fmt ./...
+	@-tools/bin/gci write .
+	@-tools/bin/gofumpt -l -w .
+	@-tools/bin/goimports -l -w .
+	@-tools/bin/wsl -strict-append -test=true -fix ./...
+	@-tools/bin/perfsprint -fix ./...
+	@-tools/bin/godot -w .
+	@tools/bin/golangci-lint run ./... --fix
 
 .PHONY: golangci
 golangci:
@@ -83,3 +85,23 @@ golangci:
 .PHONY: 3rdpartylicenses
 3rdpartylicenses:
 	@go run github.com/google/go-licenses@latest save . --save_path=3rdpartylicenses
+
+# In order to help reduce toil related to managing tooling for the open telemetry collector
+# this section of the makefile looks at only requiring command definitions to be defined
+# as part of $(TOOLS_MOD_DIR)/tools.go, following the existing practice.
+# Modifying the tools' `go.mod` file will trigger a rebuild of the tools to help
+# ensure that all contributors are using the most recent version to make builds repeatable everywhere.
+TOOLS_MOD_DIR    := tools
+TOOLS_MOD_REGEX  := "\s+_\s+\".*\""
+TOOLS_PKG_NAMES  := $(shell grep -E $(TOOLS_MOD_REGEX) < $(TOOLS_MOD_DIR)/tools.go | tr -d " _\"")
+TOOLS_BIN_DIR    := bin
+TOOLS_BIN_NAMES  := $(addprefix $(TOOLS_BIN_DIR)/, $(notdir $(TOOLS_PKG_NAMES)))
+
+.PHONY: install-tools
+install-tools: $(TOOLS_BIN_NAMES)
+
+$(TOOLS_BIN_DIR):
+	@mkdir -p $@
+
+$(TOOLS_BIN_NAMES): $(TOOLS_BIN_DIR) $(TOOLS_MOD_DIR)/go.mod
+	go build -C $(TOOLS_MOD_DIR) -o $@ -trimpath $(filter %/$(notdir $@),$(TOOLS_PKG_NAMES))
