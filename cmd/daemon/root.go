@@ -167,7 +167,7 @@ func setupDebugListener(ctx context.Context, logger *slog.Logger, conf config.Co
 	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
 
-	server := httpserver.NewHTTPServer(httpserver.ServerNameDefault, logger, config.HTTP{Listen: conf.Debug.Listen}, mux)
+	server := httpserver.NewHTTPServer(httpserver.ServerNameDebug, logger, config.HTTP{Listen: conf.Debug.Listen}, mux)
 
 	err := server.Listen(ctx)
 	if err != nil {
