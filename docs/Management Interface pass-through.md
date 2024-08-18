@@ -8,21 +8,46 @@ openvpn-auth-oauth2 acts as a middleman, forwarding commands and responses betwe
 
 ## Configuration
 
-You can configure the pass-through feature via the command line interface (CLI) using the following options:
+You can configure the pass-through feature  using the following options:
+
+<table>
+<thead><tr><td>CLI configuration</td></tr></thead>
+<tbody><tr><td>
 
 ```bash
---openvpn.pass-through.enabled
---openvpn.pass-through.address
---openvpn.pass-through.password
---openvpn.pass-through.socket-group
---openvpn.pass-through.socket-mode
+openvpn-auth-oauth2 \
+  --openvpn.pass-through.enabled=true \
+  --openvpn.pass-through.address=unix:///run/openvpn/pass-through.sock  \
+  --openvpn.pass-through.password=secret
+  # --openvpn.pass-through.socket-group=openvpn-auth-oauth2 # optional
+  # --openvpn.pass-through.socket-mode=0660 # optional
 ```
+</td></tr></tbody>
+<thead><tr><td>env/sysconfig configuration</td></tr></thead>
+<tbody><tr><td>
 
-For example:
-
-```bash
-openvpn-auth-oauth2 --openvpn.pass-through.enabled=true --openvpn.pass-through.address=unix:///run/openvpn/pass-through.sock
+```ini
+CONFIG_OPENVPN_PASS__THROUGH_ENABLED=true
+CONFIG_OPENVPN_PASS__THROUGH_ADDRESS=unix:///run/openvpn/pass-through.sock
+CONFIG_OPENVPN_PASS__THROUGH_PASSWORD=secret
+# CONFIG_OPENVPN_PASS__THROUGH_SOCKET__GROUP=openvpn-auth-oauth2 # optional
+# CONFIG_OPENVPN_PASS__THROUGH_SOCKET__MODE=0660 # optional
 ```
+</td></tr></tbody>
+<thead><tr><td>yaml configuration</td></tr></thead>
+<tbody><tr><td>
+
+```yaml
+openvpn:
+  pass-through:
+    enabled: true
+    address: "unix:///run/openvpn/pass-through.sock"
+    password: "secret"
+    #socket-group: "openvpn-auth-oauth2" # optional
+    #socket-mode: 660 # optional
+```
+</td></tr></tbody>
+</table>
 
 ## Command Filtering
 

@@ -88,7 +88,7 @@ func openvpn_plugin_open_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_
 		return C.OPENVPN_PLUGIN_FUNC_ERROR
 	}
 
-	handle.server = httpserver.NewHTTPServer("server", logger, conf.HTTP, provider.Handler())
+	handle.server = httpserver.NewHTTPServer(httpserver.ServerNameDefault, logger, conf.HTTP, provider.Handler())
 
 	go func() {
 		if err := handle.server.Listen(context.Background()); err != nil {

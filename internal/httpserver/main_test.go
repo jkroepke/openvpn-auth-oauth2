@@ -77,7 +77,7 @@ func TestNewHTTPServer(t *testing.T) {
 			mux := gohttp.NewServeMux()
 			mux.Handle("/", gohttp.NotFoundHandler())
 
-			svr := httpserver.NewHTTPServer("server", logger.Logger, tt.conf.HTTP, mux)
+			svr := httpserver.NewHTTPServer(httpserver.ServerNameDefault, logger.Logger, tt.conf.HTTP, mux)
 
 			ctx, cancel := context.WithCancel(context.Background())
 

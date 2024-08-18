@@ -8,6 +8,8 @@ include <tunables/global>
   include <abstractions/base>
   include <abstractions/nameservice>
 
+  @{PROC}/sys/kernel/core_pattern r,
+
   @{etc_ro}/openvpn-auth-oauth2/** r,
 
   @{run}/openvpn{,-server}/* rw,

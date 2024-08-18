@@ -316,26 +316,72 @@ supports [Let's Encrypt](https://letsencrypt.org/) where you can get public SSL 
 ### Using native HTTPS support
 
 openvpn-auth-oauth2 supports HTTPS out of the box.
+If openvpn-auth-oauth2 runs as systemd service, the HTTPS certificates must place in `/etc/openvpn-auth-oauth2/` with
+the owner `root` and the group `openvpn-auth-oauth2`.
+
+<table>
+<thead><tr><td>env/sysconfig configuration</td></tr></thead>
+<tbody><tr><td>
 
 ```ini
 CONFIG_HTTP_TLS=true
-CONFIG_HTTP_KEY=server.key
-CONFIG_HTTP_CERT=server.crt
+CONFIG_HTTP_KEY=/etc/openvpn-auth-oauth2/server.key
+CONFIG_HTTP_CERT=/etc/openvpn-auth-oauth2/server.crt
 ```
+</td></tr></tbody>
+<thead><tr><td>yaml configuration</td></tr></thead>
+<tbody><tr><td>
+
+```yaml
+http:
+  tls: true
+  key: /etc/openvpn-auth-oauth2/server.key
+  cert: /etc/openvpn-auth-oauth2/server.crt
+```
+</td></tr></tbody>
+</table>
 
 To set up a self-signed certificate, you can use the command below:
 
 ```bash
 export DOMAIN_NAME=vpn.example.com
-openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes -keyout server.key -out server.crt -subj "/CN=$DOMAIN_NAME" -addext "subjectAltName=DNS:$DOMAIN_NAME"
+openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
+  -keyout /etc/openvpn-auth-oauth2/server.key \
+  -out /etc/openvpn-auth-oauth2/server.crt \
+  -subj "/CN=$DOMAIN_NAME" -addext "subjectAltName=DNS:$DOMAIN_NAME"
+chown root:openvpn-auth-oauth2 /etc/openvpn-auth-oauth2/server.key /etc/openvpn-auth-oauth2/server.crt
+chmod 640 /etc/openvpn-auth-oauth2/server.key /etc/openvpn-auth-oauth2/server.crt
 ```
 
 You can also use [Let's Encrypt](https://letsencrypt.org/) to get public SSL certificates for free.
 The [certbot](https://certbot.eff.org/instructions) is a recommended tool to get SSL certificates.
-Alternatively,
-you can use [acme.sh](https://acme.sh/), which is a pure Unix shell script implementing ACME client protocol.
+Alternatively, can use [acme.sh](https://acme.sh/), which is a pure Unix shell script implementing ACME client protocol.
 
 openvpn-auth-oauth2 requires a [`SIGHUP` signal](https://en.wikipedia.org/wiki/SIGHUP) to reload the TLS certificate.
+
+If you are using certbot, please drop some instructions to setup it.
+
+#### Run HTTPS listener on 443 port
+
+Running openvpn-auth-oauth2 on port 443 requires special permissions.
+
+Create a new file `/etc/systemd/system/openvpn-auth-oauth2.service.d/override.conf` with the following content:
+
+```ini
+[Service]
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+PrivateUsers=false
+```
+
+Then, run the following commands:
+
+```bash
+echo "capability net_bind_service," > /etc/apparmor.d/local/usr.bin.openvpn-auth-oauth2
+systemctl restart apparmor
+systemctl daemon-reload
+systemctl restart openvpn-auth-oauth2
+```
 
 ## Custom Login Templates
 
@@ -404,6 +450,10 @@ References:
 
 - https://openvpn.net/community-resources/reference-manual-for-openvpn-2-6/#server-options
 
+<table>
+<thead><tr><td>env/sysconfig configuration</td></tr></thead>
+<tbody><tr><td>
+
 ```ini
 CONFIG_OAUTH2_REFRESH_ENABLED=true
 CONFIG_OAUTH2_REFRESH_EXPIRES=8h
@@ -411,3 +461,19 @@ CONFIG_OAUTH2_REFRESH_SECRET= # a static secret to encrypt token. Must be 16, 24
 CONFIG_OAUTH2_REFRESH_USE__SESSION__ID=true
 CONFIG_OPENVPN_AUTH__TOKEN__USER=true
 ```
+</td></tr></tbody>
+<thead><tr><td>yaml configuration</td></tr></thead>
+<tbody><tr><td>
+
+```yaml
+oauth2:
+  refresh:
+    enabled: true
+    expires: 8h
+    secret: "..." # 16 or 24 characters
+    use-session-id: true
+openvpn:
+  auth-token-user: true
+```
+</td></tr></tbody>
+</table>

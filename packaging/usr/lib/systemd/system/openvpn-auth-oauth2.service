@@ -29,7 +29,7 @@ RuntimeDirectory=openvpn-auth-oauth2
 ReadWritePaths=-/run/openvpn -/run/openvpn-server
 
 RestartSec=5s
-Restart=Always
+Restart=always
 
 # We don't need write access anywhere.
 AmbientCapabilities=
