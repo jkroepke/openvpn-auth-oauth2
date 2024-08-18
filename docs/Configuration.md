@@ -204,7 +204,7 @@ Usage of openvpn-auth-oauth2:
 ```
 <!-- END USAGE -->
 
-## Read sensitive data from file
+## Read sensitive data from a file
 
 The following parameter supports sensitive data from the file:
 
@@ -215,35 +215,40 @@ The following parameter supports sensitive data from the file:
 
 To read the sensitive data from the file, use the `file://` prefix, e.g. `file://path/to/secret.txt`.
 
-## Configuration openvpn-auth-oauth2
+### openvpn-auth-oauth2 config
 
-openvpn-auth-oauth2 starts an HTTP listener which needs to be accessible from the OpenVPN client before the VPN connection is established.
-By default, the http listener runs on `:9000`.
+openvpn-auth-oauth2 starts an HTTP listener that the OpenVPN client must access before establishing the VPN connection.
+By default, the HTTP listener operates on `:9000`.
 
-It'd highly recommend putting openvpn-auth-oauth2 behind a reverse proxy which terminates the TLS connections.
-It's important to configure `CONFIG_HTTP_BASE_URL` because openvpn-auth-oauth2 need to know the redirect url.
+It is highly recommended to place openvpn-auth-oauth2 behind a reverse proxy terminates the TLS connections.
+Configuring `CONFIG_HTTP_BASE_URL` remains crucial because openvpn-auth-oauth2 needs to know the redirect URL.
 
 Example:
+
+<table>
+<thead><tr><td>env/sysconfig configuration</td></tr></thead>
+<tbody><tr><td>
 
 ```ini
 # openvpn-auth-oauth2 config file
 CONFIG_HTTP_LISTEN=:9000
 CONFIG_HTTP_BASE_URL=https://login.example.com
 ```
+</td></tr></tbody>
+<thead><tr><td>yaml configuration</td></tr></thead>
+<tbody><tr><td>
+
+```yaml
+http:
+  listen: ":9000"
+  baseurl: "https://login.example.com"
+```
+</td></tr></tbody>
+</table>
 
 ### Filesystem Permissions
 
-When started by systemd, openvpn runs with a [dynamic arbitrary UID](https://0pointer.net/blog/dynamic-users-with-systemd.html).
-This means that it may not have access to certain files and directories if the appropriate permissions are not set.
-
-Any additional files, such as TLS keys, should be placed under the `/etc/openvpn-auth-oauth2/` directory.
-The owner of these files should be `root` and the group should be `openvpn-auth-oauth2`.
-This ensures that openvpn has the necessary permissions to access and use these files.
-
-When installing the openvpn-auth-oauth2 Linux package,
-it will automatically handle the creation of the openvpn-auth-oauth2 system group.
-This group is used to manage access to the necessary files and directories
-and should be used to manage the permissions of any additional files.
+See [Filesystem Permissions](Filesystem%20Permissions) for more information.
 
 ## Setup OpenVPN server
 
@@ -265,106 +270,42 @@ auth-user-pass-optional
 
 # Enable auth-token-gen to allow non-interactive session refresh
 # Mandatory for mobile devices, because auth-token works across disconnects
-# The lifetime of the token must be the same as the refresh token in openvpn-auth-oauth2
+# The lifetime of the token must be the same as the refresh token in openvpn-auth-oauth2.
+# The token can't be extended after it has been generated. The lifetime must be the maximum lifetime of a VPN session.
 # 8 hours = 28800 seconds
 auth-gen-token 28800 external-auth
 ```
 
-```ini
-# openvpn-auth-oauth2 config file
-CONFIG_OPENVPN_ADDR=unix:///run/openvpn/server.sock
-CONFIG_OPENVPN_PASSWORD=<password>
-```
-
-## Setup OIDC Provider
-
-See [Providers](Providers) for more information
-
-## HTTPS Listener
-
-> [!IMPORTANT]
-> Remember to set `CONFIG_HTTP_BASEURL` correctly. It should start with `https://` following your public domain name plus port.
-
-Some SSO Provider like Entra ID requires `https://` based redirect URL.
-In the default configuration, openvpn-auth-oauth2 listen on `http://`.
-There are two common ways to set up an HTTPS listener
-
-### Reverse proxy (nginx, traefik)
-
-You can use one of your favorite http reverse proxies.
-Configure HTTPS on reverse proxy and proxy to an HTTP instance of openvpn-auth-oauth2.
-For beginners, [traefik](https://traefik.io/traefik/) is recommended since it [natively](https://doc.traefik.io/traefik/https/acme/)
-supports [Let's Encrypt](https://letsencrypt.org/) where you can get public SSL certificates for free.
-
-### Using native HTTPS support
-
-openvpn-auth-oauth2 supports HTTPS out of the box.
-If openvpn-auth-oauth2 runs as systemd service, the HTTPS certificates must place in `/etc/openvpn-auth-oauth2/` with
-the owner `root` and the group `openvpn-auth-oauth2`.
+### openvpn-auth-oauth2 config
 
 <table>
 <thead><tr><td>env/sysconfig configuration</td></tr></thead>
 <tbody><tr><td>
 
 ```ini
-CONFIG_HTTP_TLS=true
-CONFIG_HTTP_KEY=/etc/openvpn-auth-oauth2/server.key
-CONFIG_HTTP_CERT=/etc/openvpn-auth-oauth2/server.crt
+# openvpn-auth-oauth2 config file
+CONFIG_OPENVPN_ADDR=unix:///run/openvpn/server.sock
+CONFIG_OPENVPN_PASSWORD=<password>
 ```
 </td></tr></tbody>
 <thead><tr><td>yaml configuration</td></tr></thead>
 <tbody><tr><td>
 
 ```yaml
-http:
-  tls: true
-  key: /etc/openvpn-auth-oauth2/server.key
-  cert: /etc/openvpn-auth-oauth2/server.crt
+openvpn:
+  addr: "unix:///run/openvpn/server.sock"
+  password: "<password>"
 ```
 </td></tr></tbody>
 </table>
 
-To set up a self-signed certificate, you can use the command below:
+## Setup OIDC Provider
 
-```bash
-export DOMAIN_NAME=vpn.example.com
-openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
-  -keyout /etc/openvpn-auth-oauth2/server.key \
-  -out /etc/openvpn-auth-oauth2/server.crt \
-  -subj "/CN=$DOMAIN_NAME" -addext "subjectAltName=DNS:$DOMAIN_NAME"
-chown root:openvpn-auth-oauth2 /etc/openvpn-auth-oauth2/server.key /etc/openvpn-auth-oauth2/server.crt
-chmod 640 /etc/openvpn-auth-oauth2/server.key /etc/openvpn-auth-oauth2/server.crt
-```
+See [Providers](Providers) for more information.
 
-You can also use [Let's Encrypt](https://letsencrypt.org/) to get public SSL certificates for free.
-The [certbot](https://certbot.eff.org/instructions) is a recommended tool to get SSL certificates.
-Alternatively, can use [acme.sh](https://acme.sh/), which is a pure Unix shell script implementing ACME client protocol.
+## HTTPS Listener
 
-openvpn-auth-oauth2 requires a [`SIGHUP` signal](https://en.wikipedia.org/wiki/SIGHUP) to reload the TLS certificate.
-
-If you are using certbot, please drop some instructions to setup it.
-
-#### Run HTTPS listener on 443 port
-
-Running openvpn-auth-oauth2 on port 443 requires special permissions.
-
-Create a new file `/etc/systemd/system/openvpn-auth-oauth2.service.d/override.conf` with the following content:
-
-```ini
-[Service]
-AmbientCapabilities=CAP_NET_BIND_SERVICE
-CapabilityBoundingSet=CAP_NET_BIND_SERVICE
-PrivateUsers=false
-```
-
-Then, run the following commands:
-
-```bash
-echo "capability net_bind_service," > /etc/apparmor.d/local/usr.bin.openvpn-auth-oauth2
-systemctl restart apparmor
-systemctl daemon-reload
-systemctl restart openvpn-auth-oauth2
-```
+See [HTTPS Listener](HTTPS%20Listener) for more information.
 
 ## Custom Login Templates
 
@@ -372,92 +313,4 @@ See [Layout Customization](Layout%20Customization) for more information
 
 ## Non-interactive session refresh
 
-By default, `openvpn-auth-oauth2` doesn't store user tokens.
-This means users must log in interactively each time they authenticate, including during TLS soft-resets
-(triggered by `reneg-sec`).
-
-However, you can change this behavior by enabling the `oauth2.refresh.enabled=true` setting.
-This allows `openvpn-auth-oauth2` to store either the connection ID or SessionID (`oauth2.refresh.use-session-id=true`),
-accepting connections without additional login checks.
-
-When `oauth2.refresh.validate-user=true` is set, `openvpn-auth-oauth2`
-requests a [refresh token](https://auth0.com/blog/refresh-tokens-what-are-they-and-when-to-use-them/)
-during the initial connection and stores it.
-
-The refresh tokens are stored in an in-memory key-value store and encrypted using AES.
-Each token is tied to either the OpenVPN client ID or OpenVPN session ID.
-
-If a non-interactive login attempt with the refresh token fails against the OIDC provider,
-the system reverts to an interactive login process.
-
-References:
-
-- https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow#refresh-the-access-token
-- https://curity.io/resources/learn/oauth-refresh/
-- https://developer.okta.com/docs/guides/refresh-tokens/main/
-
-Here is the corrected version of your text:
-
-### Security Considerations
-
-If `oauth2.refresh.validate-user` is set to `false`, a refresh token is not requested and validated against the OIDC
-provider.
-openvpn-auth-oauth2 assumes the user is still valid and allows the user to connect without further validation.
-
-Example: If the user opens a VPN connection and the user is deleted from the OIDC provider, the connection remains valid
-until the connection lifetime is reached. Restarting the OpenVPN server will invalidate the connection unless
-[non-interactive session refresh across disconnects](#non-interactive-session-refresh-across-disconnects) is configured.
-
-### Non-interactive session refresh across disconnects
-
-To facilitate non-interactive session refresh across disconnects,
-you must enable `auth-token-gen [lifetime] external-auth` on the OpenVPN server.
-
-- `[lifetime]` represents the duration of the token in seconds.
-  Once generated, the token's lifetime cannot be extended.
-  It must consider as maximum lifetime of an VPN session.
-  For instance, setting the lifetime to 8 hours means
-  the client will disconnect after 8 hours from the initial authentication and will need to re-authenticate.
-
-- Setting the lifetime to 0 disables the lifetime check,
-  which can be beneficial for mobile devices with unstable connections or during device sleep cycles.
-
-If `auth-gen-token-secret [keyfile]` is configured, OpenVPN access server restarts can verify auth-tokens.
-To generate a new secret, utilize `openvpn --genkey auth-token [keyfile]`.
-
-**Note**:
-Keep the keyfile secret
-as anyone with access to it can generate auth tokens that the OpenVPN server will recognize as valid.
-It's crucial to safeguard this file on the server.
-
-References:
-
-- https://openvpn.net/community-resources/reference-manual-for-openvpn-2-6/#server-options
-
-<table>
-<thead><tr><td>env/sysconfig configuration</td></tr></thead>
-<tbody><tr><td>
-
-```ini
-CONFIG_OAUTH2_REFRESH_ENABLED=true
-CONFIG_OAUTH2_REFRESH_EXPIRES=8h
-CONFIG_OAUTH2_REFRESH_SECRET= # a static secret to encrypt token. Must be 16, 24 or 32
-CONFIG_OAUTH2_REFRESH_USE__SESSION__ID=true
-CONFIG_OPENVPN_AUTH__TOKEN__USER=true
-```
-</td></tr></tbody>
-<thead><tr><td>yaml configuration</td></tr></thead>
-<tbody><tr><td>
-
-```yaml
-oauth2:
-  refresh:
-    enabled: true
-    expires: 8h
-    secret: "..." # 16 or 24 characters
-    use-session-id: true
-openvpn:
-  auth-token-user: true
-```
-</td></tr></tbody>
-</table>
+See [Non-interactive session refresh](Non-interactive%20session%20refresh) for more information.
