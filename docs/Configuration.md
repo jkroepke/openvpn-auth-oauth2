@@ -1,25 +1,8 @@
 # Configuration
 
-The preferred way to configure openvpn-auth-oauth2 is via environment variables. If you install the openvpn-auth-auth2 via
-Linux package, use the file `/etc/sysconfig/openvpn-auth-oauth2` to configure openvpn-auth-oauth2.
-
-## Full configuration example
-
-Configuration openvpn-auth-oauth2 for [zitadel](https://zitadel.com/)
-
-```ini
-# Define the public http endpoint here.
-CONFIG_HTTP_BASEURL=http://<vpn>:9000/
-CONFIG_HTTP_LISTEN=:9000
-# Define a random value with 16 or 24 characters
-CONFIG_HTTP_SECRET=1jd93h5b6s82lf03jh5b2hf9
-CONFIG_OPENVPN_ADDR=unix:///run/openvpn/server.sock
-CONFIG_OPENVPN_PASSWORD=<password from /etc/openvpn/password.txt>
-CONFIG_OAUTH2_ISSUER=https://company.zitadel.cloud
-CONFIG_OAUTH2_SCOPES=openid profile email offline_access
-CONFIG_OAUTH2_CLIENT_ID=34372461928374612@any
-CONFIG_OAUTH2_CLIENT_SECRET=ASDhjgadjhAUYSDGjkhasgdIATWDGJHASDtiwGDJAHSGDutwqdygASJKD12hfva
-```
+To configure openvpn-auth-oauth2, the recommended approach uses a YAML file.
+If installed through a Linux package,
+the file `/etc/sysconfig/openvpn-auth-oauth2` allows configuration of openvpn-auth-oauth2 through environment variables.
 
 ## Configuration file
 
@@ -30,79 +13,79 @@ openvpn-auth-oauth2 supports configuration via a YAML file. The file can be pass
 
 ```yaml
 debug:
-    pprof: false
-    listen: :9001
+  pprof: false
+  listen: ":9001"
 http:
-    assets-path: "" # Example: "/etc/openvpn-auth-oauth2/assets/"
-    baseurl: "http://localhost:9000/"
-    cert: ""
-    check:
-        ipaddr: false
-    enable-proxy-headers: true
-    key: ""
-    listen: ":9000"
-    # secret: ""
-    # template: "" # Path to a HTML file which is displayed at the end of the screen
-    tls: false
+  assets-path: "" # Example: "/etc/openvpn-auth-oauth2/assets/"
+  baseurl: "http://localhost:9000/"
+  cert: ""
+  check:
+    ipaddr: false
+  enable-proxy-headers: true
+  key: ""
+  listen: ":9000"
+  # secret: ""
+  # template: "" # Path to a HTML file which is displayed at the end of the screen
+  tls: false
 log:
-    format: console
-    level: INFO
-    vpn-client-ip: true
+  format: console
+  level: INFO
+  vpn-client-ip: true
 oauth2:
-    authorize-params: "a=c"
-    client:
-        id: "test"
-        secret: "test"
-    endpoint:
-        # discovery: "https://idp/.well-known/openid-configuration"
-        # auth: "https://idp/oauth/auth"
-        # token: "https://idp/oauth/token"
-    issuer: "https://idp"
-    # provider: "generic"
-    # scopes:
-    #  - "openid"
-    #  - "profile"
-    validate:
-        acr:
-        #  - "phr"
-        #  - "phrh"
-        common-name: ""
-        common-name-case-sensitive: false
-        # groups:
-        #  - "test"
-        #  - "test2"
-        # roles:
-        #   - "test"
-        #   - "test2"
-        ipaddr: false
-        issuer: true
-    nonce: true
-    pkce: true
-    auth-style: "AuthStyleInParams"
-    refresh:
-        enabled: false
-        expires: 8h0m0s
-        # secret: ""
-        use-session-id: false
-        validate-user: true
+  authorize-params: "a=c"
+  client:
+    id: "test"
+    secret: "test"
+  endpoint:
+  # discovery: "https://idp/.well-known/openid-configuration"
+  # auth: "https://idp/oauth/auth"
+  # token: "https://idp/oauth/token"
+  issuer: "https://idp"
+  # provider: "generic"
+  # scopes:
+  #  - "openid"
+  #  - "profile"
+  validate:
+    acr:
+    #  - "phr"
+    #  - "phrh"
+    common-name: ""
+    common-name-case-sensitive: false
+    # groups:
+    #  - "test"
+    #  - "test2"
+    # roles:
+    #   - "test"
+    #   - "test2"
+    ipaddr: false
+    issuer: true
+  nonce: true
+  pkce: true
+  auth-style: "AuthStyleInParams"
+  refresh:
+    enabled: false
+    expires: 8h0m0s
+    # secret: ""
+    use-session-id: false
+    validate-user: true
 openvpn:
-    addr: "unix:///run/openvpn/server.sock"
-    auth-token-user: false
-    auth-pending-timeout: 2m
-    bypass:
-        # common-names:
-        # - "test"
-        # - "test2"
-    common-name:
-        environment-variable-name: common_name
-        mode: plain
+  addr: "unix:///run/openvpn/server.sock"
+  auth-token-user: false
+  auth-pending-timeout: 2m
+  bypass:
+  # common-names:
+  # - "test"
+  # - "test2"
+  common-name:
+    environment-variable-name: common_name
+    mode: plain
+  # password: ""
+  pass-through:
+    address: "unix:///run/openvpn/pass-through.sock"
+    enabled: false
     # password: ""
-    pass-through:
-        address: "unix:///run/openvpn/pass-through.sock"
-        enabled: false
-        # password: ""
-        # socket-group: ""
-        # socket-mode: 660
+    # socket-group: ""
+    # socket-mode: 660
 ```
 </details>
 
