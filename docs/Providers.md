@@ -4,6 +4,9 @@ This page documents the setup at the OIDC provider.
 
 ## Microsoft Entra ID (formerly known as Azure AD)
 
+<details>
+<summary>Expand</summary>
+
 ### Register an app with Microsoft Entra ID
 
 1. Sign in to your admin account on the tenant.
@@ -73,7 +76,12 @@ Reference: https://learn.microsoft.com/en-us/entra/identity-platform/howto-restr
 
 How require multiple groups, check you could define `CONFIG_OAUTH2_VALIDATE_GROUPS`.
 
+</details>
+
 ## Google Cloud / Google Workspace
+
+<details>
+<summary>Expand</summary>
 
 ### Register an app on google cloud console
 
@@ -116,9 +124,10 @@ CONFIG_OAUTH2_CLIENT_ID=162738495-xxxxx.apps.googleusercontent.com
 CONFIG_OAUTH2_CLIENT_SECRET=GOCSPX-xxxxxxxx
 
 # The scopes openid profile email are required, but configured by default.
-# https://www.googleapis.com/auth/cloud-identity.groups.readonly is mandatory for group validation. (enabled by default, if scopes are not set in config)
-# CONFIG_OAUTH2_SCOPES=openid profile email https://www.googleapis.com/auth/cloud-identity.groups.readonly
-# CONFIG_OAUTH2_VALIDATE_GROUPS=03x8tuzt3hqdv5v
+# https://www.googleapis.com/auth/cloud-identity.groups.readonly is mandatory for group validation.
+# Enabled by default, if scopes aren't set in the config.
+#CONFIG_OAUTH2_SCOPES=openid profile email https://www.googleapis.com/auth/cloud-identity.groups.readonly
+#CONFIG_OAUTH2_VALIDATE_GROUPS=03x8tuzt3hqdv5v
 ```
 </td></tr></tbody>
 <thead><tr><td>yaml configuration</td></tr></thead>
@@ -132,7 +141,8 @@ oauth2:
     id: "162738495-xxxxx.apps.googleusercontent.com"
     secret: "GOCSPX-xxxxxxxx"
   # The scopes openid profile email are required, but configured by default.
-  # https://www.googleapis.com/auth/cloud-identity.groups.readonly is mandatory for group validation. (enabled by default, if scopes are not set in config)
+  # https://www.googleapis.com/auth/cloud-identity.groups.readonly is mandatory for group validation.
+  # Enabled by default, if scopes aren't set in the config.
   #scopes:
   #  - "openid"
   #  - "profile"
@@ -153,7 +163,12 @@ refresh token to validate the user on re-auth.
 
 To avoid this, you can set `oauth2.refresh.validate-user` to `false`. Read more about this in the [Configuration](Configuration.md#non-interactive-session-refresh) page.
 
+</details>
+
 ## Keycloak
+
+<details>
+<summary>Expand</summary>
 
 ### Register an App with Keycloak
 
@@ -230,7 +245,13 @@ If you are using Keycloak, you can map the roles to the `roles` claim in the tok
 Currently, there is no known configuration to enrich the token with the client's IP address in Keycloak.
 If you know how to do this, please contribute to the documentation.
 
+</details>
+
 ## GitHub
+
+
+<details>
+<summary>Expand</summary>
 
 ### Caveats
 
@@ -279,7 +300,13 @@ oauth2:
 </td></tr></tbody>
 </table>
 
+</details>
+
 ## Digitalocean
+
+
+<details>
+<summary>Expand</summary>
 
 ### Register an application in Digitalocean
 
@@ -321,7 +348,12 @@ oauth2:
 </td></tr></tbody>
 </table>
 
+</details>
+
 ## Zitadel
+
+<details>
+<summary>Expand</summary>
 
 ### Register an application in Zitadel
 
@@ -368,3 +400,5 @@ oauth2:
 ```
 </td></tr></tbody>
 </table>
+
+</details>
