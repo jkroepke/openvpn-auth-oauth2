@@ -29,16 +29,43 @@ References:
 
 ### Configuration
 
+<table>
+<thead><tr><td>env/sysconfig configuration</td><td>yaml configuration</td></tr></thead>
+<tbody><tr><td>
+
 ```ini
 CONFIG_OAUTH2_ISSUER=https://login.microsoftonline.com/$TENANT_ID/v2.0
-CONFIG_OAUTH2_CLIENT_ID=$CLIENT_ID
-CONFIG_OAUTH2_CLIENT_SECRET=$CLIENT_SECRET
+CONFIG_OAUTH2_CLIENT_ID=<client_id>
+CONFIG_OAUTH2_CLIENT_SECRET=<client_secret>
+# The scopes openid profile are required, but configured by default.
+# offline_access is required for non-interactive session refresh.
+# CONFIG_OAUTH2_SCOPES=openid profile offline_access
 ```
+</td><td>
+
+```yaml
+oauth2:
+  issuer: "https://login.microsoftonline.com/$TENANT_ID/v2.0"
+  client:
+    id: "<client_id>"
+    secret: "<client_secret>"
+  # The scopes openid profile are required, but configured by default.
+  # offline_access is required for non-interactive session refresh.
+  #scopes:
+  #  - "openid"
+  #  - "profile"
+  #  - "offline_access"
+
+```
+</td></tr></tbody>
+</table>
 
 
 ### Restrict auth to specific groups in your directory. (optional)
 
-Restrict login based on groups can be configured inside the App Registration directly. This is generally preferred, since users get the notice from Azure that they are not part of the group and the login would be denied.
+Restrict login based on groups can be configured inside the App Registration directly.
+This is preferred.
+Users get the notice from Azure that they aren’t part of the group, and the login is denied.
 
 Reference: https://learn.microsoft.com/en-us/entra/identity-platform/howto-restrict-your-app-to-a-set-of-users#assign-the-app-to-users-and-groups-to-restrict-access
 
@@ -70,10 +97,15 @@ How require multiple groups, check you could define `CONFIG_OAUTH2_VALIDATE_GROU
 2. Access the [Google Admin Portal](https://admin.google.com/ac/groups) and locate the group that is required for the `openvpn-auth-oauth2` authorization.
 3. The URL of the group page should follow this pattern: `https://admin.google.com/ac/groups/<ID>`. Replace `<ID>` with the actual ID of the group. Make sure to copy this ID for future use. If there are multiple groups, repeat this step for each one.
 4. Insert the copied ID(s) into the `CONFIG_OAUTH2_VALIDATE_GROUPS` configuration setting in your `openvpn-auth-oauth2` setup.
+5. **Optional**: If oauth2 scopes are set in the configuration, the `https://www.googleapis.com/auth/cloud-identity.groups.readonly` scope is required for group validation.
 
 ### Configuration
 
 Set the following variables in your openvpn-auth-oauth2 configuration file:
+
+<table>
+<thead><tr><td>env/sysconfig configuration</td><td>yaml configuration</td></tr></thead>
+<tbody><tr><td>
 
 ```ini
 CONFIG_OAUTH2_PROVIDER=google
@@ -81,8 +113,33 @@ CONFIG_OAUTH2_ISSUER=https://accounts.google.com
 CONFIG_OAUTH2_CLIENT_ID=162738495-xxxxx.apps.googleusercontent.com
 CONFIG_OAUTH2_CLIENT_SECRET=GOCSPX-xxxxxxxx
 
+# The scopes openid profile email are required, but configured by default.
+# https://www.googleapis.com/auth/cloud-identity.groups.readonly is mandatory for group validation. (enabled by default, if scopes are not set in config)
+# CONFIG_OAUTH2_SCOPES=openid profile email https://www.googleapis.com/auth/cloud-identity.groups.readonly
 # CONFIG_OAUTH2_VALIDATE_GROUPS=03x8tuzt3hqdv5v
 ```
+</td><td>
+
+```yaml
+oauth2:
+  provider: "google"
+  issuer: "https://accounts.google.com"
+  client:
+    id: "162738495-xxxxx.apps.googleusercontent.com"
+    secret: "GOCSPX-xxxxxxxx"
+  # The scopes openid profile email are required, but configured by default.
+  # https://www.googleapis.com/auth/cloud-identity.groups.readonly is mandatory for group validation. (enabled by default, if scopes are not set in config)
+  #scopes:
+  #  - "openid"
+  #  - "profile"
+  #  - "email"
+  #  - "https://www.googleapis.com/auth/cloud-identity.groups.readonly"
+  validate:
+    groups:
+      - "03x8tuzt3hqdv5v"
+```
+</td></tr></tbody>
+</table>
 
 ### Google consent screen always asking for permission grant
 
@@ -114,11 +171,36 @@ To avoid this, you can set `oauth2.refresh.validate-user` to `false`. Read more 
 
 Set the following variables in your `openvpn-auth-oauth2` configuration file:
 
+<table>
+<thead><tr><td>env/sysconfig configuration</td><td>yaml configuration</td></tr></thead>
+<tbody><tr><td>
+
 ```ini
 CONFIG_OAUTH2_ISSUER=https://<keycloak-domain>/auth/realms/<realm-name>
-CONFIG_OAUTH2_CLIENT_ID=openvpn-auth-oauth2
-CONFIG_OAUTH2_CLIENT_SECRET=<client-secret>
+CONFIG_OAUTH2_CLIENT_ID=<client_id>
+CONFIG_OAUTH2_CLIENT_SECRET=<client_secret>
+# The scopes openid profile are required, but configured by default.
+# offline_access is required for non-interactive session refresh.
+# CONFIG_OAUTH2_SCOPES=openid profile offline_access
 ```
+</td><td>
+
+```yaml
+oauth2:
+  issuer: "https://<keycloak-domain>/auth/realms/<realm-name>"
+  client:
+    id: "<client_id>"
+    secret: "<client_secret>"
+  # The scopes openid profile are required, but configured by default.
+  # offline_access is required for non-interactive session refresh.
+  #scopes:
+  #  - "openid"
+  #  - "profile"
+  #  - "offline_access"
+
+```
+</td></tr></tbody>
+</table>
 
 ### Role Mapping for openvpn-auth-oauth2 (optional)
 
@@ -161,14 +243,33 @@ After registering the app, you will receive an OAuth2 client ID and secret. Thes
 
 ### Configuration
 
+<table>
+<thead><tr><td>env/sysconfig configuration</td><td>yaml configuration</td></tr></thead>
+<tbody><tr><td>
+
 ```ini
 CONFIG_OAUTH2_PROVIDER=github
 CONFIG_OAUTH2_ISSUER=https://github.com
-CONFIG_OAUTH2_CLIENT_ID=$CLIENT_ID
-CONFIG_OAUTH2_CLIENT_SECRET=$CLIENT_SECRET
-CONFIG_OAUTH2_VALIDATE_GROUPS=org
-CONFIG_OAUTH2_VALIDATE_ROLES=org:team
+CONFIG_OAUTH2_CLIENT_ID=<client_id>
+CONFIG_OAUTH2_CLIENT_SECRET=<client_secret>
+CONFIG_OAUTH2_VALIDATE_GROUPS=your_github_org_name
+CONFIG_OAUTH2_VALIDATE_ROLES=your_github_org_name:team_name
 ```
+</td><td>
+
+```yaml
+oauth2:
+  provider: "github"
+  issuer: "https://github.com"
+  client:
+    id: "<client_id>"
+    secret: "<client_secret>"
+  validate:
+    groups: "your_github_org_name"
+    roles: "your_github_org_name:team_name"
+```
+</td></tr></tbody>
+</table>
 
 ## Digitalocean
 
@@ -181,12 +282,34 @@ and only used between the application and the DigitalOcean authorization server 
 
 ### Configuration
 
+<table>
+<thead><tr><td>env/sysconfig configuration</td><td>yaml configuration</td></tr></thead>
+<tbody><tr><td>
+
 ```ini
 CONFIG_OAUTH2_ISSUER=https://cloud.digitalocean.com/
 CONFIG_OAUTH2_SCOPES=read
+CONFIG_OAUTH2_CLIENT_ID=<client_id>
+CONFIG_OAUTH2_CLIENT_SECRET=<client_secret>
 CONFIG_OAUTH2_ENDPOINT_TOKEN=https://cloud.digitalocean.com/v1/oauth/token
 CONFIG_OAUTH2_ENDPOINT_AUTH=https://cloud.digitalocean.com/v1/oauth/authorize
 ```
+</td><td>
+
+```yaml
+oauth2:
+  issuer: "https://cloud.digitalocean.com/"
+  scopes:
+    - "read"
+  client:
+    id: "<client_id>"
+    secret: "<client_secret>"
+  endpoints:
+    token: "https://cloud.digitalocean.com/v1/oauth/token"
+    auth: "https://cloud.digitalocean.com/v1/oauth/authorize"
+```
+</td></tr></tbody>
+</table>
 
 ## Zitadel
 
@@ -203,14 +326,33 @@ After creating application, on page URLs you can find all links that you need.
 
 ### Configuration
 
+<table>
+<thead><tr><td>env/sysconfig configuration</td><td>yaml configuration</td></tr></thead>
+<tbody><tr><td>
+
 ```ini
-CONFIG_HTTP_BASEURL=http://<vpn>:9000/
-CONFIG_HTTP_LISTEN=:9000
-CONFIG_HTTP_SECRET=1jd93h5b6s82lf03jh5b2hf9
-CONFIG_OPENVPN_ADDR=unix:///run/openvpn/server.sock
-CONFIG_OPENVPN_PASSWORD=<password from /etc/openvpn/password.txt>
 CONFIG_OAUTH2_ISSUER=https://company.zitadel.cloud
-CONFIG_OAUTH2_SCOPES=openid profile email offline_access
 CONFIG_OAUTH2_CLIENT_ID=<client_id>
 CONFIG_OAUTH2_CLIENT_SECRET=<client_secret>
+# The scopes openid profile email are required, but configured by default.
+# offline_access is required for non-interactive session refresh.
+#CONFIG_OAUTH2_SCOPES=openid profile email offline_access
 ```
+</td><td>
+
+```yaml
+oauth2:
+  issuer: "https://company.zitadel.cloud"
+  client:
+    id: "<client_id>"
+    secret: "<client_secret>"
+  # The scopes openid profile are required, but configured by default.
+  # offline_access is required for non-interactive session refresh.
+  #scopes:
+  #  - "openid"
+  #  - "profile"
+  #  - "email"
+  #  - "offline_access"
+```
+</td></tr></tbody>
+</table>
