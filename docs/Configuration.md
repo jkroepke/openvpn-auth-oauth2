@@ -432,6 +432,7 @@ you must enable `auth-token-gen [lifetime] external-auth` on the OpenVPN server.
 
 - `[lifetime]` represents the duration of the token in seconds.
   Once generated, the token's lifetime cannot be extended.
+  It must consider as maximum lifetime of an VPN session.
   For instance, setting the lifetime to 8 hours means
   the client will disconnect after 8 hours from the initial authentication and will need to re-authenticate.
 
