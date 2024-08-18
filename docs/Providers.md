@@ -30,7 +30,7 @@ References:
 ### Configuration
 
 <table>
-<thead><tr><td>env/sysconfig configuration</td><td>yaml configuration</td></tr></thead>
+<thead><tr><td>env/sysconfig configuration</td></tr></thead>
 <tbody><tr><td>
 
 ```ini
@@ -41,7 +41,9 @@ CONFIG_OAUTH2_CLIENT_SECRET=<client_secret>
 # offline_access is required for non-interactive session refresh.
 # CONFIG_OAUTH2_SCOPES=openid profile offline_access
 ```
-</td><td>
+</td></tr></tbody>
+<thead><tr><td>yaml configuration</td></tr></thead>
+<tbody><tr><td>
 
 ```yaml
 oauth2:
@@ -104,7 +106,7 @@ How require multiple groups, check you could define `CONFIG_OAUTH2_VALIDATE_GROU
 Set the following variables in your openvpn-auth-oauth2 configuration file:
 
 <table>
-<thead><tr><td>env/sysconfig configuration</td><td>yaml configuration</td></tr></thead>
+<thead><tr><td>env/sysconfig configuration</td></tr></thead>
 <tbody><tr><td>
 
 ```ini
@@ -118,7 +120,9 @@ CONFIG_OAUTH2_CLIENT_SECRET=GOCSPX-xxxxxxxx
 # CONFIG_OAUTH2_SCOPES=openid profile email https://www.googleapis.com/auth/cloud-identity.groups.readonly
 # CONFIG_OAUTH2_VALIDATE_GROUPS=03x8tuzt3hqdv5v
 ```
-</td><td>
+</td></tr></tbody>
+<thead><tr><td>yaml configuration</td></tr></thead>
+<tbody><tr><td>
 
 ```yaml
 oauth2:
@@ -172,7 +176,7 @@ To avoid this, you can set `oauth2.refresh.validate-user` to `false`. Read more 
 Set the following variables in your `openvpn-auth-oauth2` configuration file:
 
 <table>
-<thead><tr><td>env/sysconfig configuration</td><td>yaml configuration</td></tr></thead>
+<thead><tr><td>env/sysconfig configuration</td></tr></thead>
 <tbody><tr><td>
 
 ```ini
@@ -183,7 +187,9 @@ CONFIG_OAUTH2_CLIENT_SECRET=<client_secret>
 # offline_access is required for non-interactive session refresh.
 # CONFIG_OAUTH2_SCOPES=openid profile offline_access
 ```
-</td><td>
+</td></tr></tbody>
+<thead><tr><td>yaml configuration</td></tr></thead>
+<tbody><tr><td>
 
 ```yaml
 oauth2:
@@ -244,7 +250,7 @@ After registering the app, you will receive an OAuth2 client ID and secret. Thes
 ### Configuration
 
 <table>
-<thead><tr><td>env/sysconfig configuration</td><td>yaml configuration</td></tr></thead>
+<thead><tr><td>env/sysconfig configuration</td></tr></thead>
 <tbody><tr><td>
 
 ```ini
@@ -255,7 +261,9 @@ CONFIG_OAUTH2_CLIENT_SECRET=<client_secret>
 CONFIG_OAUTH2_VALIDATE_GROUPS=your_github_org_name
 CONFIG_OAUTH2_VALIDATE_ROLES=your_github_org_name:team_name
 ```
-</td><td>
+</td></tr></tbody>
+<thead><tr><td>yaml configuration</td></tr></thead>
+<tbody><tr><td>
 
 ```yaml
 oauth2:
@@ -283,7 +291,7 @@ and only used between the application and the DigitalOcean authorization server 
 ### Configuration
 
 <table>
-<thead><tr><td>env/sysconfig configuration</td><td>yaml configuration</td></tr></thead>
+<thead><tr><td>env/sysconfig configuration</td></tr></thead>
 <tbody><tr><td>
 
 ```ini
@@ -294,7 +302,9 @@ CONFIG_OAUTH2_CLIENT_SECRET=<client_secret>
 CONFIG_OAUTH2_ENDPOINT_TOKEN=https://cloud.digitalocean.com/v1/oauth/token
 CONFIG_OAUTH2_ENDPOINT_AUTH=https://cloud.digitalocean.com/v1/oauth/authorize
 ```
-</td><td>
+</td></tr></tbody>
+<thead><tr><td>yaml configuration</td></tr></thead>
+<tbody><tr><td>
 
 ```yaml
 oauth2:
@@ -327,7 +337,7 @@ After creating application, on page URLs you can find all links that you need.
 ### Configuration
 
 <table>
-<thead><tr><td>env/sysconfig configuration</td><td>yaml configuration</td></tr></thead>
+<thead><tr><td>env/sysconfig configuration</td></tr></thead>
 <tbody><tr><td>
 
 ```ini
@@ -338,7 +348,9 @@ CONFIG_OAUTH2_CLIENT_SECRET=<client_secret>
 # offline_access is required for non-interactive session refresh.
 #CONFIG_OAUTH2_SCOPES=openid profile email offline_access
 ```
-</td><td>
+</td></tr></tbody>
+<thead><tr><td>yaml configuration</td></tr></thead>
+<tbody><tr><td>
 
 ```yaml
 oauth2:
