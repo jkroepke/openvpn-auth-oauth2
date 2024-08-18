@@ -62,6 +62,7 @@ func (s *Server) Listen(ctx context.Context) error {
 		}
 
 		s.server.TLSConfig = &tls.Config{
+			MinVersion:     tls.VersionTLS12,
 			GetCertificate: s.GetCertificateFunc(),
 			NextProtos:     []string{"h2", "http/1.1"},
 		}
@@ -117,14 +118,22 @@ func (s *Server) serve() error {
 			"start HTTPS %s listener on %s", s.name, listener.Addr().String(),
 		))
 
-		return s.server.ServeTLS(listener, "", "")
+		if err = s.server.ServeTLS(listener, "", ""); err != nil {
+			return fmt.Errorf("http.ServeTLS: %w", err)
+		}
+
+		return nil
 	}
 
 	s.logger.Info(fmt.Sprintf(
 		"start HTTP %s listener on %s", s.name, listener.Addr().String(),
 	))
 
-	return s.server.Serve(listener)
+	if err = s.server.Serve(listener); err != nil {
+		return fmt.Errorf("http.Serve: %w", err)
+	}
+
+	return nil
 }
 
 func (s *Server) GetCertificateFunc() func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
