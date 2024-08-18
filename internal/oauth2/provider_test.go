@@ -14,7 +14,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
-	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/nettest"
