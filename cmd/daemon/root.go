@@ -92,7 +92,7 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 		}()
 	}
 
-	server := httpserver.NewHTTPServer("server", logger, conf.HTTP, oauth2Client.Handler())
+	server := httpserver.NewHTTPServer(httpserver.ServerNameDefault, logger, conf.HTTP, oauth2Client.Handler())
 
 	wg.Add(1)
 
@@ -167,7 +167,7 @@ func setupDebugListener(ctx context.Context, logger *slog.Logger, conf config.Co
 	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
 
-	server := httpserver.NewHTTPServer("debug", logger, config.HTTP{Listen: conf.Debug.Listen}, mux)
+	server := httpserver.NewHTTPServer(httpserver.ServerNameDebug, logger, config.HTTP{Listen: conf.Debug.Listen}, mux)
 
 	err := server.Listen(ctx)
 	if err != nil {

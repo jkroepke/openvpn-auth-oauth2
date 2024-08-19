@@ -77,7 +77,7 @@ func TestExecuteConfigInvalid(t *testing.T) {
 				"", "--config=../../config.example.yaml", "--log.format=console", "--log.level=info", "--http.secret=" + testutils.Secret,
 				"--http.listen=127.0.0.1:100000", "--oauth2.endpoint.token=http://127.0.0.1:10000/token", "--oauth2.endpoint.auth=http://127.0.0.1:10000/auth",
 			},
-			`error http listener: error http server listening: listen tcp: address 100000: invalid port`,
+			`error http listener: error http server listening: net.Listen: listen tcp: address 100000: invalid port`,
 		},
 		{
 			"error http debug listener",
@@ -86,7 +86,7 @@ func TestExecuteConfigInvalid(t *testing.T) {
 				"--debug.pprof=true", "--debug.listen=127.0.0.1:100000", "--oauth2.endpoint.token=http://127.0.0.1:10000/token",
 				"--oauth2.endpoint.auth=http://127.0.0.1:10000/auth",
 			},
-			`error debug http listener: error http debug listening: listen tcp: address 100000: invalid port`,
+			`error debug http listener: error http debug listening: net.Listen: listen tcp: address 100000: invalid port`,
 		},
 	}
 

@@ -40,20 +40,21 @@ I assume you are using a Chrome-based Browser.
 Sometimes the client stuck at this stage `Received control message: 'PUSH_REQUEST'` and can't connect, and at the end it will time out like this message `Connection Timeout`, and you can see in the logs like this:
 
 ```
-⏎[Feb 14, 2024, 22:28:57] Session is ACTIVE
-⏎[Feb 14, 2024, 22:28:57] EVENT: GET_CONFIG ⏎[Feb 14, 2024, 22:28:57] Sending PUSH_REQUEST to server...
-⏎[Feb 14, 2024, 22:28:58] Sending PUSH_REQUEST to server...
-⏎[Feb 14, 2024, 22:29:00] Sending PUSH_REQUEST to server...
-⏎[Feb 14, 2024, 22:29:03] Sending PUSH_REQUEST to server...
-⏎[Feb 14, 2024, 22:29:06] Sending PUSH_REQUEST to server...
-⏎[Feb 14, 2024, 22:29:09] Sending PUSH_REQUEST to server...
-⏎[Feb 14, 2024, 22:29:12] Sending PUSH_REQUEST to server...
-⏎[Feb 14, 2024, 22:29:15] Sending PUSH_REQUEST to server...
-⏎[Feb 14, 2024, 22:29:18] Sending PUSH_REQUEST to server...
-⏎[Feb 14, 2024, 22:29:21] Sending PUSH_REQUEST to server...
-⏎[Feb 14, 2024, 22:29:24] Sending PUSH_REQUEST to server...
-⏎[Feb 14, 2024, 22:29:27] Sending PUSH_REQUEST to server...
-⏎[Feb 14, 2024, 22:29:29] Raw stats on disconnect:
+[Feb 14, 2024, 22:28:57] Session is ACTIVE
+[Feb 14, 2024, 22:28:57] EVENT: GET_CONFIG
+[Feb 14, 2024, 22:28:57] Sending PUSH_REQUEST to server...
+[Feb 14, 2024, 22:28:58] Sending PUSH_REQUEST to server...
+[Feb 14, 2024, 22:29:00] Sending PUSH_REQUEST to server...
+[Feb 14, 2024, 22:29:03] Sending PUSH_REQUEST to server...
+[Feb 14, 2024, 22:29:06] Sending PUSH_REQUEST to server...
+[Feb 14, 2024, 22:29:09] Sending PUSH_REQUEST to server...
+[Feb 14, 2024, 22:29:12] Sending PUSH_REQUEST to server...
+[Feb 14, 2024, 22:29:15] Sending PUSH_REQUEST to server...
+[Feb 14, 2024, 22:29:18] Sending PUSH_REQUEST to server...
+[Feb 14, 2024, 22:29:21] Sending PUSH_REQUEST to server...
+[Feb 14, 2024, 22:29:24] Sending PUSH_REQUEST to server...
+[Feb 14, 2024, 22:29:27] Sending PUSH_REQUEST to server...
+[Feb 14, 2024, 22:29:29] Raw stats on disconnect:
  BYTES_IN : 3483
  BYTES_OUT : 4088
  PACKETS_IN : 18
@@ -63,11 +64,28 @@ Sometimes the client stuck at this stage `Received control message: 'PUSH_REQUES
 If you see this message on the Client side (version3),
 you may want to make sure you add these lines to your oauth configuration file
 
+<table>
+<thead><tr><td>env/sysconfig configuration</td></tr></thead>
+<tbody><tr><td>
+
 ```ini
 CONFIG_OAUTH2_REFRESH_ENABLED=true
 CONFIG_OAUTH2_REFRESH_EXPIRES=24h
-CONFIG_OAUTH2_REFRESH_SECRET= # 16 or 24 characters
+CONFIG_OAUTH2_REFRESH_SECRET=... # 16 or 24 characters
 ```
+</td></tr></tbody>
+<thead><tr><td>yaml configuration</td></tr></thead>
+<tbody><tr><td>
+
+```yaml
+oauth2:
+  refresh:
+    enabled: true
+    expires: 24h
+    secret: "..." # 16 or 24 characters
+```
+</td></tr></tbody>
+</table>
 
 For reference, you can read more about these properties in the wiki at this [link](https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Configuration#non-interactive-session-refresh)
 
@@ -83,11 +101,30 @@ auth-token-gen [lifetime] external-auth
 ```
 
 **openvpn-auth-oauth2 Configuration**
+
+<table>
+<thead><tr><td>env/sysconfig configuration</td></tr></thead>
+<tbody><tr><td>
+
 ```ini
 CONFIG_OAUTH2_REFRESH_ENABLED=true
 CONFIG_OAUTH2_REFRESH_EXPIRES=8h
-CONFIG_OAUTH2_REFRESH_SECRET= # a static secret to encrypt token. Must be 16, 24 or 32
+CONFIG_OAUTH2_REFRESH_SECRET=... # a static secret to encrypt token. Must be 16, 24 or 32
 CONFIG_OAUTH2_REFRESH_USE__SESSION__ID=true
 ```
+</td></tr></tbody>
+<thead><tr><td>yaml configuration</td></tr></thead>
+<tbody><tr><td>
+
+```yaml
+oauth2:
+  refresh:
+    enabled: true
+    expires: 8h
+    secret: "..." # 16 or 24 characters
+    use-session-id: true
+```
+</td></tr></tbody>
+</table>
 
 For reference, you can read more about these properties in the wiki at this [link](https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Configuration#non-interactive-session-refresh)

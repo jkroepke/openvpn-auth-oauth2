@@ -1,6 +1,8 @@
 package google
 
 import (
+	"slices"
+
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"golang.org/x/oauth2"
@@ -23,6 +25,8 @@ func (p *Provider) GetProviderConfig(conf config.Config) (types.ProviderConfig, 
 		// Enable offline access to api a refresh token
 		providerConfig.Scopes = append(providerConfig.Scopes, "https://www.googleapis.com/auth/cloud-identity.groups.readonly")
 	}
+
+	providerConfig.Scopes = slices.Compact(providerConfig.Scopes)
 
 	return providerConfig, nil
 }

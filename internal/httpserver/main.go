@@ -7,10 +7,17 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"os"
+	"strconv"
 	"sync"
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+)
+
+const (
+	ServerNameDefault = "server"
+	ServerNameDebug   = "debug"
 )
 
 type Server struct {
@@ -54,25 +61,16 @@ func (s *Server) Listen(ctx context.Context) error {
 			return err
 		}
 
-		s.server.TLSConfig = new(tls.Config)
-		s.server.TLSConfig.GetCertificate = s.GetCertificateFunc()
-
-		s.logger.Info(fmt.Sprintf(
-			"start HTTPS %s listener on %s", s.name, s.conf.Listen,
-		))
-
-		go func() {
-			errCh <- s.server.ListenAndServeTLS("", "")
-		}()
-	} else {
-		s.logger.Info(fmt.Sprintf(
-			"start HTTP %s listener on %s", s.name, s.conf.Listen,
-		))
-
-		go func() {
-			errCh <- s.server.ListenAndServe()
-		}()
+		s.server.TLSConfig = &tls.Config{
+			MinVersion:     tls.VersionTLS12,
+			GetCertificate: s.GetCertificateFunc(),
+			NextProtos:     []string{"h2", "http/1.1"},
+		}
 	}
+
+	go func() {
+		errCh <- s.serve()
+	}()
 
 	select {
 	case err := <-errCh:
@@ -87,6 +85,52 @@ func (s *Server) Listen(ctx context.Context) error {
 		}
 
 		s.logger.Info(fmt.Sprintf("http %s listener successfully terminated", s.name))
+	}
+
+	return nil
+}
+
+func (s *Server) serve() error {
+	if s.server == nil {
+		return fmt.Errorf("http %s server is nil", s.name)
+	}
+
+	var (
+		err      error
+		listener net.Listener
+	)
+
+	if s.name == ServerNameDefault && os.Getenv("LISTEN_PID") == strconv.Itoa(os.Getpid()) {
+		// systemd run
+		listener, err = net.FileListener(os.NewFile(3, "from systemd"))
+		if err != nil {
+			return fmt.Errorf("net.FileListener: %w", err)
+		}
+	} else {
+		listener, err = net.Listen("tcp", s.conf.Listen)
+		if err != nil {
+			return fmt.Errorf("net.Listen: %w", err)
+		}
+	}
+
+	if s.conf.TLS {
+		s.logger.Info(fmt.Sprintf(
+			"start HTTPS %s listener on %s", s.name, listener.Addr().String(),
+		))
+
+		if err = s.server.ServeTLS(listener, "", ""); err != nil {
+			return fmt.Errorf("http.ServeTLS: %w", err)
+		}
+
+		return nil
+	}
+
+	s.logger.Info(fmt.Sprintf(
+		"start HTTP %s listener on %s", s.name, listener.Addr().String(),
+	))
+
+	if err = s.server.Serve(listener); err != nil {
+		return fmt.Errorf("http.Serve: %w", err)
 	}
 
 	return nil
@@ -126,11 +170,11 @@ func (s *Server) Reload() error {
 
 func (s *Server) shutdown() error {
 	if s.server == nil {
-		return nil
+		return fmt.Errorf("http %s server is nil", s.name)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	s.server.RegisterOnShutdown(cancel)
 
 	return s.server.Shutdown(ctx) //nolint:wrapcheck
 }
