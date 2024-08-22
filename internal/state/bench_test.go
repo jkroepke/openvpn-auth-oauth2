@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
-	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/stretchr/testify/require"
 )
 

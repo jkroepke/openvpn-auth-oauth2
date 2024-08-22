@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
-	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

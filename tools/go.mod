@@ -6,10 +6,10 @@ require (
 	github.com/bombsimon/wsl/v4 v4.4.1
 	github.com/catenacyber/perfsprint v0.7.1
 	github.com/daixiang0/gci v0.13.4
-	github.com/golangci/golangci-lint v1.59.1
+	github.com/golangci/golangci-lint v1.60.1
 	github.com/tetafro/godot v1.4.16
 	golang.org/x/tools v0.24.0
-	mvdan.cc/gofumpt v0.6.0
+	mvdan.cc/gofumpt v0.7.0
 )
 
 require (
@@ -20,7 +20,7 @@ require (
 	github.com/Antonboom/errname v0.1.13 // indirect
 	github.com/Antonboom/nilnil v0.1.9 // indirect
 	github.com/Antonboom/testifylint v1.4.3 // indirect
-	github.com/BurntSushi/toml v1.4.0 // indirect
+	github.com/BurntSushi/toml v1.4.1-0.20240526193622-a339e1f7089c // indirect
 	github.com/Crocmagnon/fatcontext v0.4.0 // indirect
 	github.com/Djarvur/go-err113 v0.0.0-20210108212216-aea10b59be24 // indirect
 	github.com/GaijinEntertainment/go-exhaustruct/v3 v3.3.0 // indirect
@@ -67,7 +67,7 @@ require (
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/gofrs/flock v0.12.1 // indirect
 	github.com/golangci/dupl v0.0.0-20180902072040-3e9179ac440a // indirect
-	github.com/golangci/gofmt v0.0.0-20240724082148-399ed8a42d42 // indirect
+	github.com/golangci/gofmt v0.0.0-20240816233607-d8596aa466a9 // indirect
 	github.com/golangci/misspell v0.6.0 // indirect
 	github.com/golangci/modinfo v0.3.4 // indirect
 	github.com/golangci/plugin-module-register v0.1.1 // indirect
@@ -120,7 +120,7 @@ require (
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/polyfloyd/go-errorlint v1.6.0 // indirect
-	github.com/prometheus/client_golang v1.19.1 // indirect
+	github.com/prometheus/client_golang v1.20.0 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.55.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
@@ -159,7 +159,7 @@ require (
 	github.com/tdakkota/asciicheck v0.2.0 // indirect
 	github.com/timakin/bodyclose v0.0.0-20240125160201-f835fa56326a // indirect
 	github.com/timonwong/loggercheck v0.9.4 // indirect
-	github.com/tomarrell/wrapcheck/v2 v2.8.3 // indirect
+	github.com/tomarrell/wrapcheck/v2 v2.9.0 // indirect
 	github.com/tommy-muehle/go-mnd/v2 v2.5.1 // indirect
 	github.com/ultraware/funlen v0.1.0 // indirect
 	github.com/ultraware/whitespace v0.1.1 // indirect
@@ -184,6 +184,6 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	honnef.co/go/tools v0.4.7 // indirect
+	honnef.co/go/tools v0.5.1 // indirect
 	mvdan.cc/unparam v0.0.0-20240528143540-8a5130ca722f // indirect
 )

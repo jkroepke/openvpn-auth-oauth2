@@ -10,7 +10,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
-	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zitadel/oidc/v3/pkg/oidc"

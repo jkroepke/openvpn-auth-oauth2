@@ -15,7 +15,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/cmd/daemon"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
-	"github.com/jkroepke/openvpn-auth-oauth2/pkg/testutils"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/madflojo/testcerts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
