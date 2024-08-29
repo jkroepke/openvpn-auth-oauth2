@@ -337,7 +337,7 @@ func TestPassthroughFull(t *testing.T) {
 					assert.True(t, ok)
 
 					assert.Equal(t, tt.conf.OpenVpn.Passthrough.SocketGroup, strconv.Itoa(int(gid.Gid)))
-					assert.Equal(t, os.FileMode(tt.conf.OpenVpn.Passthrough.SocketMode), stat.Mode().Perm())
+					assert.Equal(t, os.FileMode(tt.conf.OpenVpn.Passthrough.SocketMode), stat.Mode().Perm()) //nolint:gosec
 				} else {
 					testutils.SendMessage(t, passThroughConn, " quit ")
 				}

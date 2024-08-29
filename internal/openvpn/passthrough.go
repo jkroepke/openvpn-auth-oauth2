@@ -278,6 +278,7 @@ func (c *Client) setupUNIXSocketPermissions() error {
 		}
 	}
 
+	//nolint:gosec
 	if err := os.Chmod(c.conf.OpenVpn.Passthrough.Address.Path, os.FileMode(c.conf.OpenVpn.Passthrough.SocketMode)); err != nil {
 		return fmt.Errorf("error chmod: %w", err)
 	}
