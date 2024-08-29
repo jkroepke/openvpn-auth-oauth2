@@ -3,7 +3,7 @@ name: CI
 env:
   PACKAGES: openvpn crossbuild-essential-arm64 libssl-dev:arm64
   # renovate: github=golangci/golangci-lint
-  GO_LINT_CI_VERSION: v1.59.1
+  GO_LINT_CI_VERSION: v1.60.3
   # renovate: github=goreleaser/goreleaser
   GORELEASER_VERSION: v2.2.0
 
@@ -29,6 +29,7 @@ jobs:
         with:
           go-version-file: 'go.mod'
 
+      - run: go mod tidy -diff
       - run: go build
       - run: go test ./... -timeout 20s -race -covermode=atomic -coverprofile=coverage.out -coverpkg=./...
       - run: go test ./... -timeout 20s -bench . -benchmem -count 3
