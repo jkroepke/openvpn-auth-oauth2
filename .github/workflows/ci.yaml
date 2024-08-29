@@ -29,6 +29,7 @@ jobs:
         with:
           go-version-file: 'go.mod'
 
+      - run: go mod tidy -diff
       - run: go build
       - run: go test ./... -timeout 20s -race -covermode=atomic -coverprofile=coverage.out -coverpkg=./...
       - run: go test ./... -timeout 20s -bench . -benchmem -count 3
