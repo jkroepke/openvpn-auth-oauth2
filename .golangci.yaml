@@ -9,6 +9,7 @@ linters:
     - err113
     - execinquery
     - mnd
+    - exportloopref
 
 issues:
   exclude-rules:
