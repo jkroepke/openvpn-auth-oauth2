@@ -78,7 +78,7 @@ func (p *Provider) oauth2Start() http.Handler {
 			slog.String("ip", fmt.Sprintf("%s:%s", session.IPAddr, session.IPPort)),
 			slog.Uint64("cid", session.Client.CID),
 			slog.Uint64("kid", session.Client.KID),
-			slog.String("common_name", session.CommonName),
+			slog.String("common_name", session.Client.CommonName),
 		)
 
 		if p.conf.HTTP.Check.IPAddr {
@@ -170,7 +170,7 @@ func (p *Provider) oauth2Callback() http.Handler {
 			slog.Uint64("cid", session.Client.CID),
 			slog.Uint64("kid", session.Client.KID),
 			slog.String("session_id", session.Client.SessionID),
-			slog.String("common_name", session.CommonName),
+			slog.String("common_name", session.Client.CommonName),
 		)
 
 		ctx = logging.ToContext(ctx, logger)
@@ -253,7 +253,7 @@ func (p *Provider) postCodeExchangeHandler(
 }
 
 func getAuthTokenUsername(session state.State, user types.UserData) string {
-	username := session.CommonName
+	username := session.Client.CommonName
 	if user.PreferredUsername != "" {
 		username = user.PreferredUsername
 	} else if user.Subject != "" {

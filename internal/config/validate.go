@@ -10,7 +10,7 @@ import (
 
 // Validate validates the config.
 //
-//nolint:cyclop
+//nolint:cyclop,gocognit
 func Validate(mode int, conf Config) error {
 	for key, value := range map[string]string{
 		"oauth2.client.id": conf.OAuth2.Client.ID,
@@ -81,6 +81,20 @@ func Validate(mode int, conf Config) error {
 	if conf.HTTP.AssetPath != "" {
 		if _, err := os.ReadDir(conf.HTTP.AssetPath); err != nil {
 			return fmt.Errorf("http.assets-path: %w", err)
+		}
+	}
+
+	if conf.OpenVpn.CCD.Enabled {
+		if conf.OpenVpn.CCD.Path == "" {
+			return fmt.Errorf("openvpn.ccd.path is %w", ErrRequired)
+		}
+
+		if conf.OpenVpn.CommonName.Mode == CommonNameModeOmit {
+			return errors.New("openvpn.common-name.mode: omit is not supported with openvpn.ccd.enabled")
+		}
+
+		if _, err := os.ReadDir(conf.OpenVpn.CCD.Path); err != nil {
+			return fmt.Errorf("openvpn.ccd.path: %w", err)
 		}
 	}
 

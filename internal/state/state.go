@@ -12,29 +12,28 @@ import (
 )
 
 type State struct {
-	Client     ClientIdentifier
-	IPAddr     string
-	IPPort     string
-	CommonName string
-	Issued     int64
+	Client ClientIdentifier
+	IPAddr string
+	IPPort string
+	Issued int64
 }
 
 type ClientIdentifier struct {
 	CID                  uint64
 	KID                  uint64
 	SessionID            string
+	CommonName           string
 	UsernameIsDefined    int
 	AuthFailedReasonFile string
 	AuthControlFile      string
 }
 
-func New(client ClientIdentifier, ipAddr, ipPort, commonName string) State {
+func New(client ClientIdentifier, ipAddr, ipPort string) State {
 	return State{
-		Client:     client,
-		IPAddr:     ipAddr,
-		IPPort:     ipPort,
-		CommonName: commonName,
-		Issued:     time.Now().Round(time.Second).Unix(),
+		Client: client,
+		IPAddr: ipAddr,
+		IPPort: ipPort,
+		Issued: time.Now().Round(time.Second).Unix(),
 	}
 }
 
@@ -66,9 +65,9 @@ func (state *State) decode(encodedState, secretKey string) error {
 		&state.Client.AuthControlFile,
 		&state.Client.SessionID,
 		&state.Client.UsernameIsDefined,
+		&state.Client.CommonName,
 		&state.IPAddr,
 		&state.IPPort,
-		&state.CommonName,
 		&state.Issued,
 	)
 	if err != nil {
@@ -78,9 +77,9 @@ func (state *State) decode(encodedState, secretKey string) error {
 	state.Client.AuthFailedReasonFile = decodeString(state.Client.AuthFailedReasonFile)
 	state.Client.AuthControlFile = decodeString(state.Client.AuthControlFile)
 	state.Client.SessionID = decodeString(state.Client.SessionID)
+	state.Client.CommonName = decodeString(state.Client.CommonName)
 	state.IPAddr = decodeString(state.IPAddr)
 	state.IPPort = decodeString(state.IPPort)
-	state.CommonName = decodeString(state.CommonName)
 
 	issuedSince := time.Since(time.Unix(state.Issued, 0))
 
@@ -109,11 +108,11 @@ func (state *State) Encode(secretKey string) (string, error) {
 	data.WriteString(" ")
 	data.WriteString(strconv.Itoa(state.Client.UsernameIsDefined))
 	data.WriteString(" ")
+	data.WriteString(encodeString(state.Client.CommonName))
+	data.WriteString(" ")
 	data.WriteString(encodeString(state.IPAddr))
 	data.WriteString(" ")
 	data.WriteString(encodeString(state.IPPort))
-	data.WriteString(" ")
-	data.WriteString(encodeString(state.CommonName))
 	data.WriteString(" ")
 	data.WriteString(strconv.FormatInt(state.Issued, 10))
 	data.WriteString("\r\n")

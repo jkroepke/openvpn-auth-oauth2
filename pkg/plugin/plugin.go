@@ -130,9 +130,10 @@ func openvpn_plugin_func_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_
 	clientIdentifier := state.ClientIdentifier{
 		AuthControlFile:      client.AuthControlFile,
 		AuthFailedReasonFile: client.AuthFailedReasonFile,
+		CommonName:           client.CommonName,
 	}
 
-	session := state.New(clientIdentifier, client.IpAddr, client.IpPort, client.CommonName)
+	session := state.New(clientIdentifier, client.IpAddr, client.IpPort)
 
 	encodedSession, err := session.Encode(handle.conf.HTTP.Secret.String())
 	if err != nil {

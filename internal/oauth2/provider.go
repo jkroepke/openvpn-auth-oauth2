@@ -236,7 +236,7 @@ func errorHandler(
 			slog.String("ip", fmt.Sprintf("%s:%s", session.IPAddr, session.IPPort)),
 			slog.Uint64("cid", session.Client.CID),
 			slog.Uint64("kid", session.Client.KID),
-			slog.String("common_name", session.CommonName),
+			slog.String("common_name", session.Client.CommonName),
 		)
 		openvpn.DenyClient(logger, session.Client, "client rejected")
 	} else {

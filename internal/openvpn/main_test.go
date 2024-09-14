@@ -45,7 +45,7 @@ func TestClientInvalidServer(t *testing.T) {
 
 	storageClient := storage.New(ctx, testutils.Secret, time.Hour)
 	provider := oauth2.New(logger.Logger, conf, storageClient, http2.DefaultClient)
-	client := openvpn.New(ctx, logger.Logger, conf, provider)
+	client := openvpn.New(ctx, logger.Logger, conf, provider, nil)
 	err := client.Connect()
 	require.Error(t, err)
 	assert.Equal(t, "unable to connect to openvpn management interface tcp://0.0.0.0:1: dial tcp 0.0.0.0:1: connect: connection refused", err.Error())
@@ -264,7 +264,7 @@ func TestClientFull(t *testing.T) {
 
 			storageClient := storage.New(ctx, testutils.Secret, time.Hour)
 			provider := oauth2.New(logger.Logger, tt.conf, storageClient, http2.DefaultClient)
-			client := openvpn.New(ctx, logger.Logger, tt.conf, provider)
+			client := openvpn.New(ctx, logger.Logger, tt.conf, provider, nil)
 
 			wg := sync.WaitGroup{}
 			wg.Add(1)
@@ -316,7 +316,7 @@ func TestClientFull(t *testing.T) {
 
 					assert.Equal(t, uint64(1), sessionState.Client.CID)
 					assert.Equal(t, uint64(2), sessionState.Client.KID)
-					assert.Equal(t, "test", sessionState.CommonName)
+					assert.Equal(t, "test", sessionState.Client.CommonName)
 					assert.Equal(t, "127.0.0.1", sessionState.IPAddr)
 				}
 			}()
@@ -365,7 +365,7 @@ func TestClientInvalidPassword(t *testing.T) {
 
 	storageClient := storage.New(ctx, testutils.Secret, time.Hour)
 	provider := oauth2.New(logger.Logger, conf, storageClient, http2.DefaultClient)
-	client := openvpn.New(ctx, logger.Logger, conf, provider)
+	client := openvpn.New(ctx, logger.Logger, conf, provider, nil)
 
 	go func() {
 		conn, err := managementInterface.Accept()
@@ -442,7 +442,7 @@ func TestClientInvalidVersion(t *testing.T) {
 
 			storageClient := storage.New(ctx, testutils.Secret, time.Hour)
 			provider := oauth2.New(logger.Logger, conf, storageClient, http2.DefaultClient)
-			openVPNClient := openvpn.New(ctx, logger.Logger, conf, provider)
+			openVPNClient := openvpn.New(ctx, logger.Logger, conf, provider, nil)
 
 			wg := sync.WaitGroup{}
 			wg.Add(2)
@@ -523,7 +523,7 @@ func TestSIGHUP(t *testing.T) {
 
 	storageClient := storage.New(ctx, testutils.Secret, time.Hour)
 	provider := oauth2.New(logger.Logger, conf, storageClient, http2.DefaultClient)
-	client := openvpn.New(ctx, logger.Logger, conf, provider)
+	client := openvpn.New(ctx, logger.Logger, conf, provider, nil)
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -596,7 +596,7 @@ func TestDeadLocks(t *testing.T) {
 
 			storageClient := storage.New(ctx, testutils.Secret, time.Hour)
 			provider := oauth2.New(logger.Logger, conf, storageClient, http2.DefaultClient)
-			client := openvpn.New(ctx, logger.Logger, conf, provider)
+			client := openvpn.New(ctx, logger.Logger, conf, provider, nil)
 
 			wg := sync.WaitGroup{}
 			wg.Add(1)
@@ -668,7 +668,7 @@ func TestInvalidCommandResponses(t *testing.T) {
 
 			storageClient := storage.New(ctx, testutils.Secret, time.Hour)
 			provider := oauth2.New(logger.Logger, conf, storageClient, http2.DefaultClient)
-			client := openvpn.New(ctx, logger.Logger, conf, provider)
+			client := openvpn.New(ctx, logger.Logger, conf, provider, nil)
 
 			wg := sync.WaitGroup{}
 			wg.Add(1)

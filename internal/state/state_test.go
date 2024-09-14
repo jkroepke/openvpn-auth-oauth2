@@ -16,7 +16,7 @@ func TestState(t *testing.T) {
 	encryptionKey := testutils.Secret
 
 	for i := 1; i < 50; i++ {
-		token := state.New(state.ClientIdentifier{CID: 9223372036854775807, KID: 2}, "127.0.0.1", "12345", "test")
+		token := state.New(state.ClientIdentifier{CID: 9223372036854775807, KID: 2, CommonName: "test"}, "127.0.0.1", "12345")
 		encodedTokenString, err := token.Encode(encryptionKey)
 		require.NoError(t, err)
 
@@ -26,7 +26,7 @@ func TestState(t *testing.T) {
 		assert.Equal(t, token.Client.CID, encodedToken.Client.CID)
 		assert.Equal(t, token.Client.KID, encodedToken.Client.KID)
 		assert.Equal(t, token.IPAddr, encodedToken.IPAddr)
-		assert.Equal(t, token.CommonName, encodedToken.CommonName)
+		assert.Equal(t, token.Client.CommonName, encodedToken.Client.CommonName)
 	}
 }
 
@@ -35,7 +35,7 @@ func TestStateWithEmptyValues(t *testing.T) {
 
 	encryptionKey := testutils.Secret
 
-	token := state.New(state.ClientIdentifier{CID: 1, KID: 2}, "127.0.0.1", "12345", "")
+	token := state.New(state.ClientIdentifier{CID: 1, KID: 2, CommonName: "test"}, "127.0.0.1", "12345")
 	encodedTokenString, err := token.Encode(encryptionKey)
 	require.NoError(t, err)
 
@@ -45,7 +45,7 @@ func TestStateWithEmptyValues(t *testing.T) {
 	assert.Equal(t, token.Client.CID, encodedToken.Client.CID)
 	assert.Equal(t, token.Client.KID, encodedToken.Client.KID)
 	assert.Equal(t, token.IPAddr, encodedToken.IPAddr)
-	assert.Equal(t, token.CommonName, encodedToken.CommonName)
+	assert.Equal(t, token.Client.CommonName, encodedToken.Client.CommonName)
 }
 
 func TestStateInvalid_Key(t *testing.T) {
@@ -53,7 +53,7 @@ func TestStateInvalid_Key(t *testing.T) {
 
 	encryptionKey := "01234567891011"
 
-	token := state.New(state.ClientIdentifier{CID: 1, KID: 2}, "127.0.0.1", "12345", "test")
+	token := state.New(state.ClientIdentifier{CID: 1, KID: 2, CommonName: "test"}, "127.0.0.1", "12345")
 	_, err := token.Encode(encryptionKey)
 
 	require.Error(t, err, "crypto/aes: invalid key size 14")
@@ -64,7 +64,7 @@ func TestState_WithSpace(t *testing.T) {
 
 	encryptionKey := testutils.Secret
 
-	token := state.New(state.ClientIdentifier{CID: 1, KID: 2}, "127.0.0.1", "12345", "t e s t")
+	token := state.New(state.ClientIdentifier{CID: 1, KID: 2, CommonName: "test"}, "127.0.0.1", "12345")
 
 	encodedTokenString, err := token.Encode(encryptionKey)
 
@@ -76,7 +76,7 @@ func TestState_WithSpace(t *testing.T) {
 	assert.Equal(t, token.Client.CID, encodedToken.Client.CID)
 	assert.Equal(t, token.Client.KID, encodedToken.Client.KID)
 	assert.Equal(t, token.IPAddr, encodedToken.IPAddr)
-	assert.Equal(t, token.CommonName, encodedToken.CommonName)
+	assert.Equal(t, token.Client.CommonName, encodedToken.Client.CommonName)
 }
 
 func TestStateInvalid_Future(t *testing.T) {
@@ -84,7 +84,7 @@ func TestStateInvalid_Future(t *testing.T) {
 
 	encryptionKey := testutils.Secret
 
-	token := state.New(state.ClientIdentifier{CID: 1, KID: 2}, "127.0.0.1", "12345", "test")
+	token := state.New(state.ClientIdentifier{CID: 1, KID: 2, CommonName: "test"}, "127.0.0.1", "12345")
 	token.Issued = time.Now().Add(time.Hour).Unix()
 	encodedTokenString, err := token.Encode(encryptionKey)
 
@@ -100,7 +100,7 @@ func TestStateInvalid_TooOld(t *testing.T) {
 
 	encryptionKey := testutils.Secret
 
-	token := state.New(state.ClientIdentifier{CID: 1, KID: 2}, "127.0.0.1", "12345", "test")
+	token := state.New(state.ClientIdentifier{CID: 1, KID: 2, CommonName: "test"}, "127.0.0.1", "12345")
 	token.Issued = time.Now().Add(-1 * time.Hour).Unix()
 	encodedTokenString, err := token.Encode(encryptionKey)
 

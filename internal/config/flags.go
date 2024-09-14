@@ -167,6 +167,16 @@ func flagSetOpenVPN(flagSet *flag.FlagSet) {
 		Defaults.OpenVpn.Bypass.CommonNames,
 		"bypass oauth authentication for CNs. Comma separated list.",
 	)
+	flagSet.Bool(
+		"openvpn.ccd.enabled",
+		Defaults.OpenVpn.CCD.Enabled,
+		"If true, openvpn-auth-oauth2 will read the CCD directory for additional configuration.",
+	)
+	flagSet.String(
+		"openvpn.ccd.path",
+		Defaults.OpenVpn.CCD.Path,
+		"Path to the CCD directory. openvpn-auth-oauth2 will look for an file named <username>.conf and returns the configuration back.",
+	)
 	flagSet.String(
 		"openvpn.common-name.environment-variable-name",
 		Defaults.OpenVpn.CommonName.EnvironmentVariableName,
