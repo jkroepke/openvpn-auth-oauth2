@@ -12,7 +12,7 @@ func BenchmarkState(b *testing.B) {
 	b.StopTimer()
 
 	encryptionKey := testutils.Secret
-	token := state.New(state.ClientIdentifier{CID: 9223372036854775807, KID: 2}, "127.0.0.1", "12345", "test")
+	token := state.New(state.ClientIdentifier{CID: 9223372036854775807, KID: 2, CommonName: "test"}, "127.0.0.1", "12345")
 
 	b.StartTimer()
 

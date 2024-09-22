@@ -35,7 +35,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bkielbasa/cyclop v1.2.1 // indirect
 	github.com/blizzy78/varnamelen v0.8.0 // indirect
-	github.com/breml/bidichk v0.2.7 // indirect
+	github.com/breml/bidichk v0.3.1 // indirect
 	github.com/breml/errchkjson v0.3.6 // indirect
 	github.com/butuzov/ireturn v0.3.0 // indirect
 	github.com/butuzov/mirror v1.2.0 // indirect
@@ -43,7 +43,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/charithe/durationcheck v0.0.10 // indirect
 	github.com/chavacava/garif v0.1.0 // indirect
-	github.com/ckaznocha/intrange v0.2.0 // indirect
+	github.com/ckaznocha/intrange v0.2.1 // indirect
 	github.com/curioswitch/go-reassign v0.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/denis-tingaikin/go-header v0.5.0 // indirect
@@ -53,7 +53,7 @@ require (
 	github.com/firefart/nonamedreturns v1.0.5 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/fzipp/gocyclo v0.6.0 // indirect
-	github.com/ghostiam/protogetter v0.3.6 // indirect
+	github.com/ghostiam/protogetter v0.3.8 // indirect
 	github.com/go-critic/go-critic v0.11.4 // indirect
 	github.com/go-toolsmith/astcast v1.1.0 // indirect
 	github.com/go-toolsmith/astcopy v1.1.0 // indirect
@@ -143,7 +143,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/sivchari/containedctx v1.0.3 // indirect
 	github.com/sivchari/tenv v1.10.0 // indirect
-	github.com/sonatard/noctx v0.0.2 // indirect
+	github.com/sonatard/noctx v0.0.3 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/sourcegraph/go-diff v0.7.0 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
@@ -174,8 +174,8 @@ require (
 	go.uber.org/automaxprocs v1.5.3 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
-	golang.org/x/exp v0.0.0-20240904232852-e7e105dedf7e // indirect
-	golang.org/x/exp/typeparams v0.0.0-20240904232852-e7e105dedf7e // indirect
+	golang.org/x/exp v0.0.0-20240909161429-701f63a606c0 // indirect
+	golang.org/x/exp/typeparams v0.0.0-20240909161429-701f63a606c0 // indirect
 	golang.org/x/mod v0.21.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
 	golang.org/x/sys v0.25.0 // indirect

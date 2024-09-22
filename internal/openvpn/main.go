@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"log/slog"
 	"net"
 	"strconv"
@@ -23,11 +24,12 @@ import (
 
 const minManagementInterfaceVersion = 5
 
-func New(ctx context.Context, logger *slog.Logger, conf config.Config, oauth2Client *oauth2.Provider) *Client {
+func New(ctx context.Context, logger *slog.Logger, conf config.Config, oauth2Client *oauth2.Provider, ccdFS fs.FS) *Client {
 	client := &Client{
 		conf:   conf,
 		logger: logger,
 		oauth2: oauth2Client,
+		ccdFS:  ccdFS,
 
 		connMu: sync.Mutex{},
 

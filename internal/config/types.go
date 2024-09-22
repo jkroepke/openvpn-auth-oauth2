@@ -51,10 +51,16 @@ type OpenVpn struct {
 	AuthPendingTimeout time.Duration      `koanf:"auth-pending-timeout"`
 	CommonName         OpenVPNCommonName  `koanf:"common-name"`
 	Passthrough        OpenVPNPassthrough `koanf:"pass-through"`
+	CCD                OpenVPNCCD         `koanf:"ccd"`
 }
 
 type OpenVpnBypass struct {
 	CommonNames StringSlice `koanf:"common-names"`
+}
+
+type OpenVPNCCD struct {
+	Enabled bool   `koanf:"enabled"`
+	Path    string `koanf:"path"`
 }
 
 type OpenVPNCommonName struct {

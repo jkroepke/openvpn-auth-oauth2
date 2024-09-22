@@ -84,7 +84,7 @@ func (p *Provider) CheckCommonName(session state.State, tokens *oidc.Tokens[*idt
 		return nil
 	}
 
-	if session.CommonName == "" || session.CommonName == config.CommonNameModeOmitValue {
+	if session.Client.CommonName == "" || session.Client.CommonName == config.CommonNameModeOmitValue {
 		return fmt.Errorf("common_name %w: openvpn client is empty", ErrMismatch)
 	}
 
@@ -104,13 +104,13 @@ func (p *Provider) CheckCommonName(session state.State, tokens *oidc.Tokens[*idt
 	tokenCommonName = utils.TransformCommonName(p.Conf.OpenVpn.CommonName.Mode, tokenCommonName)
 
 	if !p.Conf.OAuth2.Validate.CommonNameCaseSensitive {
-		session.CommonName = strings.ToLower(session.CommonName)
+		session.Client.CommonName = strings.ToLower(session.Client.CommonName)
 		tokenCommonName = strings.ToLower(tokenCommonName)
 	}
 
-	if tokenCommonName != session.CommonName {
+	if tokenCommonName != session.Client.CommonName {
 		return fmt.Errorf("common_name %w: openvpn client: %s - oidc token: %s",
-			ErrMismatch, session.CommonName, tokenCommonName)
+			ErrMismatch, session.Client.CommonName, tokenCommonName)
 	}
 
 	return nil

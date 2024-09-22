@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net"
 	"net/http"
 	"net/http/cookiejar"
@@ -226,9 +227,7 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener) (*httptest.
 // SetupMockEnvironment setups an OpenVPN and IDP mock
 //
 //nolint:cyclop
-func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config) (config.Config, *openvpn.Client, net.Listener, *oauth2.Provider,
-	*httptest.Server, *http.Client, *Logger, func(),
-) {
+func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config, ccdFS fs.FS) (config.Config, *openvpn.Client, net.Listener, *oauth2.Provider, *httptest.Server, *http.Client, *Logger, func()) {
 	tb.Helper()
 
 	logger := NewTestLogger()
@@ -285,7 +284,7 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 	httpClient := &http.Client{Transport: NewMockRoundTripper(utils.NewUserAgentTransport(nil))}
 	storageClient := storage.New(ctx, Secret, conf.OAuth2.Refresh.Expires)
 	provider := oauth2.New(logger.Logger, conf, storageClient, httpClient)
-	openvpnClient := openvpn.New(ctx, logger.Logger, conf, provider)
+	openvpnClient := openvpn.New(ctx, logger.Logger, conf, provider, ccdFS)
 
 	require.NoError(tb, provider.Initialize(ctx, openvpnClient))
 

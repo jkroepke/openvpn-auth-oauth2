@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/fs"
 	"log/slog"
 	"net/http"
 	"net/http/pprof"
@@ -68,10 +69,15 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 	ctx, cancel := context.WithCancelCause(context.Background())
 	defer cancel(nil)
 
+	var ccdFs fs.FS
+	if conf.OpenVpn.CCD.Enabled && conf.OpenVpn.CCD.Path != "" {
+		ccdFs = os.DirFS(conf.OpenVpn.CCD.Path)
+	}
+
 	httpClient := &http.Client{Transport: utils.NewUserAgentTransport(http.DefaultTransport)}
 	storageClient := storage.New(ctx, conf.OAuth2.Refresh.Secret.String(), conf.OAuth2.Refresh.Expires)
 	oauth2Client := oauth2.New(logger, conf, storageClient, httpClient)
-	openvpnClient := openvpn.New(ctx, logger, conf, oauth2Client)
+	openvpnClient := openvpn.New(ctx, logger, conf, oauth2Client, ccdFs)
 
 	if err = oauth2Client.Initialize(ctx, openvpnClient); err != nil {
 		logger.Error(err.Error())

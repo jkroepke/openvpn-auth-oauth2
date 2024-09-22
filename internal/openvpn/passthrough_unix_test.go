@@ -108,7 +108,7 @@ func TestPassthroughFull(t *testing.T) {
 
 			storageClient := storage.New(ctx, testutils.Secret, time.Hour)
 			provider := oauth2.New(logger.Logger, tt.conf, storageClient, http.DefaultClient)
-			openVPNClient := openvpn.New(ctx, logger.Logger, tt.conf, provider)
+			openVPNClient := openvpn.New(ctx, logger.Logger, tt.conf, provider, nil)
 
 			defer openVPNClient.Shutdown()
 
