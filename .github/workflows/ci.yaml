@@ -3,7 +3,7 @@ name: CI
 env:
   PACKAGES: openvpn crossbuild-essential-arm64 libssl-dev:arm64
   # renovate: github=golangci/golangci-lint
-  GO_LINT_CI_VERSION: v1.60.3
+  GO_LINT_CI_VERSION: v1.61.0
   # renovate: github=goreleaser/goreleaser
   GORELEASER_VERSION: v2.3.2
 
