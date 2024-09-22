@@ -77,7 +77,7 @@ func TestNewProvider(t *testing.T) {
 					},
 				},
 			},
-			"error oauth2 provider: http status not ok: 404 Not Found 404 page not found",
+			"error oauth2 provider: OpenID Provider Configuration Discovery has failed\nhttp status not ok: 404 Not Found 404 page not found",
 		},
 		{
 			"with custom endpoints",
