@@ -14,6 +14,9 @@ include <tunables/global>
 
   @{run}/openvpn{,-server}/* rw,
 
+  @{etc_ro}/mime.types r,
+  /usr/share/mime/* r,
+
   @{sys}/kernel/mm/{hugepages,transparent_hugepage}/{,**} r,
 
   # Site-specific additions and overrides. See local/README for details.
