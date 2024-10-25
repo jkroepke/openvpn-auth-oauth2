@@ -127,6 +127,7 @@ func (c *Client) checkAuthBypass(logger *slog.Logger, client connection.Client) 
 	return true
 }
 
+//nolint:cyclop
 func (c *Client) checkReauth(logger *slog.Logger, client connection.Client) bool {
 	if !c.conf.OAuth2.Refresh.Enabled {
 		return false
@@ -139,6 +140,10 @@ func (c *Client) checkReauth(logger *slog.Logger, client connection.Client) bool
 		c.DenyClient(logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, "session state invalid or expired")
 
 		return true
+	}
+
+	if !c.conf.OAuth2.Refresh.UseSessionID && client.SessionID != "" {
+		logger.Warn("Detected client session ID but not configured to use it. Please enable --oauth2.refresh.use-session-id")
 	}
 
 	ok, err := c.oauth2.RefreshClientAuth(logger, client)
