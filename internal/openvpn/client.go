@@ -141,6 +141,10 @@ func (c *Client) checkReauth(logger *slog.Logger, client connection.Client) bool
 		return true
 	}
 
+	if !c.conf.OAuth2.Refresh.UseSessionID && client.SessionID != "" {
+		logger.Warn("Detected client session ID but not configured to use it. Please enable --oauth2.refresh.use-session-id")
+	}
+
 	ok, err := c.oauth2.RefreshClientAuth(logger, client)
 	if err != nil {
 		logger.Warn(err.Error())
