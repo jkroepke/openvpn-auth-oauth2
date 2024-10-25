@@ -127,6 +127,7 @@ func (c *Client) checkAuthBypass(logger *slog.Logger, client connection.Client) 
 	return true
 }
 
+//nolint:cyclop
 func (c *Client) checkReauth(logger *slog.Logger, client connection.Client) bool {
 	if !c.conf.OAuth2.Refresh.Enabled {
 		return false
