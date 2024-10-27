@@ -62,7 +62,29 @@ Alternatively, can use [acme.sh](https://acme.sh/), which is a pure Unix shell s
 
 openvpn-auth-oauth2 requires a [`SIGHUP` signal](https://en.wikipedia.org/wiki/SIGHUP) to reload the TLS certificate.
 
-If you are using certbot, please drop some instructions to setup it.
+## Signing certificates with certbot via dns-challange
+
+You need to install `certbot` and suitable for you `DNS plugin`. More information on supported by certbot DNS plugins and how to config them you may find [here](https://eff-certbot.readthedocs.io/en/stable/using.html#dns-plugins). It's up to you to define what ACME server to use for verification. By default it's set to letsencrypt, you may change it with `--server` [option](https://eff-certbot.readthedocs.io/en/stable/using.html#changing-the-acme-server). Also, take a look at [RFS 8555](https://datatracker.ietf.org/doc/html/rfc8555) about ACME Protocol.
+
+You can create certs with command below and than copy them to `/etc/openvpn-auth-oauth2/` directory or create a link to files. Do not forget to set right permissions.
+
+The command below utilize certbot to create an free ssl certificate for a domain hosted on cloudflare.
+
+```bash
+certbot certonly --noninteractive --verbose \
+            --force-renewal \
+            --dns-cloudflare \
+            --dns-cloudflare-credentials /path/to/your/cloudflare.ini \
+            --agree-tos \
+            --email your@email.com \
+            --key-type rsa \
+            --rsa-key-size 2048 \
+            --domains this.is.example.domain \
+            --preferred-challenges dns-01 \
+            --server "https://acme-v02.api.letsencrypt.org/directory"
+```
+
+
 
 ## Run HTTPS listener on 443 port
 
