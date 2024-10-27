@@ -81,7 +81,7 @@ certbot certonly --noninteractive --verbose \
             --rsa-key-size 2048 \
             --domains this.is.example.domain \
             --preferred-challenges dns-01 \
-            --server "https://api.buypass.com/acme/directory"
+            --server "https://acme-v02.api.letsencrypt.org/directory"
 ```
 
 
