@@ -33,6 +33,10 @@ func (p *Provider) RefreshClientAuth(logger *slog.Logger, client connection.Clie
 		}
 
 		return false, fmt.Errorf("error from token store: %w", err)
+	} else if refreshToken == "" {
+		p.logger.WarnContext(ctx, "stored refresh token is empty. This should not happen. Please report this issue.")
+
+		return false, nil
 	}
 
 	if !p.conf.OAuth2.Refresh.ValidateUser {
@@ -47,7 +51,7 @@ func (p *Provider) RefreshClientAuth(logger *slog.Logger, client connection.Clie
 
 	tokens, err := p.Provider.Refresh(ctx, logger, p.RelyingParty, refreshToken)
 	if err != nil {
-		return false, fmt.Errorf("error from token exchange: %w", err)
+		return false, fmt.Errorf("error from non-interactive authentication via refresh token: %w", err)
 	}
 
 	session := state.New(state.ClientIdentifier{CID: client.CID, KID: client.KID}, client.IPAddr, client.IPPort, client.CommonName)
@@ -69,6 +73,14 @@ func (p *Provider) RefreshClientAuth(logger *slog.Logger, client connection.Clie
 		p.logger.WarnContext(ctx, fmt.Errorf("oauth2.refresh is enabled, but %w", err).Error())
 	}
 
+	if refreshToken == "" {
+		p.logger.DebugContext(ctx, "no refresh token received from provider")
+
+		return true, nil
+	}
+
+	p.logger.DebugContext(ctx, "store new refresh token into token store")
+
 	if err = p.storage.Set(id, refreshToken); err != nil {
 		return true, fmt.Errorf("error from token store: %w", err)
 	}
@@ -89,7 +101,11 @@ func (p *Provider) ClientDisconnect(ctx context.Context, logger *slog.Logger, cl
 
 	refreshToken, err := p.storage.Get(id)
 	if err != nil {
-		logger.WarnContext(ctx, fmt.Errorf("error from token store: %w", err).Error())
+		if errors.Is(err, storage.ErrNotExists) {
+			logger.DebugContext(ctx, fmt.Errorf("error from token store: %w", err).Error())
+		} else {
+			logger.WarnContext(ctx, fmt.Errorf("error from token store: %w", err).Error())
+		}
 
 		return
 	}

@@ -17,7 +17,6 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
@@ -146,16 +145,8 @@ func (c *Client) checkManagementInterfaceVersion() error {
 	return nil
 }
 
-func (c *Client) checkClientSsoCapabilities(logger *slog.Logger, client connection.Client) bool {
-	if strings.Contains(client.IvSSO, "webauth") {
-		return true
-	}
-
-	errorSsoNotSupported := "OpenVPN Client does not support SSO authentication via webauth"
-	logger.Warn(errorSsoNotSupported)
-	c.DenyClient(logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, errorSsoNotSupported)
-
-	return false
+func (c *Client) checkClientSsoCapabilities(client connection.Client) bool {
+	return strings.Contains(client.IvSSO, "webauth")
 }
 
 // Shutdown shutdowns the client connection.

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -15,6 +16,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/github"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/google"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -178,9 +180,9 @@ func TestRefreshReAuth(t *testing.T) {
 			auth = testutils.ReadLine(t, managementInterfaceConn, reader)
 
 			if conf.OAuth2.Refresh.UseSessionID {
-				assert.Equal(t, "client-deny 3 3 \"session state invalid or expired\"", auth)
+				assert.Equal(t, fmt.Sprintf(`client-deny 3 3 "%s"`, openvpn.ReasonStateExpiredOrInvalid), auth)
 			} else {
-				assert.Contains(t, auth, "client-pending-auth 3 3 \"WEB_AUTH::")
+				assert.Contains(t, auth, `client-pending-auth 3 3 "WEB_AUTH::`)
 			}
 
 			testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: %s command succeeded", strings.SplitN(auth, " ", 2)[0])

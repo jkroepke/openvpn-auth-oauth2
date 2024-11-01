@@ -16,6 +16,8 @@ func TestExecuteVersion(t *testing.T) {
 	t.Parallel()
 
 	var buf bytes.Buffer
+
+	buf.Grow(16 << 20) // pre-allocate buffer to avoid race conditions. (grow vs string)
 	_ = io.Writer(&buf)
 
 	returnCode := daemon.Execute([]string{"", "--version"}, &buf, "version", "commit", "date")
@@ -27,7 +29,7 @@ func TestExecuteHelp(t *testing.T) {
 
 	var buf bytes.Buffer
 
-	buf.Grow(16 << 20)
+	buf.Grow(16 << 20) // pre-allocate buffer to avoid race conditions. (grow vs string)
 	_ = io.Writer(&buf)
 
 	returnCode := daemon.Execute([]string{"openvpn-auth-oauth2-test", "--help"}, &buf, "version", "commit", "date")
@@ -95,12 +97,16 @@ func TestExecuteConfigInvalid(t *testing.T) {
 			t.Parallel()
 
 			var buf bytes.Buffer
+
+			buf.Grow(16 << 20) // pre-allocate buffer to avoid race conditions. (grow vs string)
 			_ = io.Writer(&buf)
 
 			managementInterface, err := nettest.NewLocalListener("tcp")
 			require.NoError(t, err)
 
-			defer managementInterface.Close()
+			t.Cleanup(func() {
+				assert.NoError(t, managementInterface.Close())
+			})
 
 			returnCode := daemon.Execute(append(tt.args, "--openvpn.addr=tcp://"+managementInterface.Addr().String()), &buf, "version", "commit", "date")
 

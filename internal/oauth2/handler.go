@@ -222,8 +222,7 @@ func (p *Provider) postCodeExchangeHandler(
 			slog.String("user_preferred_username", user.PreferredUsername),
 		)
 
-		err = p.Provider.CheckUser(r.Context(), session, user, tokens)
-		if err != nil {
+		if err = p.Provider.CheckUser(r.Context(), session, user, tokens); err != nil {
 			p.openvpn.DenyClient(logger, session.Client, "client rejected")
 			writeError(w, logger, p.conf, http.StatusInternalServerError, "user validation", err.Error())
 
@@ -234,18 +233,33 @@ func (p *Provider) postCodeExchangeHandler(
 
 		p.openvpn.AcceptClient(logger, session.Client, getAuthTokenUsername(session, user))
 
-		if p.conf.OAuth2.Refresh.Enabled {
-			refreshToken := types.EmptyToken
-			if p.conf.OAuth2.Refresh.ValidateUser {
-				refreshToken, err = p.Provider.GetRefreshToken(tokens)
-				if err != nil {
-					p.logger.Warn(fmt.Errorf("oauth2.refresh is enabled, but %w", err).Error())
-				}
-			}
+		if !p.conf.OAuth2.Refresh.Enabled {
+			writeSuccess(w, p.conf, logger)
 
-			if err = p.storage.Set(clientID, refreshToken); err != nil {
+			return
+		}
+
+		if !p.conf.OAuth2.Refresh.ValidateUser {
+			writeSuccess(w, p.conf, logger)
+
+			if err = p.storage.Set(clientID, types.EmptyToken); err != nil {
 				logger.Warn(err.Error())
 			}
+
+			return
+		}
+
+		refreshToken, err := p.Provider.GetRefreshToken(tokens)
+		if err != nil {
+			logger.Warn(fmt.Errorf("oauth2.refresh is enabled, but %w", err).Error())
+		}
+
+		if refreshToken == "" {
+			logger.Warn("refresh token is empty")
+		} else if err = p.storage.Set(clientID, refreshToken); err != nil {
+			logger.Warn("unable to store refresh token",
+				slog.Any("err", err),
+			)
 		}
 
 		writeSuccess(w, p.conf, logger)
