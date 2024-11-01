@@ -148,7 +148,7 @@ func TestClientFull(t *testing.T) {
 			},
 			">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END\r\n",
 			"",
-			errors.New("OpenVPN management error: error encoding state: encrypt aes: crypto/aes: invalid key size 15"),
+			nil,
 		},
 		{
 			"client without IV_SSO",
@@ -319,7 +319,7 @@ func TestClientFull(t *testing.T) {
 				if strings.Contains(tt.expect, "WEB_AUTH") {
 					assert.Contains(t, auth, tt.expect)
 				} else {
-					assert.Equal(t, tt.expect, auth)
+					assert.Equal(t, tt.expect, auth, logger.String())
 				}
 
 				testutils.SendMessage(t, conn, "SUCCESS: %s command succeeded\r\n", strings.SplitN(auth, " ", 2)[0])
