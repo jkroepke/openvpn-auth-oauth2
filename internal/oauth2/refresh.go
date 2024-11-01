@@ -89,7 +89,7 @@ func (p *Provider) ClientDisconnect(ctx context.Context, logger *slog.Logger, cl
 
 	refreshToken, err := p.storage.Get(id)
 	if err != nil {
-		logger.Warn(fmt.Errorf("error from token store: %w", err).Error())
+		logger.WarnContext(ctx, fmt.Errorf("error from token store: %w", err).Error())
 
 		return
 	}
