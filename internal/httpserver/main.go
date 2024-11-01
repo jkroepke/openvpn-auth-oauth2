@@ -39,7 +39,7 @@ func NewHTTPServer(name string, logger *slog.Logger, conf config.HTTP, fnHandler
 			Addr:              conf.Listen,
 			ReadHeaderTimeout: 3 * time.Second,
 			ReadTimeout:       3 * time.Second,
-			WriteTimeout:      3 * time.Second,
+			WriteTimeout:      30 * time.Second,
 			ErrorLog:          slog.NewLogLogger(logger.Handler(), slog.LevelError),
 			Handler:           fnHandler,
 		},
@@ -76,15 +76,15 @@ func (s *Server) Listen(ctx context.Context) error {
 	case err := <-errCh:
 		return fmt.Errorf("error http %s listening: %w", s.name, err)
 	case <-ctx.Done():
-		s.logger.Info(fmt.Sprintf("start graceful shutdown of http %s listener", s.name))
+		s.logger.InfoContext(ctx, fmt.Sprintf("start graceful shutdown of http %s listener", s.name))
 
 		if err := s.shutdown(); err != nil { //nolint:contextcheck
-			s.logger.Error(fmt.Errorf("error graceful shutdown %s: %w", s.name, err).Error())
+			s.logger.ErrorContext(ctx, fmt.Errorf("error graceful shutdown %s: %w", s.name, err).Error())
 
 			return nil
 		}
 
-		s.logger.Info(fmt.Sprintf("http %s listener successfully terminated", s.name))
+		s.logger.InfoContext(ctx, fmt.Sprintf("http %s listener successfully terminated", s.name))
 	}
 
 	return nil
