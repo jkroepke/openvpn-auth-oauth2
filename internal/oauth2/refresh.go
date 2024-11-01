@@ -66,7 +66,7 @@ func (p *Provider) RefreshClientAuth(logger *slog.Logger, client connection.Clie
 
 	refreshToken, err = p.Provider.GetRefreshToken(tokens)
 	if err != nil {
-		p.logger.Warn(fmt.Errorf("oauth2.refresh is enabled, but %w", err).Error())
+		p.logger.WarnContext(ctx, fmt.Errorf("oauth2.refresh is enabled, but %w", err).Error())
 	}
 
 	if err = p.storage.Set(id, refreshToken); err != nil {
@@ -100,9 +100,9 @@ func (p *Provider) ClientDisconnect(ctx context.Context, logger *slog.Logger, cl
 		return
 	}
 
-	logger.Debug("revoke refresh token")
+	logger.DebugContext(ctx, "revoke refresh token")
 
 	if err = p.Provider.RevokeRefreshToken(ctx, logger, p.RelyingParty, refreshToken); err != nil {
-		logger.Warn(err.Error())
+		logger.WarnContext(ctx, err.Error())
 	}
 }

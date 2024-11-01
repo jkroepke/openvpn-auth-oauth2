@@ -98,7 +98,7 @@ func (p *Provider) Initialize(ctx context.Context, openvpn OpenVPN) error {
 			options...,
 		)
 	} else {
-		p.logger.Info(fmt.Sprintf(
+		p.logger.InfoContext(ctx, fmt.Sprintf(
 			"manually configure oauth2 provider with provider %s and providerConfig %s and %s",
 			p.Provider.GetName(), providerConfig.AuthURL, providerConfig.TokenURL,
 		))

@@ -39,7 +39,7 @@ func NewHTTPServer(name string, logger *slog.Logger, conf config.HTTP, fnHandler
 			Addr:              conf.Listen,
 			ReadHeaderTimeout: 3 * time.Second,
 			ReadTimeout:       3 * time.Second,
-			WriteTimeout:      30 * time.Second,
+			WriteTimeout:      1 * time.Minute,
 			ErrorLog:          slog.NewLogLogger(logger.Handler(), slog.LevelError),
 			Handler:           fnHandler,
 		},

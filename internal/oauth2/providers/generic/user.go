@@ -27,7 +27,9 @@ func (p *Provider) GetUser(ctx context.Context, logger *slog.Logger, tokens *oid
 		} else {
 			logger.WarnContext(ctx, "provider did return a id_token, but it was not parsed correctly. Validation of user data is not possible."+
 				" Enable DEBUG logs to see the raw token and report this to maintainer.")
-			logger.DebugContext(ctx, "id_token", "id_token", tokens.IDToken)
+			logger.DebugContext(ctx, "id_token",
+				slog.String("id_token", tokens.IDToken),
+			)
 		}
 	} else {
 		preferredUsername = tokens.IDTokenClaims.PreferredUsername
