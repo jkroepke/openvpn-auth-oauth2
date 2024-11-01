@@ -9,7 +9,7 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
-func (p *Provider) GetUser(_ context.Context, logger *slog.Logger, tokens *oidc.Tokens[*idtoken.Claims]) (types.UserData, error) {
+func (p *Provider) GetUser(ctx context.Context, logger *slog.Logger, tokens *oidc.Tokens[*idtoken.Claims]) (types.UserData, error) {
 	var (
 		preferredUsername string
 		subject           string
@@ -23,11 +23,13 @@ func (p *Provider) GetUser(_ context.Context, logger *slog.Logger, tokens *oidc.
 			// 		"As a result, user data validation cannot be performed. If you have defined endpoints in the configuration, please remove them and retry.")
 			// 	logger.Debug("id_token", "id_token", tokens.Token.Extra("id_token"))
 			// } else {
-			logger.Warn("provider did not return a id_token. Validation of user data is not possible.")
+			logger.WarnContext(ctx, "provider did not return a id_token. Validation of user data is not possible.")
 		} else {
-			logger.Warn("provider did return a id_token, but it was not parsed correctly. Validation of user data is not possible." +
+			logger.WarnContext(ctx, "provider did return a id_token, but it was not parsed correctly. Validation of user data is not possible."+
 				" Enable DEBUG logs to see the raw token and report this to maintainer.")
-			logger.Debug("id_token", "id_token", tokens.IDToken)
+			logger.DebugContext(ctx, "id_token",
+				slog.String("id_token", tokens.IDToken),
+			)
 		}
 	} else {
 		preferredUsername = tokens.IDTokenClaims.PreferredUsername

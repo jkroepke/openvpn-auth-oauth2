@@ -170,6 +170,25 @@ func TestClientFull(t *testing.T) {
 			nil,
 		},
 		{
+			"to long base url",
+			config.Config{
+				HTTP: config.HTTP{
+					BaseURL: &url.URL{Scheme: "http", Host: "localhost", Path: strings.Repeat("a", 255)},
+					Secret:  testutils.Secret,
+				},
+				OpenVpn: config.OpenVpn{
+					CommonName: config.OpenVPNCommonName{
+						EnvironmentVariableName: "common_name",
+					},
+					Bypass:   config.OpenVpnBypass{CommonNames: make([]string, 0)},
+					Password: "password",
+				},
+			},
+			">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END\r\n",
+			`client-deny 1 2 "internal error"`,
+			nil,
+		},
+		{
 			"client bypass",
 			config.Config{
 				HTTP: config.HTTP{

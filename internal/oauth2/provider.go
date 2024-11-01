@@ -75,14 +75,14 @@ func (p *Provider) Initialize(ctx context.Context, openvpn OpenVPN) error {
 
 	if providerConfig.Endpoint == (oauth2.Endpoint{}) {
 		if !config.IsURLEmpty(p.conf.OAuth2.Endpoints.Discovery) {
-			p.logger.Info(fmt.Sprintf(
+			p.logger.InfoContext(ctx, fmt.Sprintf(
 				"discover oidc auto configuration with provider %s for issuer %s with custom discovery url %s",
 				p.Provider.GetName(), p.conf.OAuth2.Issuer.String(), p.conf.OAuth2.Endpoints.Discovery.String(),
 			))
 
 			options = append(options, rp.WithCustomDiscoveryUrl(p.conf.OAuth2.Endpoints.Discovery.String()))
 		} else {
-			p.logger.Info(fmt.Sprintf(
+			p.logger.InfoContext(ctx, fmt.Sprintf(
 				"discover oidc auto configuration with provider %s for issuer %s",
 				p.Provider.GetName(), p.conf.OAuth2.Issuer.String(),
 			))
@@ -98,13 +98,13 @@ func (p *Provider) Initialize(ctx context.Context, openvpn OpenVPN) error {
 			options...,
 		)
 	} else {
-		p.logger.Info(fmt.Sprintf(
+		p.logger.InfoContext(ctx, fmt.Sprintf(
 			"manually configure oauth2 provider with provider %s and providerConfig %s and %s",
 			p.Provider.GetName(), providerConfig.AuthURL, providerConfig.TokenURL,
 		))
 
 		if p.Provider.GetName() == generic.Name {
-			p.logger.Warn("generic provider with manual configuration is used. Validation of user data is not possible.")
+			p.logger.WarnContext(ctx, "generic provider with manual configuration is used. Validation of user data is not possible.")
 		}
 
 		rpConfig := &oauth2.Config{

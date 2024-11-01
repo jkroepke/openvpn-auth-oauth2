@@ -201,12 +201,12 @@ func (p *Provider) postCodeExchangeHandler(
 	) {
 		if tokens.IDTokenClaims != nil {
 			logger = logger.With(
-				slog.String("idtoken.subject", tokens.IDTokenClaims.Subject),
-				slog.String("idtoken.email", tokens.IDTokenClaims.EMail),
-				slog.String("idtoken.preferred_username", tokens.IDTokenClaims.PreferredUsername),
+				slog.String("idtoken_subject", tokens.IDTokenClaims.Subject),
+				slog.String("idtoken_email", tokens.IDTokenClaims.EMail),
+				slog.String("idtoken_preferred_username", tokens.IDTokenClaims.PreferredUsername),
 			)
 
-			logger.Debug("claims", "claims", tokens.IDTokenClaims.Claims)
+			logger.Debug("claims", slog.Any("claims", tokens.IDTokenClaims.Claims))
 		}
 
 		user, err := p.Provider.GetUser(r.Context(), logger, tokens)
@@ -218,8 +218,8 @@ func (p *Provider) postCodeExchangeHandler(
 		}
 
 		logger = logger.With(
-			slog.String("user.subject", user.Subject),
-			slog.String("user.preferred_username", user.PreferredUsername),
+			slog.String("user_subject", user.Subject),
+			slog.String("user_preferred_username", user.PreferredUsername),
 		)
 
 		err = p.Provider.CheckUser(r.Context(), session, user, tokens)
