@@ -7,7 +7,7 @@
   "labels": [
     "🛠️ dependencies"
   ],
-  "dependencyDashboardApproval": true,	
+  "dependencyDashboardApproval": true,
   "ignoreDeps": [
     "github.com/jkroepke/openvpn-auth-oauth2"
   ],
@@ -20,19 +20,20 @@
     },
     {
       "groupName": "Go tools",
-      "matchPackagePatterns": [
-        "*"
-      ],
       "matchFileNames": [
         "tools/**"
+      ],
+      "matchPackageNames": [
+        "*"
       ]
     }
   ],
   "postUpdateOptions": [
     "gomodTidy"
   ],
-  "regexManagers": [
+  "customManagers": [
     {
+      "customType": "regex",
       "fileMatch": [
         "(^|/).+\\.yaml$",
         "Makefile"
