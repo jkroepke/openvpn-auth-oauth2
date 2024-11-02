@@ -70,7 +70,7 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 	defer cancel(nil)
 
 	var ccdFs fs.FS
-	if conf.OpenVpn.CCD.Enabled && conf.OpenVpn.CCD.Path != "" {
+	if conf.OpenVpn.CCD.Enabled {
 		ccdFs = os.DirFS(conf.OpenVpn.CCD.Path)
 	}
 

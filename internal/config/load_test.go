@@ -109,6 +109,9 @@ openvpn:
         environment-variable-name: X509_0_emailAddress
         mode: omit
     password: "1jd93h5b6s82lf03jh5b2hf9"
+    ccd:
+        enabled: true
+        path: "."
     pass-through:
         address: "unix:///run/openvpn/pass-through.sock"
         enabled: true
@@ -154,6 +157,10 @@ http:
 					},
 					Bypass: config.OpenVpnBypass{
 						CommonNames: []string{"test", "test2"},
+					},
+					CCD: config.OpenVPNCCD{
+						Enabled: true,
+						Path:    ".",
 					},
 					Password:           "1jd93h5b6s82lf03jh5b2hf9",
 					AuthTokenUser:      true,
