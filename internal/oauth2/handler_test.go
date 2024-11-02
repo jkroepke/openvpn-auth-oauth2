@@ -358,7 +358,7 @@ func TestHandler(t *testing.T) {
 
 			ctx, cancel := context.WithCancel(context.Background())
 
-			conf, client, managementInterface, _, httpClientListener, httpClient, logger, shutdownFn := testutils.SetupMockEnvironment(ctx, t, tt.conf)
+			conf, client, managementInterface, _, httpClientListener, httpClient, logger, shutdownFn := testutils.SetupMockEnvironment(ctx, t, tt.conf, nil)
 			defer shutdownFn()
 
 			wg := sync.WaitGroup{}

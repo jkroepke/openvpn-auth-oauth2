@@ -13,15 +13,16 @@ import (
 )
 
 type RoundTripperFunc struct {
-	fn func(req *http.Request) (*http.Response, error)
+	fn func(rt http.RoundTripper, req *http.Request) (*http.Response, error)
+	rt http.RoundTripper
 }
 
-func NewRoundTripperFunc(fn func(req *http.Request) (*http.Response, error)) *RoundTripperFunc {
-	return &RoundTripperFunc{fn}
+func NewRoundTripperFunc(rt http.RoundTripper, fn func(rt http.RoundTripper, req *http.Request) (*http.Response, error)) *RoundTripperFunc {
+	return &RoundTripperFunc{fn, rt}
 }
 
 func (f *RoundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
-	return f.fn(req)
+	return f.fn(f.rt, req)
 }
 
 type MockRoundTripper struct {

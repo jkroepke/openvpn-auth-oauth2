@@ -2,7 +2,9 @@ package oauth2_test
 
 import (
 	"bufio"
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -13,6 +15,7 @@ import (
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/github"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/google"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
@@ -20,14 +23,18 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
 func TestRefreshReAuth(t *testing.T) {
 	t.Parallel()
 
+	var refreshToken string
+
 	for _, tt := range []struct {
 		name string
 		conf config.Config
+		rt   http.RoundTripper
 	}{
 		{
 			name: "Refresh",
@@ -36,6 +43,7 @@ func TestRefreshReAuth(t *testing.T) {
 					Refresh: config.OAuth2Refresh{Enabled: true, ValidateUser: true, UseSessionID: false},
 				},
 			},
+			rt: http.DefaultTransport,
 		},
 		{
 			name: "Refresh with ValidateUser=false",
@@ -44,6 +52,7 @@ func TestRefreshReAuth(t *testing.T) {
 					Refresh: config.OAuth2Refresh{Enabled: true, ValidateUser: false, UseSessionID: false},
 				},
 			},
+			rt: http.DefaultTransport,
 		},
 		{
 			name: "Refresh with SessionID=true + ValidateUser=false",
@@ -52,6 +61,7 @@ func TestRefreshReAuth(t *testing.T) {
 					Refresh: config.OAuth2Refresh{Enabled: true, ValidateUser: false, UseSessionID: true},
 				},
 			},
+			rt: http.DefaultTransport,
 		},
 		{
 			name: "Refresh with provider=google",
@@ -62,6 +72,7 @@ func TestRefreshReAuth(t *testing.T) {
 					Refresh:  config.OAuth2Refresh{Enabled: true, ValidateUser: true, UseSessionID: false},
 				},
 			},
+			rt: http.DefaultTransport,
 		},
 		{
 			name: "Refresh with provider=github",
@@ -71,12 +82,52 @@ func TestRefreshReAuth(t *testing.T) {
 					Refresh:  config.OAuth2Refresh{Enabled: true, ValidateUser: true, UseSessionID: false},
 				},
 			},
+			rt: http.DefaultTransport,
+		},
+		{
+			name: "Refresh without returning refresh token",
+			conf: config.Config{
+				OAuth2: config.OAuth2{
+					Provider: generic.Name,
+					Refresh:  config.OAuth2Refresh{Enabled: true, ValidateUser: true, UseSessionID: false},
+				},
+			},
+			rt: testutils.NewRoundTripperFunc(http.DefaultTransport, func(rt http.RoundTripper, req *http.Request) (*http.Response, error) {
+				if !(req.URL.Path == "/oauth/token" && refreshToken != "") {
+					return rt.RoundTrip(req)
+				}
+
+				res, err := rt.RoundTrip(req)
+
+				var tokenResponse oidc.AccessTokenResponse
+				if err := json.NewDecoder(res.Body).Decode(&tokenResponse); err != nil {
+					return nil, err
+				}
+
+				if refreshToken == "" {
+					refreshToken = tokenResponse.RefreshToken
+					tokenResponse.RefreshToken = ""
+				} else {
+					tokenResponse.RefreshToken = refreshToken
+					refreshToken = ""
+				}
+
+				var buf bytes.Buffer
+
+				if err := json.NewEncoder(&buf).Encode(tokenResponse); err != nil {
+					return nil, err
+				}
+
+				res.Body = io.NopCloser(&buf)
+
+				return res, err
+			}),
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			conf, openVPNClient, managementInterface, _, _, httpClient, logger, shutdownFn := testutils.SetupMockEnvironment(context.Background(), t, tt.conf)
+			conf, openVPNClient, managementInterface, _, _, httpClient, logger, shutdownFn := testutils.SetupMockEnvironment(context.Background(), t, tt.conf, tt.rt)
 
 			t.Cleanup(func() {
 				if t.Failed() {
@@ -145,18 +196,25 @@ func TestRefreshReAuth(t *testing.T) {
 			)
 			testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
 
+			// Testing ReAuth
+			testutils.SendAndExpectMessage(t, managementInterfaceConn, reader,
+				">CLIENT:REAUTH,1,4\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,session_state=AuthenticatedEmptyUser\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END",
+				"client-auth-nt 1 4",
+			)
+			testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
+
 			// Test Disconnect
 			testutils.SendMessage(t, managementInterfaceConn, ">CLIENT:DISCONNECT,1\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,session_state=AuthenticatedEmptyUser\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END")
 
 			// Test ReAuth after DC
-			testutils.SendMessage(t, managementInterfaceConn, ">CLIENT:REAUTH,1,3\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,session_state=AuthenticatedEmptyUser\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END")
+			testutils.SendMessage(t, managementInterfaceConn, ">CLIENT:REAUTH,1,4\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,session_state=AuthenticatedEmptyUser\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END")
 
 			auth = testutils.ReadLine(t, managementInterfaceConn, reader)
 
 			if conf.OAuth2.Refresh.UseSessionID {
-				assert.Contains(t, auth, "client-auth-nt 1 3")
+				assert.Contains(t, auth, "client-auth-nt 1 4")
 			} else {
-				assert.Contains(t, auth, "client-pending-auth 1 3 \"WEB_AUTH::")
+				assert.Contains(t, auth, "client-pending-auth 1 4 \"WEB_AUTH::")
 			}
 
 			testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: %s command succeeded", strings.SplitN(auth, " ", 2)[0])

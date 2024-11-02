@@ -226,9 +226,7 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener) (*httptest.
 // SetupMockEnvironment setups an OpenVPN and IDP mock
 //
 //nolint:cyclop
-func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config) (config.Config, *openvpn.Client, net.Listener, *oauth2.Provider,
-	*httptest.Server, *http.Client, *Logger, func(),
-) {
+func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config, rt http.RoundTripper) (config.Config, *openvpn.Client, net.Listener, *oauth2.Provider, *httptest.Server, *http.Client, *Logger, func()) {
 	tb.Helper()
 
 	logger := NewTestLogger()
@@ -282,7 +280,7 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 		conf.OAuth2.Refresh.Expires = time.Hour
 	}
 
-	httpClient := &http.Client{Transport: NewMockRoundTripper(utils.NewUserAgentTransport(nil))}
+	httpClient := &http.Client{Transport: NewMockRoundTripper(utils.NewUserAgentTransport(rt))}
 	storageClient := storage.New(ctx, Secret, conf.OAuth2.Refresh.Expires)
 	provider := oauth2.New(logger.Logger, conf, storageClient, httpClient)
 	openvpnClient := openvpn.New(ctx, logger.Logger, conf, provider)
