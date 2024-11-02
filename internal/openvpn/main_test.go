@@ -246,7 +246,7 @@ func TestClientFull(t *testing.T) {
 			nil,
 		},
 		{
-			"client invalid reason",
+			"client invalid reason 1",
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
@@ -264,6 +264,25 @@ func TestClientFull(t *testing.T) {
 			"",
 			//nolint:revive
 			errors.New("OpenVPN management error: error parsing client message: unable to parse client reason from message: >CLIENT:FOO,0\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END\r\n"),
+		},
+		{
+			"client invalid reason 2",
+			config.Config{
+				HTTP: config.HTTP{
+					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
+					Secret:  testutils.Secret,
+				},
+				OpenVpn: config.OpenVpn{
+					CommonName: config.OpenVPNCommonName{
+						EnvironmentVariableName: "common_name",
+					},
+					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
+					Password: "password",
+				},
+			},
+			">CLIENT:CONNECT1,0,1\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END\r\n",
+			"",
+			errors.New("OpenVPN management error: unknown client reason: CONNECT1"),
 		},
 	}
 
