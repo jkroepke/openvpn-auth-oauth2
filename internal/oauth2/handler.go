@@ -231,7 +231,7 @@ func (p *Provider) postCodeExchangeHandler(
 
 		logger.Info("successful authorization via oauth2")
 
-		p.openvpn.AcceptClient(logger, session.Client, getAuthTokenUsername(session, user))
+		p.openvpn.AcceptClient(logger, session.Client, session.CommonName)
 
 		if !p.conf.OAuth2.Refresh.Enabled {
 			writeSuccess(w, p.conf, logger)
@@ -264,17 +264,6 @@ func (p *Provider) postCodeExchangeHandler(
 
 		writeSuccess(w, p.conf, logger)
 	}
-}
-
-func getAuthTokenUsername(session state.State, user types.UserData) string {
-	username := session.CommonName
-	if user.PreferredUsername != "" {
-		username = user.PreferredUsername
-	} else if user.Subject != "" {
-		username = user.Subject
-	}
-
-	return username
 }
 
 func writeError(w http.ResponseWriter, logger *slog.Logger, conf config.Config, httpCode int, errorType, errorDesc string) {

@@ -242,9 +242,7 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 	resourceServer, resourceServerURL, clientCredentials, err := SetupResourceServer(tb, clientListener)
 	require.NoError(tb, err)
 
-	if conf.HTTP.BaseURL == nil {
-		conf.HTTP.BaseURL = &url.URL{Scheme: "http", Host: clientListener.Addr().String()}
-	}
+	conf.HTTP.BaseURL = &url.URL{Scheme: "http", Host: clientListener.Addr().String()}
 
 	if conf.HTTP.Secret == "" {
 		conf.HTTP.Secret = Secret
@@ -254,17 +252,14 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 		conf.HTTP.CallbackTemplate = config.Defaults.HTTP.CallbackTemplate
 	}
 
-	if conf.OpenVpn.Addr == nil {
-		conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
-	}
+	conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
 	if conf.OpenVpn.Bypass.CommonNames == nil {
 		conf.OpenVpn.Bypass.CommonNames = make([]string, 0)
 	}
 
-	if conf.OAuth2.Issuer == nil {
-		conf.OAuth2.Issuer = resourceServerURL
-	}
+	conf.OAuth2.Issuer = resourceServerURL
+	conf.OAuth2.Nonce = false // not supported by the mock
 
 	if conf.OAuth2.Provider == "" {
 		conf.OAuth2.Provider = generic.Name
