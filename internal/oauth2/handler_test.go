@@ -392,7 +392,7 @@ func TestHandler(t *testing.T) {
 				case tt.state.Client.UsernameIsDefined == 1:
 					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth-nt 0 1")
 				default:
-					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 0 1\r\npush \"auth-token-user aWQx\"\r\nEND")
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 0 1\r\npush \"auth-token-user bmFtZQ==\"\r\nEND")
 				}
 
 				testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")

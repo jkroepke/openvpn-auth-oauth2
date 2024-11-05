@@ -19,7 +19,7 @@ func (c *Client) AcceptClient(logger *slog.Logger, client state.ClientIdentifier
 	if c.conf.OpenVpn.AuthTokenUser && client.UsernameIsDefined == 0 {
 		tokenUsername = base64.StdEncoding.EncodeToString([]byte(username))
 		if tokenUsername == "" {
-			tokenUsername = "dXNlcm5hbWUK" // "username"
+			tokenUsername = "dXNlcm5hbWUK" // "username" //nolint:gosec // No hardcoded credentials
 		}
 	}
 

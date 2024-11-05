@@ -226,15 +226,18 @@ func TestRefreshReAuth(t *testing.T) {
 
 				if tt.conf.OpenVpn.AuthTokenUser {
 					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 1 2")
+
 					if tt.clientCommonName == "" {
 						testutils.ExpectMessage(t, managementInterfaceConn, reader, "push \"auth-token-user dXNlcm5hbWUK\"")
 					} else {
 						testutils.ExpectMessage(t, managementInterfaceConn, reader, "push \"auth-token-user dGVzdA==\"")
 					}
+
 					testutils.ExpectMessage(t, managementInterfaceConn, reader, "END")
 				} else {
 					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth-nt 1 2")
 				}
+
 				testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
 			}()
 
@@ -255,11 +258,13 @@ func TestRefreshReAuth(t *testing.T) {
 
 			if tt.conf.OpenVpn.AuthTokenUser {
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 1 3")
+
 				if tt.clientCommonName == "" {
 					testutils.ExpectMessage(t, managementInterfaceConn, reader, "push \"auth-token-user dXNlcm5hbWUK\"")
 				} else {
 					testutils.ExpectMessage(t, managementInterfaceConn, reader, "push \"auth-token-user dGVzdA==\"")
 				}
+
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "END")
 			} else {
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth-nt 1 3")
@@ -272,13 +277,16 @@ func TestRefreshReAuth(t *testing.T) {
 				">CLIENT:REAUTH,1,4\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=%s\r\n>CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,session_state=AuthenticatedEmptyUser\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END",
 				tt.clientCommonName,
 			)
+
 			if tt.conf.OpenVpn.AuthTokenUser {
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 1 4")
+
 				if tt.clientCommonName == "" {
 					testutils.ExpectMessage(t, managementInterfaceConn, reader, "push \"auth-token-user dXNlcm5hbWUK\"")
 				} else {
 					testutils.ExpectMessage(t, managementInterfaceConn, reader, "push \"auth-token-user dGVzdA==\"")
 				}
+
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "END")
 			} else {
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth-nt 1 4")
