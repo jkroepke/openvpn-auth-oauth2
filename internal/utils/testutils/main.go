@@ -223,9 +223,7 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener) (*httptest.
 	return resourceServer, resourceServerURL, config.OAuth2Client{ID: client.GetID(), Secret: "SECRET"}, nil
 }
 
-// SetupMockEnvironment setups an OpenVPN and IDP mock
-//
-//nolint:cyclop
+// SetupMockEnvironment setups an OpenVPN and IDP mock.
 func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config, rt http.RoundTripper) (
 	config.Config, *openvpn.Client, net.Listener, *oauth2.Provider, *httptest.Server, *http.Client, *Logger, func(),
 ) {
