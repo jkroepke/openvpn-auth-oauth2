@@ -109,7 +109,7 @@ func (c *Client) startClientAuth(logger *slog.Logger, client connection.Client) 
 		ipPort = client.IPPort
 	}
 
-	session := state.New(clientIdentifier, ipAddr, ipPort, commonName)
+	session := state.New(clientIdentifier, ipAddr, ipPort, commonName, client.SessionState)
 
 	encodedSession, err := session.Encode(c.conf.HTTP.Secret.String())
 	if err != nil {

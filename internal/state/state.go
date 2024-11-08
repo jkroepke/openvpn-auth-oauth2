@@ -29,13 +29,14 @@ type ClientIdentifier struct {
 	AuthControlFile      string
 }
 
-func New(client ClientIdentifier, ipAddr, ipPort, commonName string) State {
+func New(client ClientIdentifier, ipAddr, ipPort, commonName, sessionState string) State {
 	return State{
-		Client:     client,
-		IPAddr:     ipAddr,
-		IPPort:     ipPort,
-		CommonName: commonName,
-		Issued:     time.Now().Round(time.Second).Unix(),
+		Client:       client,
+		IPAddr:       ipAddr,
+		IPPort:       ipPort,
+		CommonName:   commonName,
+		SessionState: sessionState,
+		Issued:       time.Now().Round(time.Second).Unix(),
 	}
 }
 

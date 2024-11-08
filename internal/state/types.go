@@ -1,13 +1,14 @@
 package state
 
 const (
-	SessionStateEmpty                  = "0"
-	SessionStateInitial                = "1"
-	SessionStateAuthenticated          = "2"
-	SessionStateExpired                = "3"
-	SessionStateInvalid                = "4"
-	SessionStateAuthenticatedEmptyUser = "5"
-	SessionStateExpiredEmptyUser       = "6"
+	SessionNoState                     = "0"
+	SessionStateEmpty                  = "1"
+	SessionStateInitial                = "2"
+	SessionStateAuthenticated          = "3"
+	SessionStateExpired                = "4"
+	SessionStateInvalid                = "5"
+	SessionStateAuthenticatedEmptyUser = "6"
+	SessionStateExpiredEmptyUser       = "7"
 )
 
 // decodeSessionState returns the string representation of the session state.
@@ -28,7 +29,7 @@ func decodeSessionState(s string) string {
 	case SessionStateExpiredEmptyUser:
 		return "ExpiredEmptyUser"
 	default:
-		return "Invalid"
+		return ""
 	}
 }
 
@@ -50,6 +51,6 @@ func encodeSessionState(s string) string {
 	case "ExpiredEmptyUser":
 		return SessionStateExpiredEmptyUser
 	default:
-		return SessionStateInvalid
+		return SessionNoState
 	}
 }

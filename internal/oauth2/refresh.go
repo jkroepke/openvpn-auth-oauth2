@@ -54,7 +54,7 @@ func (p *Provider) RefreshClientAuth(logger *slog.Logger, client connection.Clie
 		return false, fmt.Errorf("error from non-interactive authentication via refresh token: %w", err)
 	}
 
-	session := state.New(state.ClientIdentifier{CID: client.CID, KID: client.KID, SessionID: client.SessionID, SessionState: client.SessionState}, client.IPAddr, client.IPPort, client.CommonName)
+	session := state.New(state.ClientIdentifier{CID: client.CID, KID: client.KID, SessionID: client.SessionID}, client.IPAddr, client.IPPort, client.CommonName, client.SessionState)
 
 	user, err := p.Provider.GetUser(ctx, logger, tokens)
 	if err != nil {

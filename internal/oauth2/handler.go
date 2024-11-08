@@ -254,7 +254,7 @@ func (p *Provider) postCodeExchangeHandler(
 		if err != nil {
 			if errors.Is(err, types.ErrNoRefreshToken) {
 				logMessage := p.logger.WarnContext
-				if client.SessionState == "AuthenticatedEmptyUser" || client.SessionState == "Authenticated" {
+				if session.SessionState == "AuthenticatedEmptyUser" || session.SessionState == "Authenticated" {
 					logMessage = p.logger.DebugContext
 				}
 				logMessage(r.Context(), fmt.Errorf("oauth2.refresh is enabled, but %w", err).Error())
