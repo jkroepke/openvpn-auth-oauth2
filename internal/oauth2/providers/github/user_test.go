@@ -80,7 +80,7 @@ func TestGetUser(t *testing.T) {
 			}
 
 			httpClient := &http.Client{
-				Transport: testutils.NewRoundTripperFunc(func(_ *http.Request) (*http.Response, error) {
+				Transport: testutils.NewRoundTripperFunc(nil, func(_ http.RoundTripper, _ *http.Request) (*http.Response, error) {
 					resp := httptest.NewRecorder()
 					if strings.Contains(tt.user, "error") {
 						resp.WriteHeader(http.StatusInternalServerError)

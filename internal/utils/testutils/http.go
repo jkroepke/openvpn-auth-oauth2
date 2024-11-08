@@ -13,15 +13,16 @@ import (
 )
 
 type RoundTripperFunc struct {
-	fn func(req *http.Request) (*http.Response, error)
+	fn func(rt http.RoundTripper, req *http.Request) (*http.Response, error)
+	rt http.RoundTripper
 }
 
-func NewRoundTripperFunc(fn func(req *http.Request) (*http.Response, error)) *RoundTripperFunc {
-	return &RoundTripperFunc{fn}
+func NewRoundTripperFunc(rt http.RoundTripper, fn func(rt http.RoundTripper, req *http.Request) (*http.Response, error)) *RoundTripperFunc {
+	return &RoundTripperFunc{fn, rt}
 }
 
 func (f *RoundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
-	return f.fn(req)
+	return f.fn(f.rt, req)
 }
 
 type MockRoundTripper struct {
@@ -109,7 +110,7 @@ func WaitUntilListening(tb testing.TB, listener net.Listener) error {
 			return nil
 		}
 
-		if errors.Is(err, syscall.ECONNREFUSED) {
+		if errors.Is(err, syscall.ECONNREFUSED) || errors.Is(err, syscall.Errno(10061)) {
 			time.Sleep(100 * time.Millisecond)
 
 			continue

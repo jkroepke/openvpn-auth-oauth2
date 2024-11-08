@@ -11,17 +11,28 @@ import (
 func (c *Client) AcceptClient(logger *slog.Logger, client state.ClientIdentifier, username string) {
 	logger.Info(fmt.Sprintf("accept OpenVPN client cid %d, kid %d", client.CID, client.KID))
 
-	var err error
+	var (
+		err           error
+		tokenUsername string
+	)
 
 	if c.conf.OpenVpn.AuthTokenUser && client.UsernameIsDefined == 0 {
-		tokenUsername := base64.StdEncoding.EncodeToString([]byte(username))
-		_, err = c.SendCommandf("client-auth %d %d\r\npush \"auth-token-user %s\"\r\nEND", client.CID, client.KID, tokenUsername)
-	} else {
+		tokenUsername = base64.StdEncoding.EncodeToString([]byte(username))
+		if tokenUsername == "" {
+			tokenUsername = "dXNlcm5hbWUK" // "username" //nolint:gosec // No hardcoded credentials
+		}
+	}
+
+	if tokenUsername == "" {
 		_, err = c.SendCommandf(`client-auth-nt %d %d`, client.CID, client.KID)
+	} else {
+		_, err = c.SendCommandf("client-auth %d %d\r\npush \"auth-token-user %s\"\r\nEND", client.CID, client.KID, tokenUsername)
 	}
 
 	if err != nil {
-		logger.Warn(err.Error())
+		logger.Warn("failed to accept client",
+			slog.Any("error", err),
+		)
 	}
 }
 
@@ -30,6 +41,8 @@ func (c *Client) DenyClient(logger *slog.Logger, client state.ClientIdentifier, 
 
 	_, err := c.SendCommandf(`client-deny %d %d "%s"`, client.CID, client.KID, reason)
 	if err != nil {
-		logger.Warn(err.Error())
+		logger.Warn("failed to deny client",
+			slog.Any("error", err),
+		)
 	}
 }

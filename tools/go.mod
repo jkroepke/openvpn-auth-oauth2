@@ -2,8 +2,6 @@ module tools
 
 go 1.23
 
-toolchain go1.23.0
-
 require (
 	github.com/bombsimon/wsl/v4 v4.4.1
 	github.com/catenacyber/perfsprint v0.7.1

@@ -56,7 +56,7 @@ func TestHandler(t *testing.T) {
 					AuthTokenUser: true,
 				},
 			},
-			state.New(state.ClientIdentifier{CID: 0, KID: 1}, "127.0.0.1", "12345", "name"),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1}, "127.0.0.1", "12345", "name", ""),
 			false,
 			"",
 			true,
@@ -87,7 +87,7 @@ func TestHandler(t *testing.T) {
 					AuthTokenUser: true,
 				},
 			},
-			state.New(state.ClientIdentifier{CID: 0, KID: 1, UsernameIsDefined: 1}, "127.0.0.1", "12345", "name"),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1, UsernameIsDefined: 1}, "127.0.0.1", "12345", "name", ""),
 			false,
 			"",
 			true,
@@ -121,7 +121,7 @@ func TestHandler(t *testing.T) {
 					AuthTokenUser: true,
 				},
 			},
-			state.New(state.ClientIdentifier{CID: 0, KID: 1}, "127.0.0.1", "12345", "name"),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1}, "127.0.0.1", "12345", "name", ""),
 			false,
 			"",
 			true,
@@ -153,7 +153,7 @@ func TestHandler(t *testing.T) {
 					AuthTokenUser: true,
 				},
 			},
-			state.New(state.ClientIdentifier{CID: 0, KID: 1}, "127.0.0.1", "12345", "name"),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1}, "127.0.0.1", "12345", "name", ""),
 			false,
 			"",
 			true,
@@ -184,7 +184,7 @@ func TestHandler(t *testing.T) {
 					AuthTokenUser: true,
 				},
 			},
-			state.New(state.ClientIdentifier{CID: 0, KID: 1}, "127.0.0.1", "12345", "name"),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1}, "127.0.0.1", "12345", "name", ""),
 			false,
 			"",
 			true,
@@ -216,7 +216,7 @@ func TestHandler(t *testing.T) {
 					AuthTokenUser: true,
 				},
 			},
-			state.New(state.ClientIdentifier{CID: 0, KID: 1}, "127.0.0.2", "12345", "name"),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1}, "127.0.0.2", "12345", "name", ""),
 			false,
 			"127.0.0.2",
 			true,
@@ -248,7 +248,7 @@ func TestHandler(t *testing.T) {
 					AuthTokenUser: true,
 				},
 			},
-			state.New(state.ClientIdentifier{CID: 0, KID: 1}, "127.0.0.2", "12345", "name"),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1}, "127.0.0.2", "12345", "name", ""),
 			false,
 			"127.0.0.2",
 			false,
@@ -280,7 +280,7 @@ func TestHandler(t *testing.T) {
 					AuthTokenUser: true,
 				},
 			},
-			state.New(state.ClientIdentifier{CID: 0, KID: 1}, "127.0.0.2", "12345", "name"),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1}, "127.0.0.2", "12345", "name", ""),
 			false,
 			"127.0.0.2, 8.8.8.8",
 			true,
@@ -358,7 +358,7 @@ func TestHandler(t *testing.T) {
 
 			ctx, cancel := context.WithCancel(context.Background())
 
-			conf, client, managementInterface, _, httpClientListener, httpClient, logger, shutdownFn := testutils.SetupMockEnvironment(ctx, t, tt.conf)
+			conf, client, managementInterface, _, httpClientListener, httpClient, logger, shutdownFn := testutils.SetupMockEnvironment(ctx, t, tt.conf, nil)
 			defer shutdownFn()
 
 			wg := sync.WaitGroup{}
@@ -392,7 +392,7 @@ func TestHandler(t *testing.T) {
 				case tt.state.Client.UsernameIsDefined == 1:
 					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth-nt 0 1")
 				default:
-					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 0 1\r\npush \"auth-token-user aWQx\"\r\nEND")
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 0 1\r\npush \"auth-token-user bmFtZQ==\"\r\nEND")
 				}
 
 				testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")

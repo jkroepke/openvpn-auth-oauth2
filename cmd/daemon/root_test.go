@@ -16,6 +16,8 @@ func TestExecuteVersion(t *testing.T) {
 	t.Parallel()
 
 	var buf bytes.Buffer
+
+	buf.Grow(16 << 20) // pre-allocate buffer to avoid race conditions. (grow vs string)
 	_ = io.Writer(&buf)
 
 	returnCode := daemon.Execute([]string{"", "--version"}, &buf, "version", "commit", "date")
@@ -27,7 +29,7 @@ func TestExecuteHelp(t *testing.T) {
 
 	var buf bytes.Buffer
 
-	buf.Grow(16 << 20)
+	buf.Grow(16 << 20) // pre-allocate buffer to avoid race conditions. (grow vs string)
 	_ = io.Writer(&buf)
 
 	returnCode := daemon.Execute([]string{"openvpn-auth-oauth2-test", "--help"}, &buf, "version", "commit", "date")
@@ -53,22 +55,22 @@ func TestExecuteConfigInvalid(t *testing.T) {
 		},
 		{
 			"file not exists",
-			[]string{"", "--config=nonexists"},
-			"error loading config: file provider: open nonexists: no such file or directory",
+			[]string{"", "--config=nonexists", "--http.listen=127.0.0.1:0"},
+			"error loading config: file provider: open nonexists: ",
 		},
 		{
 			"invalid log format",
-			[]string{"", "--config=../../config.example.yaml", "--log.format=invalid", "--log.level=warn", "--http.secret=" + testutils.Secret},
+			[]string{"", "--config=../../config.example.yaml", "--log.format=invalid", "--log.level=warn", "--http.secret=" + testutils.Secret, "--http.listen=127.0.0.1:0"},
 			"error configure logging: unknown log format: invalid",
 		},
 		{
 			"invalid log level",
-			[]string{"", "--config=../../config.example.yaml", "--log.format=console", "--log.level=invalid", "--http.secret=" + testutils.Secret},
+			[]string{"", "--config=../../config.example.yaml", "--log.format=console", "--log.level=invalid", "--http.secret=" + testutils.Secret, "--http.listen=127.0.0.1:0"},
 			`error parsing cli args: invalid value \"invalid\" for flag -log.level: slog: level string \"invalid\": unknown name`,
 		},
 		{
 			"error oidc provider",
-			[]string{"", "--config=../../config.example.yaml", "--log.format=console", "--log.level=info", "--http.secret=" + testutils.Secret},
+			[]string{"", "--config=../../config.example.yaml", "--log.format=console", "--log.level=info", "--http.secret=" + testutils.Secret, "--http.listen=127.0.0.1:0"},
 			`error oauth2 provider`,
 		},
 		{
@@ -84,7 +86,7 @@ func TestExecuteConfigInvalid(t *testing.T) {
 			[]string{
 				"", "--config=../../config.example.yaml", "--log.format=console", "--log.level=info", "--http.secret=" + testutils.Secret,
 				"--debug.pprof=true", "--debug.listen=127.0.0.1:100000", "--oauth2.endpoint.token=http://127.0.0.1:10000/token",
-				"--oauth2.endpoint.auth=http://127.0.0.1:10000/auth",
+				"--oauth2.endpoint.auth=http://127.0.0.1:10000/auth", "--http.listen=127.0.0.1:0",
 			},
 			`error debug http listener: error http debug listening: net.Listen: listen tcp: address 100000: invalid port`,
 		},
@@ -95,12 +97,16 @@ func TestExecuteConfigInvalid(t *testing.T) {
 			t.Parallel()
 
 			var buf bytes.Buffer
+
+			buf.Grow(16 << 20) // pre-allocate buffer to avoid race conditions. (grow vs string)
 			_ = io.Writer(&buf)
 
 			managementInterface, err := nettest.NewLocalListener("tcp")
 			require.NoError(t, err)
 
-			defer managementInterface.Close()
+			t.Cleanup(func() {
+				assert.NoError(t, managementInterface.Close())
+			})
 
 			returnCode := daemon.Execute(append(tt.args, "--openvpn.addr=tcp://"+managementInterface.Addr().String()), &buf, "version", "commit", "date")
 

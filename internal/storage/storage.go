@@ -71,7 +71,19 @@ func (s *Storage) Get(client string) (string, error) {
 		return "", ErrNotExists
 	}
 
-	token, err := crypto.DecryptBytesAES(data.(item).token, s.encryptionKey)
+	item, ok := data.(item)
+	if !ok {
+		s.Delete(client)
+
+		return "", ErrNotExists
+	}
+
+	encryptedBytes := make([]byte, len(item.token))
+
+	// we need to copy the data, since crypto.DecryptBytesAES will modify the slice in place
+	copy(encryptedBytes, item.token)
+
+	token, err := crypto.DecryptBytesAES(encryptedBytes, s.encryptionKey)
 	if err != nil {
 		return "", fmt.Errorf("decrypt error: %w", err)
 	}

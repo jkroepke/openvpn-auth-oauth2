@@ -109,7 +109,7 @@ func TestValidateGroups(t *testing.T) {
 			}
 
 			httpClient := &http.Client{
-				Transport: testutils.NewRoundTripperFunc(func(_ *http.Request) (*http.Response, error) {
+				Transport: testutils.NewRoundTripperFunc(nil, func(_ http.RoundTripper, _ *http.Request) (*http.Response, error) {
 					resp := httptest.NewRecorder()
 					if strings.Contains(tt.userOrgs, "error") {
 						resp.WriteHeader(http.StatusInternalServerError)
@@ -223,7 +223,7 @@ func TestValidateRoles(t *testing.T) {
 			}
 
 			httpClient := &http.Client{
-				Transport: testutils.NewRoundTripperFunc(func(_ *http.Request) (*http.Response, error) {
+				Transport: testutils.NewRoundTripperFunc(nil, func(_ http.RoundTripper, _ *http.Request) (*http.Response, error) {
 					resp := httptest.NewRecorder()
 					if strings.Contains(tt.userTeams, "error") {
 						resp.WriteHeader(http.StatusInternalServerError)

@@ -31,6 +31,11 @@ func TestStorage(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "TEST1", token)
 
+	token, err = storageClient.Get("1")
+
+	require.NoError(t, err)
+	assert.Equal(t, "TEST1", token)
+
 	_, err = storageClient.Get("2")
 	require.ErrorIs(t, err, storage.ErrNotExists)
 
