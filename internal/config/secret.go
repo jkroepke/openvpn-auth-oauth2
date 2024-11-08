@@ -1,6 +1,7 @@
 package config
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"strings"
@@ -40,6 +41,8 @@ func (secret *Secret) UnmarshalText(text []byte) error {
 		if err != nil {
 			return fmt.Errorf("unable read secret %s: %w", filePath, err)
 		}
+
+		body = bytes.TrimSpace(body)
 
 		*secret = Secret(body)
 	default:
