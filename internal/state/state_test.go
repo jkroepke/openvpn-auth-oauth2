@@ -81,6 +81,7 @@ func TestState_WithSpace(t *testing.T) {
 
 func TestState_WithState(t *testing.T) {
 	t.Parallel()
+
 	encryptionKey := testutils.Secret
 
 	for _, sessionState := range []string{"", "Empty", "Initial", "Authenticated", "Expired", "Invalid", "AuthenticatedEmptyUser", "ExpiredEmptyUser"} {

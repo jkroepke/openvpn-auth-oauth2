@@ -170,8 +170,9 @@ func (p *Provider) oauth2Callback() http.Handler {
 			slog.String("ip", fmt.Sprintf("%s:%s", session.IPAddr, session.IPPort)),
 			slog.Uint64("cid", session.Client.CID),
 			slog.Uint64("kid", session.Client.KID),
-			slog.String("session_id", session.Client.SessionID),
 			slog.String("common_name", session.CommonName),
+			slog.String("session_id", session.Client.SessionID),
+			slog.String("session_state", session.SessionState),
 		)
 
 		ctx = logging.ToContext(ctx, logger)
@@ -257,6 +258,7 @@ func (p *Provider) postCodeExchangeHandler(
 				if session.SessionState == "AuthenticatedEmptyUser" || session.SessionState == "Authenticated" {
 					logMessage = p.logger.DebugContext
 				}
+
 				logMessage(r.Context(), fmt.Errorf("oauth2.refresh is enabled, but %w", err).Error())
 			} else {
 				logger.WarnContext(r.Context(), fmt.Errorf("oauth2.refresh is enabled, but %w", err).Error())

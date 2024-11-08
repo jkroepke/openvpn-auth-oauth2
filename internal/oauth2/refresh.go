@@ -75,6 +75,7 @@ func (p *Provider) RefreshClientAuth(logger *slog.Logger, client connection.Clie
 			if client.SessionState == "AuthenticatedEmptyUser" || client.SessionState == "Authenticated" {
 				logMessage = logger.DebugContext
 			}
+
 			logMessage(ctx, fmt.Errorf("oauth2.refresh is enabled, but %w", err).Error())
 		} else {
 			logger.WarnContext(ctx, fmt.Errorf("oauth2.refresh is enabled, but %w", err).Error())
