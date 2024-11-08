@@ -28,6 +28,9 @@ issues:
         - gocyclo
 
 linters-settings:
+  gosec:
+    excludes:
+      - G101 # Potential hardcoded credentials
   sloglint:
     no-mixed-args: true
     kv-only: false

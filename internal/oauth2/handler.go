@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io/fs"
 	"log/slog"
@@ -169,8 +170,9 @@ func (p *Provider) oauth2Callback() http.Handler {
 			slog.String("ip", fmt.Sprintf("%s:%s", session.IPAddr, session.IPPort)),
 			slog.Uint64("cid", session.Client.CID),
 			slog.Uint64("kid", session.Client.KID),
-			slog.String("session_id", session.Client.SessionID),
 			slog.String("common_name", session.CommonName),
+			slog.String("session_id", session.Client.SessionID),
+			slog.String("session_state", session.SessionState),
 		)
 
 		ctx = logging.ToContext(ctx, logger)
@@ -192,6 +194,7 @@ func (p *Provider) oauth2Callback() http.Handler {
 	})
 }
 
+//nolint:cyclop
 func (p *Provider) postCodeExchangeHandler(
 	logger *slog.Logger, session state.State, clientID string,
 ) rp.CodeExchangeCallback[*idtoken.Claims] {
@@ -222,8 +225,7 @@ func (p *Provider) postCodeExchangeHandler(
 			slog.String("user_preferred_username", user.PreferredUsername),
 		)
 
-		err = p.Provider.CheckUser(r.Context(), session, user, tokens)
-		if err != nil {
+		if err = p.Provider.CheckUser(r.Context(), session, user, tokens); err != nil {
 			p.openvpn.DenyClient(logger, session.Client, "client rejected")
 			writeError(w, logger, p.conf, http.StatusInternalServerError, "user validation", err.Error())
 
@@ -232,35 +234,48 @@ func (p *Provider) postCodeExchangeHandler(
 
 		logger.Info("successful authorization via oauth2")
 
-		p.openvpn.AcceptClient(logger, session.Client, getAuthTokenUsername(session, user))
+		p.openvpn.AcceptClient(logger, session.Client, session.CommonName)
 
-		if p.conf.OAuth2.Refresh.Enabled {
-			refreshToken := types.EmptyToken
-			if p.conf.OAuth2.Refresh.ValidateUser {
-				refreshToken, err = p.Provider.GetRefreshToken(tokens)
-				if err != nil {
-					p.logger.Warn(fmt.Errorf("oauth2.refresh is enabled, but %w", err).Error())
-				}
-			}
+		if !p.conf.OAuth2.Refresh.Enabled {
+			writeSuccess(w, p.conf, logger)
 
-			if err = p.storage.Set(clientID, refreshToken); err != nil {
+			return
+		}
+
+		if !p.conf.OAuth2.Refresh.ValidateUser {
+			writeSuccess(w, p.conf, logger)
+
+			if err = p.storage.Set(clientID, types.EmptyToken); err != nil {
 				logger.Warn(err.Error())
 			}
+
+			return
+		}
+
+		refreshToken, err := p.Provider.GetRefreshToken(tokens)
+		if err != nil {
+			if errors.Is(err, types.ErrNoRefreshToken) {
+				logMessage := p.logger.WarnContext
+				if session.SessionState == "AuthenticatedEmptyUser" || session.SessionState == "Authenticated" {
+					logMessage = p.logger.DebugContext
+				}
+
+				logMessage(r.Context(), fmt.Errorf("oauth2.refresh is enabled, but %w", err).Error())
+			} else {
+				logger.WarnContext(r.Context(), fmt.Errorf("oauth2.refresh is enabled, but %w", err).Error())
+			}
+		}
+
+		if refreshToken == "" {
+			logger.WarnContext(r.Context(), "refresh token is empty")
+		} else if err = p.storage.Set(clientID, refreshToken); err != nil {
+			logger.WarnContext(r.Context(), "unable to store refresh token",
+				slog.Any("err", err),
+			)
 		}
 
 		writeSuccess(w, p.conf, logger)
 	}
-}
-
-func getAuthTokenUsername(session state.State, user types.UserData) string {
-	username := session.CommonName
-	if user.PreferredUsername != "" {
-		username = user.PreferredUsername
-	} else if user.Subject != "" {
-		username = user.Subject
-	}
-
-	return username
 }
 
 func writeError(w http.ResponseWriter, logger *slog.Logger, conf config.Config, httpCode int, errorType, errorDesc string) {

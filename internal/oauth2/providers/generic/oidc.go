@@ -19,7 +19,7 @@ func (p *Provider) GetRefreshToken(tokens *oidc.Tokens[*idtoken.Claims]) (string
 	}
 
 	if tokens.RefreshToken == "" {
-		return "", errors.New("no refresh token received from provider")
+		return "", types.ErrNoRefreshToken
 	}
 
 	return tokens.RefreshToken, nil

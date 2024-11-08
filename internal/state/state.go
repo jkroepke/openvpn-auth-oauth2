@@ -12,11 +12,12 @@ import (
 )
 
 type State struct {
-	Client     ClientIdentifier
-	IPAddr     string
-	IPPort     string
-	CommonName string
-	Issued     int64
+	Client       ClientIdentifier
+	IPAddr       string
+	IPPort       string
+	CommonName   string
+	SessionState string
+	Issued       int64
 }
 
 type ClientIdentifier struct {
@@ -28,13 +29,14 @@ type ClientIdentifier struct {
 	AuthControlFile      string
 }
 
-func New(client ClientIdentifier, ipAddr, ipPort, commonName string) State {
+func New(client ClientIdentifier, ipAddr, ipPort, commonName, sessionState string) State {
 	return State{
-		Client:     client,
-		IPAddr:     ipAddr,
-		IPPort:     ipPort,
-		CommonName: commonName,
-		Issued:     time.Now().Round(time.Second).Unix(),
+		Client:       client,
+		IPAddr:       ipAddr,
+		IPPort:       ipPort,
+		CommonName:   commonName,
+		SessionState: sessionState,
+		Issued:       time.Now().Round(time.Second).Unix(),
 	}
 }
 
@@ -69,6 +71,7 @@ func (state *State) decode(encodedState, secretKey string) error {
 		&state.IPAddr,
 		&state.IPPort,
 		&state.CommonName,
+		&state.SessionState,
 		&state.Issued,
 	)
 	if err != nil {
@@ -81,6 +84,7 @@ func (state *State) decode(encodedState, secretKey string) error {
 	state.IPAddr = decodeString(state.IPAddr)
 	state.IPPort = decodeString(state.IPPort)
 	state.CommonName = decodeString(state.CommonName)
+	state.SessionState = decodeSessionState(state.SessionState)
 
 	issuedSince := time.Since(time.Unix(state.Issued, 0))
 
@@ -114,6 +118,8 @@ func (state *State) Encode(secretKey string) (string, error) {
 	data.WriteString(encodeString(state.IPPort))
 	data.WriteString(" ")
 	data.WriteString(encodeString(state.CommonName))
+	data.WriteString(" ")
+	data.WriteString(encodeSessionState(state.SessionState))
 	data.WriteString(" ")
 	data.WriteString(strconv.FormatInt(state.Issued, 10))
 	data.WriteString("\r\n")

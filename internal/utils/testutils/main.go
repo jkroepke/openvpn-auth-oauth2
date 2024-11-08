@@ -223,11 +223,9 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener) (*httptest.
 	return resourceServer, resourceServerURL, config.OAuth2Client{ID: client.GetID(), Secret: "SECRET"}, nil
 }
 
-// SetupMockEnvironment setups an OpenVPN and IDP mock
-//
-//nolint:cyclop
-func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config) (config.Config, *openvpn.Client, net.Listener, *oauth2.Provider,
-	*httptest.Server, *http.Client, *Logger, func(),
+// SetupMockEnvironment setups an OpenVPN and IDP mock.
+func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config, rt http.RoundTripper) (
+	config.Config, *openvpn.Client, net.Listener, *oauth2.Provider, *httptest.Server, *http.Client, *Logger, func(),
 ) {
 	tb.Helper()
 
@@ -242,9 +240,7 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 	resourceServer, resourceServerURL, clientCredentials, err := SetupResourceServer(tb, clientListener)
 	require.NoError(tb, err)
 
-	if conf.HTTP.BaseURL == nil {
-		conf.HTTP.BaseURL = &url.URL{Scheme: "http", Host: clientListener.Addr().String()}
-	}
+	conf.HTTP.BaseURL = &url.URL{Scheme: "http", Host: clientListener.Addr().String()}
 
 	if conf.HTTP.Secret == "" {
 		conf.HTTP.Secret = Secret
@@ -254,17 +250,14 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 		conf.HTTP.CallbackTemplate = config.Defaults.HTTP.CallbackTemplate
 	}
 
-	if conf.OpenVpn.Addr == nil {
-		conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
-	}
+	conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
 	if conf.OpenVpn.Bypass.CommonNames == nil {
 		conf.OpenVpn.Bypass.CommonNames = make([]string, 0)
 	}
 
-	if conf.OAuth2.Issuer == nil {
-		conf.OAuth2.Issuer = resourceServerURL
-	}
+	conf.OAuth2.Issuer = resourceServerURL
+	conf.OAuth2.Nonce = false // not supported by the mock
 
 	if conf.OAuth2.Provider == "" {
 		conf.OAuth2.Provider = generic.Name
@@ -282,7 +275,7 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 		conf.OAuth2.Refresh.Expires = time.Hour
 	}
 
-	httpClient := &http.Client{Transport: NewMockRoundTripper(utils.NewUserAgentTransport(nil))}
+	httpClient := &http.Client{Transport: NewMockRoundTripper(utils.NewUserAgentTransport(rt))}
 	storageClient := storage.New(ctx, Secret, conf.OAuth2.Refresh.Expires)
 	provider := oauth2.New(logger.Logger, conf, storageClient, httpClient)
 	openvpnClient := openvpn.New(ctx, logger.Logger, conf, provider)

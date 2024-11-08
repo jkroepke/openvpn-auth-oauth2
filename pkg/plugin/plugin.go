@@ -132,7 +132,7 @@ func openvpn_plugin_func_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_
 		AuthFailedReasonFile: client.AuthFailedReasonFile,
 	}
 
-	session := state.New(clientIdentifier, client.IpAddr, client.IpPort, client.CommonName)
+	session := state.New(clientIdentifier, client.IpAddr, client.IpPort, client.CommonName, "")
 
 	encodedSession, err := session.Encode(handle.conf.HTTP.Secret.String())
 	if err != nil {

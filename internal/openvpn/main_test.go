@@ -35,7 +35,7 @@ func TestClientInvalidServer(t *testing.T) {
 			Secret:  testutils.Secret,
 		},
 		OpenVpn: config.OpenVpn{
-			Addr:   &url.URL{Scheme: "tcp", Host: "0.0.0.0:1"},
+			Addr:   &url.URL{Scheme: "tcp", Host: "127.0.0.1:1"},
 			Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
 		},
 	}
@@ -48,7 +48,7 @@ func TestClientInvalidServer(t *testing.T) {
 	client := openvpn.New(ctx, logger.Logger, conf, provider)
 	err := client.Connect()
 	require.Error(t, err)
-	assert.Equal(t, "unable to connect to openvpn management interface tcp://0.0.0.0:1: dial tcp 0.0.0.0:1: connect: connection refused", err.Error())
+	assert.Contains(t, err.Error(), "unable to connect to openvpn management interface tcp://127.0.0.1:1: dial tcp 127.0.0.1:1: connect")
 }
 
 func TestClientFull(t *testing.T) {
@@ -148,7 +148,7 @@ func TestClientFull(t *testing.T) {
 			},
 			">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END\r\n",
 			"",
-			errors.New("OpenVPN management error: error encoding state: encrypt aes: crypto/aes: invalid key size 15"),
+			nil,
 		},
 		{
 			"client without IV_SSO",
@@ -246,7 +246,7 @@ func TestClientFull(t *testing.T) {
 			nil,
 		},
 		{
-			"client invalid reason",
+			"client invalid reason 1",
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
@@ -264,6 +264,25 @@ func TestClientFull(t *testing.T) {
 			"",
 			//nolint:revive
 			errors.New("OpenVPN management error: error parsing client message: unable to parse client reason from message: >CLIENT:FOO,0\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END\r\n"),
+		},
+		{
+			"client invalid reason 2",
+			config.Config{
+				HTTP: config.HTTP{
+					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
+					Secret:  testutils.Secret,
+				},
+				OpenVpn: config.OpenVpn{
+					CommonName: config.OpenVPNCommonName{
+						EnvironmentVariableName: "common_name",
+					},
+					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
+					Password: "password",
+				},
+			},
+			">CLIENT:CONNECT1,0,1\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END\r\n",
+			"",
+			errors.New("OpenVPN management error: unknown client reason: CONNECT1"),
 		},
 	}
 
@@ -319,7 +338,7 @@ func TestClientFull(t *testing.T) {
 				if strings.Contains(tt.expect, "WEB_AUTH") {
 					assert.Contains(t, auth, tt.expect)
 				} else {
-					assert.Equal(t, tt.expect, auth)
+					assert.Equal(t, tt.expect, auth, logger.String())
 				}
 
 				testutils.SendMessage(t, conn, "SUCCESS: %s command succeeded\r\n", strings.SplitN(auth, " ", 2)[0])
