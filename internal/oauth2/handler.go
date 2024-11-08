@@ -194,6 +194,7 @@ func (p *Provider) oauth2Callback() http.Handler {
 	})
 }
 
+//nolint:cyclop
 func (p *Provider) postCodeExchangeHandler(
 	logger *slog.Logger, session state.State, clientID string,
 ) rp.CodeExchangeCallback[*idtoken.Claims] {
