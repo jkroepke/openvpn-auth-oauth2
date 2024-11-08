@@ -35,7 +35,7 @@ func TestClientInvalidServer(t *testing.T) {
 			Secret:  testutils.Secret,
 		},
 		OpenVpn: config.OpenVpn{
-			Addr:   &url.URL{Scheme: "tcp", Host: "0.0.0.0:1"},
+			Addr:   &url.URL{Scheme: "tcp", Host: "127.0.0.1:1"},
 			Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
 		},
 	}
@@ -48,7 +48,7 @@ func TestClientInvalidServer(t *testing.T) {
 	client := openvpn.New(ctx, logger.Logger, conf, provider)
 	err := client.Connect()
 	require.Error(t, err)
-	assert.Equal(t, "unable to connect to openvpn management interface tcp://0.0.0.0:1: dial tcp 0.0.0.0:1: connect: connection refused", err.Error())
+	assert.Contains(t, err.Error(), "unable to connect to openvpn management interface tcp://127.0.0.1:1: dial tcp 127.0.0.1:1: connect")
 }
 
 func TestClientFull(t *testing.T) {

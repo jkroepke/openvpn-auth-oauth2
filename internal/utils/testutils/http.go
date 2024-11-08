@@ -110,7 +110,7 @@ func WaitUntilListening(tb testing.TB, listener net.Listener) error {
 			return nil
 		}
 
-		if errors.Is(err, syscall.ECONNREFUSED) {
+		if errors.Is(err, syscall.ECONNREFUSED) || errors.Is(err, syscall.Errno(10061)) {
 			time.Sleep(100 * time.Millisecond)
 
 			continue

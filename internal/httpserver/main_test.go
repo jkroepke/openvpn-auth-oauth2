@@ -21,7 +21,7 @@ func TestNewHTTPServer(t *testing.T) {
 
 	logger := testutils.NewTestLogger()
 
-	cert, key, err := testcerts.GenerateCertsToTempFile("/tmp/")
+	cert, key, err := testcerts.GenerateCertsToTempFile(os.TempDir())
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
@@ -53,7 +53,7 @@ func TestNewHTTPServer(t *testing.T) {
 					TLS:     true,
 				},
 			},
-			errors.New("tls.LoadX509KeyPair: open : no such file or directory"),
+			errors.New("tls.LoadX509KeyPair: open"),
 		},
 		{
 			"https listener",
@@ -96,7 +96,7 @@ func TestNewHTTPServer(t *testing.T) {
 				require.NoError(t, <-errCh)
 			} else {
 				cancel()
-				require.EqualError(t, <-errCh, tt.err.Error())
+				require.ErrorContains(t, <-errCh, tt.err.Error())
 			}
 		})
 	}
