@@ -34,7 +34,7 @@ func (p *Provider) RefreshClientAuth(logger *slog.Logger, client connection.Clie
 
 		return false, fmt.Errorf("error from token store: %w", err)
 	} else if refreshToken == "" {
-		p.logger.WarnContext(ctx, "stored refresh token is empty. This should not happen. Please report this issue.")
+		logger.WarnContext(ctx, "stored refresh token is empty. This should not happen. Please report this issue.")
 
 		return false, nil
 	}
@@ -54,7 +54,7 @@ func (p *Provider) RefreshClientAuth(logger *slog.Logger, client connection.Clie
 		return false, fmt.Errorf("error from non-interactive authentication via refresh token: %w", err)
 	}
 
-	session := state.New(state.ClientIdentifier{CID: client.CID, KID: client.KID}, client.IPAddr, client.IPPort, client.CommonName)
+	session := state.New(state.ClientIdentifier{CID: client.CID, KID: client.KID, SessionID: client.SessionID, SessionState: client.SessionState}, client.IPAddr, client.IPPort, client.CommonName)
 
 	user, err := p.Provider.GetUser(ctx, logger, tokens)
 	if err != nil {
@@ -70,16 +70,18 @@ func (p *Provider) RefreshClientAuth(logger *slog.Logger, client connection.Clie
 
 	refreshToken, err = p.Provider.GetRefreshToken(tokens)
 	if err != nil {
-		p.logger.WarnContext(ctx, fmt.Errorf("oauth2.refresh is enabled, but %w", err).Error())
+		if errors.Is(err, types.ErrNoRefreshToken) {
+			logMessage := logger.WarnContext
+			if client.SessionState == "AuthenticatedEmptyUser" || client.SessionState == "Authenticated" {
+				logMessage = logger.DebugContext
+			}
+			logMessage(ctx, fmt.Errorf("oauth2.refresh is enabled, but %w", err).Error())
+		} else {
+			logger.WarnContext(ctx, fmt.Errorf("oauth2.refresh is enabled, but %w", err).Error())
+		}
 	}
 
-	if refreshToken == "" {
-		p.logger.DebugContext(ctx, "no refresh token received from provider")
-
-		return true, nil
-	}
-
-	p.logger.DebugContext(ctx, "store new refresh token into token store")
+	logger.DebugContext(ctx, "store new refresh token into token store")
 
 	if err = p.storage.Set(id, refreshToken); err != nil {
 		return true, fmt.Errorf("error from token store: %w", err)

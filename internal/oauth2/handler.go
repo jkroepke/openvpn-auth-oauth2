@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io/fs"
 	"log/slog"
@@ -251,13 +252,21 @@ func (p *Provider) postCodeExchangeHandler(
 
 		refreshToken, err := p.Provider.GetRefreshToken(tokens)
 		if err != nil {
-			logger.Warn(fmt.Errorf("oauth2.refresh is enabled, but %w", err).Error())
+			if errors.Is(err, types.ErrNoRefreshToken) {
+				logMessage := p.logger.WarnContext
+				if client.SessionState == "AuthenticatedEmptyUser" || client.SessionState == "Authenticated" {
+					logMessage = p.logger.DebugContext
+				}
+				logMessage(r.Context(), fmt.Errorf("oauth2.refresh is enabled, but %w", err).Error())
+			} else {
+				logger.WarnContext(r.Context(), fmt.Errorf("oauth2.refresh is enabled, but %w", err).Error())
+			}
 		}
 
 		if refreshToken == "" {
-			logger.Warn("refresh token is empty")
+			logger.WarnContext(r.Context(), "refresh token is empty")
 		} else if err = p.storage.Set(clientID, refreshToken); err != nil {
-			logger.Warn("unable to store refresh token",
+			logger.WarnContext(r.Context(), "unable to store refresh token",
 				slog.Any("err", err),
 			)
 		}

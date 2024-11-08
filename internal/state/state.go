@@ -12,11 +12,12 @@ import (
 )
 
 type State struct {
-	Client     ClientIdentifier
-	IPAddr     string
-	IPPort     string
-	CommonName string
-	Issued     int64
+	Client       ClientIdentifier
+	IPAddr       string
+	IPPort       string
+	CommonName   string
+	SessionState string
+	Issued       int64
 }
 
 type ClientIdentifier struct {
@@ -69,6 +70,7 @@ func (state *State) decode(encodedState, secretKey string) error {
 		&state.IPAddr,
 		&state.IPPort,
 		&state.CommonName,
+		&state.SessionState,
 		&state.Issued,
 	)
 	if err != nil {
@@ -81,6 +83,7 @@ func (state *State) decode(encodedState, secretKey string) error {
 	state.IPAddr = decodeString(state.IPAddr)
 	state.IPPort = decodeString(state.IPPort)
 	state.CommonName = decodeString(state.CommonName)
+	state.SessionState = decodeSessionState(state.SessionState)
 
 	issuedSince := time.Since(time.Unix(state.Issued, 0))
 
@@ -114,6 +117,8 @@ func (state *State) Encode(secretKey string) (string, error) {
 	data.WriteString(encodeString(state.IPPort))
 	data.WriteString(" ")
 	data.WriteString(encodeString(state.CommonName))
+	data.WriteString(" ")
+	data.WriteString(encodeSessionState(state.SessionState))
 	data.WriteString(" ")
 	data.WriteString(strconv.FormatInt(state.Issued, 10))
 	data.WriteString("\r\n")
