@@ -72,23 +72,23 @@ func (p *Provider) RefreshClientAuth(logger *slog.Logger, client connection.Clie
 	logger.Info("successful authenticate via refresh token")
 
 	refreshToken, err = p.Provider.GetRefreshToken(tokens)
-	if err != nil {
-		if errors.Is(err, types.ErrNoRefreshToken) {
-			logMessage := logger.WarnContext
-			if client.SessionState == "AuthenticatedEmptyUser" || client.SessionState == "Authenticated" {
-				logMessage = logger.DebugContext
-			}
 
-			logMessage(ctx, fmt.Errorf("oauth2.refresh is enabled, but %w", err).Error())
-		} else {
-			logger.WarnContext(ctx, fmt.Errorf("oauth2.refresh is enabled, but %w", err).Error())
+	switch {
+	case errors.Is(err, types.ErrNoRefreshToken):
+		logMessage := logger.WarnContext
+		if client.SessionState == "AuthenticatedEmptyUser" || client.SessionState == "Authenticated" {
+			logMessage = logger.DebugContext
 		}
-	}
 
-	logger.DebugContext(ctx, "store new refresh token into token store")
+		logMessage(ctx, fmt.Errorf("oauth2.refresh is enabled, but %w", err).Error())
+	case err != nil:
+		logger.WarnContext(ctx, fmt.Errorf("oauth2.refresh is enabled, but %w", err).Error())
+	default:
+		logger.DebugContext(ctx, "store new refresh token into token store")
 
-	if err = p.storage.Set(id, refreshToken); err != nil {
-		return true, fmt.Errorf("error from token store: %w", err)
+		if err = p.storage.Set(id, refreshToken); err != nil {
+			return true, fmt.Errorf("error from token store: %w", err)
+		}
 	}
 
 	return true, nil
