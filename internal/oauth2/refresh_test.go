@@ -33,14 +33,16 @@ func TestRefreshReAuth(t *testing.T) {
 	var refreshToken string
 
 	for _, tt := range []struct {
-		name             string
-		clientCommonName string
-		conf             config.Config
-		rt               http.RoundTripper
+		name                     string
+		clientCommonName         string
+		nonInteractiveShouldWork bool
+		conf                     config.Config
+		rt                       http.RoundTripper
 	}{
 		{
-			name:             "Refresh",
-			clientCommonName: "test",
+			name:                     "Refresh",
+			clientCommonName:         "test",
+			nonInteractiveShouldWork: true,
 			conf: func() config.Config {
 				conf := config.Defaults
 				conf.OAuth2.Refresh.Enabled = true
@@ -52,8 +54,9 @@ func TestRefreshReAuth(t *testing.T) {
 			rt: http.DefaultTransport,
 		},
 		{
-			name:             "Refresh with empty common name",
-			clientCommonName: "",
+			name:                     "Refresh with empty common name",
+			clientCommonName:         "",
+			nonInteractiveShouldWork: true,
 			conf: func() config.Config {
 				conf := config.Defaults
 				conf.OpenVpn.AuthTokenUser = true
@@ -66,8 +69,9 @@ func TestRefreshReAuth(t *testing.T) {
 			rt: http.DefaultTransport,
 		},
 		{
-			name:             "Refresh with ValidateUser=false",
-			clientCommonName: "test",
+			name:                     "Refresh with ValidateUser=false",
+			clientCommonName:         "test",
+			nonInteractiveShouldWork: true,
 			conf: func() config.Config {
 				conf := config.Defaults
 				conf.OAuth2.Refresh.Enabled = true
@@ -79,8 +83,9 @@ func TestRefreshReAuth(t *testing.T) {
 			rt: http.DefaultTransport,
 		},
 		{
-			name:             "Refresh with SessionID=true + ValidateUser=false",
-			clientCommonName: "test",
+			name:                     "Refresh with SessionID=true + ValidateUser=false",
+			clientCommonName:         "test",
+			nonInteractiveShouldWork: true,
 			conf: func() config.Config {
 				conf := config.Defaults
 				conf.OpenVpn.AuthTokenUser = false
@@ -93,8 +98,9 @@ func TestRefreshReAuth(t *testing.T) {
 			rt: http.DefaultTransport,
 		},
 		{
-			name:             "Refresh with provider=google",
-			clientCommonName: "test",
+			name:                     "Refresh with provider=google",
+			clientCommonName:         "test",
+			nonInteractiveShouldWork: true,
 			conf: func() config.Config {
 				conf := config.Defaults
 				conf.OpenVpn.AuthTokenUser = false
@@ -109,8 +115,9 @@ func TestRefreshReAuth(t *testing.T) {
 			rt: http.DefaultTransport,
 		},
 		{
-			name:             "Refresh with provider=github",
-			clientCommonName: "test",
+			name:                     "Refresh with provider=github",
+			clientCommonName:         "test",
+			nonInteractiveShouldWork: true,
 			conf: func() config.Config {
 				conf := config.Defaults
 				conf.OpenVpn.AuthTokenUser = false
@@ -124,8 +131,46 @@ func TestRefreshReAuth(t *testing.T) {
 			rt: http.DefaultTransport,
 		},
 		{
-			name:             "Refresh without returning refresh token",
-			clientCommonName: "test",
+			name:                     "Refresh with failed non-interactive authentication",
+			clientCommonName:         "test",
+			nonInteractiveShouldWork: false,
+			conf: func() config.Config {
+				conf := config.Defaults
+				conf.OpenVpn.AuthTokenUser = false
+				conf.OAuth2.Provider = generic.Name
+				conf.OAuth2.Refresh.Enabled = true
+				conf.OAuth2.Refresh.ValidateUser = true
+				conf.OAuth2.Refresh.UseSessionID = false
+
+				return conf
+			}(),
+			rt: testutils.NewRoundTripperFunc(http.DefaultTransport, func(rt http.RoundTripper, req *http.Request) (*http.Response, error) {
+				if req.URL.Path != "/oauth/token" {
+					return rt.RoundTrip(req)
+				}
+
+				requestBody, err := io.ReadAll(req.Body)
+				if err != nil {
+					return nil, err
+				}
+
+				// Initial request should work
+				if strings.Contains(string(requestBody), `&code=`) {
+					req.Body = io.NopCloser(bytes.NewReader(requestBody))
+
+					return rt.RoundTrip(req)
+				}
+
+				res := httptest.NewRecorder()
+				res.WriteHeader(http.StatusInternalServerError)
+
+				return res.Result(), nil
+			}),
+		},
+		{
+			name:                     "Refresh without returning refresh token",
+			clientCommonName:         "test",
+			nonInteractiveShouldWork: true,
 			conf: func() config.Config {
 				conf := config.Defaults
 				conf.OpenVpn.AuthTokenUser = false
@@ -271,6 +316,17 @@ func TestRefreshReAuth(t *testing.T) {
 				">CLIENT:REAUTH,1,3\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=%s\r\n>CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,session_state=AuthenticatedEmptyUser\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END",
 				tt.clientCommonName,
 			)
+
+			if !tt.nonInteractiveShouldWork {
+				auth := testutils.ReadLine(t, managementInterfaceConn, reader)
+				assert.Contains(t, auth, "client-pending-auth 1 3 \"WEB_AUTH::")
+				testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: %s command succeeded", strings.SplitN(auth, " ", 2)[0])
+
+				openVPNClient.Shutdown()
+				wg.Wait()
+
+				return
+			}
 
 			if tt.conf.OpenVpn.AuthTokenUser {
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 1 3")
