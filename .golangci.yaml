@@ -3,13 +3,12 @@ linters:
   disable:
     - depguard
     - exhaustruct
-    - gomnd
     - funlen
     - ireturn
     - err113
-    - execinquery
     - mnd
     - exportloopref
+    - recvcheck # https://github.com/raeperd/recvcheck/issues/7
 
 issues:
   exclude-rules:

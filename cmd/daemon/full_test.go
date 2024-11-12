@@ -59,7 +59,7 @@ func TestFull(t *testing.T) {
 			resourceServer, _, clientCredentials, err := testutils.SetupResourceServer(t, httpListener)
 			require.NoError(t, err)
 
-			buf := new(testutils.Buffer)
+			buf := new(testutils.SyncBuffer)
 
 			jar, err := cookiejar.New(nil)
 			require.NoError(t, err)
