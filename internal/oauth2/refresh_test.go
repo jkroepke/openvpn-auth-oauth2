@@ -155,7 +155,7 @@ func TestRefreshReAuth(t *testing.T) {
 					}
 
 					res.WriteHeader(http.StatusUnauthorized)
-					if _, err := res.Write([]byte(`{}`)); err != nil {
+					if _, err := res.WriteString(`{}`); err != nil {
 						return nil, err
 					}
 
