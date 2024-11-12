@@ -1,8 +1,6 @@
 package daemon_test
 
 import (
-	"bytes"
-	"io"
 	"testing"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/cmd/daemon"
@@ -15,27 +13,21 @@ import (
 func TestExecuteVersion(t *testing.T) {
 	t.Parallel()
 
-	var buf bytes.Buffer
+	logger := testutils.NewTestLogger()
+	returnCode := daemon.Execute([]string{"", "--version"}, logger, "version", "commit", "date")
+	output := logger.String()
 
-	buf.Grow(16 << 20) // pre-allocate buffer to avoid race conditions. (grow vs string)
-	_ = io.Writer(&buf)
-
-	returnCode := daemon.Execute([]string{"", "--version"}, &buf, "version", "commit", "date")
-	assert.Equal(t, 0, returnCode, buf.String())
+	assert.Equal(t, 0, returnCode, output)
 }
 
 func TestExecuteHelp(t *testing.T) {
 	t.Parallel()
 
-	var buf bytes.Buffer
+	logger := testutils.NewTestLogger()
+	returnCode := daemon.Execute([]string{"openvpn-auth-oauth2-test", "--help"}, logger, "version", "commit", "date")
+	output := logger.String()
 
-	buf.Grow(16 << 20) // pre-allocate buffer to avoid race conditions. (grow vs string)
-	_ = io.Writer(&buf)
-
-	returnCode := daemon.Execute([]string{"openvpn-auth-oauth2-test", "--help"}, &buf, "version", "commit", "date")
-	output := buf.String()
-
-	assert.Equal(t, 0, returnCode, buf.String())
+	assert.Equal(t, 0, returnCode, output)
 	assert.Contains(t, output, "Usage of openvpn-auth-oauth2-test")
 	assert.Contains(t, output, "--version")
 }
@@ -96,11 +88,6 @@ func TestExecuteConfigInvalid(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			var buf bytes.Buffer
-
-			buf.Grow(16 << 20) // pre-allocate buffer to avoid race conditions. (grow vs string)
-			_ = io.Writer(&buf)
-
 			managementInterface, err := nettest.NewLocalListener("tcp")
 			require.NoError(t, err)
 
@@ -108,10 +95,12 @@ func TestExecuteConfigInvalid(t *testing.T) {
 				assert.NoError(t, managementInterface.Close())
 			})
 
-			returnCode := daemon.Execute(append(tt.args, "--openvpn.addr=tcp://"+managementInterface.Addr().String()), &buf, "version", "commit", "date")
+			logger := testutils.NewTestLogger()
+			returnCode := daemon.Execute(append(tt.args, "--openvpn.addr=tcp://"+managementInterface.Addr().String()), logger, "version", "commit", "date")
+			output := logger.String()
 
-			assert.Equal(t, 1, returnCode, buf.String())
-			assert.Contains(t, buf.String(), tt.err, buf.String())
+			assert.Equal(t, 1, returnCode, output)
+			assert.Contains(t, output, tt.err, output)
 		})
 	}
 }
