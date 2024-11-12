@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"sync"
 	"testing"
@@ -136,9 +137,32 @@ func TestRefreshReAuth(t *testing.T) {
 				return conf
 			}(),
 			rt: testutils.NewRoundTripperFunc(http.DefaultTransport, func(rt http.RoundTripper, req *http.Request) (*http.Response, error) {
-				if !(req.URL.Path == "/oauth/token" && refreshToken != "") {
+				if req.URL.Path != "/oauth/token" {
 					return rt.RoundTrip(req)
 				}
+
+				requestBody, err := io.ReadAll(req.Body)
+				if err != nil {
+					return nil, err
+				}
+
+				if refreshToken != "" {
+					res := httptest.NewRecorder()
+					if !strings.Contains(string(requestBody), refreshToken) {
+						res.WriteHeader(http.StatusUnauthorized)
+					} else {
+						res.WriteHeader(http.StatusOK)
+					}
+
+					res.WriteHeader(http.StatusUnauthorized)
+					if _, err := res.Write([]byte(`{}`)); err != nil {
+						return nil, err
+					}
+
+					return res.Result(), nil
+				}
+
+				req.Body = io.NopCloser(bytes.NewReader(requestBody))
 
 				res, err := rt.RoundTrip(req)
 
@@ -147,13 +171,7 @@ func TestRefreshReAuth(t *testing.T) {
 					return nil, err
 				}
 
-				if refreshToken == "" {
-					refreshToken = tokenResponse.RefreshToken
-					tokenResponse.RefreshToken = ""
-				} else {
-					tokenResponse.RefreshToken = refreshToken
-					refreshToken = ""
-				}
+				refreshToken = tokenResponse.RefreshToken
 
 				var buf bytes.Buffer
 

@@ -83,12 +83,12 @@ func (p *Provider) RefreshClientAuth(logger *slog.Logger, client connection.Clie
 		} else {
 			logger.WarnContext(ctx, fmt.Errorf("oauth2.refresh is enabled, but %w", err).Error())
 		}
-	}
+	} else {
+		logger.DebugContext(ctx, "store new refresh token into token store")
 
-	logger.DebugContext(ctx, "store new refresh token into token store")
-
-	if err = p.storage.Set(id, refreshToken); err != nil {
-		return true, fmt.Errorf("error from token store: %w", err)
+		if err = p.storage.Set(id, refreshToken); err != nil {
+			return true, fmt.Errorf("error from token store: %w", err)
+		}
 	}
 
 	return true, nil
