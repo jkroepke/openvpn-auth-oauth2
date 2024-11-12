@@ -39,7 +39,7 @@ until the connection lifetime is reached. Restarting the OpenVPN server will inv
 # Non-interactive session refresh across disconnects
 
 To facilitate non-interactive session refresh across disconnects,
-you must enable `auth-token-gen [lifetime] external-auth` on the OpenVPN server.
+you must enable `auth-gen-token [lifetime] external-auth` on the OpenVPN server.
 
 - `[lifetime]` represents the duration of the token in seconds.
   Once generated, the token's lifetime cannot be extended.
