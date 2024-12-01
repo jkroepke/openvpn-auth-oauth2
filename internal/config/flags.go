@@ -123,7 +123,8 @@ func flagSetHTTP(flagSet *flag.FlagSet) {
 	flagSet.String(
 		"http.template",
 		"",
-		"Path to a HTML file which is displayed at the end of the screen. See https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Layout-Customization for more information.",
+		"Path to a HTML file which is displayed at the end of the screen. "+
+			"See https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Layout-Customization for more information.",
 	)
 	flagSet.Bool(
 		"http.check.ipaddr",

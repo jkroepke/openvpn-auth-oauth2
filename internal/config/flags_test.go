@@ -108,8 +108,9 @@ func TestValidate(t *testing.T) {
 		{
 			config.Config{
 				HTTP: config.HTTP{
-					BaseURL: &url.URL{},
-					Secret:  testutils.Secret,
+					BaseURL:          &url.URL{},
+					Secret:           testutils.Secret,
+					CallbackTemplate: config.Defaults.HTTP.CallbackTemplate,
 				},
 				OAuth2: config.OAuth2{
 					Client: config.OAuth2Client{ID: "ID"},
@@ -120,8 +121,9 @@ func TestValidate(t *testing.T) {
 		{
 			config.Config{
 				HTTP: config.HTTP{
-					BaseURL: &url.URL{},
-					Secret:  testutils.Secret,
+					BaseURL:          &url.URL{},
+					Secret:           testutils.Secret,
+					CallbackTemplate: config.Defaults.HTTP.CallbackTemplate,
 				},
 				OAuth2: config.OAuth2{
 					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
@@ -133,8 +135,9 @@ func TestValidate(t *testing.T) {
 		{
 			config.Config{
 				HTTP: config.HTTP{
-					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.Secret,
+					BaseURL:          &url.URL{Scheme: "http", Host: "localhost"},
+					Secret:           testutils.Secret,
+					CallbackTemplate: config.Defaults.HTTP.CallbackTemplate,
 				},
 				OAuth2: config.OAuth2{
 					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
@@ -146,8 +149,9 @@ func TestValidate(t *testing.T) {
 		{
 			config.Config{
 				HTTP: config.HTTP{
-					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.Secret,
+					BaseURL:          &url.URL{Scheme: "http", Host: "localhost"},
+					Secret:           testutils.Secret,
+					CallbackTemplate: config.Defaults.HTTP.CallbackTemplate,
 				},
 				OAuth2: config.OAuth2{
 					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
@@ -159,8 +163,9 @@ func TestValidate(t *testing.T) {
 		{
 			config.Config{
 				HTTP: config.HTTP{
-					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
-					Secret:  "invalid",
+					BaseURL:          &url.URL{Scheme: "http", Host: "localhost"},
+					Secret:           "invalid",
+					CallbackTemplate: config.Defaults.HTTP.CallbackTemplate,
 				},
 				OAuth2: config.OAuth2{
 					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
@@ -175,8 +180,9 @@ func TestValidate(t *testing.T) {
 		{
 			config.Config{
 				HTTP: config.HTTP{
-					BaseURL: &url.URL{Scheme: "invalid", Host: "localhost"},
-					Secret:  testutils.Secret,
+					BaseURL:          &url.URL{Scheme: "invalid", Host: "localhost"},
+					Secret:           testutils.Secret,
+					CallbackTemplate: config.Defaults.HTTP.CallbackTemplate,
 				},
 				OAuth2: config.OAuth2{
 					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
@@ -191,8 +197,9 @@ func TestValidate(t *testing.T) {
 		{
 			config.Config{
 				HTTP: config.HTTP{
-					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.Secret,
+					BaseURL:          &url.URL{Scheme: "http", Host: "localhost"},
+					Secret:           testutils.Secret,
+					CallbackTemplate: config.Defaults.HTTP.CallbackTemplate,
 				},
 				OAuth2: config.OAuth2{
 					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
@@ -207,8 +214,9 @@ func TestValidate(t *testing.T) {
 		{
 			config.Config{
 				HTTP: config.HTTP{
-					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.Secret,
+					BaseURL:          &url.URL{Scheme: "http", Host: "localhost"},
+					Secret:           testutils.Secret,
+					CallbackTemplate: config.Defaults.HTTP.CallbackTemplate,
 				},
 				OAuth2: config.OAuth2{
 					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
@@ -226,8 +234,9 @@ func TestValidate(t *testing.T) {
 		{
 			config.Config{
 				HTTP: config.HTTP{
-					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.Secret,
+					BaseURL:          &url.URL{Scheme: "http", Host: "localhost"},
+					Secret:           testutils.Secret,
+					CallbackTemplate: config.Defaults.HTTP.CallbackTemplate,
 				},
 				OAuth2: config.OAuth2{
 					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
