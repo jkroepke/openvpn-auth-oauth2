@@ -4,8 +4,12 @@ labels: [ 🐞 bug ]
 body:
   - type: markdown
     attributes:
-      value: Thanks for taking the time to fill out this bug report!
-  
+      value: |
+        Thanks for taking the time to fill out this bug report!
+
+        Before you submit this issue, please make sure you have read the documentation and searched for similar issues.
+        If you have done that, please fill out the template below.
+
   - type: textarea
     attributes:
       label: Current Behavior
@@ -15,7 +19,7 @@ body:
         ```...```
     validations:
       required: true
-  
+
   - type: textarea
     attributes:
       label: Expected Behavior
@@ -23,7 +27,7 @@ body:
       placeholder: When I do <X>, <Z> should happen instead.
     validations:
       required: true
-  
+
   - type: textarea
     attributes:
       label: Steps To Reproduce
@@ -40,7 +44,7 @@ body:
   - type: markdown
     attributes:
       value: Please not that openvpn-auth-oauth2 requires an OpenVPN server version 2.6.2 or higher.
-  
+
   - type: textarea
     attributes:
       label: Environment
@@ -59,13 +63,13 @@ body:
         - OIDC Provider:
     validations:
       required: true
-  
+
   - type: textarea
     attributes:
       label: openvpn-auth-oauth2 logs
       description: |
         Log of openvpn-auth-oauth2. Output of `journalctl -flu openvpn-auth-oauth2` and `dmesg | grep openvpn`, if openvpn-auth-oauth2 is installed as linux package.
-        ⚠️ Without proving logs, I unable to assist here. ⚠️ 
+        ⚠️ Without proving logs, I unable to assist here. ⚠️
       render: shell
     validations:
       required: true
@@ -78,7 +82,7 @@ body:
       render: shell
     validations:
       required: false
-      
+
   - type: textarea
     attributes:
       label: Anything else?
@@ -88,3 +92,14 @@ body:
         Tip: You can attach images or log files by clicking this area to highlight it and then dragging files in.
     validations:
       required: false
+
+  - type: checkboxes
+    id: documentation
+    attributes:
+      label: Preflight Checklist
+      options:
+        - required: true
+          #language=markdown
+          label: |
+            I could not find a solution in the [documentation](https://github.com/jkroepke/openvpn-auth-oauth2/wiki),
+            the [FAQ](https://github.com/jkroepke/openvpn-auth-oauth2/wiki/FAQ), the existing issues or discussions.

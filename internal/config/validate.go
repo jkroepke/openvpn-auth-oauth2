@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"slices"
@@ -82,6 +83,14 @@ func Validate(mode int, conf Config) error {
 		if _, err := os.ReadDir(conf.HTTP.AssetPath); err != nil {
 			return fmt.Errorf("http.assets-path: %w", err)
 		}
+	}
+
+	if err := conf.HTTP.CallbackTemplate.Execute(io.Discard, map[string]string{
+		"title":   "",
+		"message": "",
+		"errorID": "",
+	}); err != nil {
+		return fmt.Errorf("invalid rendering http.template: %w", err)
 	}
 
 	return nil

@@ -39,3 +39,14 @@ body:
         - [ ] No breaking change for current users of the rotating logo feature.
     validations:
       required: false
+
+  - type: checkboxes
+    id: documentation
+    attributes:
+      label: Preflight Checklist
+      options:
+        - required: true
+          #language=markdown
+          label: |
+            I could not find a solution in the [documentation](https://github.com/jkroepke/openvpn-auth-oauth2/wiki),
+            the [FAQ](https://github.com/jkroepke/openvpn-auth-oauth2/wiki/FAQ), the existing issues or discussions.

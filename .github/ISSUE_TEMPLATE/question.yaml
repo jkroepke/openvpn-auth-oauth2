@@ -17,7 +17,7 @@ body:
       label: openvpn-auth-oauth2 logs
       description: |
         Log of openvpn-auth-oauth2. Output of `journalctl -flu openvpn-auth-oauth2` and `dmesg | grep openvpn`, if openvpn-auth-oauth2 is installed as linux package.
-        ⚠️ Without proving logs, I unable to assist in case of issues. ⚠️ 
+        ⚠️ Without proving logs, I unable to assist in case of issues. ⚠️
       render: shell
     validations:
       required: true
@@ -43,3 +43,13 @@ body:
     validations:
       required: false
 
+  - type: checkboxes
+    id: documentation
+    attributes:
+      label: Preflight Checklist
+      options:
+        - required: true
+          #language=markdown
+          label: |
+            I could not find a solution in the [documentation](https://github.com/jkroepke/openvpn-auth-oauth2/wiki),
+            the [FAQ](https://github.com/jkroepke/openvpn-auth-oauth2/wiki/FAQ), the existing issues or discussions.
