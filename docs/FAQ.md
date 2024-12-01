@@ -33,7 +33,7 @@ A: Although openvpn-auth-oauth2 theoretically doesn't require client-side authen
 1. **Configure Client Certificates**
    Implement client certificates to enable client-side authentication.
 
-2. **Utilize Inline auth-user-pass**
+2. **Use Inline auth-user-pass**
    OpenVPN accepts `auth-user-pass` for client-side authentication. You can define the username and password inline to prevent the OpenVPN GUI from requesting a password.
 
    ```
@@ -47,13 +47,18 @@ A: Although openvpn-auth-oauth2 theoretically doesn't require client-side authen
 
 ## Q: Can a Remember Me function be implemented in openvpn-auth-oauth2?
 
-A: No, it is not feasible to implement a Remember Me function directly within openvpn-auth-oauth2 or OpenVPN. This limitation arises from the inability of openvpn-auth-oauth2 to store client cookies. While some OIDC providers like Keycloak offer a Remember Me feature, enabling automatic login would require implementation within the OIDC provider's settings rather than within openvpn-auth-oauth2 itself.
+A: No, it isn’t possible to implement a Remember Me function directly within openvpn-auth-oauth2 or OpenVPN.
+This limitation arises from the inability of openvpn-auth-oauth2 to store client cookies.
+While some OIDC providers like Keycloak offer a Remember Me feature,
+enabling automatic login would need implementation within the OIDC provider's settings rather than within openvpn-auth-oauth2 itself.
 
 ## Q: `Provider did not return a id_token. Validation of user data is not possible.` is logged, but my provider is returning an id_token.
 
-A: This could happen, if `oauth2.endpoint.auth` and `oauth2.endpoint.token` are defined. In this case, the underlying works in OAUTH2 mode, and the id_token is not recognized. If you want to use the user validation, you should remove `oauth2.endpoint.auth` and `oauth2.endpoint.token` from your configuration.
+A: This could happen, if `oauth2.endpoint.auth` and `oauth2.endpoint.token` are defined. In this case,
+the underlying works in OAUTH2 mode, and the id_token is not recognized.
+If user validation is needed, remove `oauth2.endpoint.auth` and `oauth2.endpoint.token` from the configuration.
 
-## Q: Why openvpn-auth-oauth2 doesn't logout the user from OIDC server after the VPN session was terminated?
+## Q: Why openvpn-auth-oauth2 logout the user from OIDC server after the VPN session was terminated?
 
 A: The openvpn-auth-oauth2 plugin doesn’t log out the user from the OIDC server
 after the VPN session ends because the OpenID Connect (OIDC) protocol’s end session endpoint,

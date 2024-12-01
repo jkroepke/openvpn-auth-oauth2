@@ -96,6 +96,7 @@ openvpn:
 <!-- BEGIN USAGE -->
 ```
 Usage of openvpn-auth-oauth2:
+Documentation available at https://github.com/jkroepke/openvpn-auth-oauth2/wiki
 
   --config string
     	path to one .yaml config file (env: CONFIG_CONFIG)
@@ -120,7 +121,7 @@ Usage of openvpn-auth-oauth2:
   --http.secret value
     	Random generated secret for cookie encryption. Must be 16, 24 or 32 characters. If argument starts with file:// it reads the secret from a file. (env: CONFIG_HTTP_SECRET)
   --http.template string
-    	Path to a HTML file which is displayed at the end of the screen (env: CONFIG_HTTP_TEMPLATE)
+    	Path to a HTML file which is displayed at the end of the screen. See https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Layout-Customization for more information. (env: CONFIG_HTTP_TEMPLATE)
   --http.tls
     	enable TLS listener (env: CONFIG_HTTP_TLS)
   --log.format string
@@ -186,7 +187,7 @@ Usage of openvpn-auth-oauth2:
   --openvpn.bypass.common-names value
     	bypass oauth authentication for CNs. Comma separated list. (env: CONFIG_OPENVPN_BYPASS_COMMON__NAMES)
   --openvpn.common-name.environment-variable-name string
-        Name of the environment variable in the OpenVPN management interface which contains the common name. If username-as-common-name is enabled, this should be set to 'username' to use the username as common name. Other values like 'X509_0_emailAddress' are supported. See https://openvpn.net/community-resources/reference-manual-for-openvpn-2-6/#environmental-variables for more information. (env: CONFIG_OPENVPN_COMMON__NAME_ENVIRONMENT__VARIABLE__NAME) (default "common_name")
+    	Name of the environment variable in the OpenVPN management interface which contains the common name. If username-as-common-name is enabled, this should be set to 'username' to use the username as common name. Other values like 'X509_0_emailAddress' are supported. See https://openvpn.net/community-resources/reference-manual-for-openvpn-2-6/#environmental-variables for more information. (env: CONFIG_OPENVPN_COMMON__NAME_ENVIRONMENT__VARIABLE__NAME) (default "common_name")
   --openvpn.common-name.mode value
     	If common names are too long, use md5/sha1 to hash them or omit to skip them. If omit, oauth2.validate.common-name does not work anymore. Values: [plain,omit] (env: CONFIG_OPENVPN_COMMON__NAME_MODE) (default plain)
   --openvpn.pass-through.address string
