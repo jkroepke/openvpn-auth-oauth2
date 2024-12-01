@@ -4,6 +4,8 @@ To configure openvpn-auth-oauth2, the recommended approach uses a YAML file.
 If installed through a Linux package,
 the file `/etc/sysconfig/openvpn-auth-oauth2` allows configuration of openvpn-auth-oauth2 through environment variables.
 
+Take a look at the [FAQ](./FAQ) section, for common questions, issues and solutions.
+
 ## Configuration file
 
 openvpn-auth-oauth2 supports configuration via a YAML file. The file can be passed via the `--config` flag.

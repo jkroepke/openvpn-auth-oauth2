@@ -1,8 +1,10 @@
 # Layout Customization
 
-openvpn-auth-oauth2 supports custom templates for the login page. The template must be a valid HTML file.
+openvpn-auth-oauth2 supports custom templates for the login page.
+The template must a valid Go Template file.
+After rendering, valid HTML must be returned.
 
-The default template is here:
+The default template can be found here:
 [index.gohtml](https://github.com/jkroepke/openvpn-auth-oauth2/blob/main/internal/ui/index.gohtml)
 
 Available variables:

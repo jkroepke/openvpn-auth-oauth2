@@ -16,6 +16,7 @@ const (
 func FlagSet(name string) *flag.FlagSet {
 	flagSet := flag.NewFlagSet(name, flag.ContinueOnError)
 	flagSet.Usage = func() {
+		_, _ = fmt.Fprint(flagSet.Output(), "Documentation available at https://github.com/jkroepke/openvpn-auth-oauth2/wiki\r\n\r\n", name)
 		_, _ = fmt.Fprintf(flagSet.Output(), "Usage of %s:\r\n\r\n", name)
 		// --help should display options with double dash
 		flagSet.VisitAll(func(flag *flag.Flag) {
@@ -122,7 +123,7 @@ func flagSetHTTP(flagSet *flag.FlagSet) {
 	flagSet.String(
 		"http.template",
 		"",
-		"Path to a HTML file which is displayed at the end of the screen",
+		"Path to a HTML file which is displayed at the end of the screen. See https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Layout-Customization for more information.",
 	)
 	flagSet.Bool(
 		"http.check.ipaddr",
