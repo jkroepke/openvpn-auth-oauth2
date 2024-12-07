@@ -37,7 +37,7 @@ oauth2:
   authorize-params: "a=c"
   client:
     id: "test"
-    secret: "test"
+    secret: ""
   endpoint:
   # discovery: "https://idp/.well-known/openid-configuration"
   # auth: "https://idp/oauth/auth"
@@ -137,7 +137,7 @@ Documentation available at https://github.com/jkroepke/openvpn-auth-oauth2/wiki
   --oauth2.client.id string
     	oauth2 client id (env: CONFIG_OAUTH2_CLIENT_ID)
   --oauth2.client.secret value
-    	oauth2 client secret. If argument starts with file:// it reads the secret from a file. (env: CONFIG_OAUTH2_CLIENT_SECRET)
+    	Required, if oauth2.pkce=false. oauth2 client secret. If argument starts with file:// it reads the secret from a file. (env: CONFIG_OAUTH2_CLIENT_SECRET) (default "")
   --oauth2.endpoint.auth string
     	The flag is used to specify a custom OAuth2 authorization endpoint. (env: CONFIG_OAUTH2_ENDPOINT_AUTH)
   --oauth2.endpoint.discovery string
@@ -149,7 +149,7 @@ Documentation available at https://github.com/jkroepke/openvpn-auth-oauth2/wiki
   --oauth2.nonce
     	If true, a nonce will be defined on the auth URL which is expected inside the token. (env: CONFIG_OAUTH2_NONCE) (default true)
   --oauth2.pkce
-    	If true, Proof Key for Code Exchange (PKCE) RFC 7636 is used for token exchange. (env: CONFIG_OAUTH2_PKCE) (default true)
+    	If true, Proof Key for Code Exchange (PKCE) RFC 7636 is used for token exchange. If oauth2.client.secret is provided and not empty string, PKCE will not be used, and the Client Credentials Grant flow will be used instead. (env: CONFIG_OAUTH2_PKCE) (default: true)
   --oauth2.provider string
     	oauth2 provider (env: CONFIG_OAUTH2_PROVIDER) (default "generic")
   --oauth2.refresh.enabled

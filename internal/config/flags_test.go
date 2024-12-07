@@ -114,6 +114,7 @@ func TestValidate(t *testing.T) {
 				},
 				OAuth2: config.OAuth2{
 					Client: config.OAuth2Client{ID: "ID"},
+					PKCE:   false,
 				},
 			},
 			"oauth2.client.secret is required",
