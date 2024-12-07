@@ -60,7 +60,9 @@ var Defaults = Config{
 	},
 	OAuth2: OAuth2{
 		AuthStyle: OAuth2AuthStyle(oauth2.AuthStyleInParams),
-		Client:    OAuth2Client{},
+		Client: OAuth2Client{
+			Secret: "",
+		},
 		Endpoints: OAuth2Endpoints{
 			Auth:      &url.URL{Scheme: "", Host: ""},
 			Discovery: &url.URL{Scheme: "", Host: ""},

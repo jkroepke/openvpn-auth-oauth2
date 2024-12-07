@@ -22,10 +22,17 @@ func Validate(mode int, conf Config) error {
 	}
 
 	for key, value := range map[string]Secret{
-		"http.secret":          conf.HTTP.Secret,
-		"oauth2.client.secret": conf.OAuth2.Client.Secret,
+		"http.secret": conf.HTTP.Secret,
 	} {
 		if value.String() == "" {
+			return fmt.Errorf("%s is %w", key, ErrRequired)
+		}
+	}
+
+	for key, value := range map[string]Secret{
+		"oauth2.client.secret": conf.OAuth2.Client.Secret,
+	} {
+		if value.String() == "" && !conf.OAuth2.PKCE {
 			return fmt.Errorf("%s is %w", key, ErrRequired)
 		}
 	}
