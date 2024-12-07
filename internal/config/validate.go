@@ -13,28 +13,16 @@ import (
 //
 //nolint:cyclop
 func Validate(mode int, conf Config) error {
-	for key, value := range map[string]string{
-		"oauth2.client.id": conf.OAuth2.Client.ID,
-	} {
-		if value == "" {
-			return fmt.Errorf("%s is %w", key, ErrRequired)
-		}
+	if conf.OAuth2.Client.ID == "" {
+		return fmt.Errorf("oauth2.client.id is %w", ErrRequired)
 	}
 
-	for key, value := range map[string]Secret{
-		"http.secret": conf.HTTP.Secret,
-	} {
-		if value.String() == "" {
-			return fmt.Errorf("%s is %w", key, ErrRequired)
-		}
+	if conf.HTTP.Secret.String() == "" {
+		return fmt.Errorf("http.secret is %w", ErrRequired)
 	}
 
-	for key, value := range map[string]Secret{
-		"oauth2.client.secret": conf.OAuth2.Client.Secret,
-	} {
-		if value.String() == "" && !conf.OAuth2.PKCE {
-			return fmt.Errorf("%s is %w", key, ErrRequired)
-		}
+	if conf.OAuth2.Client.Secret.String() == "" && !conf.OAuth2.PKCE {
+		return fmt.Errorf("oauth2.client.secret is %w", ErrRequired)
 	}
 
 	for key, value := range map[string]*url.URL{
