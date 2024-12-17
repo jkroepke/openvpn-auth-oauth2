@@ -11,6 +11,8 @@ linters:
     - recvcheck # https://github.com/raeperd/recvcheck/issues/7
 
 issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
   exclude-rules:
     - path: _test\.go
       linters:
@@ -27,9 +29,20 @@ issues:
         - gocyclo
 
 linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+  gocritic:
+    enable-all: true
+    disabled-checks:
+      - whyNoLint
+  gofumpt:
+    extra-rules: true
   gosec:
     excludes:
       - G101 # Potential hardcoded credentials
+  perfsprint:
+    errorf: true
   sloglint:
     no-mixed-args: true
     kv-only: false
@@ -45,6 +58,46 @@ linters-settings:
       - msg
       - source
     args-on-sep-lines: true
+  revive:
+    # By default, revive will enable only the linting rules that are named in the configuration file.
+    # So, it's needed to explicitly enable all required rules here.
+    rules:
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md
+      - name: blank-imports
+      - name: comment-spacings
+      - name: context-as-argument
+        arguments:
+          # Allow functions with test or bench signatures.
+          - allowTypesBefore: "*testing.T,testing.TB"
+      - name: context-keys-type
+      - name: dot-imports
+      - name: empty-block
+        disabled: true
+      - name: error-naming
+      - name: error-return
+      - name: error-strings
+      - name: errorf
+      - name: exported
+      - name: increment-decrement
+      - name: indent-error-flow
+      - name: package-comments
+        disabled: true
+      - name: range
+      - name: receiver-naming
+      - name: redefines-builtin-id
+      - name: superfluous-else
+      - name: time-naming
+      - name: unexported-return
+      - name: unreachable-code
+      - name: unused-parameter
+        disabled: true
+      - name: var-declaration
+      - name: var-naming
+  testifylint:
+    disable:
+      - float-compare
+      - go-require
+    enable-all: true
   varnamelen:
     ignore-names:
       - tt
