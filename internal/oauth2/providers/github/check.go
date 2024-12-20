@@ -24,7 +24,7 @@ type teamType struct {
 // CheckUser implements the [github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2.Provider] interface.
 // It checks if mets specific GitHub related conditions.
 func (p *Provider) CheckUser(
-	ctx context.Context, state state.State, userData types.UserData, tokens *oidc.Tokens[*idtoken.Claims],
+	ctx context.Context, sessionState state.State, userData types.UserData, tokens *oidc.Tokens[*idtoken.Claims],
 ) error {
 	//nolint:exhaustruct
 	tokens.IDTokenClaims = &idtoken.Claims{}
@@ -47,7 +47,7 @@ func (p *Provider) CheckUser(
 		tokens.IDTokenClaims.Roles = teams
 	}
 
-	return p.Provider.CheckUser(ctx, state, userData, tokens) //nolint:wrapcheck
+	return p.Provider.CheckUser(ctx, sessionState, userData, tokens) //nolint:wrapcheck
 }
 
 // getTeams fetch the users GitHub team by accessing the GitHub API.

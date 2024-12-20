@@ -66,3 +66,86 @@ linters-settings:
       - ca *testcerts.CertificateAuthority
   lll:
     line-length: 160
+  revive:
+    rules:
+      - name: argument-limit
+        arguments: [ 6 ]
+      - name: atomic
+      - name: bare-return
+      - name: blank-imports
+      - name: bool-literal-in-expr
+      - name: call-to-gc
+      - name: comment-spacings
+        arguments:
+          - "nolint:"
+      - name: confusing-naming
+      #- name: confusing-results
+      - name: constant-logical-expr
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: datarace
+      - name: deep-exit
+      - name: defer
+      - name: dot-imports
+      - name: duplicated-imports
+      - name: early-return
+      - name: empty-block
+      - name: empty-lines
+      - name: enforce-map-style
+        arguments: [ "make" ]
+        exclude: [ "TEST" ]
+      - name: enforce-repeated-arg-type-style
+        arguments: [ "short" ]
+      - name: enforce-slice-style
+        arguments: [ "make" ]
+      - name: error-naming
+      - name: error-return
+      - name: error-strings
+      - name: errorf
+      #- name: function-result-limit
+      #  arguments: [ 3 ]
+      - name: get-return
+      - name: identical-branches
+      - name: if-return
+      - name: import-alias-naming
+      - name: import-shadowing
+      - name: increment-decrement
+      - name: indent-error-flow
+      # Enable again when https://github.com/mgechev/revive/issues/1103 is fixed
+      #      - name: max-public-structs
+      #        exclude: [ "TEST" ]
+      #        arguments: [ 5 ]
+      - name: modifies-parameter
+      - name: modifies-value-receiver
+      - name: optimize-operands-order
+      - name: package-comments
+      - name: range
+      - name: range-val-address
+      - name: range-val-in-closure
+      - name: receiver-naming
+      - name: redefines-builtin-id
+      - name: redundant-import-alias
+      - name: string-format
+        arguments:
+          - - 'fmt.Errorf[0],errors.New[0]'
+            - '/^([^A-Z]|$)/'
+            - 'Error string must not start with a capital letter.'
+          - - 'fmt.Errorf[0],errors.New[0]'
+            - '/(^|[^\.!?])$/'
+            - 'Error string must not end in punctuation.'
+          - - 'panic'
+            - '/^[^\n]*$/'
+            - 'Must not contain line breaks.'
+      - name: string-of-int
+      - name: struct-tag
+      - name: superfluous-else
+      - name: time-equal
+      - name: time-naming
+      - name: unconditional-recursion
+      - name: unexported-naming
+      - name: unnecessary-stmt
+      - name: unreachable-code
+      - name: unused-parameter
+      - name: var-declaration
+      - name: var-naming
+      - name: waitgroup-by-value

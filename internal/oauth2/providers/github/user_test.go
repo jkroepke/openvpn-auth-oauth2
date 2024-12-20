@@ -73,8 +73,8 @@ func TestGetUser(t *testing.T) {
 			conf := config.Config{
 				OAuth2: config.OAuth2{
 					Validate: config.OAuth2Validate{
-						Groups: []string{},
-						Roles:  []string{},
+						Groups: make([]string, 0),
+						Roles:  make([]string, 0),
 					},
 				},
 			}

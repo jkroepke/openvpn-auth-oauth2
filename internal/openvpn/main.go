@@ -85,7 +85,7 @@ func (c *Client) Connect() error {
 	err = context.Cause(c.ctx)
 
 	if err != nil && !errors.Is(err, context.Canceled) {
-		return fmt.Errorf("OpenVPN management error: %w", err)
+		return fmt.Errorf("openvpn management error: %w", err)
 	}
 
 	return nil

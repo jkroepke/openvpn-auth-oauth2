@@ -34,13 +34,13 @@ func TestValidateGroups(t *testing.T) {
 		{
 			"empty",
 			`[]`,
-			[]string{},
+			make([]string, 0),
 			"",
 		},
 		{
 			"present",
 			`[{ "login": "apple" }]`,
-			[]string{},
+			make([]string, 0),
 			"",
 		},
 		{
@@ -148,13 +148,13 @@ func TestValidateRoles(t *testing.T) {
 		{
 			"empty",
 			`[]`,
-			[]string{},
+			make([]string, 0),
 			"",
 		},
 		{
 			"present",
 			`[{ "slug": "justice-league", "organization": { "login": "apple" }}]`,
-			[]string{},
+			make([]string, 0),
 			"",
 		},
 		{

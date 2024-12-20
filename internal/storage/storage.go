@@ -54,7 +54,7 @@ func (s *Storage) collect(ctx context.Context) {
 	}
 }
 
-func (s *Storage) Set(client string, token string) error {
+func (s *Storage) Set(client, token string) error {
 	encryptedBytes, err := crypto.EncryptBytesAES([]byte(token), s.encryptionKey)
 	if err != nil {
 		return fmt.Errorf("decrypt error: %w", err)

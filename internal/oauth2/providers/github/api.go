@@ -18,7 +18,7 @@ var (
 	reLast = regexp.MustCompile("<([^>]+)>; rel=\"last\"")
 )
 
-func get[T any](ctx context.Context, httpClient *http.Client, accessToken string, apiURL string, data *T) (string, error) {
+func get[T any](ctx context.Context, httpClient *http.Client, accessToken, apiURL string, data *T) (string, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
 	if err != nil {
 		return "", fmt.Errorf("error creating request context with URL %s: %w", apiURL, err)
@@ -56,12 +56,12 @@ func getPagination(apiURL string, resp *http.Response) string {
 	}
 
 	links := resp.Header.Get("Link")
-	if len(reLast.FindStringSubmatch(links)) > 1 {
-		lastPageURL := reLast.FindStringSubmatch(links)[1]
-		if apiURL == lastPageURL {
-			return ""
-		}
-	} else {
+	if len(reLast.FindStringSubmatch(links)) == 0 {
+		return ""
+	}
+
+	lastPageURL := reLast.FindStringSubmatch(links)[1]
+	if apiURL == lastPageURL {
 		return ""
 	}
 

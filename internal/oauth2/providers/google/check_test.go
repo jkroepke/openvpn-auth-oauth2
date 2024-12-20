@@ -32,25 +32,25 @@ func TestValidateGroups(t *testing.T) {
 		{
 			"groups not present",
 			`{"memberships": [], "nextPageToken": ""}`,
-			[]string{},
+			make([]string, 0),
 			"",
 		},
 		{
 			"groups empty",
 			`{"memberships": [], "nextPageToken": ""}`,
-			[]string{},
+			make([]string, 0),
 			"",
 		},
 		{
 			"groups present",
 			`{"memberships": [{"name": "groups/000000000000000/memberships/123456789101112131415", "memberKey": {"id": "user@example.com"}, "roles": [{"name": "MEMBER"}], "preferredMemberKey": {"id": "user@example.com"}}], "nextPageToken": ""}`,
-			[]string{},
+			make([]string, 0),
 			"",
 		},
 		{
 			"groups present with nextPageToken",
 			`{"memberships": [{"name": "groups/000000000000000/memberships/123456789101112131415", "memberKey": {"id": "user@example.com"}, "roles": [{"name": "MEMBER"}], "preferredMemberKey": {"id": "user@example.com"}}], "nextPageToken": "token"}`,
-			[]string{},
+			make([]string, 0),
 			"",
 		},
 		{

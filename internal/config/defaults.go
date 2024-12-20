@@ -74,7 +74,7 @@ var Defaults = Config{
 			Expires:      time.Hour * 8,
 			ValidateUser: true,
 		},
-		Scopes: []string{},
+		Scopes: make([]string, 0),
 		Validate: OAuth2Validate{
 			Groups: make([]string, 0),
 			IPAddr: false,
