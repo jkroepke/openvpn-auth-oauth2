@@ -263,7 +263,7 @@ func TestClientFull(t *testing.T) {
 			">CLIENT:FOO,0\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END\r\n",
 			"",
 			//nolint:revive
-			errors.New("OpenVPN management error: error parsing client message: unable to parse client reason from message: >CLIENT:FOO,0\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END\r\n"),
+			errors.New("openvpn management error: error parsing client message: unable to parse client reason from message: >CLIENT:FOO,0\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END\r\n"),
 		},
 		{
 			"client invalid reason 2",
@@ -448,17 +448,17 @@ func TestClientInvalidVersion(t *testing.T) {
 		{
 			"invalid parts",
 			"OpenVPN Version: OpenVPN Mock\r\nEND\r\n",
-			"OpenVPN management error: unexpected response from version command: OpenVPN Version: OpenVPN Mock\r\nEND\r\n",
+			"openvpn management error: unexpected response from version command: OpenVPN Version: OpenVPN Mock\r\nEND\r\n",
 		},
 		{
 			"invalid version",
 			"OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version:\r\nEND\r\n",
-			`OpenVPN management error: unable to parse openvpn management interface version: strconv.Atoi: parsing ":": invalid syntax`,
+			`openvpn management error: unable to parse openvpn management interface version: strconv.Atoi: parsing ":": invalid syntax`,
 		},
 		{
 			"version to low",
 			"OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 4\r\nEND\r\n",
-			`OpenVPN management error: openvpn-auth-oauth2 requires OpenVPN management interface version 5 or higher`,
+			`openvpn management error: openvpn-auth-oauth2 requires OpenVPN management interface version 5 or higher`,
 		},
 	}
 
