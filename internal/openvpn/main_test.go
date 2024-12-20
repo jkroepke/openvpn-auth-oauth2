@@ -282,7 +282,7 @@ func TestClientFull(t *testing.T) {
 			},
 			">CLIENT:CONNECT1,0,1\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END\r\n",
 			"",
-			errors.New("OpenVPN management error: unknown client reason: CONNECT1"),
+			errors.New("openvpn management error: unknown client reason: CONNECT1"),
 		},
 	}
 

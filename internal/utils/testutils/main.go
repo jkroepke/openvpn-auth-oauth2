@@ -25,7 +25,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	oidcStorage "github.com/zitadel/oidc/v3/example/server/storage"
+	oidcstorage "github.com/zitadel/oidc/v3/example/server/storage"
 	"github.com/zitadel/oidc/v3/pkg/op"
 	"golang.org/x/net/nettest"
 	"golang.org/x/text/language"
@@ -118,7 +118,7 @@ func ExpectMessage(tb testing.TB, conn net.Conn, reader *bufio.Reader, expectMes
 	return true
 }
 
-func SendAndExpectMessage(tb testing.TB, conn net.Conn, reader *bufio.Reader, sendMessage string, expectMessage string) bool {
+func SendAndExpectMessage(tb testing.TB, conn net.Conn, reader *bufio.Reader, sendMessage, expectMessage string) bool {
 	tb.Helper()
 
 	err := conn.SetWriteDeadline(time.Now().Add(time.Second * 5))
@@ -178,18 +178,18 @@ func ReadLine(tb testing.TB, conn net.Conn, reader *bufio.Reader) string {
 func SetupResourceServer(tb testing.TB, clientListener net.Listener) (*httptest.Server, *url.URL, config.OAuth2Client, error) {
 	tb.Helper()
 
-	client := oidcStorage.WebClient(
+	client := oidcstorage.WebClient(
 		clientListener.Addr().String(),
 		"SECRET",
 		fmt.Sprintf("http://%s/oauth2/callback", clientListener.Addr().String()),
 		fmt.Sprintf("https://%s/oauth2/callback", clientListener.Addr().String()),
 	)
 
-	clients := map[string]*oidcStorage.Client{
+	clients := map[string]*oidcstorage.Client{
 		client.GetID(): client,
 	}
 
-	opStorage := oidcStorage.NewStorageWithClients(oidcStorage.NewUserStore("http://localhost"), clients)
+	opStorage := oidcstorage.NewStorageWithClients(oidcstorage.NewUserStore("http://localhost"), clients)
 	opConfig := &op.Config{
 		CryptoKey:                sha256.Sum256([]byte("test")),
 		DefaultLogoutRedirectURI: "/",

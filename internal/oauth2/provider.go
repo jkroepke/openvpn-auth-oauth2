@@ -165,10 +165,10 @@ func (p *Provider) getProviderOptions(basePath *url.URL) []rp.Option {
 		rp.WithAuthStyle(p.conf.OAuth2.AuthStyle.AuthStyle()),
 		rp.WithHTTPClient(p.httpClient),
 		rp.WithErrorHandler(func(w http.ResponseWriter, _ *http.Request, errorType string, errorDesc string, encryptedSession string) {
-			errorHandler(w, p.conf, p.logger, p.openvpn, http.StatusInternalServerError, errorType, errorDesc, encryptedSession)
+			p.errorHandler(w, http.StatusInternalServerError, errorType, errorDesc, encryptedSession)
 		}),
 		rp.WithUnauthorizedHandler(func(w http.ResponseWriter, _ *http.Request, desc string, encryptedSession string) {
-			errorHandler(w, p.conf, p.logger, p.openvpn, http.StatusUnauthorized, "Unauthorized", desc, encryptedSession)
+			p.errorHandler(w, http.StatusUnauthorized, "Unauthorized", desc, encryptedSession)
 		}),
 		rp.WithSigningAlgsFromDiscovery(),
 	}
@@ -226,24 +226,24 @@ func newOidcProvider(ctx context.Context, conf config.Config, httpClient *http.C
 	return provider, nil
 }
 
-func errorHandler(
-	w http.ResponseWriter, conf config.Config, logger *slog.Logger, openvpn OpenVPN,
-	httpStatus int, errorType string, errorDesc string, encryptedSession string,
+func (p *Provider) errorHandler(
+	w http.ResponseWriter,
+	httpStatus int, errorType, errorDesc, encryptedSession string,
 ) {
-	session, err := state.NewWithEncodedToken(encryptedSession, conf.HTTP.Secret.String())
+	session, err := state.NewWithEncodedToken(encryptedSession, p.conf.HTTP.Secret.String())
 	if err == nil {
-		logger = logger.With(
+		logger := p.logger.With(
 			slog.String("ip", fmt.Sprintf("%s:%s", session.IPAddr, session.IPPort)),
 			slog.Uint64("cid", session.Client.CID),
 			slog.Uint64("kid", session.Client.KID),
 			slog.String("common_name", session.CommonName),
 		)
-		openvpn.DenyClient(logger, session.Client, "client rejected")
+		p.openvpn.DenyClient(logger, session.Client, "client rejected")
 	} else {
-		logger.Debug("errorHandler: " + err.Error())
+		p.logger.Debug("errorHandler: " + err.Error())
 	}
 
-	writeError(w, logger, conf, httpStatus, errorType, errorDesc)
+	writeError(w, p.logger, p.conf, httpStatus, errorType, errorDesc)
 }
 
 func (p *Provider) GetNonce(id string) string {

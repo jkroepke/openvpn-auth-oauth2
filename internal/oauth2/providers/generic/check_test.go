@@ -137,12 +137,12 @@ func TestValidateGroups(t *testing.T) {
 		requiredGroups []string
 		err            string
 	}{
-		{"groups not present", nil, []string{}, ""},
-		{"groups empty", []string{}, []string{}, ""},
-		{"groups present", []string{"apple"}, []string{}, ""},
+		{"groups not present", nil, make([]string, 0), ""},
+		{"groups empty", make([]string, 0), make([]string, 0), ""},
+		{"groups present", []string{"apple"}, make([]string, 0), ""},
 		{"configure one group", []string{"apple"}, []string{"apple"}, ""},
 		{"configure one group, groups not present", nil, []string{"apple"}, "missing claim: groups"},
-		{"configure two group, none match", []string{}, []string{"apple", "pear"}, generic.ErrMissingRequiredGroup.Error()},
+		{"configure two group, none match", make([]string, 0), []string{"apple", "pear"}, generic.ErrMissingRequiredGroup.Error()},
 		{"configure two group, missing one", []string{"apple"}, []string{"apple", "pear"}, ""},
 		{"configure two group", []string{"apple", "pear"}, []string{"apple", "pear"}, ""},
 	} {
@@ -187,12 +187,12 @@ func TestValidateRoles(t *testing.T) {
 		requiredRoles []string
 		err           string
 	}{
-		{"groups not present", nil, []string{}, ""},
-		{"groups empty", []string{}, []string{}, ""},
-		{"groups present", []string{"apple"}, []string{}, ""},
+		{"groups not present", nil, make([]string, 0), ""},
+		{"groups empty", make([]string, 0), make([]string, 0), ""},
+		{"groups present", []string{"apple"}, make([]string, 0), ""},
 		{"configure one role", []string{"apple"}, []string{"apple"}, ""},
 		{"configure one role, role not present", nil, []string{"apple"}, "missing claim: roles"},
-		{"configure two role, none match", []string{}, []string{"apple", "pear"}, generic.ErrMissingRequiredRole.Error()},
+		{"configure two role, none match", make([]string, 0), []string{"apple", "pear"}, generic.ErrMissingRequiredRole.Error()},
 		{"configure two role, missing one", []string{"apple"}, []string{"apple", "pear"}, ""},
 		{"configure two role", []string{"apple", "pear"}, []string{"apple", "pear"}, ""},
 	} {

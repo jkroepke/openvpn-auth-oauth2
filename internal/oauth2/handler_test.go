@@ -52,7 +52,7 @@ func TestHandler(t *testing.T) {
 					},
 				},
 				OpenVpn: config.OpenVpn{
-					Bypass:        config.OpenVpnBypass{CommonNames: []string{}},
+					Bypass:        config.OpenVpnBypass{CommonNames: make([]string, 0)},
 					AuthTokenUser: true,
 				},
 			},
@@ -83,7 +83,7 @@ func TestHandler(t *testing.T) {
 					},
 				},
 				OpenVpn: config.OpenVpn{
-					Bypass:        config.OpenVpnBypass{CommonNames: []string{}},
+					Bypass:        config.OpenVpnBypass{CommonNames: make([]string, 0)},
 					AuthTokenUser: true,
 				},
 			},
@@ -117,7 +117,7 @@ func TestHandler(t *testing.T) {
 					PKCE:  true,
 				},
 				OpenVpn: config.OpenVpn{
-					Bypass:        config.OpenVpnBypass{CommonNames: []string{}},
+					Bypass:        config.OpenVpnBypass{CommonNames: make([]string, 0)},
 					AuthTokenUser: true,
 				},
 			},
@@ -149,7 +149,7 @@ func TestHandler(t *testing.T) {
 					},
 				},
 				OpenVpn: config.OpenVpn{
-					Bypass:        config.OpenVpnBypass{CommonNames: []string{}},
+					Bypass:        config.OpenVpnBypass{CommonNames: make([]string, 0)},
 					AuthTokenUser: true,
 				},
 			},
@@ -180,7 +180,7 @@ func TestHandler(t *testing.T) {
 					},
 				},
 				OpenVpn: config.OpenVpn{
-					Bypass:        config.OpenVpnBypass{CommonNames: []string{}},
+					Bypass:        config.OpenVpnBypass{CommonNames: make([]string, 0)},
 					AuthTokenUser: true,
 				},
 			},
@@ -212,7 +212,7 @@ func TestHandler(t *testing.T) {
 					},
 				},
 				OpenVpn: config.OpenVpn{
-					Bypass:        config.OpenVpnBypass{CommonNames: []string{}},
+					Bypass:        config.OpenVpnBypass{CommonNames: make([]string, 0)},
 					AuthTokenUser: true,
 				},
 			},
@@ -244,7 +244,7 @@ func TestHandler(t *testing.T) {
 					},
 				},
 				OpenVpn: config.OpenVpn{
-					Bypass:        config.OpenVpnBypass{CommonNames: []string{}},
+					Bypass:        config.OpenVpnBypass{CommonNames: make([]string, 0)},
 					AuthTokenUser: true,
 				},
 			},
@@ -276,7 +276,7 @@ func TestHandler(t *testing.T) {
 					},
 				},
 				OpenVpn: config.OpenVpn{
-					Bypass:        config.OpenVpnBypass{CommonNames: []string{}},
+					Bypass:        config.OpenVpnBypass{CommonNames: make([]string, 0)},
 					AuthTokenUser: true,
 				},
 			},
@@ -308,7 +308,7 @@ func TestHandler(t *testing.T) {
 					},
 				},
 				OpenVpn: config.OpenVpn{
-					Bypass:        config.OpenVpnBypass{CommonNames: []string{}},
+					Bypass:        config.OpenVpnBypass{CommonNames: make([]string, 0)},
 					AuthTokenUser: true,
 				},
 			},
@@ -340,7 +340,7 @@ func TestHandler(t *testing.T) {
 					},
 				},
 				OpenVpn: config.OpenVpn{
-					Bypass:        config.OpenVpnBypass{CommonNames: []string{}},
+					Bypass:        config.OpenVpnBypass{CommonNames: make([]string, 0)},
 					AuthTokenUser: true,
 				},
 			},

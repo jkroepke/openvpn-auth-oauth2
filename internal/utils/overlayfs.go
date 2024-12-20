@@ -3,19 +3,19 @@ package utils
 import "io/fs"
 
 type OverlayFS struct {
-	fs   fs.FS
-	over fs.FS
+	root    fs.FS
+	overlay fs.FS
 }
 
-func NewOverlayFS(fs, over fs.FS) *OverlayFS { return &OverlayFS{fs, over} }
+func NewOverlayFS(root, over fs.FS) *OverlayFS { return &OverlayFS{root, over} }
 
 func (f *OverlayFS) Open(name string) (fs.File, error) {
-	fi, err := fs.Stat(f.over, name)
+	fi, err := fs.Stat(f.overlay, name)
 	if err == nil && !fi.IsDir() {
-		if f, err := f.over.Open(name); err == nil {
+		if f, err := f.overlay.Open(name); err == nil {
 			return f, nil
 		}
 	}
 
-	return f.fs.Open(name) //nolint:wrapcheck
+	return f.root.Open(name) //nolint:wrapcheck
 }

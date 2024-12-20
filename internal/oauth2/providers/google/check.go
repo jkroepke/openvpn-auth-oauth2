@@ -17,7 +17,7 @@ func (p *Provider) CheckUser(
 	tokens *oidc.Tokens[*idtoken.Claims],
 ) error {
 	if len(p.Conf.OAuth2.Validate.Groups) > 0 {
-		tokens.IDTokenClaims.Groups = []string{}
+		tokens.IDTokenClaims.Groups = make([]string, 0)
 
 		if tokens.AccessToken == "" {
 			return errors.New("access token is empty")
