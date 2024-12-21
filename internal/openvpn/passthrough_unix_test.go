@@ -341,6 +341,7 @@ func TestPassthroughFull(t *testing.T) {
 
 			<-ctx.Done()
 
+			openVPNClient.Shutdown()
 			wg.Wait()
 		})
 	}
