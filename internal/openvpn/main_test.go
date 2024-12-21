@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	http2 "net/http"
+	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
@@ -15,10 +15,8 @@ import (
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -43,10 +41,10 @@ func TestClientInvalidServer(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	storageClient := storage.New(ctx, testutils.Secret, time.Hour)
-	provider := oauth2.New(logger.Logger, conf, storageClient, http2.DefaultClient)
-	client := openvpn.New(ctx, logger.Logger, conf, provider)
-	err := client.Connect()
+	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
+	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(t, ctx, conf, logger.Logger, http.DefaultClient, tokenStorage)
+
+	err := openVPNClient.Connect()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unable to connect to openvpn management interface tcp://127.0.0.1:1: dial tcp 127.0.0.1:1: connect")
 }
@@ -300,9 +298,8 @@ func TestClientFull(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			storageClient := storage.New(ctx, testutils.Secret, time.Hour)
-			provider := oauth2.New(logger.Logger, tt.conf, storageClient, http2.DefaultClient)
-			client := openvpn.New(ctx, logger.Logger, tt.conf, provider)
+			tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
+			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(t, ctx, tt.conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 			wg := sync.WaitGroup{}
 			wg.Add(1)
@@ -359,7 +356,7 @@ func TestClientFull(t *testing.T) {
 				}
 			}()
 
-			err = client.Connect()
+			err = openVPNClient.Connect()
 			if tt.err != nil {
 				require.Error(t, err)
 				assert.Equal(t, tt.err.Error(), err.Error())
@@ -370,8 +367,6 @@ func TestClientFull(t *testing.T) {
 					require.NoError(t, err)
 				}
 			}
-
-			client.Shutdown()
 		})
 	}
 }
@@ -401,9 +396,8 @@ func TestClientInvalidPassword(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	storageClient := storage.New(ctx, testutils.Secret, time.Hour)
-	provider := oauth2.New(logger.Logger, conf, storageClient, http2.DefaultClient)
-	client := openvpn.New(ctx, logger.Logger, conf, provider)
+	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
+	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(t, ctx, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 	go func() {
 		conn, err := managementInterface.Accept()
@@ -417,12 +411,10 @@ func TestClientInvalidPassword(t *testing.T) {
 		testutils.SendMessage(t, conn, "ERROR: bad password")
 	}()
 
-	err = client.Connect()
+	err = openVPNClient.Connect()
 
 	require.Error(t, err)
 	assert.Equal(t, "unable to connect to openvpn management interface: invalid password", err.Error())
-
-	client.Shutdown()
 }
 
 func TestClientInvalidVersion(t *testing.T) {
@@ -478,9 +470,8 @@ func TestClientInvalidVersion(t *testing.T) {
 			ctx, cancel := context.WithCancelCause(context.Background())
 			defer cancel(nil)
 
-			storageClient := storage.New(ctx, testutils.Secret, time.Hour)
-			provider := oauth2.New(logger.Logger, conf, storageClient, http2.DefaultClient)
-			openVPNClient := openvpn.New(ctx, logger.Logger, conf, provider)
+			tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
+			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(t, ctx, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 			wg := sync.WaitGroup{}
 			wg.Add(2)
@@ -559,9 +550,8 @@ func TestSIGHUP(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	storageClient := storage.New(ctx, testutils.Secret, time.Hour)
-	provider := oauth2.New(logger.Logger, conf, storageClient, http2.DefaultClient)
-	client := openvpn.New(ctx, logger.Logger, conf, provider)
+	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
+	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(t, ctx, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -585,10 +575,9 @@ func TestSIGHUP(t *testing.T) {
 		}
 	}()
 
-	require.NoError(t, client.Connect())
+	require.NoError(t, openVPNClient.Connect())
 
 	wg.Wait()
-	client.Shutdown()
 }
 
 func TestDeadLocks(t *testing.T) {
@@ -632,9 +621,8 @@ func TestDeadLocks(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			storageClient := storage.New(ctx, testutils.Secret, time.Hour)
-			provider := oauth2.New(logger.Logger, conf, storageClient, http2.DefaultClient)
-			client := openvpn.New(ctx, logger.Logger, conf, provider)
+			tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
+			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(t, ctx, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 			wg := sync.WaitGroup{}
 			wg.Add(1)
@@ -655,10 +643,9 @@ func TestDeadLocks(t *testing.T) {
 				}
 			}()
 
-			require.NoError(t, client.Connect())
+			require.NoError(t, openVPNClient.Connect())
 
 			wg.Wait()
-			client.Shutdown()
 		})
 	}
 }
@@ -704,9 +691,8 @@ func TestInvalidCommandResponses(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			storageClient := storage.New(ctx, testutils.Secret, time.Hour)
-			provider := oauth2.New(logger.Logger, conf, storageClient, http2.DefaultClient)
-			client := openvpn.New(ctx, logger.Logger, conf, provider)
+			tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
+			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(t, ctx, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 			wg := sync.WaitGroup{}
 			wg.Add(1)
@@ -729,10 +715,9 @@ func TestInvalidCommandResponses(t *testing.T) {
 				testutils.SendMessage(t, conn, tt.message)
 			}()
 
-			require.NoError(t, client.Connect())
+			require.NoError(t, openVPNClient.Connect())
 
 			wg.Wait()
-			client.Shutdown()
 		})
 	}
 }

@@ -231,15 +231,13 @@ func TestRefreshReAuth(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			conf, openVPNClient, managementInterface, _, _, httpClient, logger, shutdownFn := testutils.SetupMockEnvironment(context.Background(), t, tt.conf, tt.rt)
+			conf, openVPNClient, managementInterface, _, _, httpClient, logger := testutils.SetupMockEnvironment(context.Background(), t, tt.conf, tt.rt)
 
 			t.Cleanup(func() {
 				if t.Failed() {
 					t.Log(logger.String())
 				}
 			})
-
-			defer shutdownFn()
 
 			wg := sync.WaitGroup{}
 			wg.Add(1)

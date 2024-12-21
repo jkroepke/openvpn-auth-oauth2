@@ -1,4 +1,4 @@
-package storage
+package tokenstorage
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/crypto"
 )
 
-type Storage struct {
+type InMemory struct {
 	encryptionKey string
 
 	expires time.Duration
@@ -21,8 +21,8 @@ type item struct {
 	expires time.Time
 }
 
-func New(ctx context.Context, encryptionKey string, expires time.Duration) *Storage {
-	storage := &Storage{
+func NewInMemory(ctx context.Context, encryptionKey string, expires time.Duration) *InMemory {
+	storage := &InMemory{
 		encryptionKey,
 		expires,
 		sync.Map{},
@@ -32,7 +32,7 @@ func New(ctx context.Context, encryptionKey string, expires time.Duration) *Stor
 	return storage
 }
 
-func (s *Storage) collect(ctx context.Context) {
+func (s *InMemory) collect(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -54,7 +54,7 @@ func (s *Storage) collect(ctx context.Context) {
 	}
 }
 
-func (s *Storage) Set(client, token string) error {
+func (s *InMemory) Set(client, token string) error {
 	encryptedBytes, err := crypto.EncryptBytesAES([]byte(token), s.encryptionKey)
 	if err != nil {
 		return fmt.Errorf("decrypt error: %w", err)
@@ -65,7 +65,7 @@ func (s *Storage) Set(client, token string) error {
 	return nil
 }
 
-func (s *Storage) Get(client string) (string, error) {
+func (s *InMemory) Get(client string) (string, error) {
 	data, ok := s.data.Load(client)
 	if !ok {
 		return "", ErrNotExists
@@ -91,6 +91,6 @@ func (s *Storage) Get(client string) (string, error) {
 	return string(token), nil
 }
 
-func (s *Storage) Delete(client string) {
+func (s *InMemory) Delete(client string) {
 	s.data.Delete(client)
 }

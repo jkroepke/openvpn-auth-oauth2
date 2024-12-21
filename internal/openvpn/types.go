@@ -10,7 +10,6 @@ import (
 	"sync/atomic"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
 )
 
@@ -24,7 +23,7 @@ type Client struct {
 	conn    net.Conn
 	scanner *bufio.Scanner
 	logger  *slog.Logger
-	oauth2  *oauth2.Provider
+	oauth2  oauth2Client
 
 	connMu sync.Mutex
 	closed atomic.Uint32
@@ -40,4 +39,9 @@ type Client struct {
 	passthroughCh     chan string
 
 	passthroughConnected atomic.Uint32
+}
+
+type oauth2Client interface {
+	RefreshClientAuth(ctx context.Context, logger *slog.Logger, client connection.Client) (bool, error)
+	ClientDisconnect(ctx context.Context, logger *slog.Logger, client connection.Client)
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
-func (p *Provider) CheckUser(
+func (p Provider) CheckUser(
 	ctx context.Context,
 	session state.State,
 	userData types.UserData,

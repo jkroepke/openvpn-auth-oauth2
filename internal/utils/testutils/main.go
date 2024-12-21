@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/http/cookiejar"
@@ -18,10 +19,13 @@ import (
 	"unicode"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/httphandler"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/github"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/google"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -214,6 +218,9 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener) (*httptest.
 	}))
 
 	resourceServer := httptest.NewServer(mux)
+	tb.Cleanup(func() {
+		resourceServer.Close()
+	})
 
 	resourceServerURL, err := url.Parse(resourceServer.URL)
 	if err != nil {
@@ -225,7 +232,7 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener) (*httptest.
 
 // SetupMockEnvironment setups an OpenVPN and IDP mock.
 func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config, rt http.RoundTripper) (
-	config.Config, *openvpn.Client, net.Listener, *oauth2.Provider, *httptest.Server, *http.Client, *Logger, func(),
+	config.Config, *openvpn.Client, net.Listener, *oauth2.Client, *httptest.Server, *http.Client, *Logger,
 ) {
 	tb.Helper()
 
@@ -234,10 +241,18 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 	managementInterface, err := nettest.NewLocalListener("tcp")
 	require.NoError(tb, err)
 
+	tb.Cleanup(func() {
+		managementInterface.Close()
+	})
+
 	clientListener, err := nettest.NewLocalListener("tcp")
 	require.NoError(tb, err)
 
-	resourceServer, resourceServerURL, clientCredentials, err := SetupResourceServer(tb, clientListener)
+	tb.Cleanup(func() {
+		clientListener.Close()
+	})
+
+	_, resourceServerURL, clientCredentials, err := SetupResourceServer(tb, clientListener)
 	require.NoError(tb, err)
 
 	conf.HTTP.BaseURL = &url.URL{Scheme: "http", Host: clientListener.Addr().String()}
@@ -259,10 +274,6 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 	conf.OAuth2.Issuer = resourceServerURL
 	conf.OAuth2.Nonce = false // not supported by the mock
 
-	if conf.OAuth2.Provider == "" {
-		conf.OAuth2.Provider = generic.Name
-	}
-
 	if conf.OAuth2.Client.ID == "" {
 		conf.OAuth2.Client.ID = clientCredentials.ID
 	}
@@ -276,16 +287,18 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 	}
 
 	httpClient := &http.Client{Transport: NewMockRoundTripper(utils.NewUserAgentTransport(rt))}
-	storageClient := storage.New(ctx, Secret, conf.OAuth2.Refresh.Expires)
-	provider := oauth2.New(logger.Logger, conf, storageClient, httpClient)
-	openvpnClient := openvpn.New(ctx, logger.Logger, conf, provider)
+	tokenStorage := tokenstorage.NewInMemory(ctx, Secret, conf.OAuth2.Refresh.Expires)
 
-	require.NoError(tb, provider.Initialize(ctx, openvpnClient))
+	oAuth2Client, openvpnClient := SetupOpenVPNOAuth2Clients(tb, ctx, conf, logger.Logger, httpClient, tokenStorage)
 
-	httpClientListener := httptest.NewUnstartedServer(provider.Handler())
+	httpHandler, err := httphandler.New(conf, oAuth2Client)
+	require.NoError(tb, err)
+
+	httpClientListener := httptest.NewUnstartedServer(httpHandler)
 	httpClientListener.Listener.Close()
 	httpClientListener.Listener = clientListener
 	httpClientListener.Start()
+	tb.Cleanup(httpClientListener.Close)
 
 	httpClientListenerClient := httpClientListener.Client()
 	httpClientListenerClient.Transport = httpClient.Transport
@@ -295,10 +308,49 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 
 	httpClientListenerClient.Jar = jar
 
-	return conf, openvpnClient, managementInterface, provider, httpClientListener, httpClientListenerClient, logger, func() {
-		defer managementInterface.Close()
-		defer clientListener.Close()
-		defer resourceServer.Close()
-		defer httpClientListener.Close()
+	return conf, openvpnClient, managementInterface, oAuth2Client, httpClientListener, httpClientListenerClient, logger
+}
+
+func SetupOpenVPNOAuth2Clients(
+	tb testing.TB, ctx context.Context, conf config.Config, logger *slog.Logger, httpClient *http.Client, tokenStorage tokenstorage.Storage,
+) (*oauth2.Client, *openvpn.Client) {
+	tb.Helper()
+
+	var (
+		err      error
+		provider oauth2.Provider
+	)
+
+	if conf.OAuth2.Provider == "" {
+		conf.OAuth2.Provider = generic.Name
 	}
+
+	if conf.OAuth2.Issuer == nil {
+		conf.OAuth2.Issuer = &url.URL{Scheme: "http", Host: "example.com"}
+		conf.OAuth2.Endpoints.Auth = &url.URL{Scheme: "http", Host: "example.com", Path: "/auth"}
+		conf.OAuth2.Endpoints.Token = &url.URL{Scheme: "http", Host: "example.com", Path: "/token"}
+	}
+
+	switch conf.OAuth2.Provider {
+	case generic.Name:
+		provider, err = generic.NewProvider(ctx, conf, httpClient)
+	case github.Name:
+		provider, err = github.NewProvider(ctx, conf, httpClient)
+	case google.Name:
+		provider, err = google.NewProvider(ctx, conf, httpClient)
+	default:
+		tb.Fatal("unknown oauth2 provider: " + conf.OAuth2.Provider)
+	}
+
+	require.NoError(tb, err)
+
+	openVPNClient := openvpn.New(ctx, logger, conf)
+	oauth2Client, err := oauth2.New(ctx, logger, conf, httpClient, tokenStorage, provider, openVPNClient)
+	require.NoError(tb, err)
+
+	openVPNClient.SetOAuth2Client(oauth2Client)
+
+	tb.Cleanup(openVPNClient.Shutdown)
+
+	return oauth2Client, openVPNClient
 }

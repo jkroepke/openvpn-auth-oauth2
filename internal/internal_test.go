@@ -20,8 +20,7 @@ import (
 func BenchmarkFull(b *testing.B) {
 	b.StopTimer()
 
-	_, client, managementInterface, _, _, httpClient, _, shutdownFn := testutils.SetupMockEnvironment(context.Background(), b, config.Config{}, nil)
-	defer shutdownFn()
+	_, client, managementInterface, _, _, httpClient, _ := testutils.SetupMockEnvironment(context.Background(), b, config.Config{}, nil)
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)

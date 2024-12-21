@@ -15,18 +15,16 @@ import (
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
 const minManagementInterfaceVersion = 5
 
-func New(ctx context.Context, logger *slog.Logger, conf config.Config, oauth2Client *oauth2.Provider) *Client {
+func New(ctx context.Context, logger *slog.Logger, conf config.Config) *Client {
 	client := &Client{
 		conf:   conf,
 		logger: logger,
-		oauth2: oauth2Client,
 
 		connMu: sync.Mutex{},
 
@@ -43,6 +41,10 @@ func New(ctx context.Context, logger *slog.Logger, conf config.Config, oauth2Cli
 	client.ctx, client.ctxCancel = context.WithCancelCause(ctx)
 
 	return client
+}
+
+func (c *Client) SetOAuth2Client(client oauth2Client) {
+	c.oauth2 = client
 }
 
 func (c *Client) Connect() error {

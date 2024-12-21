@@ -16,51 +16,33 @@ import (
 	"syscall"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/httphandler"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/httpserver"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/github"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/google"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
 // Execute runs the main program logic of openvpn-auth-oauth2.
-//
-//nolint:cyclop
 func Execute(args []string, logWriter io.Writer, version, commit, date string) int {
-	var err error
-
-	logger := defaultLogger(logWriter)
-
-	flagSet := config.FlagSet(args[0])
-	flagSet.SetOutput(logWriter)
-
-	if err = flagSet.Parse(args[1:]); err != nil {
+	conf, err := configure(args, logWriter, version, commit, date)
+	if err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return 0
 		}
 
-		logger.Error(fmt.Errorf("error parsing cli args: %w", err).Error())
+		_, _ = fmt.Fprintln(logWriter, err.Error())
 
 		return 1
 	}
 
-	if flagSet.Lookup("version").Value.String() == "true" {
-		_, _ = fmt.Fprintf(logWriter, "version: %s\ncommit: %s\ndate: %s\ngo: %s\n", version, commit, date, runtime.Version())
-
-		return 0
-	}
-
-	conf, err := config.Load(config.ManagementClient, flagSet.Lookup("config").Value.String(), flagSet)
+	logger, err := configureLogger(conf, logWriter)
 	if err != nil {
-		logger.Error(fmt.Errorf("error loading config: %w", err).Error())
-
-		return 1
-	}
-
-	logger, err = configureLogger(conf, logWriter)
-	if err != nil {
-		logger = defaultLogger(logWriter)
-		logger.Error(fmt.Errorf("error configure logging: %w", err).Error())
+		_, _ = fmt.Fprintln(logWriter, fmt.Errorf("error configure logging: %w", err).Error())
 
 		return 1
 	}
@@ -69,11 +51,41 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 	defer cancel(nil)
 
 	httpClient := &http.Client{Transport: utils.NewUserAgentTransport(http.DefaultTransport)}
-	storageClient := storage.New(ctx, conf.OAuth2.Refresh.Secret.String(), conf.OAuth2.Refresh.Expires)
-	oauth2Client := oauth2.New(logger, conf, storageClient, httpClient)
-	openvpnClient := openvpn.New(ctx, logger, conf, oauth2Client)
+	tokenStorage := tokenstorage.NewInMemory(ctx, conf.OAuth2.Refresh.Secret.String(), conf.OAuth2.Refresh.Expires)
 
-	if err = oauth2Client.Initialize(ctx, openvpnClient); err != nil {
+	var provider oauth2.Provider
+
+	switch conf.OAuth2.Provider {
+	case generic.Name:
+		provider, err = generic.NewProvider(ctx, conf, httpClient)
+	case github.Name:
+		provider, err = github.NewProvider(ctx, conf, httpClient)
+	case google.Name:
+		provider, err = google.NewProvider(ctx, conf, httpClient)
+	default:
+		err = errors.New("unknown oauth2 provider: " + conf.OAuth2.Provider)
+
+		return 1
+	}
+
+	if err != nil {
+		logger.Error(err.Error())
+
+		return 1
+	}
+
+	openvpnClient := openvpn.New(ctx, logger, conf)
+
+	oauth2Client, err := oauth2.New(ctx, logger, conf, httpClient, tokenStorage, provider, openvpnClient)
+	if err != nil {
+		logger.Error(err.Error())
+
+		return 1
+	}
+
+	openvpnClient.SetOAuth2Client(oauth2Client)
+	httpHandler, err := httphandler.New(conf, oauth2Client)
+	if err != nil {
 		logger.Error(err.Error())
 
 		return 1
@@ -92,7 +104,7 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 		}()
 	}
 
-	server := httpserver.NewHTTPServer(httpserver.ServerNameDefault, logger, conf.HTTP, oauth2Client.Handler())
+	server := httpserver.NewHTTPServer(httpserver.ServerNameDefault, logger, conf.HTTP, httpHandler)
 
 	wg.Add(1)
 
@@ -177,10 +189,27 @@ func setupDebugListener(ctx context.Context, logger *slog.Logger, conf config.Co
 	return nil
 }
 
-func defaultLogger(writer io.Writer) *slog.Logger {
-	return slog.New(slog.NewTextHandler(writer, &slog.HandlerOptions{
-		AddSource: false,
-	}))
+// configure parses the command line arguments and loads the configuration.
+func configure(args []string, logWriter io.Writer, version, commit, date string) (config.Config, error) {
+	flagSet := config.FlagSet(args[0])
+	flagSet.SetOutput(logWriter)
+
+	if err := flagSet.Parse(args[1:]); err != nil {
+		return config.Config{}, fmt.Errorf("error parsing cli args: %w", err)
+	}
+
+	if flagSet.Lookup("version").Value.String() == "true" {
+		_, _ = fmt.Fprintf(logWriter, "version: %s\ncommit: %s\ndate: %s\ngo: %s\n", version, commit, date, runtime.Version())
+
+		return config.Config{}, flag.ErrHelp
+	}
+
+	conf, err := config.Load(config.ManagementClient, flagSet.Lookup("config").Value.String(), flagSet)
+	if err != nil {
+		return config.Config{}, fmt.Errorf("error loading config: %w", err)
+	}
+
+	return conf, nil
 }
 
 func configureLogger(conf config.Config, writer io.Writer) (*slog.Logger, error) {

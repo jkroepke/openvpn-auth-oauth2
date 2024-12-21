@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	oauth3 "github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/google"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
@@ -81,7 +81,7 @@ func TestValidateGroups(t *testing.T) {
 			"configure two group, none match",
 			`{"memberships": [{"name": "groups/000000000000002/memberships/123456789101112131416", "memberKey": {"id": "user@example.com"}, "roles": [{"name": "MEMBER"}], "preferredMemberKey": {"id": "user@example.com"}}], "nextPageToken": ""}`,
 			[]string{"000000000000000", "000000000000001"},
-			generic.ErrMissingRequiredGroup.Error(),
+			oauth3.ErrMissingRequiredGroup.Error(),
 		},
 		{
 			"configure two group, missing one",

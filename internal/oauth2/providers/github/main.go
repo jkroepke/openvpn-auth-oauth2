@@ -16,18 +16,18 @@ type Provider struct {
 	httpClient *http.Client
 }
 
-func NewProvider(ctx context.Context, conf config.Config, httpClient *http.Client) (*Provider, error) {
+func NewProvider(ctx context.Context, conf config.Config, httpClient *http.Client) (Provider, error) {
 	provider, err := generic.NewProvider(ctx, conf, httpClient)
 	if err != nil {
-		return nil, fmt.Errorf("error creating generic provider: %w", err)
+		return Provider{}, fmt.Errorf("error creating generic provider: %w", err)
 	}
 
-	return &Provider{
+	return Provider{
 		Provider:   provider,
 		httpClient: httpClient,
 	}, nil
 }
 
-func (p *Provider) GetName() string {
+func (p Provider) GetName() string {
 	return Name
 }

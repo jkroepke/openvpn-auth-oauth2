@@ -3,6 +3,7 @@ package httpserver
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
@@ -76,15 +77,15 @@ func (s *Server) Listen(ctx context.Context) error {
 	case err := <-errCh:
 		return fmt.Errorf("error http %s listening: %w", s.name, err)
 	case <-ctx.Done():
-		s.logger.InfoContext(ctx, fmt.Sprintf("start graceful shutdown of http %s listener", s.name))
+		s.logger.LogAttrs(ctx, slog.LevelInfo, fmt.Sprintf("start graceful shutdown of http %s listener", s.name))
 
 		if err := s.shutdown(); err != nil { //nolint:contextcheck
-			s.logger.ErrorContext(ctx, fmt.Errorf("error graceful shutdown %s: %w", s.name, err).Error())
+			s.logger.LogAttrs(ctx, slog.LevelError, fmt.Errorf("error graceful shutdown %s: %w", s.name, err).Error())
 
 			return nil
 		}
 
-		s.logger.InfoContext(ctx, fmt.Sprintf("http %s listener successfully terminated", s.name))
+		s.logger.LogAttrs(ctx, slog.LevelInfo, fmt.Sprintf("http %s listener successfully terminated", s.name))
 	}
 
 	return nil
@@ -114,7 +115,7 @@ func (s *Server) serve() error {
 	}
 
 	if s.conf.TLS {
-		s.logger.Info(fmt.Sprintf(
+		s.logger.LogAttrs(context.Background(), slog.LevelInfo, fmt.Sprintf(
 			"start HTTPS %s listener on %s", s.name, listener.Addr().String(),
 		))
 
@@ -129,7 +130,7 @@ func (s *Server) serve() error {
 		"start HTTP %s listener on %s", s.name, listener.Addr().String(),
 	))
 
-	if err = s.server.Serve(listener); err != nil {
+	if err = s.server.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("http.Serve: %w", err)
 	}
 
@@ -173,7 +174,7 @@ func (s *Server) shutdown() error {
 		return fmt.Errorf("http %s server is nil", s.name)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	s.server.RegisterOnShutdown(cancel)
 
 	return s.server.Shutdown(ctx) //nolint:wrapcheck

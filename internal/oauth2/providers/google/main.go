@@ -28,6 +28,6 @@ func NewProvider(ctx context.Context, conf config.Config, httpClient *http.Clien
 	}, nil
 }
 
-func (p *Provider) GetName() string {
+func (p Provider) GetName() string {
 	return Name
 }

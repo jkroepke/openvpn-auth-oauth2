@@ -22,7 +22,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -106,8 +106,8 @@ func TestPassthroughFull(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			storageClient := storage.New(ctx, testutils.Secret, time.Hour)
-			provider := oauth2.New(logger.Logger, tt.conf, storageClient, http.DefaultClient)
+			tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
+			provider := oauth2.New(context.Background(), logger.Logger, tt.conf, http.DefaultClient, tokenStorage, nil)
 			openVPNClient := openvpn.New(ctx, logger.Logger, tt.conf, provider)
 
 			defer openVPNClient.Shutdown()

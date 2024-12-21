@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/zitadel/logging"
@@ -13,20 +14,20 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
-func (p *Provider) GetRefreshToken(tokens *oidc.Tokens[*idtoken.Claims]) (string, error) {
+func (p Provider) GetRefreshToken(tokens *oidc.Tokens[*idtoken.Claims]) (string, error) {
 	if tokens == nil {
-		return "", errors.New("no tokens provided")
+		return "", oauth2.ErrMissingToken
 	}
 
 	if tokens.RefreshToken == "" {
-		return "", types.ErrNoRefreshToken
+		return "", oauth2.ErrNoRefreshToken
 	}
 
 	return tokens.RefreshToken, nil
 }
 
 // Refresh initiates a non-interactive authentication against the sso provider.
-func (p *Provider) Refresh(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, refreshToken string) (*oidc.Tokens[*idtoken.Claims], error) {
+func (p Provider) Refresh(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, refreshToken string) (*oidc.Tokens[*idtoken.Claims], error) {
 	ctx = logging.ToContext(ctx, logger)
 
 	tokens, err := rp.RefreshTokens[*idtoken.Claims](ctx, relyingParty, refreshToken, "", "")
@@ -42,18 +43,18 @@ func (p *Provider) Refresh(ctx context.Context, logger *slog.Logger, relyingPart
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("error from token exchange: %w", err)
+		return nil, fmt.Errorf("error from token exchange via refresh token: %w", err)
 	}
 
 	return tokens, nil
 }
 
-func (p *Provider) RevokeRefreshToken(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, refreshToken string) error {
+func (p Provider) RevokeRefreshToken(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, refreshToken string) error {
 	ctx = logging.ToContext(ctx, logger)
 
 	err := rp.RevokeToken(ctx, relyingParty, refreshToken, "refresh_token")
 	if err != nil && !errors.Is(err, rp.ErrRelyingPartyNotSupportRevokeCaller) {
-		return fmt.Errorf("error from revoke token: %w", err)
+		return fmt.Errorf("error revoke refresh token: %w", err)
 	}
 
 	return nil

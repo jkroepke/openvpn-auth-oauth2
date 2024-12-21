@@ -9,6 +9,6 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
-func (p *Provider) GetUser(ctx context.Context, logger *slog.Logger, tokens *oidc.Tokens[*idtoken.Claims]) (types.UserData, error) {
+func (p Provider) GetUser(ctx context.Context, logger *slog.Logger, tokens *oidc.Tokens[*idtoken.Claims]) (types.UserData, error) {
 	return p.Provider.GetUser(ctx, logger, tokens) //nolint:wrapcheck
 }

@@ -2,22 +2,15 @@ package oauth2
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"log/slog"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/github"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/google"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
 	"github.com/zitadel/logging"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
 	httphelper "github.com/zitadel/oidc/v3/pkg/http"
@@ -25,130 +18,133 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// New returns a [Provider] instance.
-func New(logger *slog.Logger, conf config.Config, storageClient *storage.Storage, httpClient *http.Client) *Provider {
-	return &Provider{
-		storage:    storageClient,
-		conf:       conf,
-		logger:     logger,
-		httpClient: httpClient,
-	}
-}
-
-// Initialize initiate the discovery of OIDC provider.
-func (p *Provider) Initialize(ctx context.Context, openvpn OpenVPN) error {
-	var err error
-
-	p.openvpn = openvpn
-
-	p.Provider, err = newOidcProvider(ctx, p.conf, p.httpClient)
+// New returns a [Client] instance.
+func New(ctx context.Context, logger *slog.Logger, conf config.Config, httpClient *http.Client, tokenStorage tokenstorage.Storage,
+	provider Provider, openvpn openvpnManagementClient,
+) (*Client, error) {
+	providerConfig, err := provider.GetProviderConfig()
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("error fetch configuration for provider %s: %w", provider.GetName(), err)
 	}
 
-	providerConfig, err := p.Provider.GetProviderConfig(p.conf)
+	c := &Client{
+		storage:         tokenStorage,
+		openvpn:         openvpn,
+		conf:            conf,
+		logger:          logger,
+		provider:        provider,
+		authorizeParams: make([]rp.URLParamOpt, 0, len(conf.OAuth2.AuthorizeParams)+len(providerConfig.AuthCodeOptions)+1), // +1 for nonce
+	}
+
+	authorizeParams, err := getAuthorizeParams(conf.OAuth2.AuthorizeParams)
 	if err != nil {
-		return fmt.Errorf("error getting providerConfig: %w", err)
+		return nil, fmt.Errorf("error parsing authorize params: %w", err)
 	}
 
-	p.authorizeParams = make([]rp.URLParamOpt, len(p.conf.OAuth2.AuthorizeParams)+len(providerConfig.AuthCodeOptions))
-
-	p.authorizeParams, err = GetAuthorizeParams(p.conf.OAuth2.AuthorizeParams)
-	if err != nil {
-		return err
-	}
+	c.authorizeParams = append(c.authorizeParams, authorizeParams...)
 
 	if providerConfig.AuthCodeOptions != nil {
-		p.authorizeParams = append(p.authorizeParams, func() []oauth2.AuthCodeOption {
+		c.authorizeParams = append(c.authorizeParams, func() []oauth2.AuthCodeOption {
 			return providerConfig.AuthCodeOptions
 		})
 	}
 
-	basePath := p.conf.HTTP.BaseURL.JoinPath("/oauth2/")
-	redirectURI := basePath.JoinPath("/callback").String()
-	options := p.getProviderOptions(basePath)
+	options := c.getRelyingPartyOptions(httpClient)
 
-	scopes := p.conf.OAuth2.Scopes
+	scopes := conf.OAuth2.Scopes
 	if len(scopes) == 0 {
 		scopes = providerConfig.Scopes
 	}
 
 	if providerConfig.Endpoint == (oauth2.Endpoint{}) {
-		if !config.IsURLEmpty(p.conf.OAuth2.Endpoints.Discovery) {
-			p.logger.InfoContext(ctx, fmt.Sprintf(
-				"discover oidc auto configuration with provider %s for issuer %s with custom discovery url %s",
-				p.Provider.GetName(), p.conf.OAuth2.Issuer.String(), p.conf.OAuth2.Endpoints.Discovery.String(),
-			))
-
-			options = append(options, rp.WithCustomDiscoveryUrl(p.conf.OAuth2.Endpoints.Discovery.String()))
-		} else {
-			p.logger.InfoContext(ctx, fmt.Sprintf(
-				"discover oidc auto configuration with provider %s for issuer %s",
-				p.Provider.GetName(), p.conf.OAuth2.Issuer.String(),
-			))
+		c.relyingParty, err = newOIDCRelyingParty(ctx, logger, conf, provider, scopes, options)
+		if err != nil {
+			return nil, fmt.Errorf("error oidc provider: %w", err)
 		}
-
-		p.RelyingParty, err = rp.NewRelyingPartyOIDC(
-			logging.ToContext(ctx, p.logger),
-			p.conf.OAuth2.Issuer.String(),
-			p.conf.OAuth2.Client.ID,
-			p.conf.OAuth2.Client.Secret.String(),
-			redirectURI,
-			scopes,
-			options...,
-		)
 	} else {
-		p.logger.InfoContext(ctx, fmt.Sprintf(
-			"manually configure oauth2 provider with provider %s and providerConfig %s and %s",
-			p.Provider.GetName(), providerConfig.AuthURL, providerConfig.TokenURL,
-		))
+		c.relyingParty, err = newOAuthRelyingParty(ctx, logger, conf, provider, scopes, options, providerConfig)
 
-		if p.Provider.GetName() == generic.Name {
-			p.logger.WarnContext(ctx, "generic provider with manual configuration is used. Validation of user data is not possible.")
+		if err != nil {
+			return nil, fmt.Errorf("error oauth2 provider: %w", err)
 		}
-
-		rpConfig := &oauth2.Config{
-			ClientID:     p.conf.OAuth2.Client.ID,
-			ClientSecret: p.conf.OAuth2.Client.Secret.String(),
-			RedirectURL:  redirectURI,
-			Scopes:       scopes,
-			Endpoint:     providerConfig.Endpoint,
-		}
-
-		p.RelyingParty, err = rp.NewRelyingPartyOAuth(rpConfig, options...)
 	}
 
-	if err != nil {
-		return fmt.Errorf("error oauth2 provider: %w", err)
-	}
-
-	return nil
+	return c, nil
 }
 
-func (p *Provider) getProviderOptions(basePath *url.URL) []rp.Option {
-	cookieKey := []byte(p.conf.HTTP.Secret)
+// newOIDCRelyingParty creates a new [rp.NewRelyingPartyOIDC]. This is used for providers that support OIDC.
+func newOIDCRelyingParty(ctx context.Context, logger *slog.Logger, conf config.Config, provider Provider, scopes []string, options []rp.Option) (rp.RelyingParty, error) {
+	if !config.IsURLEmpty(conf.OAuth2.Endpoints.Discovery) {
+		logger.Log(ctx, slog.LevelInfo, fmt.Sprintf(
+			"discover oidc auto configuration with provider %s for issuer %s with custom discovery url %s",
+			provider.GetName(), conf.OAuth2.Issuer.String(), conf.OAuth2.Endpoints.Discovery.String(),
+		))
+
+		options = append(options, rp.WithCustomDiscoveryUrl(conf.OAuth2.Endpoints.Discovery.String()))
+	} else {
+		logger.Log(ctx, slog.LevelInfo, fmt.Sprintf(
+			"discover oidc auto configuration with provider %s for issuer %s",
+			provider.GetName(), conf.OAuth2.Issuer.String(),
+		))
+	}
+
+	return rp.NewRelyingPartyOIDC(
+		logging.ToContext(ctx, logger),
+		conf.OAuth2.Issuer.String(),
+		conf.OAuth2.Client.ID,
+		conf.OAuth2.Client.Secret.String(),
+		conf.HTTP.BaseURL.JoinPath("/oauth2/callback").String(),
+		scopes,
+		options...,
+	)
+}
+
+// newOAuthRelyingParty creates a new [rp.NewRelyingPartyOAuth]. This is used for providers that do not support OIDC.
+func newOAuthRelyingParty(ctx context.Context, logger *slog.Logger, conf config.Config, provider Provider, scopes []string, options []rp.Option, providerConfig types.ProviderConfig) (rp.RelyingParty, error) {
+	logger.Log(ctx, slog.LevelInfo, fmt.Sprintf(
+		"manually configure oauth2 provider with provider %s and providerConfig %s and %s",
+		provider.GetName(), providerConfig.AuthURL, providerConfig.TokenURL,
+	))
+
+	if provider.GetName() == "generic" {
+		logger.Log(ctx, slog.LevelWarn, "generic provider with manual configuration is used. Validation of user data is not possible.")
+	}
+
+	return rp.NewRelyingPartyOAuth(&oauth2.Config{
+		ClientID:     conf.OAuth2.Client.ID,
+		ClientSecret: conf.OAuth2.Client.Secret.String(),
+		RedirectURL:  conf.HTTP.BaseURL.JoinPath("/oauth2/callback").String(),
+		Scopes:       scopes,
+		Endpoint:     providerConfig.Endpoint,
+	}, options...)
+}
+
+func (c Client) getRelyingPartyOptions(httpClient *http.Client) []rp.Option {
+	basePath := c.conf.HTTP.BaseURL.JoinPath("/oauth2/")
+	cookieKey := []byte(c.conf.HTTP.Secret)
 	cookieOpt := []httphelper.CookieHandlerOpt{
-		httphelper.WithMaxAge(int(p.conf.OpenVpn.AuthPendingTimeout.Seconds()) + 5),
+		httphelper.WithMaxAge(int(c.conf.OpenVpn.AuthPendingTimeout.Seconds()) + 5),
 		httphelper.WithPath(fmt.Sprintf("/%s/", strings.Trim(basePath.Path, "/"))),
 		httphelper.WithDomain(basePath.Hostname()),
 	}
 
-	if p.conf.HTTP.BaseURL.Scheme == "http" {
+	if c.conf.HTTP.BaseURL.Scheme == "http" {
 		cookieOpt = append(cookieOpt, httphelper.WithUnsecure())
 	}
 
 	cookieHandler := httphelper.NewCookieHandler(cookieKey, cookieKey, cookieOpt...)
 
-	verifierOpts := []rp.VerifierOption{
-		rp.WithIssuedAtMaxAge(30 * time.Minute),
-		rp.WithIssuedAtOffset(5 * time.Second),
+	verifierOpts := make([]rp.VerifierOption, 0, 4)
+	verifierOpts = append(verifierOpts,
+		rp.WithIssuedAtMaxAge(30*time.Minute),
+		rp.WithIssuedAtOffset(5*time.Second),
+	)
+
+	if c.conf.OAuth2.Validate.Acr != nil {
+		verifierOpts = append(verifierOpts, rp.WithACRVerifier(oidc.DefaultACRVerifier(c.conf.OAuth2.Validate.Acr)))
 	}
 
-	if p.conf.OAuth2.Validate.Acr != nil {
-		verifierOpts = append(verifierOpts, rp.WithACRVerifier(oidc.DefaultACRVerifier(p.conf.OAuth2.Validate.Acr)))
-	}
-
-	if p.conf.OAuth2.Nonce {
+	if c.conf.OAuth2.Nonce {
 		verifierOpts = append(verifierOpts, rp.WithNonce(func(ctx context.Context) string {
 			if nonce, ok := ctx.Value(types.CtxNonce{}).(string); ok {
 				return nonce
@@ -158,99 +154,25 @@ func (p *Provider) getProviderOptions(basePath *url.URL) []rp.Option {
 		}))
 	}
 
-	options := []rp.Option{
-		rp.WithLogger(p.logger),
+	options := make([]rp.Option, 0, 9)
+	options = append(options,
+		rp.WithAuthStyle(c.conf.OAuth2.AuthStyle.AuthStyle()),
+		rp.WithSigningAlgsFromDiscovery(),
+		rp.WithLogger(c.logger),
 		rp.WithCookieHandler(cookieHandler),
 		rp.WithVerifierOpts(verifierOpts...),
-		rp.WithAuthStyle(p.conf.OAuth2.AuthStyle.AuthStyle()),
-		rp.WithHTTPClient(p.httpClient),
-		rp.WithErrorHandler(func(w http.ResponseWriter, _ *http.Request, errorType string, errorDesc string, encryptedSession string) {
-			p.errorHandler(w, http.StatusInternalServerError, errorType, errorDesc, encryptedSession)
+		rp.WithHTTPClient(httpClient),
+		rp.WithErrorHandler(func(w http.ResponseWriter, _ *http.Request, errorType, errorDesc, encryptedSession string) {
+			c.httpErrorHandler(w, http.StatusInternalServerError, errorType, errorDesc, encryptedSession)
 		}),
-		rp.WithUnauthorizedHandler(func(w http.ResponseWriter, _ *http.Request, desc string, encryptedSession string) {
-			p.errorHandler(w, http.StatusUnauthorized, "Unauthorized", desc, encryptedSession)
+		rp.WithUnauthorizedHandler(func(w http.ResponseWriter, _ *http.Request, errorDesc, encryptedSession string) {
+			c.httpErrorHandler(w, http.StatusUnauthorized, "Unauthorized", errorDesc, encryptedSession)
 		}),
-		rp.WithSigningAlgsFromDiscovery(),
-	}
+	)
 
-	if p.conf.OAuth2.PKCE {
+	if c.conf.OAuth2.PKCE {
 		options = append(options, rp.WithPKCE(cookieHandler))
 	}
 
 	return options
-}
-
-func GetAuthorizeParams(authorizeParams string) ([]rp.URLParamOpt, error) {
-	authorizeParamsQuery, err := url.ParseQuery(authorizeParams)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse '%s': %w", authorizeParams, err)
-	}
-
-	params := make([]rp.URLParamOpt, len(authorizeParamsQuery))
-
-	var i int
-
-	for key, value := range authorizeParamsQuery {
-		if len(value) == 0 {
-			return nil, fmt.Errorf("authorize param %s does not have values", key)
-		}
-
-		params[i] = rp.WithURLParam(key, value[0])
-		i++
-	}
-
-	return params, nil
-}
-
-func newOidcProvider(ctx context.Context, conf config.Config, httpClient *http.Client) (oidcProvider, error) {
-	var (
-		err      error
-		provider oidcProvider
-	)
-
-	switch conf.OAuth2.Provider {
-	case generic.Name:
-		provider, err = generic.NewProvider(ctx, conf, httpClient)
-	case github.Name:
-		provider, err = github.NewProvider(ctx, conf, httpClient)
-	case google.Name:
-		provider, err = google.NewProvider(ctx, conf, httpClient)
-	default:
-		return nil, fmt.Errorf("unknown oauth2 provider: %s", conf.OAuth2.Provider)
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("error creating oauth2 provider: %w", err)
-	}
-
-	return provider, nil
-}
-
-func (p *Provider) errorHandler(
-	w http.ResponseWriter,
-	httpStatus int, errorType, errorDesc, encryptedSession string,
-) {
-	session, err := state.NewWithEncodedToken(encryptedSession, p.conf.HTTP.Secret.String())
-	if err == nil {
-		logger := p.logger.With(
-			slog.String("ip", fmt.Sprintf("%s:%s", session.IPAddr, session.IPPort)),
-			slog.Uint64("cid", session.Client.CID),
-			slog.Uint64("kid", session.Client.KID),
-			slog.String("common_name", session.CommonName),
-		)
-		p.openvpn.DenyClient(logger, session.Client, "client rejected")
-	} else {
-		p.logger.Debug("errorHandler: " + err.Error())
-	}
-
-	writeError(w, p.logger, p.conf, httpStatus, errorType, errorDesc)
-}
-
-func (p *Provider) GetNonce(id string) string {
-	bs := make([]byte, 0, len(id)+len(p.conf.HTTP.Secret.String()))
-	bs = append(bs, []byte(id)...)
-	bs = append(bs, p.conf.HTTP.Secret.String()...)
-	nonce := sha256.Sum256(bs)
-
-	return hex.EncodeToString(nonce[:])
 }
