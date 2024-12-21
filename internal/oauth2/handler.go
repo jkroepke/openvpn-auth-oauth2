@@ -75,18 +75,20 @@ func (c Client) OAuth2Start() http.Handler {
 
 		logger.LogAttrs(r.Context(), slog.LevelInfo, "initialize authorization via oauth2")
 
+		authorizeParams := c.authorizeParams
+
 		if c.conf.OAuth2.Nonce {
 			id := strconv.FormatUint(session.Client.CID, 10)
 			if c.conf.OAuth2.Refresh.UseSessionID && session.Client.SessionID != "" {
 				id = session.Client.SessionID
 			}
 
-			c.authorizeParams = append(c.authorizeParams, rp.WithURLParam("nonce", c.getNonce(id)))
+			authorizeParams = append(authorizeParams, rp.WithURLParam("nonce", c.getNonce(id)))
 		}
 
 		rp.AuthURLHandler(func() string {
 			return sessionState
-		}, c.relyingParty, c.authorizeParams...).ServeHTTP(w, r)
+		}, c.relyingParty, authorizeParams...).ServeHTTP(w, r)
 	})
 }
 
