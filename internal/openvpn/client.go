@@ -25,7 +25,7 @@ func (c *Client) processClient(client connection.Client) error {
 		slog.String("session_state", client.SessionState),
 	)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(c.ctx, 30*time.Second)
 	defer cancel()
 
 	switch client.Reason {
@@ -175,5 +175,5 @@ func (c *Client) clientEstablished(ctx context.Context, logger *slog.Logger, cli
 func (c *Client) clientDisconnect(ctx context.Context, logger *slog.Logger, client connection.Client) {
 	logger.LogAttrs(ctx, slog.LevelInfo, "client disconnected")
 
-	c.oauth2.ClientDisconnect(c.ctx, logger, client)
+	c.oauth2.ClientDisconnect(ctx, logger, client)
 }
