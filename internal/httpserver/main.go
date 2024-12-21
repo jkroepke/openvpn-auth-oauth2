@@ -70,7 +70,7 @@ func (s *Server) Listen(ctx context.Context) error {
 	}
 
 	go func() {
-		errCh <- s.serve()
+		errCh <- s.serve(ctx)
 	}()
 
 	select {
@@ -91,7 +91,7 @@ func (s *Server) Listen(ctx context.Context) error {
 	return nil
 }
 
-func (s *Server) serve() error {
+func (s *Server) serve(ctx context.Context) error {
 	if s.server == nil {
 		return fmt.Errorf("http %s server is nil", s.name)
 	}
@@ -115,7 +115,7 @@ func (s *Server) serve() error {
 	}
 
 	if s.conf.TLS {
-		s.logger.LogAttrs(context.Background(), slog.LevelInfo, fmt.Sprintf(
+		s.logger.LogAttrs(ctx, slog.LevelInfo, fmt.Sprintf(
 			"start HTTPS %s listener on %s", s.name, listener.Addr().String(),
 		))
 
@@ -126,7 +126,7 @@ func (s *Server) serve() error {
 		return nil
 	}
 
-	s.logger.Info(fmt.Sprintf(
+	s.logger.LogAttrs(ctx, slog.LevelInfo, fmt.Sprintf(
 		"start HTTP %s listener on %s", s.name, listener.Addr().String(),
 	))
 
