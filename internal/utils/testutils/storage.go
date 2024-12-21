@@ -15,5 +15,5 @@ func (FakeStorage) Set(_, _ string) error {
 }
 
 func (FakeStorage) Delete(_ string) {
-	return
+
 }

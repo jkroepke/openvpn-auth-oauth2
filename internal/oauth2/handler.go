@@ -183,7 +183,9 @@ func (c Client) postCodeExchangeHandler(logger *slog.Logger, session state.State
 	}
 }
 
-func (c Client) postCodeExchangeHandlerStoreRefreshToken(ctx context.Context, logger *slog.Logger, session state.State, clientID string, tokens *oidc.Tokens[*idtoken.Claims]) {
+func (c Client) postCodeExchangeHandlerStoreRefreshToken(
+	ctx context.Context, logger *slog.Logger, session state.State, clientID string, tokens *oidc.Tokens[*idtoken.Claims],
+) {
 	if !c.conf.OAuth2.Refresh.Enabled {
 		return
 	}
@@ -199,6 +201,7 @@ func (c Client) postCodeExchangeHandlerStoreRefreshToken(ctx context.Context, lo
 	refreshToken, err := c.provider.GetRefreshToken(tokens)
 	if err != nil {
 		logLevel := slog.LevelWarn
+
 		if errors.Is(err, ErrNoRefreshToken) {
 			if session.SessionState == "AuthenticatedEmptyUser" || session.SessionState == "Authenticated" {
 				logLevel = slog.LevelDebug
@@ -217,7 +220,7 @@ func (c Client) postCodeExchangeHandlerStoreRefreshToken(ctx context.Context, lo
 	}
 }
 
-func (c Client) httpErrorHandler(w http.ResponseWriter, httpStatus int, errorType string, errorDesc string, encryptedSession string) {
+func (c Client) httpErrorHandler(w http.ResponseWriter, httpStatus int, errorType, errorDesc, encryptedSession string) {
 	logger := c.logger
 
 	session, err := state.NewWithEncodedToken(encryptedSession, c.conf.HTTP.Secret.String())

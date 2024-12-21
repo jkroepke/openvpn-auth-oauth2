@@ -84,6 +84,7 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 	}
 
 	openvpnClient.SetOAuth2Client(oauth2Client)
+
 	httpHandler, err := httphandler.New(conf, oauth2Client)
 	if err != nil {
 		logger.Error(err.Error())

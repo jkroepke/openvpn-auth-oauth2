@@ -13,9 +13,9 @@ func NewFakeOpenVPNClient() FakeOpenVPNClient {
 }
 
 func (FakeOpenVPNClient) AcceptClient(_ *slog.Logger, _ state.ClientIdentifier, _ string) {
-	return
+
 }
 
 func (FakeOpenVPNClient) DenyClient(_ *slog.Logger, _ state.ClientIdentifier, _ string) {
-	return
+
 }

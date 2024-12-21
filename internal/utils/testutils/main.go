@@ -218,6 +218,7 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener) (*httptest.
 	}))
 
 	resourceServer := httptest.NewServer(mux)
+
 	tb.Cleanup(func() {
 		resourceServer.Close()
 	})
@@ -325,7 +326,7 @@ func SetupOpenVPNOAuth2Clients(
 		conf.OAuth2.Provider = generic.Name
 	}
 
-	if conf.OAuth2.Issuer == nil {
+	if config.IsURLEmpty(conf.OAuth2.Issuer) {
 		conf.OAuth2.Issuer = &url.URL{Scheme: "http", Host: "example.com"}
 		conf.OAuth2.Endpoints.Auth = &url.URL{Scheme: "http", Host: "example.com", Path: "/auth"}
 		conf.OAuth2.Endpoints.Token = &url.URL{Scheme: "http", Host: "example.com", Path: "/token"}

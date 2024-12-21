@@ -69,6 +69,7 @@ func (c Client) RefreshClientAuth(ctx context.Context, logger *slog.Logger, clie
 	refreshToken, err = c.provider.GetRefreshToken(tokens)
 	if err != nil {
 		logLevel := slog.LevelWarn
+
 		if errors.Is(err, ErrNoRefreshToken) {
 			if session.SessionState == "AuthenticatedEmptyUser" || session.SessionState == "Authenticated" {
 				logLevel = slog.LevelDebug

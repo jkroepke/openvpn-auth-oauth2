@@ -27,7 +27,7 @@ func New(ctx context.Context, logger *slog.Logger, conf config.Config, httpClien
 		return nil, fmt.Errorf("error fetch configuration for provider %s: %w", provider.GetName(), err)
 	}
 
-	c := &Client{
+	client := &Client{
 		storage:         tokenStorage,
 		openvpn:         openvpn,
 		conf:            conf,
@@ -41,15 +41,15 @@ func New(ctx context.Context, logger *slog.Logger, conf config.Config, httpClien
 		return nil, fmt.Errorf("error parsing authorize params: %w", err)
 	}
 
-	c.authorizeParams = append(c.authorizeParams, authorizeParams...)
+	client.authorizeParams = append(client.authorizeParams, authorizeParams...)
 
 	if providerConfig.AuthCodeOptions != nil {
-		c.authorizeParams = append(c.authorizeParams, func() []oauth2.AuthCodeOption {
+		client.authorizeParams = append(client.authorizeParams, func() []oauth2.AuthCodeOption {
 			return providerConfig.AuthCodeOptions
 		})
 	}
 
-	options := c.getRelyingPartyOptions(httpClient)
+	options := client.getRelyingPartyOptions(httpClient)
 
 	scopes := conf.OAuth2.Scopes
 	if len(scopes) == 0 {
@@ -57,38 +57,39 @@ func New(ctx context.Context, logger *slog.Logger, conf config.Config, httpClien
 	}
 
 	if providerConfig.Endpoint == (oauth2.Endpoint{}) {
-		c.relyingParty, err = newOIDCRelyingParty(ctx, logger, conf, provider, scopes, options)
+		client.relyingParty, err = newOIDCRelyingParty(ctx, logger, conf, provider, scopes, options)
 		if err != nil {
-			return nil, fmt.Errorf("error oidc provider: %w", err)
+			return nil, err
 		}
 	} else {
-		c.relyingParty, err = newOAuthRelyingParty(ctx, logger, conf, provider, scopes, options, providerConfig)
-
+		client.relyingParty, err = newOAuthRelyingParty(ctx, logger, conf, provider, scopes, options, providerConfig)
 		if err != nil {
-			return nil, fmt.Errorf("error oauth2 provider: %w", err)
+			return nil, err
 		}
 	}
 
-	return c, nil
+	return client, nil
 }
 
 // newOIDCRelyingParty creates a new [rp.NewRelyingPartyOIDC]. This is used for providers that support OIDC.
-func newOIDCRelyingParty(ctx context.Context, logger *slog.Logger, conf config.Config, provider Provider, scopes []string, options []rp.Option) (rp.RelyingParty, error) {
+func newOIDCRelyingParty(
+	ctx context.Context, logger *slog.Logger, conf config.Config, provider Provider, scopes []string, options []rp.Option,
+) (rp.RelyingParty, error) {
 	if !config.IsURLEmpty(conf.OAuth2.Endpoints.Discovery) {
-		logger.Log(ctx, slog.LevelInfo, fmt.Sprintf(
+		logger.LogAttrs(ctx, slog.LevelInfo, fmt.Sprintf(
 			"discover oidc auto configuration with provider %s for issuer %s with custom discovery url %s",
 			provider.GetName(), conf.OAuth2.Issuer.String(), conf.OAuth2.Endpoints.Discovery.String(),
 		))
 
 		options = append(options, rp.WithCustomDiscoveryUrl(conf.OAuth2.Endpoints.Discovery.String()))
 	} else {
-		logger.Log(ctx, slog.LevelInfo, fmt.Sprintf(
+		logger.LogAttrs(ctx, slog.LevelInfo, fmt.Sprintf(
 			"discover oidc auto configuration with provider %s for issuer %s",
 			provider.GetName(), conf.OAuth2.Issuer.String(),
 		))
 	}
 
-	return rp.NewRelyingPartyOIDC(
+	replyingParty, err := rp.NewRelyingPartyOIDC(
 		logging.ToContext(ctx, logger),
 		conf.OAuth2.Issuer.String(),
 		conf.OAuth2.Client.ID,
@@ -97,26 +98,40 @@ func newOIDCRelyingParty(ctx context.Context, logger *slog.Logger, conf config.C
 		scopes,
 		options...,
 	)
+
+	if err != nil {
+		return nil, fmt.Errorf("error oidc provider: %w", err)
+	}
+
+	return replyingParty, nil
 }
 
 // newOAuthRelyingParty creates a new [rp.NewRelyingPartyOAuth]. This is used for providers that do not support OIDC.
-func newOAuthRelyingParty(ctx context.Context, logger *slog.Logger, conf config.Config, provider Provider, scopes []string, options []rp.Option, providerConfig types.ProviderConfig) (rp.RelyingParty, error) {
-	logger.Log(ctx, slog.LevelInfo, fmt.Sprintf(
+func newOAuthRelyingParty(
+	ctx context.Context, logger *slog.Logger, conf config.Config, provider Provider, scopes []string, options []rp.Option, providerConfig types.ProviderConfig,
+) (rp.RelyingParty, error) {
+	logger.LogAttrs(ctx, slog.LevelInfo, fmt.Sprintf(
 		"manually configure oauth2 provider with provider %s and providerConfig %s and %s",
 		provider.GetName(), providerConfig.AuthURL, providerConfig.TokenURL,
 	))
 
 	if provider.GetName() == "generic" {
-		logger.Log(ctx, slog.LevelWarn, "generic provider with manual configuration is used. Validation of user data is not possible.")
+		logger.LogAttrs(ctx, slog.LevelWarn, "generic provider with manual configuration is used. Validation of user data is not possible.")
 	}
 
-	return rp.NewRelyingPartyOAuth(&oauth2.Config{
+	replyingParty, err := rp.NewRelyingPartyOAuth(&oauth2.Config{
 		ClientID:     conf.OAuth2.Client.ID,
 		ClientSecret: conf.OAuth2.Client.Secret.String(),
 		RedirectURL:  conf.HTTP.BaseURL.JoinPath("/oauth2/callback").String(),
 		Scopes:       scopes,
 		Endpoint:     providerConfig.Endpoint,
 	}, options...)
+
+	if err != nil {
+		return nil, fmt.Errorf("error oauth2 provider: %w", err)
+	}
+
+	return replyingParty, nil
 }
 
 func (c Client) getRelyingPartyOptions(httpClient *http.Client) []rp.Option {

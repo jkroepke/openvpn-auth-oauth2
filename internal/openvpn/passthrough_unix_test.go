@@ -20,7 +20,6 @@ import (
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
@@ -107,10 +106,7 @@ func TestPassthroughFull(t *testing.T) {
 			defer cancel()
 
 			tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
-			provider := oauth2.New(context.Background(), logger.Logger, tt.conf, http.DefaultClient, tokenStorage, nil)
-			openVPNClient := openvpn.New(ctx, logger.Logger, tt.conf, provider)
-
-			defer openVPNClient.Shutdown()
+			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(t, ctx, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 			wg := sync.WaitGroup{}
 
@@ -345,7 +341,6 @@ func TestPassthroughFull(t *testing.T) {
 
 			<-ctx.Done()
 
-			openVPNClient.Shutdown()
 			wg.Wait()
 		})
 	}
