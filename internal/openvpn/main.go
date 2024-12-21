@@ -43,7 +43,7 @@ func New(ctx context.Context, logger *slog.Logger, conf config.Config) *Client {
 	return client
 }
 
-func (c *Client) SetOAuth2Client(client oauth2Client) {
+func (c *Client) SetOAuth2Client(client oAuth2Client) {
 	c.oauth2 = client
 }
 

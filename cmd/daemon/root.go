@@ -74,16 +74,16 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 
 	openvpnClient := openvpn.New(ctx, logger, conf)
 
-	oauth2Client, err := oauth2.New(ctx, logger, conf, httpClient, tokenStorage, provider, openvpnClient)
+	oAuth2Client, err := oauth2.New(ctx, logger, conf, httpClient, tokenStorage, provider, openvpnClient)
 	if err != nil {
 		logger.Error(err.Error())
 
 		return 1
 	}
 
-	openvpnClient.SetOAuth2Client(oauth2Client)
+	openvpnClient.SetOAuth2Client(oAuth2Client)
 
-	httpHandler, err := httphandler.New(conf, oauth2Client)
+	httpHandler, err := httphandler.New(conf, oAuth2Client)
 	if err != nil {
 		logger.Error(err.Error())
 
