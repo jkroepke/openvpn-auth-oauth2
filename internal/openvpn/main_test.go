@@ -44,7 +44,7 @@ func TestClientInvalidServer(t *testing.T) {
 	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
 	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(t, ctx, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
-	err := openVPNClient.Connect()
+	err := openVPNClient.Connect(context.Background())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unable to connect to openvpn management interface tcp://127.0.0.1:1: dial tcp 127.0.0.1:1: connect")
 }
@@ -356,7 +356,7 @@ func TestClientFull(t *testing.T) {
 				}
 			}()
 
-			err = openVPNClient.Connect()
+			err = openVPNClient.Connect(context.Background())
 			if tt.err != nil {
 				require.Error(t, err)
 				assert.Equal(t, tt.err.Error(), err.Error())
@@ -411,7 +411,7 @@ func TestClientInvalidPassword(t *testing.T) {
 		testutils.SendMessage(t, conn, "ERROR: bad password")
 	}()
 
-	err = openVPNClient.Connect()
+	err = openVPNClient.Connect(context.Background())
 
 	require.Error(t, err)
 	assert.Equal(t, "unable to connect to openvpn management interface: invalid password", err.Error())
@@ -467,8 +467,8 @@ func TestClientInvalidVersion(t *testing.T) {
 
 			conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
-			ctx, cancel := context.WithCancelCause(context.Background())
-			defer cancel(nil)
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
 
 			tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
 			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(t, ctx, conf, logger.Logger, http.DefaultClient, tokenStorage)
@@ -476,12 +476,15 @@ func TestClientInvalidVersion(t *testing.T) {
 			wg := sync.WaitGroup{}
 			wg.Add(2)
 
+			errCh := make(chan error, 2)
+
 			go func() {
 				defer wg.Done()
+				defer openVPNClient.Shutdown()
 
 				managementInterfaceConn, err := managementInterface.Accept()
 				if err != nil {
-					cancel(fmt.Errorf("accepting connection: %w", err))
+					errCh <- fmt.Errorf("accepting connection: %w", err)
 
 					return
 				}
@@ -495,29 +498,17 @@ func TestClientInvalidVersion(t *testing.T) {
 				)
 
 				testutils.SendMessage(t, managementInterfaceConn, tt.version)
-
-				<-ctx.Done()
 			}()
 
 			go func() {
 				defer wg.Done()
 
-				err := openVPNClient.Connect()
-				if err != nil {
-					cancel(err)
-
-					return
-				}
-
-				cancel(nil)
+				errCh <- openVPNClient.Connect(ctx)
 			}()
 
-			<-ctx.Done()
-
 			wg.Wait()
-			openVPNClient.Shutdown()
 
-			err = context.Cause(ctx)
+			err = <-errCh
 
 			require.Error(t, err)
 			assert.Equal(t, tt.err, err.Error())
@@ -554,7 +545,9 @@ func TestSIGHUP(t *testing.T) {
 	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(t, ctx, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 	wg := sync.WaitGroup{}
-	wg.Add(1)
+	wg.Add(2)
+
+	errCh := make(chan error, 2)
 
 	go func() {
 		defer wg.Done()
@@ -575,7 +568,13 @@ func TestSIGHUP(t *testing.T) {
 		}
 	}()
 
-	require.NoError(t, openVPNClient.Connect())
+	go func() {
+		defer wg.Done()
+
+		errCh <- openVPNClient.Connect(ctx)
+	}()
+
+	require.NoError(t, <-errCh)
 
 	wg.Wait()
 }
@@ -625,13 +624,19 @@ func TestDeadLocks(t *testing.T) {
 			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(t, ctx, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 			wg := sync.WaitGroup{}
-			wg.Add(1)
+			wg.Add(2)
+
+			errCh := make(chan error, 2)
 
 			go func() {
 				defer wg.Done()
 
 				conn, err := managementInterface.Accept()
-				require.NoError(t, err) //nolint:testifylint
+				if err != nil {
+					errCh <- fmt.Errorf("accepting connection: %w", err)
+
+					return
+				}
 
 				defer conn.Close()
 				reader := bufio.NewReader(conn)
@@ -643,7 +648,13 @@ func TestDeadLocks(t *testing.T) {
 				}
 			}()
 
-			require.NoError(t, openVPNClient.Connect())
+			go func() {
+				defer wg.Done()
+
+				errCh <- openVPNClient.Connect(ctx)
+			}()
+
+			require.NoError(t, <-errCh)
 
 			wg.Wait()
 		})
@@ -695,13 +706,19 @@ func TestInvalidCommandResponses(t *testing.T) {
 			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(t, ctx, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 			wg := sync.WaitGroup{}
-			wg.Add(1)
+			wg.Add(2)
+
+			errCh := make(chan error, 2)
 
 			go func() {
 				defer wg.Done()
 
 				conn, err := managementInterface.Accept()
-				require.NoError(t, err) //nolint:testifylint
+				if err != nil {
+					errCh <- fmt.Errorf("accepting connection: %w", err)
+
+					return
+				}
 
 				defer conn.Close()
 				reader := bufio.NewReader(conn)
@@ -715,7 +732,13 @@ func TestInvalidCommandResponses(t *testing.T) {
 				testutils.SendMessage(t, conn, tt.message)
 			}()
 
-			require.NoError(t, openVPNClient.Connect())
+			go func() {
+				defer wg.Done()
+
+				errCh <- openVPNClient.Connect(ctx)
+			}()
+
+			require.NoError(t, <-errCh)
 
 			wg.Wait()
 		})

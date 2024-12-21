@@ -57,7 +57,7 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 	go func() {
 		defer wg.Done()
 
-		err := openVPNClient.Connect()
+		err := openVPNClient.Connect(context.Background())
 		if err != nil && !errors.Is(err, io.EOF) {
 			require.NoError(b, err) //nolint:testifylint
 		}
@@ -209,7 +209,7 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 	go func() {
 		defer wg.Done()
 
-		err := openVPNClient.Connect()
+		err := openVPNClient.Connect(context.Background())
 		if err != nil {
 			cancel(fmt.Errorf("connecting: %w", err))
 

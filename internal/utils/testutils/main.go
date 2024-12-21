@@ -345,7 +345,7 @@ func SetupOpenVPNOAuth2Clients(
 
 	require.NoError(tb, err)
 
-	openVPNClient := openvpn.New(ctx, logger, conf)
+	openVPNClient := openvpn.New(logger, conf)
 	oAuth2Client, err := oauth2.New(ctx, logger, conf, httpClient, tokenStorage, provider, openVPNClient)
 	require.NoError(tb, err)
 

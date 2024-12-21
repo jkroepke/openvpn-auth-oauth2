@@ -245,7 +245,7 @@ func TestRefreshReAuth(t *testing.T) {
 			go func() {
 				defer wg.Done()
 
-				err := openVPNClient.Connect()
+				err := openVPNClient.Connect(context.Background())
 				if err != nil && !errors.Is(err, io.EOF) {
 					assert.NoError(t, err)
 				}

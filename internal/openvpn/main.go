@@ -21,7 +21,7 @@ import (
 
 const minManagementInterfaceVersion = 5
 
-func New(ctx context.Context, logger *slog.Logger, conf config.Config) *Client {
+func New(logger *slog.Logger, conf config.Config) *Client {
 	client := &Client{
 		conf:   conf,
 		logger: logger,
@@ -33,24 +33,25 @@ func New(ctx context.Context, logger *slog.Logger, conf config.Config) *Client {
 		clientsCh:         make(chan connection.Client, 10),
 		commandResponseCh: make(chan string, 10),
 		commandsCh:        make(chan string, 10),
-		passthroughCh:     make(chan string, 10),
+		passThroughCh:     make(chan string, 10),
 	}
 
 	client.commandsBuffer.Grow(512)
 
-	client.ctx, client.ctxCancel = context.WithCancelCause(ctx)
-
 	return client
 }
 
-func (c *Client) SetOAuth2Client(client oAuth2Client) {
+func (c *Client) SetOAuth2Client(client oauth2Client) {
 	c.oauth2 = client
 }
 
-func (c *Client) Connect() error {
+func (c *Client) Connect(ctx context.Context) error {
 	var err error
 
-	c.logger.Info("connect to openvpn management interface " + c.conf.OpenVpn.Addr.String())
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	c.logger.LogAttrs(ctx, slog.LevelInfo, "connect to openvpn management interface "+c.conf.OpenVpn.Addr.String())
 
 	if err = c.setupConnection(); err != nil {
 		return fmt.Errorf("unable to connect to openvpn management interface %s: %w", c.conf.OpenVpn.Addr.String(), err)
@@ -63,28 +64,41 @@ func (c *Client) Connect() error {
 	c.scanner.Buffer(make([]byte, 0, bufio.MaxScanTokenSize), bufio.MaxScanTokenSize)
 
 	if err = c.handlePassword(); err != nil {
-		return err
+		return fmt.Errorf("openvpn management error: %w", err)
 	}
 
-	go c.handleMessages()
-	go c.handleClients()
-	go c.handleCommands()
+	defer c.Shutdown()
 
-	c.logger.Info("connection to OpenVPN management interface established.")
+	errChMessages := make(chan error, 1)
+	errChClients := make(chan error, 1)
+	errChCommands := make(chan error, 1)
+	errChPassThrough := make(chan error, 1)
+
+	go c.handleMessages(ctx, errChMessages)
+	go c.handleClients(ctx, errChClients)
+	go c.handleCommands(ctx, errChCommands)
+
+	c.logger.LogAttrs(ctx, slog.LevelInfo, "connection to OpenVPN management interface established")
 
 	if c.conf.OpenVpn.Passthrough.Enabled {
-		go c.handlePassthrough()
+		go c.handlePassThrough(ctx, errChPassThrough)
 	}
 
 	err = c.checkManagementInterfaceVersion()
-	if err != nil && !errors.Is(err, ErrConnectionTerminated) {
-		c.ctxCancel(err)
+	if err != nil {
+		if errors.Is(err, ErrConnectionTerminated) {
+			return nil
+		}
+
+		return fmt.Errorf("openvpn management error: %w", err)
 	}
 
-	<-c.ctx.Done()
-	c.Shutdown()
-
-	err = context.Cause(c.ctx)
+	select {
+	case err = <-errChMessages:
+	case err = <-errChClients:
+	case err = <-errChCommands:
+	case err = <-errChPassThrough:
+	}
 
 	if err != nil && !errors.Is(err, context.Canceled) {
 		return fmt.Errorf("openvpn management error: %w", err)
@@ -158,7 +172,6 @@ func (c *Client) Shutdown() {
 	}
 
 	c.logger.Info("shutdown OpenVPN management connection")
-	c.ctxCancel(nil)
 
 	c.connMu.Lock()
 	defer c.connMu.Unlock()
@@ -179,9 +192,11 @@ func (c *Client) SendCommand(cmd string, passthrough bool) (string, error) {
 	c.commandsCh <- cmd
 
 	select {
-	case <-c.ctx.Done():
-		return "", ErrConnectionTerminated // Error somewhere, terminate
-	case resp := <-c.commandResponseCh:
+	case resp, ok := <-c.commandResponseCh:
+		if !ok {
+			return "", ErrConnectionTerminated
+		}
+
 		if passthrough {
 			return resp, nil
 		}

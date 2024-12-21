@@ -72,7 +72,7 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 		return 1
 	}
 
-	openvpnClient := openvpn.New(ctx, logger, conf)
+	openvpnClient := openvpn.New(logger, conf)
 
 	oAuth2Client, err := oauth2.New(ctx, logger, conf, httpClient, tokenStorage, provider, openvpnClient)
 	if err != nil {
@@ -124,7 +124,7 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 	go func() {
 		defer wg.Done()
 
-		if err := openvpnClient.Connect(); err != nil {
+		if err := openvpnClient.Connect(context.Background()); err != nil {
 			cancel(fmt.Errorf("openvpn: %w", err))
 
 			return

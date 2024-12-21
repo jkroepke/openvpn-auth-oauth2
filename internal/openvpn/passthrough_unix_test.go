@@ -192,7 +192,7 @@ func TestPassthroughFull(t *testing.T) {
 			go func() {
 				defer wg.Done()
 
-				err := openVPNClient.Connect()
+				err := openVPNClient.Connect(context.Background())
 				if err != nil {
 					assert.NoError(t, fmt.Errorf("connecting: %w", err))
 					cancel()

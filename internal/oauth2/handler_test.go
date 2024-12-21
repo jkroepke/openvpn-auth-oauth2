@@ -400,7 +400,7 @@ func TestHandler(t *testing.T) {
 			go func() {
 				defer wg.Done()
 
-				err := client.Connect()
+				err := client.Connect(context.Background())
 
 				if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, openvpn.ErrConnectionTerminated) {
 					assert.NoError(t, err)

@@ -14,7 +14,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
-func (c *Client) processClient(client connection.Client) error {
+func (c *Client) processClient(ctx context.Context, client connection.Client) error {
 	logger := c.logger.With(
 		slog.String("ip", fmt.Sprintf("%s:%s", client.IPAddr, client.IPPort)),
 		slog.Uint64("cid", client.CID),
@@ -25,7 +25,7 @@ func (c *Client) processClient(client connection.Client) error {
 		slog.String("session_state", client.SessionState),
 	)
 
-	ctx, cancel := context.WithTimeout(c.ctx, 30*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
 	switch client.Reason {

@@ -28,7 +28,7 @@ func BenchmarkFull(b *testing.B) {
 	go func() {
 		defer wg.Done()
 
-		err := client.Connect()
+		err := client.Connect(context.Background())
 		if err != nil && !errors.Is(err, io.EOF) {
 			assert.NoError(b, err)
 		}

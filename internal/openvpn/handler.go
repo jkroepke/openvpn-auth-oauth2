@@ -2,9 +2,11 @@ package openvpn
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -74,7 +76,7 @@ func (c *Client) sendPassword() error {
 }
 
 // handleMessages handles all incoming messages and route messages to different channels.
-func (c *Client) handleMessages() {
+func (c *Client) handleMessages(ctx context.Context, errCh chan<- error) {
 	defer close(c.commandResponseCh)
 	defer close(c.clientsCh)
 
@@ -88,28 +90,30 @@ func (c *Client) handleMessages() {
 	for {
 		if err = c.readMessage(&buf); err != nil {
 			if errors.Is(err, io.EOF) {
-				c.logger.Warn("OpenVPN management interface connection terminated")
-				c.ctxCancel(nil)
+				c.logger.LogAttrs(ctx, slog.LevelWarn, "OpenVPN management interface connection terminated")
+				errCh <- nil
 
 				return
 			}
 
-			c.ctxCancel(fmt.Errorf("error reading bytes: %w", err))
+			errCh <- fmt.Errorf("error reading message: %w", err)
 
 			return
 		}
 
-		if err = c.handleMessage(buf.String()); err != nil {
-			c.ctxCancel(err)
+		if err = c.handleMessage(ctx, buf.String()); err != nil {
+			errCh <- err
+
+			return
 		}
 	}
 }
 
-func (c *Client) handleMessage(message string) error {
+func (c *Client) handleMessage(ctx context.Context, message string) error {
 	if message[0] == '>' {
 		switch message[0:6] {
 		case ">CLIEN":
-			return c.handleClientMessage(message)
+			return c.handleClientMessage(ctx, message)
 		case ">HOLD:":
 			c.commandsCh <- "hold release"
 		case ">INFO:":
@@ -120,7 +124,7 @@ func (c *Client) handleMessage(message string) error {
 
 			c.commandResponseCh <- message
 		default:
-			c.writeToPassthroughClient(message)
+			c.writeToPassThroughClient(message)
 		}
 
 		return nil
@@ -128,7 +132,7 @@ func (c *Client) handleMessage(message string) error {
 
 	// SUCCESS: hold release succeeded
 	if len(message) >= 13 && message[9:13] == "hold" {
-		c.logger.Info("hold release succeeded")
+		c.logger.LogAttrs(ctx, slog.LevelInfo, "hold release succeeded")
 
 		return nil
 	}
@@ -138,8 +142,8 @@ func (c *Client) handleMessage(message string) error {
 	return nil
 }
 
-func (c *Client) handleClientMessage(message string) error {
-	c.logger.Debug(message)
+func (c *Client) handleClientMessage(ctx context.Context, message string) error {
+	c.logger.LogAttrs(ctx, slog.LevelDebug, message)
 
 	client, err := connection.NewClient(c.conf, message)
 	if err != nil {
@@ -152,23 +156,24 @@ func (c *Client) handleClientMessage(message string) error {
 }
 
 // handlePassword receive a new message from clientsCh and process them.
-func (c *Client) handleClients() {
+func (c *Client) handleClients(ctx context.Context, errCh chan<- error) {
 	var (
 		client connection.Client
+		ok     bool
 		err    error
 	)
 
 	for {
 		select {
-		case <-c.ctx.Done():
+		case <-ctx.Done():
 			return // Error somewhere, terminate
-		case client = <-c.clientsCh:
-			if client.Reason == "" {
+		case client, ok = <-c.clientsCh:
+			if !ok {
 				return
 			}
 
-			if err = c.processClient(client); err != nil {
-				c.ctxCancel(err)
+			if err = c.processClient(ctx, client); err != nil {
+				errCh <- err
 
 				return
 			}
@@ -177,20 +182,23 @@ func (c *Client) handleClients() {
 }
 
 // handleCommands receive new command from commandsCh and send them to OpenVPN management interface.
-func (c *Client) handleCommands() {
-	var command string
+func (c *Client) handleCommands(ctx context.Context, errCh chan<- error) {
+	var (
+		command string
+		ok      bool
+	)
 
 	for {
 		select {
-		case <-c.ctx.Done():
+		case <-ctx.Done():
 			return // Error somewhere, terminate
-		case command = <-c.commandsCh:
-			if command == "" {
+		case command, ok = <-c.commandsCh:
+			if !ok {
 				return
 			}
 
 			if err := c.rawCommand(command); err != nil {
-				c.ctxCancel(err)
+				errCh <- err
 
 				return
 			}

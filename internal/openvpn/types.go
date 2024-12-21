@@ -28,17 +28,14 @@ type Client struct {
 	connMu sync.Mutex
 	closed atomic.Uint32
 
-	ctx       context.Context //nolint:containedctx
-	ctxCancel context.CancelCauseFunc
-
 	commandsBuffer bytes.Buffer
 
 	clientsCh         chan connection.Client
 	commandResponseCh chan string
 	commandsCh        chan string
-	passthroughCh     chan string
 
-	passthroughConnected atomic.Uint32
+	passThroughCh        chan string
+	passThroughConnected atomic.Uint32
 }
 
 type oauth2Client interface {
