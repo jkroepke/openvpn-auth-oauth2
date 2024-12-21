@@ -64,8 +64,6 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 		provider, err = google.NewProvider(ctx, conf, httpClient)
 	default:
 		err = errors.New("unknown oauth2 provider: " + conf.OAuth2.Provider)
-
-		return 1
 	}
 
 	if err != nil {

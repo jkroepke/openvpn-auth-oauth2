@@ -152,6 +152,8 @@ func TestNewProvider(t *testing.T) {
 				t.Fatal("unknown oauth2 provider: " + tt.conf.OAuth2.Provider)
 			}
 
+			require.Error(t, err)
+
 			oAuth2Client, err := oauth2.New(ctx, logger.Logger, tt.conf, http.DefaultClient, testutils.NewFakeStorage(), provider, testutils.NewFakeOpenVPNClient())
 			if tt.err != "" {
 				require.Error(t, err)

@@ -192,7 +192,7 @@ func (c Client) postCodeExchangeHandlerStoreRefreshToken(
 
 	if !c.conf.OAuth2.Refresh.ValidateUser {
 		if err := c.storage.Set(clientID, types.EmptyToken); err != nil {
-			logger.Warn(err.Error())
+			logger.LogAttrs(ctx, slog.LevelWarn, err.Error())
 		}
 
 		return
