@@ -160,11 +160,11 @@ func TestPassThroughFull(t *testing.T) {
 
 	for _, tt := range configs {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			if tt.scheme == openvpn.SchemeUnix && runtime.GOOS == "windows" {
 				t.Skip("skipping test on windows")
 			}
-
-			t.Parallel()
 
 			managementInterface, err := nettest.NewLocalListener(openvpn.SchemeTCP)
 			require.NoError(t, err)
@@ -390,16 +390,12 @@ func TestPassThroughFull(t *testing.T) {
 				testutils.SendMessage(t, passThroughConn, " exit ")
 
 				gid, err := testutils.GetGIDOfFile(passThroughInterface.Addr().String())
-				if !assert.NoError(t, err) {
-					return
-				}
+				require.NoError(t, err)
 
 				assert.Equal(t, tt.conf.OpenVpn.Passthrough.SocketGroup, strconv.Itoa(gid))
 
 				permission, err := testutils.GetPermissionsOfFile(passThroughInterface.Addr().String())
-				if !assert.NoError(t, err) {
-					return
-				}
+				require.NoError(t, err)
 
 				assert.Equal(t, os.FileMode(tt.conf.OpenVpn.Passthrough.SocketMode).String(), permission) //nolint:gosec
 			} else {
