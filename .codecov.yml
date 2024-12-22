@@ -6,5 +6,6 @@ coverage:
 ignore:
   - "docs/**/*"
   - "tests/**/*"
+  - "internal/utils/testutils/*"
   - "pkg/**/*"
   - "wiki/**/*"
