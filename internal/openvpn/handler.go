@@ -11,11 +11,10 @@ import (
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
 // handlePassword enters the password on the OpenVPN management interface connection.
-func (c *Client) handlePassword() error {
+func (c *Client) handlePassword(ctx context.Context) error {
 	buf := make([]byte, 15)
 
 	err := c.conn.SetReadDeadline(time.Now().Add(1 * time.Second))
@@ -33,7 +32,7 @@ func (c *Client) handlePassword() error {
 		return fmt.Errorf("set read deadline: %w", err)
 	}
 
-	c.logger.Debug(utils.StringConcat("password probe: ", string(buf)))
+	c.logger.LogAttrs(ctx, slog.LevelDebug, "password probe: "+string(buf))
 
 	switch {
 	case string(buf) == "ENTER PASSWORD:":
@@ -41,7 +40,7 @@ func (c *Client) handlePassword() error {
 			return errors.New("management password required")
 		}
 
-		if err = c.sendPassword(); err != nil {
+		if err = c.sendPassword(ctx); err != nil {
 			return err
 		}
 	case c.conf.OpenVpn.Password != "":
@@ -55,8 +54,8 @@ func (c *Client) handlePassword() error {
 }
 
 // sendPassword enters the password on the OpenVPN management interface connection.
-func (c *Client) sendPassword() error {
-	if err := c.rawCommand(c.conf.OpenVpn.Password.String()); err != nil {
+func (c *Client) sendPassword(ctx context.Context) error {
+	if err := c.rawCommand(ctx, c.conf.OpenVpn.Password.String()); err != nil {
 		return fmt.Errorf("error from password command: %w", err)
 	}
 
@@ -197,7 +196,7 @@ func (c *Client) handleCommands(ctx context.Context, errCh chan<- error) {
 				return
 			}
 
-			if err := c.rawCommand(command); err != nil {
+			if err := c.rawCommand(ctx, command); err != nil {
 				errCh <- err
 
 				return

@@ -413,8 +413,7 @@ func TestClientInvalidPassword(t *testing.T) {
 
 	err = openVPNClient.Connect(context.Background())
 
-	require.Error(t, err)
-	assert.Equal(t, "unable to connect to openvpn management interface: invalid password", err.Error())
+	require.EqualError(t, err, "openvpn management error: unable to connect to openvpn management interface: invalid password")
 }
 
 func TestClientInvalidVersion(t *testing.T) {
@@ -510,8 +509,7 @@ func TestClientInvalidVersion(t *testing.T) {
 
 			err = <-errCh
 
-			require.Error(t, err)
-			assert.Equal(t, tt.err, err.Error())
+			require.EqualError(t, err, tt.err, tt.err)
 		})
 	}
 }

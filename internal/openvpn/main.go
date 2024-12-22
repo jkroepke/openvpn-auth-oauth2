@@ -63,7 +63,7 @@ func (c *Client) Connect(ctx context.Context) error {
 	c.scanner.Split(bufio.ScanLines)
 	c.scanner.Buffer(make([]byte, 0, bufio.MaxScanTokenSize), bufio.MaxScanTokenSize)
 
-	if err = c.handlePassword(); err != nil {
+	if err = c.handlePassword(ctx); err != nil {
 		return fmt.Errorf("openvpn management error: %w", err)
 	}
 
@@ -226,9 +226,9 @@ func (c *Client) SendCommandf(format string, a ...any) (string, error) {
 }
 
 // rawCommand passes command to a given connection (adds logging and EOL character).
-func (c *Client) rawCommand(cmd string) error {
-	if c.logger.Enabled(context.Background(), slog.LevelDebug) {
-		c.logger.Debug(cmd)
+func (c *Client) rawCommand(ctx context.Context, cmd string) error {
+	if c.logger.Enabled(ctx, slog.LevelDebug) {
+		c.logger.LogAttrs(ctx, slog.LevelDebug, "send command", slog.String("command", cmd))
 	}
 
 	c.commandsBuffer.Reset()
@@ -272,7 +272,7 @@ func (c *Client) readMessage(buf *bytes.Buffer) error {
 		}
 	}
 
-	if c.scanner.Err() != nil {
+	if c.closed.Load() == 0 && c.scanner.Err() != nil {
 		return fmt.Errorf("scanner error: %w", c.scanner.Err())
 	}
 

@@ -138,7 +138,7 @@ func (c *Client) handlePassThroughClient(ctx context.Context, conn net.Conn) {
 		panic(fmt.Errorf("%w %s", ErrUnknownProtocol, c.conf.OpenVpn.Passthrough.Address.Scheme))
 	}
 
-	logger.Info("pass-through: accepted connection")
+	logger.LogAttrs(ctx, slog.LevelInfo, "pass-through: accepted connection")
 
 	scanner := bufio.NewScanner(conn)
 	scanner.Split(bufio.ScanLines)
@@ -154,10 +154,10 @@ func (c *Client) handlePassThroughClient(ctx context.Context, conn net.Conn) {
 	c.passThroughConnected.CompareAndSwap(0, 1)
 
 	if err = c.handlePassThroughClientCommands(ctx, conn, logger, scanner); err != nil {
-		logger.Warn(err.Error())
+		logger.LogAttrs(ctx, slog.LevelWarn, err.Error())
 	}
 
-	logger.Info("pass-through: closed connection")
+	logger.LogAttrs(ctx, slog.LevelInfo, "pass-through: closed connection")
 }
 
 func (c *Client) handlePassThroughClientCommands(ctx context.Context, conn net.Conn, logger *slog.Logger, scanner *bufio.Scanner) error {
@@ -178,7 +178,7 @@ func (c *Client) handlePassThroughClientCommands(ctx context.Context, conn net.C
 		switch {
 		case strings.HasPrefix(line, "client-deny"), strings.HasPrefix(line, "client-auth"):
 			c.writeToPassThroughClient("ERROR: command not allowed")
-			logger.Warn("pass-through: client send client-deny or client-auth message, ignoring...")
+			logger.LogAttrs(ctx, slog.LevelWarn, "pass-through: client send client-deny or client-auth message, ignoring...")
 
 			continue
 		case line == "hold":
@@ -193,7 +193,7 @@ func (c *Client) handlePassThroughClientCommands(ctx context.Context, conn net.C
 
 		resp, err = c.SendCommand(line, true)
 		if err != nil {
-			logger.Warn(fmt.Errorf("pass-through: error from command '%s': %w", line, err).Error())
+			logger.LogAttrs(ctx, slog.LevelWarn, fmt.Errorf("pass-through: error from command '%s': %w", line, err).Error())
 		} else {
 			c.writeToPassThroughClient(strings.TrimSpace(resp))
 		}
