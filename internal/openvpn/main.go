@@ -84,8 +84,7 @@ func (c *Client) Connect(ctx context.Context) error {
 		go c.handlePassThrough(ctx, errChPassThrough)
 	}
 
-	err = c.checkManagementInterfaceVersion()
-	if err != nil {
+	if err := c.checkManagementInterfaceVersion(); err != nil {
 		if errors.Is(err, ErrConnectionTerminated) {
 			return nil
 		}
@@ -100,7 +99,7 @@ func (c *Client) Connect(ctx context.Context) error {
 	case err = <-errChPassThrough:
 	}
 
-	if err != nil && !errors.Is(err, context.Canceled) {
+	if err != nil {
 		return fmt.Errorf("openvpn management error: %w", err)
 	}
 

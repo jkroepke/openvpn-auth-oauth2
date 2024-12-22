@@ -290,7 +290,7 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 	httpClient := &http.Client{Transport: NewMockRoundTripper(utils.NewUserAgentTransport(rt))}
 	tokenStorage := tokenstorage.NewInMemory(ctx, Secret, conf.OAuth2.Refresh.Expires)
 
-	oAuth2Client, openvpnClient := SetupOpenVPNOAuth2Clients(tb, ctx, conf, logger.Logger, httpClient, tokenStorage)
+	oAuth2Client, openvpnClient := SetupOpenVPNOAuth2Clients(ctx, tb, conf, logger.Logger, httpClient, tokenStorage)
 
 	httpHandler, err := httphandler.New(conf, oAuth2Client)
 	require.NoError(tb, err)
@@ -313,7 +313,7 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 }
 
 func SetupOpenVPNOAuth2Clients(
-	tb testing.TB, ctx context.Context, conf config.Config, logger *slog.Logger, httpClient *http.Client, tokenStorage tokenstorage.Storage,
+	ctx context.Context, tb testing.TB, conf config.Config, logger *slog.Logger, httpClient *http.Client, tokenStorage tokenstorage.Storage,
 ) (*oauth2.Client, *openvpn.Client) {
 	tb.Helper()
 

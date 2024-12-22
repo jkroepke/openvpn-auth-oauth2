@@ -98,7 +98,6 @@ func newOIDCRelyingParty(
 		scopes,
 		options...,
 	)
-
 	if err != nil {
 		return nil, fmt.Errorf("error oidc provider: %w", err)
 	}
@@ -126,7 +125,6 @@ func newOAuthRelyingParty(
 		Scopes:       scopes,
 		Endpoint:     providerConfig.Endpoint,
 	}, options...)
-
 	if err != nil {
 		return nil, fmt.Errorf("error oauth2 provider: %w", err)
 	}
