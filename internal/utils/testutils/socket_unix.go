@@ -27,7 +27,7 @@ func GetGIDOfFile(fileName string) (int, error) {
 func GetPermissionsOfFile(fileName string) (string, error) {
 	stat, err := os.Stat(fileName)
 	if err != nil {
-		return 0, fmt.Errorf("failed to get file stat: %w", err)
+		return "", fmt.Errorf("failed to get file stat: %w", err)
 	}
 
 	return stat.Mode().Perm().String(), nil
