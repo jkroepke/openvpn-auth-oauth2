@@ -106,7 +106,7 @@ func TestPassthroughFull(t *testing.T) {
 			defer cancel()
 
 			tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
-			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(t, ctx, conf, logger.Logger, http.DefaultClient, tokenStorage)
+			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 			wg := sync.WaitGroup{}
 
