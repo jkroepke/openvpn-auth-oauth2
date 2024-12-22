@@ -473,37 +473,28 @@ func TestClientInvalidVersion(t *testing.T) {
 			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 			wg := sync.WaitGroup{}
-			wg.Add(2)
+			wg.Add(1)
 
-			errCh := make(chan error, 2)
-
-			go func() {
-				defer wg.Done()
-				defer openVPNClient.Shutdown()
-
-				managementInterfaceConn, err := managementInterface.Accept()
-				if err != nil {
-					errCh <- fmt.Errorf("accepting connection: %w", err)
-
-					return
-				}
-
-				defer managementInterfaceConn.Close()
-				reader := bufio.NewReader(managementInterfaceConn)
-
-				testutils.SendAndExpectMessage(t, managementInterfaceConn, reader,
-					">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info",
-					"version",
-				)
-
-				testutils.SendMessage(t, managementInterfaceConn, tt.version)
-			}()
+			errCh := make(chan error, 1)
 
 			go func() {
 				defer wg.Done()
 
 				errCh <- openVPNClient.Connect(ctx)
 			}()
+
+			managementInterfaceConn, err := managementInterface.Accept()
+			require.NoError(t, err)
+
+			defer managementInterfaceConn.Close()
+			reader := bufio.NewReader(managementInterfaceConn)
+
+			testutils.SendAndExpectMessage(t, managementInterfaceConn, reader,
+				">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info",
+				"version",
+			)
+
+			testutils.SendMessage(t, managementInterfaceConn, tt.version)
 
 			wg.Wait()
 

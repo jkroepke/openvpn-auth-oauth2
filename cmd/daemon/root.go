@@ -28,6 +28,8 @@ import (
 )
 
 // Execute runs the main program logic of openvpn-auth-oauth2.
+//
+//nolint:cyclop
 func Execute(args []string, logWriter io.Writer, version, commit, date string) int {
 	conf, err := configure(args, logWriter, version, commit, date)
 	if err != nil {
@@ -136,8 +138,8 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 	termCh := make(chan os.Signal, 1)
 	signal.Notify(termCh, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM)
 
-	logger.Info(
-		"openvpn-auth-oauth2 started with base url " + conf.HTTP.BaseURL.String(),
+	logger.LogAttrs(ctx, slog.LevelInfo,
+		"openvpn-auth-oauth2 started with base url "+conf.HTTP.BaseURL.String(),
 	)
 
 	for {

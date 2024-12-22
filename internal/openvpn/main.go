@@ -45,6 +45,7 @@ func (c *Client) SetOAuth2Client(client oauth2Client) {
 	c.oauth2 = client
 }
 
+//nolint:cyclop
 func (c *Client) Connect(ctx context.Context) error {
 	var err error
 
