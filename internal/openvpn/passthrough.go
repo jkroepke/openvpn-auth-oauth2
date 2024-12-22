@@ -2,12 +2,14 @@ package openvpn
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"net"
 	"os"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
@@ -17,7 +19,7 @@ import (
 
 const writeTimeout = 20 * time.Millisecond
 
-// handlePassthrough starts a listener for the passthrough interface. This allows the management interface to be
+// handlePassThrough starts a listener for the passthrough interface. This allows the management interface to be
 // accessed from a different network interface or even from a different machine.
 // The passthrough interface is a simple text-based protocol that allows the client to send commands to the management
 // interface and receive the responses.
@@ -25,14 +27,14 @@ const writeTimeout = 20 * time.Millisecond
 // configuration file.
 //
 //nolint:cyclop
-func (c *Client) handlePassthrough() {
+func (c *Client) handlePassThrough(ctx context.Context, errCh chan<- error) {
 	var conn net.Conn
 
-	c.logger.Info("start pass-through listener on " + c.conf.OpenVpn.Passthrough.Address.String())
+	c.logger.LogAttrs(ctx, slog.LevelInfo, "start pass-through listener on "+c.conf.OpenVpn.Passthrough.Address.String())
 
-	listener, closer, err := c.setupPassthroughListener()
+	listener, closer, err := c.setupPassThroughListener()
 	if err != nil {
-		c.ctxCancel(fmt.Errorf("error setup openvpn management pass-through listener: %w", err))
+		errCh <- fmt.Errorf("error setup openvpn management pass-through listener: %w", err)
 
 		return
 	}
@@ -41,7 +43,7 @@ func (c *Client) handlePassthrough() {
 		defer closer()
 
 		if r := recover(); r != nil {
-			c.ctxCancel(fmt.Errorf("panic: %v", r))
+			errCh <- fmt.Errorf("panic: %v; stack %s", r, debug.Stack())
 		}
 	}()
 
@@ -50,29 +52,30 @@ func (c *Client) handlePassthrough() {
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				c.logger.Warn(fmt.Errorf("panic: %v", r).Error())
+				c.logger.LogAttrs(ctx, slog.LevelError, fmt.Errorf("panic: %v", r).Error())
 			}
 		}()
 
 		var (
 			err     error
 			message string
+			ok      bool
 		)
 
 		for {
 			select {
-			case <-c.ctx.Done():
-				c.logger.Info("shutdown OpenVPN pass-through connection")
+			case <-ctx.Done():
+				c.logger.LogAttrs(ctx, slog.LevelInfo, "shutdown OpenVPN pass-through connection")
 				closer()
 
 				return // Error somewhere, terminate
-			case message = <-c.passthroughCh:
-				if message == "" || message == "\r\n" {
+			case message, ok = <-c.passThroughCh:
+				if !ok || message == "" || message == "\r\n" {
 					return
 				}
 
 				connMu.Lock()
-				if conn == nil || c.passthroughConnected.Load() == 0 {
+				if conn == nil || c.passThroughConnected.Load() == 0 {
 					connMu.Unlock()
 
 					continue
@@ -83,7 +86,7 @@ func (c *Client) handlePassthrough() {
 				if _, err = conn.Write([]byte(message + "\r\n")); err != nil {
 					connMu.Unlock()
 
-					c.logger.Warn(fmt.Errorf("unable to write message to client %w", err).Error(), slog.String("client", conn.RemoteAddr().String()))
+					c.logger.LogAttrs(ctx, slog.LevelWarn, fmt.Errorf("unable to write message to client %w", err).Error(), slog.String("client", conn.RemoteAddr().String()))
 
 					return
 				}
@@ -97,14 +100,14 @@ func (c *Client) handlePassthrough() {
 		// Listen for an incoming connection.
 		conn, err = listener.Accept()
 		if err != nil {
-			c.ctxCancel(fmt.Errorf("error accepting: %w", err))
+			errCh <- fmt.Errorf("error accepting: %w", err)
 
 			return
 		}
 
-		c.handlePassthroughClient(conn)
+		c.handlePassThroughClient(ctx, conn)
 
-		c.passthroughConnected.Store(0)
+		c.passThroughConnected.Store(0)
 
 		connMu.Lock()
 		conn = nil
@@ -112,13 +115,13 @@ func (c *Client) handlePassthrough() {
 	}
 }
 
-func (c *Client) writeToPassthroughClient(message string) {
+func (c *Client) writeToPassThroughClient(message string) {
 	if c.conf.OpenVpn.Passthrough.Enabled {
-		c.passthroughCh <- message
+		c.passThroughCh <- message
 	}
 }
 
-func (c *Client) handlePassthroughClient(conn net.Conn) {
+func (c *Client) handlePassThroughClient(ctx context.Context, conn net.Conn) {
 	defer conn.Close()
 
 	var (
@@ -135,29 +138,29 @@ func (c *Client) handlePassthroughClient(conn net.Conn) {
 		panic(fmt.Errorf("%w %s", ErrUnknownProtocol, c.conf.OpenVpn.Passthrough.Address.Scheme))
 	}
 
-	logger.Info("pass-through: accepted connection")
+	logger.LogAttrs(ctx, slog.LevelInfo, "pass-through: accepted connection")
 
 	scanner := bufio.NewScanner(conn)
 	scanner.Split(bufio.ScanLines)
 	scanner.Buffer(make([]byte, 0, bufio.MaxScanTokenSize), bufio.MaxScanTokenSize)
 
-	if err = c.handlePassthroughClientAuth(conn, scanner); err != nil {
-		logger.Warn(err.Error())
+	if err = c.handlePassThroughClientAuth(ctx, conn, scanner); err != nil {
+		logger.LogAttrs(ctx, slog.LevelWarn, err.Error())
 
 		return
 	}
 
-	c.writeToPassthroughClient(">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info")
-	c.passthroughConnected.CompareAndSwap(0, 1)
+	c.writeToPassThroughClient(">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info")
+	c.passThroughConnected.CompareAndSwap(0, 1)
 
-	if err = c.handlePassthroughClientCommands(conn, logger, scanner); err != nil {
-		logger.Warn(err.Error())
+	if err = c.handlePassThroughClientCommands(ctx, conn, logger, scanner); err != nil {
+		logger.LogAttrs(ctx, slog.LevelWarn, err.Error())
 	}
 
-	logger.Info("pass-through: closed connection")
+	logger.LogAttrs(ctx, slog.LevelInfo, "pass-through: closed connection")
 }
 
-func (c *Client) handlePassthroughClientCommands(conn net.Conn, logger *slog.Logger, scanner *bufio.Scanner) error {
+func (c *Client) handlePassThroughClientCommands(ctx context.Context, conn net.Conn, logger *slog.Logger, scanner *bufio.Scanner) error {
 	var (
 		err  error
 		line string
@@ -170,16 +173,16 @@ func (c *Client) handlePassthroughClientCommands(conn net.Conn, logger *slog.Log
 			continue
 		}
 
-		logger.LogAttrs(c.ctx, slog.LevelDebug, "received command", slog.String("command", line))
+		logger.LogAttrs(ctx, slog.LevelDebug, "received command", slog.String("command", line))
 
 		switch {
 		case strings.HasPrefix(line, "client-deny"), strings.HasPrefix(line, "client-auth"):
-			c.writeToPassthroughClient("ERROR: command not allowed")
-			logger.Warn("pass-through: client send client-deny or client-auth message, ignoring...")
+			c.writeToPassThroughClient("ERROR: command not allowed")
+			logger.LogAttrs(ctx, slog.LevelWarn, "pass-through: client send client-deny or client-auth message, ignoring...")
 
 			continue
 		case line == "hold":
-			c.writeToPassthroughClient("SUCCESS: hold release succeeded")
+			c.writeToPassThroughClient("SUCCESS: hold release succeeded")
 
 			continue
 		case line == "exit", line == "quit":
@@ -190,16 +193,16 @@ func (c *Client) handlePassthroughClientCommands(conn net.Conn, logger *slog.Log
 
 		resp, err = c.SendCommand(line, true)
 		if err != nil {
-			logger.Warn(fmt.Errorf("pass-through: error from command '%s': %w", line, err).Error())
+			logger.LogAttrs(ctx, slog.LevelWarn, fmt.Errorf("pass-through: error from command '%s': %w", line, err).Error())
 		} else {
-			c.writeToPassthroughClient(strings.TrimSpace(resp))
+			c.writeToPassThroughClient(strings.TrimSpace(resp))
 		}
 	}
 
 	return fmt.Errorf("pass-through: unable to read from client: %w", c.scanner.Err())
 }
 
-func (c *Client) handlePassthroughClientAuth(conn net.Conn, scanner *bufio.Scanner) error {
+func (c *Client) handlePassThroughClientAuth(_ context.Context, conn net.Conn, scanner *bufio.Scanner) error {
 	if c.conf.OpenVpn.Passthrough.Password.String() == "" {
 		return nil
 	}
@@ -228,12 +231,12 @@ func (c *Client) handlePassthroughClientAuth(conn net.Conn, scanner *bufio.Scann
 		return errors.New("pass-through: client provide invalid password")
 	}
 
-	c.writeToPassthroughClient("SUCCESS: password is correct")
+	c.writeToPassThroughClient("SUCCESS: password is correct")
 
 	return nil
 }
 
-func (c *Client) setupPassthroughListener() (net.Listener, func(), error) {
+func (c *Client) setupPassThroughListener() (net.Listener, func(), error) {
 	var (
 		err      error
 		listener net.Listener

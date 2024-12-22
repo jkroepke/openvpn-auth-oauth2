@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
@@ -77,7 +78,7 @@ func TestInvalidToken(t *testing.T) {
 			&oidc.Tokens[*idtoken.Claims]{
 				IDTokenClaims: nil,
 			},
-			generic.ErrMissingClaim,
+			oauth2.ErrMissingClaim,
 		},
 		{
 			"nil with roles",
@@ -91,7 +92,7 @@ func TestInvalidToken(t *testing.T) {
 			&oidc.Tokens[*idtoken.Claims]{
 				IDTokenClaims: nil,
 			},
-			generic.ErrMissingClaim,
+			oauth2.ErrMissingClaim,
 		},
 		{
 			"nil with username",
@@ -105,7 +106,7 @@ func TestInvalidToken(t *testing.T) {
 			&oidc.Tokens[*idtoken.Claims]{
 				IDTokenClaims: nil,
 			},
-			generic.ErrMissingClaim,
+			oauth2.ErrMissingClaim,
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
@@ -142,7 +143,7 @@ func TestValidateGroups(t *testing.T) {
 		{"groups present", []string{"apple"}, make([]string, 0), ""},
 		{"configure one group", []string{"apple"}, []string{"apple"}, ""},
 		{"configure one group, groups not present", nil, []string{"apple"}, "missing claim: groups"},
-		{"configure two group, none match", make([]string, 0), []string{"apple", "pear"}, generic.ErrMissingRequiredGroup.Error()},
+		{"configure two group, none match", make([]string, 0), []string{"apple", "pear"}, oauth2.ErrMissingRequiredGroup.Error()},
 		{"configure two group, missing one", []string{"apple"}, []string{"apple", "pear"}, ""},
 		{"configure two group", []string{"apple", "pear"}, []string{"apple", "pear"}, ""},
 	} {
@@ -192,7 +193,7 @@ func TestValidateRoles(t *testing.T) {
 		{"groups present", []string{"apple"}, make([]string, 0), ""},
 		{"configure one role", []string{"apple"}, []string{"apple"}, ""},
 		{"configure one role, role not present", nil, []string{"apple"}, "missing claim: roles"},
-		{"configure two role, none match", make([]string, 0), []string{"apple", "pear"}, generic.ErrMissingRequiredRole.Error()},
+		{"configure two role, none match", make([]string, 0), []string{"apple", "pear"}, oauth2.ErrMissingRequiredRole.Error()},
 		{"configure two role, missing one", []string{"apple"}, []string{"apple", "pear"}, ""},
 		{"configure two role", []string{"apple", "pear"}, []string{"apple", "pear"}, ""},
 	} {

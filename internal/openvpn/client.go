@@ -2,17 +2,19 @@ package openvpn
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
-func (c *Client) processClient(client connection.Client) error {
+func (c *Client) processClient(ctx context.Context, client connection.Client) error {
 	logger := c.logger.With(
 		slog.String("ip", fmt.Sprintf("%s:%s", client.IPAddr, client.IPPort)),
 		slog.Uint64("cid", client.CID),
@@ -23,13 +25,16 @@ func (c *Client) processClient(client connection.Client) error {
 		slog.String("session_state", client.SessionState),
 	)
 
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
 	switch client.Reason {
 	case "CONNECT", "REAUTH":
-		c.handleClientAuthentication(logger, client)
+		c.handleClientAuthentication(ctx, logger, client)
 	case "ESTABLISHED":
-		c.clientEstablished(logger, client)
+		c.clientEstablished(ctx, logger, client)
 	case "DISCONNECT":
-		c.clientDisconnect(logger, client)
+		c.clientDisconnect(ctx, logger, client)
 	default:
 		return fmt.Errorf("unknown client reason: %s", client.Reason)
 	}
@@ -38,12 +43,12 @@ func (c *Client) processClient(client connection.Client) error {
 }
 
 // handleClientAuthentication holds the shared authentication logic for CONNECT and REAUTH events.
-func (c *Client) handleClientAuthentication(logger *slog.Logger, client connection.Client) {
-	logger.Info("new client authentication")
+func (c *Client) handleClientAuthentication(ctx context.Context, logger *slog.Logger, client connection.Client) {
+	logger.LogAttrs(ctx, slog.LevelInfo, "new client authentication")
 
 	// Check if the client is allowed to bypass authentication. If so, accept the client.
 	if c.checkAuthBypass(client) {
-		logger.Info("client bypass authentication")
+		logger.LogAttrs(ctx, slog.LevelInfo, "client bypass authentication")
 		c.AcceptClient(logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, client.CommonName)
 
 		return
@@ -52,7 +57,7 @@ func (c *Client) handleClientAuthentication(logger *slog.Logger, client connecti
 	// Check if the client supports SSO authentication via webauth.
 	if !c.checkClientSsoCapabilities(client) {
 		errorSsoNotSupported := "OpenVPN Client does not support SSO authentication via webauth"
-		logger.Warn(errorSsoNotSupported)
+		logger.LogAttrs(ctx, slog.LevelWarn, errorSsoNotSupported)
 		c.DenyClient(logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, errorSsoNotSupported)
 
 		return
@@ -60,27 +65,25 @@ func (c *Client) handleClientAuthentication(logger *slog.Logger, client connecti
 
 	// Check if the client is already authenticated and refresh the client's authentication if enabled.
 	// If the client is successfully re-authenticated, accept the client.
-	if c.conf.OAuth2.Refresh.Enabled {
-		ok, err := c.silentReAuthentication(logger, client)
-		if err != nil {
-			c.DenyClient(logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, ReasonStateExpiredOrInvalid)
+	ok, err := c.silentReAuthentication(ctx, logger, client)
+	if err != nil {
+		c.DenyClient(logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, ReasonStateExpiredOrInvalid)
 
-			logger.Error("error refreshing client auth",
-				slog.Any("err", err),
-			)
+		logger.LogAttrs(ctx, slog.LevelError, "error refreshing client auth",
+			slog.Any("err", err),
+		)
 
-			return
-		} else if ok {
-			c.AcceptClient(logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, client.CommonName)
+		return
+	} else if ok {
+		c.AcceptClient(logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, client.CommonName)
 
-			return
-		}
+		return
 	}
 
 	// Start the authentication process for the client.
-	if err := c.startClientAuth(logger, client); err != nil {
+	if err := c.startClientAuth(ctx, logger, client); err != nil {
 		// Deny the client if an error occurred during the authentication process.
-		logger.Error("error starting client auth",
+		logger.LogAttrs(ctx, slog.LevelError, "error starting client auth",
 			slog.Any("err", err),
 		)
 
@@ -90,7 +93,7 @@ func (c *Client) handleClientAuthentication(logger *slog.Logger, client connecti
 
 // startClientAuth initiates the authentication process for the client.
 // The openvpn-auth-oauth2 plugin will send a client-pending-auth command to the OpenVPN management interface.
-func (c *Client) startClientAuth(logger *slog.Logger, client connection.Client) error {
+func (c *Client) startClientAuth(ctx context.Context, logger *slog.Logger, client connection.Client) error {
 	clientIdentifier := state.ClientIdentifier{
 		CID:       client.CID,
 		KID:       client.KID,
@@ -124,7 +127,7 @@ func (c *Client) startClientAuth(logger *slog.Logger, client connection.Client) 
 			startURL, len(startURL))
 	}
 
-	logger.Info("sent client-pending-auth command")
+	logger.LogAttrs(ctx, slog.LevelInfo, "sent client-pending-auth command")
 
 	_, err = c.SendCommandf(`client-pending-auth %d %d "WEB_AUTH::%s" %.0f`, client.CID, client.KID, startURL, c.conf.OpenVpn.AuthPendingTimeout.Seconds())
 	if err != nil {
@@ -138,32 +141,39 @@ func (c *Client) checkAuthBypass(client connection.Client) bool {
 	return slices.Contains(c.conf.OpenVpn.Bypass.CommonNames, client.CommonName)
 }
 
-func (c *Client) silentReAuthentication(logger *slog.Logger, client connection.Client) (bool, error) {
+func (c *Client) silentReAuthentication(ctx context.Context, logger *slog.Logger, client connection.Client) (bool, error) {
+	if !c.conf.OAuth2.Refresh.Enabled {
+		return false, nil
+	}
+
 	if c.conf.OAuth2.Refresh.UseSessionID {
 		if client.SessionID == "" || !slices.Contains([]string{"Initial", "AuthenticatedEmptyUser", "Authenticated"}, client.SessionState) {
 			return false, ErrClientSessionStateInvalidOrExpired
 		}
 	} else if client.SessionID != "" {
-		logger.Warn("detected client session ID but not configured to use it. Please enable --oauth2.refresh.use-session-id")
+		logger.LogAttrs(ctx, slog.LevelWarn, "detected client session ID but not configured to use it. Please enable --oauth2.refresh.use-session-id")
 	}
 
-	ok, err := c.oauth2.RefreshClientAuth(logger, client)
+	if c.oauth2 == nil {
+		return false, errors.New("oauth2 client not set")
+	}
+
+	ok, err := c.oauth2.RefreshClientAuth(ctx, logger, client)
 	if err != nil {
-		logger.Warn("error refreshing client auth", slog.Any("err", err))
+		logger.LogAttrs(ctx, slog.LevelWarn, "error refreshing client auth", slog.Any("err", err))
 	}
 
 	return ok, nil
 }
 
-func (c *Client) clientEstablished(logger *slog.Logger, client connection.Client) {
-	logger.LogAttrs(context.Background(),
-		slog.LevelInfo, "client established",
+func (c *Client) clientEstablished(ctx context.Context, logger *slog.Logger, client connection.Client) {
+	logger.LogAttrs(ctx, slog.LevelInfo, "client established",
 		slog.String("vpn_ip", client.VPNAddress),
 	)
 }
 
-func (c *Client) clientDisconnect(logger *slog.Logger, client connection.Client) {
-	logger.Info("client disconnected")
+func (c *Client) clientDisconnect(ctx context.Context, logger *slog.Logger, client connection.Client) {
+	logger.LogAttrs(ctx, slog.LevelInfo, "client disconnected")
 
-	c.oauth2.ClientDisconnect(c.ctx, logger, client)
+	c.oauth2.ClientDisconnect(ctx, logger, client)
 }

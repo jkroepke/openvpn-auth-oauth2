@@ -1,4 +1,4 @@
-package storage
+package tokenstorage
 
 import "errors"
 

@@ -1,7 +1,6 @@
 package github
 
 import (
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/endpoints"
@@ -9,8 +8,8 @@ import (
 
 // GetProviderConfig implements the [github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2.Provider] interface.
 // It returns the OAuth2 GitHub [endpoints.GitHub], since GitHub does not support OIDC discovery.
-func (p *Provider) GetProviderConfig(conf config.Config) (types.ProviderConfig, error) {
-	providerConfig, err := p.Provider.GetProviderConfig(conf)
+func (p Provider) GetProviderConfig() (types.ProviderConfig, error) {
+	providerConfig, err := p.Provider.GetProviderConfig()
 	if err != nil {
 		return types.ProviderConfig{}, err //nolint:wrapcheck
 	}

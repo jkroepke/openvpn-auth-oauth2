@@ -20,8 +20,7 @@ import (
 func BenchmarkFull(b *testing.B) {
 	b.StopTimer()
 
-	_, client, managementInterface, _, _, httpClient, _, shutdownFn := testutils.SetupMockEnvironment(context.Background(), b, config.Config{}, nil)
-	defer shutdownFn()
+	_, client, managementInterface, _, _, httpClient, _ := testutils.SetupMockEnvironment(context.Background(), b, config.Config{}, nil)
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -29,7 +28,7 @@ func BenchmarkFull(b *testing.B) {
 	go func() {
 		defer wg.Done()
 
-		err := client.Connect()
+		err := client.Connect(context.Background())
 		if err != nil && !errors.Is(err, io.EOF) {
 			assert.NoError(b, err)
 		}

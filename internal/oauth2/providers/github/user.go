@@ -20,7 +20,7 @@ type userType struct {
 	Email string `json:"email"`
 }
 
-func (p *Provider) GetUser(ctx context.Context, _ *slog.Logger, tokens *oidc.Tokens[*idtoken.Claims]) (types.UserData, error) {
+func (p Provider) GetUser(ctx context.Context, _ *slog.Logger, tokens *oidc.Tokens[*idtoken.Claims]) (types.UserData, error) {
 	if tokens.AccessToken == "" {
 		return types.UserData{}, errors.New("access token is empty")
 	}

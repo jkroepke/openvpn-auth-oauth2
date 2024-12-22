@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net"
-	http2 "net/http"
+	"net/http"
 	"net/url"
 	"strings"
 	"sync"
@@ -16,9 +16,7 @@ import (
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -32,7 +30,9 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 	managementInterface, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(b, err)
 
-	defer managementInterface.Close()
+	b.Cleanup(func() {
+		managementInterface.Close()
+	})
 
 	conf := config.Config{
 		HTTP: config.HTTP{
@@ -48,8 +48,8 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	storageClient := storage.New(ctx, testutils.Secret, time.Hour)
-	openVPNClient := openvpn.New(ctx, logger.Logger, conf, oauth2.New(logger.Logger, conf, storageClient, http2.DefaultClient))
+	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
+	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, b, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -57,7 +57,7 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 	go func() {
 		defer wg.Done()
 
-		err := openVPNClient.Connect()
+		err := openVPNClient.Connect(context.Background())
 		if err != nil && !errors.Is(err, io.EOF) {
 			require.NoError(b, err) //nolint:testifylint
 		}
@@ -132,11 +132,8 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 	ctx, cancel := context.WithCancelCause(context.Background())
 	defer cancel(nil)
 
-	storageClient := storage.New(ctx, testutils.Secret, time.Hour)
-	provider := oauth2.New(logger.Logger, conf, storageClient, http2.DefaultClient)
-	openVPNClient := openvpn.New(ctx, logger.Logger, conf, provider)
-
-	defer openVPNClient.Shutdown()
+	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
+	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, b, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 	wg := sync.WaitGroup{}
 
@@ -212,7 +209,7 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 	go func() {
 		defer wg.Done()
 
-		err := openVPNClient.Connect()
+		err := openVPNClient.Connect(context.Background())
 		if err != nil {
 			cancel(fmt.Errorf("connecting: %w", err))
 

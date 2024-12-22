@@ -3,6 +3,7 @@ package utils_test
 import (
 	"fmt"
 	"os/user"
+	"runtime"
 	"testing"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
@@ -11,6 +12,10 @@ import (
 
 func TestLookupGroup(t *testing.T) {
 	t.Parallel()
+
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping test on windows")
+	}
 
 	for _, tt := range []struct {
 		name string

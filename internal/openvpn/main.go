@@ -15,18 +15,16 @@ import (
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
 const minManagementInterfaceVersion = 5
 
-func New(ctx context.Context, logger *slog.Logger, conf config.Config, oauth2Client *oauth2.Provider) *Client {
+func New(logger *slog.Logger, conf config.Config) *Client {
 	client := &Client{
 		conf:   conf,
 		logger: logger,
-		oauth2: oauth2Client,
 
 		connMu: sync.Mutex{},
 
@@ -35,20 +33,26 @@ func New(ctx context.Context, logger *slog.Logger, conf config.Config, oauth2Cli
 		clientsCh:         make(chan connection.Client, 10),
 		commandResponseCh: make(chan string, 10),
 		commandsCh:        make(chan string, 10),
-		passthroughCh:     make(chan string, 10),
+		passThroughCh:     make(chan string, 10),
 	}
 
 	client.commandsBuffer.Grow(512)
 
-	client.ctx, client.ctxCancel = context.WithCancelCause(ctx)
-
 	return client
 }
 
-func (c *Client) Connect() error {
+func (c *Client) SetOAuth2Client(client oauth2Client) {
+	c.oauth2 = client
+}
+
+//nolint:cyclop
+func (c *Client) Connect(ctx context.Context) error {
 	var err error
 
-	c.logger.Info("connect to openvpn management interface " + c.conf.OpenVpn.Addr.String())
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	c.logger.LogAttrs(ctx, slog.LevelInfo, "connect to openvpn management interface "+c.conf.OpenVpn.Addr.String())
 
 	if err = c.setupConnection(); err != nil {
 		return fmt.Errorf("unable to connect to openvpn management interface %s: %w", c.conf.OpenVpn.Addr.String(), err)
@@ -60,31 +64,43 @@ func (c *Client) Connect() error {
 	c.scanner.Split(bufio.ScanLines)
 	c.scanner.Buffer(make([]byte, 0, bufio.MaxScanTokenSize), bufio.MaxScanTokenSize)
 
-	if err = c.handlePassword(); err != nil {
-		return err
+	if err = c.handlePassword(ctx); err != nil {
+		return fmt.Errorf("openvpn management error: %w", err)
 	}
 
-	go c.handleMessages()
-	go c.handleClients()
-	go c.handleCommands()
+	defer c.Shutdown()
 
-	c.logger.Info("connection to OpenVPN management interface established.")
+	errChMessages := make(chan error, 1)
+	errChClients := make(chan error, 1)
+	errChCommands := make(chan error, 1)
+	errChPassThrough := make(chan error, 1)
+
+	go c.handleMessages(ctx, errChMessages)
+	go c.handleClients(ctx, errChClients)
+	go c.handleCommands(ctx, errChCommands)
+
+	c.logger.LogAttrs(ctx, slog.LevelInfo, "connection to OpenVPN management interface established")
 
 	if c.conf.OpenVpn.Passthrough.Enabled {
-		go c.handlePassthrough()
+		go c.handlePassThrough(ctx, errChPassThrough)
 	}
 
-	err = c.checkManagementInterfaceVersion()
-	if err != nil && !errors.Is(err, ErrConnectionTerminated) {
-		c.ctxCancel(err)
+	if err := c.checkManagementInterfaceVersion(); err != nil {
+		if errors.Is(err, ErrConnectionTerminated) {
+			return nil
+		}
+
+		return fmt.Errorf("openvpn management error: %w", err)
 	}
 
-	<-c.ctx.Done()
-	c.Shutdown()
+	select {
+	case err = <-errChMessages:
+	case err = <-errChClients:
+	case err = <-errChCommands:
+	case err = <-errChPassThrough:
+	}
 
-	err = context.Cause(c.ctx)
-
-	if err != nil && !errors.Is(err, context.Canceled) {
+	if err != nil {
 		return fmt.Errorf("openvpn management error: %w", err)
 	}
 
@@ -156,7 +172,6 @@ func (c *Client) Shutdown() {
 	}
 
 	c.logger.Info("shutdown OpenVPN management connection")
-	c.ctxCancel(nil)
 
 	c.connMu.Lock()
 	defer c.connMu.Unlock()
@@ -177,9 +192,11 @@ func (c *Client) SendCommand(cmd string, passthrough bool) (string, error) {
 	c.commandsCh <- cmd
 
 	select {
-	case <-c.ctx.Done():
-		return "", ErrConnectionTerminated // Error somewhere, terminate
-	case resp := <-c.commandResponseCh:
+	case resp, ok := <-c.commandResponseCh:
+		if !ok {
+			return "", ErrConnectionTerminated
+		}
+
 		if passthrough {
 			return resp, nil
 		}
@@ -209,9 +226,9 @@ func (c *Client) SendCommandf(format string, a ...any) (string, error) {
 }
 
 // rawCommand passes command to a given connection (adds logging and EOL character).
-func (c *Client) rawCommand(cmd string) error {
-	if c.logger.Enabled(context.Background(), slog.LevelDebug) {
-		c.logger.Debug(cmd)
+func (c *Client) rawCommand(ctx context.Context, cmd string) error {
+	if c.logger.Enabled(ctx, slog.LevelDebug) {
+		c.logger.LogAttrs(ctx, slog.LevelDebug, "send command", slog.String("command", cmd))
 	}
 
 	c.commandsBuffer.Reset()
@@ -255,7 +272,7 @@ func (c *Client) readMessage(buf *bytes.Buffer) error {
 		}
 	}
 
-	if c.scanner.Err() != nil {
+	if c.closed.Load() == 0 && c.scanner.Err() != nil {
 		return fmt.Errorf("scanner error: %w", c.scanner.Err())
 	}
 

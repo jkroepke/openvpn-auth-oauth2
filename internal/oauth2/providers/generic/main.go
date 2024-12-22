@@ -19,6 +19,6 @@ func NewProvider(_ context.Context, conf config.Config, _ *http.Client) (*Provid
 	}, nil
 }
 
-func (p *Provider) GetName() string {
+func (p Provider) GetName() string {
 	return Name
 }

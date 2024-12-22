@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	oauth3 "github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/github"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
@@ -71,7 +71,7 @@ func TestValidateGroups(t *testing.T) {
 			"configure two group, none match",
 			`[{ "login": "pineapple" }]`,
 			[]string{"apple", "pear"},
-			generic.ErrMissingRequiredGroup.Error(),
+			oauth3.ErrMissingRequiredGroup.Error(),
 		},
 		{
 			"configure two group, missing one",
@@ -185,7 +185,7 @@ func TestValidateRoles(t *testing.T) {
 			"configure two group, none match",
 			`[{ "slug": "justice-league", "organization": { "login": "pineapple" }}]`,
 			[]string{"apple:justice-league", "pear:justice-league"},
-			generic.ErrMissingRequiredRole.Error(),
+			oauth3.ErrMissingRequiredRole.Error(),
 		},
 		{
 			"configure two group, missing one",

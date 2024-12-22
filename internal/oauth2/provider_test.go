@@ -2,18 +2,16 @@ package oauth2_test
 
 import (
 	"context"
-	"net"
-	http2 "net/http"
+	"net/http"
 	"net/url"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/github"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/google"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -77,7 +75,7 @@ func TestNewProvider(t *testing.T) {
 					},
 				},
 			},
-			"error oauth2 provider: OpenID Provider Configuration Discovery has failed\nhttp status not ok: 404 Not Found 404 page not found",
+			"error oidc provider: OpenID Provider Configuration Discovery has failed\nhttp status not ok: 404 Not Found 404 page not found",
 		},
 		{
 			"with custom endpoints",
@@ -110,7 +108,7 @@ func TestNewProvider(t *testing.T) {
 					},
 				},
 			},
-			"error getting providerConfig: both oauth2.endpoints.tokenUrl and oauth2.endpoints.authUrl are required",
+			"error fetch configuration for provider generic: both oauth2.endpoints.tokenUrl and oauth2.endpoints.authUrl are required",
 		},
 		{
 			"with pkce",
@@ -135,23 +133,28 @@ func TestNewProvider(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			managementInterface, err := net.Listen("tcp", "127.0.0.1:0")
-			require.NoError(t, err)
-
-			defer managementInterface.Close()
-
-			tt.conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
-
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			storageClient := storage.New(ctx, testutils.Secret, time.Hour)
-			provider := oauth2.New(logger.Logger, tt.conf, storageClient, http2.DefaultClient)
+			var (
+				err      error
+				provider oauth2.Provider
+			)
 
-			client := openvpn.New(ctx, logger.Logger, tt.conf, provider)
-			defer client.Shutdown()
+			switch tt.conf.OAuth2.Provider {
+			case generic.Name:
+				provider, err = generic.NewProvider(ctx, tt.conf, http.DefaultClient)
+			case github.Name:
+				provider, err = github.NewProvider(ctx, tt.conf, http.DefaultClient)
+			case google.Name:
+				provider, err = google.NewProvider(ctx, tt.conf, http.DefaultClient)
+			default:
+				t.Fatal("unknown oauth2 provider: " + tt.conf.OAuth2.Provider)
+			}
 
-			err = provider.Initialize(ctx, client)
+			require.NoError(t, err)
+
+			oAuth2Client, err := oauth2.New(ctx, logger.Logger, tt.conf, http.DefaultClient, testutils.NewFakeStorage(), provider, testutils.NewFakeOpenVPNClient())
 			if tt.err != "" {
 				require.Error(t, err)
 				assert.Equal(t, tt.err, strings.TrimSpace(err.Error()))
@@ -159,21 +162,19 @@ func TestNewProvider(t *testing.T) {
 				return
 			}
 
-			require.NoError(t, err)
-
-			assert.Equal(t, provider.OAuthConfig().ClientID, tt.conf.OAuth2.Client.ID)
-			assert.Equal(t, provider.OAuthConfig().ClientSecret, tt.conf.OAuth2.Client.Secret.String())
+			assert.Equal(t, oAuth2Client.OAuthConfig().ClientID, tt.conf.OAuth2.Client.ID)
+			assert.Equal(t, oAuth2Client.OAuthConfig().ClientSecret, tt.conf.OAuth2.Client.Secret.String())
 
 			if tt.conf.OAuth2.Endpoints.Auth != nil {
-				assert.Equal(t, provider.OAuthConfig().Endpoint.AuthURL, tt.conf.OAuth2.Endpoints.Auth.String())
+				assert.Equal(t, oAuth2Client.OAuthConfig().Endpoint.AuthURL, tt.conf.OAuth2.Endpoints.Auth.String())
 			} else {
-				assert.NotEmpty(t, provider.OAuthConfig().Endpoint.AuthURL)
+				assert.NotEmpty(t, oAuth2Client.OAuthConfig().Endpoint.AuthURL)
 			}
 
 			if tt.conf.OAuth2.Endpoints.Token != nil {
-				assert.Equal(t, provider.OAuthConfig().Endpoint.TokenURL, tt.conf.OAuth2.Endpoints.Token.String())
+				assert.Equal(t, oAuth2Client.OAuthConfig().Endpoint.TokenURL, tt.conf.OAuth2.Endpoints.Token.String())
 			} else {
-				assert.NotEmpty(t, provider.OAuthConfig().Endpoint.TokenURL)
+				assert.NotEmpty(t, oAuth2Client.OAuthConfig().Endpoint.TokenURL)
 			}
 		})
 	}

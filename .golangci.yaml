@@ -69,7 +69,7 @@ linters-settings:
   revive:
     rules:
       - name: argument-limit
-        arguments: [ 6 ]
+        arguments: [ 7 ]
       - name: atomic
       - name: bare-return
       - name: blank-imports

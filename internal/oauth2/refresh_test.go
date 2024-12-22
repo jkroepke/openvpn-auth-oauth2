@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -231,26 +230,20 @@ func TestRefreshReAuth(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			conf, openVPNClient, managementInterface, _, _, httpClient, logger, shutdownFn := testutils.SetupMockEnvironment(context.Background(), t, tt.conf, tt.rt)
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
 
-			t.Cleanup(func() {
-				if t.Failed() {
-					t.Log(logger.String())
-				}
-			})
-
-			defer shutdownFn()
+			conf, openVPNClient, managementInterface, _, _, httpClient, logger := testutils.SetupMockEnvironment(ctx, t, tt.conf, tt.rt)
 
 			wg := sync.WaitGroup{}
 			wg.Add(1)
 
+			errCh := make(chan error, 1)
+
 			go func() {
 				defer wg.Done()
 
-				err := openVPNClient.Connect()
-				if err != nil && !errors.Is(err, io.EOF) {
-					assert.NoError(t, err)
-				}
+				errCh <- openVPNClient.Connect(ctx)
 			}()
 
 			managementInterfaceConn, err := managementInterface.Accept()
@@ -408,10 +401,10 @@ func TestRefreshReAuth(t *testing.T) {
 
 			testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: %s command succeeded", strings.SplitN(auth, " ", 2)[0])
 
-			time.Sleep(time.Millisecond * 50)
-
 			openVPNClient.Shutdown()
+
 			wg.Wait()
+			require.NoError(t, <-errCh, logger.String())
 		})
 	}
 }

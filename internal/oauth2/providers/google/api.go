@@ -29,7 +29,7 @@ type apiError struct {
 }
 
 // checkGroupMembership fetches the groups from a user using the Google Identity API.
-func (p *Provider) checkGroupMembership(ctx context.Context, groupID string, userData types.UserData, tokens *oidc.Tokens[*idtoken.Claims]) (bool, error) {
+func (p Provider) checkGroupMembership(ctx context.Context, groupID string, userData types.UserData, tokens *oidc.Tokens[*idtoken.Claims]) (bool, error) {
 	// https://cloud.google.com/identity/docs/reference/rest/v1beta1/groups.memberships/searchDirectGroups
 	apiURL := &url.URL{
 		Scheme: "https",

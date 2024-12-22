@@ -1,4 +1,4 @@
-package oauth2_test
+package httphandler_test
 
 import (
 	"bufio"

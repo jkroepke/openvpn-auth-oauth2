@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
@@ -14,7 +15,7 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
-func (p *Provider) CheckUser(
+func (p Provider) CheckUser(
 	_ context.Context,
 	session state.State,
 	_ types.UserData,
@@ -35,17 +36,17 @@ func (p *Provider) CheckUser(
 	return p.CheckIPAddress(session, tokens)
 }
 
-func (p *Provider) CheckGroups(tokens *oidc.Tokens[*idtoken.Claims]) error {
+func (p Provider) CheckGroups(tokens *oidc.Tokens[*idtoken.Claims]) error {
 	if len(p.Conf.OAuth2.Validate.Groups) == 0 {
 		return nil
 	}
 
 	if tokens.IDTokenClaims == nil {
-		return fmt.Errorf("%w: id_token", ErrMissingClaim)
+		return fmt.Errorf("%w: id_token", oauth2.ErrMissingClaim)
 	}
 
 	if tokens.IDTokenClaims.Groups == nil {
-		return fmt.Errorf("%w: groups", ErrMissingClaim)
+		return fmt.Errorf("%w: groups", oauth2.ErrMissingClaim)
 	}
 
 	for _, group := range p.Conf.OAuth2.Validate.Groups {
@@ -54,20 +55,20 @@ func (p *Provider) CheckGroups(tokens *oidc.Tokens[*idtoken.Claims]) error {
 		}
 	}
 
-	return ErrMissingRequiredGroup
+	return oauth2.ErrMissingRequiredGroup
 }
 
-func (p *Provider) CheckRoles(tokens *oidc.Tokens[*idtoken.Claims]) error {
+func (p Provider) CheckRoles(tokens *oidc.Tokens[*idtoken.Claims]) error {
 	if len(p.Conf.OAuth2.Validate.Roles) == 0 {
 		return nil
 	}
 
 	if tokens.IDTokenClaims == nil {
-		return fmt.Errorf("%w: id_token", ErrMissingClaim)
+		return fmt.Errorf("%w: id_token", oauth2.ErrMissingClaim)
 	}
 
 	if tokens.IDTokenClaims.Roles == nil {
-		return fmt.Errorf("%w: roles", ErrMissingClaim)
+		return fmt.Errorf("%w: roles", oauth2.ErrMissingClaim)
 	}
 
 	for _, role := range p.Conf.OAuth2.Validate.Roles {
@@ -76,29 +77,29 @@ func (p *Provider) CheckRoles(tokens *oidc.Tokens[*idtoken.Claims]) error {
 		}
 	}
 
-	return ErrMissingRequiredRole
+	return oauth2.ErrMissingRequiredRole
 }
 
-func (p *Provider) CheckCommonName(session state.State, tokens *oidc.Tokens[*idtoken.Claims]) error {
+func (p Provider) CheckCommonName(session state.State, tokens *oidc.Tokens[*idtoken.Claims]) error {
 	if p.Conf.OAuth2.Validate.CommonName == "" {
 		return nil
 	}
 
 	if session.CommonName == "" || session.CommonName == config.CommonNameModeOmitValue {
-		return fmt.Errorf("common_name %w: openvpn client is empty", ErrMismatch)
+		return fmt.Errorf("common_name %w: openvpn client is empty", oauth2.ErrMismatch)
 	}
 
 	if tokens.IDTokenClaims == nil {
-		return fmt.Errorf("%w: id_token", ErrMissingClaim)
+		return fmt.Errorf("%w: id_token", oauth2.ErrMissingClaim)
 	}
 
 	if tokens.IDTokenClaims.Claims == nil {
-		return fmt.Errorf("%w: id_token.claims", ErrMissingClaim)
+		return fmt.Errorf("%w: id_token.claims", oauth2.ErrMissingClaim)
 	}
 
 	tokenCommonName, ok := tokens.IDTokenClaims.Claims[p.Conf.OAuth2.Validate.CommonName].(string)
 	if !ok {
-		return fmt.Errorf("%w: %s", ErrMissingClaim, p.Conf.OAuth2.Validate.CommonName)
+		return fmt.Errorf("%w: %s", oauth2.ErrMissingClaim, p.Conf.OAuth2.Validate.CommonName)
 	}
 
 	tokenCommonName = utils.TransformCommonName(p.Conf.OpenVpn.CommonName.Mode, tokenCommonName)
@@ -110,28 +111,28 @@ func (p *Provider) CheckCommonName(session state.State, tokens *oidc.Tokens[*idt
 
 	if tokenCommonName != session.CommonName {
 		return fmt.Errorf("common_name %w: openvpn client: %s - oidc token: %s",
-			ErrMismatch, session.CommonName, tokenCommonName)
+			oauth2.ErrMismatch, session.CommonName, tokenCommonName)
 	}
 
 	return nil
 }
 
-func (p *Provider) CheckIPAddress(session state.State, tokens *oidc.Tokens[*idtoken.Claims]) error {
+func (p Provider) CheckIPAddress(session state.State, tokens *oidc.Tokens[*idtoken.Claims]) error {
 	if !p.Conf.OAuth2.Validate.IPAddr {
 		return nil
 	}
 
 	if tokens.IDTokenClaims == nil {
-		return fmt.Errorf("%w: id_token", ErrMissingClaim)
+		return fmt.Errorf("%w: id_token", oauth2.ErrMissingClaim)
 	}
 
 	if tokens.IDTokenClaims.IPAddr == "" {
-		return fmt.Errorf("%w: ipaddr", ErrMissingClaim)
+		return fmt.Errorf("%w: ipaddr", oauth2.ErrMissingClaim)
 	}
 
 	if tokens.IDTokenClaims.IPAddr != session.IPAddr {
 		return fmt.Errorf("ipaddr %w: openvpn client: %s - oidc token: %s",
-			ErrMismatch, tokens.IDTokenClaims.IPAddr, session.IPAddr)
+			oauth2.ErrMismatch, tokens.IDTokenClaims.IPAddr, session.IPAddr)
 	}
 
 	return nil

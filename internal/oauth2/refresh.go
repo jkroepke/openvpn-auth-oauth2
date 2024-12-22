@@ -6,29 +6,25 @@ import (
 	"fmt"
 	"log/slog"
 	"strconv"
-	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/storage"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
 )
 
 // RefreshClientAuth initiate a non-interactive authentication against the sso provider.
 //
 //nolint:cyclop
-func (p *Provider) RefreshClientAuth(logger *slog.Logger, client connection.Client) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	id := strconv.FormatUint(client.CID, 10)
-	if p.conf.OAuth2.Refresh.UseSessionID && client.SessionID != "" {
-		id = client.SessionID
+func (c Client) RefreshClientAuth(ctx context.Context, logger *slog.Logger, client connection.Client) (bool, error) {
+	clientID := strconv.FormatUint(client.CID, 10)
+	if c.conf.OAuth2.Refresh.UseSessionID && client.SessionID != "" {
+		clientID = client.SessionID
 	}
 
-	refreshToken, err := p.storage.Get(id)
+	refreshToken, err := c.storage.Get(clientID)
 	if err != nil {
-		if errors.Is(err, storage.ErrNotExists) {
+		if errors.Is(err, tokenstorage.ErrNotExists) {
 			return false, nil
 		}
 
@@ -39,17 +35,17 @@ func (p *Provider) RefreshClientAuth(logger *slog.Logger, client connection.Clie
 		return false, nil
 	}
 
-	if !p.conf.OAuth2.Refresh.ValidateUser {
+	if !c.conf.OAuth2.Refresh.ValidateUser {
 		return true, nil
 	}
 
-	if p.conf.OAuth2.Nonce {
-		ctx = context.WithValue(ctx, types.CtxNonce{}, p.GetNonce(id))
+	if c.conf.OAuth2.Nonce {
+		ctx = context.WithValue(ctx, types.CtxNonce{}, c.getNonce(clientID))
 	}
 
-	logger.Info("initiate non-interactive authentication via refresh token")
+	logger.LogAttrs(ctx, slog.LevelInfo, "initiate non-interactive authentication via refresh token")
 
-	tokens, err := p.Provider.Refresh(ctx, logger, p.RelyingParty, refreshToken)
+	tokens, err := c.provider.Refresh(ctx, logger, c.relyingParty, refreshToken)
 	if err != nil {
 		return false, fmt.Errorf("error from non-interactive authentication via refresh token: %w", err)
 	}
@@ -59,72 +55,72 @@ func (p *Provider) RefreshClientAuth(logger *slog.Logger, client connection.Clie
 		client.IPAddr, client.IPPort, client.CommonName, client.SessionState,
 	)
 
-	user, err := p.Provider.GetUser(ctx, logger, tokens)
+	user, err := c.provider.GetUser(ctx, logger, tokens)
 	if err != nil {
 		return false, fmt.Errorf("error fetch user data: %w", err)
 	}
 
-	err = p.Provider.CheckUser(ctx, session, user, tokens)
-	if err != nil {
+	if err := c.provider.CheckUser(ctx, session, user, tokens); err != nil {
 		return false, fmt.Errorf("error check user data: %w", err)
 	}
 
-	logger.Info("successful authenticate via refresh token")
+	logger.LogAttrs(ctx, slog.LevelInfo, "successful authenticate via refresh token")
 
-	refreshToken, err = p.Provider.GetRefreshToken(tokens)
+	refreshToken, err = c.provider.GetRefreshToken(tokens)
+	if err != nil {
+		logLevel := slog.LevelWarn
 
-	switch {
-	case errors.Is(err, types.ErrNoRefreshToken):
-		logMessage := logger.WarnContext
-		if client.SessionState == "AuthenticatedEmptyUser" || client.SessionState == "Authenticated" {
-			logMessage = logger.DebugContext
+		if errors.Is(err, ErrNoRefreshToken) {
+			if session.SessionState == "AuthenticatedEmptyUser" || session.SessionState == "Authenticated" {
+				logLevel = slog.LevelDebug
+			}
 		}
 
-		logMessage(ctx, fmt.Errorf("oauth2.refresh is enabled, but %w", err).Error())
-	case err != nil:
-		logger.WarnContext(ctx, fmt.Errorf("oauth2.refresh is enabled, but %w", err).Error())
-	default:
-		logger.DebugContext(ctx, "store new refresh token into token store")
+		logger.LogAttrs(ctx, logLevel, fmt.Errorf("oauth2.refresh is enabled, but %w", err).Error())
 
-		if err = p.storage.Set(id, refreshToken); err != nil {
-			return true, fmt.Errorf("error from token store: %w", err)
-		}
+		return true, nil
+	}
+
+	if refreshToken == "" {
+		logger.LogAttrs(ctx, slog.LevelWarn, "refresh token is empty")
+	} else if err = c.storage.Set(clientID, refreshToken); err != nil {
+		logger.LogAttrs(ctx, slog.LevelWarn, "unable to store refresh token",
+			slog.Any("err", err),
+		)
 	}
 
 	return true, nil
 }
 
-// ClientDisconnect purges the refresh token from the [storage.Storage].
-func (p *Provider) ClientDisconnect(ctx context.Context, logger *slog.Logger, client connection.Client) {
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-
-	if p.conf.OAuth2.Refresh.UseSessionID {
+// ClientDisconnect purges the refresh token from the [tokenstorage.Storage].
+func (c Client) ClientDisconnect(ctx context.Context, logger *slog.Logger, client connection.Client) {
+	if c.conf.OAuth2.Refresh.UseSessionID {
 		return
 	}
 
 	id := strconv.FormatUint(client.CID, 10)
 
-	refreshToken, err := p.storage.Get(id)
+	refreshToken, err := c.storage.Get(id)
 	if err != nil {
-		if errors.Is(err, storage.ErrNotExists) {
-			logger.DebugContext(ctx, fmt.Errorf("error from token store: %w", err).Error())
-		} else {
-			logger.WarnContext(ctx, fmt.Errorf("error from token store: %w", err).Error())
+		logLevel := slog.LevelWarn
+		if errors.Is(err, tokenstorage.ErrNotExists) {
+			logLevel = slog.LevelDebug
 		}
 
+		logger.LogAttrs(ctx, logLevel, fmt.Errorf("error from token store: %w", err).Error())
+
 		return
 	}
 
-	p.storage.Delete(id)
+	c.storage.Delete(id)
 
-	if !p.conf.OAuth2.Refresh.ValidateUser {
+	if !c.conf.OAuth2.Refresh.ValidateUser {
 		return
 	}
 
-	logger.DebugContext(ctx, "revoke refresh token")
+	logger.LogAttrs(ctx, slog.LevelDebug, "revoke refresh token")
 
-	if err = p.Provider.RevokeRefreshToken(ctx, logger, p.RelyingParty, refreshToken); err != nil {
-		logger.WarnContext(ctx, err.Error())
+	if err = c.provider.RevokeRefreshToken(ctx, logger, c.relyingParty, refreshToken); err != nil {
+		logger.LogAttrs(ctx, slog.LevelWarn, err.Error())
 	}
 }
