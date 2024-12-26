@@ -159,10 +159,7 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 			switch sig {
 			case syscall.SIGHUP:
 				if err = server.Reload(); err != nil {
-					err := fmt.Errorf("error reloading http server: %w", err)
-					logger.Error(err.Error())
-
-					cancel(err)
+					cancel(fmt.Errorf("error reloading http server: %w", err))
 				}
 			default:
 				cancel(nil)
@@ -173,12 +170,12 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 
 func setupDebugListener(ctx context.Context, logger *slog.Logger, conf config.Config) error {
 	mux := http.NewServeMux()
-	mux.Handle("/", http.RedirectHandler("/debug/pprof/", http.StatusTemporaryRedirect))
-	mux.HandleFunc("/debug/pprof/", pprof.Index)
-	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
-	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
-	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
-	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+	mux.Handle("GET /", http.RedirectHandler("/debug/pprof/", http.StatusTemporaryRedirect))
+	mux.HandleFunc("GET /debug/pprof/", pprof.Index)
+	mux.HandleFunc("GET /debug/pprof/cmdline", pprof.Cmdline)
+	mux.HandleFunc("GET /debug/pprof/profile", pprof.Profile)
+	mux.HandleFunc("GET /debug/pprof/symbol", pprof.Symbol)
+	mux.HandleFunc("GET /debug/pprof/trace", pprof.Trace)
 
 	server := httpserver.NewHTTPServer(httpserver.ServerNameDebug, logger, config.HTTP{Listen: conf.Debug.Listen}, mux)
 
