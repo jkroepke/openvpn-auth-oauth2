@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"log/slog"
 	"net"
 	"net/http"
@@ -232,7 +233,7 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener) (*httptest.
 }
 
 // SetupMockEnvironment setups an OpenVPN and IDP mock.
-func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config, rt http.RoundTripper) (
+func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config, rt http.RoundTripper, ccdFS fs.FS) (
 	config.Config, *openvpn.Client, net.Listener, *oauth2.Client, *httptest.Server, *http.Client, *Logger,
 ) {
 	tb.Helper()
@@ -290,7 +291,7 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 	httpClient := &http.Client{Transport: NewMockRoundTripper(utils.NewUserAgentTransport(rt))}
 	tokenStorage := tokenstorage.NewInMemory(ctx, Secret, conf.OAuth2.Refresh.Expires)
 
-	oAuth2Client, openvpnClient := SetupOpenVPNOAuth2Clients(ctx, tb, conf, logger.Logger, httpClient, tokenStorage)
+	oAuth2Client, openvpnClient := SetupOpenVPNOAuth2Clients(ctx, tb, conf, logger.Logger, httpClient, tokenStorage, ccdFS)
 
 	httpHandler, err := httphandler.New(conf, oAuth2Client)
 	require.NoError(tb, err)
@@ -313,7 +314,7 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 }
 
 func SetupOpenVPNOAuth2Clients(
-	ctx context.Context, tb testing.TB, conf config.Config, logger *slog.Logger, httpClient *http.Client, tokenStorage tokenstorage.Storage,
+	ctx context.Context, tb testing.TB, conf config.Config, logger *slog.Logger, httpClient *http.Client, tokenStorage tokenstorage.Storage, ccdFS fs.FS,
 ) (*oauth2.Client, *openvpn.Client) {
 	tb.Helper()
 
@@ -345,7 +346,7 @@ func SetupOpenVPNOAuth2Clients(
 
 	require.NoError(tb, err)
 
-	openVPNClient := openvpn.New(logger, conf)
+	openVPNClient := openvpn.New(logger, conf, ccdFS)
 	oAuth2Client, err := oauth2.New(ctx, logger, conf, httpClient, tokenStorage, provider, openVPNClient)
 	require.NoError(tb, err)
 

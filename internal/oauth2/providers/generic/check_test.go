@@ -112,13 +112,15 @@ func TestInvalidToken(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			provider, err := generic.NewProvider(context.Background(), tt.conf, http.DefaultClient)
+			ctx := context.Background()
+
+			provider, err := generic.NewProvider(ctx, tt.conf, http.DefaultClient)
 			require.NoError(t, err)
 
-			userData, err := provider.GetUser(context.Background(), testutils.NewTestLogger().Logger, tt.token)
+			userData, err := provider.GetUser(ctx, testutils.NewTestLogger().Logger, tt.token)
 			require.NoError(t, err)
 
-			err = provider.CheckUser(context.Background(), state.State{CommonName: "user"}, userData, tt.token)
+			err = provider.CheckUser(ctx, state.State{Client: state.ClientIdentifier{CommonName: "user"}}, userData, tt.token)
 			if tt.err == nil {
 				require.NoError(t, err)
 			} else {
@@ -243,7 +245,7 @@ func TestValidateCommonName(t *testing.T) {
 			"apple",
 			"",
 			config.Config{
-				OpenVpn: config.OpenVpn{
+				OpenVpn: config.OpenVPN{
 					CommonName: config.OpenVPNCommonName{
 						Mode: config.CommonNameModePlain,
 					},
@@ -261,7 +263,7 @@ func TestValidateCommonName(t *testing.T) {
 			"apple",
 			"apple",
 			config.Config{
-				OpenVpn: config.OpenVpn{
+				OpenVpn: config.OpenVPN{
 					CommonName: config.OpenVPNCommonName{
 						Mode: config.CommonNameModePlain,
 					},
@@ -279,7 +281,7 @@ func TestValidateCommonName(t *testing.T) {
 			"APPLE",
 			"apple",
 			config.Config{
-				OpenVpn: config.OpenVpn{
+				OpenVpn: config.OpenVPN{
 					CommonName: config.OpenVPNCommonName{
 						Mode: config.CommonNameModePlain,
 					},
@@ -298,7 +300,7 @@ func TestValidateCommonName(t *testing.T) {
 			"APPLE",
 			"apple",
 			config.Config{
-				OpenVpn: config.OpenVpn{
+				OpenVpn: config.OpenVPN{
 					CommonName: config.OpenVPNCommonName{
 						Mode: config.CommonNameModePlain,
 					},
@@ -317,7 +319,7 @@ func TestValidateCommonName(t *testing.T) {
 			"pear",
 			"apple",
 			config.Config{
-				OpenVpn: config.OpenVpn{
+				OpenVpn: config.OpenVPN{
 					CommonName: config.OpenVPNCommonName{
 						Mode: config.CommonNameModePlain,
 					},
@@ -335,7 +337,7 @@ func TestValidateCommonName(t *testing.T) {
 			"pear",
 			"apple",
 			config.Config{
-				OpenVpn: config.OpenVpn{
+				OpenVpn: config.OpenVPN{
 					CommonName: config.OpenVPNCommonName{
 						Mode: config.CommonNameModePlain,
 					},
@@ -353,7 +355,7 @@ func TestValidateCommonName(t *testing.T) {
 			"apple",
 			config.CommonNameModeOmitValue,
 			config.Config{
-				OpenVpn: config.OpenVpn{
+				OpenVpn: config.OpenVPN{
 					CommonName: config.OpenVPNCommonName{
 						Mode: config.CommonNameModeOmit,
 					},
@@ -379,7 +381,7 @@ func TestValidateCommonName(t *testing.T) {
 			}
 
 			session := state.State{
-				CommonName: tt.requiredCommonName,
+				Client: state.ClientIdentifier{CommonName: tt.requiredCommonName},
 			}
 
 			provider, err := generic.NewProvider(context.Background(), tt.conf, http.DefaultClient)

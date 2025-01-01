@@ -3,7 +3,9 @@ package openvpn
 import (
 	"encoding/base64"
 	"fmt"
+	"io"
 	"log/slog"
+	"strings"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 )
@@ -23,10 +25,31 @@ func (c *Client) AcceptClient(logger *slog.Logger, client state.ClientIdentifier
 		}
 	}
 
-	if tokenUsername == "" {
+	clientConfig, err := c.readClientConfig(username)
+	if err != nil {
+		logger.Warn("failed to read client config",
+			slog.Any("error", err),
+		)
+	}
+
+	if tokenUsername != "" {
+		clientConfig = append(clientConfig, fmt.Sprintf(`push "auth-token-user %s"`, tokenUsername))
+	}
+
+	if len(clientConfig) == 0 {
 		_, err = c.SendCommandf(`client-auth-nt %d %d`, client.CID, client.KID)
 	} else {
-		_, err = c.SendCommandf("client-auth %d %d\r\npush \"auth-token-user %s\"\r\nEND", client.CID, client.KID, tokenUsername)
+		sb := strings.Builder{}
+		sb.WriteString(fmt.Sprintf("client-auth %d %d\r\n", client.CID, client.KID))
+
+		for _, line := range clientConfig {
+			sb.WriteString(strings.TrimSpace(line))
+			sb.WriteString("\r\n")
+		}
+
+		sb.WriteString("END")
+
+		_, err = c.SendCommand(sb.String(), false)
 	}
 
 	if err != nil {
@@ -34,6 +57,24 @@ func (c *Client) AcceptClient(logger *slog.Logger, client state.ClientIdentifier
 			slog.Any("error", err),
 		)
 	}
+}
+
+func (c *Client) readClientConfig(username string) ([]string, error) {
+	if c.ccdFS == nil || len(username) == 0 {
+		return make([]string, 0), nil
+	}
+
+	clientConfigFile, err := c.ccdFS.Open(username + ".conf")
+	if err != nil {
+		return make([]string, 0), nil
+	}
+
+	clientConfigBytes, err := io.ReadAll(clientConfigFile)
+	if err != nil {
+		return make([]string, 0), fmt.Errorf("failed to read client config file: %w", err)
+	}
+
+	return strings.Split(strings.TrimSpace(string(clientConfigBytes)), "\n"), nil
 }
 
 func (c *Client) DenyClient(logger *slog.Logger, client state.ClientIdentifier, reason string) {

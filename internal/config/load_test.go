@@ -105,9 +105,13 @@ openvpn:
         common-names:
         - "test"
         - "test2"
+    ccd:
+        enabled: true
+        token-claim: sub
+        path: "."
     common-name:
         environment-variable-name: X509_0_emailAddress
-        mode: omit
+        mode: plain
     password: "1jd93h5b6s82lf03jh5b2hf9"
     pass-through:
         address: "unix:///run/openvpn/pass-through.sock"
@@ -146,21 +150,26 @@ http:
 					},
 					AssetPath: ".",
 				},
-				OpenVpn: config.OpenVpn{
+				OpenVpn: config.OpenVPN{
 					Addr: &url.URL{
 						Scheme:   "unix",
 						Path:     "/run/openvpn/server2.sock",
 						OmitHost: false,
 					},
-					Bypass: config.OpenVpnBypass{
+					Bypass: config.OpenVPNBypass{
 						CommonNames: []string{"test", "test2"},
+					},
+					CCD: config.OpenVPNCCD{
+						Enabled:    true,
+						TokenClaim: "sub",
+						Path:       ".",
 					},
 					Password:           "1jd93h5b6s82lf03jh5b2hf9",
 					AuthTokenUser:      true,
 					AuthPendingTimeout: 2 * time.Minute,
 					CommonName: config.OpenVPNCommonName{
 						EnvironmentVariableName: "X509_0_emailAddress",
-						Mode:                    config.CommonNameModeOmit,
+						Mode:                    config.CommonNameModePlain,
 					},
 					Passthrough: config.OpenVPNPassthrough{
 						Enabled: true,

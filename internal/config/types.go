@@ -16,7 +16,7 @@ type Config struct {
 	Debug      Debug   `koanf:"debug"`
 	Log        Log     `koanf:"log"`
 	HTTP       HTTP    `koanf:"http"`
-	OpenVpn    OpenVpn `koanf:"openvpn"`
+	OpenVpn    OpenVPN `koanf:"openvpn"`
 	OAuth2     OAuth2  `koanf:"oauth2"`
 }
 
@@ -43,18 +43,25 @@ type Log struct {
 	VPNClientIP bool       `koanf:"vpn-client-ip"`
 }
 
-type OpenVpn struct {
+type OpenVPN struct {
 	Addr               *url.URL           `koanf:"addr"`
 	Password           Secret             `koanf:"password"`
-	Bypass             OpenVpnBypass      `koanf:"bypass"`
+	Bypass             OpenVPNBypass      `koanf:"bypass"`
+	CCD                OpenVPNCCD         `koanf:"ccd"`
 	AuthTokenUser      bool               `koanf:"auth-token-user"`
 	AuthPendingTimeout time.Duration      `koanf:"auth-pending-timeout"`
 	CommonName         OpenVPNCommonName  `koanf:"common-name"`
 	Passthrough        OpenVPNPassthrough `koanf:"pass-through"`
 }
 
-type OpenVpnBypass struct {
+type OpenVPNBypass struct {
 	CommonNames StringSlice `koanf:"common-names"`
+}
+
+type OpenVPNCCD struct {
+	Enabled    bool   `koanf:"enabled"`
+	TokenClaim string `koanf:"token-claim"`
+	Path       string `koanf:"path"`
 }
 
 type OpenVPNCommonName struct {

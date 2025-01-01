@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/fs"
 	"log/slog"
 	"net/http"
 	"net/http/pprof"
@@ -74,16 +75,21 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 		return 1
 	}
 
-	openvpnClient := openvpn.New(logger, conf)
+	var ccdFS fs.FS
+	if conf.OpenVpn.CCD.Enabled {
+		ccdFS = os.DirFS(conf.OpenVpn.CCD.Path)
+	}
 
-	oAuth2Client, err := oauth2.New(ctx, logger, conf, httpClient, tokenStorage, provider, openvpnClient)
+	openVPNClient := openvpn.New(logger, conf, ccdFS)
+
+	oAuth2Client, err := oauth2.New(ctx, logger, conf, httpClient, tokenStorage, provider, openVPNClient)
 	if err != nil {
 		logger.Error(err.Error())
 
 		return 1
 	}
 
-	openvpnClient.SetOAuth2Client(oAuth2Client)
+	openVPNClient.SetOAuth2Client(oAuth2Client)
 
 	httpHandler, err := httphandler.New(conf, oAuth2Client)
 	if err != nil {
@@ -126,7 +132,7 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 	go func() {
 		defer wg.Done()
 
-		if err := openvpnClient.Connect(context.Background()); err != nil {
+		if err := openVPNClient.Connect(context.Background()); err != nil {
 			cancel(fmt.Errorf("openvpn: %w", err))
 
 			return

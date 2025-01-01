@@ -233,7 +233,7 @@ func TestRefreshReAuth(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			conf, openVPNClient, managementInterface, _, _, httpClient, logger := testutils.SetupMockEnvironment(ctx, t, tt.conf, tt.rt)
+			conf, openVPNClient, managementInterface, _, _, httpClient, logger := testutils.SetupMockEnvironment(ctx, t, tt.conf, tt.rt, nil)
 
 			wg := sync.WaitGroup{}
 			wg.Add(1)

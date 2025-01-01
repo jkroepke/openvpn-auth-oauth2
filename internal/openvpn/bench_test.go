@@ -39,9 +39,9 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 			BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 			Secret:  testutils.Secret,
 		},
-		OpenVpn: config.OpenVpn{
+		OpenVpn: config.OpenVPN{
 			Addr:   &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()},
-			Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
+			Bypass: config.OpenVPNBypass{CommonNames: make([]string, 0)},
 		},
 	}
 
@@ -49,7 +49,7 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 	defer cancel()
 
 	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
-	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, b, conf, logger.Logger, http.DefaultClient, tokenStorage)
+	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, b, conf, logger.Logger, http.DefaultClient, tokenStorage, nil)
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -133,7 +133,7 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 	defer cancel(nil)
 
 	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
-	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, b, conf, logger.Logger, http.DefaultClient, tokenStorage)
+	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, b, conf, logger.Logger, http.DefaultClient, tokenStorage, nil)
 
 	wg := sync.WaitGroup{}
 
