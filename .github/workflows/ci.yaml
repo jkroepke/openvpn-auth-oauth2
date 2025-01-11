@@ -5,7 +5,7 @@ env:
   # renovate: github=golangci/golangci-lint
   GO_LINT_CI_VERSION: v1.62.2
   # renovate: github=goreleaser/goreleaser
-  GORELEASER_VERSION: v2.5.0
+  GORELEASER_VERSION: v2.5.1
 
 on:
   workflow_dispatch:
