@@ -10,12 +10,12 @@ require (
 	github.com/knadh/koanf/providers/file v1.1.2
 	github.com/knadh/koanf/providers/structs v0.1.0
 	github.com/knadh/koanf/v2 v2.1.2
-	github.com/madflojo/testcerts v1.3.0
+	github.com/madflojo/testcerts v1.4.0
 	github.com/stretchr/testify v1.10.0
 	github.com/zitadel/logging v0.6.1
-	github.com/zitadel/oidc/v3 v3.33.1
-	golang.org/x/net v0.33.0
-	golang.org/x/oauth2 v0.24.0
+	github.com/zitadel/oidc/v3 v3.34.0
+	golang.org/x/net v0.34.0
+	golang.org/x/oauth2 v0.25.0
 	golang.org/x/text v0.21.0
 )
 
@@ -43,8 +43,8 @@ require (
 	go.opentelemetry.io/otel v1.33.0 // indirect
 	go.opentelemetry.io/otel/metric v1.33.0 // indirect
 	go.opentelemetry.io/otel/trace v1.33.0 // indirect
-	golang.org/x/crypto v0.31.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/crypto v0.32.0 // indirect
+	golang.org/x/sys v0.29.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
