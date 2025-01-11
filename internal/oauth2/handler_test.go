@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"sync"
 	"testing"
+	"testing/fstest"
 	"text/template"
 	"time"
 
@@ -21,6 +22,12 @@ import (
 
 func TestHandler(t *testing.T) {
 	t.Parallel()
+
+	ccdFS := fstest.MapFS{
+		"client.conf": &fstest.MapFile{
+			Data: []byte("push \"ping 60\"\npush \"ping-restart 180\"\r\npush \"ping-timer-rem\" 0"),
+		},
+	}
 
 	tests := []struct {
 		name          string
@@ -51,12 +58,12 @@ func TestHandler(t *testing.T) {
 						IPAddr: false,
 					},
 				},
-				OpenVpn: config.OpenVpn{
-					Bypass:        config.OpenVpnBypass{CommonNames: make([]string, 0)},
+				OpenVpn: config.OpenVPN{
+					Bypass:        config.OpenVPNBypass{CommonNames: make([]string, 0)},
 					AuthTokenUser: true,
 				},
 			},
-			state.New(state.ClientIdentifier{CID: 0, KID: 1}, "127.0.0.1", "12345", "name", ""),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.1", "12345", ""),
 			false,
 			"",
 			true,
@@ -82,12 +89,12 @@ func TestHandler(t *testing.T) {
 						IPAddr: false,
 					},
 				},
-				OpenVpn: config.OpenVpn{
-					Bypass:        config.OpenVpnBypass{CommonNames: make([]string, 0)},
+				OpenVpn: config.OpenVPN{
+					Bypass:        config.OpenVPNBypass{CommonNames: make([]string, 0)},
 					AuthTokenUser: true,
 				},
 			},
-			state.New(state.ClientIdentifier{CID: 0, KID: 1, UsernameIsDefined: 1}, "127.0.0.1", "12345", "name", ""),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1, UsernameIsDefined: 1, CommonName: "name"}, "127.0.0.1", "12345", ""),
 			false,
 			"",
 			true,
@@ -116,12 +123,12 @@ func TestHandler(t *testing.T) {
 					Nonce: true,
 					PKCE:  true,
 				},
-				OpenVpn: config.OpenVpn{
-					Bypass:        config.OpenVpnBypass{CommonNames: make([]string, 0)},
+				OpenVpn: config.OpenVPN{
+					Bypass:        config.OpenVPNBypass{CommonNames: make([]string, 0)},
 					AuthTokenUser: true,
 				},
 			},
-			state.New(state.ClientIdentifier{CID: 0, KID: 1}, "127.0.0.1", "12345", "name", ""),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.1", "12345", ""),
 			false,
 			"",
 			true,
@@ -148,12 +155,12 @@ func TestHandler(t *testing.T) {
 						IPAddr: false,
 					},
 				},
-				OpenVpn: config.OpenVpn{
-					Bypass:        config.OpenVpnBypass{CommonNames: make([]string, 0)},
+				OpenVpn: config.OpenVPN{
+					Bypass:        config.OpenVPNBypass{CommonNames: make([]string, 0)},
 					AuthTokenUser: true,
 				},
 			},
-			state.New(state.ClientIdentifier{CID: 0, KID: 1}, "127.0.0.1", "12345", "name", ""),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.1", "12345", ""),
 			false,
 			"",
 			true,
@@ -179,12 +186,12 @@ func TestHandler(t *testing.T) {
 						IPAddr: false,
 					},
 				},
-				OpenVpn: config.OpenVpn{
-					Bypass:        config.OpenVpnBypass{CommonNames: make([]string, 0)},
+				OpenVpn: config.OpenVPN{
+					Bypass:        config.OpenVPNBypass{CommonNames: make([]string, 0)},
 					AuthTokenUser: true,
 				},
 			},
-			state.New(state.ClientIdentifier{CID: 0, KID: 1}, "127.0.0.1", "12345", "name", ""),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.1", "12345", ""),
 			false,
 			"",
 			true,
@@ -211,12 +218,12 @@ func TestHandler(t *testing.T) {
 						IPAddr: false,
 					},
 				},
-				OpenVpn: config.OpenVpn{
-					Bypass:        config.OpenVpnBypass{CommonNames: make([]string, 0)},
+				OpenVpn: config.OpenVPN{
+					Bypass:        config.OpenVPNBypass{CommonNames: make([]string, 0)},
 					AuthTokenUser: true,
 				},
 			},
-			state.New(state.ClientIdentifier{CID: 0, KID: 1}, "127.0.0.2", "12345", "name", ""),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.2", "12345", ""),
 			false,
 			"127.0.0.2",
 			true,
@@ -243,16 +250,51 @@ func TestHandler(t *testing.T) {
 						IPAddr: false,
 					},
 				},
-				OpenVpn: config.OpenVpn{
-					Bypass:        config.OpenVpnBypass{CommonNames: make([]string, 0)},
+				OpenVpn: config.OpenVPN{
+					Bypass:        config.OpenVPNBypass{CommonNames: make([]string, 0)},
 					AuthTokenUser: true,
 				},
 			},
-			state.New(state.ClientIdentifier{CID: 0, KID: 1}, "127.0.0.2", "12345", "name", ""),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.2", "12345", ""),
 			false,
 			"127.0.0.2",
 			false,
 			false,
+		},
+		{
+			"with client config found",
+			config.Config{
+				HTTP: config.HTTP{
+					Secret: testutils.Secret,
+					Check: config.HTTPCheck{
+						IPAddr: true,
+					},
+					EnableProxyHeaders: true,
+				},
+				OAuth2: config.OAuth2{
+					Provider:  "generic",
+					Endpoints: config.OAuth2Endpoints{},
+					Scopes:    []string{"openid", "profile"},
+					Validate: config.OAuth2Validate{
+						Groups: make([]string, 0),
+						Roles:  make([]string, 0),
+						Issuer: true,
+						IPAddr: false,
+					},
+				},
+				OpenVpn: config.OpenVPN{
+					Bypass:        config.OpenVPNBypass{CommonNames: []string{}},
+					AuthTokenUser: true,
+					CCD: config.OpenVPNCCD{
+						Enabled: true,
+					},
+				},
+			},
+			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "client"}, "127.0.0.1", "12345", ""),
+			false,
+			"",
+			true,
+			true,
 		},
 		{
 			"with ipaddr + multiple forwarded-for",
@@ -275,12 +317,12 @@ func TestHandler(t *testing.T) {
 						IPAddr: false,
 					},
 				},
-				OpenVpn: config.OpenVpn{
-					Bypass:        config.OpenVpnBypass{CommonNames: make([]string, 0)},
+				OpenVpn: config.OpenVPN{
+					Bypass:        config.OpenVPNBypass{CommonNames: make([]string, 0)},
 					AuthTokenUser: true,
 				},
 			},
-			state.New(state.ClientIdentifier{CID: 0, KID: 1}, "127.0.0.2", "12345", "name", ""),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.2", "12345", ""),
 			false,
 			"127.0.0.2, 8.8.8.8",
 			true,
@@ -307,8 +349,8 @@ func TestHandler(t *testing.T) {
 						IPAddr: false,
 					},
 				},
-				OpenVpn: config.OpenVpn{
-					Bypass:        config.OpenVpnBypass{CommonNames: make([]string, 0)},
+				OpenVpn: config.OpenVPN{
+					Bypass:        config.OpenVPNBypass{CommonNames: make([]string, 0)},
 					AuthTokenUser: true,
 				},
 			},
@@ -339,8 +381,8 @@ func TestHandler(t *testing.T) {
 						IPAddr: false,
 					},
 				},
-				OpenVpn: config.OpenVpn{
-					Bypass:        config.OpenVpnBypass{CommonNames: make([]string, 0)},
+				OpenVpn: config.OpenVPN{
+					Bypass:        config.OpenVPNBypass{CommonNames: make([]string, 0)},
 					AuthTokenUser: true,
 				},
 			},
@@ -358,7 +400,7 @@ func TestHandler(t *testing.T) {
 
 			ctx, cancel := context.WithCancel(context.Background())
 
-			conf, client, managementInterface, _, httpClientListener, httpClient, logger := testutils.SetupMockEnvironment(ctx, t, tt.conf, nil)
+			conf, client, managementInterface, _, httpClientListener, httpClient, logger := testutils.SetupMockEnvironment(ctx, t, tt.conf, nil, ccdFS)
 
 			wg := sync.WaitGroup{}
 			wg.Add(3)
@@ -390,6 +432,17 @@ func TestHandler(t *testing.T) {
 					testutils.ExpectMessage(t, managementInterfaceConn, reader, `client-deny 0 1 "client rejected"`)
 				case tt.state.Client.UsernameIsDefined == 1:
 					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth-nt 0 1")
+				case tt.conf.OpenVpn.CCD.Enabled:
+					if tt.state.Client.CommonName == "client" {
+						testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 0 1\r\n"+
+							"push \"ping 60\"\r\n"+
+							"push \"ping-restart 180\"\r\n"+
+							"push \"ping-timer-rem\" 0\r\n"+
+							"push \"auth-token-user Y2xpZW50\"\r\n"+
+							"END")
+					} else {
+						testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 0 1\r\npush \"auth-token-user aWQx\"\r\nEND")
+					}
 				default:
 					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 0 1\r\npush \"auth-token-user bmFtZQ==\"\r\nEND")
 				}

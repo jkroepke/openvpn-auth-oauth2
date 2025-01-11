@@ -32,9 +32,9 @@ func TestClientInvalidServer(t *testing.T) {
 			BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 			Secret:  testutils.Secret,
 		},
-		OpenVpn: config.OpenVpn{
+		OpenVpn: config.OpenVPN{
 			Addr:   &url.URL{Scheme: "tcp", Host: "127.0.0.1:1"},
-			Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
+			Bypass: config.OpenVPNBypass{CommonNames: make([]string, 0)},
 		},
 	}
 
@@ -42,7 +42,7 @@ func TestClientInvalidServer(t *testing.T) {
 	defer cancel()
 
 	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
-	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
+	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage, nil)
 
 	err := openVPNClient.Connect(context.Background())
 	require.Error(t, err)
@@ -68,11 +68,11 @@ func TestClientFull(t *testing.T) {
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
 				},
-				OpenVpn: config.OpenVpn{
+				OpenVpn: config.OpenVPN{
 					CommonName: config.OpenVPNCommonName{
 						EnvironmentVariableName: "common_name",
 					},
-					Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
+					Bypass: config.OpenVPNBypass{CommonNames: make([]string, 0)},
 				},
 				OAuth2: config.OAuth2{
 					Validate: config.OAuth2Validate{
@@ -90,11 +90,11 @@ func TestClientFull(t *testing.T) {
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
 				},
-				OpenVpn: config.OpenVpn{
+				OpenVpn: config.OpenVPN{
 					CommonName: config.OpenVPNCommonName{
 						EnvironmentVariableName: "common_name",
 					},
-					Bypass:   config.OpenVpnBypass{CommonNames: make([]string, 0)},
+					Bypass:   config.OpenVPNBypass{CommonNames: make([]string, 0)},
 					Password: "password",
 				},
 				OAuth2: config.OAuth2{
@@ -114,11 +114,11 @@ func TestClientFull(t *testing.T) {
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
 				},
-				OpenVpn: config.OpenVpn{
+				OpenVpn: config.OpenVPN{
 					CommonName: config.OpenVPNCommonName{
 						EnvironmentVariableName: "username",
 					},
-					Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
+					Bypass: config.OpenVPNBypass{CommonNames: make([]string, 0)},
 				},
 				OAuth2: config.OAuth2{
 					Validate: config.OAuth2Validate{
@@ -136,11 +136,11 @@ func TestClientFull(t *testing.T) {
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  "012345678910111",
 				},
-				OpenVpn: config.OpenVpn{
+				OpenVpn: config.OpenVPN{
 					CommonName: config.OpenVPNCommonName{
 						EnvironmentVariableName: "common_name",
 					},
-					Bypass:   config.OpenVpnBypass{CommonNames: make([]string, 0)},
+					Bypass:   config.OpenVPNBypass{CommonNames: make([]string, 0)},
 					Password: "password",
 				},
 			},
@@ -155,11 +155,11 @@ func TestClientFull(t *testing.T) {
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
 				},
-				OpenVpn: config.OpenVpn{
+				OpenVpn: config.OpenVPN{
 					CommonName: config.OpenVPNCommonName{
 						EnvironmentVariableName: "common_name",
 					},
-					Bypass:   config.OpenVpnBypass{CommonNames: make([]string, 0)},
+					Bypass:   config.OpenVPNBypass{CommonNames: make([]string, 0)},
 					Password: "password",
 				},
 			},
@@ -174,11 +174,11 @@ func TestClientFull(t *testing.T) {
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost", Path: strings.Repeat("a", 255)},
 					Secret:  testutils.Secret,
 				},
-				OpenVpn: config.OpenVpn{
+				OpenVpn: config.OpenVPN{
 					CommonName: config.OpenVPNCommonName{
 						EnvironmentVariableName: "common_name",
 					},
-					Bypass:   config.OpenVpnBypass{CommonNames: make([]string, 0)},
+					Bypass:   config.OpenVPNBypass{CommonNames: make([]string, 0)},
 					Password: "password",
 				},
 			},
@@ -193,11 +193,11 @@ func TestClientFull(t *testing.T) {
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
 				},
-				OpenVpn: config.OpenVpn{
+				OpenVpn: config.OpenVPN{
 					CommonName: config.OpenVPNCommonName{
 						EnvironmentVariableName: "common_name",
 					},
-					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
+					Bypass:   config.OpenVPNBypass{CommonNames: []string{"bypass"}},
 					Password: "password",
 				},
 			},
@@ -212,11 +212,11 @@ func TestClientFull(t *testing.T) {
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
 				},
-				OpenVpn: config.OpenVpn{
+				OpenVpn: config.OpenVPN{
 					CommonName: config.OpenVPNCommonName{
 						EnvironmentVariableName: "common_name",
 					},
-					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
+					Bypass:   config.OpenVPNBypass{CommonNames: []string{"bypass"}},
 					Password: "password",
 				},
 			},
@@ -231,11 +231,11 @@ func TestClientFull(t *testing.T) {
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
 				},
-				OpenVpn: config.OpenVpn{
+				OpenVpn: config.OpenVPN{
 					CommonName: config.OpenVPNCommonName{
 						EnvironmentVariableName: "common_name",
 					},
-					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
+					Bypass:   config.OpenVPNBypass{CommonNames: []string{"bypass"}},
 					Password: "password",
 				},
 			},
@@ -250,11 +250,11 @@ func TestClientFull(t *testing.T) {
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
 				},
-				OpenVpn: config.OpenVpn{
+				OpenVpn: config.OpenVPN{
 					CommonName: config.OpenVPNCommonName{
 						EnvironmentVariableName: "common_name",
 					},
-					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
+					Bypass:   config.OpenVPNBypass{CommonNames: []string{"bypass"}},
 					Password: "password",
 				},
 			},
@@ -270,11 +270,11 @@ func TestClientFull(t *testing.T) {
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
 				},
-				OpenVpn: config.OpenVpn{
+				OpenVpn: config.OpenVPN{
 					CommonName: config.OpenVPNCommonName{
 						EnvironmentVariableName: "common_name",
 					},
-					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
+					Bypass:   config.OpenVPNBypass{CommonNames: []string{"bypass"}},
 					Password: "password",
 				},
 			},
@@ -299,7 +299,7 @@ func TestClientFull(t *testing.T) {
 			defer cancel()
 
 			tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
-			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, tt.conf, logger.Logger, http.DefaultClient, tokenStorage)
+			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, tt.conf, logger.Logger, http.DefaultClient, tokenStorage, nil)
 
 			wg := sync.WaitGroup{}
 			wg.Add(1)
@@ -351,7 +351,7 @@ func TestClientFull(t *testing.T) {
 
 					assert.Equal(t, uint64(1), sessionState.Client.CID)
 					assert.Equal(t, uint64(2), sessionState.Client.KID)
-					assert.Equal(t, "test", sessionState.CommonName)
+					assert.Equal(t, "test", sessionState.Client.CommonName)
 					assert.Equal(t, "127.0.0.1", sessionState.IPAddr)
 				}
 			}()
@@ -386,9 +386,9 @@ func TestClientInvalidPassword(t *testing.T) {
 			BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 			Secret:  testutils.Secret,
 		},
-		OpenVpn: config.OpenVpn{
+		OpenVpn: config.OpenVPN{
 			Addr:     &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()},
-			Bypass:   config.OpenVpnBypass{CommonNames: make([]string, 0)},
+			Bypass:   config.OpenVPNBypass{CommonNames: make([]string, 0)},
 			Password: "invalid",
 		},
 	}
@@ -397,7 +397,7 @@ func TestClientInvalidPassword(t *testing.T) {
 	defer cancel()
 
 	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
-	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
+	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage, nil)
 
 	go func() {
 		conn, err := managementInterface.Accept()
@@ -426,8 +426,8 @@ func TestClientInvalidVersion(t *testing.T) {
 			BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 			Secret:  testutils.Secret,
 		},
-		OpenVpn: config.OpenVpn{
-			Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
+		OpenVpn: config.OpenVPN{
+			Bypass: config.OpenVPNBypass{CommonNames: make([]string, 0)},
 		},
 	}
 
@@ -470,7 +470,7 @@ func TestClientInvalidVersion(t *testing.T) {
 			defer cancel()
 
 			tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
-			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
+			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage, nil)
 
 			wg := sync.WaitGroup{}
 			wg.Add(1)
@@ -515,8 +515,8 @@ func TestSIGHUP(t *testing.T) {
 			BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 			Secret:  testutils.Secret,
 		},
-		OpenVpn: config.OpenVpn{
-			Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
+		OpenVpn: config.OpenVPN{
+			Bypass: config.OpenVPNBypass{CommonNames: make([]string, 0)},
 		},
 	}
 
@@ -531,7 +531,7 @@ func TestSIGHUP(t *testing.T) {
 	defer cancel()
 
 	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
-	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
+	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage, nil)
 
 	wg := sync.WaitGroup{}
 	wg.Add(2)
@@ -594,8 +594,8 @@ func TestDeadLocks(t *testing.T) {
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
 				},
-				OpenVpn: config.OpenVpn{
-					Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
+				OpenVpn: config.OpenVPN{
+					Bypass: config.OpenVPNBypass{CommonNames: make([]string, 0)},
 				},
 			}
 
@@ -610,7 +610,7 @@ func TestDeadLocks(t *testing.T) {
 			defer cancel()
 
 			tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
-			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
+			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage, nil)
 
 			wg := sync.WaitGroup{}
 			wg.Add(2)
@@ -676,8 +676,8 @@ func TestInvalidCommandResponses(t *testing.T) {
 					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
 				},
-				OpenVpn: config.OpenVpn{
-					Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
+				OpenVpn: config.OpenVPN{
+					Bypass: config.OpenVPNBypass{CommonNames: make([]string, 0)},
 				},
 			}
 
@@ -692,7 +692,7 @@ func TestInvalidCommandResponses(t *testing.T) {
 			defer cancel()
 
 			tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
-			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
+			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage, nil)
 
 			wg := sync.WaitGroup{}
 			wg.Add(2)

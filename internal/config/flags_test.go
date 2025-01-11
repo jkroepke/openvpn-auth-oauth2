@@ -171,7 +171,7 @@ func TestValidate(t *testing.T) {
 					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
 					Issuer: &url.URL{Scheme: "http", Host: "localhost"},
 				},
-				OpenVpn: config.OpenVpn{
+				OpenVpn: config.OpenVPN{
 					Addr: &url.URL{Scheme: "tcp", Host: "127.0.0.1:9000"},
 				},
 			},
@@ -188,7 +188,7 @@ func TestValidate(t *testing.T) {
 					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
 					Issuer: &url.URL{Scheme: "http", Host: "localhost"},
 				},
-				OpenVpn: config.OpenVpn{
+				OpenVpn: config.OpenVPN{
 					Addr: &url.URL{Scheme: "tcp", Host: "127.0.0.1:9000"},
 				},
 			},
@@ -205,7 +205,7 @@ func TestValidate(t *testing.T) {
 					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
 					Issuer: &url.URL{Scheme: "http", Host: "localhost"},
 				},
-				OpenVpn: config.OpenVpn{
+				OpenVpn: config.OpenVPN{
 					Addr: &url.URL{Scheme: "quic", Host: "127.0.0.1:9000"},
 				},
 			},
@@ -225,7 +225,7 @@ func TestValidate(t *testing.T) {
 						Enabled: true,
 					},
 				},
-				OpenVpn: config.OpenVpn{
+				OpenVpn: config.OpenVPN{
 					Addr: &url.URL{Scheme: "tcp", Host: "127.0.0.1:9000"},
 				},
 			},
@@ -249,7 +249,7 @@ func TestValidate(t *testing.T) {
 						Discovery: &url.URL{Scheme: "http", Host: "localhost"},
 					},
 				},
-				OpenVpn: config.OpenVpn{
+				OpenVpn: config.OpenVPN{
 					Addr: &url.URL{Scheme: "tcp", Host: "127.0.0.1:9000"},
 				},
 			},

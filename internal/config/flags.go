@@ -16,7 +16,7 @@ const (
 func FlagSet(name string) *flag.FlagSet {
 	flagSet := flag.NewFlagSet(name, flag.ContinueOnError)
 	flagSet.Usage = func() {
-		_, _ = fmt.Fprint(flagSet.Output(), "Documentation available at https://github.com/jkroepke/openvpn-auth-oauth2/wiki\r\n\r\n", name)
+		_, _ = fmt.Fprint(flagSet.Output(), "Documentation available at https://github.com/jkroepke/openvpn-auth-oauth2/wiki\r\n\r\n")
 		_, _ = fmt.Fprintf(flagSet.Output(), "Usage of %s:\r\n\r\n", name)
 		// --help should display options with double dash
 		flagSet.VisitAll(func(flag *flag.Flag) {
@@ -168,6 +168,21 @@ func flagSetOpenVPN(flagSet *flag.FlagSet) {
 		"openvpn.bypass.common-names",
 		Defaults.OpenVpn.Bypass.CommonNames,
 		"bypass oauth authentication for CNs. Comma separated list.",
+	)
+	flagSet.Bool(
+		"openvpn.ccd.enabled",
+		Defaults.OpenVpn.CCD.Enabled,
+		"If true, openvpn-auth-oauth2 will read the CCD directory for additional configuration. This function mimic the client-config-dir directive in OpenVPN.",
+	)
+	flagSet.String(
+		"openvpn.ccd.path",
+		Defaults.OpenVpn.CCD.Path,
+		"Path to the CCD directory. openvpn-auth-oauth2 will look for an file with an .conf suffix and returns the content back.",
+	)
+	flagSet.String(
+		"openvpn.ccd.token-claim",
+		Defaults.OpenVpn.CCD.TokenClaim,
+		"If non-empty, the value of the token claim is used to lookup the configuration file in the CCD directory. If empty, the common name is used.",
 	)
 	flagSet.String(
 		"openvpn.common-name.environment-variable-name",

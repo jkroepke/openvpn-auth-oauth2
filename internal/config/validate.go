@@ -77,6 +77,20 @@ func Validate(mode int, conf Config) error {
 		if !slices.Contains([]string{"tcp", "unix"}, conf.OpenVpn.Addr.Scheme) {
 			return errors.New("openvpn.addr: invalid URL. only tcp://addr or unix://addr scheme supported")
 		}
+
+		if conf.OpenVpn.CCD.Enabled {
+			if conf.OpenVpn.CCD.Path == "" {
+				return fmt.Errorf("openvpn.ccd.path is %w, if openvpn.ccd.enabled=true", ErrRequired)
+			}
+
+			if conf.OpenVpn.CommonName.Mode == CommonNameModeOmit {
+				return errors.New("openvpn.common-name.mode: omit is not supported with openvpn.ccd.enabled")
+			}
+
+			if _, err := os.ReadDir(conf.OpenVpn.CCD.Path); err != nil {
+				return fmt.Errorf("openvpn.ccd.path: %w", err)
+			}
+		}
 	}
 
 	if conf.HTTP.AssetPath != "" {
