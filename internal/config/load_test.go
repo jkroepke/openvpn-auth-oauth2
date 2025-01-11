@@ -218,7 +218,7 @@ http:
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			file, err := os.CreateTemp("", "openvpn-auth-oauth2-*")
+			file, err := os.CreateTemp(t.TempDir(), "openvpn-auth-oauth2-*")
 			require.NoError(t, err)
 
 			// close and remove the temporary file at the end of the program
