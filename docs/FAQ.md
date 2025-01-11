@@ -1,5 +1,21 @@
 # FAQ
 
+## Q: openvpn-auth-oauth2 authenticates the user on every connection
+
+A: No, it isn’t possible to implement a Remember Me or a caching credential function directly within openvpn-auth-oauth2 or OpenVPN.
+This limitation arises from the inability of openvpn-auth-oauth2 to store client cookies.
+While some OIDC providers like Keycloak offer a Remember Me feature,
+enabling automatic login would need implementation within the OIDC provider's settings rather than within openvpn-auth-oauth2 itself.
+
+## Q: openvpn-auth-oauth2 re-authenticates the user on existing connections
+
+A: Read the following documentation to understand the re-authentication behavior:
+
+- [Non interactive session refresh](Non-interactive%20session%20refresh)
+
+For the Google Provider,
+expand the page [Providers](Providers) and look for Google consent screen always asking for permission grant.
+
 ## Q: Note Regarding Passing Usernames from OAuth2 Provider to OpenVPN
 
 A: It's important to note that currently,
@@ -44,13 +60,6 @@ A: Although openvpn-auth-oauth2 theoretically doesn't require client-side authen
    ```
 
    Note: The username/password can be any dummy value as they won't be validated by openvpn-auth-oauth2 or OpenVPN itself.
-
-## Q: Can a Remember Me function be implemented in openvpn-auth-oauth2?
-
-A: No, it isn’t possible to implement a Remember Me function directly within openvpn-auth-oauth2 or OpenVPN.
-This limitation arises from the inability of openvpn-auth-oauth2 to store client cookies.
-While some OIDC providers like Keycloak offer a Remember Me feature,
-enabling automatic login would need implementation within the OIDC provider's settings rather than within openvpn-auth-oauth2 itself.
 
 ## Q: `Provider did not return a id_token. Validation of user data is not possible.` is logged, but my provider is returning an id_token.
 
