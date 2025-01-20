@@ -19,7 +19,7 @@ services:
       - ./:/tests/:ro
       - ./data:/etc/openvpn
       - ./../pkg/plugin:/plugin/
-    restart: always
+    #restart: always
     environment:
       EASYRSA: /usr/share/easy-rsa/
       EASYRSA_PKI: /etc/openvpn/pki
@@ -63,7 +63,7 @@ services:
         explicit-exit-notify
 
         verify-client-cert none
-        username-as-common-name
+        #username-as-common-name
         client-connect "/bin/sh -c 'env > /etc/openvpn/env.txt'"
         script-security 2
 
