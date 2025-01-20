@@ -26,7 +26,7 @@ func (c *Client) AcceptClient(logger *slog.Logger, client state.ClientIdentifier
 	if tokenUsername == "" {
 		_, err = c.SendCommandf(`client-auth-nt %d %d`, client.CID, client.KID)
 	} else {
-		_, err = c.SendCommandf("client-auth %d %d\r\npush \"auth-token-user %s\"\r\nEND", client.CID, client.KID, tokenUsername)
+		_, err = c.SendCommandf("client-auth %d %d\r\noverride-username \"%s\"\r\npush \"auth-token-user %s\"\r\nEND", client.CID, client.KID, username, tokenUsername)
 	}
 
 	if err != nil {
