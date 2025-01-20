@@ -179,7 +179,7 @@ func (c Client) postCodeExchangeHandler(logger *slog.Logger, session state.State
 
 		logger.LogAttrs(ctx, slog.LevelInfo, "successful authorization via oauth2")
 
-		c.openvpn.AcceptClient(logger, session.Client, session.CommonName)
+		c.openvpn.AcceptClient(logger, session.Client, user.PreferredUsername)
 		c.postCodeExchangeHandlerStoreRefreshToken(ctx, logger, session, clientID, tokens)
 		c.writeHTTPSuccess(w, logger)
 	}
