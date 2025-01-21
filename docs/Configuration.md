@@ -224,7 +224,7 @@ openvpn-auth-oauth2 starts an HTTP listener that the OpenVPN client must access 
 By default, the HTTP listener operates on `:9000`.
 
 It is highly recommended to place openvpn-auth-oauth2 behind a reverse proxy terminates the TLS connections.
-Configuring `CONFIG_HTTP_BASE_URL` remains crucial because openvpn-auth-oauth2 needs to know the redirect URL.
+Configuring `CONFIG_HTTP_BASEURL` remains crucial because openvpn-auth-oauth2 needs to know the redirect URL.
 
 Example:
 
@@ -235,7 +235,7 @@ Example:
 ```ini
 # openvpn-auth-oauth2 config file
 CONFIG_HTTP_LISTEN=:9000
-CONFIG_HTTP_BASE_URL=https://login.example.com
+CONFIG_HTTP_BASEURL=https://login.example.com
 ```
 </td></tr></tbody>
 <thead><tr><td>yaml configuration</td></tr></thead>
