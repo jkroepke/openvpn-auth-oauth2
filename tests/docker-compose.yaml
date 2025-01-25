@@ -63,7 +63,7 @@ services:
         explicit-exit-notify
 
         verify-client-cert none
-        #username-as-common-name
+        username-as-common-name
         client-connect "/bin/sh -c 'env > /etc/openvpn/env.txt'"
         script-security 2
 

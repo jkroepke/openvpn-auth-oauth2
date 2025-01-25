@@ -7,7 +7,7 @@ WORKDIR /build/
 ARG GIT_BRANCH
 
 #RUN git clone --depth 1 https://github.com/OpenVPN/openvpn.git --branch $GIT_BRANCH .
-RUN git clone https://gerrit.openvpn.net/openvpn . && git fetch https://gerrit.openvpn.net/openvpn refs/changes/72/872/2 && git checkout FETCH_HEAD
+RUN git clone https://gerrit.openvpn.net/openvpn . && git fetch https://gerrit.openvpn.net/openvpn refs/changes/72/872/4 && git checkout FETCH_HEAD
 RUN autoreconf -i -v -f
 RUN ./configure
 RUN make
