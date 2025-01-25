@@ -22,7 +22,7 @@ To override the default assets, you can configure `http.assets-path` with the pa
 The default assets are here:
 
 - `style.css`: CSS file to enrich the default layout. By default, it is empty.
-- `mvp.css`: [MVP](https://github.com/andybrewer/mvp) css framework
+- `mvp.css`: [MVP](https://github.com/andybrewer/mvp) CSS framework
 - `favicon.png`: Favicon of the login page
 - `i18n.js`: Localization script
 - `i18n/<lang>.json`: Language specific localization file. <lang> is the language code, e.g., `en` for English.
@@ -31,7 +31,7 @@ The default assets are here:
 ## Custom localization
 
 If you want to provide custom localization, you have to configure `http.assets-path` first. In the assets directory,
-create a new directory named `i18n` and put your localization files in there. The file name must be the language code
+create a new directory named `i18n` and put your localization files in there. The filename must be the language code
 followed by `.json`. For example, `en.json` for English.
 
 Instead, providing a custom localization file locally, think about to submit a pull request to the project to provide

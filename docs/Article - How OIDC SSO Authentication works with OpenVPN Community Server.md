@@ -1,6 +1,6 @@
 # Introduction
 
-[OpenID Connect (OIDC)](https://auth0.com/intro-to-iam/what-is-openid-connect-oidc) is a powerful identity layer built on top of the OAuth 2.0 protocol. It enables clients to verify the identity of an end-user based on the authentication performed by an authorization server. Single Sign-On (SSO) is a user authentication service that allows a user to use one set of login credentials to access multiple applications.
+[OpenID Connect (OIDC)](https://auth0.com/intro-to-iam/what-is-openid-connect-oidc) is a powerful identity layer built on top of the OAuth 2.0 protocol. It enables clients to verify the identity of an end user based on the authentication performed by an authorization server. Single Sign-On (SSO) is a user authentication service that allows a user to use one set of login credentials to access multiple applications.
 
 In the realm of secure and seamless user authentication, the [`openvpn-auth-oauth2`](https://github.com/jkroepke/openvpn-auth-oauth2) plugin emerges as a game-changer. It integrates OpenVPN Community Server with any OIDC provider, leveraging the robustness of OIDC and the convenience of SSO. This powerful combination not only simplifies the authentication process but also significantly enhances the security of your applications.
 

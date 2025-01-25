@@ -61,7 +61,7 @@ Sometimes the client stuck at this stage `Received control message: 'PUSH_REQUES
  PACKETS_OUT : 20
 ```
 
-If you see this message on the Client side (version3),
+If you see this message on the client-side (version3),
 you may want to make sure you add these lines to your oauth configuration file
 
 <table>

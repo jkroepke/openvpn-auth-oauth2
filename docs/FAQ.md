@@ -73,7 +73,7 @@ A: The openvpn-auth-oauth2 plugin doesn’t log out the user from the OIDC serve
 after the VPN session ends because the OpenID Connect (OIDC) protocol’s end session endpoint,
 while available, isn’t suitable in this context.
 The end session endpoint generates a URL
-intended for the end-user to manually initiate the logout process via their browser.
+intended for the end user to manually initiate the logout process via their browser.
 Since OpenVPN operates without direct interaction with the user's browser upon logout,
 there's no mechanism to automatically open the URL for the user.
 

@@ -25,9 +25,9 @@ To run the demo, follow these steps:
 3. Navigate to the directory where the `docker-compose.yaml` file is located.
 4. Run the following command to start the Docker Compose environment:
 
-   ```bash
-   docker compose up
-   ```
+    ```bash
+    docker compose up
+    ```
    This command will start all the necessary services. It may take a few minutes for all services to start and initialize.
 
 5. After all services have started, a client configuration for OpenVPN will be created in the `config/client/` directory.
