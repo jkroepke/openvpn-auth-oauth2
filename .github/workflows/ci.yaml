@@ -72,10 +72,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MULTI_STATUS: false
           LINTER_RULES_PATH: .
-          VALIDATE_ALL_CODEBASE: false
+          VALIDATE_ALL_CODEBASE: true
           VALIDATE_BASH: true
           VALIDATE_BASH_EXEC: true
-          VALIDATE_CHECKOV: true
           VALIDATE_EDITORCONFIG: true
           VALIDATE_ENV: true
           VALIDATE_GO_MODULES: true
