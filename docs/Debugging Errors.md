@@ -25,15 +25,15 @@ I assume you are using a Chrome-based Browser.
 4. Continue the auth flow.
 5. On the access-denied screen, check the Browser Console for any errors.
 6. Then get the Network tab again.
-   There is a request with `/oauth2/start` or just `start`.
-   Click on Cookies and check if the response cookie is present.
-   Example Screenshot:
-   ![](./img/debugging-error-cookie-start.png)
+    There is a request with `/oauth2/start` or just `start`.
+    Click on Cookies and check if the response cookie is present.
+    Example Screenshot:
+    ![](./img/debugging-error-cookie-start.png)
 7. Then get the Network tab again.
-   There is a request with `/oauth2/callback` or just `callback`.
-   Click on Cookies and check if the request cookie is present.
-   Example Screenshot:
-   ![](./img/debugging-error-cookie-callback.png)
+    There is a request with `/oauth2/callback` or just `callback`.
+    Click on Cookies and check if the request cookie is present.
+    Example Screenshot:
+    ![](./img/debugging-error-cookie-callback.png)
 
 ## Error Message `Received control message: 'PUSH_REQUEST'` in OpenVPN Client v3
 
