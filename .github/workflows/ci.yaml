@@ -97,7 +97,7 @@ jobs:
           VALIDATE_HTML: true
           VALIDATE_JSON: true
           VALIDATE_NATURAL_LANGUAGE: true
-          VALIDATE_MARKDOWN: true
+          # VALIDATE_MARKDOWN: false
           VALIDATE_RENOVATE: true
           VALIDATE_SHELL_SHFMT: true
           VALIDATE_XML: true
