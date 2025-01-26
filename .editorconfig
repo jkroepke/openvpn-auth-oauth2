@@ -11,6 +11,9 @@ indent_style = tab
 indent_size = tab
 max_line_length = 160
 
+[*_test.go]
+max_line_length = off
+
 [*.{yml,yaml}]
 indent_size = 2
 

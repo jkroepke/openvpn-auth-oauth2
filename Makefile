@@ -18,9 +18,9 @@ GOOS := $(shell go env GOOS)
 
 # Determine the output file extension based on the GOOS value
 ifeq ($(GOOS),windows)
-    EXT := .exe
+	EXT := .exe
 else
-    EXT :=
+	EXT :=
 endif
 
 ##
