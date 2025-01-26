@@ -21,7 +21,7 @@ indent_size = 2
 indent_size = 2
 
 [*.md]
-indent_size = 4
+indent_size = 2
 
 [.run/*.xml]
 insert_final_newline = false
