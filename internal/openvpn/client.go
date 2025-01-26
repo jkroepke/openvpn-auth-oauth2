@@ -14,6 +14,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
+// processClient processes the client event and handles the client's authentication state.
 func (c *Client) processClient(ctx context.Context, client connection.Client) error {
 	logger := c.logger.With(
 		slog.String("ip", fmt.Sprintf("%s:%s", client.IPAddr, client.IPPort)),
@@ -95,24 +96,24 @@ func (c *Client) handleClientAuthentication(ctx context.Context, logger *slog.Lo
 // The openvpn-auth-oauth2 plugin will send a client-pending-auth command to the OpenVPN management interface.
 func (c *Client) startClientAuth(ctx context.Context, logger *slog.Logger, client connection.Client) error {
 	clientIdentifier := state.ClientIdentifier{
-		CID:       client.CID,
-		KID:       client.KID,
-		SessionID: client.SessionID,
+		CID:        client.CID,
+		KID:        client.KID,
+		SessionID:  client.SessionID,
+		CommonName: utils.TransformCommonName(c.conf.OpenVpn.CommonName.Mode, client.CommonName),
 	}
-
-	commonName := utils.TransformCommonName(c.conf.OpenVpn.CommonName.Mode, client.CommonName)
 
 	var (
 		ipAddr string
 		ipPort string
 	)
 
+	// Include the client IP address and port if enabled. Optional because the size of the state is limited.
 	if c.conf.Log.VPNClientIP || c.conf.OAuth2.Validate.IPAddr {
 		ipAddr = client.IPAddr
 		ipPort = client.IPPort
 	}
 
-	session := state.New(clientIdentifier, ipAddr, ipPort, commonName, client.SessionState)
+	session := state.New(clientIdentifier, ipAddr, ipPort, client.SessionState)
 
 	encodedSession, err := session.Encode(c.conf.HTTP.Secret.String())
 	if err != nil {

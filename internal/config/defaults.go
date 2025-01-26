@@ -32,7 +32,7 @@ var Defaults = Config{
 		},
 		CallbackTemplate: template.Must(template.New("index.gohtml").ParseFS(ui.Template, "index.gohtml")),
 	},
-	OpenVpn: OpenVpn{
+	OpenVpn: OpenVPN{
 		Addr: &url.URL{
 			Scheme:   "unix",
 			Path:     "/run/openvpn/server.sock",
@@ -44,8 +44,12 @@ var Defaults = Config{
 			EnvironmentVariableName: "common_name",
 			Mode:                    CommonNameModePlain,
 		},
-		Bypass: OpenVpnBypass{
+		Bypass: OpenVPNBypass{
 			CommonNames: make([]string, 0),
+		},
+		CCD: OpenVPNCCD{
+			Enabled: false,
+			Path:    "/etc/openvpn-auth-oauth2/ccd/",
 		},
 		Passthrough: OpenVPNPassthrough{
 			Enabled: false,

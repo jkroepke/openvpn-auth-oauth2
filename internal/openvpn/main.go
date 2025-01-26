@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"log/slog"
 	"net"
 	"strconv"
@@ -21,10 +22,12 @@ import (
 
 const minManagementInterfaceVersion = 5
 
-func New(logger *slog.Logger, conf config.Config) *Client {
+// New creates a new OpenVPN management interface [Client]
+func New(logger *slog.Logger, conf config.Config, ccdFS fs.FS) *Client {
 	client := &Client{
 		conf:   conf,
 		logger: logger,
+		ccdFS:  ccdFS,
 
 		connMu: sync.Mutex{},
 
@@ -58,7 +61,7 @@ func (c *Client) Connect(ctx context.Context) error {
 		return fmt.Errorf("unable to connect to openvpn management interface %s: %w", c.conf.OpenVpn.Addr.String(), err)
 	}
 
-	defer c.conn.Close()
+	defer c.Shutdown()
 
 	c.scanner = bufio.NewScanner(c.conn)
 	c.scanner.Split(bufio.ScanLines)
@@ -67,8 +70,6 @@ func (c *Client) Connect(ctx context.Context) error {
 	if err = c.handlePassword(ctx); err != nil {
 		return fmt.Errorf("openvpn management error: %w", err)
 	}
-
-	defer c.Shutdown()
 
 	errChMessages := make(chan error, 1)
 	errChClients := make(chan error, 1)

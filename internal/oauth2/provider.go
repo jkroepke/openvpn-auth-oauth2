@@ -19,8 +19,9 @@ import (
 )
 
 // New returns a [Client] instance.
-func New(ctx context.Context, logger *slog.Logger, conf config.Config, httpClient *http.Client, tokenStorage tokenstorage.Storage,
-	provider Provider, openvpn openvpnManagementClient,
+func New(
+	ctx context.Context, logger *slog.Logger, conf config.Config, httpClient *http.Client, tokenStorage tokenstorage.Storage, provider Provider,
+	openvpn openvpnManagementClient,
 ) (*Client, error) {
 	providerConfig, err := provider.GetProviderConfig()
 	if err != nil {

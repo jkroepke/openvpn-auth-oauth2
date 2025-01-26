@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"io/fs"
 	"log/slog"
 	"net"
 	"sync"
@@ -24,6 +25,7 @@ type Client struct {
 	scanner *bufio.Scanner
 	logger  *slog.Logger
 	oauth2  oauth2Client
+	ccdFS   fs.FS
 
 	connMu sync.Mutex
 	closed atomic.Uint32
