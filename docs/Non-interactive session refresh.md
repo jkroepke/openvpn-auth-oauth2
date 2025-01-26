@@ -7,7 +7,7 @@ This means users must log in interactively each time they authenticate, includin
 However, you can change this behavior by enabling the `oauth2.refresh.enabled=true` setting.
 This allows `openvpn-auth-oauth2` to store either the connection ID or SessionID (`oauth2.refresh.use-session-id=true`),
 accepting connections without additional login checks. SessionIDs are available in OpenVPN, if
-`auth-gen-token [lifetime] external-auth` is configured on server side.
+`auth-gen-token [lifetime] external-auth` is configured on server-side.
 
 When `oauth2.refresh.validate-user=true` is set, `openvpn-auth-oauth2`
 requests a [refresh token](https://auth0.com/blog/refresh-tokens-what-are-they-and-when-to-use-them/)

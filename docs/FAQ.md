@@ -47,19 +47,19 @@ A: Although openvpn-auth-oauth2 theoretically doesn't require client-side authen
 **Potential Workarounds:**
 
 1. **Configure Client Certificates**
-   Implement client certificates to enable client-side authentication.
+    Implement client certificates to enable client-side authentication.
 
 2. **Use Inline auth-user-pass**
-   OpenVPN accepts `auth-user-pass` for client-side authentication. You can define the username and password inline to prevent the OpenVPN GUI from requesting a password.
+    OpenVPN accepts `auth-user-pass` for client-side authentication. You can define the username and password inline to prevent the OpenVPN GUI from requesting a password.
 
-   ```
-   <auth-user-pass>
-   username
-   password
-   </auth-user-pass>
-   ```
+    ```
+    <auth-user-pass>
+    username
+    password
+    </auth-user-pass>
+    ```
 
-   Note: The username/password can be any dummy value as they won't be validated by openvpn-auth-oauth2 or OpenVPN itself.
+    Note: The username/password can be any dummy value as they won't be validated by openvpn-auth-oauth2 or OpenVPN itself.
 
 ## Q: `Provider did not return a id_token. Validation of user data is not possible.` is logged, but my provider is returning an id_token.
 
@@ -73,7 +73,7 @@ A: The openvpn-auth-oauth2 plugin doesn’t log out the user from the OIDC serve
 after the VPN session ends because the OpenID Connect (OIDC) protocol’s end session endpoint,
 while available, isn’t suitable in this context.
 The end session endpoint generates a URL
-intended for the end-user to manually initiate the logout process via their browser.
+intended for the end user to manually initiate the logout process via their browser.
 Since OpenVPN operates without direct interaction with the user's browser upon logout,
 there's no mechanism to automatically open the URL for the user.
 

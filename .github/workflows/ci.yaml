@@ -2,10 +2,6 @@ name: CI
 
 env:
   PACKAGES: openvpn crossbuild-essential-arm64 libssl-dev:arm64
-  # renovate: github=golangci/golangci-lint
-  GO_LINT_CI_VERSION: v1.63.4
-  # renovate: github=goreleaser/goreleaser
-  GORELEASER_VERSION: v2.5.1
 
 on:
   workflow_dispatch:
@@ -18,7 +14,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: Build & Test
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -29,7 +25,6 @@ jobs:
         with:
           go-version-file: 'go.mod'
 
-      - run: go mod tidy -diff
       - run: go build
       - run: go test ./... -timeout 20s -race -covermode=atomic -coverprofile=coverage.out -coverpkg=./...
       - run: go test ./... -timeout 20s -bench . -benchmem -count 3
@@ -44,7 +39,8 @@ jobs:
       - name: go build (with goreleaser)
         uses: goreleaser/goreleaser-action@9ed2f89a662bf1735a48bc8557fd212fa902bebf # v6.1.0
         with:
-          version: ${{ env.GORELEASER_VERSION }}
+          # renovate: github=goreleaser/goreleaser
+          version: v2.5.1
           args: release --snapshot
         env:
           GITHUB_TOKEN: ""
@@ -59,17 +55,53 @@ jobs:
           path: dist/
   lint:
     name: lint
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/setup-go@3041bf56c941b39c61721a86cd11f3bb1338122a # v5.2.0
         with:
           go-version-file: 'go.mod'
 
+      - run: go mod tidy -diff
+
       - name: golangci-lint
         uses: golangci/golangci-lint-action@971e284b6050e8a5849b72094c50ab08da042db8 # v6.1.1
         with:
           version: ${{ env.GO_LINT_CI_VERSION }}
+
+  super-lint:
+    name: super-lint
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Lint Code Base
+        uses: super-linter/super-linter/slim@85f7611e0f7b53c8573cca84aa0ed4344f6f6a4d # v7.2.1
+        env:
+          EDITORCONFIG_FILE_NAME: .editorconfig-checker.json
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MULTI_STATUS: false
+          LINTER_RULES_PATH: .
+          VALIDATE_ALL_CODEBASE: true
+          VALIDATE_BASH: true
+          VALIDATE_BASH_EXEC: true
+          VALIDATE_EDITORCONFIG: true
+          VALIDATE_ENV: true
+          VALIDATE_GO_RELEASER: true
+          VALIDATE_GITHUB_ACTIONS: true
+          VALIDATE_HTML: true
+          VALIDATE_JSON: true
+          VALIDATE_NATURAL_LANGUAGE: true
+          # VALIDATE_MARKDOWN: false
+          VALIDATE_RENOVATE: true
+          VALIDATE_SHELL_SHFMT: true
+          VALIDATE_XML: true
+          VALIDATE_YAML: true
 
   publish:
     name: Publish package
@@ -77,13 +109,15 @@ jobs:
     needs:
       - build
       - lint
-    runs-on: ubuntu-latest
+      - super-lint
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
+
       - uses: actions/setup-go@3041bf56c941b39c61721a86cd11f3bb1338122a # v5.2.0
         with:
           go-version-file: 'go.mod'
@@ -97,7 +131,8 @@ jobs:
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@9ed2f89a662bf1735a48bc8557fd212fa902bebf # v6.1.0
         with:
-          version: ${{ env.GORELEASER_VERSION }}
+          # renovate: github=goreleaser/goreleaser
+          version: v2.5.1
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

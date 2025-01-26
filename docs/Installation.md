@@ -41,11 +41,11 @@ If you prefer to build the binary yourself, follow these steps:
 3. Open a terminal.
 4. Navigate to the directory where you downloaded the source code.
 5. Build the binary using the following command:
-   ```bash
-   make build
-   ```
-   This will create a binary file named openvpn-auth-oauth2.
+    ```bash
+    make build
+    ```
+    This will create a binary file named openvpn-auth-oauth2.
 6. Move the `openvpn-auth-oauth2` binary to /usr/bin/ using the following command:
-   ```bash
-   sudo mv openvpn-auth-oauth2 /usr/bin/
-   ```
+    ```bash
+    sudo mv openvpn-auth-oauth2 /usr/bin/
+    ```

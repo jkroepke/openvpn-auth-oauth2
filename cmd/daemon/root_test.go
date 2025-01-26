@@ -52,17 +52,26 @@ func TestExecuteConfigInvalid(t *testing.T) {
 		},
 		{
 			"invalid log format",
-			[]string{"", "--config=../../config.example.yaml", "--log.format=invalid", "--log.level=warn", "--http.secret=" + testutils.Secret, "--http.listen=127.0.0.1:0"},
+			[]string{
+				"", "--config=../../config.example.yaml", "--log.format=invalid", "--log.level=warn", "--http.secret=" + testutils.Secret,
+				"--http.listen=127.0.0.1:0",
+			},
 			"error configure logging: unknown log format: invalid",
 		},
 		{
 			"invalid log level",
-			[]string{"", "--config=../../config.example.yaml", "--log.format=console", "--log.level=invalid", "--http.secret=" + testutils.Secret, "--http.listen=127.0.0.1:0"},
+			[]string{
+				"", "--config=../../config.example.yaml", "--log.format=console", "--log.level=invalid", "--http.secret=" + testutils.Secret,
+				"--http.listen=127.0.0.1:0",
+			},
 			`invalid value "invalid" for flag -log.level: slog: level string "invalid": unknown name`,
 		},
 		{
 			"error oidc provider",
-			[]string{"", "--config=../../config.example.yaml", "--log.format=console", "--log.level=info", "--http.secret=" + testutils.Secret, "--http.listen=127.0.0.1:0"},
+			[]string{
+				"", "--config=../../config.example.yaml", "--log.format=console", "--log.level=info", "--http.secret=" + testutils.Secret,
+				"--http.listen=127.0.0.1:0",
+			},
 			`error oidc provider`,
 		},
 		{

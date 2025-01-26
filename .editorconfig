@@ -6,9 +6,13 @@ insert_final_newline = true
 charset = utf-8
 trim_trailing_whitespace = true
 
-[*.go]
-max_line_length = 160
+[{Makefile,*.go,go.mod,go.sum}]
 indent_style = tab
+indent_size = tab
+max_line_length = 160
+
+[*_test.go]
+max_line_length = off
 
 [*.{yml,yaml}]
 indent_size = 2
@@ -17,4 +21,7 @@ indent_size = 2
 indent_size = 2
 
 [*.md]
-indent_size = 4
+indent_size = 2
+
+[.run/*.xml]
+insert_final_newline = false

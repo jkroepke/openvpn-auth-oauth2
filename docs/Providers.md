@@ -88,17 +88,17 @@ How require multiple groups, check you could define `CONFIG_OAUTH2_VALIDATE_GROU
 1. Login as admin into your [Google console](https://console.cloud.google.com/).
 2. In the project Dashboard center pane, choose **"APIs & Services"**.
 3. If necessary, complete the `OAuth consent screen` wizard. You will probably want to create an `Internal` application.
-   - If you reuse an existing application, your users may already have given consent for the usage of this application,
-     which may not include refresh tokens.
+    * If you reuse an existing application, your users may already have given consent for the usage of this application,
+      which may not include refresh tokens.
 4. In the left Nav pane, choose **"Credentials"**.
 5. In the center pane, choose **"OAuth consent screen"** tab. Fill in **"Product name shown to users"** and hit save.
 6. In the center pane, choose **"Credentials"** tab.
-   * Open the "New credentials"** drop down
-   * Choose **"OAuth client ID"**
-   * Choose **"Web application"**
-   * Application name is freeform, choose something appropriate
-   * Authorized redirect URIs is the location of oauth2/callback ex: https://yourdomain:9000/oauth2/callback
-   * Choose "Create"
+    * Open the "New credentials"** drop down
+    * Choose **"OAuth client ID"**
+    * Choose **"Web application"**
+    * Application name is freeform, choose something appropriate
+    * Authorized redirect URIs is the location of oauth2/callback ex: https://yourdomain:9000/oauth2/callback
+    * Choose "Create"
 7. Take note of the Client ID and Client Secret.
 
 ### Restrict auth to specific Google Groups in your domain. (optional)
