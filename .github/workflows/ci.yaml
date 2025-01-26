@@ -83,6 +83,7 @@ jobs:
       - name: Lint Code Base
         uses: super-linter/super-linter/slim@85f7611e0f7b53c8573cca84aa0ed4344f6f6a4d # v7.2.1
         env:
+          EDITORCONFIG_FILE_NAME: .editorconfig-checker.json
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MULTI_STATUS: false
           LINTER_RULES_PATH: .

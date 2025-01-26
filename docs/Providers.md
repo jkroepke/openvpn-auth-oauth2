@@ -89,7 +89,7 @@ How require multiple groups, check you could define `CONFIG_OAUTH2_VALIDATE_GROU
 2. In the project Dashboard center pane, choose **"APIs & Services"**.
 3. If necessary, complete the `OAuth consent screen` wizard. You will probably want to create an `Internal` application.
     * If you reuse an existing application, your users may already have given consent for the usage of this application,
-     which may not include refresh tokens.
+      which may not include refresh tokens.
 4. In the left Nav pane, choose **"Credentials"**.
 5. In the center pane, choose **"OAuth consent screen"** tab. Fill in **"Product name shown to users"** and hit save.
 6. In the center pane, choose **"Credentials"** tab.
