@@ -26,7 +26,7 @@ const writeTimeout = 20 * time.Millisecond
 // The passthrough interface is disabled by default. To enable it, set the passthrough.enabled option to true in the
 // configuration file.
 //
-//nolint:cyclop
+//nolint:cyclop,gocognit
 func (c *Client) handlePassThrough(ctx context.Context, errCh chan<- error) {
 	var conn net.Conn
 
