@@ -52,7 +52,10 @@ func (c *Client) handlePassThrough(ctx context.Context, errCh chan<- error) {
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				c.logger.LogAttrs(ctx, slog.LevelError, fmt.Errorf("panic: %v", r).Error())
+				c.logger.LogAttrs(ctx, slog.LevelError, "panic in handlePassThrough",
+					slog.Any("err", r),
+					slog.String("stack", string(debug.Stack())),
+				)
 			}
 		}()
 
@@ -71,7 +74,7 @@ func (c *Client) handlePassThrough(ctx context.Context, errCh chan<- error) {
 				return // Error somewhere, terminate
 			case message, ok = <-c.passThroughCh:
 				if !ok || message == "" || message == "\r\n" {
-					return
+					continue
 				}
 
 				connMu.Lock()
@@ -84,11 +87,12 @@ func (c *Client) handlePassThrough(ctx context.Context, errCh chan<- error) {
 				_ = conn.SetWriteDeadline(time.Now().Add(writeTimeout))
 
 				if _, err = conn.Write([]byte(message + "\r\n")); err != nil {
-					connMu.Unlock()
+					remoteAddr := "<unknown>"
+					if conn != nil {
+						remoteAddr = conn.RemoteAddr().String()
+					}
 
-					c.logger.LogAttrs(ctx, slog.LevelWarn, fmt.Errorf("unable to write message to client %w", err).Error(), slog.String("client", conn.RemoteAddr().String()))
-
-					return
+					c.logger.LogAttrs(ctx, slog.LevelWarn, fmt.Errorf("unable to write message to client %w", err).Error(), slog.String("client", remoteAddr))
 				}
 
 				connMu.Unlock()
@@ -199,7 +203,11 @@ func (c *Client) handlePassThroughClientCommands(ctx context.Context, conn net.C
 		}
 	}
 
-	return fmt.Errorf("pass-through: unable to read from client: %w", c.scanner.Err())
+	if err = c.scanner.Err(); err != nil {
+		return fmt.Errorf("pass-through: unable to read from client: %w", err)
+	}
+
+	return nil
 }
 
 func (c *Client) handlePassThroughClientAuth(_ context.Context, conn net.Conn, scanner *bufio.Scanner) error {

@@ -185,7 +185,7 @@ func (c *Client) Shutdown() {
 
 // SendCommand passes command to a given connection (adds logging and EOL character) and returns the response.
 func (c *Client) SendCommand(cmd string, passthrough bool) (string, error) {
-	if c.closed.Load() == 1 {
+	if cmd == "\x00" || c.closed.Load() == 1 {
 		return "", nil
 	}
 
