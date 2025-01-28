@@ -126,7 +126,7 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 	go func() {
 		defer wg.Done()
 
-		if err := openvpnClient.Connect(context.Background()); err != nil {
+		if err := openvpnClient.Connect(ctx); err != nil {
 			cancel(fmt.Errorf("openvpn: %w", err))
 
 			return
