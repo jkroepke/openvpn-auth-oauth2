@@ -23,7 +23,6 @@ type groupMembershipPage struct {
 	} `json:"memberships"`
 }
 
-//nolint:tagliatelle // The API response is a JSON object with a dynamic structure.
 type apiError struct {
 	Error struct {
 		Message string `json:"message"`
