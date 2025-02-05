@@ -2,7 +2,6 @@ package config
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -55,5 +54,5 @@ func (secret *Secret) UnmarshalText(text []byte) error {
 
 //goland:noinspection GoMixedReceiverTypes
 func (secret *Secret) MarshalJSON() ([]byte, error) {
-	return json.Marshal("***")
+	return []byte("***"), nil
 }
