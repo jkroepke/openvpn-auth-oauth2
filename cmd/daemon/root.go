@@ -52,6 +52,8 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 	ctx, cancel := context.WithCancelCause(context.Background())
 	defer cancel(nil)
 
+	logger.LogAttrs(ctx, slog.LevelDebug, "config", slog.String("config", conf.String()))
+
 	httpClient := &http.Client{Transport: utils.NewUserAgentTransport(http.DefaultTransport)}
 	tokenStorage := tokenstorage.NewInMemory(ctx, conf.OAuth2.Refresh.Secret.String(), conf.OAuth2.Refresh.Expires)
 

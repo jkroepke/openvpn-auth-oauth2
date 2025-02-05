@@ -53,6 +53,7 @@ func Load(mode int, configFile string, flagSet *flag.FlagSet) (Config, error) {
 
 	var conf Config
 	unmarshalConf := koanf.UnmarshalConf{
+		Tag: "json",
 		DecoderConfig: &mapstructure.DecoderConfig{
 			DecodeHook: mapstructure.ComposeDecodeHookFunc(
 				mapstructure.StringToTimeDurationHookFunc(),
