@@ -29,11 +29,11 @@ func TestClientInvalidServer(t *testing.T) {
 	logger := testutils.NewTestLogger()
 	conf := config.Config{
 		HTTP: config.HTTP{
-			BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
+			BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
 			Secret:  testutils.Secret,
 		},
 		OpenVpn: config.OpenVpn{
-			Addr:   &url.URL{Scheme: "tcp", Host: "127.0.0.1:1"},
+			Addr:   &config.URL{Scheme: "tcp", Host: "127.0.0.1:1"},
 			Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
 		},
 	}
@@ -65,7 +65,7 @@ func TestClientFull(t *testing.T) {
 			name: "without password",
 			conf: config.Config{
 				HTTP: config.HTTP{
-					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
+					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
 				},
 				OpenVpn: config.OpenVpn{
@@ -87,7 +87,7 @@ func TestClientFull(t *testing.T) {
 			"with password",
 			config.Config{
 				HTTP: config.HTTP{
-					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
+					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
 				},
 				OpenVpn: config.OpenVpn{
@@ -111,7 +111,7 @@ func TestClientFull(t *testing.T) {
 			name: "with username",
 			conf: config.Config{
 				HTTP: config.HTTP{
-					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
+					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
 				},
 				OpenVpn: config.OpenVpn{
@@ -133,7 +133,7 @@ func TestClientFull(t *testing.T) {
 			"with invalid state",
 			config.Config{
 				HTTP: config.HTTP{
-					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
+					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
 					Secret:  "012345678910111",
 				},
 				OpenVpn: config.OpenVpn{
@@ -152,7 +152,7 @@ func TestClientFull(t *testing.T) {
 			"client without IV_SSO",
 			config.Config{
 				HTTP: config.HTTP{
-					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
+					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
 				},
 				OpenVpn: config.OpenVpn{
@@ -171,7 +171,7 @@ func TestClientFull(t *testing.T) {
 			"to long base url",
 			config.Config{
 				HTTP: config.HTTP{
-					BaseURL: &url.URL{Scheme: "http", Host: "localhost", Path: strings.Repeat("a", 255)},
+					BaseURL: &config.URL{Scheme: "http", Host: "localhost", Path: strings.Repeat("a", 255)},
 					Secret:  testutils.Secret,
 				},
 				OpenVpn: config.OpenVpn{
@@ -190,7 +190,7 @@ func TestClientFull(t *testing.T) {
 			"client bypass",
 			config.Config{
 				HTTP: config.HTTP{
-					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
+					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
 				},
 				OpenVpn: config.OpenVpn{
@@ -209,7 +209,7 @@ func TestClientFull(t *testing.T) {
 			"client established",
 			config.Config{
 				HTTP: config.HTTP{
-					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
+					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
 				},
 				OpenVpn: config.OpenVpn{
@@ -228,7 +228,7 @@ func TestClientFull(t *testing.T) {
 			"client disconnected",
 			config.Config{
 				HTTP: config.HTTP{
-					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
+					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
 				},
 				OpenVpn: config.OpenVpn{
@@ -247,7 +247,7 @@ func TestClientFull(t *testing.T) {
 			"client invalid reason 1",
 			config.Config{
 				HTTP: config.HTTP{
-					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
+					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
 				},
 				OpenVpn: config.OpenVpn{
@@ -267,7 +267,7 @@ func TestClientFull(t *testing.T) {
 			"client invalid reason 2",
 			config.Config{
 				HTTP: config.HTTP{
-					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
+					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
 				},
 				OpenVpn: config.OpenVpn{
@@ -293,7 +293,7 @@ func TestClientFull(t *testing.T) {
 
 			defer managementInterface.Close()
 
-			tt.conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
+			tt.conf.OpenVpn.Addr = &config.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
@@ -383,11 +383,11 @@ func TestClientInvalidPassword(t *testing.T) {
 
 	conf := config.Config{
 		HTTP: config.HTTP{
-			BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
+			BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
 			Secret:  testutils.Secret,
 		},
 		OpenVpn: config.OpenVpn{
-			Addr:     &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()},
+			Addr:     &config.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()},
 			Bypass:   config.OpenVpnBypass{CommonNames: make([]string, 0)},
 			Password: "invalid",
 		},
@@ -423,7 +423,7 @@ func TestClientInvalidVersion(t *testing.T) {
 
 	conf := config.Config{
 		HTTP: config.HTTP{
-			BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
+			BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
 			Secret:  testutils.Secret,
 		},
 		OpenVpn: config.OpenVpn{
@@ -464,7 +464,7 @@ func TestClientInvalidVersion(t *testing.T) {
 
 			defer managementInterface.Close()
 
-			conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
+			conf.OpenVpn.Addr = &config.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
@@ -512,7 +512,7 @@ func TestSIGHUP(t *testing.T) {
 
 	conf := config.Config{
 		HTTP: config.HTTP{
-			BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
+			BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
 			Secret:  testutils.Secret,
 		},
 		OpenVpn: config.OpenVpn{
@@ -525,7 +525,7 @@ func TestSIGHUP(t *testing.T) {
 
 	defer managementInterface.Close()
 
-	conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
+	conf.OpenVpn.Addr = &config.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -591,7 +591,7 @@ func TestDeadLocks(t *testing.T) {
 
 			conf := config.Config{
 				HTTP: config.HTTP{
-					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
+					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
 				},
 				OpenVpn: config.OpenVpn{
@@ -604,7 +604,7 @@ func TestDeadLocks(t *testing.T) {
 
 			defer managementInterface.Close()
 
-			conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
+			conf.OpenVpn.Addr = &config.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
@@ -673,7 +673,7 @@ func TestInvalidCommandResponses(t *testing.T) {
 
 			conf := config.Config{
 				HTTP: config.HTTP{
-					BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
+					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
 					Secret:  testutils.Secret,
 				},
 				OpenVpn: config.OpenVpn{
@@ -686,7 +686,7 @@ func TestInvalidCommandResponses(t *testing.T) {
 
 			defer managementInterface.Close()
 
-			conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
+			conf.OpenVpn.Addr = &config.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
