@@ -2,13 +2,19 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/url"
 )
 
 type URL url.URL
 
-func IsURLEmpty(u *url.URL) bool {
-	return u == nil || u.String() == ""
+func NewURL(u string) (*URL, error) {
+	stdURL, err := url.Parse(u)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse URL: %w", err)
+	}
+
+	return (*URL)(stdURL), nil
 }
 
 func (u *URL) IsEmpty() bool {
