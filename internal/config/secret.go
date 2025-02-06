@@ -59,5 +59,5 @@ func (s Secret) MarshalJSON() ([]byte, error) {
 		return json.Marshal("") //nolint:wrapcheck
 	}
 
-	return json.Marshal("***") // nolint:wrapcheck
+	return json.Marshal("***") //nolint:wrapcheck
 }

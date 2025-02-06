@@ -226,7 +226,7 @@ func (h HTTP) MarshalJSON() ([]byte, error) {
 
 	type Alias HTTP
 
-	// nolint:wrapcheck
+	//nolint:wrapcheck
 	return json.Marshal(&struct {
 		Alias
 	}{
