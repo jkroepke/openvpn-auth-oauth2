@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/url"
 	"os"
 	"slices"
 )
@@ -30,11 +29,11 @@ func Validate(mode int, conf Config) error {
 		}
 	}
 
-	for key, value := range map[string]*url.URL{
+	for key, value := range map[string]*URL{
 		"http.baseurl":  conf.HTTP.BaseURL,
 		"oauth2.issuer": conf.OAuth2.Issuer,
 	} {
-		if IsURLEmpty(value) {
+		if value.IsEmpty() {
 			return fmt.Errorf("%s is %w", key, ErrRequired)
 		}
 	}
@@ -43,14 +42,14 @@ func Validate(mode int, conf Config) error {
 		return errors.New("http.secret requires a length of 16, 24 or 32")
 	}
 
-	for key, uri := range map[string]*url.URL{
+	for key, uri := range map[string]*URL{
 		"http.baseurl":              conf.HTTP.BaseURL,
 		"oauth2.issuer":             conf.OAuth2.Issuer,
 		"oauth2.endpoint.discovery": conf.OAuth2.Endpoints.Discovery,
 		"oauth2.endpoint.token":     conf.OAuth2.Endpoints.Token,
 		"oauth2.endpoint.auth":      conf.OAuth2.Endpoints.Auth,
 	} {
-		if IsURLEmpty(uri) {
+		if uri.IsEmpty() {
 			continue
 		}
 
@@ -66,10 +65,10 @@ func Validate(mode int, conf Config) error {
 	}
 
 	if mode == ManagementClient {
-		for key, value := range map[string]*url.URL{
+		for key, value := range map[string]*URL{
 			"openvpn.addr": conf.OpenVpn.Addr,
 		} {
-			if IsURLEmpty(value) {
+			if value.IsEmpty() {
 				return fmt.Errorf("%s is %w", key, ErrRequired)
 			}
 		}

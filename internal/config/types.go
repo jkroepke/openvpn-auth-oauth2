@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"net/url"
 	"strings"
 	"text/template"
 	"time"
@@ -26,7 +25,7 @@ type HTTP struct {
 	CertFile           string             `json:"cert"                 koanf:"cert"`
 	KeyFile            string             `json:"key"                  koanf:"key"`
 	TLS                bool               `json:"tls"                  koanf:"tls"`
-	BaseURL            *url.URL           `json:"baseurl"              koanf:"baseurl"`
+	BaseURL            *URL               `json:"baseurl"              koanf:"baseurl"`
 	Secret             Secret             `json:"secret"               koanf:"secret"`
 	CallbackTemplate   *template.Template `json:"template,omitempty"   koanf:"template"`
 	Check              HTTPCheck          `json:"check"                koanf:"check"`
@@ -45,7 +44,7 @@ type Log struct {
 }
 
 type OpenVpn struct {
-	Addr               *url.URL           `json:"addr"                 koanf:"addr"`
+	Addr               *URL               `json:"addr"                 koanf:"addr"`
 	Password           Secret             `json:"password"             koanf:"password"`
 	Bypass             OpenVpnBypass      `json:"bypass"               koanf:"bypass"`
 	AuthTokenUser      bool               `json:"auth-token-user"      koanf:"auth-token-user"`
@@ -68,7 +67,7 @@ type OAuth2 struct {
 	AuthorizeParams string          `json:"authorize-params" koanf:"authorize-params"`
 	Client          OAuth2Client    `json:"client"           koanf:"client"`
 	Endpoints       OAuth2Endpoints `json:"endpoint"         koanf:"endpoint"`
-	Issuer          *url.URL        `json:"issuer"           koanf:"issuer"`
+	Issuer          *URL            `json:"issuer"           koanf:"issuer"`
 	Nonce           bool            `json:"nonce"            koanf:"nonce"`
 	PKCE            bool            `json:"pkce"             koanf:"pkce"`
 	Provider        string          `json:"provider"         koanf:"provider"`
@@ -83,9 +82,9 @@ type OAuth2Client struct {
 }
 
 type OAuth2Endpoints struct {
-	Discovery *url.URL `json:"discovery" koanf:"discovery"`
-	Auth      *url.URL `json:"auth"      koanf:"auth"`
-	Token     *url.URL `json:"token"     koanf:"token"`
+	Discovery *URL `json:"discovery" koanf:"discovery"`
+	Auth      *URL `json:"auth"      koanf:"auth"`
+	Token     *URL `json:"token"     koanf:"token"`
 }
 
 type OAuth2Validate struct {
@@ -107,11 +106,11 @@ type OAuth2Refresh struct {
 }
 
 type OpenVPNPassthrough struct {
-	Enabled     bool     `json:"enabled"      koanf:"enabled"`
-	Address     *url.URL `json:"address"      koanf:"address"`
-	Password    Secret   `json:"password"     koanf:"password"`
-	SocketMode  uint     `json:"socket-mode"  koanf:"socket-mode"`
-	SocketGroup string   `json:"socket-group" koanf:"socket-group"`
+	Enabled     bool   `json:"enabled"      koanf:"enabled"`
+	Address     *URL   `json:"address"      koanf:"address"`
+	Password    Secret `json:"password"     koanf:"password"`
+	SocketMode  uint   `json:"socket-mode"  koanf:"socket-mode"`
+	SocketGroup string `json:"socket-group" koanf:"socket-group"`
 }
 
 type Debug struct {
@@ -219,4 +218,15 @@ func (c Config) String() string {
 	}
 
 	return string(jsonString)
+}
+
+func (h HTTP) MarshalJSON() ([]byte, error) {
+	h.CallbackTemplate = nil
+
+	type Alias HTTP
+	return json.Marshal(&struct {
+		Alias
+	}{
+		Alias: (Alias)(h),
+	})
 }

@@ -1,7 +1,6 @@
 package config_test
 
 import (
-	"net/url"
 	"testing"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
@@ -14,7 +13,7 @@ func TestIsUrlEmpty(t *testing.T) {
 
 	for _, tt := range []struct {
 		name   string
-		url    *url.URL
+		url    *config.URL
 		expect bool
 	}{
 		{
@@ -24,18 +23,18 @@ func TestIsUrlEmpty(t *testing.T) {
 		},
 		{
 			"empty",
-			&url.URL{},
+			&config.URL{},
 			true,
 		},
 		{
 			"non-empty",
-			&url.URL{Scheme: "http", Host: "localhost"},
+			&config.URL{Scheme: "http", Host: "localhost"},
 			false,
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			assert.Equal(t, tt.expect, config.IsURLEmpty(tt.url))
+			assert.Equal(t, tt.expect, tt.url.IsEmpty())
 		})
 	}
 }

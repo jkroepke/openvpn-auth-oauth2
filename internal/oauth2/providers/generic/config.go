@@ -1,7 +1,6 @@
 package generic
 
 import (
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	oauth3 "github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"golang.org/x/oauth2"
@@ -11,11 +10,11 @@ import (
 func (p Provider) GetProviderConfig() (types.ProviderConfig, error) {
 	scopes := []string{types.ScopeOpenID, types.ScopeProfile, types.ScopeOfflineAccess}
 
-	if config.IsURLEmpty(p.Conf.OAuth2.Endpoints.Token) && config.IsURLEmpty(p.Conf.OAuth2.Endpoints.Auth) {
+	if p.Conf.OAuth2.Endpoints.Token.IsEmpty() && p.Conf.OAuth2.Endpoints.Auth.IsEmpty() {
 		return types.ProviderConfig{Scopes: scopes}, nil
 	}
 
-	if config.IsURLEmpty(p.Conf.OAuth2.Endpoints.Auth) || config.IsURLEmpty(p.Conf.OAuth2.Endpoints.Token) {
+	if p.Conf.OAuth2.Endpoints.Auth.IsEmpty() || p.Conf.OAuth2.Endpoints.Token.IsEmpty() {
 		return types.ProviderConfig{}, oauth3.ErrAuthAndTokenEndpointRequired
 	}
 

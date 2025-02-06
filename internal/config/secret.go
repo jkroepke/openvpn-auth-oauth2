@@ -2,6 +2,7 @@ package config
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -16,21 +17,21 @@ type Secret string
 // String reassembles the Secret into a valid string.
 //
 //goland:noinspection GoMixedReceiverTypes
-func (secret Secret) String() string {
-	return string(secret)
+func (s Secret) String() string {
+	return string(s)
 }
 
 // MarshalText implements [encoding.TextMarshaler] interface for Secret
 //
 //goland:noinspection GoMixedReceiverTypes
-func (secret Secret) MarshalText() ([]byte, error) {
-	return []byte(secret), nil
+func (s Secret) MarshalText() ([]byte, error) {
+	return []byte(s), nil
 }
 
 // UnmarshalText implements the [encoding.TextUnmarshaler] interface for Secret
 //
 //goland:noinspection GoMixedReceiverTypes
-func (secret *Secret) UnmarshalText(text []byte) error {
+func (s *Secret) UnmarshalText(text []byte) error {
 	stringText := string(text)
 
 	switch {
@@ -44,15 +45,19 @@ func (secret *Secret) UnmarshalText(text []byte) error {
 
 		body = bytes.TrimSpace(body)
 
-		*secret = Secret(body)
+		*s = Secret(body)
 	default:
-		*secret = Secret(stringText)
+		*s = Secret(stringText)
 	}
 
 	return nil
 }
 
 //goland:noinspection GoMixedReceiverTypes
-func (secret *Secret) MarshalJSON() ([]byte, error) {
-	return []byte("***"), nil
+func (s Secret) MarshalJSON() ([]byte, error) {
+	if len(s) == 0 {
+		return json.Marshal("")
+	}
+
+	return json.Marshal("***")
 }
