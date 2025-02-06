@@ -16,7 +16,7 @@ require (
 	github.com/zitadel/oidc/v3 v3.34.1
 	golang.org/x/net v0.34.0
 	golang.org/x/oauth2 v0.26.0
-	golang.org/x/text v0.21.0
+	golang.org/x/text v0.22.0
 )
 
 require (
