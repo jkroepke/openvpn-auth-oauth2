@@ -4,7 +4,7 @@ go 1.23
 
 require (
 	github.com/bombsimon/wsl/v4 v4.5.0
-	github.com/catenacyber/perfsprint v0.7.1
+	github.com/catenacyber/perfsprint v0.8.0
 	github.com/daixiang0/gci v0.13.5
 	github.com/golangci/golangci-lint v1.63.4
 	github.com/tetafro/godot v1.4.20
