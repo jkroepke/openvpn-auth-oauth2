@@ -195,6 +195,8 @@ func (c Client) postCodeExchangeHandlerStoreRefreshToken(
 	if !c.conf.OAuth2.Refresh.ValidateUser {
 		if err := c.storage.Set(clientID, types.EmptyToken); err != nil {
 			logger.LogAttrs(ctx, slog.LevelWarn, err.Error())
+		} else {
+			logger.LogAttrs(ctx, slog.LevelDebug, "empty token for non-interactive re-authentication stored")
 		}
 
 		return
@@ -219,6 +221,8 @@ func (c Client) postCodeExchangeHandlerStoreRefreshToken(
 		logger.LogAttrs(ctx, slog.LevelWarn, "unable to store refresh token",
 			slog.Any("err", err),
 		)
+	} else {
+		logger.LogAttrs(ctx, slog.LevelDebug, "refresh token for non-interactive re-authentication stored")
 	}
 }
 
