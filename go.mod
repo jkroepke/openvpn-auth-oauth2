@@ -15,7 +15,7 @@ require (
 	github.com/zitadel/logging v0.6.1
 	github.com/zitadel/oidc/v3 v3.34.0
 	golang.org/x/net v0.34.0
-	golang.org/x/oauth2 v0.25.0
+	golang.org/x/oauth2 v0.26.0
 	golang.org/x/text v0.21.0
 )
 
