@@ -8,7 +8,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"runtime"
 	"strconv"
@@ -174,12 +173,12 @@ func TestPassThroughFull(t *testing.T) {
 			passThroughInterface, err := nettest.NewLocalListener(tt.scheme)
 			require.NoError(t, err)
 
-			tt.conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
+			tt.conf.OpenVpn.Addr = &config.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 			switch tt.scheme {
 			case openvpn.SchemeTCP:
-				tt.conf.OpenVpn.Passthrough.Address = &url.URL{Scheme: tt.scheme, Host: passThroughInterface.Addr().String()}
+				tt.conf.OpenVpn.Passthrough.Address = &config.URL{Scheme: tt.scheme, Host: passThroughInterface.Addr().String()}
 			case openvpn.SchemeUnix:
-				tt.conf.OpenVpn.Passthrough.Address = &url.URL{Scheme: tt.scheme, Path: passThroughInterface.Addr().String()}
+				tt.conf.OpenVpn.Passthrough.Address = &config.URL{Scheme: tt.scheme, Path: passThroughInterface.Addr().String()}
 			}
 
 			passThroughInterface.Close()

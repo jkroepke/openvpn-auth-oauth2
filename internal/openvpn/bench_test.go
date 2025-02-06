@@ -8,7 +8,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"net/url"
 	"strings"
 	"sync"
 	"syscall"
@@ -36,11 +35,11 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 
 	conf := config.Config{
 		HTTP: config.HTTP{
-			BaseURL: &url.URL{Scheme: "http", Host: "localhost"},
+			BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
 			Secret:  testutils.Secret,
 		},
 		OpenVpn: config.OpenVpn{
-			Addr:   &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()},
+			Addr:   &config.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()},
 			Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
 		},
 	}
@@ -124,8 +123,8 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 	passThroughInterface, err := nettest.NewLocalListener("tcp")
 	require.NoError(b, err)
 
-	conf.OpenVpn.Passthrough.Address = &url.URL{Scheme: "tcp", Host: passThroughInterface.Addr().String()}
-	conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
+	conf.OpenVpn.Passthrough.Address = &config.URL{Scheme: "tcp", Host: passThroughInterface.Addr().String()}
+	conf.OpenVpn.Addr = &config.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
 	passThroughInterface.Close()
 
