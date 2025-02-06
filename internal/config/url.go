@@ -38,16 +38,16 @@ func (u *URL) MarshalText() ([]byte, error) {
 }
 
 func (u *URL) UnmarshalText(text []byte) error {
-	parsedURL, err := url.Parse(string(text))
+	parsedURL, err := NewURL(string(text))
 	if err != nil {
 		return err
 	}
 
-	*u = URL(*parsedURL)
+	*u = *parsedURL
 
 	return nil
 }
 
 func (u *URL) MarshalJSON() ([]byte, error) {
-	return json.Marshal(u.String())
+	return json.Marshal(u.String()) // nolint:wrapcheck
 }

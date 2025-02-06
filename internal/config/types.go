@@ -224,6 +224,7 @@ func (h HTTP) MarshalJSON() ([]byte, error) {
 	h.CallbackTemplate = nil
 
 	type Alias HTTP
+
 	return json.Marshal(&struct {
 		Alias
 	}{
