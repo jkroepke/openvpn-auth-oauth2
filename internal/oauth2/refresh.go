@@ -25,7 +25,7 @@ func (c Client) RefreshClientAuth(ctx context.Context, logger *slog.Logger, clie
 	refreshToken, err := c.storage.Get(clientID)
 	if err != nil {
 		if errors.Is(err, tokenstorage.ErrNotExists) {
-			logger.LogAttrs(ctx, slog.LevelDebug, fmt.Sprintf("no refresh token found for client %s", clientID))
+			logger.LogAttrs(ctx, slog.LevelDebug, "no refresh token found for client "+clientID)
 
 			return false, nil
 		}
