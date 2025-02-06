@@ -49,5 +49,5 @@ func (u *URL) UnmarshalText(text []byte) error {
 }
 
 func (u *URL) MarshalJSON() ([]byte, error) {
-	return json.Marshal(u.String()) // nolint:wrapcheck
+	return json.Marshal(u.String()) //nolint:wrapcheck
 }

@@ -221,10 +221,12 @@ func (c Config) String() string {
 }
 
 func (h HTTP) MarshalJSON() ([]byte, error) {
+	//nolint:revive
 	h.CallbackTemplate = nil
 
 	type Alias HTTP
 
+	// nolint:wrapcheck
 	return json.Marshal(&struct {
 		Alias
 	}{

@@ -56,7 +56,7 @@ func (s *Secret) UnmarshalText(text []byte) error {
 //goland:noinspection GoMixedReceiverTypes
 func (s Secret) MarshalJSON() ([]byte, error) {
 	if len(s) == 0 {
-		return json.Marshal("") // nolint:wrapcheck
+		return json.Marshal("") //nolint:wrapcheck
 	}
 
 	return json.Marshal("***") // nolint:wrapcheck
