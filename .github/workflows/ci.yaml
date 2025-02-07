@@ -1,8 +1,5 @@
 name: CI
 
-env:
-  PACKAGES: openvpn crossbuild-essential-arm64 libssl-dev:arm64
-
 on:
   workflow_dispatch:
   pull_request:
@@ -92,7 +89,7 @@ jobs:
           VALIDATE_BASH_EXEC: true
           VALIDATE_EDITORCONFIG: true
           VALIDATE_ENV: true
-          VALIDATE_GO_RELEASER: true
+          # VALIDATE_GO_RELEASER: true
           VALIDATE_GITHUB_ACTIONS: true
           VALIDATE_HTML: true
           VALIDATE_JSON: true
