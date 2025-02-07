@@ -9,6 +9,7 @@ services:
         GIT_BRANCH: release/2.6
       #language=dockerfile
       dockerfile_inline: |
+        # renovate: docker=ubuntu
         FROM ubuntu:22.04
         ARG GIT_BRANCH
         ARG DEBIAN_FRONTEND=noninteractive
@@ -121,6 +122,7 @@ services:
         GIT_BRANCH: release/2.6
       #language=dockerfile
       dockerfile_inline: |
+        # renovate: docker=golang
         FROM golang:1.23-alpine
 
         RUN go install github.com/jkroepke/openvpn-auth-oauth2@latest
