@@ -43,7 +43,7 @@
       "customType": "regex",
       "fileMatch": ["Makefile"],
       "matchStrings": [
-        "go run (?<depName>\\S+)@(?<currentValue>^\\S+)"
+        "go run (?<depName>\\S+)@(?<currentValue>\\S+)"
       ],
       "datasourceTemplate": "go"
     }
