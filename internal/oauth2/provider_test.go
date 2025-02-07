@@ -3,7 +3,6 @@ package oauth2_test
 import (
 	"context"
 	"net/http"
-	"net/url"
 	"strings"
 	"testing"
 
@@ -37,7 +36,7 @@ func TestNewProvider(t *testing.T) {
 		{
 			"default",
 			config.Config{
-				HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "localhost"}},
+				HTTP: config.HTTP{BaseURL: &config.URL{Scheme: "http", Host: "localhost"}},
 				OAuth2: config.OAuth2{
 					Issuer:    resourceServerURL,
 					Provider:  generic.Name,
@@ -50,13 +49,13 @@ func TestNewProvider(t *testing.T) {
 		{
 			"with custom discovery",
 			config.Config{
-				HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "localhost"}},
+				HTTP: config.HTTP{BaseURL: &config.URL{Scheme: "http", Host: "localhost"}},
 				OAuth2: config.OAuth2{
 					Issuer:   resourceServerURL,
 					Provider: generic.Name,
 					Client:   clientCredentials,
 					Endpoints: config.OAuth2Endpoints{
-						Discovery: &url.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-configuration"},
+						Discovery: &config.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-configuration"},
 					},
 				},
 			},
@@ -65,13 +64,13 @@ func TestNewProvider(t *testing.T) {
 		{
 			"with invalid custom discovery",
 			config.Config{
-				HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "localhost"}},
+				HTTP: config.HTTP{BaseURL: &config.URL{Scheme: "http", Host: "localhost"}},
 				OAuth2: config.OAuth2{
 					Issuer:   resourceServerURL,
 					Provider: generic.Name,
 					Client:   clientCredentials,
 					Endpoints: config.OAuth2Endpoints{
-						Discovery: &url.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-config"},
+						Discovery: &config.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-config"},
 					},
 				},
 			},
@@ -80,15 +79,15 @@ func TestNewProvider(t *testing.T) {
 		{
 			"with custom endpoints",
 			config.Config{
-				HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "localhost"}},
+				HTTP: config.HTTP{BaseURL: &config.URL{Scheme: "http", Host: "localhost"}},
 				OAuth2: config.OAuth2{
 					Issuer:   resourceServerURL,
 					Provider: generic.Name,
 					Client:   clientCredentials,
 					Endpoints: config.OAuth2Endpoints{
-						Discovery: &url.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-configuration"},
-						Auth:      &url.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/authorize"},
-						Token:     &url.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/token"},
+						Discovery: &config.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-configuration"},
+						Auth:      &config.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/authorize"},
+						Token:     &config.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/token"},
 					},
 				},
 			},
@@ -97,14 +96,14 @@ func TestNewProvider(t *testing.T) {
 		{
 			"with missing custom endpoints",
 			config.Config{
-				HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "localhost"}},
+				HTTP: config.HTTP{BaseURL: &config.URL{Scheme: "http", Host: "localhost"}},
 				OAuth2: config.OAuth2{
 					Issuer:   resourceServerURL,
 					Provider: generic.Name,
 					Client:   clientCredentials,
 					Endpoints: config.OAuth2Endpoints{
-						Discovery: &url.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-configuration"},
-						Auth:      &url.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/authorize"},
+						Discovery: &config.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-configuration"},
+						Auth:      &config.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/authorize"},
 					},
 				},
 			},
@@ -113,16 +112,16 @@ func TestNewProvider(t *testing.T) {
 		{
 			"with pkce",
 			config.Config{
-				HTTP: config.HTTP{BaseURL: &url.URL{Scheme: "http", Host: "localhost"}},
+				HTTP: config.HTTP{BaseURL: &config.URL{Scheme: "http", Host: "localhost"}},
 				OAuth2: config.OAuth2{
 					Issuer:   resourceServerURL,
 					Provider: generic.Name,
 					PKCE:     true,
 					Client:   clientCredentials,
 					Endpoints: config.OAuth2Endpoints{
-						Discovery: &url.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-configuration"},
-						Auth:      &url.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/authorize"},
-						Token:     &url.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/token"},
+						Discovery: &config.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-configuration"},
+						Auth:      &config.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/authorize"},
+						Token:     &config.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/token"},
 					},
 				},
 			},

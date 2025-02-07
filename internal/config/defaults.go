@@ -2,7 +2,6 @@ package config
 
 import (
 	"log/slog"
-	"net/url"
 	"text/template"
 	"time"
 
@@ -21,7 +20,7 @@ var Defaults = Config{
 		VPNClientIP: true,
 	},
 	HTTP: HTTP{
-		BaseURL: &url.URL{
+		BaseURL: &URL{
 			Scheme: "http",
 			Host:   "localhost:9000",
 		},
@@ -33,7 +32,7 @@ var Defaults = Config{
 		CallbackTemplate: template.Must(template.New("index.gohtml").ParseFS(ui.Template, "index.gohtml")),
 	},
 	OpenVpn: OpenVpn{
-		Addr: &url.URL{
+		Addr: &URL{
 			Scheme:   "unix",
 			Path:     "/run/openvpn/server.sock",
 			OmitHost: true,
@@ -49,7 +48,7 @@ var Defaults = Config{
 		},
 		Passthrough: OpenVPNPassthrough{
 			Enabled: false,
-			Address: &url.URL{
+			Address: &URL{
 				Scheme:   "unix",
 				Path:     "/run/openvpn-auth-oauth2/server.sock",
 				OmitHost: true,
@@ -62,11 +61,11 @@ var Defaults = Config{
 		AuthStyle: OAuth2AuthStyle(oauth2.AuthStyleInParams),
 		Client:    OAuth2Client{},
 		Endpoints: OAuth2Endpoints{
-			Auth:      &url.URL{Scheme: "", Host: ""},
-			Discovery: &url.URL{Scheme: "", Host: ""},
-			Token:     &url.URL{Scheme: "", Host: ""},
+			Auth:      &URL{Scheme: "", Host: ""},
+			Discovery: &URL{Scheme: "", Host: ""},
+			Token:     &URL{Scheme: "", Host: ""},
 		},
-		Issuer:   &url.URL{Scheme: "", Host: ""},
+		Issuer:   &URL{Scheme: "", Host: ""},
 		Nonce:    true,
 		PKCE:     true,
 		Provider: "generic",

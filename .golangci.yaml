@@ -149,3 +149,8 @@ linters-settings:
       - name: var-declaration
       - name: var-naming
       - name: waitgroup-by-value
+  tagliatelle:
+    case:
+      rules:
+        json: kebab
+        koanf: kebab

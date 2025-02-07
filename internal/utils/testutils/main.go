@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
-	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -179,7 +178,7 @@ func ReadLine(tb testing.TB, conn net.Conn, reader *bufio.Reader) string {
 	return strings.TrimRightFunc(line, unicode.IsSpace)
 }
 
-func SetupResourceServer(tb testing.TB, clientListener net.Listener) (*httptest.Server, *url.URL, config.OAuth2Client, error) {
+func SetupResourceServer(tb testing.TB, clientListener net.Listener) (*httptest.Server, *config.URL, config.OAuth2Client, error) {
 	tb.Helper()
 
 	client := oidcstorage.WebClient(
@@ -223,7 +222,7 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener) (*httptest.
 		resourceServer.Close()
 	})
 
-	resourceServerURL, err := url.Parse(resourceServer.URL)
+	resourceServerURL, err := config.NewURL(resourceServer.URL)
 	if err != nil {
 		return nil, nil, config.OAuth2Client{}, err //nolint:wrapcheck
 	}
@@ -256,7 +255,7 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 	_, resourceServerURL, clientCredentials, err := SetupResourceServer(tb, clientListener)
 	require.NoError(tb, err)
 
-	conf.HTTP.BaseURL = &url.URL{Scheme: "http", Host: clientListener.Addr().String()}
+	conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: clientListener.Addr().String()}
 
 	if conf.HTTP.Secret == "" {
 		conf.HTTP.Secret = Secret
@@ -266,7 +265,7 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 		conf.HTTP.CallbackTemplate = config.Defaults.HTTP.CallbackTemplate
 	}
 
-	conf.OpenVpn.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
+	conf.OpenVpn.Addr = &config.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
 	if conf.OpenVpn.Bypass.CommonNames == nil {
 		conf.OpenVpn.Bypass.CommonNames = make([]string, 0)
@@ -326,10 +325,10 @@ func SetupOpenVPNOAuth2Clients(
 		conf.OAuth2.Provider = generic.Name
 	}
 
-	if config.IsURLEmpty(conf.OAuth2.Issuer) {
-		conf.OAuth2.Issuer = &url.URL{Scheme: "http", Host: "example.com"}
-		conf.OAuth2.Endpoints.Auth = &url.URL{Scheme: "http", Host: "example.com", Path: "/auth"}
-		conf.OAuth2.Endpoints.Token = &url.URL{Scheme: "http", Host: "example.com", Path: "/token"}
+	if conf.OAuth2.Issuer.IsEmpty() {
+		conf.OAuth2.Issuer = &config.URL{Scheme: "http", Host: "example.com"}
+		conf.OAuth2.Endpoints.Auth = &config.URL{Scheme: "http", Host: "example.com", Path: "/auth"}
+		conf.OAuth2.Endpoints.Token = &config.URL{Scheme: "http", Host: "example.com", Path: "/token"}
 	}
 
 	switch conf.OAuth2.Provider {

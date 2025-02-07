@@ -1,9 +1,9 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
 	"log/slog"
-	"net/url"
 	"strings"
 	"text/template"
 	"time"
@@ -12,110 +12,110 @@ import (
 )
 
 type Config struct {
-	ConfigFile string  `koanf:"config"`
-	Debug      Debug   `koanf:"debug"`
-	Log        Log     `koanf:"log"`
-	HTTP       HTTP    `koanf:"http"`
-	OpenVpn    OpenVpn `koanf:"openvpn"`
-	OAuth2     OAuth2  `koanf:"oauth2"`
+	ConfigFile string  `json:"config"  koanf:"config"`
+	Debug      Debug   `json:"debug"   koanf:"debug"`
+	Log        Log     `json:"log"     koanf:"log"`
+	HTTP       HTTP    `json:"http"    koanf:"http"`
+	OpenVpn    OpenVpn `json:"openvpn" koanf:"openvpn"`
+	OAuth2     OAuth2  `json:"oauth2"  koanf:"oauth2"`
 }
 
 type HTTP struct {
-	Listen             string             `koanf:"listen"`
-	CertFile           string             `koanf:"cert"`
-	KeyFile            string             `koanf:"key"`
-	TLS                bool               `koanf:"tls"`
-	BaseURL            *url.URL           `koanf:"baseurl"`
-	Secret             Secret             `koanf:"secret"`
-	CallbackTemplate   *template.Template `koanf:"template"`
-	Check              HTTPCheck          `koanf:"check"`
-	EnableProxyHeaders bool               `koanf:"enable-proxy-headers"`
-	AssetPath          string             `koanf:"assets-path"`
+	Listen             string             `json:"listen"               koanf:"listen"`
+	CertFile           string             `json:"cert"                 koanf:"cert"`
+	KeyFile            string             `json:"key"                  koanf:"key"`
+	TLS                bool               `json:"tls"                  koanf:"tls"`
+	BaseURL            *URL               `json:"baseurl"              koanf:"baseurl"`
+	Secret             Secret             `json:"secret"               koanf:"secret"`
+	CallbackTemplate   *template.Template `json:"template,omitempty"   koanf:"template"`
+	Check              HTTPCheck          `json:"check"                koanf:"check"`
+	EnableProxyHeaders bool               `json:"enable-proxy-headers" koanf:"enable-proxy-headers"`
+	AssetPath          string             `json:"assets-path"          koanf:"assets-path"`
 }
 
 type HTTPCheck struct {
-	IPAddr bool `koanf:"ipaddr"`
+	IPAddr bool `json:"ipaddr" koanf:"ipaddr"`
 }
 
 type Log struct {
-	Format      string     `koanf:"format"`
-	Level       slog.Level `koanf:"level"`
-	VPNClientIP bool       `koanf:"vpn-client-ip"`
+	Format      string     `json:"format"        koanf:"format"`
+	Level       slog.Level `json:"level"         koanf:"level"`
+	VPNClientIP bool       `json:"vpn-client-ip" koanf:"vpn-client-ip"`
 }
 
 type OpenVpn struct {
-	Addr               *url.URL           `koanf:"addr"`
-	Password           Secret             `koanf:"password"`
-	Bypass             OpenVpnBypass      `koanf:"bypass"`
-	AuthTokenUser      bool               `koanf:"auth-token-user"`
-	AuthPendingTimeout time.Duration      `koanf:"auth-pending-timeout"`
-	CommonName         OpenVPNCommonName  `koanf:"common-name"`
-	Passthrough        OpenVPNPassthrough `koanf:"pass-through"`
+	Addr               *URL               `json:"addr"                 koanf:"addr"`
+	Password           Secret             `json:"password"             koanf:"password"`
+	Bypass             OpenVpnBypass      `json:"bypass"               koanf:"bypass"`
+	AuthTokenUser      bool               `json:"auth-token-user"      koanf:"auth-token-user"`
+	AuthPendingTimeout time.Duration      `json:"auth-pending-timeout" koanf:"auth-pending-timeout"`
+	CommonName         OpenVPNCommonName  `json:"common-name"          koanf:"common-name"`
+	Passthrough        OpenVPNPassthrough `json:"pass-through"         koanf:"pass-through"`
 }
 
 type OpenVpnBypass struct {
-	CommonNames StringSlice `koanf:"common-names"`
+	CommonNames StringSlice `json:"common-names" koanf:"common-names"`
 }
 
 type OpenVPNCommonName struct {
-	EnvironmentVariableName string                `koanf:"environment-variable-name"`
-	Mode                    OpenVPNCommonNameMode `koanf:"mode"`
+	EnvironmentVariableName string                `json:"environment-variable-name" koanf:"environment-variable-name"`
+	Mode                    OpenVPNCommonNameMode `json:"mode"                      koanf:"mode"`
 }
 
 type OAuth2 struct {
-	AuthStyle       OAuth2AuthStyle `koanf:"auth-style"`
-	AuthorizeParams string          `koanf:"authorize-params"`
-	Client          OAuth2Client    `koanf:"client"`
-	Endpoints       OAuth2Endpoints `koanf:"endpoint"`
-	Issuer          *url.URL        `koanf:"issuer"`
-	Nonce           bool            `koanf:"nonce"`
-	PKCE            bool            `koanf:"pkce"`
-	Provider        string          `koanf:"provider"`
-	Refresh         OAuth2Refresh   `koanf:"refresh"`
-	Scopes          StringSlice     `koanf:"scopes"`
-	Validate        OAuth2Validate  `koanf:"validate"`
+	AuthStyle       OAuth2AuthStyle `json:"auth-style"       koanf:"auth-style"`
+	AuthorizeParams string          `json:"authorize-params" koanf:"authorize-params"`
+	Client          OAuth2Client    `json:"client"           koanf:"client"`
+	Endpoints       OAuth2Endpoints `json:"endpoint"         koanf:"endpoint"`
+	Issuer          *URL            `json:"issuer"           koanf:"issuer"`
+	Nonce           bool            `json:"nonce"            koanf:"nonce"`
+	PKCE            bool            `json:"pkce"             koanf:"pkce"`
+	Provider        string          `json:"provider"         koanf:"provider"`
+	Refresh         OAuth2Refresh   `json:"refresh"          koanf:"refresh"`
+	Scopes          StringSlice     `json:"scopes"           koanf:"scopes"`
+	Validate        OAuth2Validate  `json:"validate"         koanf:"validate"`
 }
 
 type OAuth2Client struct {
-	ID     string `koanf:"id"`
-	Secret Secret `koanf:"secret"`
+	ID     string `json:"id"     koanf:"id"`
+	Secret Secret `json:"secret" koanf:"secret"`
 }
 
 type OAuth2Endpoints struct {
-	Discovery *url.URL `koanf:"discovery"`
-	Auth      *url.URL `koanf:"auth"`
-	Token     *url.URL `koanf:"token"`
+	Discovery *URL `json:"discovery" koanf:"discovery"`
+	Auth      *URL `json:"auth"      koanf:"auth"`
+	Token     *URL `json:"token"     koanf:"token"`
 }
 
 type OAuth2Validate struct {
-	Acr                     StringSlice `koanf:"acr"`
-	Groups                  StringSlice `koanf:"groups"`
-	Roles                   StringSlice `koanf:"roles"`
-	IPAddr                  bool        `koanf:"ipaddr"`
-	Issuer                  bool        `koanf:"issuer"`
-	CommonName              string      `koanf:"common-name"`
-	CommonNameCaseSensitive bool        `koanf:"common-name-case-sensitive"`
+	Acr                     StringSlice `json:"acr"                        koanf:"acr"`
+	Groups                  StringSlice `json:"groups"                     koanf:"groups"`
+	Roles                   StringSlice `json:"roles"                      koanf:"roles"`
+	IPAddr                  bool        `json:"ipaddr"                     koanf:"ipaddr"`
+	Issuer                  bool        `json:"issuer"                     koanf:"issuer"`
+	CommonName              string      `json:"common-name"                koanf:"common-name"`
+	CommonNameCaseSensitive bool        `json:"common-name-case-sensitive" koanf:"common-name-case-sensitive"`
 }
 
 type OAuth2Refresh struct {
-	Enabled      bool          `koanf:"enabled"`
-	Expires      time.Duration `koanf:"expires"`
-	Secret       Secret        `koanf:"secret"`
-	UseSessionID bool          `koanf:"use-session-id"`
-	ValidateUser bool          `koanf:"validate-user"`
+	Enabled      bool          `json:"enabled"        koanf:"enabled"`
+	Expires      time.Duration `json:"expires"        koanf:"expires"`
+	Secret       Secret        `json:"secret"         koanf:"secret"`
+	UseSessionID bool          `json:"use-session-id" koanf:"use-session-id"`
+	ValidateUser bool          `json:"validate-user"  koanf:"validate-user"`
 }
 
 type OpenVPNPassthrough struct {
-	Enabled     bool     `koanf:"enabled"`
-	Address     *url.URL `koanf:"address"`
-	Password    Secret   `koanf:"password"`
-	SocketMode  uint     `koanf:"socket-mode"`
-	SocketGroup string   `koanf:"socket-group"`
+	Enabled     bool   `json:"enabled"      koanf:"enabled"`
+	Address     *URL   `json:"address"      koanf:"address"`
+	Password    Secret `json:"password"     koanf:"password"`
+	SocketMode  uint   `json:"socket-mode"  koanf:"socket-mode"`
+	SocketGroup string `json:"socket-group" koanf:"socket-group"`
 }
 
 type Debug struct {
-	Pprof  bool   `koanf:"pprof"`
-	Listen string `koanf:"listen"`
+	Pprof  bool   `json:"pprof"  koanf:"pprof"`
+	Listen string `json:"listen" koanf:"listen"`
 }
 
 type OpenVPNCommonNameMode int
@@ -209,4 +209,27 @@ func (s *OAuth2AuthStyle) UnmarshalText(text []byte) error {
 	}
 
 	return nil
+}
+
+func (c Config) String() string {
+	jsonString, err := json.Marshal(c)
+	if err != nil {
+		panic(err)
+	}
+
+	return string(jsonString)
+}
+
+func (h HTTP) MarshalJSON() ([]byte, error) {
+	//nolint:revive
+	h.CallbackTemplate = nil
+
+	type Alias HTTP
+
+	//nolint:wrapcheck
+	return json.Marshal(&struct {
+		Alias
+	}{
+		Alias: (Alias)(h),
+	})
 }

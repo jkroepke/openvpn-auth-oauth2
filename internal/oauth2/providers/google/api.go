@@ -15,6 +15,7 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
+//nolint:tagliatelle // The API response is a JSON object with a dynamic structure.
 type groupMembershipPage struct {
 	NextPageToken string `json:"nextPageToken"`
 	Memberships   []struct {

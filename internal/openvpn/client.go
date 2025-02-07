@@ -143,6 +143,8 @@ func (c *Client) checkAuthBypass(client connection.Client) bool {
 
 func (c *Client) silentReAuthentication(ctx context.Context, logger *slog.Logger, client connection.Client) (bool, error) {
 	if !c.conf.OAuth2.Refresh.Enabled {
+		logger.LogAttrs(ctx, slog.LevelDebug, "silent re-authentication disabled by configuration")
+
 		return false, nil
 	}
 
@@ -162,6 +164,8 @@ func (c *Client) silentReAuthentication(ctx context.Context, logger *slog.Logger
 	if err != nil {
 		logger.LogAttrs(ctx, slog.LevelWarn, "error refreshing client auth", slog.Any("err", err))
 	}
+
+	logger.LogAttrs(ctx, slog.LevelDebug, "silent re-authentication", slog.Bool("result", ok))
 
 	return ok, nil
 }

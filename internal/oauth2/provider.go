@@ -75,7 +75,7 @@ func New(ctx context.Context, logger *slog.Logger, conf config.Config, httpClien
 func newOIDCRelyingParty(
 	ctx context.Context, logger *slog.Logger, conf config.Config, provider Provider, scopes []string, options []rp.Option,
 ) (rp.RelyingParty, error) {
-	if !config.IsURLEmpty(conf.OAuth2.Endpoints.Discovery) {
+	if !conf.OAuth2.Endpoints.Discovery.IsEmpty() {
 		logger.LogAttrs(ctx, slog.LevelInfo, fmt.Sprintf(
 			"discover oidc auto configuration with provider %s for issuer %s with custom discovery url %s",
 			provider.GetName(), conf.OAuth2.Issuer.String(), conf.OAuth2.Endpoints.Discovery.String(),
@@ -138,7 +138,7 @@ func (c Client) getRelyingPartyOptions(httpClient *http.Client) []rp.Option {
 	cookieOpt := []httphelper.CookieHandlerOpt{
 		httphelper.WithMaxAge(int(c.conf.OpenVpn.AuthPendingTimeout.Seconds()) + 5),
 		httphelper.WithPath(fmt.Sprintf("/%s/", strings.Trim(basePath.Path, "/"))),
-		httphelper.WithDomain(basePath.Hostname()),
+		httphelper.WithDomain(basePath.URL().Hostname()),
 	}
 
 	if c.conf.HTTP.BaseURL.Scheme == "http" {

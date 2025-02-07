@@ -25,17 +25,21 @@ func (c Client) RefreshClientAuth(ctx context.Context, logger *slog.Logger, clie
 	refreshToken, err := c.storage.Get(clientID)
 	if err != nil {
 		if errors.Is(err, tokenstorage.ErrNotExists) {
+			logger.LogAttrs(ctx, slog.LevelDebug, "no refresh token found for client "+clientID)
+
 			return false, nil
 		}
 
 		return false, fmt.Errorf("error from token store: %w", err)
 	} else if refreshToken == "" {
-		logger.WarnContext(ctx, "stored refresh token is empty. This should not happen. Please report this issue.")
+		logger.LogAttrs(ctx, slog.LevelWarn, "stored refresh token is empty. This should not happen. Please report this issue.")
 
 		return false, nil
 	}
 
 	if !c.conf.OAuth2.Refresh.ValidateUser {
+		logger.LogAttrs(ctx, slog.LevelInfo, "successful non-interactive authentication via internal token")
+
 		return true, nil
 	}
 

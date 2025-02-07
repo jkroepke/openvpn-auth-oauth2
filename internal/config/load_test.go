@@ -4,7 +4,6 @@ import (
 	"errors"
 	"flag"
 	"log/slog"
-	"net/url"
 	"os"
 	"testing"
 	"time"
@@ -46,7 +45,7 @@ http:
 				conf := config.Defaults
 				conf.HTTP.CallbackTemplate = nil
 				conf.HTTP.Secret = "1jd93h5b6s82lf03jh5b2hf9"
-				conf.OAuth2.Issuer = &url.URL{
+				conf.OAuth2.Issuer = &config.URL{
 					Scheme: "https",
 					Host:   "company.zitadel.cloud",
 				}
@@ -140,14 +139,14 @@ http:
 						IPAddr: true,
 					},
 					Secret: "1jd93h5b6s82lf03jh5b2hf9",
-					BaseURL: &url.URL{
+					BaseURL: &config.URL{
 						Scheme: "http",
 						Host:   "localhost:9000",
 					},
 					AssetPath: ".",
 				},
 				OpenVpn: config.OpenVpn{
-					Addr: &url.URL{
+					Addr: &config.URL{
 						Scheme:   "unix",
 						Path:     "/run/openvpn/server2.sock",
 						OmitHost: false,
@@ -164,7 +163,7 @@ http:
 					},
 					Passthrough: config.OpenVPNPassthrough{
 						Enabled: true,
-						Address: &url.URL{
+						Address: &config.URL{
 							Scheme:   "unix",
 							Path:     "/run/openvpn/pass-through.sock",
 							OmitHost: false,
@@ -175,7 +174,7 @@ http:
 					},
 				},
 				OAuth2: config.OAuth2{
-					Issuer: &url.URL{
+					Issuer: &config.URL{
 						Scheme: "https",
 						Host:   "company.zitadel.cloud",
 					},
@@ -183,9 +182,9 @@ http:
 
 					AuthorizeParams: "a=c",
 					Endpoints: config.OAuth2Endpoints{
-						Auth:      &url.URL{},
-						Token:     &url.URL{},
-						Discovery: &url.URL{},
+						Auth:      &config.URL{},
+						Token:     &config.URL{},
+						Discovery: &config.URL{},
 					},
 					Client: config.OAuth2Client{
 						ID:     "test",

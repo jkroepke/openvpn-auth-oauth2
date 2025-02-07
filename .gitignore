@@ -12,6 +12,7 @@ tests/systemd/openvpn-auth-oauth2.conf
 
 /openvpn-auth-azure-adss
 dist/
+bin/
 
 ### macOS template
 # General
