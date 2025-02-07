@@ -10,7 +10,7 @@ services:
       #language=dockerfile
       dockerfile_inline: |
         # renovate: docker=ubuntu
-        FROM ubuntu:22.04
+        FROM ubuntu:24.04
         ARG GIT_BRANCH
         ARG DEBIAN_FRONTEND=noninteractive
         RUN apt update -qqy \
