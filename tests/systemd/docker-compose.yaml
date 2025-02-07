@@ -3,9 +3,14 @@ services:
   systemd:
     image: local/openvpn-systemd
     build:
-      dockerfile: Dockerfile
-    privileged: true
+      #language=dockerfile
+      dockerfile_inline: |
+        # renovate: docker=debian
+        FROM debian:12
 
+        RUN groupadd openvpn-auth-oauth2
+        RUN apt update && apt install ca-certificates systemd openvpn apparmor apparmor-easyprof apparmor-profiles apparmor-profiles-extra -y
+    privileged: true
     tty: true
     ports:
       - "0.0.0.0:1195:1194/udp"
