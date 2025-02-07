@@ -49,10 +49,6 @@ check: test lint golangci ## Run all checks locally
 update:  ## Run dependency updates
 	@go get -u ./...
 	@go mod tidy
-	@go -C tools get -u
-	@go -C tools mod tidy
-	@go -C pkg/plugin mod tidy
-	@go work sync
 
 .PHONY: build  ## Build the project
 build: clean $(PROJECT_NAME)
@@ -68,41 +64,21 @@ test:  ## Test the project
 lint: golangci  ## Run linter
 
 .PHONY: fmt  ## Format code
-fmt: install-tools
+fmt:
 	@-go fmt ./...
-	@-tools/bin/gci write .
-	@-tools/bin/gofumpt -l -w .
-	@-tools/bin/goimports -l -w .
-	@-tools/bin/wsl -strict-append -test=true -fix ./...
-	@-tools/bin/perfsprint -fix ./...
-	@-tools/bin/godot -w .
-	@go run github.com/4meepo/tagalign/cmd/tagalign@latest -fix -sort -order "json,koanf" ./...
-	@tools/bin/golangci-lint run ./... --fix
+	@-go run github.com/daixiang0/gci@v0.13.3 write .
+	@-go run mvdan.cc/gofumpt@v0.7.0 -l -w .
+	@-go run golang.org/x/tools/cmd/goimports@v0.29.0 -l -w .
+	@-go run github.com/bombsimon/wsl/v4/cmd/wsl@v4.5.0 -fix ./...
+	@-go run github.com/catenacyber/perfsprint@v0.7.1 --fix ./...
+	@-go run github.com/tetafro/godot/cmd/godot@v1.4.20 -w .
+	@-go run github.com/4meepo/tagalign/cmd/tagalign@v1.4.1 -fix -sort -order "json,koanf" ./...
+	@-go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.63.4 run ./...
 
 .PHONY: golangci
 golangci:
-	@go run github.com/golangci/golangci-lint/cmd/golangci-lint@${GO_LINT_CI_VERSION} run ./...
+	@go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.63.4 run ./...
 
 .PHONY: 3rdpartylicenses
 3rdpartylicenses:
-	@go run github.com/google/go-licenses@latest save . --save_path=3rdpartylicenses
-
-# In order to help reduce toil related to managing tooling for the open telemetry collector
-# this section of the makefile looks at only requiring command definitions to be defined
-# as part of $(TOOLS_MOD_DIR)/tools.go, following the existing practice.
-# Modifying the tools' `go.mod` file will trigger a rebuild of the tools to help
-# ensure that all contributors are using the most recent version to make builds repeatable everywhere.
-TOOLS_MOD_DIR    := tools
-TOOLS_MOD_REGEX  := "\s+_\s+\".*\""
-TOOLS_PKG_NAMES  := $(shell grep -E $(TOOLS_MOD_REGEX) < $(TOOLS_MOD_DIR)/tools.go | tr -d " _\"")
-TOOLS_BIN_DIR    := bin
-TOOLS_BIN_NAMES  := $(addprefix $(TOOLS_BIN_DIR)/, $(notdir $(TOOLS_PKG_NAMES)))
-
-.PHONY: install-tools
-install-tools: $(TOOLS_BIN_NAMES)
-
-$(TOOLS_BIN_DIR):
-	@mkdir -p $@
-
-$(TOOLS_BIN_NAMES): $(TOOLS_BIN_DIR) $(TOOLS_MOD_DIR)/go.mod
-	go build -C $(TOOLS_MOD_DIR) -o $@ -trimpath $(filter %/$(notdir $@),$(TOOLS_PKG_NAMES))
+	@go run github.com/google/go-licenses@v1.6.0 save . --save_path=3rdpartylicenses
