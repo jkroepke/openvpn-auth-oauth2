@@ -16,7 +16,9 @@ func NewTestLogger() *Logger {
 	syncBuffer.buffer.Grow(16 << 20)
 
 	return &Logger{
-		slog.New(slog.NewTextHandler(syncBuffer, nil)),
+		slog.New(slog.NewTextHandler(syncBuffer, &slog.HandlerOptions{
+			Level: slog.LevelDebug,
+		})),
 		syncBuffer,
 	}
 }
