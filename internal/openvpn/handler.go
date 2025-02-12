@@ -7,11 +7,14 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
 )
+
+var reMaskClientPassword = regexp.MustCompile(`CLIENT:ENV,password=(.*)\r?\n`)
 
 // handlePassword enters the password on the OpenVPN management interface connection.
 func (c *Client) handlePassword(ctx context.Context) error {
@@ -142,7 +145,7 @@ func (c *Client) handleMessage(ctx context.Context, message string) error {
 }
 
 func (c *Client) handleClientMessage(ctx context.Context, message string) error {
-	c.logger.LogAttrs(ctx, slog.LevelDebug, message)
+	c.logger.LogAttrs(ctx, slog.LevelDebug, reMaskClientPassword.ReplaceAllLiteralString(message, "CLIENT:ENV,password=***\r\n"))
 
 	client, err := connection.NewClient(c.conf, message)
 	if err != nil {

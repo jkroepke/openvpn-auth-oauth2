@@ -51,8 +51,6 @@ func TestClientInvalidServer(t *testing.T) {
 func TestClientFull(t *testing.T) {
 	t.Parallel()
 
-	logger := testutils.NewTestLogger()
-
 	confs := []struct {
 		name   string
 		conf   config.Config
@@ -205,6 +203,25 @@ func TestClientFull(t *testing.T) {
 			nil,
 		},
 		{
+			"client password mask",
+			config.Config{
+				HTTP: config.HTTP{
+					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
+					Secret:  testutils.Secret,
+				},
+				OpenVpn: config.OpenVpn{
+					CommonName: config.OpenVPNCommonName{
+						EnvironmentVariableName: "common_name",
+					},
+					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
+					Password: "password",
+				},
+			},
+			">CLIENT:CONNECT,0,1\r\n>CLIENT:ENV,common_name=bypass\r\nCLIENT:ENV,password=important value\n>CLIENT:ENV,END\r\n",
+			"client-auth-nt 0 1",
+			nil,
+		},
+		{
 			"client established",
 			config.Config{
 				HTTP: config.HTTP{
@@ -287,6 +304,8 @@ func TestClientFull(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
+			logger := testutils.NewTestLogger()
+
 			managementInterface, err := nettest.NewLocalListener("tcp")
 			require.NoError(t, err)
 
@@ -335,6 +354,10 @@ func TestClientFull(t *testing.T) {
 					assert.Contains(t, auth, tt.expect)
 				} else {
 					assert.Equal(t, tt.expect, auth, logger.String())
+				}
+
+				if strings.Contains(tt.client, "CLIENT:ENV,password=") {
+					assert.Contains(t, logger.String(), `CLIENT:ENV,password=***`, logger.String())
 				}
 
 				testutils.SendMessage(t, conn, "SUCCESS: %s command succeeded\r\n", strings.SplitN(auth, " ", 2)[0])
