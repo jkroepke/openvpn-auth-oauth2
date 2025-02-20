@@ -7,7 +7,7 @@ linters:
     - ireturn
     - err113
     - mnd
-    - exportloopref
+    - tenv
     - recvcheck # https://github.com/raeperd/recvcheck/issues/7
 
 issues:
