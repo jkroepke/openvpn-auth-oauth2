@@ -37,7 +37,7 @@ jobs:
         uses: goreleaser/goreleaser-action@90a3faa9d0182683851fbfa97ca1a2cb983bfca3 # v6.2.1
         with:
           # renovate: github=goreleaser/goreleaser
-          version: v2.7.0
+          version: v2.8.1
           args: release --snapshot
         env:
           GITHUB_TOKEN: ""
@@ -131,7 +131,7 @@ jobs:
         uses: goreleaser/goreleaser-action@90a3faa9d0182683851fbfa97ca1a2cb983bfca3 # v6.2.1
         with:
           # renovate: github=goreleaser/goreleaser
-          version: v2.7.0
+          version: v2.8.1
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
