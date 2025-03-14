@@ -64,7 +64,9 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@2226d7cb06a077cd73e56eedd38eecad18e5d837 # v6.5.0
         with:
-          version: ${{ env.GO_LINT_CI_VERSION }}
+          # renovate: github=golangci/golangci-lint
+          version: v1.64.7
+          args: "--max-same-issues=0"
 
   super-lint:
     name: super-lint
