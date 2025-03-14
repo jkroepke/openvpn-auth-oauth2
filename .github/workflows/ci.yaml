@@ -43,10 +43,10 @@ jobs:
           GITHUB_TOKEN: ""
           GPG_KEY_PATH: ""
 
-      - uses: codecov/codecov-action@13ce06bfc6bbe3ecf90edbbf1bc32fe5978ca1d3 # v5.3.1
+      - uses: codecov/codecov-action@0565863a31f2c772f9f0395002a31e3f06189574 # v5.4.0
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-      - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+      - uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: dists
           path: dist/
@@ -62,7 +62,7 @@ jobs:
       - run: go mod tidy -diff
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@2226d7cb06a077cd73e56eedd38eecad18e5d837 # v6.5.0
+        uses: golangci/golangci-lint-action@4696ba8babb6127d732c3c6dde519db15edab9ea # v6.5.1
         with:
           # renovate: github=golangci/golangci-lint
           version: v1.64.7
@@ -80,7 +80,7 @@ jobs:
           fetch-depth: 0
 
       - name: Lint Code Base
-        uses: super-linter/super-linter/slim@85f7611e0f7b53c8573cca84aa0ed4344f6f6a4d # v7.2.1
+        uses: super-linter/super-linter/slim@4e8a7c2bf106c4c766c816b35ec612638dc9b6b2 # v7.3.0
         env:
           EDITORCONFIG_FILE_NAME: .editorconfig-checker.json
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
