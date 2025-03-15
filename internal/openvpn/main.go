@@ -113,7 +113,7 @@ func (c *Client) Connect(ctx context.Context) error {
 	}
 
 	if err != nil {
-		return err
+		return fmt.Errorf("openvpn management error: %w", err)
 	}
 
 	return nil

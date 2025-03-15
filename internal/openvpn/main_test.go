@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
@@ -276,8 +278,7 @@ func TestClientFull(t *testing.T) {
 			},
 			">CLIENT:FOO,0\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END\r\n",
 			"",
-			//nolint:revive
-			errors.New("openvpn management error: error parsing client message: unable to parse client reason from message: >CLIENT:FOO,0\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END\r\n"),
+			connection.ErrParseErrorClientReason,
 		},
 		{
 			"client invalid reason 2",
@@ -296,7 +297,7 @@ func TestClientFull(t *testing.T) {
 			},
 			">CLIENT:CONNECT1,0,1\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END\r\n",
 			"",
-			errors.New("openvpn management error: unknown client reason: CONNECT1"),
+			openvpn.ErrUnknownClientReason,
 		},
 	}
 

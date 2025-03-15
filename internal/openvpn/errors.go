@@ -11,6 +11,7 @@ var (
 	ErrInvalidPassword                    = errors.New("invalid password")
 	ErrErrorResponse                      = errors.New("error response")
 	ErrConnectionTerminated               = errors.New("openvpn management interface connection terminated")
+	ErrUnknownClientReason                = errors.New("unknown client reason")
 	ErrClientSessionStateInvalidOrExpired = errors.New(ReasonStateExpiredOrInvalid)
 )
 
