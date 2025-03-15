@@ -65,7 +65,7 @@ func (c *Client) Connect(ctx context.Context) error {
 	c.scanner.Buffer(make([]byte, 0, bufio.MaxScanTokenSize), bufio.MaxScanTokenSize)
 
 	if err = c.handlePassword(ctx); err != nil {
-		return fmt.Errorf("openvpn management error: %w", err)
+		return fmt.Errorf("unable to authenticate with OpenVPN management interface: %w", err)
 	}
 
 	defer c.Shutdown()
@@ -90,14 +90,26 @@ func (c *Client) Connect(ctx context.Context) error {
 			return nil
 		}
 
-		return fmt.Errorf("openvpn management error: %w", err)
+		return fmt.Errorf("unable to check OpenVPN management interface version: %w", err)
 	}
 
 	select {
 	case err = <-errChMessages:
+		if err != nil {
+			err = fmt.Errorf("error handling messages: %w", err)
+		}
 	case err = <-errChClients:
+		if err != nil {
+			err = fmt.Errorf("error handling clients: %w", err)
+		}
 	case err = <-errChCommands:
+		if err != nil {
+			err = fmt.Errorf("error handling commands: %w", err)
+		}
 	case err = <-errChPassThrough:
+		if err != nil {
+			err = fmt.Errorf("error handling passthrough: %w", err)
+		}
 	}
 
 	if err != nil {
@@ -142,7 +154,7 @@ func (c *Client) checkManagementInterfaceVersion() error {
 	versionParts := strings.Split(resp, "\r\n")
 
 	if len(versionParts) != 4 {
-		return fmt.Errorf("unexpected response from version command: %s", resp)
+		return fmt.Errorf("%w: %s", ErrUnexpectedResponseFromVersionCommand, resp)
 	}
 
 	c.logger.Info(utils.StringConcat(versionParts[0], " - ", versionParts[1]))
@@ -155,7 +167,7 @@ func (c *Client) checkManagementInterfaceVersion() error {
 	// Management Interface Version 5 is required at minimum
 	// ref: https://github.com/OpenVPN/openvpn/commit/a261e173341f8e68505a6ab5a413d09b0797a459
 	if managementInterfaceVersion < minManagementInterfaceVersion {
-		return errors.New("openvpn-auth-oauth2 requires OpenVPN management interface version 5 or higher")
+		return ErrRequireManagementInterfaceVersion5
 	}
 
 	return nil
