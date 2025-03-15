@@ -154,7 +154,7 @@ func (c *Client) checkManagementInterfaceVersion() error {
 	versionParts := strings.Split(resp, "\r\n")
 
 	if len(versionParts) != 4 {
-		return fmt.Errorf("unexpected response from version command: %s", resp)
+		return fmt.Errorf("%w: %s", ErrUnexpectedResponseFromVersionCommand, resp)
 	}
 
 	c.logger.Info(utils.StringConcat(versionParts[0], " - ", versionParts[1]))

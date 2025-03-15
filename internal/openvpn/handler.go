@@ -68,7 +68,7 @@ func (c *Client) sendPassword(ctx context.Context) error {
 	}
 
 	if !strings.Contains("SUCCESS: password is correct", string(buf)) { //nolint:gocritic
-		return fmt.Errorf("unable to connect to openvpn management interface: %w", ErrInvalidPassword)
+		return ErrInvalidPassword
 	}
 
 	// read the whole line

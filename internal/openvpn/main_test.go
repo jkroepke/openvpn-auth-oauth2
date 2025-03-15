@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -439,7 +440,7 @@ func TestClientInvalidPassword(t *testing.T) {
 
 	err = openVPNClient.Connect(t.Context())
 
-	require.EqualError(t, err, "openvpn management error: unable to connect to openvpn management interface: invalid password")
+	require.ErrorIs(t, err, openvpn.ErrInvalidPassword)
 }
 
 func TestClientInvalidVersion(t *testing.T) {
@@ -460,22 +461,22 @@ func TestClientInvalidVersion(t *testing.T) {
 	versions := []struct {
 		name    string
 		version string
-		err     string
+		err     error
 	}{
 		{
 			"invalid parts",
 			"OpenVPN Version: OpenVPN Mock\r\nEND\r\n",
-			"openvpn management error: unexpected response from version command: OpenVPN Version: OpenVPN Mock\r\nEND\r\n",
+			openvpn.ErrUnexpectedResponseFromVersionCommand,
 		},
 		{
 			"invalid version",
 			"OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version:\r\nEND\r\n",
-			`openvpn management error: unable to parse openvpn management interface version: strconv.Atoi: parsing ":": invalid syntax`,
+			&strconv.NumError{Func: "strconv.Atoi", Num: ":", Err: errors.New("invalid syntax")},
 		},
 		{
 			"version to low",
 			"OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 4\r\nEND\r\n",
-			`openvpn management error: openvpn-auth-oauth2 requires OpenVPN management interface version 5 or higher`,
+			openvpn.ErrRequireManagementInterfaceVersion5,
 		},
 	}
 
@@ -531,7 +532,7 @@ func TestClientInvalidVersion(t *testing.T) {
 
 			err = <-errCh
 
-			require.EqualError(t, err, tt.err, tt.err)
+			require.ErrorIs(t, err, tt.err)
 		})
 	}
 }
