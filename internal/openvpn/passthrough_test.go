@@ -183,7 +183,7 @@ func TestPassThroughFull(t *testing.T) {
 
 			passThroughInterface.Close()
 
-			ctx, cancel := context.WithCancel(context.Background())
+			ctx, cancel := context.WithCancel(t.Context())
 			defer cancel()
 
 			tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)

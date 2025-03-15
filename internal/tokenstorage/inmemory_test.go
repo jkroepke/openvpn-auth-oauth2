@@ -14,7 +14,7 @@ import (
 func TestStorage(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
 	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Millisecond*400)

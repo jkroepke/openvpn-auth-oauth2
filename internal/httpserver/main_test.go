@@ -78,7 +78,7 @@ func TestNewHTTPServer(t *testing.T) {
 
 			svr := httpserver.NewHTTPServer(httpserver.ServerNameDefault, logger.Logger, tt.conf.HTTP, mux)
 
-			ctx, cancel := context.WithCancel(context.Background())
+			ctx, cancel := context.WithCancel(t.Context())
 
 			errCh := make(chan error, 1)
 

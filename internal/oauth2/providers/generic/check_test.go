@@ -1,7 +1,6 @@
 package generic_test
 
 import (
-	"context"
 	"errors"
 	"net/http"
 	"testing"
@@ -35,13 +34,13 @@ func TestCheckUser(t *testing.T) {
 		},
 	}
 
-	provider, err := generic.NewProvider(context.Background(), conf, http.DefaultClient)
+	provider, err := generic.NewProvider(t.Context(), conf, http.DefaultClient)
 	require.NoError(t, err)
 
-	userData, err := provider.GetUser(context.Background(), testutils.NewTestLogger().Logger, token)
+	userData, err := provider.GetUser(t.Context(), testutils.NewTestLogger().Logger, token)
 	require.NoError(t, err)
 
-	err = provider.CheckUser(context.Background(), state.State{}, userData, token)
+	err = provider.CheckUser(t.Context(), state.State{}, userData, token)
 	require.NoError(t, err)
 }
 
@@ -112,13 +111,13 @@ func TestInvalidToken(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			provider, err := generic.NewProvider(context.Background(), tt.conf, http.DefaultClient)
+			provider, err := generic.NewProvider(t.Context(), tt.conf, http.DefaultClient)
 			require.NoError(t, err)
 
-			userData, err := provider.GetUser(context.Background(), testutils.NewTestLogger().Logger, tt.token)
+			userData, err := provider.GetUser(t.Context(), testutils.NewTestLogger().Logger, tt.token)
 			require.NoError(t, err)
 
-			err = provider.CheckUser(context.Background(), state.State{CommonName: "user"}, userData, tt.token)
+			err = provider.CheckUser(t.Context(), state.State{CommonName: "user"}, userData, tt.token)
 			if tt.err == nil {
 				require.NoError(t, err)
 			} else {
@@ -164,7 +163,7 @@ func TestValidateGroups(t *testing.T) {
 				},
 			}
 
-			provider, err := generic.NewProvider(context.Background(), conf, http.DefaultClient)
+			provider, err := generic.NewProvider(t.Context(), conf, http.DefaultClient)
 			require.NoError(t, err)
 
 			err = provider.CheckGroups(token)
@@ -214,7 +213,7 @@ func TestValidateRoles(t *testing.T) {
 				},
 			}
 
-			provider, err := generic.NewProvider(context.Background(), conf, http.DefaultClient)
+			provider, err := generic.NewProvider(t.Context(), conf, http.DefaultClient)
 			require.NoError(t, err)
 
 			err = provider.CheckRoles(token)
@@ -382,7 +381,7 @@ func TestValidateCommonName(t *testing.T) {
 				CommonName: tt.requiredCommonName,
 			}
 
-			provider, err := generic.NewProvider(context.Background(), tt.conf, http.DefaultClient)
+			provider, err := generic.NewProvider(t.Context(), tt.conf, http.DefaultClient)
 			require.NoError(t, err)
 
 			err = provider.CheckCommonName(session, token)
@@ -436,7 +435,7 @@ func TestValidateIpAddr(t *testing.T) {
 				IPAddr: tt.requiredIPAddr,
 			}
 
-			provider, err := generic.NewProvider(context.Background(), conf, http.DefaultClient)
+			provider, err := generic.NewProvider(t.Context(), conf, http.DefaultClient)
 			require.NoError(t, err)
 
 			err = provider.CheckIPAddress(session, token)
