@@ -100,6 +100,7 @@ openvpn:
     addr: "unix:///run/openvpn/server2.sock"
     auth-token-user: true
     auth-pending-timeout: 2m
+    override-username: true
     bypass:
         common-names:
         - "test"
