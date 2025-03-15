@@ -167,7 +167,7 @@ func (c *Client) checkManagementInterfaceVersion() error {
 	// Management Interface Version 5 is required at minimum
 	// ref: https://github.com/OpenVPN/openvpn/commit/a261e173341f8e68505a6ab5a413d09b0797a459
 	if managementInterfaceVersion < minManagementInterfaceVersion {
-		return errors.New("openvpn-auth-oauth2 requires OpenVPN management interface version 5 or higher")
+		return ErrRequireManagementInterfaceVersion5
 	}
 
 	return nil

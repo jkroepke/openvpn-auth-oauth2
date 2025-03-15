@@ -471,7 +471,7 @@ func TestClientInvalidVersion(t *testing.T) {
 		{
 			"invalid version",
 			"OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version:\r\nEND\r\n",
-			&strconv.NumError{Func: "strconv.Atoi", Num: ":", Err: errors.New("invalid syntax")},
+			strconv.ErrSyntax,
 		},
 		{
 			"version to low",
