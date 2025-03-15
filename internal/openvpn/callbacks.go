@@ -20,13 +20,16 @@ func (c *Client) AcceptClient(logger *slog.Logger, client state.ClientIdentifier
 		tokenUsername = base64.StdEncoding.EncodeToString([]byte(username))
 		if tokenUsername == "" {
 			tokenUsername = "dXNlcm5hbWUK" // "username" //nolint:gosec // No hardcoded credentials
+			username = "username"
 		}
 	}
 
 	if tokenUsername == "" {
 		_, err = c.SendCommandf(`client-auth-nt %d %d`, client.CID, client.KID)
+	} else if c.conf.OpenVpn.OverrideUsername {
+		_, err = c.SendCommandf("client-auth %d %d\r\noverride-username \"%s\"\r\nEND", client.CID, client.KID, username)
 	} else {
-		_, err = c.SendCommandf("client-auth %d %d\r\noverride-username \"%s\"\r\npush \"auth-token-user %s\"\r\nEND", client.CID, client.KID, username, tokenUsername)
+		_, err = c.SendCommandf("client-auth %d %d\r\npush \"auth-token-user %s\"\r\nEND", client.CID, client.KID, tokenUsername)
 	}
 
 	if err != nil {

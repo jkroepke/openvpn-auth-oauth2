@@ -43,6 +43,7 @@ var Defaults = Config{
 			EnvironmentVariableName: "common_name",
 			Mode:                    CommonNameModePlain,
 		},
+		OverrideUsername: false,
 		Bypass: OpenVpnBypass{
 			CommonNames: make([]string, 0),
 		},

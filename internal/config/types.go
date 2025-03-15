@@ -49,6 +49,7 @@ type OpenVpn struct {
 	Bypass             OpenVpnBypass      `json:"bypass"               koanf:"bypass"`
 	AuthTokenUser      bool               `json:"auth-token-user"      koanf:"auth-token-user"`
 	AuthPendingTimeout time.Duration      `json:"auth-pending-timeout" koanf:"auth-pending-timeout"`
+	OverrideUsername   bool               `json:"override-username"    koanf:"override-username"`
 	CommonName         OpenVPNCommonName  `json:"common-name"          koanf:"common-name"`
 	Passthrough        OpenVPNPassthrough `json:"pass-through"         koanf:"pass-through"`
 }
