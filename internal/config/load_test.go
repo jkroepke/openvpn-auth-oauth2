@@ -220,9 +220,11 @@ http:
 			file, err := os.CreateTemp(t.TempDir(), "openvpn-auth-oauth2-*")
 			require.NoError(t, err)
 
-			// close and remove the temporary file at the end of the program
-			defer file.Close()
-			defer os.Remove(file.Name())
+			// close and remove the temporary file at the end of the program.
+			t.Cleanup(func() {
+				require.NoError(t, file.Close())
+				require.NoError(t, os.Remove(file.Name()))
+			})
 
 			_, err = file.WriteString(tt.configFile)
 			require.NoError(t, err)

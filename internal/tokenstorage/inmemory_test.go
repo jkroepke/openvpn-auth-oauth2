@@ -15,7 +15,7 @@ func TestStorage(t *testing.T) {
 	t.Parallel()
 
 	ctx, cancel := context.WithCancel(t.Context())
-	defer cancel()
+	t.Cleanup(cancel)
 
 	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Millisecond*400)
 	require.NoError(t, tokenStorage.Set("0", "TEST0"))

@@ -45,7 +45,7 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 	}
 
 	ctx, cancel := context.WithCancel(b.Context())
-	defer cancel()
+	b.Cleanup(cancel)
 
 	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
 	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, b, conf, logger.Logger, http.DefaultClient, tokenStorage)
@@ -65,7 +65,10 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 	managementInterfaceConn, err := managementInterface.Accept()
 	require.NoError(b, err)
 
-	defer managementInterfaceConn.Close()
+	b.Cleanup(func() {
+		require.NoError(b, managementInterfaceConn.Close())
+	})
+
 	reader := bufio.NewReader(managementInterfaceConn)
 
 	require.NoError(b, err)
@@ -118,7 +121,9 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 	managementInterface, err := nettest.NewLocalListener("tcp")
 	require.NoError(b, err)
 
-	defer managementInterface.Close()
+	b.Cleanup(func() {
+		require.NoError(b, managementInterface.Close())
+	})
 
 	passThroughInterface, err := nettest.NewLocalListener("tcp")
 	require.NoError(b, err)
@@ -129,7 +134,10 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 	passThroughInterface.Close()
 
 	ctx, cancel := context.WithCancelCause(b.Context())
-	defer cancel(nil)
+
+	b.Cleanup(func() {
+		cancel(nil)
+	})
 
 	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
 	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, b, conf, logger.Logger, http.DefaultClient, tokenStorage)

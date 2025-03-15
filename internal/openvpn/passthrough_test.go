@@ -168,7 +168,9 @@ func TestPassThroughFull(t *testing.T) {
 			managementInterface, err := nettest.NewLocalListener(openvpn.SchemeTCP)
 			require.NoError(t, err)
 
-			defer managementInterface.Close()
+			t.Cleanup(func() {
+				require.NoError(t, managementInterface.Close())
+			})
 
 			passThroughInterface, err := nettest.NewLocalListener(tt.scheme)
 			require.NoError(t, err)
@@ -184,7 +186,7 @@ func TestPassThroughFull(t *testing.T) {
 			passThroughInterface.Close()
 
 			ctx, cancel := context.WithCancel(t.Context())
-			defer cancel()
+			t.Cleanup(cancel)
 
 			tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
 			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, tt.conf, logger.Logger, http.DefaultClient, tokenStorage)
