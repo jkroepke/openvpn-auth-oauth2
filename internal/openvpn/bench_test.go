@@ -44,7 +44,7 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 		},
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(b.Context())
 	defer cancel()
 
 	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
@@ -56,7 +56,7 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 	go func() {
 		defer wg.Done()
 
-		err := openVPNClient.Connect(context.Background())
+		err := openVPNClient.Connect(b.Context())
 		if err != nil && !errors.Is(err, io.EOF) {
 			require.NoError(b, err) //nolint:testifylint
 		}
@@ -90,7 +90,7 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 
 	for _, tt := range tests {
 		b.Run(tt.name, func(b *testing.B) {
-			for range b.N {
+			for b.Loop() {
 				testutils.SendMessage(b, managementInterfaceConn, tt.client)
 				assert.Contains(b, testutils.ReadLine(b, managementInterfaceConn, reader), "client-pending-auth 0 1 \"WEB_AUTH::")
 				testutils.SendMessage(b, managementInterfaceConn, "SUCCESS: client-pending-auth command succeeded")
@@ -128,7 +128,7 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 
 	passThroughInterface.Close()
 
-	ctx, cancel := context.WithCancelCause(context.Background())
+	ctx, cancel := context.WithCancelCause(b.Context())
 	defer cancel(nil)
 
 	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
@@ -208,7 +208,7 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 	go func() {
 		defer wg.Done()
 
-		err := openVPNClient.Connect(context.Background())
+		err := openVPNClient.Connect(b.Context())
 		if err != nil {
 			cancel(fmt.Errorf("connecting: %w", err))
 

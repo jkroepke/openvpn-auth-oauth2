@@ -1,7 +1,6 @@
 package github_test
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -92,10 +91,10 @@ func TestGetUser(t *testing.T) {
 				}),
 			}
 
-			provider, err := github.NewProvider(context.Background(), conf, httpClient)
+			provider, err := github.NewProvider(t.Context(), conf, httpClient)
 			require.NoError(t, err)
 
-			userData, err := provider.GetUser(context.Background(), testutils.NewTestLogger().Logger, token)
+			userData, err := provider.GetUser(t.Context(), testutils.NewTestLogger().Logger, token)
 
 			if tt.err == "" {
 				require.NoError(t, err)

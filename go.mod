@@ -1,6 +1,6 @@
 module github.com/jkroepke/openvpn-auth-oauth2
 
-go 1.23
+go 1.24
 
 require (
 	github.com/go-viper/mapstructure/v2 v2.2.1

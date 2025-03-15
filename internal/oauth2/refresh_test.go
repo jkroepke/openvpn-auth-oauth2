@@ -230,7 +230,7 @@ func TestRefreshReAuth(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			ctx, cancel := context.WithCancel(context.Background())
+			ctx, cancel := context.WithCancel(t.Context())
 			defer cancel()
 
 			conf, openVPNClient, managementInterface, _, _, httpClient, logger := testutils.SetupMockEnvironment(ctx, t, tt.conf, tt.rt)
@@ -270,7 +270,7 @@ func TestRefreshReAuth(t *testing.T) {
 
 			authURL := strings.TrimPrefix(strings.Split(auth, `"`)[1], "WEB_AUTH::")
 
-			request, err := http.NewRequestWithContext(context.Background(), http.MethodGet, authURL, nil)
+			request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, authURL, nil)
 			require.NoError(t, err)
 
 			wg.Add(1)

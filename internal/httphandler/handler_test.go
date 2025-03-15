@@ -356,7 +356,7 @@ func TestHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			ctx, cancel := context.WithCancel(context.Background())
+			ctx, cancel := context.WithCancel(t.Context())
 
 			conf, client, managementInterface, _, httpClientListener, httpClient, logger := testutils.SetupMockEnvironment(ctx, t, tt.conf, nil)
 
@@ -400,7 +400,7 @@ func TestHandler(t *testing.T) {
 			go func() {
 				defer wg.Done()
 
-				err := client.Connect(context.Background())
+				err := client.Connect(t.Context())
 
 				if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, openvpn.ErrConnectionTerminated) {
 					assert.NoError(t, err)
@@ -421,7 +421,7 @@ func TestHandler(t *testing.T) {
 					err     error
 				)
 
-				request, err := http.NewRequestWithContext(context.Background(), http.MethodGet, httpClientListener.URL+"/ready", nil)
+				request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, httpClientListener.URL+"/ready", nil)
 				if !assert.NoError(t, err) {
 					return
 				}
@@ -454,7 +454,7 @@ func TestHandler(t *testing.T) {
 					}
 				}
 
-				request, err = http.NewRequestWithContext(context.Background(), http.MethodGet,
+				request, err = http.NewRequestWithContext(t.Context(), http.MethodGet,
 					fmt.Sprintf("%s/oauth2/start?state=%s", httpClientListener.URL, session),
 					nil,
 				)
@@ -511,7 +511,7 @@ func TestHandler(t *testing.T) {
 
 				httpClient.CheckRedirect = nil
 
-				request, err = http.NewRequestWithContext(context.Background(), http.MethodGet, resp.Header.Get("Location"), nil)
+				request, err = http.NewRequestWithContext(t.Context(), http.MethodGet, resp.Header.Get("Location"), nil)
 				if !assert.NoError(t, err) {
 					return
 				}

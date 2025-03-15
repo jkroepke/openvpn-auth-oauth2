@@ -1,7 +1,6 @@
 package github_test
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -121,10 +120,10 @@ func TestValidateGroups(t *testing.T) {
 				}),
 			}
 
-			provider, err := github.NewProvider(context.Background(), conf, httpClient)
+			provider, err := github.NewProvider(t.Context(), conf, httpClient)
 			require.NoError(t, err)
 
-			err = provider.CheckUser(context.Background(), state.State{}, types.UserData{Email: "ID"}, token)
+			err = provider.CheckUser(t.Context(), state.State{}, types.UserData{Email: "ID"}, token)
 
 			if tt.err == "" {
 				require.NoError(t, err)
@@ -235,10 +234,10 @@ func TestValidateRoles(t *testing.T) {
 				}),
 			}
 
-			provider, err := github.NewProvider(context.Background(), conf, httpClient)
+			provider, err := github.NewProvider(t.Context(), conf, httpClient)
 			require.NoError(t, err)
 
-			err = provider.CheckUser(context.Background(), state.State{}, types.UserData{Email: "ID"}, token)
+			err = provider.CheckUser(t.Context(), state.State{}, types.UserData{Email: "ID"}, token)
 
 			if tt.err == "" {
 				require.NoError(t, err)
