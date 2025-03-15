@@ -47,7 +47,7 @@ func TestFull(t *testing.T) {
 			t.Parallel()
 
 			ctx, cancel := context.WithCancel(t.Context())
-			defer cancel()
+			t.Cleanup(cancel)
 
 			managementInterface, err := nettest.NewLocalListener("tcp")
 			require.NoError(t, err)

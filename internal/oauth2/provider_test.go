@@ -133,7 +133,7 @@ func TestNewProvider(t *testing.T) {
 			t.Parallel()
 
 			ctx, cancel := context.WithCancel(t.Context())
-			defer cancel()
+			t.Cleanup(cancel)
 
 			var (
 				err      error

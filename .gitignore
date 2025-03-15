@@ -73,3 +73,4 @@ $RECYCLE.BIN/
 /3rdpartylicenses/
 /local/
 /tests/**/*.sysconfig
+Test*.te*

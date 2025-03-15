@@ -27,7 +27,9 @@ func TestNewUserAgentTransport(t *testing.T) {
 	resp, err := server.Client().Do(req)
 	require.NoError(t, err)
 
-	defer resp.Body.Close()
+	t.Cleanup(func() {
+		require.NoError(t, resp.Body.Close())
+	})
 
 	body, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)

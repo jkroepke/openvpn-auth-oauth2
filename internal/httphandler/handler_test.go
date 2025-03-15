@@ -375,6 +375,7 @@ func TestHandler(t *testing.T) {
 				}
 
 				defer managementInterfaceConn.Close()
+
 				reader := bufio.NewReader(managementInterfaceConn)
 
 				testutils.ExpectVersionAndReleaseHold(t, managementInterfaceConn, reader)

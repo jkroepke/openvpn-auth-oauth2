@@ -38,7 +38,7 @@ func TestClientInvalidServer(t *testing.T) {
 	}
 
 	ctx, cancel := context.WithCancel(t.Context())
-	defer cancel()
+	t.Cleanup(cancel)
 
 	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
 	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
@@ -309,12 +309,14 @@ func TestClientFull(t *testing.T) {
 			managementInterface, err := nettest.NewLocalListener("tcp")
 			require.NoError(t, err)
 
-			defer managementInterface.Close()
+			t.Cleanup(func() {
+				require.NoError(t, managementInterface.Close())
+			})
 
 			tt.conf.OpenVpn.Addr = &config.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
 			ctx, cancel := context.WithCancel(t.Context())
-			defer cancel()
+			t.Cleanup(cancel)
 
 			tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
 			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, tt.conf, logger.Logger, http.DefaultClient, tokenStorage)
@@ -401,7 +403,9 @@ func TestClientInvalidPassword(t *testing.T) {
 	managementInterface, err := nettest.NewLocalListener("tcp")
 	require.NoError(t, err)
 
-	defer managementInterface.Close()
+	t.Cleanup(func() {
+		managementInterface.Close()
+	})
 
 	conf := config.Config{
 		HTTP: config.HTTP{
@@ -416,7 +420,7 @@ func TestClientInvalidPassword(t *testing.T) {
 	}
 
 	ctx, cancel := context.WithCancel(t.Context())
-	defer cancel()
+	t.Cleanup(cancel)
 
 	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
 	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
@@ -484,12 +488,14 @@ func TestClientInvalidVersion(t *testing.T) {
 			managementInterface, err := nettest.NewLocalListener("tcp")
 			require.NoError(t, err)
 
-			defer managementInterface.Close()
+			t.Cleanup(func() {
+				managementInterface.Close()
+			})
 
 			conf.OpenVpn.Addr = &config.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
 			ctx, cancel := context.WithCancel(t.Context())
-			defer cancel()
+			t.Cleanup(cancel)
 
 			tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
 			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
@@ -508,7 +514,10 @@ func TestClientInvalidVersion(t *testing.T) {
 			managementInterfaceConn, err := managementInterface.Accept()
 			require.NoError(t, err)
 
-			defer managementInterfaceConn.Close()
+			t.Cleanup(func() {
+				managementInterfaceConn.Close()
+			})
+
 			reader := bufio.NewReader(managementInterfaceConn)
 
 			testutils.SendAndExpectMessage(t, managementInterfaceConn, reader,
@@ -545,12 +554,14 @@ func TestSIGHUP(t *testing.T) {
 	managementInterface, err := nettest.NewLocalListener("tcp")
 	require.NoError(t, err)
 
-	defer managementInterface.Close()
+	t.Cleanup(func() {
+		managementInterface.Close()
+	})
 
 	conf.OpenVpn.Addr = &config.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
 	ctx, cancel := context.WithCancel(t.Context())
-	defer cancel()
+	t.Cleanup(cancel)
 
 	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
 	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
@@ -624,12 +635,14 @@ func TestDeadLocks(t *testing.T) {
 			managementInterface, err := nettest.NewLocalListener("tcp")
 			require.NoError(t, err)
 
-			defer managementInterface.Close()
+			t.Cleanup(func() {
+				managementInterface.Close()
+			})
 
 			conf.OpenVpn.Addr = &config.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
 			ctx, cancel := context.WithCancel(t.Context())
-			defer cancel()
+			t.Cleanup(cancel)
 
 			tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
 			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
@@ -706,12 +719,14 @@ func TestInvalidCommandResponses(t *testing.T) {
 			managementInterface, err := nettest.NewLocalListener("tcp")
 			require.NoError(t, err)
 
-			defer managementInterface.Close()
+			t.Cleanup(func() {
+				managementInterface.Close()
+			})
 
 			conf.OpenVpn.Addr = &config.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
 			ctx, cancel := context.WithCancel(t.Context())
-			defer cancel()
+			t.Cleanup(cancel)
 
 			tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
 			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
