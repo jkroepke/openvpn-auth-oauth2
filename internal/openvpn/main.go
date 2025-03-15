@@ -65,7 +65,7 @@ func (c *Client) Connect(ctx context.Context) error {
 	c.scanner.Buffer(make([]byte, 0, bufio.MaxScanTokenSize), bufio.MaxScanTokenSize)
 
 	if err = c.handlePassword(ctx); err != nil {
-		return fmt.Errorf("openvpn management error: %w", err)
+		return fmt.Errorf("unable to authenticate with OpenVPN management interface: %w", err)
 	}
 
 	defer c.Shutdown()
@@ -90,18 +90,30 @@ func (c *Client) Connect(ctx context.Context) error {
 			return nil
 		}
 
-		return fmt.Errorf("openvpn management error: %w", err)
+		return fmt.Errorf("unable to check OpenVPN management interface version: %w", err)
 	}
 
 	select {
 	case err = <-errChMessages:
+		if err != nil {
+			err = fmt.Errorf("error handling messages: %w", err)
+		}
 	case err = <-errChClients:
+		if err != nil {
+			err = fmt.Errorf("error handling clients: %w", err)
+		}
 	case err = <-errChCommands:
+		if err != nil {
+			err = fmt.Errorf("error handling commands: %w", err)
+		}
 	case err = <-errChPassThrough:
+		if err != nil {
+			err = fmt.Errorf("error handling passthrough: %w", err)
+		}
 	}
 
 	if err != nil {
-		return fmt.Errorf("openvpn management error: %w", err)
+		return err
 	}
 
 	return nil
