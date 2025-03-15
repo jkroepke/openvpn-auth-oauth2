@@ -383,8 +383,7 @@ func TestClientFull(t *testing.T) {
 
 			err = openVPNClient.Connect(t.Context())
 			if tt.err != nil {
-				require.Error(t, err)
-				assert.Equal(t, tt.err.Error(), err.Error())
+				require.ErrorIs(t, err, tt.err)
 			} else {
 				wg.Wait()
 
