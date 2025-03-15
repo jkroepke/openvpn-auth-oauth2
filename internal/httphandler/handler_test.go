@@ -17,7 +17,6 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestHandler(t *testing.T) {
@@ -375,9 +374,7 @@ func TestHandler(t *testing.T) {
 					return
 				}
 
-				t.Cleanup(func() {
-					require.NoError(t, managementInterfaceConn.Close())
-				})
+				defer managementInterfaceConn.Close()
 
 				reader := bufio.NewReader(managementInterfaceConn)
 
