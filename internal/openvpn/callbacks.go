@@ -24,11 +24,12 @@ func (c *Client) AcceptClient(logger *slog.Logger, client state.ClientIdentifier
 		}
 	}
 
-	if tokenUsername == "" {
+	switch {
+	case tokenUsername == "":
 		_, err = c.SendCommandf(`client-auth-nt %d %d`, client.CID, client.KID)
-	} else if c.conf.OpenVpn.OverrideUsername {
+	case c.conf.OpenVpn.OverrideUsername:
 		_, err = c.SendCommandf("client-auth %d %d\r\noverride-username \"%s\"\r\nEND", client.CID, client.KID, username)
-	} else {
+	default:
 		_, err = c.SendCommandf("client-auth %d %d\r\npush \"auth-token-user %s\"\r\nEND", client.CID, client.KID, tokenUsername)
 	}
 
