@@ -8,12 +8,15 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
@@ -276,8 +279,7 @@ func TestClientFull(t *testing.T) {
 			},
 			">CLIENT:FOO,0\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END\r\n",
 			"",
-			//nolint:revive
-			errors.New("openvpn management error: error parsing client message: unable to parse client reason from message: >CLIENT:FOO,0\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END\r\n"),
+			connection.ErrParseErrorClientReason,
 		},
 		{
 			"client invalid reason 2",
@@ -296,7 +298,7 @@ func TestClientFull(t *testing.T) {
 			},
 			">CLIENT:CONNECT1,0,1\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END\r\n",
 			"",
-			errors.New("openvpn management error: unknown client reason: CONNECT1"),
+			openvpn.ErrUnknownClientReason,
 		},
 	}
 
@@ -382,8 +384,7 @@ func TestClientFull(t *testing.T) {
 
 			err = openVPNClient.Connect(t.Context())
 			if tt.err != nil {
-				require.Error(t, err)
-				assert.Equal(t, tt.err.Error(), err.Error())
+				require.ErrorIs(t, err, tt.err)
 			} else {
 				wg.Wait()
 
@@ -439,7 +440,7 @@ func TestClientInvalidPassword(t *testing.T) {
 
 	err = openVPNClient.Connect(t.Context())
 
-	require.EqualError(t, err, "openvpn management error: unable to connect to openvpn management interface: invalid password")
+	require.ErrorIs(t, err, openvpn.ErrInvalidPassword)
 }
 
 func TestClientInvalidVersion(t *testing.T) {
@@ -460,22 +461,22 @@ func TestClientInvalidVersion(t *testing.T) {
 	versions := []struct {
 		name    string
 		version string
-		err     string
+		err     error
 	}{
 		{
 			"invalid parts",
 			"OpenVPN Version: OpenVPN Mock\r\nEND\r\n",
-			"openvpn management error: unexpected response from version command: OpenVPN Version: OpenVPN Mock\r\nEND\r\n",
+			openvpn.ErrUnexpectedResponseFromVersionCommand,
 		},
 		{
 			"invalid version",
 			"OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version:\r\nEND\r\n",
-			`openvpn management error: unable to parse openvpn management interface version: strconv.Atoi: parsing ":": invalid syntax`,
+			strconv.ErrSyntax,
 		},
 		{
 			"version to low",
 			"OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 4\r\nEND\r\n",
-			`openvpn management error: openvpn-auth-oauth2 requires OpenVPN management interface version 5 or higher`,
+			openvpn.ErrRequireManagementInterfaceVersion5,
 		},
 	}
 
@@ -531,7 +532,7 @@ func TestClientInvalidVersion(t *testing.T) {
 
 			err = <-errCh
 
-			require.EqualError(t, err, tt.err, tt.err)
+			require.ErrorIs(t, err, tt.err)
 		})
 	}
 }

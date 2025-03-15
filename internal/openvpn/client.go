@@ -36,7 +36,7 @@ func (c *Client) processClient(ctx context.Context, client connection.Client) er
 	case "DISCONNECT":
 		c.clientDisconnect(ctx, logger, client)
 	default:
-		return fmt.Errorf("unknown client reason: %s", client.Reason)
+		return fmt.Errorf("%w: %s", ErrUnknownClientReason, client.Reason)
 	}
 
 	return nil

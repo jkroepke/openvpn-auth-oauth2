@@ -79,7 +79,7 @@ func NewClient(conf config.Config, message string) (Client, error) { //nolint:cy
 	}
 
 	if client.Reason == "" {
-		return Client{}, fmt.Errorf("unable to parse client reason from message: %s", message)
+		return Client{}, fmt.Errorf("%w: %s", ErrParseErrorClientReason, message)
 	}
 
 	return client, nil
