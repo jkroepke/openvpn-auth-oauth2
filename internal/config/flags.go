@@ -252,6 +252,11 @@ func flagSetOAuth2(flagSet *flag.FlagSet) {
 		Defaults.OAuth2.Client.PrivateKey,
 		"oauth2 client private key. Secure alternative to oauth2.client.secret. If argument starts with file:// it reads the secret from a file.",
 	)
+	flagSet.String(
+		"oauth2.client.private-key-id",
+		Defaults.OAuth2.Client.PrivateKeyID,
+		"oauth2 client private key id. If specified, JWT assertions will be generated with the specific kid header.",
+	)
 	flagSet.TextVar(new(Secret),
 		"oauth2.client.secret",
 		Defaults.OAuth2.Client.Secret,

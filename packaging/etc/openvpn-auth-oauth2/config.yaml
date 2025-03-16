@@ -21,6 +21,8 @@
 #  authorize-params: "a=c"
 #  client:
 #    id: "test"
+#    private-key: "file:///etc/openvpn-auth-oauth2/oidc.key"
+#    private-key-id: "openvpn-auth-oauth2"
 #    secret: "test"
 #  endpoint:
 #    discovery: "https://idp/.well-known/openid-configuration"
