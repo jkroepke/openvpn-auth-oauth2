@@ -21,12 +21,17 @@ func Validate(mode int, conf Config) error {
 	}
 
 	for key, value := range map[string]Secret{
-		"http.secret":          conf.HTTP.Secret,
-		"oauth2.client.secret": conf.OAuth2.Client.Secret,
+		"http.secret": conf.HTTP.Secret,
 	} {
 		if value.String() == "" {
 			return fmt.Errorf("%s is %w", key, ErrRequired)
 		}
+	}
+
+	if conf.OAuth2.Client.Secret.String() == "" && conf.OAuth2.Client.PrivateKey == "" {
+		return fmt.Errorf("one of oauth2.client.private-key or oauth2.client.secret is %w", ErrRequired)
+	} else if conf.OAuth2.Client.Secret.String() != "" && conf.OAuth2.Client.PrivateKey != "" {
+		return errors.New("only one of oauth2.client.private-key or oauth2.client.secret is allowed")
 	}
 
 	for key, value := range map[string]*URL{
