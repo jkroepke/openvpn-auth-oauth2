@@ -84,11 +84,11 @@ func validateOAuth2Config(conf Config) error {
 		return fmt.Errorf("oauth2.client.id is %w", ErrRequired)
 	}
 
-	if conf.OAuth2.Client.Secret.String() == "" && conf.OAuth2.Client.PrivateKey == "" {
+	if conf.OAuth2.Client.Secret.String() == "" && conf.OAuth2.Client.PrivateKey.String() == "" {
 		return fmt.Errorf("one of oauth2.client.private-key or oauth2.client.secret is %w", ErrRequired)
 	}
 
-	if conf.OAuth2.Client.Secret.String() != "" && conf.OAuth2.Client.PrivateKey != "" {
+	if conf.OAuth2.Client.Secret.String() != "" && conf.OAuth2.Client.PrivateKey.String() != "" {
 		return errors.New("only one of oauth2.client.private-key or oauth2.client.secret is allowed")
 	}
 
