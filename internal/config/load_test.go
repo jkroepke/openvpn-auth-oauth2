@@ -27,7 +27,7 @@ func TestLoad(t *testing.T) {
 			"empty file",
 			"",
 			config.Config{},
-			errors.New("validation error: oauth2.client.id is required"),
+			errors.New("validation error: oauth2.issuer is required"),
 		},
 		{
 			"minimal file",
@@ -72,6 +72,7 @@ oauth2:
     client:
         id: "test"
         secret: "test"
+        private-key-id: "openvpn-auth-oauth2"
     validate:
         common-name: "preffered_username"
         common-name-case-sensitive: true
@@ -187,8 +188,9 @@ http:
 						Discovery: &config.URL{},
 					},
 					Client: config.OAuth2Client{
-						ID:     "test",
-						Secret: "test",
+						ID:           "test",
+						Secret:       "test",
+						PrivateKeyID: "openvpn-auth-oauth2",
 					},
 					Nonce:     true,
 					PKCE:      true,

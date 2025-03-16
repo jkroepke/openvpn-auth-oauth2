@@ -77,8 +77,10 @@ type OAuth2 struct {
 }
 
 type OAuth2Client struct {
-	ID     string `json:"id"     koanf:"id"`
-	Secret Secret `json:"secret" koanf:"secret"`
+	ID           string `json:"id"             koanf:"id"`
+	Secret       Secret `json:"secret"         koanf:"secret"`
+	PrivateKey   Secret `json:"private-key"    koanf:"private-key"`
+	PrivateKeyID string `json:"private-key-id" koanf:"private-key-id"`
 }
 
 type OAuth2Endpoints struct {

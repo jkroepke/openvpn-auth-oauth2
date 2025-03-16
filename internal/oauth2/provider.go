@@ -167,7 +167,7 @@ func (c Client) getRelyingPartyOptions(httpClient *http.Client) []rp.Option {
 		}))
 	}
 
-	options := make([]rp.Option, 0, 9)
+	options := make([]rp.Option, 0, 10)
 	options = append(options,
 		rp.WithAuthStyle(c.conf.OAuth2.AuthStyle.AuthStyle()),
 		rp.WithSigningAlgsFromDiscovery(),
@@ -185,6 +185,13 @@ func (c Client) getRelyingPartyOptions(httpClient *http.Client) []rp.Option {
 
 	if c.conf.OAuth2.PKCE {
 		options = append(options, rp.WithPKCE(cookieHandler))
+	}
+
+	if c.conf.OAuth2.Client.PrivateKey.String() != "" {
+		options = append(options, rp.WithJWTProfile(rp.SignerFromKeyAndKeyID(
+			[]byte(c.conf.OAuth2.Client.PrivateKey.String()),
+			c.conf.OAuth2.Client.PrivateKeyID,
+		)))
 	}
 
 	return options
