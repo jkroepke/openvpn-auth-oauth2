@@ -76,25 +76,32 @@ func validateOAuth2Config(conf Config) error {
 		return fmt.Errorf("oauth2.issuer is %w", ErrRequired)
 	}
 
+	if err := validateURL(conf.OAuth2.Issuer); err != nil {
+		return fmt.Errorf("oauth2.issuer: %w", err)
+	}
+
 	if conf.OAuth2.Client.ID == "" {
 		return fmt.Errorf("oauth2.client.id is %w", ErrRequired)
 	}
 
 	if conf.OAuth2.Client.Secret.String() == "" && conf.OAuth2.Client.PrivateKey == "" {
 		return fmt.Errorf("one of oauth2.client.private-key or oauth2.client.secret is %w", ErrRequired)
-	} else if conf.OAuth2.Client.Secret.String() != "" && conf.OAuth2.Client.PrivateKey != "" {
+	}
+
+	if conf.OAuth2.Client.Secret.String() != "" && conf.OAuth2.Client.PrivateKey != "" {
 		return errors.New("only one of oauth2.client.private-key or oauth2.client.secret is allowed")
 	}
 
-	for key, uri := range map[string]*URL{
-		"oauth2.issuer":             conf.OAuth2.Issuer,
-		"oauth2.endpoint.discovery": conf.OAuth2.Endpoints.Discovery,
-		"oauth2.endpoint.token":     conf.OAuth2.Endpoints.Token,
-		"oauth2.endpoint.auth":      conf.OAuth2.Endpoints.Auth,
-	} {
-		if err := validateURL(uri); err != nil {
-			return fmt.Errorf("%s: %w", key, err)
-		}
+	if err := validateURL(conf.OAuth2.Endpoints.Discovery); err != nil {
+		return fmt.Errorf("oauth2.endpoint.discovery: %w", err)
+	}
+
+	if err := validateURL(conf.OAuth2.Endpoints.Token); err != nil {
+		return fmt.Errorf("oauth2.endpoint.token: %w", err)
+	}
+
+	if err := validateURL(conf.OAuth2.Endpoints.Auth); err != nil {
+		return fmt.Errorf("oauth2.endpoint.auth: %w", err)
 	}
 
 	if conf.OAuth2.Refresh.Enabled {
