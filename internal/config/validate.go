@@ -10,11 +10,11 @@ import (
 
 // Validate validates the config.
 func Validate(mode int, conf Config) error {
-	if err := validateHTTPConfig(conf); err != nil {
+	if err := validateOAuth2Config(conf); err != nil {
 		return err
 	}
 
-	if err := validateOAuth2Config(conf); err != nil {
+	if err := validateHTTPConfig(conf); err != nil {
 		return err
 	}
 

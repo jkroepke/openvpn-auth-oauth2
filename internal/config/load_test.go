@@ -27,7 +27,7 @@ func TestLoad(t *testing.T) {
 			"empty file",
 			"",
 			config.Config{},
-			errors.New("validation error: oauth2.client.id is required"),
+			errors.New("validation error: oauth2.issuer is required"),
 		},
 		{
 			"minimal file",
