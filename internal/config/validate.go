@@ -71,6 +71,8 @@ func validateHTTPConfig(conf Config) error {
 }
 
 // validateOAuth2Config validates the OAuth2 configuration.
+//
+//nolint:cyclop
 func validateOAuth2Config(conf Config) error {
 	if conf.OAuth2.Issuer.IsEmpty() {
 		return fmt.Errorf("oauth2.issuer is %w", ErrRequired)
