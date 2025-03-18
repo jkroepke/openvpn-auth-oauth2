@@ -11,7 +11,7 @@ import (
 func TestSliceUnmarshalText(t *testing.T) {
 	t.Parallel()
 
-	var slice config.StringSlice
+	slice := config.StringSlice{}
 
 	require.NoError(t, slice.UnmarshalText([]byte("a,b,c,d")))
 

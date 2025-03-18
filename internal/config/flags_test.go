@@ -94,12 +94,21 @@ func TestValidate(t *testing.T) {
 	}{
 		{
 			config.Config{},
+			"oauth2.issuer is required",
+		},
+		{
+			config.Config{
+				OAuth2: config.OAuth2{
+					Issuer: &config.URL{Scheme: "http", Host: "localhost"},
+				},
+			},
 			"oauth2.client.id is required",
 		},
 		{
 			config.Config{
 				OAuth2: config.OAuth2{
 					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
+					Issuer: &config.URL{Scheme: "http", Host: "localhost"},
 				},
 			},
 			"http.secret is required",
@@ -113,9 +122,10 @@ func TestValidate(t *testing.T) {
 				},
 				OAuth2: config.OAuth2{
 					Client: config.OAuth2Client{ID: "ID"},
+					Issuer: &config.URL{Scheme: "http", Host: "localhost"},
 				},
 			},
-			"oauth2.client.secret is required",
+			"one of oauth2.client.private-key or oauth2.client.secret is required",
 		},
 		{
 			config.Config{

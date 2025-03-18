@@ -74,7 +74,7 @@ func TestFull(t *testing.T) {
 
 				ca := testcerts.NewCA()
 
-				keyPair, err := ca.NewKeyPair("127.0.0.1")
+				keyPair, err := ca.NewKeyPair()
 				require.NoError(t, err)
 
 				certFile, keyFile, err := keyPair.ToTempFile(t.TempDir())
@@ -83,8 +83,7 @@ func TestFull(t *testing.T) {
 				cert = certFile.Name()
 				key = keyFile.Name()
 
-				//nolint:gosec // https://github.com/madflojo/testcerts/issues/8
-				httpTransport.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12, RootCAs: ca.CertPool(), InsecureSkipVerify: true}
+				httpTransport.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12, RootCAs: ca.CertPool()}
 			}
 
 			httpClient := &http.Client{Transport: utils.NewUserAgentTransport(httpTransport)}
