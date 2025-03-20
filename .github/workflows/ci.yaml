@@ -122,7 +122,8 @@ jobs:
           go-version-file: 'go.mod'
 
       - name: GPG configuration
-        run: echo "$GPG_KEY" > "$GPG_KEY_PATH"
+        run: |-
+          echo "$GPG_KEY" > "$GPG_KEY_PATH"
           mkdir -p "$HOME/.gnupg"
           chmod 0700 "$HOME/.gnupg"
           echo "use-agent" > "$HOME/.gnupg/gpg.conf"
