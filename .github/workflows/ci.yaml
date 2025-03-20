@@ -141,10 +141,10 @@ jobs:
 
       - name: GPG configuration
         run: |
-          mkdir -p -m 0700 $HOME/.gnupg
-          echo "use-agent" > $HOME/.gnupg/gpg.conf
-          echo "pinentry-program $GITHUB_WORKSPACE/.github/scripts/pinentry.sh" > $HOME/.gnupg/gpg-agent.conf
-          echo "$GPG_PASSPHRASE" > $HOME/.gnupg/passphrase
+          mkdir -p -m 0700 "$HOME/.gnupg"
+          echo "use-agent" > "$HOME/.gnupg/gpg.conf"
+          echo "pinentry-program $GITHUB_WORKSPACE/.github/scripts/pinentry.sh" > "$HOME/.gnupg/gpg-agent.conf"
+          echo "$GPG_PASSPHRASE" > "$HOME/.gnupg/passphrase"
           gpgconf --launch gpg-agent
           echo "$GPG_PRIVATE_KEY" | gpg --import
           echo "$GPG_KEY_ID:6:" | gpg --import-ownertrust
@@ -156,13 +156,13 @@ jobs:
       - name: Release APT repository
         run: |
           set -x
-          gh release download ${GITHUB_REF_NAME} -p "*.deb" -D tmp
+          gh release download "${GITHUB_REF_NAME}" -p "*.deb" -D tmp
           pushd tmp
             apt-ftparchive packages . | tee Packages | xz > Packages.xz
             apt-ftparchive release . > Release
             gpg --clearsign -o InRelease Release
             gpg --armor --detach-sign --sign -o Release.gpg Release
-            gh release upload ${GITHUB_REF_NAME} InRelease Packages Packages.xz Release Release.gpg --clobber
+            gh release upload "${GITHUB_REF_NAME}" InRelease Packages Packages.xz Release Release.gpg --clobber
           popd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
