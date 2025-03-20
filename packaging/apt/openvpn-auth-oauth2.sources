@@ -1,0 +1,4 @@
+Types: deb
+URIs: https://github.com/jkropke/openvpn-auth-oauth2/releases/latest/download
+Suites: ./
+Signed-By: /etc/apt/keyrings/openvpn-auth-oauth2.asc
