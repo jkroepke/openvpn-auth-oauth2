@@ -141,7 +141,8 @@ jobs:
 
       - name: GPG configuration
         run: |
-          mkdir -p -m 0700 "$HOME/.gnupg"
+          mkdir -p "$HOME/.gnupg"
+          chmod 0700 "$HOME/.gnupg"
           echo "use-agent" > "$HOME/.gnupg/gpg.conf"
           echo "pinentry-program $GITHUB_WORKSPACE/.github/scripts/pinentry.sh" > "$HOME/.gnupg/gpg-agent.conf"
           echo "$GPG_PASSPHRASE" > "$HOME/.gnupg/passphrase"
