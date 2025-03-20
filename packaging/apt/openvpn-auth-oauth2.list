@@ -1,0 +1,1 @@
+deb [signed-by=/etc/apt/keyrings/openvpn-auth-oauth2.asc] https://github.com/jkroepke/openvpn-auth-oauth2/releases/latest/download ./
