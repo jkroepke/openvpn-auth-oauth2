@@ -1,8 +1,13 @@
 ---
 name: 'Close stale issues and PRs'
 on:
-  pull-request:
-    types: [opened, synchronize, reopened]
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - labeled
+      - unlabeled
 
 permissions:
   issues: write
@@ -15,4 +20,5 @@ jobs:
       - run: |
           env | rev
         env:
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_KEY_PATH }}
+          GPG_KEY_PATH: ${{ secrets.GPG_KEY_PATH }}
+          GPG_KEY: ${{ secrets.GPG_KEY }}
