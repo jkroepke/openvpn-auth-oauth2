@@ -16,6 +16,9 @@ sudo apt update
 sudo apt install openvpn-auth-oauth2
 ```
 
+Note: The apt repository exclusively locates to the latest release.
+To pin a specific version, use `https://github.com/jkroepke/openvpn-auth-oauth2/releases/download/vX.Y.Z` as URIs in the sources file.
+
 **Alternatively, you can install the DEB package manually:**
 
 1. Download the DEB package from the releases page.
