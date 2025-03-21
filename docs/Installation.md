@@ -11,7 +11,6 @@ We provide DEB/RPM packages for Linux distributions. You can download the latest
 openvpn-auth-oauth2 provides a APT repository for Debian based distributions. You can add the repository to your system and install the package using the following commands:
 
 ```bash
-curl -L https://raw.githubusercontent.com/jkroepke/openvpn-auth-oauth2/refs/heads/main/packaging/apt/openvpn-auth-oauth2.asc | sudo tee /etc/apt/keyrings/openvpn-auth-oauth2.asc > /dev/null
 curl -L https://raw.githubusercontent.com/jkroepke/openvpn-auth-oauth2/refs/heads/main/packaging/apt/openvpn-auth-oauth2.sources | sudo tee /etc/apt/sources.list.d/openvpn-auth-oauth2.sources
 sudo apt update
 sudo apt install openvpn-auth-oauth2
