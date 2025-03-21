@@ -68,6 +68,22 @@ func TestRefreshReAuth(t *testing.T) {
 			rt: http.DefaultTransport,
 		},
 		{
+			name:                     "Refresh with OverrideUsername=true",
+			clientCommonName:         "test",
+			nonInteractiveShouldWork: true,
+			conf: func() config.Config {
+				conf := config.Defaults
+				conf.OpenVpn.AuthTokenUser = true
+				conf.OpenVpn.OverrideUsername = true
+				conf.OAuth2.Refresh.Enabled = true
+				conf.OAuth2.Refresh.ValidateUser = true
+				conf.OAuth2.Refresh.UseSessionID = false
+
+				return conf
+			}(),
+			rt: http.DefaultTransport,
+		},
+		{
 			name:                     "Refresh with ValidateUser=false",
 			clientCommonName:         "test",
 			nonInteractiveShouldWork: true,
@@ -278,7 +294,18 @@ func TestRefreshReAuth(t *testing.T) {
 			go func() {
 				defer wg.Done()
 
-				if tt.conf.OpenVpn.AuthTokenUser {
+				switch {
+				case tt.conf.OpenVpn.OverrideUsername:
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 1 2")
+
+					if tt.clientCommonName == "" {
+						testutils.ExpectMessage(t, managementInterfaceConn, reader, "override-username \"username\"")
+					} else {
+						testutils.ExpectMessage(t, managementInterfaceConn, reader, "override-username \"test\"")
+					}
+
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, "END")
+				case tt.conf.OpenVpn.AuthTokenUser:
 					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 1 2")
 
 					if tt.clientCommonName == "" {
@@ -288,7 +315,7 @@ func TestRefreshReAuth(t *testing.T) {
 					}
 
 					testutils.ExpectMessage(t, managementInterfaceConn, reader, "END")
-				} else {
+				default:
 					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth-nt 1 2")
 				}
 
@@ -321,7 +348,18 @@ func TestRefreshReAuth(t *testing.T) {
 				return
 			}
 
-			if tt.conf.OpenVpn.AuthTokenUser {
+			switch {
+			case tt.conf.OpenVpn.OverrideUsername:
+				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 1 3")
+
+				if tt.clientCommonName == "" {
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, "override-username \"username\"")
+				} else {
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, "override-username \"test\"")
+				}
+
+				testutils.ExpectMessage(t, managementInterfaceConn, reader, "END")
+			case tt.conf.OpenVpn.AuthTokenUser:
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 1 3")
 
 				if tt.clientCommonName == "" {
@@ -331,7 +369,7 @@ func TestRefreshReAuth(t *testing.T) {
 				}
 
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "END")
-			} else {
+			default:
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth-nt 1 3")
 			}
 
@@ -343,7 +381,18 @@ func TestRefreshReAuth(t *testing.T) {
 				tt.clientCommonName,
 			)
 
-			if tt.conf.OpenVpn.AuthTokenUser {
+			switch {
+			case tt.conf.OpenVpn.OverrideUsername:
+				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 1 4")
+
+				if tt.clientCommonName == "" {
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, "override-username \"username\"")
+				} else {
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, "override-username \"test\"")
+				}
+
+				testutils.ExpectMessage(t, managementInterfaceConn, reader, "END")
+			case tt.conf.OpenVpn.AuthTokenUser:
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 1 4")
 
 				if tt.clientCommonName == "" {
@@ -353,7 +402,7 @@ func TestRefreshReAuth(t *testing.T) {
 				}
 
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "END")
-			} else {
+			default:
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth-nt 1 4")
 			}
 

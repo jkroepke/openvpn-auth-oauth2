@@ -184,9 +184,16 @@ func flagSetOpenVPN(flagSet *flag.FlagSet) {
 			"If omit, oauth2.validate.common-name does not work anymore. Values: [plain,omit]",
 	)
 	flagSet.Bool(
+		"openvpn.override-username",
+		Defaults.OpenVpn.OverrideUsername,
+		"If true, openvpn-auth-oauth2 use the override-username command to set the username in OpenVPN connection. "+
+			"This is useful to use real usernames in OpenVPN statistics. The username will be set after client configs are read. "+
+			"Read openvpn man page for limitations of the override-username.",
+	)
+	flagSet.Bool(
 		"openvpn.pass-through.enabled",
 		Defaults.OpenVpn.Passthrough.Enabled,
-		"If true, openvpn-auth-oauth2 will setup a pass-through socket for the OpenVPN management interface. ",
+		"If true, openvpn-auth-oauth2 will setup a pass-through socket for the OpenVPN management interface.",
 	)
 	flagSet.String(
 		"openvpn.pass-through.address",
