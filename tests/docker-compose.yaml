@@ -1,4 +1,3 @@
-version: '3'
 services:
   openvpn:
     # noinspection ComposeUnknownKeys
@@ -8,21 +7,24 @@ services:
       #language=dockerfile
       dockerfile_inline: |
         # renovate: docker=ubuntu
-        FROM ubuntu:22.04
+        FROM ubuntu:24.04
 
         RUN apt update && apt install git build-essential autoconf automake libtool pkg-config libnl-genl-3-dev libcap-ng-dev libssl-dev liblz4-dev liblzo2-dev libpam0g-dev python3-docutils easy-rsa -y
 
         WORKDIR /build/
 
         ARG GIT_BRANCH
+        ARG GIT_REPO
 
-        RUN git clone --depth 1 https://github.com/OpenVPN/openvpn.git --branch $GIT_BRANCH .
+        RUN git init && git remote add origin $${GIT_REPO}
+        RUN git fetch --depth 1 origin $${GIT_BRANCH} && git checkout FETCH_HEAD
         RUN autoreconf -i -v -f
         RUN ./configure
         RUN make
         RUN make install
       args:
-        GIT_BRANCH: release/2.6
+        GIT_REPO: https://github.com/OpenVPN/openvpn.git
+        GIT_BRANCH: main
     cap_add:
       - NET_ADMIN
     devices:
@@ -35,7 +37,7 @@ services:
       - ./:/tests/:ro
       - ./data:/etc/openvpn
       - ./../pkg/plugin:/plugin/
-    restart: always
+    #restart: always
     environment:
       EASYRSA: /usr/share/easy-rsa/
       EASYRSA_PKI: /etc/openvpn/pki
@@ -45,7 +47,7 @@ services:
       EASYRSA_ALGO: "ed"
       EASYRSA_CURVE: "ed25519"
       EASYRSA_DN: "cn_only"
-      UPN: "${UPN}"
+      UPN: "${UPN:-user@example.com}"
     entrypoint:
       - /bin/sh
       - -ec
@@ -61,6 +63,10 @@ services:
           printf password > /etc/openvpn/password.txt
         fi
 
+        if [ ! -d /etc/openvpn/ccd ]; then
+          mkdir /etc/openvpn/ccd
+        fi
+
         cat > "/etc/openvpn/openvpn.conf" <<EOF
         dev tun0
         server 100.64.0.0 255.255.255.0
@@ -70,12 +76,14 @@ services:
         cert /etc/openvpn/pki/issued/server.crt
         dh none
         keepalive 10 60
-        persist-key
+        #persist-key
         persist-tun
         explicit-exit-notify
 
         verify-client-cert none
         username-as-common-name
+        client-connect "/bin/sh -c 'env > /etc/openvpn/env.txt'"
+        script-security 2
 
         status /etc/openvpn/openvpn-status.log
         ifconfig-pool-persist /etc/openvpn/ipp.txt
@@ -94,14 +102,17 @@ services:
         disable-dco
         duplicate-cn
 
+        client-config-dir /etc/openvpn/ccd
+
         management 0.0.0.0 8081 /etc/openvpn/password.txt
         management-hold
         management-client-auth
 
         #plugin /plugin/openvpn-auth-oauth2.so /plugin/config.yaml
 
-        reneg-sec 60
-        hand-window 15
+        reneg-sec 120
+        push "reneg-sec 0"
+
         auth-gen-token 300 external-auth
         auth-user-pass-optional
 
@@ -129,4 +140,5 @@ services:
         </ca>
         EOF
 
+        git -C /build/ log -1
         exec openvpn --config "/etc/openvpn/openvpn.conf"

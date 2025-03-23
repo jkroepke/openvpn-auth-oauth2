@@ -101,6 +101,7 @@ openvpn:
     addr: "unix:///run/openvpn/server2.sock"
     auth-token-user: true
     auth-pending-timeout: 2m
+    override-username: true
     bypass:
         common-names:
         - "test"
@@ -158,6 +159,7 @@ http:
 					Password:           "1jd93h5b6s82lf03jh5b2hf9",
 					AuthTokenUser:      true,
 					AuthPendingTimeout: 2 * time.Minute,
+					OverrideUsername:   true,
 					CommonName: config.OpenVPNCommonName{
 						EnvironmentVariableName: "X509_0_emailAddress",
 						Mode:                    config.CommonNameModeOmit,
