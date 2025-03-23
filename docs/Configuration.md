@@ -78,6 +78,7 @@ openvpn:
   # common-names:
   # - "test"
   # - "test2"
+  override-username: false
   common-name:
     environment-variable-name: common_name
     mode: plain
@@ -95,8 +96,9 @@ openvpn:
 
 <!-- BEGIN USAGE -->
 ```
-Usage of openvpn-auth-oauth2:
 Documentation available at https://github.com/jkroepke/openvpn-auth-oauth2/wiki
+
+Usage of openvpn-auth-oauth2:
 
   --config string
     	path to one .yaml config file (env: CONFIG_CONFIG)
@@ -136,6 +138,10 @@ Documentation available at https://github.com/jkroepke/openvpn-auth-oauth2/wiki
     	additional url query parameter to authorize endpoint (env: CONFIG_OAUTH2_AUTHORIZE__PARAMS)
   --oauth2.client.id string
     	oauth2 client id (env: CONFIG_OAUTH2_CLIENT_ID)
+  --oauth2.client.private-key value
+    	oauth2 client private key. Secure alternative to oauth2.client.secret. If argument starts with file:// it reads the secret from a file. (env: CONFIG_OAUTH2_CLIENT_PRIVATE__KEY)
+  --oauth2.client.private-key-id string
+    	oauth2 client private key id. If specified, JWT assertions will be generated with the specific kid header. (env: CONFIG_OAUTH2_CLIENT_PRIVATE__KEY__ID)
   --oauth2.client.secret value
     	oauth2 client secret. If argument starts with file:// it reads the secret from a file. (env: CONFIG_OAUTH2_CLIENT_SECRET)
   --oauth2.endpoint.auth string
@@ -190,10 +196,12 @@ Documentation available at https://github.com/jkroepke/openvpn-auth-oauth2/wiki
     	Name of the environment variable in the OpenVPN management interface which contains the common name. If username-as-common-name is enabled, this should be set to 'username' to use the username as common name. Other values like 'X509_0_emailAddress' are supported. See https://openvpn.net/community-resources/reference-manual-for-openvpn-2-6/#environmental-variables for more information. (env: CONFIG_OPENVPN_COMMON__NAME_ENVIRONMENT__VARIABLE__NAME) (default "common_name")
   --openvpn.common-name.mode value
     	If common names are too long, use md5/sha1 to hash them or omit to skip them. If omit, oauth2.validate.common-name does not work anymore. Values: [plain,omit] (env: CONFIG_OPENVPN_COMMON__NAME_MODE) (default plain)
+  --openvpn.override-username
+    	Requires OpenVPN Server 2.7! If true, openvpn-auth-oauth2 use the override-username command to set the username in OpenVPN connection. This is useful to use real usernames in OpenVPN statistics. The username will be set after client configs are read. Read openvpn man page for limitations of the override-username. (env: CONFIG_OPENVPN_OVERRIDE__USERNAME)
   --openvpn.pass-through.address string
     	The address of the pass-through socket. Must start with unix:// or tcp:// (env: CONFIG_OPENVPN_PASS__THROUGH_ADDRESS) (default "unix:/run/openvpn-auth-oauth2/server.sock")
   --openvpn.pass-through.enabled
-    	If true, openvpn-auth-oauth2 will setup a pass-through socket for the OpenVPN management interface.  (env: CONFIG_OPENVPN_PASS__THROUGH_ENABLED)
+    	If true, openvpn-auth-oauth2 will setup a pass-through socket for the OpenVPN management interface. (env: CONFIG_OPENVPN_PASS__THROUGH_ENABLED)
   --openvpn.pass-through.password value
     	The password for the pass-through socket. If argument starts with file:// it reads the secret from a file. (env: CONFIG_OPENVPN_PASS__THROUGH_PASSWORD)
   --openvpn.pass-through.socket-group string

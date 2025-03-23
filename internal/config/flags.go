@@ -186,7 +186,8 @@ func flagSetOpenVPN(flagSet *flag.FlagSet) {
 	flagSet.Bool(
 		"openvpn.override-username",
 		Defaults.OpenVpn.OverrideUsername,
-		"If true, openvpn-auth-oauth2 use the override-username command to set the username in OpenVPN connection. "+
+		"Requires OpenVPN Server 2.7! "+
+			"If true, openvpn-auth-oauth2 use the override-username command to set the username in OpenVPN connection. "+
 			"This is useful to use real usernames in OpenVPN statistics. The username will be set after client configs are read. "+
 			"Read openvpn man page for limitations of the override-username.",
 	)

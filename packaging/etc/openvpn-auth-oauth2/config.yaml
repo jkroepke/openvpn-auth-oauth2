@@ -30,6 +30,7 @@
 #    token: "https://idp/oauth/token"
 #  issuer: "https://idp"
 #  provider: "generic"
+#  override-username: false
 #  scopes:
 #    - "openid"
 #    - "profile"
