@@ -108,8 +108,9 @@ services:
 
         #plugin /plugin/openvpn-auth-oauth2.so /plugin/config.yaml
 
-        reneg-sec 60
-        hand-window 15
+        reneg-sec 120
+        push "reneg-sec 0"
+
         auth-gen-token 300 external-auth
         auth-user-pass-optional
 
