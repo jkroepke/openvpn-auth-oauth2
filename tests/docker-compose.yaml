@@ -14,15 +14,17 @@ services:
         WORKDIR /build/
 
         ARG GIT_BRANCH
+        ARG GIT_REPO
 
-        RUN git init && git remote add origin https://github.com/OpenVPN/openvpn.git
+        RUN git init && git remote add origin $${GIT_REPO}
         RUN git fetch --depth 1 origin $${GIT_BRANCH} && git checkout FETCH_HEAD
         RUN autoreconf -i -v -f
         RUN ./configure
         RUN make
         RUN make install
       args:
-        GIT_BRANCH: master
+        GIT_REPO: https://github.com/OpenVPN/openvpn.git
+        GIT_BRANCH: main
     cap_add:
       - NET_ADMIN
     devices:
