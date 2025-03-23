@@ -15,13 +15,13 @@ services:
 
         ARG GIT_BRANCH
 
-        RUN git clone --depth 1 https://github.com/OpenVPN/openvpn.git --branch $GIT_BRANCH .
+        RUN git clone --depth 1 https://github.com/OpenVPN/openvpn.git --branch $${GIT_BRANCH} .
         RUN autoreconf -i -v -f
         RUN ./configure
         RUN make
         RUN make install
       args:
-        GIT_BRANCH: release/2.6
+        GIT_BRANCH: master
     cap_add:
       - NET_ADMIN
     devices:
@@ -44,7 +44,7 @@ services:
       EASYRSA_ALGO: "ed"
       EASYRSA_CURVE: "ed25519"
       EASYRSA_DN: "cn_only"
-      UPN: "${UPN}"
+      UPN: "${UPN:-user@example.com}"
     entrypoint:
       - /bin/sh
       - -ec
