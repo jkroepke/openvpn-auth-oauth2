@@ -15,7 +15,8 @@ services:
 
         ARG GIT_BRANCH
 
-        RUN git clone --depth 1 https://github.com/OpenVPN/openvpn.git --branch $${GIT_BRANCH} .
+        RUN git init && git remote add origin https://github.com/OpenVPN/openvpn.git
+        RUN git fetch --depth 1 origin $${GIT_BRANCH} && git checkout FETCH_HEAD
         RUN autoreconf -i -v -f
         RUN ./configure
         RUN make
@@ -136,4 +137,5 @@ services:
         </ca>
         EOF
 
+        git -C /build/ log -1
         exec openvpn --config "/etc/openvpn/openvpn.conf"
