@@ -1,156 +1,158 @@
+version: "2"
 linters:
-  enable-all: true
+  default: all
   disable:
     - depguard
+    - err113
     - exhaustruct
     - funlen
     - ireturn
-    - err113
     - mnd
-    - tenv
-    - recvcheck # https://github.com/raeperd/recvcheck/issues/7
-
-issues:
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - lll
-        - gocognit
-        - cyclop
-        - wrapcheck
-        - maintidx
-        - dogsled
-        - contextcheck
-        - dupword
-        - dupl
-        - funlen
-        - gocyclo
-
-linters-settings:
-  gosec:
-    excludes:
-      - G101 # Potential hardcoded credentials
-  sloglint:
-    no-mixed-args: true
-    kv-only: false
-    attr-only: true
-    no-global: "all"
-    context: "scope"
-    static-msg: false
-    no-raw-keys: false
-    key-naming-case: snake
-    forbidden-keys:
-      - time
-      - level
-      - msg
-      - source
-    args-on-sep-lines: true
-  varnamelen:
-    ignore-names:
-      - tt
-    ignore-decls:
-      - i int
-      - a ...any
-      - err error
-      - ok bool
-      - id string
-      - w http.ResponseWriter
-      - rt http.RoundTripper
-      - r *http.Request
-      - l net.Listener
-      - t reflect.Type
-      - wg sync.WaitGroup
-      - k *koanf.Koanf
-      - mu sync.Mutex
-      - ts oauth2.TokenSource
-      - ca *testcerts.CertificateAuthority
-  lll:
-    line-length: 160
-  revive:
-    rules:
-      - name: argument-limit
-        arguments: [ 7 ]
-      - name: atomic
-      - name: bare-return
-      - name: blank-imports
-      - name: bool-literal-in-expr
-      - name: call-to-gc
-      - name: comment-spacings
-        arguments:
-          - "nolint:"
-      - name: confusing-naming
-      #- name: confusing-results
-      - name: constant-logical-expr
-      - name: context-as-argument
-      - name: context-keys-type
-      - name: datarace
-      - name: deep-exit
-      - name: defer
-      - name: dot-imports
-      - name: duplicated-imports
-      - name: early-return
-      - name: empty-block
-      - name: empty-lines
-      - name: enforce-map-style
-        arguments: [ "make" ]
-        exclude: [ "TEST" ]
-      - name: enforce-repeated-arg-type-style
-        arguments: [ "short" ]
-      - name: enforce-slice-style
-        arguments: [ "make" ]
-      - name: error-naming
-      - name: error-return
-      - name: error-strings
-      - name: errorf
-      #- name: function-result-limit
-      #  arguments: [ 3 ]
-      - name: get-return
-      - name: identical-branches
-      - name: if-return
-      - name: import-alias-naming
-      - name: import-shadowing
-      - name: increment-decrement
-      - name: indent-error-flow
-      # Enable again when https://github.com/mgechev/revive/issues/1103 is fixed
-      #      - name: max-public-structs
-      #        exclude: [ "TEST" ]
-      #        arguments: [ 5 ]
-      - name: modifies-parameter
-      - name: modifies-value-receiver
-      - name: optimize-operands-order
-      - name: package-comments
-      - name: range
-      - name: range-val-address
-      - name: range-val-in-closure
-      - name: receiver-naming
-      - name: redefines-builtin-id
-      - name: redundant-import-alias
-      - name: string-format
-        arguments:
-          - - 'fmt.Errorf[0],errors.New[0]'
-            - '/^([^A-Z]|$)/'
-            - 'Error string must not start with a capital letter.'
-          - - 'fmt.Errorf[0],errors.New[0]'
-            - '/(^|[^\.!?])$/'
-            - 'Error string must not end in punctuation.'
-          - - 'panic'
-            - '/^[^\n]*$/'
-            - 'Must not contain line breaks.'
-      - name: string-of-int
-      - name: struct-tag
-      - name: superfluous-else
-      - name: time-equal
-      - name: time-naming
-      - name: unconditional-recursion
-      - name: unexported-naming
-      - name: unnecessary-stmt
-      - name: unreachable-code
-      - name: unused-parameter
-      - name: var-declaration
-      - name: var-naming
-      - name: waitgroup-by-value
-  tagliatelle:
-    case:
+    - recvcheck
+  settings:
+    gosec:
+      excludes:
+        - G101
+    lll:
+      line-length: 160
+    revive:
       rules:
-        json: kebab
-        koanf: kebab
+        - name: argument-limit
+          arguments:
+            - 7
+        - name: atomic
+        - name: bare-return
+        - name: blank-imports
+        - name: bool-literal-in-expr
+        - name: call-to-gc
+        - name: comment-spacings
+          arguments:
+            - 'nolint:'
+        - name: confusing-naming
+        - name: constant-logical-expr
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: datarace
+        - name: deep-exit
+        - name: defer
+        - name: dot-imports
+        - name: duplicated-imports
+        - name: early-return
+        - name: empty-block
+        - name: empty-lines
+        - name: enforce-map-style
+          arguments:
+            - make
+          exclude:
+            - TEST
+        - name: enforce-repeated-arg-type-style
+          arguments:
+            - short
+        - name: enforce-slice-style
+          arguments:
+            - make
+        - name: error-naming
+        - name: error-return
+        - name: error-strings
+        - name: errorf
+        - name: get-return
+        - name: identical-branches
+        - name: if-return
+        - name: import-alias-naming
+        - name: import-shadowing
+        - name: increment-decrement
+        - name: indent-error-flow
+        - name: modifies-parameter
+        - name: modifies-value-receiver
+        - name: optimize-operands-order
+        - name: package-comments
+        - name: range
+        - name: range-val-address
+        - name: range-val-in-closure
+        - name: receiver-naming
+        - name: redefines-builtin-id
+        - name: redundant-import-alias
+        - name: string-format
+          arguments:
+            - - fmt.Errorf[0],errors.New[0]
+              - /^([^A-Z]|$)/
+              - Error string must not start with a capital letter.
+            - - fmt.Errorf[0],errors.New[0]
+              - /(^|[^\.!?])$/
+              - Error string must not end in punctuation.
+            - - panic
+              - /^[^\n]*$/
+              - Must not contain line breaks.
+        - name: string-of-int
+        - name: struct-tag
+        - name: superfluous-else
+        - name: time-equal
+        - name: time-naming
+        - name: unconditional-recursion
+        - name: unexported-naming
+        - name: unnecessary-stmt
+        - name: unreachable-code
+        - name: unused-parameter
+        - name: var-declaration
+        - name: var-naming
+        - name: waitgroup-by-value
+    sloglint:
+      no-mixed-args: true
+      kv-only: false
+      attr-only: true
+      no-global: all
+      context: scope
+      static-msg: false
+      no-raw-keys: false
+      key-naming-case: snake
+      forbidden-keys:
+        - time
+        - level
+        - msg
+        - source
+      args-on-sep-lines: true
+    tagliatelle:
+      case:
+        rules:
+          json: kebab
+          koanf: kebab
+    varnamelen:
+      ignore-names:
+        - tt
+      ignore-decls:
+        - i int
+        - a ...any
+        - err error
+        - ok bool
+        - id string
+        - w http.ResponseWriter
+        - rt http.RoundTripper
+        - r *http.Request
+        - l net.Listener
+        - t reflect.Type
+        - wg sync.WaitGroup
+        - k *koanf.Koanf
+        - mu sync.Mutex
+        - ts oauth2.TokenSource
+        - ca *testcerts.CertificateAuthority
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - contextcheck
+          - cyclop
+          - dogsled
+          - dupl
+          - dupword
+          - funlen
+          - gocognit
+          - gocyclo
+          - lll
+          - maintidx
+          - wrapcheck
+        path: _test\.go
