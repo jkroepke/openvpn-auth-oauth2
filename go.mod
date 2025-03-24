@@ -12,7 +12,7 @@ require (
 	github.com/knadh/koanf/v2 v2.1.2
 	github.com/madflojo/testcerts v1.4.0
 	github.com/stretchr/testify v1.10.0
-	github.com/zitadel/logging v0.6.1
+	github.com/zitadel/logging v0.6.2
 	github.com/zitadel/oidc/v3 v3.36.1
 	golang.org/x/net v0.37.0
 	golang.org/x/oauth2 v0.28.0
