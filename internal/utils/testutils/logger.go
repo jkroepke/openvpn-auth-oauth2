@@ -24,7 +24,7 @@ func NewTestLogger() *Logger {
 }
 
 func (l Logger) GetLogs() string {
-	return l.SyncBuffer.String()
+	return l.String()
 }
 
 type SyncBuffer struct {
