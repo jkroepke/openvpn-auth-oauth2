@@ -8,7 +8,12 @@
     "🛠️ dependencies"
   ],
   "dependencyDashboardApproval": true,
-  "packageRules": [
+  "packageRules": [  
+    {
+      "matchManagers": ["gomod"],
+      "matchDepTypes": ["indirect"],
+      "enabled": true
+    },
     {
       "groupName": "GitHub Actions",
       "matchManagers": [
