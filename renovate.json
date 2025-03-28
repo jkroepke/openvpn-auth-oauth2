@@ -8,7 +8,15 @@
     "🛠️ dependencies"
   ],
   "dependencyDashboardApproval": true,
-  "packageRules": [  
+  "packageRules": [
+    {
+      "groupName": "golangci-lint",
+      "matchPackageNames": [
+        "github.com/golangci/golangci-lint/cmd/golangci-lint",
+        "golangci/golangci-lint",
+        "golangci/golangci-lint-action"
+      ]
+    },
     {
       "matchManagers": ["gomod"],
       "matchDepTypes": ["indirect"],
@@ -34,14 +42,6 @@
       ],
       "matchPackageNames": [
         "*"
-      ]
-    },
-    {
-      "groupName": "golangci-lint",
-      "matchPackageNames": [
-        "github.com/golangci/golangci-lint/cmd/golangci-lint",
-        "golangci/golangci-lint",
-        "golangci/golangci-lint-action"
       ]
     }
   ],
