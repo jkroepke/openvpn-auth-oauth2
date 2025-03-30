@@ -99,7 +99,7 @@ func (f *MockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) 
 	}
 }
 
-func WaitUntilListening(tb testing.TB, listener net.Listener) (net.Conn, error) {
+func WaitUntilListening(tb testing.TB, network, address string) (net.Conn, error) {
 	tb.Helper()
 
 	var (
@@ -108,7 +108,7 @@ func WaitUntilListening(tb testing.TB, listener net.Listener) (net.Conn, error) 
 	)
 
 	for range 10 {
-		conn, err = net.DialTimeout(listener.Addr().Network(), listener.Addr().String(), 100*time.Millisecond)
+		conn, err = net.DialTimeout(network, address, 100*time.Millisecond)
 		if err == nil {
 			return conn, nil
 		}

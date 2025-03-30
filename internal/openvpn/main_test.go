@@ -60,239 +60,194 @@ func TestClientFull(t *testing.T) {
 	}{
 		{
 			name: "without password",
-			conf: config.Config{
-				HTTP: config.HTTP{
-					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.Secret,
-				},
-				OpenVpn: config.OpenVpn{
-					CommonName: config.OpenVPNCommonName{
-						EnvironmentVariableName: "common_name",
-					},
-					Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
-				},
-				OAuth2: config.OAuth2{
-					Validate: config.OAuth2Validate{
-						IPAddr: true,
-					},
-				},
-			},
+			conf: func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
+				conf.HTTP.Secret = testutils.Secret
+				conf.OpenVpn.CommonName.EnvironmentVariableName = "common_name"
+				conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: make([]string, 0)}
+				conf.OAuth2.Validate.IPAddr = true
+
+				return conf
+			}(),
 			client: ">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END\r\n",
 			expect: "client-pending-auth 1 2 \"WEB_AUTH::",
 		},
 		{
 			"with password",
-			config.Config{
-				HTTP: config.HTTP{
-					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.Secret,
-				},
-				OpenVpn: config.OpenVpn{
-					CommonName: config.OpenVPNCommonName{
-						EnvironmentVariableName: "common_name",
-					},
-					Bypass:   config.OpenVpnBypass{CommonNames: make([]string, 0)},
-					Password: "password",
-				},
-				OAuth2: config.OAuth2{
-					Validate: config.OAuth2Validate{
-						IPAddr: true,
-					},
-				},
-			},
+			func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
+				conf.HTTP.Secret = testutils.Secret
+				conf.OpenVpn.CommonName.EnvironmentVariableName = "common_name"
+				conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: make([]string, 0)}
+				conf.OpenVpn.Password = "password"
+				conf.OAuth2.Validate.IPAddr = true
+
+				return conf
+			}(),
 			">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END\r\n",
 			"client-pending-auth 1 2 \"WEB_AUTH::",
 			nil,
 		},
 		{
 			name: "with username",
-			conf: config.Config{
-				HTTP: config.HTTP{
-					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.Secret,
-				},
-				OpenVpn: config.OpenVpn{
-					CommonName: config.OpenVPNCommonName{
-						EnvironmentVariableName: "username",
-					},
-					Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
-				},
-				OAuth2: config.OAuth2{
-					Validate: config.OAuth2Validate{
-						IPAddr: true,
-					},
-				},
-			},
+			conf: func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
+				conf.HTTP.Secret = testutils.Secret
+				conf.OpenVpn.CommonName.EnvironmentVariableName = "username"
+				conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: make([]string, 0)}
+				conf.OAuth2.Validate.IPAddr = true
+
+				return conf
+			}(),
 			client: ">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,username=test\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END\r\n",
 			expect: "client-pending-auth 1 2 \"WEB_AUTH::",
 		},
 		{
-			"with invalid state",
-			config.Config{
-				HTTP: config.HTTP{
-					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
-					Secret:  "012345678910111",
-				},
-				OpenVpn: config.OpenVpn{
-					CommonName: config.OpenVPNCommonName{
-						EnvironmentVariableName: "common_name",
-					},
-					Bypass:   config.OpenVpnBypass{CommonNames: make([]string, 0)},
-					Password: "password",
-				},
-			},
-			">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END\r\n",
-			"",
-			nil,
+			name: "with invalid state",
+			conf: func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
+				conf.HTTP.Secret = "012345678910111"
+				conf.OpenVpn.CommonName.EnvironmentVariableName = "common_name"
+				conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: make([]string, 0)}
+				conf.OpenVpn.Password = "password"
+
+				return conf
+			}(),
+			client: ">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END\r\n",
+			expect: "",
+			err:    nil,
 		},
 		{
-			"client without IV_SSO",
-			config.Config{
-				HTTP: config.HTTP{
-					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.Secret,
-				},
-				OpenVpn: config.OpenVpn{
-					CommonName: config.OpenVPNCommonName{
-						EnvironmentVariableName: "common_name",
-					},
-					Bypass:   config.OpenVpnBypass{CommonNames: make([]string, 0)},
-					Password: "password",
-				},
-			},
-			">CLIENT:CONNECT,0,1\r\n>CLIENT:ENV,daemon=0\r\n>CLIENT:ENV,END\r\n",
-			"client-deny 0 1 \"OpenVPN Client does not support SSO authentication via webauth\"",
-			nil,
+			name: "client without IV_SSO",
+			conf: func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
+				conf.HTTP.Secret = testutils.Secret
+				conf.OpenVpn.CommonName.EnvironmentVariableName = "common_name"
+				conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: make([]string, 0)}
+				conf.OpenVpn.Password = "password"
+
+				return conf
+			}(),
+			client: ">CLIENT:CONNECT,0,1\r\n>CLIENT:ENV,daemon=0\r\n>CLIENT:ENV,END\r\n",
+			expect: "client-deny 0 1 \"OpenVPN Client does not support SSO authentication via webauth\"",
+			err:    nil,
 		},
 		{
 			"to long base url",
-			config.Config{
-				HTTP: config.HTTP{
-					BaseURL: &config.URL{Scheme: "http", Host: "localhost", Path: strings.Repeat("a", 255)},
-					Secret:  testutils.Secret,
-				},
-				OpenVpn: config.OpenVpn{
-					CommonName: config.OpenVPNCommonName{
-						EnvironmentVariableName: "common_name",
-					},
-					Bypass:   config.OpenVpnBypass{CommonNames: make([]string, 0)},
-					Password: "password",
-				},
-			},
+			func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost", Path: strings.Repeat("a", 255)}
+				conf.HTTP.Secret = testutils.Secret
+				conf.OpenVpn.CommonName.EnvironmentVariableName = "common_name"
+				conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: make([]string, 0)}
+				conf.OpenVpn.Password = "password"
+
+				return conf
+			}(),
 			">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END\r\n",
 			`client-deny 1 2 "internal error"`,
 			nil,
 		},
 		{
 			"client bypass",
-			config.Config{
-				HTTP: config.HTTP{
-					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.Secret,
-				},
-				OpenVpn: config.OpenVpn{
-					CommonName: config.OpenVPNCommonName{
-						EnvironmentVariableName: "common_name",
-					},
-					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
-					Password: "password",
-				},
-			},
+			func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
+				conf.HTTP.Secret = testutils.Secret
+				conf.OpenVpn.CommonName.EnvironmentVariableName = "common_name"
+				conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: []string{"bypass"}}
+				conf.OpenVpn.Password = "password"
+				conf.OpenVpn.AuthTokenUser = false
+
+				return conf
+			}(),
 			">CLIENT:CONNECT,0,1\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END\r\n",
 			"client-auth-nt 0 1",
 			nil,
 		},
 		{
 			"client password mask",
-			config.Config{
-				HTTP: config.HTTP{
-					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.Secret,
-				},
-				OpenVpn: config.OpenVpn{
-					CommonName: config.OpenVPNCommonName{
-						EnvironmentVariableName: "common_name",
-					},
-					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
-					Password: "password",
-				},
-			},
+			func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
+				conf.HTTP.Secret = testutils.Secret
+				conf.OpenVpn.CommonName.EnvironmentVariableName = "common_name"
+				conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: []string{"bypass"}}
+				conf.OpenVpn.Password = "password"
+				conf.OpenVpn.AuthTokenUser = false
+
+				return conf
+			}(),
 			">CLIENT:CONNECT,0,1\r\n>CLIENT:ENV,common_name=bypass\r\nCLIENT:ENV,password=important value\n>CLIENT:ENV,END\r\n",
 			"client-auth-nt 0 1",
 			nil,
 		},
 		{
 			"client established",
-			config.Config{
-				HTTP: config.HTTP{
-					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.Secret,
-				},
-				OpenVpn: config.OpenVpn{
-					CommonName: config.OpenVPNCommonName{
-						EnvironmentVariableName: "common_name",
-					},
-					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
-					Password: "password",
-				},
-			},
+			func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
+				conf.HTTP.Secret = testutils.Secret
+				conf.OpenVpn.CommonName.EnvironmentVariableName = "common_name"
+				conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: []string{"bypass"}}
+				conf.OpenVpn.Password = "password"
+
+				return conf
+			}(),
 			">CLIENT:ESTABLISHED,0\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END\r\n",
 			"",
 			nil,
 		},
 		{
 			"client disconnected",
-			config.Config{
-				HTTP: config.HTTP{
-					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.Secret,
-				},
-				OpenVpn: config.OpenVpn{
-					CommonName: config.OpenVPNCommonName{
-						EnvironmentVariableName: "common_name",
-					},
-					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
-					Password: "password",
-				},
-			},
+			func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
+				conf.HTTP.Secret = testutils.Secret
+				conf.OpenVpn.CommonName.EnvironmentVariableName = "common_name"
+				conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: []string{"bypass"}}
+				conf.OpenVpn.Password = "password"
+
+				return conf
+			}(),
 			">CLIENT:DISCONNECT,0\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END\r\n",
 			"",
 			nil,
 		},
 		{
 			"client invalid reason 1",
-			config.Config{
-				HTTP: config.HTTP{
-					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.Secret,
-				},
-				OpenVpn: config.OpenVpn{
-					CommonName: config.OpenVPNCommonName{
-						EnvironmentVariableName: "common_name",
-					},
-					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
-					Password: "password",
-				},
-			},
+			func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
+				conf.HTTP.Secret = testutils.Secret
+				conf.OpenVpn.CommonName.EnvironmentVariableName = "common_name"
+				conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: []string{"bypass"}}
+				conf.OpenVpn.Password = "password"
+
+				return conf
+			}(),
 			">CLIENT:FOO,0\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END\r\n",
 			"",
 			connection.ErrParseErrorClientReason,
 		},
 		{
 			"client invalid reason 2",
-			config.Config{
-				HTTP: config.HTTP{
-					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.Secret,
-				},
-				OpenVpn: config.OpenVpn{
-					CommonName: config.OpenVPNCommonName{
-						EnvironmentVariableName: "common_name",
-					},
-					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
-					Password: "password",
-				},
-			},
+
+			func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
+				conf.HTTP.Secret = testutils.Secret
+				conf.OpenVpn.CommonName.EnvironmentVariableName = "common_name"
+				conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: []string{"bypass"}}
+				conf.OpenVpn.Password = "password"
+
+				return conf
+			}(),
 			">CLIENT:CONNECT1,0,1\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END\r\n",
 			"",
 			openvpn.ErrUnknownClientReason,
@@ -440,16 +395,6 @@ func TestClientInvalidPassword(t *testing.T) {
 func TestClientInvalidVersion(t *testing.T) {
 	t.Parallel()
 
-	conf := config.Config{
-		HTTP: config.HTTP{
-			BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
-			Secret:  testutils.Secret,
-		},
-		OpenVpn: config.OpenVpn{
-			Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
-		},
-	}
-
 	for _, tc := range []struct {
 		name    string
 		version string
@@ -479,8 +424,6 @@ func TestClientInvalidVersion(t *testing.T) {
 
 			logger := testutils.NewTestLogger()
 
-			conf := conf
-
 			managementInterface, err := nettest.NewLocalListener("tcp")
 			require.NoError(t, err)
 
@@ -488,6 +431,10 @@ func TestClientInvalidVersion(t *testing.T) {
 				require.NoError(t, managementInterface.Close())
 			})
 
+			conf := config.Defaults
+			conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
+			conf.HTTP.Secret = testutils.Secret
+			conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: []string{"bypass"}}
 			conf.OpenVpn.Addr = &config.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
 			tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
@@ -583,7 +530,8 @@ func TestCommandTimeout(t *testing.T) {
 			Secret:  testutils.Secret,
 		},
 		OpenVpn: config.OpenVpn{
-			Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
+			Bypass:         config.OpenVpnBypass{CommonNames: make([]string, 0)},
+			CommandTimeout: time.Millisecond * 300,
 		},
 	}
 
@@ -648,15 +596,10 @@ func TestDeadLocks(t *testing.T) {
 
 			logger := testutils.NewTestLogger()
 
-			conf := config.Config{
-				HTTP: config.HTTP{
-					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.Secret,
-				},
-				OpenVpn: config.OpenVpn{
-					Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
-				},
-			}
+			conf := config.Defaults
+			conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
+			conf.HTTP.Secret = testutils.Secret
+			conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: make([]string, 0)}
 
 			managementInterface, err := nettest.NewLocalListener("tcp")
 			require.NoError(t, err)

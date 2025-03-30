@@ -57,6 +57,7 @@ var Defaults = Config{
 			SocketMode:  660,
 			SocketGroup: "",
 		},
+		CommandTimeout: 10 * time.Second,
 	},
 	OAuth2: OAuth2{
 		AuthStyle: OAuth2AuthStyle(oauth2.AuthStyleInParams),
