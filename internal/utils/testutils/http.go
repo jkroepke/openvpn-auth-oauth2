@@ -3,6 +3,7 @@ package testutils
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -10,6 +11,8 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 type RoundTripperFunc struct {
@@ -99,23 +102,35 @@ func (f *MockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) 
 	}
 }
 
-func WaitUntilListening(tb testing.TB, listener net.Listener) error {
+func WaitUntilListening(tb testing.TB, listener net.Listener) (net.Conn, error) {
 	tb.Helper()
 
-	var err error
+	var (
+		conn net.Conn
+		err  error
+	)
 
 	for range 10 {
-		_, err = net.DialTimeout(listener.Addr().Network(), listener.Addr().String(), 100*time.Millisecond)
+		conn, err = net.DialTimeout(listener.Addr().Network(), listener.Addr().String(), 100*time.Millisecond)
 		if err == nil {
-			return nil
+			return conn, nil
 		}
 
 		if errors.Is(err, syscall.ECONNREFUSED) || errors.Is(err, syscall.Errno(10061)) {
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(50 * time.Millisecond)
 
 			continue
 		}
 	}
 
-	return fmt.Errorf("listener not listening: %w", err)
+	return nil, fmt.Errorf("listener not listening: %w", err)
+}
+
+func DrainBody(tb testing.TB, resp *http.Response) {
+	tb.Helper()
+
+	_, err := io.Copy(io.Discard, resp.Body)
+	require.NoError(tb, err)
+
+	_ = resp.Body.Close()
 }

@@ -333,7 +333,6 @@ func TestClientFull(t *testing.T) {
 						}
 					}
 				case <-time.After(1 * time.Second):
-
 					t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", logger.String())
 				}
 			})

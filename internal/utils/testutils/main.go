@@ -187,12 +187,9 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 		require.NoError(tb, managementInterface.Close())
 	})
 
+	// clientListener must not be closed, because it is used by the httpClientListener.
 	clientListener, err := nettest.NewLocalListener("tcp")
 	require.NoError(tb, err)
-
-	tb.Cleanup(func() {
-		require.NoError(tb, clientListener.Close())
-	})
 
 	_, resourceServerURL, clientCredentials, err := SetupResourceServer(tb, clientListener)
 	require.NoError(tb, err)

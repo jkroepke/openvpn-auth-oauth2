@@ -25,12 +25,15 @@ import (
 func BenchmarkOpenVPNHandler(b *testing.B) {
 	b.StopTimer()
 
+	ctx, cancel := context.WithCancel(b.Context())
+	b.Cleanup(cancel)
+
 	logger := testutils.NewTestLogger()
 	managementInterface, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(b, err)
 
 	b.Cleanup(func() {
-		managementInterface.Close()
+		require.NoError(b, managementInterface.Close())
 	})
 
 	conf := config.Config{
@@ -44,33 +47,13 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 		},
 	}
 
-	ctx, cancel := context.WithCancel(b.Context())
-	b.Cleanup(cancel)
-
 	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
 	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, b, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-
-		err := openVPNClient.Connect(b.Context())
-		if err != nil && !errors.Is(err, io.EOF) {
-			require.NoError(b, err) //nolint:testifylint
-		}
-	}()
-
-	managementInterfaceConn, err := managementInterface.Accept()
+	managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(b, managementInterface, openVPNClient)
 	require.NoError(b, err)
 
-	b.Cleanup(func() {
-		require.NoError(b, managementInterfaceConn.Close())
-	})
-
 	reader := bufio.NewReader(managementInterfaceConn)
-
 	require.NoError(b, err)
 	testutils.ExpectVersionAndReleaseHold(b, managementInterfaceConn, reader)
 
@@ -106,7 +89,7 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 	b.StopTimer()
 
 	openVPNClient.Shutdown()
-	wg.Wait()
+	require.NoError(b, <-errOpenVPNClientCh)
 }
 
 func BenchmarkOpenVPNPassthrough(b *testing.B) {
