@@ -18,7 +18,6 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/nettest"
 )
@@ -46,7 +45,7 @@ func TestClientInvalidServer(t *testing.T) {
 
 	err := openVPNClient.Connect(t.Context())
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "unable to connect to openvpn management interface tcp://127.0.0.1:1: dial tcp 127.0.0.1:1: connect")
+	require.Contains(t, err.Error(), "unable to connect to openvpn management interface tcp://127.0.0.1:1: dial tcp 127.0.0.1:1: connect")
 }
 
 func TestClientFull(t *testing.T) {
@@ -360,13 +359,13 @@ func TestClientFull(t *testing.T) {
 			auth := testutils.ReadLine(t, managementInterfaceConn, reader)
 
 			if strings.Contains(tc.expect, "WEB_AUTH") {
-				assert.Contains(t, auth, tc.expect)
+				require.Contains(t, auth, tc.expect)
 			} else {
-				assert.Equal(t, tc.expect, auth, logger.String())
+				require.Equal(t, tc.expect, auth, logger.String())
 			}
 
 			if strings.Contains(tc.client, "CLIENT:ENV,password=") {
-				assert.Contains(t, logger.String(), `CLIENT:ENV,password=***`, logger.String())
+				require.Contains(t, logger.String(), `CLIENT:ENV,password=***`, logger.String())
 			}
 
 			testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: %s command succeeded\r\n", strings.SplitN(auth, " ", 2)[0])
@@ -375,15 +374,15 @@ func TestClientFull(t *testing.T) {
 				testutils.SendMessage(t, managementInterfaceConn, ">CLIENT:DISCONNECT,0\r\n>CLIENT:ENV,END")
 			} else if strings.Contains(auth, "WEB_AUTH::") {
 				matches := regexp.MustCompile(`state=(.+)"`).FindStringSubmatch(auth)
-				assert.Len(t, matches, 2)
+				require.Len(t, matches, 2)
 
 				sessionState, err := state.NewWithEncodedToken(matches[1], tc.conf.HTTP.Secret.String())
 				require.NoError(t, err) //nolint:testifylint
 
-				assert.Equal(t, uint64(1), sessionState.Client.CID)
-				assert.Equal(t, uint64(2), sessionState.Client.KID)
-				assert.Equal(t, "test", sessionState.CommonName)
-				assert.Equal(t, "127.0.0.1", sessionState.IPAddr)
+				require.Equal(t, uint64(1), sessionState.Client.CID)
+				require.Equal(t, uint64(2), sessionState.Client.KID)
+				require.Equal(t, "test", sessionState.CommonName)
+				require.Equal(t, "127.0.0.1", sessionState.IPAddr)
 			}
 		})
 	}
