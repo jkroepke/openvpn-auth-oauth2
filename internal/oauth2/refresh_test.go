@@ -319,7 +319,11 @@ func TestRefreshReAuth(t *testing.T) {
 
 			require.NoError(t, reqErr)
 			require.Equal(t, http.StatusOK, resp.StatusCode)
-			testutils.DrainBody(t, resp)
+
+			_, err = io.Copy(io.Discard, resp.Body)
+			require.NoError(t, err)
+
+			_ = resp.Body.Close()
 
 			// Testing ReAuth
 			testutils.SendMessage(t, managementInterfaceConn,
@@ -443,7 +447,12 @@ func TestRefreshReAuth(t *testing.T) {
 			require.NoError(t, managementInterfaceConn.Close())
 
 			wg.Wait()
-			require.NoError(t, <-errOpenVPNClientCh, logger.String())
+			select {
+			case err := <-errOpenVPNClientCh:
+				require.NoError(t, err, logger.String())
+			case <-time.After(1 * time.Second):
+				t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", logger.String())
+			}
 		})
 	}
 }

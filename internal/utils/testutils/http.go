@@ -3,7 +3,6 @@ package testutils
 import (
 	"errors"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -11,8 +10,6 @@ import (
 	"syscall"
 	"testing"
 	"time"
-
-	"github.com/stretchr/testify/require"
 )
 
 type RoundTripperFunc struct {
@@ -124,13 +121,4 @@ func WaitUntilListening(tb testing.TB, listener net.Listener) (net.Conn, error) 
 	}
 
 	return nil, fmt.Errorf("listener not listening: %w", err)
-}
-
-func DrainBody(tb testing.TB, resp *http.Response) {
-	tb.Helper()
-
-	_, err := io.Copy(io.Discard, resp.Body)
-	require.NoError(tb, err)
-
-	_ = resp.Body.Close()
 }

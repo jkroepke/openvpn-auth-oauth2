@@ -376,7 +376,7 @@ func TestClientFull(t *testing.T) {
 				require.Len(t, matches, 2)
 
 				sessionState, err := state.NewWithEncodedToken(matches[1], tc.conf.HTTP.Secret.String())
-				require.NoError(t, err) //nolint:testifylint
+				require.NoError(t, err)
 
 				require.Equal(t, uint64(1), sessionState.Client.CID)
 				require.Equal(t, uint64(2), sessionState.Client.KID)
@@ -509,7 +509,6 @@ func TestClientInvalidVersion(t *testing.T) {
 			case err := <-errOpenVPNClientCh:
 				require.ErrorIs(t, err, tc.err)
 			case <-time.After(1 * time.Second):
-
 				t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", logger.String())
 			}
 		})

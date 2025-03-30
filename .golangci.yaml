@@ -119,6 +119,7 @@ linters:
     varnamelen:
       ignore-names:
         - tt
+        - tc
       ignore-decls:
         - i int
         - a ...any

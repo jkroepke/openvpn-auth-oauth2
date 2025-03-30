@@ -315,22 +315,18 @@ func ConnectToManagementInterface(tb testing.TB, managementInterface net.Listene
 		errCh <- openVPNClient.Connect(tb.Context())
 	}(errOpenVPNClientCh)
 
-	select {
-	case err := <-errTCPAcceptCh:
-		if err != nil {
-			return nil, nil, fmt.Errorf("error accepting connection: %w", err)
-		}
+	if err := <-errTCPAcceptCh; err != nil {
+		return nil, nil, fmt.Errorf("error accepting connection: %w", err)
 	}
 
 	select {
 	case err := <-errOpenVPNClientCh:
 		return nil, nil, fmt.Errorf("error connecting to management interface: %w", err)
 	default:
-
 	}
 
 	if conn == nil {
-		return nil, nil, fmt.Errorf("connection is nil")
+		return nil, nil, errors.New("connection is nil")
 	}
 
 	return conn, errOpenVPNClientCh, nil
