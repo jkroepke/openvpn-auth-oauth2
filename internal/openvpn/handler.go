@@ -139,7 +139,11 @@ func (c *Client) handleMessage(ctx context.Context, message string) error {
 		return nil
 	}
 
-	c.commandResponseCh <- message
+	select {
+	case c.commandResponseCh <- message:
+	case <-time.After(2 * time.Second):
+		c.logger.LogAttrs(ctx, slog.LevelWarn, "command response not accepted. Was there a timeout before? Dropping message", slog.String("message", message))
+	}
 
 	return nil
 }

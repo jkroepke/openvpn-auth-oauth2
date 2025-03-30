@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -108,8 +109,6 @@ END
 func TestPassThroughFull(t *testing.T) {
 	t.Parallel()
 
-	logger := testutils.NewTestLogger()
-
 	conf := config.Defaults
 	conf.HTTP.Secret = testutils.Secret
 	conf.OpenVpn.Passthrough.Enabled = true
@@ -161,6 +160,8 @@ func TestPassThroughFull(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
+			tt.conf.Log.Level = slog.LevelDebug
+
 			if tt.scheme == openvpn.SchemeUnix && runtime.GOOS == "windows" {
 				t.Skip("skipping test on windows")
 			}
@@ -188,8 +189,16 @@ func TestPassThroughFull(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
 
+			logger := testutils.NewTestLogger()
+
 			tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
 			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, tt.conf, logger.Logger, http.DefaultClient, tokenStorage)
+
+			t.Cleanup(func() {
+				if t.Failed() {
+					t.Log(logger.String())
+				}
+			})
 
 			wg := sync.WaitGroup{}
 			wg.Add(1)
