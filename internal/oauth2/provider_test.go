@@ -26,8 +26,6 @@ func TestNewProvider(t *testing.T) {
 	_, resourceServerURL, clientCredentials, err := testutils.SetupResourceServer(t, clientListener)
 	require.NoError(t, err)
 
-	logger := testutils.NewTestLogger()
-
 	tests := []struct {
 		name string
 		conf config.Config
@@ -134,6 +132,8 @@ func TestNewProvider(t *testing.T) {
 
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
+
+			logger := testutils.NewTestLogger()
 
 			var (
 				err      error

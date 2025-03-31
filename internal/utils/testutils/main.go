@@ -14,6 +14,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"testing/fstest"
 	"time"
 	"unicode"
 
@@ -233,11 +234,10 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 
 	oAuth2Client, openvpnClient := SetupOpenVPNOAuth2Clients(ctx, tb, conf, logger.Logger, httpClient, tokenStorage)
 
-	httpHandler, err := httphandler.New(conf, oAuth2Client)
-	require.NoError(tb, err)
-
+	httpHandler := httphandler.New(conf, oAuth2Client, fstest.MapFS{})
 	httpClientListener := httptest.NewUnstartedServer(httpHandler)
 	require.NoError(tb, httpClientListener.Listener.Close())
+
 	httpClientListener.Listener = clientListener
 	httpClientListener.Start()
 	tb.Cleanup(httpClientListener.Close)
