@@ -8,15 +8,9 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/ui"
 )
 
-func New(conf config.Config, oAuth2Client *oauth2.Client) (*http.ServeMux, error) {
-	staticFs, err := fs.Sub(ui.Static, "assets")
-	if err != nil {
-		return nil, fmt.Errorf("failed to create static file system: %w", err)
-	}
-
+func New(conf config.Config, oAuth2Client *oauth2.Client, assetsFs fs.FS) *http.ServeMux {
 	basePath := strings.TrimSuffix(conf.HTTP.BaseURL.Path, "/")
 
 	mux := http.NewServeMux()
@@ -25,11 +19,11 @@ func New(conf config.Config, oAuth2Client *oauth2.Client) (*http.ServeMux, error
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("OK"))
 	}))
-	mux.Handle(fmt.Sprintf("GET %s/assets/", basePath), http.StripPrefix(basePath+"/assets/", http.FileServerFS(staticFs)))
+	mux.Handle(fmt.Sprintf("GET %s/assets/", basePath), http.StripPrefix(basePath+"/assets/", http.FileServerFS(assetsFs)))
 	mux.Handle(fmt.Sprintf("GET %s/oauth2/start", basePath), noCacheHeaders(oAuth2Client.OAuth2Start()))
 	mux.Handle(fmt.Sprintf("GET %s/oauth2/callback", basePath), noCacheHeaders(oAuth2Client.OAuth2Callback()))
 
-	return mux, nil
+	return mux
 }
 
 func noCacheHeaders(h http.Handler) http.Handler {
