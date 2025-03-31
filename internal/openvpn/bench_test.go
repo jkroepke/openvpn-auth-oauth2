@@ -36,16 +36,11 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 		require.NoError(b, managementInterface.Close())
 	})
 
-	conf := config.Config{
-		HTTP: config.HTTP{
-			BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
-			Secret:  testutils.Secret,
-		},
-		OpenVpn: config.OpenVpn{
-			Addr:   &config.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()},
-			Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
-		},
-	}
+	conf := config.Defaults
+	conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
+	conf.HTTP.Secret = testutils.Secret
+	conf.OpenVpn.Addr = &config.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
+	conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: make([]string, 0)}
 
 	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
 	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, b, conf, logger.Logger, http.DefaultClient, tokenStorage)
@@ -116,7 +111,7 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 	conf.OpenVpn.Passthrough.Address = &config.URL{Scheme: "tcp", Host: passThroughInterface.Addr().String()}
 	conf.OpenVpn.Addr = &config.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
-	passThroughInterface.Close()
+	require.NoError(b, passThroughInterface.Close())
 
 	ctx, cancel := context.WithCancelCause(b.Context())
 
@@ -141,7 +136,7 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 			return
 		}
 
-		defer managementInterfaceConn.Close()
+		require.NoError(b, managementInterfaceConn.Close())
 
 		reader := bufio.NewReader(managementInterfaceConn)
 
