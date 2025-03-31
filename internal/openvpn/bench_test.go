@@ -3,14 +3,8 @@ package openvpn_test
 import (
 	"bufio"
 	"context"
-	"errors"
-	"fmt"
-	"io"
 	"net"
 	"net/http"
-	"strings"
-	"sync"
-	"syscall"
 	"testing"
 	"time"
 
@@ -105,124 +99,41 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 		require.NoError(b, managementInterface.Close())
 	})
 
-	passThroughInterface, err := nettest.NewLocalListener("tcp")
-	require.NoError(b, err)
-
-	conf.OpenVpn.Passthrough.Address = &config.URL{Scheme: "tcp", Host: passThroughInterface.Addr().String()}
+	conf.OpenVpn.Passthrough.Address = &config.URL{Scheme: "tcp", Host: "127.0.0.1:0"}
 	conf.OpenVpn.Addr = &config.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
-	require.NoError(b, passThroughInterface.Close())
+	tokenStorage := tokenstorage.NewInMemory(b.Context(), testutils.Secret, time.Hour)
+	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(b.Context(), b, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
-	ctx, cancel := context.WithCancelCause(b.Context())
+	managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(b, managementInterface, openVPNClient)
+	require.NoError(b, err)
 
-	b.Cleanup(func() {
-		cancel(nil)
-	})
+	reader := bufio.NewReader(managementInterfaceConn)
 
-	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
-	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, b, conf, logger.Logger, http.DefaultClient, tokenStorage)
+	require.NoError(b, err)
 
-	wg := sync.WaitGroup{}
+	if conf.OpenVpn.Password != "" {
+		testutils.SendMessage(b, managementInterfaceConn, "ENTER PASSWORD:")
+		testutils.ExpectMessage(b, managementInterfaceConn, reader, conf.OpenVpn.Password.String())
+		testutils.SendMessage(b, managementInterfaceConn, "SUCCESS: password is correct")
+	}
 
-	wg.Add(1)
+	testutils.ExpectVersionAndReleaseHold(b, managementInterfaceConn, reader)
 
-	go func() {
-		defer wg.Done()
-
-		managementInterfaceConn, err := managementInterface.Accept()
-		if err != nil {
-			cancel(fmt.Errorf("accepting connection: %w", err))
-
-			return
-		}
-
-		assert.NoError(b, managementInterfaceConn.Close())
-
-		reader := bufio.NewReader(managementInterfaceConn)
-
-		if conf.OpenVpn.Password != "" {
-			testutils.SendMessage(b, managementInterfaceConn, "ENTER PASSWORD:")
-			testutils.ExpectMessage(b, managementInterfaceConn, reader, conf.OpenVpn.Password.String())
-			testutils.SendMessage(b, managementInterfaceConn, "SUCCESS: password is correct")
-		}
-
-		testutils.ExpectVersionAndReleaseHold(b, managementInterfaceConn, reader)
-
-		var message string
-
-		for {
-			line, err := reader.ReadString('\n')
-			if err != nil {
-				cancel(fmt.Errorf("reading line: %w", err))
-
-				return
-			}
-
-			line = strings.TrimSpace(line)
-
-			if line == "exit" {
-				cancel(nil)
-
-				break
-			}
-
-			switch line {
-			case "help":
-				message = OpenVPNManagementInterfaceCommandResultHelp
-			case "status":
-				message = OpenVPNManagementInterfaceCommandResultStatus
-			case "status 2":
-				message = OpenVPNManagementInterfaceCommandResultStatus2
-			case "version":
-				message = "OpenVPN Version: openvpn-auth-oauth2\r\nManagement Interface Version: 5\r\nEND"
-			case "load-stats":
-				message = "SUCCESS: nclients=0,bytesin=0,bytesout=0"
-			case "pid":
-				message = "SUCCESS: pid=7"
-			case "kill 1":
-				message = "ERROR: common name '1' not found"
-			case "client-kill 1":
-				message = "ERROR: client-kill command failed"
-			default:
-				message = "ERROR: unknown command, enter 'help' for more options"
-			}
-
-			testutils.SendMessage(b, managementInterfaceConn, message+"")
-		}
-	}()
-
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-
-		err := openVPNClient.Connect(b.Context())
-		if err != nil {
-			cancel(fmt.Errorf("connecting: %w", err))
-
-			return
-		}
-
-		<-ctx.Done()
-	}()
-
-	var passThroughConn net.Conn
+	var passThroughAddr []string
 
 	for range 10 {
-		passThroughConn, err = net.DialTimeout(passThroughInterface.Addr().Network(), passThroughInterface.Addr().String(), time.Second)
-		if err == nil {
+		passThroughAddr = rePassThroughLogListen.FindStringSubmatch(logger.String())
+		if passThroughAddr != nil {
 			break
 		}
 
-		if errors.Is(err, syscall.ECONNREFUSED) {
-			time.Sleep(100 * time.Millisecond)
-
-			continue
-		}
-
-		require.NoError(b, err)
+		time.Sleep(50 * time.Millisecond)
 	}
 
+	require.Len(b, passThroughAddr, 2, "unexpected log output: %s", logger.String())
+
+	passThroughConn, err := testutils.WaitUntilListening(b, "tcp", passThroughAddr[1])
 	require.NoError(b, err)
 
 	passThroughReader := bufio.NewReader(passThroughConn)
@@ -249,18 +160,6 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 		},
 	}
 
-	b.Cleanup(func() {
-		testutils.SendMessage(b, passThroughConn, "exit")
-		openVPNClient.Shutdown()
-		wg.Wait()
-
-		<-ctx.Done()
-
-		if err := context.Cause(ctx); err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, io.EOF) {
-			require.NoError(b, err)
-		}
-	})
-
 	testutils.ExpectMessage(b, passThroughConn, passThroughReader, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info")
 
 	b.ResetTimer()
@@ -268,11 +167,23 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 
 	for _, tt := range tests {
 		b.Run(tt.command, func(b *testing.B) {
-			testutils.SendAndExpectMessage(b, passThroughConn, passThroughReader, tt.command, tt.response)
+			testutils.SendMessage(b, passThroughConn, tt.command)
+			testutils.ExpectMessage(b, managementInterfaceConn, reader, tt.command)
+			testutils.SendMessage(b, managementInterfaceConn, tt.response)
+			testutils.ExpectMessage(b, passThroughConn, passThroughReader, tt.response)
 
 			b.ReportAllocs()
 		})
 	}
 
 	b.StopTimer()
+
+	openVPNClient.Shutdown()
+
+	select {
+	case err := <-errOpenVPNClientCh:
+		require.NoError(b, err)
+	case <-time.After(1 * time.Second):
+		b.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", logger.String())
+	}
 }
