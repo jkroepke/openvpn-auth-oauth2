@@ -136,7 +136,7 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 			return
 		}
 
-		require.NoError(b, managementInterfaceConn.Close())
+		assert.NoError(b, managementInterfaceConn.Close())
 
 		reader := bufio.NewReader(managementInterfaceConn)
 
