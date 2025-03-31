@@ -64,7 +64,7 @@ func TestClientFull(t *testing.T) {
 				conf := config.Defaults
 				conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
 				conf.HTTP.Secret = testutils.Secret
-				conf.OpenVpn.CommonName.EnvironmentVariableName = "common_name"
+				conf.OpenVpn.CommonName.EnvironmentVariableName = config.CommonName
 				conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: make([]string, 0)}
 				conf.OAuth2.Validate.IPAddr = true
 
@@ -79,9 +79,9 @@ func TestClientFull(t *testing.T) {
 				conf := config.Defaults
 				conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
 				conf.HTTP.Secret = testutils.Secret
-				conf.OpenVpn.CommonName.EnvironmentVariableName = "common_name"
+				conf.OpenVpn.CommonName.EnvironmentVariableName = config.CommonName
 				conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: make([]string, 0)}
-				conf.OpenVpn.Password = "password"
+				conf.OpenVpn.Password = testutils.Password
 				conf.OAuth2.Validate.IPAddr = true
 
 				return conf
@@ -111,9 +111,9 @@ func TestClientFull(t *testing.T) {
 				conf := config.Defaults
 				conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
 				conf.HTTP.Secret = "012345678910111"
-				conf.OpenVpn.CommonName.EnvironmentVariableName = "common_name"
+				conf.OpenVpn.CommonName.EnvironmentVariableName = config.CommonName
 				conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: make([]string, 0)}
-				conf.OpenVpn.Password = "password"
+				conf.OpenVpn.Password = testutils.Password
 
 				return conf
 			}(),
@@ -127,9 +127,9 @@ func TestClientFull(t *testing.T) {
 				conf := config.Defaults
 				conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
 				conf.HTTP.Secret = testutils.Secret
-				conf.OpenVpn.CommonName.EnvironmentVariableName = "common_name"
+				conf.OpenVpn.CommonName.EnvironmentVariableName = config.CommonName
 				conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: make([]string, 0)}
-				conf.OpenVpn.Password = "password"
+				conf.OpenVpn.Password = testutils.Password
 
 				return conf
 			}(),
@@ -143,9 +143,9 @@ func TestClientFull(t *testing.T) {
 				conf := config.Defaults
 				conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost", Path: strings.Repeat("a", 255)}
 				conf.HTTP.Secret = testutils.Secret
-				conf.OpenVpn.CommonName.EnvironmentVariableName = "common_name"
+				conf.OpenVpn.CommonName.EnvironmentVariableName = config.CommonName
 				conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: make([]string, 0)}
-				conf.OpenVpn.Password = "password"
+				conf.OpenVpn.Password = testutils.Password
 
 				return conf
 			}(),
@@ -159,9 +159,9 @@ func TestClientFull(t *testing.T) {
 				conf := config.Defaults
 				conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
 				conf.HTTP.Secret = testutils.Secret
-				conf.OpenVpn.CommonName.EnvironmentVariableName = "common_name"
+				conf.OpenVpn.CommonName.EnvironmentVariableName = config.CommonName
 				conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: []string{"bypass"}}
-				conf.OpenVpn.Password = "password"
+				conf.OpenVpn.Password = testutils.Password
 				conf.OpenVpn.AuthTokenUser = false
 
 				return conf
@@ -176,9 +176,9 @@ func TestClientFull(t *testing.T) {
 				conf := config.Defaults
 				conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
 				conf.HTTP.Secret = testutils.Secret
-				conf.OpenVpn.CommonName.EnvironmentVariableName = "common_name"
+				conf.OpenVpn.CommonName.EnvironmentVariableName = config.CommonName
 				conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: []string{"bypass"}}
-				conf.OpenVpn.Password = "password"
+				conf.OpenVpn.Password = testutils.Password
 				conf.OpenVpn.AuthTokenUser = false
 
 				return conf
@@ -193,9 +193,9 @@ func TestClientFull(t *testing.T) {
 				conf := config.Defaults
 				conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
 				conf.HTTP.Secret = testutils.Secret
-				conf.OpenVpn.CommonName.EnvironmentVariableName = "common_name"
+				conf.OpenVpn.CommonName.EnvironmentVariableName = config.CommonName
 				conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: []string{"bypass"}}
-				conf.OpenVpn.Password = "password"
+				conf.OpenVpn.Password = testutils.Password
 
 				return conf
 			}(),
@@ -209,9 +209,9 @@ func TestClientFull(t *testing.T) {
 				conf := config.Defaults
 				conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
 				conf.HTTP.Secret = testutils.Secret
-				conf.OpenVpn.CommonName.EnvironmentVariableName = "common_name"
+				conf.OpenVpn.CommonName.EnvironmentVariableName = config.CommonName
 				conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: []string{"bypass"}}
-				conf.OpenVpn.Password = "password"
+				conf.OpenVpn.Password = testutils.Password
 
 				return conf
 			}(),
@@ -225,9 +225,9 @@ func TestClientFull(t *testing.T) {
 				conf := config.Defaults
 				conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
 				conf.HTTP.Secret = testutils.Secret
-				conf.OpenVpn.CommonName.EnvironmentVariableName = "common_name"
+				conf.OpenVpn.CommonName.EnvironmentVariableName = config.CommonName
 				conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: []string{"bypass"}}
-				conf.OpenVpn.Password = "password"
+				conf.OpenVpn.Password = testutils.Password
 
 				return conf
 			}(),
@@ -242,9 +242,9 @@ func TestClientFull(t *testing.T) {
 				conf := config.Defaults
 				conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
 				conf.HTTP.Secret = testutils.Secret
-				conf.OpenVpn.CommonName.EnvironmentVariableName = "common_name"
+				conf.OpenVpn.CommonName.EnvironmentVariableName = config.CommonName
 				conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: []string{"bypass"}}
-				conf.OpenVpn.Password = "password"
+				conf.OpenVpn.Password = testutils.Password
 
 				return conf
 			}(),

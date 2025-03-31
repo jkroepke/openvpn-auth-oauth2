@@ -111,8 +111,10 @@ func (c *Client) handleMessages(ctx context.Context, errCh chan<- error) {
 	}
 }
 
+//nolint:cyclop
 func (c *Client) handleMessage(ctx context.Context, message string) error {
-	if message[0] == '>' {
+	switch {
+	case message[0] == '>':
 		switch message[0:6] {
 		case ">CLIEN":
 			return c.handleClientMessage(ctx, message)
@@ -129,20 +131,16 @@ func (c *Client) handleMessage(ctx context.Context, message string) error {
 			c.writeToPassThroughClient(message)
 		}
 
-		return nil
-	}
-
 	// SUCCESS: hold release succeeded
-	if len(message) >= 13 && message[9:13] == "hold" {
+	case len(message) >= 13 && message[9:13] == "hold":
 		c.logger.LogAttrs(ctx, slog.LevelInfo, "hold release succeeded")
 
-		return nil
-	}
-
-	select {
-	case c.commandResponseCh <- message:
-	case <-time.After(2 * time.Second):
-		c.logger.LogAttrs(ctx, slog.LevelWarn, "command response not accepted. Was there a timeout before? Dropping message", slog.String("message", message))
+	default:
+		select {
+		case c.commandResponseCh <- message:
+		case <-time.After(2 * time.Second):
+			c.logger.LogAttrs(ctx, slog.LevelWarn, "command response not accepted. Was there a timeout before? Dropping message", slog.String("message", message))
+		}
 	}
 
 	return nil

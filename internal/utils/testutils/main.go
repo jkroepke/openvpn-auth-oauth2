@@ -33,7 +33,10 @@ import (
 	"golang.org/x/text/language"
 )
 
-const Secret = "0123456789101112"
+const (
+	Password = "password"
+	Secret   = "0123456789101112"
+)
 
 func ExpectVersionAndReleaseHold(tb testing.TB, conn net.Conn, reader *bufio.Reader) {
 	tb.Helper()

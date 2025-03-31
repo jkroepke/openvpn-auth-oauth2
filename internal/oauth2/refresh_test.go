@@ -285,7 +285,7 @@ func TestRefreshReAuth(t *testing.T) {
 			go func() {
 				defer wg.Done()
 
-				resp, reqErr = httpClient.Do(request)
+				resp, reqErr = httpClient.Do(request) //nolint:bodyclose
 			}()
 
 			switch {

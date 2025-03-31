@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"log/slog"
-	"net"
 	"net/http"
 	"os"
 	"regexp"
@@ -22,6 +21,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/nettest"
 )
+
+var rePassThroughLogListen = regexp.MustCompile(`"start pass-through listener on (?:tcp|unix)://(\S+)"`)
 
 const OpenVPNManagementInterfaceCommandResultStatus = `OpenVPN CLIENT LIST
 Updated,2024-02-17 10:55:19
@@ -216,19 +217,20 @@ func TestPassThroughFull(t *testing.T) {
 			testutils.SendMessage(t, managementInterfaceConn, "")
 			testutils.SendMessage(t, managementInterfaceConn, "\r\n")
 
-			var passThroughConn net.Conn
-			switch tt.scheme {
-			case openvpn.SchemeTCP:
-				reMatch, err := regexp.Compile(`start pass-through listener on tcp://(\S+:\d+)`)
-				require.NoError(t, err)
-				passThroughAddr := reMatch.FindStringSubmatch(logger.String())
-				require.Len(t, passThroughAddr, 2)
+			var passThroughAddr []string
 
-				passThroughConn, err = testutils.WaitUntilListening(t, tt.scheme, passThroughAddr[1])
-			case openvpn.SchemeUnix:
-				passThroughConn, err = testutils.WaitUntilListening(t, tt.scheme, tt.conf.OpenVpn.Passthrough.Address.Path)
+			for range 10 {
+				passThroughAddr = rePassThroughLogListen.FindStringSubmatch(logger.String())
+				if passThroughAddr != nil {
+					break
+				}
+
+				time.Sleep(50 * time.Millisecond)
 			}
 
+			require.Len(t, passThroughAddr, 2, "unexpected log output: %s", logger.String())
+
+			passThroughConn, err := testutils.WaitUntilListening(t, tt.scheme, passThroughAddr[1])
 			require.NoError(t, err)
 
 			passThroughReader := bufio.NewReader(passThroughConn)

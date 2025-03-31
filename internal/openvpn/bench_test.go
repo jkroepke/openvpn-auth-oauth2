@@ -54,6 +54,7 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 	require.NoError(b, err)
 
 	reader := bufio.NewReader(managementInterfaceConn)
+
 	require.NoError(b, err)
 
 	testutils.ExpectVersionAndReleaseHold(b, managementInterfaceConn, reader)

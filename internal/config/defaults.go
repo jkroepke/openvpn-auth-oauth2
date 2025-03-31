@@ -9,6 +9,10 @@ import (
 	"golang.org/x/oauth2"
 )
 
+const (
+	CommonName = "common_name"
+)
+
 //nolint:gochecknoglobals
 var Defaults = Config{
 	Debug: Debug{
