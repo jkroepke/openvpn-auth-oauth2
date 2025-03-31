@@ -26,7 +26,6 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	oidcstorage "github.com/zitadel/oidc/v3/example/server/storage"
 	"github.com/zitadel/oidc/v3/pkg/op"
@@ -34,18 +33,16 @@ import (
 	"golang.org/x/text/language"
 )
 
-const Secret = "0123456789101112"
+const (
+	Password = "password"
+	Secret   = "0123456789101112"
+)
 
-func ExpectVersionAndReleaseHold(tb testing.TB, conn net.Conn, reader *bufio.Reader) bool {
+func ExpectVersionAndReleaseHold(tb testing.TB, conn net.Conn, reader *bufio.Reader) {
 	tb.Helper()
 
-	if !SendMessage(tb, conn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info") {
-		return false
-	}
-
-	if !SendMessage(tb, conn, ">HOLD:Waiting for hold release:0") {
-		return false
-	}
+	SendMessage(tb, conn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info")
+	SendMessage(tb, conn, ">HOLD:Waiting for hold release:0")
 
 	var expectedCommand int
 
@@ -61,39 +58,28 @@ func ExpectVersionAndReleaseHold(tb testing.TB, conn net.Conn, reader *bufio.Rea
 
 			expectedCommand++
 		default:
-			assert.Contains(tb, []string{"version", "hold release"}, line)
-
-			return false
+			require.Contains(tb, []string{"version", "hold release"}, line)
 		}
 	}
 
-	return assert.Equal(tb, 2, expectedCommand)
+	require.Equal(tb, 2, expectedCommand)
 }
 
-func SendMessage(tb testing.TB, conn net.Conn, sendMessage string, args ...any) bool {
+func SendMessage(tb testing.TB, conn net.Conn, sendMessage string, args ...any) {
 	tb.Helper()
 
-	if conn == nil {
-		assert.Fail(tb, "connection is nil")
-
-		return false
-	}
-
-	err := conn.SetWriteDeadline(time.Now().Add(time.Second * 5))
-	if !assert.NoError(tb, err) { //nolint:testifylint
-		return false
-	}
+	require.NotNil(tb, conn, "connection is nil")
+	require.NoError(tb, conn.SetWriteDeadline(time.Now().Add(time.Second*5)))
 
 	if sendMessage != "ENTER PASSWORD:" {
 		sendMessage += "\r\n"
 	}
 
-	_, err = fmt.Fprintf(conn, sendMessage, args...)
-
-	return assert.NoError(tb, err)
+	_, err := fmt.Fprintf(conn, sendMessage, args...)
+	require.NoError(tb, err)
 }
 
-func ExpectMessage(tb testing.TB, conn net.Conn, reader *bufio.Reader, expectMessage string) bool {
+func ExpectMessage(tb testing.TB, conn net.Conn, reader *bufio.Reader, expectMessage string) {
 	tb.Helper()
 
 	var (
@@ -103,64 +89,23 @@ func ExpectMessage(tb testing.TB, conn net.Conn, reader *bufio.Reader, expectMes
 
 	for _, expected := range strings.Split(strings.TrimSpace(expectMessage), "\n") {
 		err = conn.SetReadDeadline(time.Now().Add(time.Second * 5))
-		if !assert.NoError(tb, err, expected, expectMessage) { //nolint:testifylint
-			return false
-		}
+		require.NoError(tb, err, "expected line: %s\nexpected message:\n%s", expected, expectMessage)
 
 		line, err = reader.ReadString('\n')
 
 		if err != nil && !errors.Is(err, io.EOF) {
-			if !assert.NoError(tb, err, "expected line: %s\nexpected message:\n%s", expected, expectMessage) { //nolint:testifylint
-				return false
-			}
+			require.NoError(tb, err, "expected line: %s\nexpected message:\n%s", expected, expectMessage)
 		}
 
-		assert.Equal(tb, strings.TrimRightFunc(expected, unicode.IsSpace), strings.TrimRightFunc(line, unicode.IsSpace))
+		require.Equal(tb, strings.TrimRightFunc(expected, unicode.IsSpace), strings.TrimRightFunc(line, unicode.IsSpace))
 	}
-
-	return true
 }
 
-func SendAndExpectMessage(tb testing.TB, conn net.Conn, reader *bufio.Reader, sendMessage, expectMessage string) bool {
+func SendAndExpectMessage(tb testing.TB, conn net.Conn, reader *bufio.Reader, sendMessage, expectMessage string) {
 	tb.Helper()
 
-	err := conn.SetWriteDeadline(time.Now().Add(time.Second * 5))
-	if !assert.NoError(tb, err, "send: %s\n\nexpected message:\n%s", sendMessage, expectMessage) {
-		return false
-	}
-
-	if sendMessage == "ENTER PASSWORD:" {
-		_, err = fmt.Fprint(conn, sendMessage)
-	} else {
-		_, err = fmt.Fprintln(conn, sendMessage)
-	}
-
-	if !assert.NoError(tb, err, "send: %s\n\nexpected message:\n%s", sendMessage, expectMessage) {
-		return false
-	}
-
-	var line string
-
-	for _, expected := range strings.Split(strings.TrimSpace(expectMessage), "\n") {
-		err = conn.SetReadDeadline(time.Now().Add(time.Second * 5))
-		if !assert.NoError(tb, err, expected, expectMessage) { //nolint:testifylint
-			return false
-		}
-
-		line, err = reader.ReadString('\n')
-
-		//nolint:testifylint
-		if err != nil && !errors.Is(err, io.EOF) && !assert.NoError(tb, err,
-			"send: %s\n\nexpected line: %s\n\nexpected message:\n%s", sendMessage, expected, expectMessage) {
-			return false
-		}
-
-		if !assert.Equal(tb, strings.TrimRightFunc(expected, unicode.IsSpace), strings.TrimRightFunc(line, unicode.IsSpace)) {
-			return false
-		}
-	}
-
-	return true
+	SendMessage(tb, conn, sendMessage)
+	ExpectMessage(tb, conn, reader, expectMessage)
 }
 
 func ReadLine(tb testing.TB, conn net.Conn, reader *bufio.Reader) string {
@@ -242,15 +187,12 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 	require.NoError(tb, err)
 
 	tb.Cleanup(func() {
-		managementInterface.Close()
+		require.NoError(tb, managementInterface.Close())
 	})
 
+	// clientListener must not be closed, because it is used by the httpClientListener.
 	clientListener, err := nettest.NewLocalListener("tcp")
 	require.NoError(tb, err)
-
-	tb.Cleanup(func() {
-		clientListener.Close()
-	})
 
 	_, resourceServerURL, clientCredentials, err := SetupResourceServer(tb, clientListener)
 	require.NoError(tb, err)
@@ -295,7 +237,7 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 	require.NoError(tb, err)
 
 	httpClientListener := httptest.NewUnstartedServer(httpHandler)
-	httpClientListener.Listener.Close()
+	require.NoError(tb, httpClientListener.Listener.Close())
 	httpClientListener.Listener = clientListener
 	httpClientListener.Start()
 	tb.Cleanup(httpClientListener.Close)
@@ -353,4 +295,42 @@ func SetupOpenVPNOAuth2Clients(
 	tb.Cleanup(openVPNClient.Shutdown)
 
 	return oAuth2Client, openVPNClient
+}
+
+func ConnectToManagementInterface(tb testing.TB, managementInterface net.Listener, openVPNClient *openvpn.Client) (net.Conn, <-chan error, error) {
+	tb.Helper()
+
+	errOpenVPNClientCh := make(chan error, 1)
+	errTCPAcceptCh := make(chan error, 1)
+
+	var (
+		conn net.Conn
+		err  error
+	)
+
+	go func(errCh chan<- error) {
+		conn, err = managementInterface.Accept()
+
+		errCh <- err
+	}(errTCPAcceptCh)
+
+	go func(errCh chan<- error) {
+		errCh <- openVPNClient.Connect(tb.Context())
+	}(errOpenVPNClientCh)
+
+	if err := <-errTCPAcceptCh; err != nil {
+		return nil, nil, fmt.Errorf("error accepting connection: %w", err)
+	}
+
+	select {
+	case err := <-errOpenVPNClientCh:
+		return nil, nil, fmt.Errorf("error connecting to management interface: %w", err)
+	default:
+	}
+
+	if conn == nil {
+		return nil, nil, errors.New("connection is nil")
+	}
+
+	return conn, errOpenVPNClientCh, nil
 }

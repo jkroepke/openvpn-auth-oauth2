@@ -52,6 +52,7 @@ type OpenVpn struct {
 	OverrideUsername   bool               `json:"override-username"    koanf:"override-username"`
 	CommonName         OpenVPNCommonName  `json:"common-name"          koanf:"common-name"`
 	Passthrough        OpenVPNPassthrough `json:"pass-through"         koanf:"pass-through"`
+	CommandTimeout     time.Duration      `json:"command-timeout"      koanf:"command-timeout"`
 }
 
 type OpenVpnBypass struct {

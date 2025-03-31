@@ -129,7 +129,8 @@ func TestFull(t *testing.T) {
 
 				testutils.ExpectVersionAndReleaseHold(t, managementInterfaceConn, reader)
 
-				if !assert.NoError(t, testutils.WaitUntilListening(t, httpListener), buf.String()) {
+				_, err = testutils.WaitUntilListening(t, httpListener.Addr().Network(), httpListener.Addr().String())
+				if !assert.NoError(t, err, buf.String()) {
 					cancel()
 
 					return

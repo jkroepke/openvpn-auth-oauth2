@@ -30,14 +30,14 @@ const writeTimeout = 20 * time.Millisecond
 func (c *Client) handlePassThrough(ctx context.Context, errCh chan<- error) {
 	var conn net.Conn
 
-	c.logger.LogAttrs(ctx, slog.LevelInfo, "start pass-through listener on "+c.conf.OpenVpn.Passthrough.Address.String())
-
 	listener, closer, err := c.setupPassThroughListener()
 	if err != nil {
 		errCh <- fmt.Errorf("error setup openvpn management pass-through listener: %w", err)
 
 		return
 	}
+
+	c.logger.LogAttrs(ctx, slog.LevelInfo, fmt.Sprintf("start pass-through listener on %s://%s", listener.Addr().Network(), listener.Addr().String()))
 
 	defer func() {
 		defer closer()

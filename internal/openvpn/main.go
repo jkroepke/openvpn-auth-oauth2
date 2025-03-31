@@ -31,7 +31,7 @@ func New(logger *slog.Logger, conf config.Config) *Client {
 		commandsBuffer: bytes.Buffer{},
 
 		clientsCh:         make(chan connection.Client, 10),
-		commandResponseCh: make(chan string, 10),
+		commandResponseCh: make(chan string),
 		commandsCh:        make(chan string, 10),
 		passThroughCh:     make(chan string, 10),
 	}
@@ -225,10 +225,10 @@ func (c *Client) SendCommand(cmd string, passthrough bool) (string, error) {
 		}
 
 		return resp, nil
-	case <-time.After(10 * time.Second):
+	case <-time.After(c.conf.OpenVpn.CommandTimeout):
 		cmdFirstLine := strings.SplitN(cmd, "\r\n", 2)[0]
 
-		return "", fmt.Errorf("command timeout '%s': %w", cmdFirstLine, ErrTimeout)
+		return "", fmt.Errorf("command error '%s': %w", cmdFirstLine, ErrTimeout)
 	}
 }
 

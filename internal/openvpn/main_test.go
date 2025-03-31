@@ -4,13 +4,11 @@ import (
 	"bufio"
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -20,13 +18,15 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/nettest"
 )
 
 func TestClientInvalidServer(t *testing.T) {
 	t.Parallel()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	t.Cleanup(cancel)
 
 	logger := testutils.NewTestLogger()
 	conf := config.Config{
@@ -40,21 +40,18 @@ func TestClientInvalidServer(t *testing.T) {
 		},
 	}
 
-	ctx, cancel := context.WithCancel(t.Context())
-	t.Cleanup(cancel)
-
 	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
 	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 	err := openVPNClient.Connect(t.Context())
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "unable to connect to openvpn management interface tcp://127.0.0.1:1: dial tcp 127.0.0.1:1: connect")
+	require.Contains(t, err.Error(), "unable to connect to openvpn management interface tcp://127.0.0.1:1: dial tcp 127.0.0.1:1: connect")
 }
 
 func TestClientFull(t *testing.T) {
 	t.Parallel()
 
-	confs := []struct {
+	for _, tc := range []struct {
 		name   string
 		conf   config.Config
 		client string
@@ -63,248 +60,204 @@ func TestClientFull(t *testing.T) {
 	}{
 		{
 			name: "without password",
-			conf: config.Config{
-				HTTP: config.HTTP{
-					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.Secret,
-				},
-				OpenVpn: config.OpenVpn{
-					CommonName: config.OpenVPNCommonName{
-						EnvironmentVariableName: "common_name",
-					},
-					Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
-				},
-				OAuth2: config.OAuth2{
-					Validate: config.OAuth2Validate{
-						IPAddr: true,
-					},
-				},
-			},
+			conf: func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
+				conf.HTTP.Secret = testutils.Secret
+				conf.OpenVpn.CommonName.EnvironmentVariableName = config.CommonName
+				conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: make([]string, 0)}
+				conf.OAuth2.Validate.IPAddr = true
+
+				return conf
+			}(),
 			client: ">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END\r\n",
 			expect: "client-pending-auth 1 2 \"WEB_AUTH::",
 		},
 		{
 			"with password",
-			config.Config{
-				HTTP: config.HTTP{
-					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.Secret,
-				},
-				OpenVpn: config.OpenVpn{
-					CommonName: config.OpenVPNCommonName{
-						EnvironmentVariableName: "common_name",
-					},
-					Bypass:   config.OpenVpnBypass{CommonNames: make([]string, 0)},
-					Password: "password",
-				},
-				OAuth2: config.OAuth2{
-					Validate: config.OAuth2Validate{
-						IPAddr: true,
-					},
-				},
-			},
+			func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
+				conf.HTTP.Secret = testutils.Secret
+				conf.OpenVpn.CommonName.EnvironmentVariableName = config.CommonName
+				conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: make([]string, 0)}
+				conf.OpenVpn.Password = testutils.Password
+				conf.OAuth2.Validate.IPAddr = true
+
+				return conf
+			}(),
 			">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END\r\n",
 			"client-pending-auth 1 2 \"WEB_AUTH::",
 			nil,
 		},
 		{
 			name: "with username",
-			conf: config.Config{
-				HTTP: config.HTTP{
-					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.Secret,
-				},
-				OpenVpn: config.OpenVpn{
-					CommonName: config.OpenVPNCommonName{
-						EnvironmentVariableName: "username",
-					},
-					Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
-				},
-				OAuth2: config.OAuth2{
-					Validate: config.OAuth2Validate{
-						IPAddr: true,
-					},
-				},
-			},
+			conf: func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
+				conf.HTTP.Secret = testutils.Secret
+				conf.OpenVpn.CommonName.EnvironmentVariableName = "username"
+				conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: make([]string, 0)}
+				conf.OAuth2.Validate.IPAddr = true
+
+				return conf
+			}(),
 			client: ">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,username=test\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END\r\n",
 			expect: "client-pending-auth 1 2 \"WEB_AUTH::",
 		},
 		{
-			"with invalid state",
-			config.Config{
-				HTTP: config.HTTP{
-					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
-					Secret:  "012345678910111",
-				},
-				OpenVpn: config.OpenVpn{
-					CommonName: config.OpenVPNCommonName{
-						EnvironmentVariableName: "common_name",
-					},
-					Bypass:   config.OpenVpnBypass{CommonNames: make([]string, 0)},
-					Password: "password",
-				},
-			},
-			">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END\r\n",
-			"",
-			nil,
+			name: "with invalid state",
+			conf: func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
+				conf.HTTP.Secret = "012345678910111"
+				conf.OpenVpn.CommonName.EnvironmentVariableName = config.CommonName
+				conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: make([]string, 0)}
+				conf.OpenVpn.Password = testutils.Password
+
+				return conf
+			}(),
+			client: ">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END\r\n",
+			expect: "",
+			err:    nil,
 		},
 		{
-			"client without IV_SSO",
-			config.Config{
-				HTTP: config.HTTP{
-					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.Secret,
-				},
-				OpenVpn: config.OpenVpn{
-					CommonName: config.OpenVPNCommonName{
-						EnvironmentVariableName: "common_name",
-					},
-					Bypass:   config.OpenVpnBypass{CommonNames: make([]string, 0)},
-					Password: "password",
-				},
-			},
-			">CLIENT:CONNECT,0,1\r\n>CLIENT:ENV,daemon=0\r\n>CLIENT:ENV,END\r\n",
-			"client-deny 0 1 \"OpenVPN Client does not support SSO authentication via webauth\"",
-			nil,
+			name: "client without IV_SSO",
+			conf: func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
+				conf.HTTP.Secret = testutils.Secret
+				conf.OpenVpn.CommonName.EnvironmentVariableName = config.CommonName
+				conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: make([]string, 0)}
+				conf.OpenVpn.Password = testutils.Password
+
+				return conf
+			}(),
+			client: ">CLIENT:CONNECT,0,1\r\n>CLIENT:ENV,daemon=0\r\n>CLIENT:ENV,END\r\n",
+			expect: "client-deny 0 1 \"OpenVPN Client does not support SSO authentication via webauth\"",
+			err:    nil,
 		},
 		{
 			"to long base url",
-			config.Config{
-				HTTP: config.HTTP{
-					BaseURL: &config.URL{Scheme: "http", Host: "localhost", Path: strings.Repeat("a", 255)},
-					Secret:  testutils.Secret,
-				},
-				OpenVpn: config.OpenVpn{
-					CommonName: config.OpenVPNCommonName{
-						EnvironmentVariableName: "common_name",
-					},
-					Bypass:   config.OpenVpnBypass{CommonNames: make([]string, 0)},
-					Password: "password",
-				},
-			},
+			func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost", Path: strings.Repeat("a", 255)}
+				conf.HTTP.Secret = testutils.Secret
+				conf.OpenVpn.CommonName.EnvironmentVariableName = config.CommonName
+				conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: make([]string, 0)}
+				conf.OpenVpn.Password = testutils.Password
+
+				return conf
+			}(),
 			">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END\r\n",
 			`client-deny 1 2 "internal error"`,
 			nil,
 		},
 		{
 			"client bypass",
-			config.Config{
-				HTTP: config.HTTP{
-					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.Secret,
-				},
-				OpenVpn: config.OpenVpn{
-					CommonName: config.OpenVPNCommonName{
-						EnvironmentVariableName: "common_name",
-					},
-					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
-					Password: "password",
-				},
-			},
+			func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
+				conf.HTTP.Secret = testutils.Secret
+				conf.OpenVpn.CommonName.EnvironmentVariableName = config.CommonName
+				conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: []string{"bypass"}}
+				conf.OpenVpn.Password = testutils.Password
+				conf.OpenVpn.AuthTokenUser = false
+
+				return conf
+			}(),
 			">CLIENT:CONNECT,0,1\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END\r\n",
 			"client-auth-nt 0 1",
 			nil,
 		},
 		{
 			"client password mask",
-			config.Config{
-				HTTP: config.HTTP{
-					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.Secret,
-				},
-				OpenVpn: config.OpenVpn{
-					CommonName: config.OpenVPNCommonName{
-						EnvironmentVariableName: "common_name",
-					},
-					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
-					Password: "password",
-				},
-			},
+			func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
+				conf.HTTP.Secret = testutils.Secret
+				conf.OpenVpn.CommonName.EnvironmentVariableName = config.CommonName
+				conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: []string{"bypass"}}
+				conf.OpenVpn.Password = testutils.Password
+				conf.OpenVpn.AuthTokenUser = false
+
+				return conf
+			}(),
 			">CLIENT:CONNECT,0,1\r\n>CLIENT:ENV,common_name=bypass\r\nCLIENT:ENV,password=important value\n>CLIENT:ENV,END\r\n",
 			"client-auth-nt 0 1",
 			nil,
 		},
 		{
 			"client established",
-			config.Config{
-				HTTP: config.HTTP{
-					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.Secret,
-				},
-				OpenVpn: config.OpenVpn{
-					CommonName: config.OpenVPNCommonName{
-						EnvironmentVariableName: "common_name",
-					},
-					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
-					Password: "password",
-				},
-			},
+			func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
+				conf.HTTP.Secret = testutils.Secret
+				conf.OpenVpn.CommonName.EnvironmentVariableName = config.CommonName
+				conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: []string{"bypass"}}
+				conf.OpenVpn.Password = testutils.Password
+
+				return conf
+			}(),
 			">CLIENT:ESTABLISHED,0\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END\r\n",
 			"",
 			nil,
 		},
 		{
 			"client disconnected",
-			config.Config{
-				HTTP: config.HTTP{
-					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.Secret,
-				},
-				OpenVpn: config.OpenVpn{
-					CommonName: config.OpenVPNCommonName{
-						EnvironmentVariableName: "common_name",
-					},
-					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
-					Password: "password",
-				},
-			},
+			func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
+				conf.HTTP.Secret = testutils.Secret
+				conf.OpenVpn.CommonName.EnvironmentVariableName = config.CommonName
+				conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: []string{"bypass"}}
+				conf.OpenVpn.Password = testutils.Password
+
+				return conf
+			}(),
 			">CLIENT:DISCONNECT,0\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END\r\n",
 			"",
 			nil,
 		},
 		{
 			"client invalid reason 1",
-			config.Config{
-				HTTP: config.HTTP{
-					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.Secret,
-				},
-				OpenVpn: config.OpenVpn{
-					CommonName: config.OpenVPNCommonName{
-						EnvironmentVariableName: "common_name",
-					},
-					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
-					Password: "password",
-				},
-			},
+			func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
+				conf.HTTP.Secret = testutils.Secret
+				conf.OpenVpn.CommonName.EnvironmentVariableName = config.CommonName
+				conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: []string{"bypass"}}
+				conf.OpenVpn.Password = testutils.Password
+
+				return conf
+			}(),
 			">CLIENT:FOO,0\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END\r\n",
 			"",
 			connection.ErrParseErrorClientReason,
 		},
 		{
 			"client invalid reason 2",
-			config.Config{
-				HTTP: config.HTTP{
-					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.Secret,
-				},
-				OpenVpn: config.OpenVpn{
-					CommonName: config.OpenVPNCommonName{
-						EnvironmentVariableName: "common_name",
-					},
-					Bypass:   config.OpenVpnBypass{CommonNames: []string{"bypass"}},
-					Password: "password",
-				},
-			},
+
+			func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
+				conf.HTTP.Secret = testutils.Secret
+				conf.OpenVpn.CommonName.EnvironmentVariableName = config.CommonName
+				conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: []string{"bypass"}}
+				conf.OpenVpn.Password = testutils.Password
+
+				return conf
+			}(),
 			">CLIENT:CONNECT1,0,1\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END\r\n",
 			"",
 			openvpn.ErrUnknownClientReason,
 		},
-	}
-
-	for _, tt := range confs {
-		t.Run(tt.name, func(t *testing.T) {
+	} {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
+
+			ctx, cancel := context.WithCancel(t.Context())
+			t.Cleanup(cancel)
 
 			logger := testutils.NewTestLogger()
 
@@ -315,82 +268,75 @@ func TestClientFull(t *testing.T) {
 				require.NoError(t, managementInterface.Close())
 			})
 
-			tt.conf.OpenVpn.Addr = &config.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
-
-			ctx, cancel := context.WithCancel(t.Context())
-			t.Cleanup(cancel)
+			tc.conf.OpenVpn.Addr = &config.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
 			tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
-			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, tt.conf, logger.Logger, http.DefaultClient, tokenStorage)
+			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, tc.conf, logger.Logger, http.DefaultClient, tokenStorage)
 
-			wg := sync.WaitGroup{}
-			wg.Add(1)
+			managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
+			require.NoError(t, err)
+			t.Cleanup(func() {
+				require.NoError(t, managementInterfaceConn.Close())
 
-			go func() {
-				defer wg.Done()
-
-				conn, err := managementInterface.Accept()
-				require.NoError(t, err) //nolint:testifylint
-
-				defer conn.Close()
-
-				reader := bufio.NewReader(conn)
-
-				if tt.conf.OpenVpn.Password != "" {
-					testutils.SendAndExpectMessage(t, conn, reader, "ENTER PASSWORD:", tt.conf.OpenVpn.Password.String())
-					testutils.SendMessage(t, conn, "SUCCESS: password is correct")
+				select {
+				case err := <-errOpenVPNClientCh:
+					if err != nil && !errors.Is(err, io.EOF) {
+						if tc.err != nil {
+							require.ErrorIs(t, err, tc.err)
+						} else {
+							require.NoError(t, err)
+						}
+					}
+				case <-time.After(1 * time.Second):
+					t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", logger.String())
 				}
+			})
 
-				testutils.ExpectVersionAndReleaseHold(t, conn, reader)
-				testutils.SendMessage(t, conn, tt.client)
+			reader := bufio.NewReader(managementInterfaceConn)
 
-				if tt.err != nil {
-					_, _ = reader.ReadString('\n')
+			if tc.conf.OpenVpn.Password != "" {
+				testutils.SendAndExpectMessage(t, managementInterfaceConn, reader, "ENTER PASSWORD:", tc.conf.OpenVpn.Password.String())
+				testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: password is correct")
+			}
 
-					return
-				} else if tt.expect == "" {
-					return
-				}
+			testutils.ExpectVersionAndReleaseHold(t, managementInterfaceConn, reader)
+			testutils.SendMessage(t, managementInterfaceConn, tc.client)
 
-				auth := testutils.ReadLine(t, conn, reader)
+			if tc.err != nil {
+				_, _ = reader.ReadString('\n')
 
-				if strings.Contains(tt.expect, "WEB_AUTH") {
-					assert.Contains(t, auth, tt.expect)
-				} else {
-					assert.Equal(t, tt.expect, auth, logger.String())
-				}
+				return
+			} else if tc.expect == "" {
+				return
+			}
 
-				if strings.Contains(tt.client, "CLIENT:ENV,password=") {
-					assert.Contains(t, logger.String(), `CLIENT:ENV,password=***`, logger.String())
-				}
+			auth := testutils.ReadLine(t, managementInterfaceConn, reader)
 
-				testutils.SendMessage(t, conn, "SUCCESS: %s command succeeded\r\n", strings.SplitN(auth, " ", 2)[0])
-
-				if strings.Contains(auth, "client-deny") {
-					testutils.SendMessage(t, conn, ">CLIENT:DISCONNECT,0\r\n>CLIENT:ENV,END")
-				} else if strings.Contains(auth, "WEB_AUTH::") {
-					matches := regexp.MustCompile(`state=(.+)"`).FindStringSubmatch(auth)
-					assert.Len(t, matches, 2)
-
-					sessionState, err := state.NewWithEncodedToken(matches[1], tt.conf.HTTP.Secret.String())
-					require.NoError(t, err) //nolint:testifylint
-
-					assert.Equal(t, uint64(1), sessionState.Client.CID)
-					assert.Equal(t, uint64(2), sessionState.Client.KID)
-					assert.Equal(t, "test", sessionState.CommonName)
-					assert.Equal(t, "127.0.0.1", sessionState.IPAddr)
-				}
-			}()
-
-			err = openVPNClient.Connect(t.Context())
-			if tt.err != nil {
-				require.ErrorIs(t, err, tt.err)
+			if strings.Contains(tc.expect, "WEB_AUTH") {
+				require.Contains(t, auth, tc.expect)
 			} else {
-				wg.Wait()
+				require.Equal(t, tc.expect, auth, logger.String())
+			}
 
-				if err != nil && !errors.Is(err, io.EOF) {
-					require.NoError(t, err)
-				}
+			if strings.Contains(tc.client, "CLIENT:ENV,password=") {
+				require.Contains(t, logger.String(), `CLIENT:ENV,password=***`, logger.String())
+			}
+
+			testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: %s command succeeded\r\n", strings.SplitN(auth, " ", 2)[0])
+
+			if strings.Contains(auth, "client-deny") {
+				testutils.SendMessage(t, managementInterfaceConn, ">CLIENT:DISCONNECT,0\r\n>CLIENT:ENV,END")
+			} else if strings.Contains(auth, "WEB_AUTH::") {
+				matches := regexp.MustCompile(`state=(.+)"`).FindStringSubmatch(auth)
+				require.Len(t, matches, 2)
+
+				sessionState, err := state.NewWithEncodedToken(matches[1], tc.conf.HTTP.Secret.String())
+				require.NoError(t, err)
+
+				require.Equal(t, uint64(1), sessionState.Client.CID)
+				require.Equal(t, uint64(2), sessionState.Client.KID)
+				require.Equal(t, "test", sessionState.CommonName)
+				require.Equal(t, "127.0.0.1", sessionState.IPAddr)
 			}
 		})
 	}
@@ -399,13 +345,16 @@ func TestClientFull(t *testing.T) {
 func TestClientInvalidPassword(t *testing.T) {
 	t.Parallel()
 
+	ctx, cancel := context.WithCancel(t.Context())
+	t.Cleanup(cancel)
+
 	logger := testutils.NewTestLogger()
 
 	managementInterface, err := nettest.NewLocalListener("tcp")
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
-		managementInterface.Close()
+		require.NoError(t, managementInterface.Close())
 	})
 
 	conf := config.Config{
@@ -420,45 +369,33 @@ func TestClientInvalidPassword(t *testing.T) {
 		},
 	}
 
-	ctx, cancel := context.WithCancel(t.Context())
-	t.Cleanup(cancel)
-
 	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
 	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
-	go func() {
-		conn, err := managementInterface.Accept()
-		require.NoError(t, err) //nolint:testifylint
+	managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		require.NoError(t, managementInterfaceConn.Close())
+	})
 
-		defer conn.Close()
-		reader := bufio.NewReader(conn)
+	reader := bufio.NewReader(managementInterfaceConn)
 
-		testutils.SendMessage(t, conn, "ENTER PASSWORD:")
-		testutils.ExpectMessage(t, conn, reader, conf.OpenVpn.Password.String())
-		testutils.SendMessage(t, conn, "ERROR: bad password")
-	}()
+	testutils.SendMessage(t, managementInterfaceConn, "ENTER PASSWORD:")
+	testutils.ExpectMessage(t, managementInterfaceConn, reader, conf.OpenVpn.Password.String())
+	testutils.SendMessage(t, managementInterfaceConn, "ERROR: bad password")
 
-	err = openVPNClient.Connect(t.Context())
-
-	require.ErrorIs(t, err, openvpn.ErrInvalidPassword)
+	select {
+	case err := <-errOpenVPNClientCh:
+		require.ErrorIs(t, err, openvpn.ErrInvalidPassword)
+	case <-time.After(1 * time.Second):
+		t.Fatal("timeout waiting for connection to close")
+	}
 }
 
 func TestClientInvalidVersion(t *testing.T) {
 	t.Parallel()
 
-	logger := testutils.NewTestLogger()
-
-	conf := config.Config{
-		HTTP: config.HTTP{
-			BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
-			Secret:  testutils.Secret,
-		},
-		OpenVpn: config.OpenVpn{
-			Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
-		},
-	}
-
-	versions := []struct {
+	for _, tc := range []struct {
 		name    string
 		version string
 		err     error
@@ -478,46 +415,33 @@ func TestClientInvalidVersion(t *testing.T) {
 			"OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 4\r\nEND\r\n",
 			openvpn.ErrRequireManagementInterfaceVersion5,
 		},
-	}
-
-	for _, tt := range versions {
-		t.Run(tt.name, func(t *testing.T) {
-			conf := conf
-
+	} {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
+
+			ctx, cancel := context.WithCancel(t.Context())
+			t.Cleanup(cancel)
+
+			logger := testutils.NewTestLogger()
 
 			managementInterface, err := nettest.NewLocalListener("tcp")
 			require.NoError(t, err)
 
 			t.Cleanup(func() {
-				managementInterface.Close()
+				require.NoError(t, managementInterface.Close())
 			})
 
+			conf := config.Defaults
+			conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
+			conf.HTTP.Secret = testutils.Secret
+			conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: []string{"bypass"}}
 			conf.OpenVpn.Addr = &config.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
-
-			ctx, cancel := context.WithCancel(t.Context())
-			t.Cleanup(cancel)
 
 			tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
 			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
-			wg := sync.WaitGroup{}
-			wg.Add(1)
-
-			errCh := make(chan error, 1)
-
-			go func() {
-				defer wg.Done()
-
-				errCh <- openVPNClient.Connect(ctx)
-			}()
-
-			managementInterfaceConn, err := managementInterface.Accept()
+			managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
 			require.NoError(t, err)
-
-			t.Cleanup(func() {
-				managementInterfaceConn.Close()
-			})
 
 			reader := bufio.NewReader(managementInterfaceConn)
 
@@ -526,19 +450,23 @@ func TestClientInvalidVersion(t *testing.T) {
 				"version",
 			)
 
-			testutils.SendMessage(t, managementInterfaceConn, tt.version)
+			testutils.SendMessage(t, managementInterfaceConn, tc.version)
 
-			wg.Wait()
-
-			err = <-errCh
-
-			require.ErrorIs(t, err, tt.err)
+			select {
+			case err := <-errOpenVPNClientCh:
+				require.ErrorIs(t, err, tc.err)
+			case <-time.After(1 * time.Second):
+				t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", logger.String())
+			}
 		})
 	}
 }
 
-func TestSIGHUP(t *testing.T) {
+func TestHoldRelease(t *testing.T) {
 	t.Parallel()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	t.Cleanup(cancel)
 
 	logger := testutils.NewTestLogger()
 
@@ -556,56 +484,98 @@ func TestSIGHUP(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
-		managementInterface.Close()
+		require.NoError(t, managementInterface.Close())
 	})
 
 	conf.OpenVpn.Addr = &config.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
+	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
+	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
+
+	managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
+	require.NoError(t, err)
+
+	reader := bufio.NewReader(managementInterfaceConn)
+
+	testutils.ExpectVersionAndReleaseHold(t, managementInterfaceConn, reader)
+
+	for range 10 {
+		testutils.SendAndExpectMessage(t, managementInterfaceConn, reader,
+			">HOLD:Waiting for hold release:0",
+			"hold release",
+		)
+	}
+
+	require.NoError(t, managementInterfaceConn.Close())
+
+	select {
+	case err := <-errOpenVPNClientCh:
+		require.NoError(t, err)
+	case <-time.After(1 * time.Second):
+		t.Fatal("timeout waiting for connection to close")
+	}
+}
+
+func TestCommandTimeout(t *testing.T) {
+	t.Parallel()
+
 	ctx, cancel := context.WithCancel(t.Context())
 	t.Cleanup(cancel)
+
+	logger := testutils.NewTestLogger()
+
+	conf := config.Config{
+		HTTP: config.HTTP{
+			BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
+			Secret:  testutils.Secret,
+		},
+		OpenVpn: config.OpenVpn{
+			Bypass:         config.OpenVpnBypass{CommonNames: make([]string, 0)},
+			CommandTimeout: time.Millisecond * 300,
+		},
+	}
+
+	managementInterface, err := nettest.NewLocalListener("tcp")
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		require.NoError(t, managementInterface.Close())
+	})
+
+	conf.OpenVpn.Addr = &config.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
 	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
 	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
-	wg := sync.WaitGroup{}
-	wg.Add(2)
+	managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
+	require.NoError(t, err)
 
-	errCh := make(chan error, 2)
+	reader := bufio.NewReader(managementInterfaceConn)
 
-	go func() {
-		defer wg.Done()
+	testutils.ExpectVersionAndReleaseHold(t, managementInterfaceConn, reader)
 
-		conn, err := managementInterface.Accept()
-		require.NoError(t, err) //nolint:testifylint
-
-		defer conn.Close()
-		reader := bufio.NewReader(conn)
-
-		testutils.ExpectVersionAndReleaseHold(t, conn, reader)
-
-		for range 10 {
-			testutils.SendAndExpectMessage(t, conn, reader,
-				">HOLD:Waiting for hold release:0",
-				"hold release",
-			)
-		}
+	defer func() {
+		testutils.ExpectMessage(t, managementInterfaceConn, reader, "help")
+		testutils.SendMessage(t, managementInterfaceConn, "")
 	}()
 
-	go func() {
-		defer wg.Done()
+	_, err = openVPNClient.SendCommandf("help")
+	require.ErrorIs(t, err, openvpn.ErrTimeout)
 
-		errCh <- openVPNClient.Connect(ctx)
-	}()
+	openVPNClient.Shutdown()
 
-	require.NoError(t, <-errCh)
-
-	wg.Wait()
+	select {
+	case err := <-errOpenVPNClientCh:
+		require.NoError(t, err, logger.String())
+	case <-time.After(1 * time.Second):
+		t.Fatal("timeout waiting for connection to close")
+	}
 }
 
 func TestDeadLocks(t *testing.T) {
 	t.Parallel()
 
-	for _, tt := range []struct {
+	for _, tc := range []struct {
 		name    string
 		message string
 	}{
@@ -618,70 +588,49 @@ func TestDeadLocks(t *testing.T) {
 			message: "\r\n",
 		},
 	} {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
+
+			ctx, cancel := context.WithCancel(t.Context())
+			t.Cleanup(cancel)
 
 			logger := testutils.NewTestLogger()
 
-			conf := config.Config{
-				HTTP: config.HTTP{
-					BaseURL: &config.URL{Scheme: "http", Host: "localhost"},
-					Secret:  testutils.Secret,
-				},
-				OpenVpn: config.OpenVpn{
-					Bypass: config.OpenVpnBypass{CommonNames: make([]string, 0)},
-				},
-			}
+			conf := config.Defaults
+			conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
+			conf.HTTP.Secret = testutils.Secret
+			conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: make([]string, 0)}
 
 			managementInterface, err := nettest.NewLocalListener("tcp")
 			require.NoError(t, err)
 
 			t.Cleanup(func() {
-				managementInterface.Close()
+				require.NoError(t, managementInterface.Close())
 			})
 
 			conf.OpenVpn.Addr = &config.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
-			ctx, cancel := context.WithCancel(t.Context())
-			t.Cleanup(cancel)
-
 			tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
 			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
-			wg := sync.WaitGroup{}
-			wg.Add(2)
+			managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
+			require.NoError(t, err)
 
-			errCh := make(chan error, 2)
+			reader := bufio.NewReader(managementInterfaceConn)
+			testutils.ExpectVersionAndReleaseHold(t, managementInterfaceConn, reader)
 
-			go func() {
-				defer wg.Done()
+			for range 12 {
+				testutils.SendMessage(t, managementInterfaceConn, tc.message)
+			}
 
-				conn, err := managementInterface.Accept()
-				if err != nil {
-					errCh <- fmt.Errorf("accepting connection: %w", err)
+			require.NoError(t, managementInterfaceConn.Close())
 
-					return
-				}
-
-				defer conn.Close()
-				reader := bufio.NewReader(conn)
-
-				testutils.ExpectVersionAndReleaseHold(t, conn, reader)
-
-				for range 12 {
-					testutils.SendMessage(t, conn, tt.message)
-				}
-			}()
-
-			go func() {
-				defer wg.Done()
-
-				errCh <- openVPNClient.Connect(ctx)
-			}()
-
-			require.NoError(t, <-errCh)
-
-			wg.Wait()
+			select {
+			case err := <-errOpenVPNClientCh:
+				require.NoError(t, err)
+			case <-time.After(1 * time.Second):
+				t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", logger.String())
+			}
 		})
 	}
 }
@@ -689,7 +638,7 @@ func TestDeadLocks(t *testing.T) {
 func TestInvalidCommandResponses(t *testing.T) {
 	t.Parallel()
 
-	for _, tt := range []struct {
+	for _, tc := range []struct {
 		name    string
 		message string
 	}{
@@ -702,8 +651,11 @@ func TestInvalidCommandResponses(t *testing.T) {
 			message: "ERROR:    ",
 		},
 	} {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
+
+			ctx, cancel := context.WithCancel(t.Context())
+			t.Cleanup(cancel)
 
 			logger := testutils.NewTestLogger()
 
@@ -721,53 +673,36 @@ func TestInvalidCommandResponses(t *testing.T) {
 			require.NoError(t, err)
 
 			t.Cleanup(func() {
-				managementInterface.Close()
+				require.NoError(t, managementInterface.Close())
 			})
 
 			conf.OpenVpn.Addr = &config.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
-			ctx, cancel := context.WithCancel(t.Context())
-			t.Cleanup(cancel)
-
 			tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
 			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
-			wg := sync.WaitGroup{}
-			wg.Add(2)
+			managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
+			require.NoError(t, err)
 
-			errCh := make(chan error, 2)
+			reader := bufio.NewReader(managementInterfaceConn)
 
-			go func() {
-				defer wg.Done()
+			testutils.ExpectVersionAndReleaseHold(t, managementInterfaceConn, reader)
+			testutils.SendAndExpectMessage(t, managementInterfaceConn, reader,
+				">HOLD:Waiting for hold release:0",
+				"hold release",
+			)
 
-				conn, err := managementInterface.Accept()
-				if err != nil {
-					errCh <- fmt.Errorf("accepting connection: %w", err)
+			testutils.SendMessage(t, managementInterfaceConn, tc.message)
 
-					return
-				}
+			require.NoError(t, managementInterfaceConn.Close())
 
-				defer conn.Close()
-				reader := bufio.NewReader(conn)
-
-				testutils.ExpectVersionAndReleaseHold(t, conn, reader)
-				testutils.SendAndExpectMessage(t, conn, reader,
-					">HOLD:Waiting for hold release:0",
-					"hold release",
-				)
-
-				testutils.SendMessage(t, conn, tt.message)
-			}()
-
-			go func() {
-				defer wg.Done()
-
-				errCh <- openVPNClient.Connect(ctx)
-			}()
-
-			require.NoError(t, <-errCh)
-
-			wg.Wait()
+			select {
+			case err := <-errOpenVPNClientCh:
+				require.NoError(t, err)
+				require.Contains(t, logger.String(), "command response not accepted")
+			case <-time.After(3 * time.Second):
+				t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", logger.String())
+			}
 		})
 	}
 }

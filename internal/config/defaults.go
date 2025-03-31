@@ -9,6 +9,10 @@ import (
 	"golang.org/x/oauth2"
 )
 
+const (
+	CommonName = "common_name"
+)
+
 //nolint:gochecknoglobals
 var Defaults = Config{
 	Debug: Debug{
@@ -57,6 +61,7 @@ var Defaults = Config{
 			SocketMode:  660,
 			SocketGroup: "",
 		},
+		CommandTimeout: 10 * time.Second,
 	},
 	OAuth2: OAuth2{
 		AuthStyle: OAuth2AuthStyle(oauth2.AuthStyleInParams),

@@ -175,6 +175,7 @@ http:
 						SocketMode:  0o666,
 						Password:    "password",
 					},
+					CommandTimeout: 10 * time.Second,
 				},
 				OAuth2: config.OAuth2{
 					Issuer: &config.URL{
