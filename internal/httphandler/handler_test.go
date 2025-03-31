@@ -14,6 +14,8 @@ import (
 )
 
 func TestAssets(t *testing.T) {
+	t.Parallel()
+
 	logger := testutils.NewTestLogger()
 
 	conf := config.Defaults
@@ -33,6 +35,7 @@ func TestAssets(t *testing.T) {
 			Data: []byte("index"),
 		},
 	}
+
 	handler := httphandler.New(config.Defaults, oAuth2Client, assetsFs)
 
 	require.HTTPBodyContains(t, handler.ServeHTTP, http.MethodGet, "/assets/index.txt", nil, "index")
