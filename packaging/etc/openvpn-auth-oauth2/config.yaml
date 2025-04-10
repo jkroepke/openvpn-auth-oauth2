@@ -30,7 +30,6 @@
 #    token: "https://idp/oauth/token"
 #  issuer: "https://idp"
 #  provider: "generic"
-#  override-username: false
 #  scopes:
 #    - "openid"
 #    - "profile"
@@ -68,6 +67,7 @@
 #    environment-variable-name: common_name
 #    mode: plain
 #  password: ""
+#  override-username: false # (requires OpenVPN 2.7 server)
 #pass-through:
 #  enabled: false
 #  address: "unix:///run/openvpn/pass-through.sock"
