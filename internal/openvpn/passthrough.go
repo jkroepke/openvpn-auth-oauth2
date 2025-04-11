@@ -203,7 +203,7 @@ func (c *Client) handlePassThroughClientCommands(ctx context.Context, conn net.C
 		}
 	}
 
-	if err = c.scanner.Err(); err != nil {
+	if err = scanner.Err(); err != nil {
 		return fmt.Errorf("pass-through: unable to read from client: %w", err)
 	}
 
