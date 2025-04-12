@@ -69,6 +69,7 @@ func (p Provider) extractGroups(ctx context.Context, logger *slog.Logger, tokens
 		return groups, nil
 	case []any:
 		var convertedGroups []string
+
 		for _, group := range groups {
 			strGroup, ok := group.(string)
 			if !ok {
