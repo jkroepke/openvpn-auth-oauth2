@@ -87,3 +87,4 @@ $RECYCLE.BIN/
 Test*.te*
 *.test.exe
 *.test
+*.c
