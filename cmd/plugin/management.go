@@ -182,3 +182,19 @@ func (m *ManagementClient) writeToClient(message string) {
 		m.logger.Error(fmt.Errorf("unable to write to client: %w", err).Error())
 	}
 }
+
+func (m *ManagementClient) SendClient(client Client) error {
+	if m.connection == nil {
+		return fmt.Errorf("no connection to client")
+	}
+
+	if err := m.connection.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil {
+		return fmt.Errorf("unable to set write deadline: %w", err)
+	}
+
+	if _, err := m.connection.Write([]byte(client.String())); err != nil {
+		return fmt.Errorf("unable to write to client: %w", err)
+	}
+
+	return nil
+}
