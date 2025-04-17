@@ -91,6 +91,38 @@ func (s *Server) Listen(ctx context.Context) error {
 	return nil
 }
 
+func (s *Server) GetCertificateFunc() func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
+	return func(_ *tls.ClientHelloInfo) (*tls.Certificate, error) {
+		s.tlsCertificateMu.RLock()
+		defer s.tlsCertificateMu.RUnlock()
+
+		return s.tlsCertificate, nil
+	}
+}
+
+func (s *Server) Reload() error {
+	if !s.conf.TLS {
+		return nil
+	}
+
+	certs, err := tls.LoadX509KeyPair(s.conf.CertFile, s.conf.KeyFile)
+	if err != nil {
+		return fmt.Errorf("tls.LoadX509KeyPair: %w", err)
+	}
+
+	s.tlsCertificateMu.Lock()
+
+	if s.tlsCertificate != nil {
+		s.logger.Info("reloading TLS certificate")
+	}
+
+	s.tlsCertificate = &certs
+
+	s.tlsCertificateMu.Unlock()
+
+	return nil
+}
+
 func (s *Server) serve(ctx context.Context) error {
 	if s.server == nil {
 		return fmt.Errorf("http %s server is nil", s.name)
@@ -133,38 +165,6 @@ func (s *Server) serve(ctx context.Context) error {
 	if err = s.server.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("http.Serve: %w", err)
 	}
-
-	return nil
-}
-
-func (s *Server) GetCertificateFunc() func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
-	return func(_ *tls.ClientHelloInfo) (*tls.Certificate, error) {
-		s.tlsCertificateMu.RLock()
-		defer s.tlsCertificateMu.RUnlock()
-
-		return s.tlsCertificate, nil
-	}
-}
-
-func (s *Server) Reload() error {
-	if !s.conf.TLS {
-		return nil
-	}
-
-	certs, err := tls.LoadX509KeyPair(s.conf.CertFile, s.conf.KeyFile)
-	if err != nil {
-		return fmt.Errorf("tls.LoadX509KeyPair: %w", err)
-	}
-
-	s.tlsCertificateMu.Lock()
-
-	if s.tlsCertificate != nil {
-		s.logger.Info("reloading TLS certificate")
-	}
-
-	s.tlsCertificate = &certs
-
-	s.tlsCertificateMu.Unlock()
 
 	return nil
 }

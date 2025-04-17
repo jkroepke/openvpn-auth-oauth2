@@ -50,6 +50,41 @@ func NewWithEncodedToken(encodedState, secretKey string) (State, error) {
 	return state, nil
 }
 
+func (state *State) Encode(secretKey string) (string, error) {
+	var data bytes.Buffer
+
+	data.Grow(512)
+	data.WriteString(strconv.FormatUint(state.Client.CID, 10))
+	data.WriteString(" ")
+	data.WriteString(strconv.FormatUint(state.Client.KID, 10))
+	data.WriteString(" ")
+	data.WriteString(encodeString(state.Client.AuthFailedReasonFile))
+	data.WriteString(" ")
+	data.WriteString(encodeString(state.Client.AuthControlFile))
+	data.WriteString(" ")
+	data.WriteString(encodeString(state.Client.SessionID))
+	data.WriteString(" ")
+	data.WriteString(strconv.Itoa(state.Client.UsernameIsDefined))
+	data.WriteString(" ")
+	data.WriteString(encodeString(state.IPAddr))
+	data.WriteString(" ")
+	data.WriteString(encodeString(state.IPPort))
+	data.WriteString(" ")
+	data.WriteString(encodeString(state.CommonName))
+	data.WriteString(" ")
+	data.WriteString(encodeSessionState(state.SessionState))
+	data.WriteString(" ")
+	data.WriteString(strconv.FormatInt(state.Issued, 10))
+	data.WriteString("\r\n")
+
+	encrypted, err := crypto.EncryptBytesAES(data.Bytes(), secretKey)
+	if err != nil {
+		return "", fmt.Errorf("encrypt aes: %w", err)
+	}
+
+	return base64.RawURLEncoding.EncodeToString(encrypted), nil
+}
+
 func (state *State) decode(encodedState, secretKey string) error {
 	encrypted, err := base64.RawURLEncoding.DecodeString(encodedState)
 	if err != nil {
@@ -97,39 +132,12 @@ func (state *State) decode(encodedState, secretKey string) error {
 	return nil
 }
 
-func (state *State) Encode(secretKey string) (string, error) {
-	var data bytes.Buffer
-
-	data.Grow(512)
-	data.WriteString(strconv.FormatUint(state.Client.CID, 10))
-	data.WriteString(" ")
-	data.WriteString(strconv.FormatUint(state.Client.KID, 10))
-	data.WriteString(" ")
-	data.WriteString(encodeString(state.Client.AuthFailedReasonFile))
-	data.WriteString(" ")
-	data.WriteString(encodeString(state.Client.AuthControlFile))
-	data.WriteString(" ")
-	data.WriteString(encodeString(state.Client.SessionID))
-	data.WriteString(" ")
-	data.WriteString(strconv.Itoa(state.Client.UsernameIsDefined))
-	data.WriteString(" ")
-	data.WriteString(encodeString(state.IPAddr))
-	data.WriteString(" ")
-	data.WriteString(encodeString(state.IPPort))
-	data.WriteString(" ")
-	data.WriteString(encodeString(state.CommonName))
-	data.WriteString(" ")
-	data.WriteString(encodeSessionState(state.SessionState))
-	data.WriteString(" ")
-	data.WriteString(strconv.FormatInt(state.Issued, 10))
-	data.WriteString("\r\n")
-
-	encrypted, err := crypto.EncryptBytesAES(data.Bytes(), secretKey)
-	if err != nil {
-		return "", fmt.Errorf("encrypt aes: %w", err)
+func decodeString(text string) string {
+	if text == "\x00" {
+		return ""
 	}
 
-	return base64.RawURLEncoding.EncodeToString(encrypted), nil
+	return strings.ReplaceAll(text, "\x00", " ")
 }
 
 func encodeString(text string) string {
@@ -138,12 +146,4 @@ func encodeString(text string) string {
 	}
 
 	return strings.ReplaceAll(text, " ", "\x00")
-}
-
-func decodeString(text string) string {
-	if text == "\x00" {
-		return ""
-	}
-
-	return strings.ReplaceAll(text, "\x00", " ")
 }
