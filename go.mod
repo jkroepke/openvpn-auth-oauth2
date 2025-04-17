@@ -1,14 +1,14 @@
 module github.com/jkroepke/openvpn-auth-oauth2
 
-go 1.24
+go 1.24.0
 
 require (
 	github.com/go-viper/mapstructure/v2 v2.2.1
-	github.com/knadh/koanf/parsers/yaml v0.1.0
+	github.com/knadh/koanf/parsers/yaml v1.0.0
 	github.com/knadh/koanf/providers/basicflag v1.1.0
 	github.com/knadh/koanf/providers/env v1.1.0
 	github.com/knadh/koanf/providers/file v1.2.0
-	github.com/knadh/koanf/providers/structs v0.1.0
+	github.com/knadh/koanf/providers/structs v1.0.0
 	github.com/knadh/koanf/v2 v2.2.0
 	github.com/madflojo/testcerts v1.4.0
 	github.com/stretchr/testify v1.10.0
