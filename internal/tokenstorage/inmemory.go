@@ -32,28 +32,6 @@ func NewInMemory(ctx context.Context, encryptionKey string, expires time.Duratio
 	return storage
 }
 
-func (s *InMemory) collect(ctx context.Context) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-time.After(time.Minute * 5):
-			s.data.Range(func(client, data any) bool {
-				entry, ok := data.(item)
-				if !ok {
-					panic(data)
-				}
-
-				if entry.expires.Compare(time.Now()) == -1 {
-					s.data.Delete(client)
-				}
-
-				return true
-			})
-		}
-	}
-}
-
 func (s *InMemory) Set(client, token string) error {
 	encryptedBytes, err := crypto.EncryptBytesAES([]byte(token), s.encryptionKey)
 	if err != nil {
@@ -93,4 +71,26 @@ func (s *InMemory) Get(client string) (string, error) {
 
 func (s *InMemory) Delete(client string) {
 	s.data.Delete(client)
+}
+
+func (s *InMemory) collect(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(time.Minute * 5):
+			s.data.Range(func(client, data any) bool {
+				entry, ok := data.(item)
+				if !ok {
+					panic(data)
+				}
+
+				if entry.expires.Compare(time.Now()) == -1 {
+					s.data.Delete(client)
+				}
+
+				return true
+			})
+		}
+	}
 }
