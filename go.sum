@@ -34,8 +34,8 @@ github.com/knadh/koanf/maps v0.1.2 h1:RBfmAW5CnZT+PJ1CVc1QSJKf4Xu9kxfQgYVQSu8hpb
 github.com/knadh/koanf/maps v0.1.2/go.mod h1:npD/QZY3V6ghQDdcQzl1W4ICNVTkohC8E73eI2xW4yI=
 github.com/knadh/koanf/parsers/yaml v0.1.0 h1:ZZ8/iGfRLvKSaMEECEBPM1HQslrZADk8fP1XFUxVI5w=
 github.com/knadh/koanf/parsers/yaml v0.1.0/go.mod h1:cvbUDC7AL23pImuQP0oRw/hPuccrNBS2bps8asS0CwY=
-github.com/knadh/koanf/providers/basicflag v1.0.0 h1:qB0es/9fYsLuYnrKazxNCuWtkv3JFX1lI1druUsDDvY=
-github.com/knadh/koanf/providers/basicflag v1.0.0/go.mod h1:n0NlnaxXUCER/WIzRroT9q3Np+FiZ9pSjrC6A/OozI8=
+github.com/knadh/koanf/providers/basicflag v1.1.0 h1:CfNtK0cFuNm3akYZU/0Gs61dNd8J6Re1dN/1D0SEIxE=
+github.com/knadh/koanf/providers/basicflag v1.1.0/go.mod h1:N3YEWwgyt9lYTa4ZHcvgJI9IuI/cMbx6zo/qdkAUq2Y=
 github.com/knadh/koanf/providers/env v1.0.0 h1:ufePaI9BnWH+ajuxGGiJ8pdTG0uLEUWC7/HDDPGLah0=
 github.com/knadh/koanf/providers/env v1.0.0/go.mod h1:mzFyRZueYhb37oPmC1HAv/oGEEuyvJDA98r3XAa8Gak=
 github.com/knadh/koanf/providers/file v1.1.2 h1:aCC36YGOgV5lTtAFz2qkgtWdeQsgfxUkxDOe+2nQY3w=
