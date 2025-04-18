@@ -17,6 +17,7 @@ SupplementaryGroups=openvpn-auth-oauth2
 ExecStart=/usr/bin/openvpn-auth-oauth2 --config ${CONFIG_FILE}
 NoExecPaths=/
 ExecPaths=/usr/bin/openvpn-auth-oauth2
+ExecReload=kill -HUP $MAINPID
 
 Environment=CONFIG_FILE=/etc/openvpn-auth-oauth2/config.yaml
 EnvironmentFile=-/etc/sysconfig/openvpn-auth-oauth2
