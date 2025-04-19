@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/fs"
 	"log/slog"
 	"net/http"
 	"net/http/pprof"
@@ -25,7 +24,6 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/google"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/ui"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
@@ -89,22 +87,7 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 
 	openvpnClient.SetOAuth2Client(oAuth2Client)
 
-	var assetsFs fs.FS
-
-	if conf.HTTP.AssetPath == "" {
-		assetsFs, err = fs.Sub(ui.Static, "assets")
-		if err != nil {
-			logger.Error("failed to create assets file system",
-				slog.Any("err", err),
-			)
-
-			return 1
-		}
-	} else {
-		assetsFs = os.DirFS(conf.HTTP.AssetPath)
-	}
-
-	httpHandler := httphandler.New(conf, oAuth2Client, assetsFs)
+	httpHandler := httphandler.New(conf, oAuth2Client)
 
 	wg := sync.WaitGroup{}
 	defer wg.Wait()

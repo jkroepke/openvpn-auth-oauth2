@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/ui/assets"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/oauth2"
@@ -43,6 +44,7 @@ http:
 `,
 			func() config.Config {
 				conf := config.Defaults
+				conf.HTTP.AssetPath = assets.FS
 				conf.HTTP.CallbackTemplate = nil
 				conf.HTTP.Secret = "1jd93h5b6s82lf03jh5b2hf9"
 				conf.OAuth2.Issuer = &config.URL{
@@ -145,7 +147,7 @@ http:
 						Scheme: "http",
 						Host:   "localhost:9000",
 					},
-					AssetPath: ".",
+					AssetPath: os.DirFS("."),
 				},
 				OpenVpn: config.OpenVpn{
 					Addr: &config.URL{

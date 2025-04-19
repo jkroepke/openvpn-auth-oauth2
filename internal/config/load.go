@@ -58,6 +58,7 @@ func Load(mode int, configFile string, flagSet *flag.FlagSet) (Config, error) {
 				mapstructure.StringToTimeDurationHookFunc(),
 				mapstructure.TextUnmarshallerHookFunc(),
 				StringToTemplateHookFunc(),
+				StringToFSHookFunc(),
 			),
 			Metadata:         nil,
 			Result:           &conf,

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/ui"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/ui/assets"
 	"golang.org/x/oauth2"
 )
 
@@ -24,6 +25,7 @@ var Defaults = Config{
 		VPNClientIP: true,
 	},
 	HTTP: HTTP{
+		AssetPath: assets.FS,
 		BaseURL: &URL{
 			Scheme: "http",
 			Host:   "localhost:9000",

@@ -204,6 +204,10 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 		conf.HTTP.Secret = Secret
 	}
 
+	if conf.HTTP.AssetPath == nil {
+		conf.HTTP.AssetPath = fstest.MapFS{}
+	}
+
 	if conf.HTTP.CallbackTemplate == nil {
 		conf.HTTP.CallbackTemplate = config.Defaults.HTTP.CallbackTemplate
 	}
@@ -234,7 +238,7 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 
 	oAuth2Client, openvpnClient := SetupOpenVPNOAuth2Clients(ctx, tb, conf, logger.Logger, httpClient, tokenStorage)
 
-	httpHandler := httphandler.New(conf, oAuth2Client, fstest.MapFS{})
+	httpHandler := httphandler.New(conf, oAuth2Client)
 	httpClientListener := httptest.NewUnstartedServer(httpHandler)
 	require.NoError(tb, httpClientListener.Listener.Close())
 
