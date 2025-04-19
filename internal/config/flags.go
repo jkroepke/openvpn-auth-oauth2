@@ -138,7 +138,7 @@ func flagSetHTTP(flagSet *flag.FlagSet) {
 	)
 	flagSet.String(
 		"http.assets-path",
-		Defaults.HTTP.AssetPath,
+		"",
 		"Custom path to the assets directory. Files in this directory will be served under /assets/ and having an higher priority than the embedded assets.",
 	)
 }

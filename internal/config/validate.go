@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"slices"
 )
 
@@ -51,12 +50,6 @@ func validateHTTPConfig(conf Config) error {
 
 	if err := validateURL(conf.HTTP.BaseURL); err != nil {
 		return fmt.Errorf("http.baseurl: %w", err)
-	}
-
-	if conf.HTTP.AssetPath != "" {
-		if _, err := os.ReadDir(conf.HTTP.AssetPath); err != nil {
-			return fmt.Errorf("http.assets-path: %w", err)
-		}
 	}
 
 	if err := conf.HTTP.CallbackTemplate.Execute(io.Discard, map[string]string{

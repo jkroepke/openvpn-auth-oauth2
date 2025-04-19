@@ -46,6 +46,11 @@ func TestExecuteConfigInvalid(t *testing.T) {
 			"error parsing cli args: bad flag syntax: ---",
 		},
 		{
+			"unknown args",
+			[]string{"", "--http.asset-path"},
+			"flag provided but not defined",
+		},
+		{
 			"file not exists",
 			[]string{"", "--config=nonexists", "--http.listen=127.0.0.1:0"},
 			"error loading config: file provider: open nonexists: ",

@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"strings"
 	"text/template"
@@ -30,7 +31,7 @@ type HTTP struct {
 	CallbackTemplate   *template.Template `json:"template,omitempty"   koanf:"template"`
 	Check              HTTPCheck          `json:"check"                koanf:"check"`
 	EnableProxyHeaders bool               `json:"enable-proxy-headers" koanf:"enable-proxy-headers"`
-	AssetPath          string             `json:"assets-path"          koanf:"assets-path"`
+	AssetPath          fs.FS              `json:"assets-path"          koanf:"assets-path"`
 }
 
 type HTTPCheck struct {
