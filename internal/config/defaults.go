@@ -2,6 +2,7 @@ package config
 
 import (
 	"log/slog"
+	"net/url"
 	"text/template"
 	"time"
 
@@ -27,10 +28,10 @@ var Defaults = Config{
 	},
 	HTTP: HTTP{
 		AssetPath: types.FS{FS: assets.FS},
-		BaseURL: &types.URL{
+		BaseURL: types.URL{URL: &url.URL{
 			Scheme: "http",
 			Host:   "localhost:9000",
-		},
+		}},
 		Listen: ":9000",
 		TLS:    false,
 		Check: HTTPCheck{
@@ -39,11 +40,11 @@ var Defaults = Config{
 		Template: types.Template{Template: template.Must(template.New("index.gohtml").ParseFS(ui.Template, "index.gohtml"))},
 	},
 	OpenVpn: OpenVpn{
-		Addr: &types.URL{
+		Addr: types.URL{URL: &url.URL{
 			Scheme:   "unix",
 			Path:     "/run/openvpn/server.sock",
 			OmitHost: true,
-		},
+		}},
 		AuthTokenUser:      true,
 		AuthPendingTimeout: 3 * time.Minute,
 		CommonName: OpenVPNCommonName{
@@ -56,11 +57,11 @@ var Defaults = Config{
 		},
 		Passthrough: OpenVPNPassthrough{
 			Enabled: false,
-			Address: &types.URL{
+			Address: types.URL{URL: &url.URL{
 				Scheme:   "unix",
 				Path:     "/run/openvpn-auth-oauth2/server.sock",
 				OmitHost: true,
-			},
+			}},
 			SocketMode:  660,
 			SocketGroup: "",
 		},
@@ -70,11 +71,11 @@ var Defaults = Config{
 		AuthStyle: OAuth2AuthStyle(oauth2.AuthStyleInParams),
 		Client:    OAuth2Client{},
 		Endpoints: OAuth2Endpoints{
-			Auth:      &types.URL{Scheme: "", Host: ""},
-			Discovery: &types.URL{Scheme: "", Host: ""},
-			Token:     &types.URL{Scheme: "", Host: ""},
+			Auth:      types.URL{URL: &url.URL{Scheme: "", Host: ""}},
+			Discovery: types.URL{URL: &url.URL{Scheme: "", Host: ""}},
+			Token:     types.URL{URL: &url.URL{Scheme: "", Host: ""}},
 		},
-		Issuer:   &types.URL{Scheme: "", Host: ""},
+		Issuer:   types.URL{URL: &url.URL{Scheme: "", Host: ""}},
 		Nonce:    true,
 		PKCE:     true,
 		Provider: "generic",

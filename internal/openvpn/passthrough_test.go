@@ -5,6 +5,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"runtime"
@@ -187,16 +188,16 @@ func TestPassThroughFull(t *testing.T) {
 				require.NoError(t, managementInterface.Close())
 			})
 
-			tt.conf.OpenVpn.Addr = &types.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
+			tt.conf.OpenVpn.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
 
 			switch tt.scheme {
 			case openvpn.SchemeTCP:
-				tt.conf.OpenVpn.Passthrough.Address = &types.URL{Scheme: tt.scheme, Host: "127.0.0.1:0"}
+				tt.conf.OpenVpn.Passthrough.Address = types.URL{URL: &url.URL{Scheme: tt.scheme, Host: "127.0.0.1:0"}}
 			case openvpn.SchemeUnix:
 				temp, err := nettest.LocalPath()
 				require.NoError(t, err)
 
-				tt.conf.OpenVpn.Passthrough.Address = &types.URL{Scheme: tt.scheme, Path: temp}
+				tt.conf.OpenVpn.Passthrough.Address = types.URL{URL: &url.URL{Scheme: tt.scheme, Path: temp}}
 			}
 
 			tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)

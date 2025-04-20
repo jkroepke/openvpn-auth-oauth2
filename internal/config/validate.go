@@ -20,7 +20,7 @@ func Validate(mode int, conf Config) error {
 	}
 
 	if mode == ManagementClient {
-		for key, value := range map[string]*types.URL{
+		for key, value := range map[string]types.URL{
 			"openvpn.addr": conf.OpenVpn.Addr,
 		} {
 			if value.IsEmpty() {
@@ -110,7 +110,7 @@ func validateOAuth2Config(conf Config) error {
 	return nil
 }
 
-func validateURL(uri *types.URL) error {
+func validateURL(uri types.URL) error {
 	if uri.IsEmpty() {
 		return nil
 	}

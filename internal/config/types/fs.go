@@ -36,7 +36,7 @@ func NewFS(filePath string) (FS, error) {
 //
 //goland:noinspection GoMixedReceiverTypes
 func (f *FS) IsEmpty() bool {
-	return f.FS == nil
+	return f == nil || f.FS == nil
 }
 
 // String returns the path of the template.

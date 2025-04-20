@@ -6,48 +6,61 @@ import (
 	"net/url"
 )
 
-type URL url.URL
+type URL struct {
+	*url.URL
+}
 
-func NewURL(u string) (*URL, error) {
+func NewURL(u string) (URL, error) {
 	stdURL, err := url.Parse(u)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse URL: %w", err)
+		return URL{}, fmt.Errorf("failed to parse URL: %w", err)
 	}
 
-	return (*URL)(stdURL), nil
+	return URL{stdURL}, nil
 }
 
+// IsEmpty checks if the URL is empty.
+//
+//goland:noinspection GoMixedReceiverTypes
 func (u *URL) IsEmpty() bool {
-	return u == nil || u.String() == ""
+	return u == nil || u.URL == nil || u.URL.String() == ""
 }
 
-func (u *URL) String() string {
-	return u.URL().String()
+// String returns the string representation of the URL.
+//
+//goland:noinspection GoMixedReceiverTypes
+func (u URL) String() string {
+	if u.IsEmpty() {
+		return ""
+	}
+
+	return u.URL.String()
 }
 
-func (u *URL) URL() *url.URL {
-	return (*url.URL)(u)
-}
-
-func (u *URL) JoinPath(elem ...string) *URL {
-	return (*URL)(u.URL().JoinPath(elem...))
-}
-
-func (u *URL) MarshalText() ([]byte, error) {
+// MarshalText implements [encoding.TextMarshaler] interface.
+//
+//goland:noinspection GoMixedReceiverTypes
+func (u URL) MarshalText() ([]byte, error) {
 	return []byte(u.String()), nil
 }
 
+// UnmarshalText implements the [encoding.TextUnmarshaler] interface.
+//
+//goland:noinspection GoMixedReceiverTypes
 func (u *URL) UnmarshalText(text []byte) error {
 	parsedURL, err := NewURL(string(text))
 	if err != nil {
 		return err
 	}
 
-	*u = *parsedURL
+	*u = parsedURL
 
 	return nil
 }
 
+// MarshalJSON implements the [json.Marshaler] interface.
+//
+//goland:noinspection GoMixedReceiverTypes
 func (u *URL) MarshalJSON() ([]byte, error) {
 	return json.Marshal(u.String()) //nolint:wrapcheck
 }

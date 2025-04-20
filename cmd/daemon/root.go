@@ -196,7 +196,7 @@ func setupDebugListener(ctx context.Context, logger *slog.Logger, conf config.Co
 func configure(args []string, logWriter io.Writer) (config.Config, error) {
 	conf, err := config.New(args, logWriter)
 	if err != nil {
-		return config.Config{}, fmt.Errorf("configuration parse error: %w", err)
+		return config.Config{}, fmt.Errorf("configuration error: %w", err)
 	}
 
 	if err = config.Validate(config.ManagementClient, conf); err != nil {

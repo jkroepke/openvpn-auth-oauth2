@@ -20,7 +20,11 @@ builds:
     flags:
       - -trimpath
     ldflags:
-      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser
+      - >-
+        -s -w
+        -X internal/version.Version={{.Version}}
+        -X internal/version.Commit={{.Commit}}
+        -X internal/version.Date={{.Date}}
 
 archives:
   - id: openvpn-auth-oauth2

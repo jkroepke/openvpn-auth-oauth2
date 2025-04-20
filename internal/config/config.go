@@ -22,7 +22,7 @@ func New(args []string, writer io.Writer) (Config, error) {
 	config := Defaults
 
 	if configFilePath := lookupConfigArgument(args); configFilePath != "" {
-		if err := config.ReadFromConfigFile(configFilePath); err != nil {
+		if err := config.ReadFromConfigFile(configFilePath); err != nil && !errors.Is(err, io.EOF) {
 			return Config{}, err
 		}
 	}
@@ -38,19 +38,18 @@ func New(args []string, writer io.Writer) (Config, error) {
 //
 //goland:noinspection GoMixedReceiverTypes
 func (c *Config) ReadFromConfigFile(configFilePath string) error {
-	configFile, err := os.OpenFile(configFilePath, os.O_RDONLY, 0o600)
+	configFile, err := os.Open(configFilePath)
 	if err != nil {
-		return fmt.Errorf("error opening c file %s: %w", configFilePath, err)
+		return fmt.Errorf("error opening config file %s: %w", configFilePath, err)
 	}
 
-	// Load the c file
-	if err = yaml.NewDecoder(configFile).Decode(c); err != nil {
-		return fmt.Errorf("error decoding c file %s: %w", configFilePath, err)
-	}
+	defer func() {
+		_ = configFile.Close()
+	}()
 
-	// Close the c file
-	if err = configFile.Close(); err != nil {
-		return fmt.Errorf("error closing c file %s: %w", configFilePath, err)
+	// Load the config file
+	if err = yaml.NewDecoder(configFile, yaml.DisallowUnknownField(), yaml.UseJSONUnmarshaler()).Decode(c); err != nil {
+		return fmt.Errorf("error decoding config file %s: %w", configFilePath, err)
 	}
 
 	return nil

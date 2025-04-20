@@ -30,9 +30,9 @@ type HTTP struct {
 	CertFile           string         `json:"cert"                 yaml:"cert"`
 	KeyFile            string         `json:"key"                  yaml:"key"`
 	TLS                bool           `json:"tls"                  yaml:"tls"`
-	BaseURL            *types.URL     `json:"baseurl"              yaml:"baseurl"`
+	BaseURL            types.URL      `json:"baseurl"              yaml:"baseurl"`
 	Secret             types.Secret   `json:"secret"               yaml:"secret"`
-	Template           types.Template `json:"template,omitempty"   yaml:"template"`
+	Template           types.Template `json:"template"             yaml:"template"`
 	Check              HTTPCheck      `json:"check"                yaml:"check"`
 	EnableProxyHeaders bool           `json:"enable-proxy-headers" yaml:"enable-proxy-headers"`
 	AssetPath          types.FS       `json:"assets-path"          yaml:"assets-path"`
@@ -49,7 +49,7 @@ type Log struct {
 }
 
 type OpenVpn struct {
-	Addr               *types.URL         `json:"addr"                 yaml:"addr"`
+	Addr               types.URL          `json:"addr"                 yaml:"addr"`
 	Password           types.Secret       `json:"password"             yaml:"password"`
 	Bypass             OpenVpnBypass      `json:"bypass"               yaml:"bypass"`
 	AuthTokenUser      bool               `json:"auth-token-user"      yaml:"auth-token-user"`
@@ -74,7 +74,7 @@ type OAuth2 struct {
 	AuthorizeParams string            `json:"authorize-params" yaml:"authorize-params"`
 	Client          OAuth2Client      `json:"client"           yaml:"client"`
 	Endpoints       OAuth2Endpoints   `json:"endpoint"         yaml:"endpoint"`
-	Issuer          *types.URL        `json:"issuer"           yaml:"issuer"`
+	Issuer          types.URL         `json:"issuer"           yaml:"issuer"`
 	Nonce           bool              `json:"nonce"            yaml:"nonce"`
 	PKCE            bool              `json:"pkce"             yaml:"pkce"`
 	Provider        string            `json:"provider"         yaml:"provider"`
@@ -91,9 +91,9 @@ type OAuth2Client struct {
 }
 
 type OAuth2Endpoints struct {
-	Discovery *types.URL `json:"discovery" yaml:"discovery"`
-	Auth      *types.URL `json:"auth"      yaml:"auth"`
-	Token     *types.URL `json:"token"     yaml:"token"`
+	Discovery types.URL `json:"discovery" yaml:"discovery"`
+	Auth      types.URL `json:"auth"      yaml:"auth"`
+	Token     types.URL `json:"token"     yaml:"token"`
 }
 
 type OAuth2Validate struct {
@@ -116,7 +116,7 @@ type OAuth2Refresh struct {
 
 type OpenVPNPassthrough struct {
 	Enabled     bool         `json:"enabled"      yaml:"enabled"`
-	Address     *types.URL   `json:"address"      yaml:"address"`
+	Address     types.URL    `json:"address"      yaml:"address"`
 	Password    types.Secret `json:"password"     yaml:"password"`
 	SocketMode  uint         `json:"socket-mode"  yaml:"socket-mode"`
 	SocketGroup string       `json:"socket-group" yaml:"socket-group"`

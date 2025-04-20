@@ -14,7 +14,7 @@ func TestExecuteVersion(t *testing.T) {
 	t.Parallel()
 
 	logger := testutils.NewTestLogger()
-	returnCode := daemon.Execute([]string{"", "--version"}, logger, "version", "commit", "date")
+	returnCode := daemon.Execute([]string{"", "--version"}, logger)
 	output := logger.String()
 
 	assert.Equal(t, 0, returnCode, output)
@@ -24,11 +24,11 @@ func TestExecuteHelp(t *testing.T) {
 	t.Parallel()
 
 	logger := testutils.NewTestLogger()
-	returnCode := daemon.Execute([]string{"openvpn-auth-oauth2-test", "--help"}, logger, "version", "commit", "date")
+	returnCode := daemon.Execute([]string{"openvpn-auth-oauth2", "--help"}, logger)
 	output := logger.String()
 
 	assert.Equal(t, 0, returnCode, output)
-	assert.Contains(t, output, "Usage of openvpn-auth-oauth2-test")
+	assert.Contains(t, output, "Usage of openvpn-auth-oauth2")
 	assert.Contains(t, output, "--version")
 }
 
@@ -43,7 +43,7 @@ func TestExecuteConfigInvalid(t *testing.T) {
 		{
 			"invalid args",
 			[]string{"", "---"},
-			"error parsing cli args: bad flag syntax: ---",
+			"bad flag syntax: ---",
 		},
 		{
 			"unknown args",
@@ -53,7 +53,7 @@ func TestExecuteConfigInvalid(t *testing.T) {
 		{
 			"file not exists",
 			[]string{"", "--config=nonexists", "--http.listen=127.0.0.1:0"},
-			"error loading config: file provider: open nonexists: ",
+			"configuration error: error opening config file nonexists: open nonexists: ",
 		},
 		{
 			"invalid log format",
@@ -115,11 +115,11 @@ func TestExecuteConfigInvalid(t *testing.T) {
 			})
 
 			logger := testutils.NewTestLogger()
-			returnCode := daemon.Execute(append(tt.args, "--openvpn.addr=tcp://"+managementInterface.Addr().String()), logger, "version", "commit", "date")
+			returnCode := daemon.Execute(append(tt.args, "--openvpn.addr=tcp://"+managementInterface.Addr().String()), logger)
 			output := logger.String()
 
 			assert.Equal(t, 1, returnCode, output)
-			assert.Contains(t, output, tt.err, output)
+			assert.Contains(t, output, tt.err)
 		})
 	}
 }

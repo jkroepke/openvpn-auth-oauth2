@@ -3,6 +3,7 @@ package oauth2_test
 import (
 	"context"
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -35,7 +36,7 @@ func TestNewProvider(t *testing.T) {
 		{
 			"default",
 			config.Config{
-				HTTP: config.HTTP{BaseURL: &types.URL{Scheme: "http", Host: "localhost"}},
+				HTTP: config.HTTP{BaseURL: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}},
 				OAuth2: config.OAuth2{
 					Issuer:    resourceServerURL,
 					Provider:  generic.Name,
@@ -48,13 +49,13 @@ func TestNewProvider(t *testing.T) {
 		{
 			"with custom discovery",
 			config.Config{
-				HTTP: config.HTTP{BaseURL: &types.URL{Scheme: "http", Host: "localhost"}},
+				HTTP: config.HTTP{BaseURL: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}},
 				OAuth2: config.OAuth2{
 					Issuer:   resourceServerURL,
 					Provider: generic.Name,
 					Client:   clientCredentials,
 					Endpoints: config.OAuth2Endpoints{
-						Discovery: &types.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-configuration"},
+						Discovery: types.URL{URL: &url.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-configuration"}},
 					},
 				},
 			},
@@ -63,13 +64,13 @@ func TestNewProvider(t *testing.T) {
 		{
 			"with invalid custom discovery",
 			config.Config{
-				HTTP: config.HTTP{BaseURL: &types.URL{Scheme: "http", Host: "localhost"}},
+				HTTP: config.HTTP{BaseURL: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}},
 				OAuth2: config.OAuth2{
 					Issuer:   resourceServerURL,
 					Provider: generic.Name,
 					Client:   clientCredentials,
 					Endpoints: config.OAuth2Endpoints{
-						Discovery: &types.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-config"},
+						Discovery: types.URL{URL: &url.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-config"}},
 					},
 				},
 			},
@@ -78,53 +79,54 @@ func TestNewProvider(t *testing.T) {
 		{
 			"with custom endpoints",
 			config.Config{
-				HTTP: config.HTTP{BaseURL: &types.URL{Scheme: "http", Host: "localhost"}},
+				HTTP: config.HTTP{BaseURL: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}},
 				OAuth2: config.OAuth2{
 					Issuer:   resourceServerURL,
 					Provider: generic.Name,
 					Client:   clientCredentials,
 					Endpoints: config.OAuth2Endpoints{
-						Discovery: &types.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-configuration"},
-						Auth:      &types.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/authorize"},
-						Token:     &types.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/token"},
+						Discovery: types.URL{URL: &url.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-configuration"}},
+						Auth:      types.URL{URL: &url.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/authorize"}},
+						Token:     types.URL{URL: &url.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/token"}},
 					},
 				},
 			},
 			"",
 		},
 		{
-			"with missing custom endpoints",
-			config.Config{
-				HTTP: config.HTTP{BaseURL: &types.URL{Scheme: "http", Host: "localhost"}},
+			name: "with missing custom endpoints",
+			conf: config.Config{
+				HTTP: config.HTTP{
+					BaseURL: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
+				},
 				OAuth2: config.OAuth2{
 					Issuer:   resourceServerURL,
 					Provider: generic.Name,
 					Client:   clientCredentials,
 					Endpoints: config.OAuth2Endpoints{
-						Discovery: &types.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-configuration"},
-						Auth:      &types.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/authorize"},
+						Discovery: types.URL{URL: &url.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-configuration"}},
+						Auth:      types.URL{URL: &url.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/authorize"}},
 					},
 				},
 			},
-			"error fetch configuration for provider generic: both oauth2.endpoints.tokenUrl and oauth2.endpoints.authUrl are required",
+			err: "error fetch configuration for provider generic: both oauth2.endpoints.tokenUrl and oauth2.endpoints.authUrl are required",
 		},
 		{
-			"with pkce",
-			config.Config{
-				HTTP: config.HTTP{BaseURL: &types.URL{Scheme: "http", Host: "localhost"}},
+			name: "with pkce",
+			conf: config.Config{
+				HTTP: config.HTTP{BaseURL: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}},
 				OAuth2: config.OAuth2{
 					Issuer:   resourceServerURL,
 					Provider: generic.Name,
 					PKCE:     true,
 					Client:   clientCredentials,
 					Endpoints: config.OAuth2Endpoints{
-						Discovery: &types.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-configuration"},
-						Auth:      &types.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/authorize"},
-						Token:     &types.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/token"},
+						Discovery: types.URL{URL: &url.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-configuration"}},
+						Auth:      types.URL{URL: &url.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/authorize"}},
+						Token:     types.URL{URL: &url.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/token"}},
 					},
 				},
 			},
-			"",
 		},
 	}
 	for _, tt := range tests {
@@ -165,13 +167,13 @@ func TestNewProvider(t *testing.T) {
 			assert.Equal(t, oAuth2Client.OAuthConfig().ClientID, tt.conf.OAuth2.Client.ID)
 			assert.Equal(t, oAuth2Client.OAuthConfig().ClientSecret, tt.conf.OAuth2.Client.Secret.String())
 
-			if tt.conf.OAuth2.Endpoints.Auth != nil {
+			if !tt.conf.OAuth2.Endpoints.Auth.IsEmpty() {
 				assert.Equal(t, oAuth2Client.OAuthConfig().Endpoint.AuthURL, tt.conf.OAuth2.Endpoints.Auth.String())
 			} else {
 				assert.NotEmpty(t, oAuth2Client.OAuthConfig().Endpoint.AuthURL)
 			}
 
-			if tt.conf.OAuth2.Endpoints.Token != nil {
+			if !tt.conf.OAuth2.Endpoints.Token.IsEmpty() {
 				assert.Equal(t, oAuth2Client.OAuthConfig().Endpoint.TokenURL, tt.conf.OAuth2.Endpoints.Token.String())
 			} else {
 				assert.NotEmpty(t, oAuth2Client.OAuthConfig().Endpoint.TokenURL)

@@ -1,7 +1,6 @@
 package types_test
 
 import (
-	"os"
 	"testing"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
@@ -46,10 +45,12 @@ func TestFSUnmarshalText(t *testing.T) {
 	t.Parallel()
 
 	dirFS := types.FS{}
-
 	require.NoError(t, dirFS.UnmarshalText([]byte(".")))
 
-	assert.Equal(t, os.DirFS("."), dirFS)
+	expectedDirFS, err := types.NewFS(".")
+	require.NoError(t, err)
+
+	assert.Equal(t, expectedDirFS, dirFS)
 }
 
 func TestFSMarshalText(t *testing.T) {

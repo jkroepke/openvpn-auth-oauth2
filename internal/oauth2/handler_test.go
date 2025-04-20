@@ -107,7 +107,7 @@ func TestHandler(t *testing.T) {
 		{
 			"with template",
 			func() config.Config {
-				tmpl, err := types.NewTemplate("LICENSE.txt")
+				tmpl, err := types.NewTemplate("../../LICENSE.txt")
 				require.NoError(t, err)
 
 				conf := config.Defaults

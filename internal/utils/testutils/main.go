@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -124,7 +125,7 @@ func ReadLine(tb testing.TB, conn net.Conn, reader *bufio.Reader) string {
 	return strings.TrimRightFunc(line, unicode.IsSpace)
 }
 
-func SetupResourceServer(tb testing.TB, clientListener net.Listener) (*httptest.Server, *types.URL, config.OAuth2Client, error) {
+func SetupResourceServer(tb testing.TB, clientListener net.Listener) (*httptest.Server, types.URL, config.OAuth2Client, error) {
 	tb.Helper()
 
 	client := oidcstorage.WebClient(
@@ -152,7 +153,7 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener) (*httptest.
 
 	opProvider, err := op.NewProvider(opConfig, opStorage, op.IssuerFromHost(""), op.WithAllowInsecure())
 	if err != nil {
-		return nil, nil, config.OAuth2Client{}, err //nolint:wrapcheck
+		return nil, types.URL{}, config.OAuth2Client{}, err //nolint:wrapcheck
 	}
 
 	mux := http.NewServeMux()
@@ -170,7 +171,7 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener) (*httptest.
 
 	resourceServerURL, err := types.NewURL(resourceServer.URL)
 	if err != nil {
-		return nil, nil, config.OAuth2Client{}, err //nolint:wrapcheck
+		return nil, types.URL{}, config.OAuth2Client{}, err //nolint:wrapcheck
 	}
 
 	return resourceServer, resourceServerURL, config.OAuth2Client{ID: client.GetID(), Secret: "SECRET"}, nil
@@ -198,7 +199,7 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 	_, resourceServerURL, clientCredentials, err := SetupResourceServer(tb, clientListener)
 	require.NoError(tb, err)
 
-	conf.HTTP.BaseURL = &types.URL{Scheme: "http", Host: clientListener.Addr().String()}
+	conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: clientListener.Addr().String()}}
 
 	if conf.HTTP.Secret == "" {
 		conf.HTTP.Secret = Secret
@@ -212,7 +213,7 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 		conf.HTTP.Template = config.Defaults.HTTP.Template
 	}
 
-	conf.OpenVpn.Addr = &types.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
+	conf.OpenVpn.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
 
 	if conf.OpenVpn.Bypass.CommonNames == nil {
 		conf.OpenVpn.Bypass.CommonNames = make([]string, 0)
@@ -272,9 +273,9 @@ func SetupOpenVPNOAuth2Clients(
 	}
 
 	if conf.OAuth2.Issuer.IsEmpty() {
-		conf.OAuth2.Issuer = &types.URL{Scheme: "http", Host: "example.com"}
-		conf.OAuth2.Endpoints.Auth = &types.URL{Scheme: "http", Host: "example.com", Path: "/auth"}
-		conf.OAuth2.Endpoints.Token = &types.URL{Scheme: "http", Host: "example.com", Path: "/token"}
+		conf.OAuth2.Issuer = types.URL{URL: &url.URL{Scheme: "http", Host: "example.com"}}
+		conf.OAuth2.Endpoints.Auth = types.URL{URL: &url.URL{Scheme: "http", Host: "example.com", Path: "/auth"}}
+		conf.OAuth2.Endpoints.Token = types.URL{URL: &url.URL{Scheme: "http", Host: "example.com", Path: "/token"}}
 	}
 
 	switch conf.OAuth2.Provider {

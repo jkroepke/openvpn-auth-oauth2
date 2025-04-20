@@ -111,7 +111,7 @@ func TestFull(t *testing.T) {
 					args = append(args, "--http.tls=true", "--http.cert="+cert, "--http.key="+key)
 				}
 
-				returnCode := daemon.Execute(args, buf, "version", "commit", "date")
+				returnCode := daemon.Execute(args, buf)
 
 				assert.Equal(t, 0, returnCode, buf.String())
 			}()
