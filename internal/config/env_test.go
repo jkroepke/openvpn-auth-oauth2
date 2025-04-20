@@ -24,6 +24,13 @@ func TestLookupEnvOrDefault(t *testing.T) {
 			expected:     "test2",
 		},
 		{
+			name:         "bool",
+			defaultValue: false,
+			input:        "true",
+			badInput:     "A",
+			expected:     true,
+		},
+		{
 			name:         "int",
 			defaultValue: 1336,
 			input:        "1337",
@@ -41,6 +48,7 @@ func TestLookupEnvOrDefault(t *testing.T) {
 			name:         "TextUnmarshaler",
 			defaultValue: &types.FS{FS: assets.FS},
 			input:        ".",
+			badInput:     "...",
 			expected: func() *types.FS {
 				f, err := types.NewFS(".")
 				require.NoError(t, err)
