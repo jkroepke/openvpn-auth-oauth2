@@ -7,7 +7,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 )
 
-func Execute(args []string, logWriter io.Writer, _, _, _ string) int {
+func Execute(args []string, logWriter io.Writer) int {
 	if len(args) != 5 {
 		_, _ = fmt.Fprintf(logWriter, "Unknown sub-command. Usage: %s state decrypt <secret> <state>\n", args[0])
 

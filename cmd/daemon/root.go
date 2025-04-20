@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"runtime/debug"
 	"sync"
 	"syscall"
 
@@ -25,12 +26,13 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/version"
 )
 
 // Execute runs the main program logic of openvpn-auth-oauth2.
 //
 //nolint:cyclop
-func Execute(args []string, logWriter io.Writer, version, commit, date string) int {
+func Execute(args []string, logWriter io.Writer) int {
 	conf, err := configure(args, logWriter)
 	if err != nil {
 		if errors.Is(err, flag.ErrHelp) {
@@ -38,7 +40,7 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 		}
 
 		if errors.Is(err, config.ErrVersion) {
-			_, _ = fmt.Fprintf(logWriter, "version: %s\ncommit: %s\ndate: %s\ngo: %s\n", version, commit, date, runtime.Version())
+			printVersion(logWriter)
 
 			return 0
 		}
@@ -218,4 +220,16 @@ func configureLogger(conf config.Config, writer io.Writer) (*slog.Logger, error)
 	default:
 		return nil, fmt.Errorf("unknown log format: %s", conf.Log.Format)
 	}
+}
+
+func printVersion(writer io.Writer) {
+	if version.Version == "dev" {
+		if buildInfo, ok := debug.ReadBuildInfo(); ok {
+			_, _ = fmt.Fprintf(writer, "version: %s\ngo: %s\n", buildInfo.Main.Version, buildInfo.GoVersion)
+
+			return
+		}
+	}
+
+	_, _ = fmt.Fprintf(writer, "version: %s\ncommit: %s\ndate: %s\ngo: %s\n", version.Version, version.Commit, version.Date, runtime.Version())
 }
