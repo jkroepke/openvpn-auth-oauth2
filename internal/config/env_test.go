@@ -12,6 +12,7 @@ func TestLookupEnvOrDefault(t *testing.T) {
 	for _, tc := range []struct {
 		name         string
 		input        string
+		badInput     string
 		defaultValue any
 		expected     any
 		panic        bool
@@ -26,12 +27,14 @@ func TestLookupEnvOrDefault(t *testing.T) {
 			name:         "int",
 			defaultValue: 1336,
 			input:        "1337",
+			badInput:     "A",
 			expected:     1337,
 		},
 		{
 			name:         "uint",
 			defaultValue: uint(1336),
 			input:        "1337",
+			badInput:     "A",
 			expected:     uint(1337),
 		},
 		{
@@ -59,6 +62,11 @@ func TestLookupEnvOrDefault(t *testing.T) {
 
 				t.Setenv("CONFIG_SET", tc.input)
 				require.Equal(t, tc.expected, lookupEnvOrDefault("set", tc.defaultValue))
+
+				if tc.badInput != "" {
+					t.Setenv("CONFIG_BAD", tc.badInput)
+					require.Equal(t, tc.defaultValue, lookupEnvOrDefault("bad", tc.defaultValue))
+				}
 			}
 
 			if tc.panic {
