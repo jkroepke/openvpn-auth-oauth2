@@ -114,6 +114,7 @@ linters:
     tagliatelle:
       case:
         rules:
+          yaml: kebab
           json: kebab
           koanf: kebab
     varnamelen:

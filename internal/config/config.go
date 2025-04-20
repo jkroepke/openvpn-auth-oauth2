@@ -120,12 +120,14 @@ func lookupConfigArgument(args []string) string {
 
 		if strings.HasPrefix(arg, "--config=") {
 			configFile = strings.TrimPrefix(arg, "--config=")
+
 			break
 		}
 
 		// check if the argument is --config without value and look for the next argument
 		if len(args) > i+1 {
 			configFile = args[i+1]
+
 			break
 		}
 	}
@@ -133,44 +135,37 @@ func lookupConfigArgument(args []string) string {
 	return configFile
 }
 
-func lookupEnvOrDefault[T any](key string, value T) T {
+func lookupEnvOrDefault[T any](key string, defaultValue T) T {
 	envValue, ok := os.LookupEnv(getEnvironmentVariableByFlagName(key))
 	if !ok {
-		return value
+		return defaultValue
 	}
 
-	switch v := any(value).(type) {
+	switch typedValue := any(defaultValue).(type) {
 	case string:
-		return any(envValue).(T)
+		return any(envValue).(T) //nolint:forcetypeassert
 	case bool:
 		if envValue == "true" {
-			return any(true).(T)
+			return any(true).(T) //nolint:forcetypeassert
 		}
 
-		return any(false).(T)
+		return any(false).(T) //nolint:forcetypeassert
 	case int:
 		intValue, err := strconv.Atoi(envValue)
 		if err != nil {
-			return value
+			return defaultValue
 		}
 
-		return any(intValue).(T)
-	case float64:
-		floatValue, err := strconv.ParseFloat(envValue, 64)
-		if err != nil {
-			return value
-		}
-
-		return any(floatValue).(T)
+		return any(intValue).(T) //nolint:forcetypeassert
 	case encoding.TextUnmarshaler:
-		if err := v.UnmarshalText([]byte(envValue)); err != nil {
-			return value
+		if err := typedValue.UnmarshalText([]byte(envValue)); err != nil {
+			return defaultValue
 		}
 
-		return any(v).(T)
+		return any(typedValue).(T) //nolint:forcetypeassert
 	default:
 		// If the type is not supported, panic
-		panic(fmt.Sprintf("unsupported type %T for environment variable %s", value, key))
+		panic(fmt.Sprintf("unsupported type %T for environment variable %s", defaultValue, key))
 	}
 }
 
