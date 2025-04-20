@@ -156,6 +156,13 @@ func lookupEnvOrDefault[T any](key string, defaultValue T) T {
 		}
 
 		return any(intValue).(T) //nolint:forcetypeassert
+	case uint:
+		intValue, err := strconv.ParseUint(envValue, 10, 0)
+		if err != nil {
+			return defaultValue
+		}
+
+		return any(uint(intValue)).(T) //nolint:forcetypeassert
 	case encoding.TextUnmarshaler:
 		if err := typedValue.UnmarshalText([]byte(envValue)); err != nil {
 			return defaultValue
@@ -172,5 +179,5 @@ func lookupEnvOrDefault[T any](key string, defaultValue T) T {
 // It replaces all dots with underscores and all dashes with double underscores.
 // It also converts the flag name to uppercase.
 func getEnvironmentVariableByFlagName(flagName string) string {
-	return strings.ReplaceAll(strings.ReplaceAll(strings.ToUpper(flagName), ".", "_"), "-", "__")
+	return "CONFIG_" + strings.ReplaceAll(strings.ReplaceAll(strings.ToUpper(flagName), ".", "_"), "-", "__")
 }

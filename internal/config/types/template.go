@@ -15,7 +15,7 @@ type Template struct {
 func NewTemplate(filePath string) (Template, error) {
 	tmpl, err := template.New(path.Base(filePath)).ParseFiles(filePath)
 	if err != nil {
-		return Template{}, fmt.Errorf("failed to parse URL: %w", err)
+		return Template{}, fmt.Errorf("failed to create template: %w", err)
 	}
 
 	return Template{tmpl, filePath}, nil
@@ -25,7 +25,7 @@ func NewTemplate(filePath string) (Template, error) {
 //
 //goland:noinspection GoMixedReceiverTypes
 func (t *Template) IsEmpty() bool {
-	return t.Template == nil || t.path == ""
+	return t == nil || t.Template == nil
 }
 
 // String returns the path of the template.
