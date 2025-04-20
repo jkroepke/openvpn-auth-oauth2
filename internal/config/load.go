@@ -70,6 +70,14 @@ func Load(mode int, configFile string, flagSet *flag.FlagSet) (Config, error) {
 		return Config{}, fmt.Errorf("error unmarschal config: %w", err)
 	}
 
+	// https://github.com/knadh/koanf
+	fs, err := conf.HTTP.AssetPath.Open(".")
+	if err != nil {
+		conf.HTTP.AssetPath = Defaults.HTTP.AssetPath
+	} else {
+		_ = fs.Close()
+	}
+
 	if err = Validate(mode, conf); err != nil {
 		return Config{}, fmt.Errorf("validation error: %w", err)
 	}
