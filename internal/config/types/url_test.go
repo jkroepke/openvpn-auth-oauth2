@@ -108,6 +108,7 @@ func TestURLUnmarshalText(t *testing.T) {
 			t.Parallel()
 
 			actualURL := types.URL{}
+
 			err := actualURL.UnmarshalText([]byte(tc.input))
 			if tc.err != "" {
 				require.ErrorContains(t, err, tc.err)

@@ -2,6 +2,7 @@ package types
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 )
@@ -12,7 +13,7 @@ type URL struct {
 
 func NewURL(u string) (URL, error) {
 	if u == "" {
-		return URL{}, fmt.Errorf("empty URL")
+		return URL{}, errors.New("empty URL")
 	}
 
 	stdURL, err := url.Parse(u)

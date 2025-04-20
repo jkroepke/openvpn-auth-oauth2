@@ -134,6 +134,12 @@ func lookupConfigArgument(args []string) string {
 	return configFile
 }
 
+// lookupEnvOrDefault looks up the environment variable by the flag name and returns the value.
+// If the environment variable is not set, it returns the default value.
+// It supports the following types: string, bool, int, uint and [encoding.TextUnmarshaler].
+// If the type is not supported, it panics.
+//
+//nolint:cyclop
 func lookupEnvOrDefault[T any](key string, defaultValue T) T {
 	envValue, ok := os.LookupEnv(getEnvironmentVariableByFlagName(key))
 	if !ok {

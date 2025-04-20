@@ -1,4 +1,4 @@
-package config
+package config //nolint:testpackage
 
 import (
 	"testing"
@@ -54,7 +54,7 @@ func TestLookupEnvOrDefault(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			fn := func() {
+			testFn := func() {
 				require.Equal(t, tc.defaultValue, lookupEnvOrDefault("unset", tc.defaultValue))
 
 				t.Setenv("CONFIG_SET", tc.input)
@@ -62,9 +62,9 @@ func TestLookupEnvOrDefault(t *testing.T) {
 			}
 
 			if tc.panic {
-				require.Panics(t, fn)
+				require.Panics(t, testFn)
 			} else {
-				require.NotPanics(t, fn)
+				require.NotPanics(t, testFn)
 			}
 		})
 	}

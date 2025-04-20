@@ -90,6 +90,7 @@ func TestIsFSEmpty(t *testing.T) {
 
 func TestFSUnmarshalText(t *testing.T) {
 	t.Parallel()
+
 	for _, tc := range []struct {
 		name  string
 		input string
@@ -110,6 +111,7 @@ func TestFSUnmarshalText(t *testing.T) {
 			t.Parallel()
 
 			dirFS := types.FS{}
+
 			err := dirFS.UnmarshalText([]byte(tc.input))
 			if tc.err == "" {
 				require.NoError(t, err)
