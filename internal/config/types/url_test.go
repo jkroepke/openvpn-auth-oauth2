@@ -11,11 +11,48 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestURL(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		name  string
+		input string
+		err   string
+	}{
+		{
+			"empty",
+			"",
+			"empty URL",
+		},
+		{
+			"invalid",
+			"://",
+			"missing protocol scheme",
+		},
+		{
+			"valid",
+			"https://example.com",
+			"",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			_, err := types.NewURL(tc.input)
+			if tc.err == "" {
+				require.NoError(t, err)
+			} else {
+				require.ErrorContains(t, err, tc.err)
+			}
+		})
+	}
+}
+
 //nolint:exhaustruct
 func TestURLIsEmpty(t *testing.T) {
 	t.Parallel()
 
-	for _, tt := range []struct {
+	for _, tc := range []struct {
 		name   string
 		url    *types.URL
 		expect bool
@@ -36,9 +73,9 @@ func TestURLIsEmpty(t *testing.T) {
 			false,
 		},
 	} {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			require.Equal(t, tt.expect, tt.url.IsEmpty())
+			require.Equal(t, tc.expect, tc.url.IsEmpty())
 		})
 	}
 }
@@ -46,13 +83,46 @@ func TestURLIsEmpty(t *testing.T) {
 func TestURLUnmarshalText(t *testing.T) {
 	t.Parallel()
 
-	actualURL := types.URL{}
-	require.NoError(t, actualURL.UnmarshalText([]byte("https://example.com")))
+	for _, tc := range []struct {
+		name  string
+		input string
+		err   string
+	}{
+		{
+			"empty",
+			"",
+			"empty URL",
+		},
+		{
+			"invalid",
+			"://",
+			"missing protocol scheme",
+		},
+		{
+			"valid",
+			"https://example.com",
+			"",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 
-	expectedURL, err := types.NewURL("https://example.com")
-	require.NoError(t, err)
+			actualURL := types.URL{}
+			err := actualURL.UnmarshalText([]byte(tc.input))
+			if tc.err != "" {
+				require.ErrorContains(t, err, tc.err)
 
-	require.Equal(t, expectedURL, actualURL)
+				return
+			}
+
+			require.NoError(t, err)
+
+			expectedURL, err := types.NewURL(tc.input)
+			require.NoError(t, err)
+
+			require.Equal(t, expectedURL, actualURL)
+		})
+	}
 }
 
 func TestURLMarshalText(t *testing.T) {

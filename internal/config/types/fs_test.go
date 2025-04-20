@@ -9,11 +9,58 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestFS(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		name  string
+		input string
+		err   string
+	}{
+		{
+			"empty",
+			"",
+			"os: DirFS with empty root",
+		},
+		{
+			"dir",
+			".",
+			"",
+		},
+		{
+			"invalid",
+			"...",
+			"error open \"...\":",
+		},
+		{
+			"not found",
+			"a",
+			"error open \"a\":",
+		},
+		{
+			"file",
+			"../../../README.md",
+			"not a directory",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			_, err := types.NewFS(tc.input)
+			if tc.err == "" {
+				require.NoError(t, err)
+			} else {
+				require.ErrorContains(t, err, tc.err)
+			}
+		})
+	}
+}
+
 //nolint:exhaustruct
 func TestIsFSEmpty(t *testing.T) {
 	t.Parallel()
 
-	for _, tt := range []struct {
+	for _, tc := range []struct {
 		name   string
 		fs     *types.FS
 		expect bool
@@ -34,23 +81,43 @@ func TestIsFSEmpty(t *testing.T) {
 			false,
 		},
 	} {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			assert.Equal(t, tt.expect, tt.fs.IsEmpty())
+			assert.Equal(t, tc.expect, tc.fs.IsEmpty())
 		})
 	}
 }
 
 func TestFSUnmarshalText(t *testing.T) {
 	t.Parallel()
+	for _, tc := range []struct {
+		name  string
+		input string
+		err   string
+	}{
+		{
+			"empty",
+			"",
+			"os: DirFS with empty root",
+		},
+		{
+			"dir",
+			".",
+			"",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 
-	dirFS := types.FS{}
-	require.NoError(t, dirFS.UnmarshalText([]byte(".")))
-
-	expectedDirFS, err := types.NewFS(".")
-	require.NoError(t, err)
-
-	assert.Equal(t, expectedDirFS, dirFS)
+			dirFS := types.FS{}
+			err := dirFS.UnmarshalText([]byte(tc.input))
+			if tc.err == "" {
+				require.NoError(t, err)
+			} else {
+				require.ErrorContains(t, err, tc.err)
+			}
+		})
+	}
 }
 
 func TestFSMarshalText(t *testing.T) {

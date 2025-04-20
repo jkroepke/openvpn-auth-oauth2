@@ -17,16 +17,16 @@ func NewFS(filePath string) (FS, error) {
 
 	dir, err := dirFS.Open(".")
 	if err != nil {
-		return FS{}, fmt.Errorf("error open filesystem: %w", err)
+		return FS{}, fmt.Errorf("error open %q: %w", filePath, err)
 	}
 
 	dirState, err := dir.Stat()
 	if err != nil {
-		return FS{}, fmt.Errorf("error stat filesystem: %w", err)
+		return FS{}, fmt.Errorf("error stat %q: %w", filePath, err)
 	}
 
 	if !dirState.IsDir() {
-		return FS{}, fmt.Errorf("path %s is not a directory", filePath)
+		return FS{}, fmt.Errorf("path %q is not a directory", filePath)
 	}
 
 	return FS{dirFS, filePath}, nil

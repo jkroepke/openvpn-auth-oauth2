@@ -11,6 +11,10 @@ type URL struct {
 }
 
 func NewURL(u string) (URL, error) {
+	if u == "" {
+		return URL{}, fmt.Errorf("empty URL")
+	}
+
 	stdURL, err := url.Parse(u)
 	if err != nil {
 		return URL{}, fmt.Errorf("failed to parse URL: %w", err)
