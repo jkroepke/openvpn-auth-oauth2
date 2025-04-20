@@ -264,7 +264,7 @@ func (c Client) writeHTTPError(w http.ResponseWriter, logger *slog.Logger, httpC
 	logger.Warn(fmt.Sprintf("%s: %s", errorType, errorDesc), slog.String("error_id", errorID))
 	w.WriteHeader(httpCode)
 
-	err := c.conf.HTTP.CallbackTemplate.Execute(w, map[string]string{
+	err := c.conf.HTTP.Template.Execute(w, map[string]string{
 		"title":   "Access denied",
 		"message": "Please contact your administrator.",
 		"errorID": errorID,
@@ -276,7 +276,7 @@ func (c Client) writeHTTPError(w http.ResponseWriter, logger *slog.Logger, httpC
 }
 
 func (c Client) writeHTTPSuccess(w http.ResponseWriter, logger *slog.Logger) {
-	err := c.conf.HTTP.CallbackTemplate.Execute(w, map[string]string{
+	err := c.conf.HTTP.Template.Execute(w, map[string]string{
 		"title":   "Access granted",
 		"message": "You can close this window now.",
 		"errorID": "",

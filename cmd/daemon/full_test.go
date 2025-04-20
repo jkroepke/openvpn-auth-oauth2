@@ -54,7 +54,7 @@ func TestFull(t *testing.T) {
 
 			httpListener, err := nettest.NewLocalListener("tcp")
 			require.NoError(t, err)
-			httpListener.Close()
+			require.NoError(t, httpListener.Close())
 
 			resourceServer, _, clientCredentials, err := testutils.SetupResourceServer(t, httpListener)
 			require.NoError(t, err)
@@ -124,7 +124,9 @@ func TestFull(t *testing.T) {
 					return
 				}
 
-				defer managementInterfaceConn.Close()
+				defer func() {
+					_ = managementInterfaceConn.Close()
+				}()
 
 				reader := bufio.NewReader(managementInterfaceConn)
 

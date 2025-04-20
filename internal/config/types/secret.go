@@ -1,4 +1,4 @@
-package config
+package types
 
 import (
 	"bytes"
@@ -53,6 +53,8 @@ func (s *Secret) UnmarshalText(text []byte) error {
 	return nil
 }
 
+// MarshalJSON implements the [json.Marshaler] interface.
+//
 //goland:noinspection GoMixedReceiverTypes
 func (s Secret) MarshalJSON() ([]byte, error) {
 	if len(s) == 0 {

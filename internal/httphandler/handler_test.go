@@ -6,6 +6,7 @@ import (
 	"testing/fstest"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/httphandler"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
@@ -19,10 +20,10 @@ func TestAssets(t *testing.T) {
 	logger := testutils.NewTestLogger()
 
 	conf := config.Defaults
-	conf.OAuth2.Issuer = &config.URL{Scheme: "http", Host: "localhost"}
-	conf.OAuth2.Endpoints.Discovery = &config.URL{Scheme: "http", Host: "localhost"}
-	conf.OAuth2.Endpoints.Auth = &config.URL{Scheme: "http", Host: "localhost"}
-	conf.OAuth2.Endpoints.Token = &config.URL{Scheme: "http", Host: "localhost"}
+	conf.OAuth2.Issuer = &types.URL{Scheme: "http", Host: "localhost"}
+	conf.OAuth2.Endpoints.Discovery = &types.URL{Scheme: "http", Host: "localhost"}
+	conf.OAuth2.Endpoints.Auth = &types.URL{Scheme: "http", Host: "localhost"}
+	conf.OAuth2.Endpoints.Token = &types.URL{Scheme: "http", Host: "localhost"}
 
 	provider, err := generic.NewProvider(t.Context(), conf, http.DefaultClient)
 	require.NoError(t, err)
@@ -42,10 +43,10 @@ func TestCustomAssets(t *testing.T) {
 	logger := testutils.NewTestLogger()
 
 	conf := config.Defaults
-	conf.OAuth2.Issuer = &config.URL{Scheme: "http", Host: "localhost"}
-	conf.OAuth2.Endpoints.Discovery = &config.URL{Scheme: "http", Host: "localhost"}
-	conf.OAuth2.Endpoints.Auth = &config.URL{Scheme: "http", Host: "localhost"}
-	conf.OAuth2.Endpoints.Token = &config.URL{Scheme: "http", Host: "localhost"}
+	conf.OAuth2.Issuer = &types.URL{Scheme: "http", Host: "localhost"}
+	conf.OAuth2.Endpoints.Discovery = &types.URL{Scheme: "http", Host: "localhost"}
+	conf.OAuth2.Endpoints.Auth = &types.URL{Scheme: "http", Host: "localhost"}
+	conf.OAuth2.Endpoints.Token = &types.URL{Scheme: "http", Host: "localhost"}
 
 	provider, err := generic.NewProvider(t.Context(), conf, http.DefaultClient)
 	require.NoError(t, err)
@@ -53,9 +54,11 @@ func TestCustomAssets(t *testing.T) {
 	oAuth2Client, err := oauth2.New(t.Context(), logger.Logger, conf, http.DefaultClient, testutils.NewFakeStorage(), provider, testutils.NewFakeOpenVPNClient())
 	require.NoError(t, err)
 
-	conf.HTTP.AssetPath = fstest.MapFS{
-		"index.txt": &fstest.MapFile{
-			Data: []byte("index"),
+	conf.HTTP.AssetPath = types.FS{
+		FS: fstest.MapFS{
+			"index.txt": &fstest.MapFile{
+				Data: []byte("index"),
+			},
 		},
 	}
 

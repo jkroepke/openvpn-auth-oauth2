@@ -7,10 +7,10 @@ import (
 	"io"
 	"net/http"
 	"testing"
-	"text/template"
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
@@ -107,10 +107,13 @@ func TestHandler(t *testing.T) {
 		{
 			"with template",
 			func() config.Config {
+				tmpl, err := types.NewTemplate("LICENSE.txt")
+				require.NoError(t, err)
+
 				conf := config.Defaults
 				conf.HTTP.Secret = testutils.Secret
 				conf.HTTP.Check.IPAddr = false
-				conf.HTTP.CallbackTemplate = template.Must(template.New("LICENSE.txt").ParseFiles("./../../LICENSE.txt"))
+				conf.HTTP.Template = tmpl
 				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{"openid", "profile"}
@@ -443,7 +446,7 @@ func TestHandler(t *testing.T) {
 
 			require.Equal(t, http.StatusOK, resp.StatusCode, logger.GetLogs(), string(body))
 
-			if conf.HTTP.CallbackTemplate != config.Defaults.HTTP.CallbackTemplate {
+			if conf.HTTP.Template != config.Defaults.HTTP.Template {
 				require.Contains(t, string(body), "Permission is hereby granted")
 			}
 

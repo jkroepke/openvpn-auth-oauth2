@@ -84,7 +84,7 @@ func get[T any](ctx context.Context, httpClient *http.Client, accessToken string
 		return fmt.Errorf("unable to read body from Google API %s: http status code: %d; error: %w", apiURL, resp.StatusCode, err)
 	}
 
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		var apiErr apiError

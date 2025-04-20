@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	types2 "github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	oauth3 "github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/google"
@@ -109,9 +109,9 @@ func TestValidateGroups(t *testing.T) {
 				token.AccessToken = ""
 			}
 
-			conf := config.Config{
-				OAuth2: config.OAuth2{
-					Validate: config.OAuth2Validate{
+			conf := types2.Config{
+				OAuth2: types2.OAuth2{
+					Validate: types2.OAuth2Validate{
 						Groups: tt.requiredGroups,
 					},
 				},

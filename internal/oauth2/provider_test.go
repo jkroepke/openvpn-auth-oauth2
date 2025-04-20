@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/github"
@@ -34,7 +35,7 @@ func TestNewProvider(t *testing.T) {
 		{
 			"default",
 			config.Config{
-				HTTP: config.HTTP{BaseURL: &config.URL{Scheme: "http", Host: "localhost"}},
+				HTTP: config.HTTP{BaseURL: &types.URL{Scheme: "http", Host: "localhost"}},
 				OAuth2: config.OAuth2{
 					Issuer:    resourceServerURL,
 					Provider:  generic.Name,
@@ -47,13 +48,13 @@ func TestNewProvider(t *testing.T) {
 		{
 			"with custom discovery",
 			config.Config{
-				HTTP: config.HTTP{BaseURL: &config.URL{Scheme: "http", Host: "localhost"}},
+				HTTP: config.HTTP{BaseURL: &types.URL{Scheme: "http", Host: "localhost"}},
 				OAuth2: config.OAuth2{
 					Issuer:   resourceServerURL,
 					Provider: generic.Name,
 					Client:   clientCredentials,
 					Endpoints: config.OAuth2Endpoints{
-						Discovery: &config.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-configuration"},
+						Discovery: &types.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-configuration"},
 					},
 				},
 			},
@@ -62,13 +63,13 @@ func TestNewProvider(t *testing.T) {
 		{
 			"with invalid custom discovery",
 			config.Config{
-				HTTP: config.HTTP{BaseURL: &config.URL{Scheme: "http", Host: "localhost"}},
+				HTTP: config.HTTP{BaseURL: &types.URL{Scheme: "http", Host: "localhost"}},
 				OAuth2: config.OAuth2{
 					Issuer:   resourceServerURL,
 					Provider: generic.Name,
 					Client:   clientCredentials,
 					Endpoints: config.OAuth2Endpoints{
-						Discovery: &config.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-config"},
+						Discovery: &types.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-config"},
 					},
 				},
 			},
@@ -77,15 +78,15 @@ func TestNewProvider(t *testing.T) {
 		{
 			"with custom endpoints",
 			config.Config{
-				HTTP: config.HTTP{BaseURL: &config.URL{Scheme: "http", Host: "localhost"}},
+				HTTP: config.HTTP{BaseURL: &types.URL{Scheme: "http", Host: "localhost"}},
 				OAuth2: config.OAuth2{
 					Issuer:   resourceServerURL,
 					Provider: generic.Name,
 					Client:   clientCredentials,
 					Endpoints: config.OAuth2Endpoints{
-						Discovery: &config.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-configuration"},
-						Auth:      &config.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/authorize"},
-						Token:     &config.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/token"},
+						Discovery: &types.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-configuration"},
+						Auth:      &types.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/authorize"},
+						Token:     &types.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/token"},
 					},
 				},
 			},
@@ -94,14 +95,14 @@ func TestNewProvider(t *testing.T) {
 		{
 			"with missing custom endpoints",
 			config.Config{
-				HTTP: config.HTTP{BaseURL: &config.URL{Scheme: "http", Host: "localhost"}},
+				HTTP: config.HTTP{BaseURL: &types.URL{Scheme: "http", Host: "localhost"}},
 				OAuth2: config.OAuth2{
 					Issuer:   resourceServerURL,
 					Provider: generic.Name,
 					Client:   clientCredentials,
 					Endpoints: config.OAuth2Endpoints{
-						Discovery: &config.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-configuration"},
-						Auth:      &config.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/authorize"},
+						Discovery: &types.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-configuration"},
+						Auth:      &types.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/authorize"},
 					},
 				},
 			},
@@ -110,16 +111,16 @@ func TestNewProvider(t *testing.T) {
 		{
 			"with pkce",
 			config.Config{
-				HTTP: config.HTTP{BaseURL: &config.URL{Scheme: "http", Host: "localhost"}},
+				HTTP: config.HTTP{BaseURL: &types.URL{Scheme: "http", Host: "localhost"}},
 				OAuth2: config.OAuth2{
 					Issuer:   resourceServerURL,
 					Provider: generic.Name,
 					PKCE:     true,
 					Client:   clientCredentials,
 					Endpoints: config.OAuth2Endpoints{
-						Discovery: &config.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-configuration"},
-						Auth:      &config.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/authorize"},
-						Token:     &config.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/token"},
+						Discovery: &types.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/.well-known/openid-configuration"},
+						Auth:      &types.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/authorize"},
+						Token:     &types.URL{Scheme: resourceServerURL.Scheme, Host: resourceServerURL.Host, Path: "/token"},
 					},
 				},
 			},

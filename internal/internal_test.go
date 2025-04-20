@@ -37,7 +37,8 @@ func BenchmarkFull(b *testing.B) {
 	require.NoError(b, err)
 
 	b.Cleanup(func() {
-		managementInterfaceConn.Close()
+		_ = managementInterfaceConn.Close()
+
 		client.Shutdown()
 	})
 

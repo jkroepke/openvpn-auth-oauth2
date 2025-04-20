@@ -1,9 +1,9 @@
-package config_test
+package types_test
 
 import (
 	"testing"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -11,17 +11,17 @@ import (
 func TestSliceUnmarshalText(t *testing.T) {
 	t.Parallel()
 
-	slice := config.StringSlice{}
+	slice := types.StringSlice{}
 
 	require.NoError(t, slice.UnmarshalText([]byte("a,b,c,d")))
 
-	assert.Equal(t, config.StringSlice{"a", "b", "c", "d"}, slice)
+	assert.Equal(t, types.StringSlice{"a", "b", "c", "d"}, slice)
 }
 
 func TestSliceMarshalText(t *testing.T) {
 	t.Parallel()
 
-	slice, err := config.StringSlice{"a", "b", "c", "d"}.MarshalText()
+	slice, err := types.StringSlice{"a", "b", "c", "d"}.MarshalText()
 
 	require.NoError(t, err)
 

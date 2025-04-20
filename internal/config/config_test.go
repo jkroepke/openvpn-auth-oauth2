@@ -1,21 +1,24 @@
 package config_test
 
 import (
+	"bytes"
 	"errors"
 	"flag"
+	"io"
 	"log/slog"
 	"os"
+	"slices"
 	"testing"
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/ui/assets"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/oauth2"
 )
 
-func TestLoad(t *testing.T) {
+func TestConfig(t *testing.T) {
 	t.Parallel()
 
 	for _, tt := range []struct {
@@ -44,10 +47,8 @@ http:
 `,
 			func() config.Config {
 				conf := config.Defaults
-				conf.HTTP.AssetPath = assets.FS
-				conf.HTTP.CallbackTemplate = nil
 				conf.HTTP.Secret = "1jd93h5b6s82lf03jh5b2hf9"
-				conf.OAuth2.Issuer = &config.URL{
+				conf.OAuth2.Issuer = &types.URL{
 					Scheme: "https",
 					Host:   "company.zitadel.cloud",
 				}
@@ -137,20 +138,26 @@ http:
 					VPNClientIP: false,
 				},
 				HTTP: config.HTTP{
-					Listen:             ":9001",
-					EnableProxyHeaders: true,
-					Check: config.HTTPCheck{
-						IPAddr: true,
-					},
-					Secret: "1jd93h5b6s82lf03jh5b2hf9",
-					BaseURL: &config.URL{
+					AssetPath: func() types.FS {
+						dirFS, err := types.NewFS(".")
+						require.NoError(t, err)
+
+						return dirFS
+					}(),
+					BaseURL: &types.URL{
 						Scheme: "http",
 						Host:   "localhost:9000",
 					},
-					AssetPath: os.DirFS("."),
+					Check: config.HTTPCheck{
+						IPAddr: true,
+					},
+					EnableProxyHeaders: true,
+					Listen:             ":9001",
+					Secret:             "1jd93h5b6s82lf03jh5b2hf9",
+					Template:           types.Template{},
 				},
 				OpenVpn: config.OpenVpn{
-					Addr: &config.URL{
+					Addr: &types.URL{
 						Scheme:   "unix",
 						Path:     "/run/openvpn/server2.sock",
 						OmitHost: false,
@@ -168,7 +175,7 @@ http:
 					},
 					Passthrough: config.OpenVPNPassthrough{
 						Enabled: true,
-						Address: &config.URL{
+						Address: &types.URL{
 							Scheme:   "unix",
 							Path:     "/run/openvpn/pass-through.sock",
 							OmitHost: false,
@@ -180,17 +187,16 @@ http:
 					CommandTimeout: 10 * time.Second,
 				},
 				OAuth2: config.OAuth2{
-					Issuer: &config.URL{
+					Issuer: &types.URL{
 						Scheme: "https",
 						Host:   "company.zitadel.cloud",
 					},
-					Provider: "generic",
-
+					Provider:        "generic",
 					AuthorizeParams: "a=c",
 					Endpoints: config.OAuth2Endpoints{
-						Auth:      &config.URL{},
-						Token:     &config.URL{},
-						Discovery: &config.URL{},
+						Auth:      &types.URL{},
+						Token:     &types.URL{},
+						Discovery: &types.URL{},
 					},
 					Client: config.OAuth2Client{
 						ID:           "test",
@@ -224,6 +230,9 @@ http:
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
+			var buf bytes.Buffer
+			_ = io.Writer(&buf)
+
 			file, err := os.CreateTemp(t.TempDir(), "openvpn-auth-oauth2-*")
 			require.NoError(t, err)
 
@@ -236,8 +245,8 @@ http:
 			_, err = file.WriteString(tt.configFile)
 			require.NoError(t, err)
 
-			conf, err := config.Load(config.ManagementClient, file.Name(), flag.NewFlagSet("openvpn-auth-oauth2", flag.ContinueOnError))
-			conf.HTTP.CallbackTemplate = nil
+			conf, err := config.New([]string{"openvpn-auth-oauth2", "--config", file.Name()}, &buf)
+			conf.HTTP.Template = types.Template{}
 
 			if tt.err != nil {
 				require.Error(t, err)
@@ -246,6 +255,94 @@ http:
 				require.NoError(t, err)
 				assert.Equal(t, tt.conf, conf)
 			}
+		})
+	}
+}
+
+func TestConfigHelpFlag(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	_ = io.Writer(&buf)
+
+	_, err := config.New([]string{"openvpn-auth-oauth2", "--help"}, &buf)
+
+	require.ErrorIs(t, flag.ErrHelp, err)
+}
+
+func TestConfigVersionFlag(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	_ = io.Writer(&buf)
+
+	_, err := config.New([]string{"openvpn-auth-oauth2", "--version"}, &buf)
+
+	require.ErrorIs(t, config.ErrVersion, err)
+}
+
+func TestConfigFlagSet(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name         string
+		args         []string
+		expectConfig config.Config
+	}{
+		{
+			"--openvpn.bypass.common-names",
+			[]string{"--openvpn.bypass.common-names=a,b"},
+			func() config.Config {
+				conf := config.Defaults
+				conf.OpenVpn.Bypass.CommonNames = []string{"a", "b"}
+
+				return conf
+			}(),
+		},
+		{
+			"--oauth2.validate.common-name",
+			[]string{"--oauth2.validate.common-name=plain"},
+			func() config.Config {
+				conf := config.Defaults
+				conf.OAuth2.Validate.CommonName = "plain"
+
+				return conf
+			}(),
+		},
+		{
+			"--oauth2.openvpn.common-name.mode",
+			[]string{"--oauth2.openvpn.common-name.mode=plain"},
+			func() config.Config {
+				conf := config.Defaults
+				conf.OpenVpn.CommonName.Mode = config.CommonNameModePlain
+
+				return conf
+			}(),
+		},
+		{
+			"--http.assets-path",
+			[]string{"--http.assets-path=."},
+			func() config.Config {
+				dirFS, err := types.NewFS(".")
+				require.NoError(t, err)
+
+				conf := config.Defaults
+				conf.HTTP.AssetPath = dirFS
+
+				return conf
+			}(),
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var buf bytes.Buffer
+			_ = io.Writer(&buf)
+
+			conf, err := config.New(slices.Concat([]string{"openvpn-auth-oauth2"}, tt.args), &buf)
+
+			require.NoError(t, err)
+			assert.Equal(t, tt.expectConfig, conf)
 		})
 	}
 }

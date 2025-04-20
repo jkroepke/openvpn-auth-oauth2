@@ -5,6 +5,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/ui"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/ui/assets"
 	"golang.org/x/oauth2"
@@ -25,8 +26,8 @@ var Defaults = Config{
 		VPNClientIP: true,
 	},
 	HTTP: HTTP{
-		AssetPath: assets.FS,
-		BaseURL: &URL{
+		AssetPath: types.FS{FS: assets.FS},
+		BaseURL: &types.URL{
 			Scheme: "http",
 			Host:   "localhost:9000",
 		},
@@ -35,10 +36,10 @@ var Defaults = Config{
 		Check: HTTPCheck{
 			IPAddr: false,
 		},
-		CallbackTemplate: template.Must(template.New("index.gohtml").ParseFS(ui.Template, "index.gohtml")),
+		Template: types.Template{Template: template.Must(template.New("index.gohtml").ParseFS(ui.Template, "index.gohtml"))},
 	},
 	OpenVpn: OpenVpn{
-		Addr: &URL{
+		Addr: &types.URL{
 			Scheme:   "unix",
 			Path:     "/run/openvpn/server.sock",
 			OmitHost: true,
@@ -55,7 +56,7 @@ var Defaults = Config{
 		},
 		Passthrough: OpenVPNPassthrough{
 			Enabled: false,
-			Address: &URL{
+			Address: &types.URL{
 				Scheme:   "unix",
 				Path:     "/run/openvpn-auth-oauth2/server.sock",
 				OmitHost: true,
@@ -69,11 +70,11 @@ var Defaults = Config{
 		AuthStyle: OAuth2AuthStyle(oauth2.AuthStyleInParams),
 		Client:    OAuth2Client{},
 		Endpoints: OAuth2Endpoints{
-			Auth:      &URL{Scheme: "", Host: ""},
-			Discovery: &URL{Scheme: "", Host: ""},
-			Token:     &URL{Scheme: "", Host: ""},
+			Auth:      &types.URL{Scheme: "", Host: ""},
+			Discovery: &types.URL{Scheme: "", Host: ""},
+			Token:     &types.URL{Scheme: "", Host: ""},
 		},
-		Issuer:   &URL{Scheme: "", Host: ""},
+		Issuer:   &types.URL{Scheme: "", Host: ""},
 		Nonce:    true,
 		PKCE:     true,
 		Provider: "generic",

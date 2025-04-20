@@ -190,7 +190,7 @@ func (c *Client) handlePassThroughClientCommands(ctx context.Context, conn net.C
 
 			continue
 		case line == "exit", line == "quit":
-			conn.Close()
+			_ = conn.Close()
 
 			return nil
 		}
@@ -258,7 +258,7 @@ func (c *Client) setupPassThroughListener() (net.Listener, func(), error) {
 			return nil, nil, fmt.Errorf("error listen: %w", err)
 		}
 
-		closer = func() { listener.Close() }
+		closer = func() { _ = listener.Close() }
 	case SchemeUnix:
 		listener, err = net.Listen(c.conf.OpenVpn.Passthrough.Address.Scheme, c.conf.OpenVpn.Passthrough.Address.Path)
 		if err != nil {
@@ -269,7 +269,7 @@ func (c *Client) setupPassThroughListener() (net.Listener, func(), error) {
 			return nil, nil, err
 		}
 
-		closer = func() { listener.Close(); _ = os.Remove(c.conf.OpenVpn.Passthrough.Address.Path) }
+		closer = func() { _ = listener.Close(); _ = os.Remove(c.conf.OpenVpn.Passthrough.Address.Path) }
 	default:
 		return nil, nil, fmt.Errorf("%w %s", ErrUnknownProtocol, c.conf.OpenVpn.Addr.Scheme)
 	}

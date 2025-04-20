@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"slices"
+
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 )
 
 // Validate validates the config.
@@ -18,7 +20,7 @@ func Validate(mode int, conf Config) error {
 	}
 
 	if mode == ManagementClient {
-		for key, value := range map[string]*URL{
+		for key, value := range map[string]*types.URL{
 			"openvpn.addr": conf.OpenVpn.Addr,
 		} {
 			if value.IsEmpty() {
@@ -52,7 +54,7 @@ func validateHTTPConfig(conf Config) error {
 		return fmt.Errorf("http.baseurl: %w", err)
 	}
 
-	if err := conf.HTTP.CallbackTemplate.Execute(io.Discard, map[string]string{
+	if err := conf.HTTP.Template.Execute(io.Discard, map[string]string{
 		"title":   "",
 		"message": "",
 		"errorID": "",
@@ -108,7 +110,7 @@ func validateOAuth2Config(conf Config) error {
 	return nil
 }
 
-func validateURL(uri *URL) error {
+func validateURL(uri *types.URL) error {
 	if uri.IsEmpty() {
 		return nil
 	}
@@ -120,7 +122,7 @@ func validateURL(uri *URL) error {
 	return nil
 }
 
-func validateEncryptionSecret(secret Secret) error {
+func validateEncryptionSecret(secret types.Secret) error {
 	if !slices.Contains([]int{16, 24, 32}, len(secret.String())) {
 		return errors.New("requires a length of 16, 24 or 32")
 	}

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	types2 "github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
 	"github.com/zitadel/logging"
@@ -19,7 +19,7 @@ import (
 )
 
 // New returns a [Client] instance.
-func New(ctx context.Context, logger *slog.Logger, conf config.Config, httpClient *http.Client, tokenStorage tokenstorage.Storage,
+func New(ctx context.Context, logger *slog.Logger, conf types2.Config, httpClient *http.Client, tokenStorage tokenstorage.Storage,
 	provider Provider, openvpn openvpnManagementClient,
 ) (*Client, error) {
 	providerConfig, err := provider.GetProviderConfig()
@@ -73,7 +73,7 @@ func New(ctx context.Context, logger *slog.Logger, conf config.Config, httpClien
 
 // newOIDCRelyingParty creates a new [rp.NewRelyingPartyOIDC]. This is used for providers that support OIDC.
 func newOIDCRelyingParty(
-	ctx context.Context, logger *slog.Logger, conf config.Config, provider Provider, scopes []string, options []rp.Option,
+	ctx context.Context, logger *slog.Logger, conf types2.Config, provider Provider, scopes []string, options []rp.Option,
 ) (rp.RelyingParty, error) {
 	if !conf.OAuth2.Endpoints.Discovery.IsEmpty() {
 		logger.LogAttrs(ctx, slog.LevelInfo, fmt.Sprintf(
@@ -107,7 +107,7 @@ func newOIDCRelyingParty(
 
 // newOAuthRelyingParty creates a new [rp.NewRelyingPartyOAuth]. This is used for providers that do not support OIDC.
 func newOAuthRelyingParty(
-	ctx context.Context, logger *slog.Logger, conf config.Config, provider Provider, scopes []string, options []rp.Option, providerConfig types.ProviderConfig,
+	ctx context.Context, logger *slog.Logger, conf types2.Config, provider Provider, scopes []string, options []rp.Option, providerConfig types.ProviderConfig,
 ) (rp.RelyingParty, error) {
 	logger.LogAttrs(ctx, slog.LevelInfo, fmt.Sprintf(
 		"manually configure oauth2 provider with provider %s and providerConfig %s and %s",

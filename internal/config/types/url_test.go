@@ -1,9 +1,9 @@
-package config_test
+package types_test
 
 import (
 	"testing"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -13,7 +13,7 @@ func TestIsUrlEmpty(t *testing.T) {
 
 	for _, tt := range []struct {
 		name   string
-		url    *config.URL
+		url    *types.URL
 		expect bool
 	}{
 		{
@@ -23,12 +23,12 @@ func TestIsUrlEmpty(t *testing.T) {
 		},
 		{
 			"empty",
-			&config.URL{},
+			&types.URL{},
 			true,
 		},
 		{
 			"non-empty",
-			&config.URL{Scheme: "http", Host: "localhost"},
+			&types.URL{Scheme: "http", Host: "localhost"},
 			false,
 		},
 	} {

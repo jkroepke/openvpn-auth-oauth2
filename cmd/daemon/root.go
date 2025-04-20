@@ -31,9 +31,15 @@ import (
 //
 //nolint:cyclop
 func Execute(args []string, logWriter io.Writer, version, commit, date string) int {
-	conf, err := configure(args, logWriter, version, commit, date)
+	conf, err := configure(args, logWriter)
 	if err != nil {
 		if errors.Is(err, flag.ErrHelp) {
+			return 0
+		}
+
+		if errors.Is(err, config.ErrVersion) {
+			_, _ = fmt.Fprintf(logWriter, "version: %s\ncommit: %s\ndate: %s\ngo: %s\n", version, commit, date, runtime.Version())
+
 			return 0
 		}
 
@@ -185,23 +191,14 @@ func setupDebugListener(ctx context.Context, logger *slog.Logger, conf config.Co
 }
 
 // configure parses the command line arguments and loads the configuration.
-func configure(args []string, logWriter io.Writer, version, commit, date string) (config.Config, error) {
-	flagSet := config.FlagSet(args[0])
-	flagSet.SetOutput(logWriter)
-
-	if err := flagSet.Parse(args[1:]); err != nil {
-		return config.Config{}, fmt.Errorf("error parsing cli args: %w", err)
-	}
-
-	if flagSet.Lookup("version").Value.String() == "true" {
-		_, _ = fmt.Fprintf(logWriter, "version: %s\ncommit: %s\ndate: %s\ngo: %s\n", version, commit, date, runtime.Version())
-
-		return config.Config{}, flag.ErrHelp
-	}
-
-	conf, err := config.Load(config.ManagementClient, flagSet.Lookup("config").Value.String(), flagSet)
+func configure(args []string, logWriter io.Writer) (config.Config, error) {
+	conf, err := config.New(args, logWriter)
 	if err != nil {
-		return config.Config{}, fmt.Errorf("error loading config: %w", err)
+		return config.Config{}, fmt.Errorf("configuration parse error: %w", err)
+	}
+
+	if err = config.Validate(config.ManagementClient, conf); err != nil {
+		return config.Config{}, fmt.Errorf("configuration validation error: %w", err)
 	}
 
 	return conf, nil

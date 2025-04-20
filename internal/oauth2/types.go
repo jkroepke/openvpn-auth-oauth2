@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	types2 "github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
@@ -17,7 +17,7 @@ type Client struct {
 	relyingParty rp.RelyingParty
 	openvpn      openvpnManagementClient
 
-	conf    config.Config
+	conf    types2.Config
 	logger  *slog.Logger
 	storage tokenstorage.Storage
 
