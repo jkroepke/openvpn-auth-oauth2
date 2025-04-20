@@ -5,10 +5,12 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"net/url"
 	"testing"
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/stretchr/testify/assert"
@@ -31,9 +33,9 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 	})
 
 	conf := config.Defaults
-	conf.HTTP.BaseURL = &config.URL{Scheme: "http", Host: "localhost"}
+	conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
 	conf.HTTP.Secret = testutils.Secret
-	conf.OpenVpn.Addr = &config.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
+	conf.OpenVpn.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
 	conf.OpenVpn.Bypass = config.OpenVpnBypass{CommonNames: make([]string, 0)}
 
 	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
@@ -99,8 +101,8 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 		require.NoError(b, managementInterface.Close())
 	})
 
-	conf.OpenVpn.Passthrough.Address = &config.URL{Scheme: "tcp", Host: "127.0.0.1:0"}
-	conf.OpenVpn.Addr = &config.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
+	conf.OpenVpn.Passthrough.Address = types.URL{URL: &url.URL{Scheme: "tcp", Host: "127.0.0.1:0"}}
+	conf.OpenVpn.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
 
 	tokenStorage := tokenstorage.NewInMemory(b.Context(), testutils.Secret, time.Hour)
 	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(b.Context(), b, conf, logger.Logger, http.DefaultClient, tokenStorage)

@@ -6,7 +6,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	types2 "github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
@@ -85,7 +85,7 @@ func (p Provider) CheckCommonName(session state.State, tokens *oidc.Tokens[*idto
 		return nil
 	}
 
-	if session.CommonName == "" || session.CommonName == config.CommonNameModeOmitValue {
+	if session.CommonName == "" || session.CommonName == types2.CommonNameModeOmitValue {
 		return fmt.Errorf("common_name %w: openvpn client is empty", oauth2.ErrMismatch)
 	}
 

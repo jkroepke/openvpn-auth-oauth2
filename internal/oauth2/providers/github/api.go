@@ -37,7 +37,7 @@ func get[T any](ctx context.Context, httpClient *http.Client, accessToken, apiUR
 		return "", fmt.Errorf("unable to read body from GitHub API %s: http status code: %d; error: %w", apiURL, resp.StatusCode, err)
 	}
 
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("error from GitHub API %s: http status code: %d; message: %s", apiURL, resp.StatusCode, respBody)

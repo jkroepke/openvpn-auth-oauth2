@@ -6,13 +6,13 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/fs"
 	"log/slog"
 	"net/http"
 	"net/http/pprof"
 	"os"
 	"os/signal"
 	"runtime"
+	"runtime/debug"
 	"sync"
 	"syscall"
 
@@ -25,17 +25,23 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/google"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/ui"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/version"
 )
 
 // Execute runs the main program logic of openvpn-auth-oauth2.
 //
 //nolint:cyclop
-func Execute(args []string, logWriter io.Writer, version, commit, date string) int {
-	conf, err := configure(args, logWriter, version, commit, date)
+func Execute(args []string, logWriter io.Writer) int {
+	conf, err := configure(args, logWriter)
 	if err != nil {
 		if errors.Is(err, flag.ErrHelp) {
+			return 0
+		}
+
+		if errors.Is(err, config.ErrVersion) {
+			printVersion(logWriter)
+
 			return 0
 		}
 
@@ -89,22 +95,7 @@ func Execute(args []string, logWriter io.Writer, version, commit, date string) i
 
 	openvpnClient.SetOAuth2Client(oAuth2Client)
 
-	var assetsFs fs.FS
-
-	if conf.HTTP.AssetPath == "" {
-		assetsFs, err = fs.Sub(ui.Static, "assets")
-		if err != nil {
-			logger.Error("failed to create assets file system",
-				slog.Any("err", err),
-			)
-
-			return 1
-		}
-	} else {
-		assetsFs = os.DirFS(conf.HTTP.AssetPath)
-	}
-
-	httpHandler := httphandler.New(conf, oAuth2Client, assetsFs)
+	httpHandler := httphandler.New(conf, oAuth2Client)
 
 	wg := sync.WaitGroup{}
 	defer wg.Wait()
@@ -202,23 +193,14 @@ func setupDebugListener(ctx context.Context, logger *slog.Logger, conf config.Co
 }
 
 // configure parses the command line arguments and loads the configuration.
-func configure(args []string, logWriter io.Writer, version, commit, date string) (config.Config, error) {
-	flagSet := config.FlagSet(args[0])
-	flagSet.SetOutput(logWriter)
-
-	if err := flagSet.Parse(args[1:]); err != nil {
-		return config.Config{}, fmt.Errorf("error parsing cli args: %w", err)
-	}
-
-	if flagSet.Lookup("version").Value.String() == "true" {
-		_, _ = fmt.Fprintf(logWriter, "version: %s\ncommit: %s\ndate: %s\ngo: %s\n", version, commit, date, runtime.Version())
-
-		return config.Config{}, flag.ErrHelp
-	}
-
-	conf, err := config.Load(config.ManagementClient, flagSet.Lookup("config").Value.String(), flagSet)
+func configure(args []string, logWriter io.Writer) (config.Config, error) {
+	conf, err := config.New(args, logWriter)
 	if err != nil {
-		return config.Config{}, fmt.Errorf("error loading config: %w", err)
+		return config.Config{}, fmt.Errorf("configuration error: %w", err)
+	}
+
+	if err = config.Validate(config.ManagementClient, conf); err != nil {
+		return config.Config{}, fmt.Errorf("configuration validation error: %w", err)
 	}
 
 	return conf, nil
@@ -238,4 +220,17 @@ func configureLogger(conf config.Config, writer io.Writer) (*slog.Logger, error)
 	default:
 		return nil, fmt.Errorf("unknown log format: %s", conf.Log.Format)
 	}
+}
+
+func printVersion(writer io.Writer) {
+	//goland:noinspection GoBoolExpressions
+	if version.Version == "dev" {
+		if buildInfo, ok := debug.ReadBuildInfo(); ok {
+			_, _ = fmt.Fprintf(writer, "version: %s\ngo: %s\n", buildInfo.Main.Version, buildInfo.GoVersion)
+
+			return
+		}
+	}
+
+	_, _ = fmt.Fprintf(writer, "version: %s\ncommit: %s\ndate: %s\ngo: %s\n", version.Version, version.Commit, version.Date, runtime.Version())
 }

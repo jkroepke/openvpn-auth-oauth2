@@ -25,7 +25,7 @@ import (
 func TestFull(t *testing.T) {
 	t.Parallel()
 
-	for _, tt := range []struct {
+	for _, tc := range []struct {
 		name string
 		conf config.Config
 	}{
@@ -43,7 +43,7 @@ func TestFull(t *testing.T) {
 			}(),
 		},
 	} {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			ctx, cancel := context.WithCancel(t.Context())
@@ -54,7 +54,7 @@ func TestFull(t *testing.T) {
 
 			httpListener, err := nettest.NewLocalListener("tcp")
 			require.NoError(t, err)
-			httpListener.Close()
+			require.NoError(t, httpListener.Close())
 
 			resourceServer, _, clientCredentials, err := testutils.SetupResourceServer(t, httpListener)
 			require.NoError(t, err)
@@ -69,7 +69,7 @@ func TestFull(t *testing.T) {
 			httpTransport := &http.Transport{}
 			protocol := "http"
 
-			if tt.conf.HTTP.TLS {
+			if tc.conf.HTTP.TLS {
 				protocol = "https"
 
 				ca := testcerts.NewCA()
@@ -100,17 +100,18 @@ func TestFull(t *testing.T) {
 					fmt.Sprintf("--http.baseurl=%s://%s", protocol, httpListener.Addr().String()),
 					"--http.secret=" + testutils.Secret,
 					"--http.listen=" + httpListener.Addr().String(),
+					"--http.assets-path=../../internal/ui/assets",
 					"--openvpn.addr=tcp://" + managementInterface.Addr().String(),
 					"--oauth2.issuer", resourceServer.URL,
 					"--oauth2.client.id", clientCredentials.ID,
 					"--oauth2.client.secret", clientCredentials.Secret.String(),
 				}
 
-				if tt.conf.HTTP.TLS {
+				if tc.conf.HTTP.TLS {
 					args = append(args, "--http.tls=true", "--http.cert="+cert, "--http.key="+key)
 				}
 
-				returnCode := daemon.Execute(args, buf, "version", "commit", "date")
+				returnCode := daemon.Execute(args, buf)
 
 				assert.Equal(t, 0, returnCode, buf.String())
 			}()
@@ -123,7 +124,9 @@ func TestFull(t *testing.T) {
 					return
 				}
 
-				defer managementInterfaceConn.Close()
+				defer func() {
+					_ = managementInterfaceConn.Close()
+				}()
 
 				reader := bufio.NewReader(managementInterfaceConn)
 
