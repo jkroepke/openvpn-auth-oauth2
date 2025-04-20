@@ -223,6 +223,7 @@ func configureLogger(conf config.Config, writer io.Writer) (*slog.Logger, error)
 }
 
 func printVersion(writer io.Writer) {
+	//goland:noinspection GoBoolExpressions
 	if version.Version == "dev" {
 		if buildInfo, ok := debug.ReadBuildInfo(); ok {
 			_, _ = fmt.Fprintf(writer, "version: %s\ngo: %s\n", buildInfo.Main.Version, buildInfo.GoVersion)
