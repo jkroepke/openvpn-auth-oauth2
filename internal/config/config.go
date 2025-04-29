@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/goccy/go-yaml"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 )
 
 var ErrVersion = errors.New("flag: version requested")
@@ -170,6 +171,24 @@ func lookupEnvOrDefault[T any](key string, defaultValue T) T {
 
 		return any(uint(intValue)).(T) //nolint:forcetypeassert
 	case encoding.TextUnmarshaler:
+		if err := typedValue.UnmarshalText([]byte(envValue)); err != nil {
+			return defaultValue
+		}
+
+		return any(typedValue).(T) //nolint:forcetypeassert
+	case types.Secret:
+		if err := typedValue.UnmarshalText([]byte(envValue)); err != nil {
+			return defaultValue
+		}
+
+		return any(typedValue).(T) //nolint:forcetypeassert
+	case types.URL:
+		if err := typedValue.UnmarshalText([]byte(envValue)); err != nil {
+			return defaultValue
+		}
+
+		return any(typedValue).(T) //nolint:forcetypeassert
+	case types.StringSlice:
 		if err := typedValue.UnmarshalText([]byte(envValue)); err != nil {
 			return defaultValue
 		}

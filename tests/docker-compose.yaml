@@ -24,7 +24,7 @@ services:
         RUN make install
       args:
         GIT_REPO: https://github.com/OpenVPN/openvpn.git
-        GIT_BRANCH: main
+        GIT_BRANCH: master
     cap_add:
       - NET_ADMIN
     devices:

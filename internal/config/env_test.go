@@ -1,6 +1,7 @@
 package config //nolint:testpackage
 
 import (
+	"net/url"
 	"testing"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
@@ -45,7 +46,7 @@ func TestLookupEnvOrDefault(t *testing.T) {
 			expected:     uint(1337),
 		},
 		{
-			name:         "TextUnmarshaler",
+			name:         "TextUnmarshaler/FS",
 			defaultValue: &types.FS{FS: assets.FS},
 			input:        ".",
 			badInput:     "...",
@@ -55,6 +56,27 @@ func TestLookupEnvOrDefault(t *testing.T) {
 
 				return &f
 			}(),
+		},
+		{
+			name:         "TextUnmarshaler/Secret",
+			defaultValue: types.Secret("hello world"),
+			input:        "hello world",
+			badInput:     "file://",
+			expected:     types.Secret("hello world"),
+		},
+		{
+			name:         "TextUnmarshaler/URL",
+			defaultValue: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
+			input:        "http://google.com",
+			badInput:     "://google.com",
+			expected:     types.URL{URL: &url.URL{Scheme: "http", Host: "google.com"}},
+		},
+		{
+			name:         "TextUnmarshaler/StringSlice",
+			defaultValue: types.StringSlice{},
+			input:        "a,b",
+			badInput:     "",
+			expected:     types.StringSlice{"a", "b"},
 		},
 		{
 			name:         "float64",
