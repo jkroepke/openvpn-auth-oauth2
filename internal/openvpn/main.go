@@ -181,6 +181,9 @@ func (c *Client) checkClientSsoCapabilities(client connection.Client) bool {
 
 // Shutdown shutdowns the client connection.
 func (c *Client) Shutdown() {
+	c.commandMu.Lock()
+	defer c.commandMu.Unlock()
+
 	if !c.closed.CompareAndSwap(0, 1) {
 		return
 	}
@@ -192,6 +195,8 @@ func (c *Client) Shutdown() {
 
 	if c.conn != nil {
 		_ = c.conn.Close()
+
+		c.conn = nil
 	}
 
 	close(c.commandsCh)
@@ -199,6 +204,9 @@ func (c *Client) Shutdown() {
 
 // SendCommand passes command to a given connection (adds logging and EOL character) and returns the response.
 func (c *Client) SendCommand(cmd string, passthrough bool) (string, error) {
+	c.commandMu.RLock()
+	defer c.commandMu.RUnlock()
+
 	if cmd == "\x00" || c.closed.Load() == 1 {
 		return "", nil
 	}
