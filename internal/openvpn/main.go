@@ -26,7 +26,8 @@ func New(logger *slog.Logger, conf config.Config) *Client {
 		conf:   conf,
 		logger: logger,
 
-		connMu: sync.Mutex{},
+		connMu:    sync.Mutex{},
+		commandMu: sync.RWMutex{},
 
 		commandsBuffer: bytes.Buffer{},
 
@@ -58,15 +59,13 @@ func (c *Client) Connect(ctx context.Context) error {
 		return fmt.Errorf("unable to connect to openvpn management interface %s: %w", c.conf.OpenVpn.Addr.String(), err)
 	}
 
-	defer func() {
-		_ = c.conn.Close()
-	}()
-
 	c.scanner = bufio.NewScanner(c.conn)
 	c.scanner.Split(bufio.ScanLines)
 	c.scanner.Buffer(make([]byte, 0, bufio.MaxScanTokenSize), bufio.MaxScanTokenSize)
 
 	if err = c.handlePassword(ctx); err != nil {
+		_ = c.conn.Close()
+
 		return fmt.Errorf("unable to authenticate with OpenVPN management interface: %w", err)
 	}
 
@@ -181,6 +180,9 @@ func (c *Client) checkClientSsoCapabilities(client connection.Client) bool {
 
 // Shutdown shutdowns the client connection.
 func (c *Client) Shutdown() {
+	c.commandMu.Lock()
+	defer c.commandMu.Unlock()
+
 	if !c.closed.CompareAndSwap(0, 1) {
 		return
 	}
@@ -192,6 +194,8 @@ func (c *Client) Shutdown() {
 
 	if c.conn != nil {
 		_ = c.conn.Close()
+
+		c.conn = nil
 	}
 
 	close(c.commandsCh)
@@ -199,6 +203,9 @@ func (c *Client) Shutdown() {
 
 // SendCommand passes command to a given connection (adds logging and EOL character) and returns the response.
 func (c *Client) SendCommand(cmd string, passthrough bool) (string, error) {
+	c.commandMu.RLock()
+	defer c.commandMu.RUnlock()
+
 	if cmd == "\x00" || c.closed.Load() == 1 {
 		return "", nil
 	}
