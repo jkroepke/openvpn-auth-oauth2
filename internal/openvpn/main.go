@@ -59,15 +59,13 @@ func (c *Client) Connect(ctx context.Context) error {
 		return fmt.Errorf("unable to connect to openvpn management interface %s: %w", c.conf.OpenVpn.Addr.String(), err)
 	}
 
-	defer func() {
-		_ = c.conn.Close()
-	}()
-
 	c.scanner = bufio.NewScanner(c.conn)
 	c.scanner.Split(bufio.ScanLines)
 	c.scanner.Buffer(make([]byte, 0, bufio.MaxScanTokenSize), bufio.MaxScanTokenSize)
 
 	if err = c.handlePassword(ctx); err != nil {
+		_ = c.conn.Close()
+
 		return fmt.Errorf("unable to authenticate with OpenVPN management interface: %w", err)
 	}
 
