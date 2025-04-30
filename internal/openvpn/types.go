@@ -25,8 +25,9 @@ type Client struct {
 	logger  *slog.Logger
 	oauth2  oauth2Client
 
-	connMu sync.Mutex
-	closed atomic.Uint32
+	connMu    sync.Mutex
+	closed    atomic.Uint32
+	commandMu sync.RWMutex
 
 	commandsBuffer bytes.Buffer
 

@@ -147,57 +147,66 @@ func lookupEnvOrDefault[T any](key string, defaultValue T) T {
 		return defaultValue
 	}
 
+	var value T
+
 	switch typedValue := any(defaultValue).(type) {
 	case string:
-		return any(envValue).(T) //nolint:forcetypeassert
+		value, ok = any(envValue).(T)
 	case bool:
-		if envValue == "true" {
-			return any(true).(T) //nolint:forcetypeassert
+		boolVal, err := strconv.ParseBool(envValue)
+		if err != nil {
+			return defaultValue
 		}
 
-		return any(false).(T) //nolint:forcetypeassert
+		value, ok = any(boolVal).(T)
 	case int:
 		intValue, err := strconv.Atoi(envValue)
 		if err != nil {
 			return defaultValue
 		}
 
-		return any(intValue).(T) //nolint:forcetypeassert
+		value, ok = any(intValue).(T)
 	case uint:
 		intValue, err := strconv.ParseUint(envValue, 10, 0)
 		if err != nil {
 			return defaultValue
 		}
 
-		return any(uint(intValue)).(T) //nolint:forcetypeassert
+		value, ok = any(uint(intValue)).(T)
 	case encoding.TextUnmarshaler:
 		if err := typedValue.UnmarshalText([]byte(envValue)); err != nil {
 			return defaultValue
 		}
 
-		return any(typedValue).(T) //nolint:forcetypeassert
+		value, ok = any(typedValue).(T)
 	case types.Secret:
 		if err := typedValue.UnmarshalText([]byte(envValue)); err != nil {
 			return defaultValue
 		}
 
-		return any(typedValue).(T) //nolint:forcetypeassert
+		value, ok = any(typedValue).(T)
 	case types.URL:
 		if err := typedValue.UnmarshalText([]byte(envValue)); err != nil {
 			return defaultValue
 		}
 
-		return any(typedValue).(T) //nolint:forcetypeassert
+		value, ok = any(typedValue).(T)
 	case types.StringSlice:
 		if err := typedValue.UnmarshalText([]byte(envValue)); err != nil {
 			return defaultValue
 		}
 
-		return any(typedValue).(T) //nolint:forcetypeassert
+		value, ok = any(typedValue).(T)
 	default:
 		// If the type is not supported, panic
 		panic(fmt.Sprintf("unsupported type %T for environment variable %s", defaultValue, key))
 	}
+
+	if !ok {
+		panic(fmt.Sprintf("failed to convert environment variable %s to type %T", key, defaultValue))
+	}
+
+	return value
 }
 
 // getEnvironmentVariableByFlagName converts a flag name to an environment variable name.
