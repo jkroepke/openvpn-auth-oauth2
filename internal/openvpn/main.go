@@ -26,7 +26,8 @@ func New(logger *slog.Logger, conf config.Config) *Client {
 		conf:   conf,
 		logger: logger,
 
-		connMu: sync.Mutex{},
+		connMu:    sync.Mutex{},
+		commandMu: sync.RWMutex{},
 
 		commandsBuffer: bytes.Buffer{},
 
