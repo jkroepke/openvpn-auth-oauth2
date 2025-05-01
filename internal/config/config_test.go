@@ -109,6 +109,10 @@ openvpn:
         common-names:
         - "test"
         - "test2"
+    ccd:
+        enabled: true
+        token-claim: sub
+        path: "."
     common-name:
         environment-variable-name: X509_0_emailAddress
         mode: omit
@@ -170,6 +174,16 @@ http:
 					}},
 					Bypass: config.OpenVpnBypass{
 						CommonNames: []string{"test", "test2"},
+					},
+					CCD: config.OpenVPNCCD{
+						Enabled:    true,
+						TokenClaim: "sub",
+						Path: func() types.FS {
+							dirFS, err := types.NewFS(".")
+							require.NoError(t, err)
+
+							return dirFS
+						}(),
 					},
 					Password:           "1jd93h5b6s82lf03jh5b2hf9",
 					AuthTokenUser:      true,

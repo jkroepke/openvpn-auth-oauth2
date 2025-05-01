@@ -55,8 +55,8 @@ func (c Client) RefreshClientAuth(ctx context.Context, logger *slog.Logger, clie
 	}
 
 	session := state.New(
-		state.ClientIdentifier{CID: client.CID, KID: client.KID, SessionID: client.SessionID},
-		client.IPAddr, client.IPPort, client.CommonName, client.SessionState,
+		state.ClientIdentifier{CID: client.CID, KID: client.KID, SessionID: client.SessionID, CommonName: client.CommonName},
+		client.IPAddr, client.IPPort, client.SessionState,
 	)
 
 	user, err := c.provider.GetUser(ctx, logger, tokens)

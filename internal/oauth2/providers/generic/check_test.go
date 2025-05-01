@@ -117,7 +117,7 @@ func TestInvalidToken(t *testing.T) {
 			userData, err := provider.GetUser(t.Context(), testutils.NewTestLogger().Logger, tt.token)
 			require.NoError(t, err)
 
-			err = provider.CheckUser(t.Context(), state.State{CommonName: "user"}, userData, tt.token)
+			err = provider.CheckUser(t.Context(), state.State{Client: state.ClientIdentifier{CommonName: "user"}}, userData, tt.token)
 			if tt.err == nil {
 				require.NoError(t, err)
 			} else {
@@ -378,7 +378,7 @@ func TestValidateCommonName(t *testing.T) {
 			}
 
 			session := state.State{
-				CommonName: tt.requiredCommonName,
+				Client: state.ClientIdentifier{CommonName: tt.requiredCommonName},
 			}
 
 			provider, err := generic.NewProvider(t.Context(), tt.conf, http.DefaultClient)

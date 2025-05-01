@@ -3,6 +3,7 @@ package config
 import (
 	"log/slog"
 	"net/url"
+	"os"
 	"text/template"
 	"time"
 
@@ -47,6 +48,10 @@ var Defaults = Config{
 		}},
 		AuthTokenUser:      true,
 		AuthPendingTimeout: 3 * time.Minute,
+		CCD: OpenVPNCCD{
+			Enabled: false,
+			Path:    types.FS{FS: os.DirFS("/etc/openvpn-auth-oauth2/ccd/")},
+		},
 		CommonName: OpenVPNCommonName{
 			EnvironmentVariableName: "common_name",
 			Mode:                    CommonNameModePlain,

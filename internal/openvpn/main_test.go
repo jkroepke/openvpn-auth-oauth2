@@ -337,7 +337,7 @@ func TestClientFull(t *testing.T) {
 
 				require.Equal(t, uint64(1), sessionState.Client.CID)
 				require.Equal(t, uint64(2), sessionState.Client.KID)
-				require.Equal(t, "test", sessionState.CommonName)
+				require.Equal(t, "test", sessionState.Client.CommonName)
 				require.Equal(t, "127.0.0.1", sessionState.IPAddr)
 			}
 		})

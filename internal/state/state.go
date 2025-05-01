@@ -11,30 +11,41 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/crypto"
 )
 
+// State represents the context and security information associated with an OAuth2 login flow.
+//
+// The `State` value is passed to the `state` GET parameter during the OAuth2 login flow.
+// It ensures that the client initiating the login flow is the same client completing it,
+// thus preventing CSRF (Cross-Site Request Forgery) attacks. The `State` value is returned
+// by the OAuth2 Identity Provider (IDP) in the redirect URL.
+//
+// To prevent tampering, the `State` is protected using AES encryption.
 type State struct {
-	Client       ClientIdentifier
-	IPAddr       string
-	IPPort       string
-	CommonName   string
-	SessionState string
-	Issued       int64
+	Client       ClientIdentifier // Detailed information about the client initiating the flow.
+	IPAddr       string           // IP address of the client.
+	IPPort       string           // Port used by the client.
+	SessionState string           // Session identifier for tracking the login state.
+	Issued       int64            // Timestamp when the state was created.
 }
 
+// ClientIdentifier holds detailed information about the client initiating an OAuth2 login flow.
+//
+// This struct provides more context for the client and can be passed to [github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn.Client.AcceptClient].
 type ClientIdentifier struct {
-	CID                  uint64
-	KID                  uint64
-	SessionID            string
-	UsernameIsDefined    int
-	AuthFailedReasonFile string
-	AuthControlFile      string
+	CID                  uint64 // Unique identifier for the client.
+	KID                  uint64 // Identifier for cryptographic keys.
+	SessionID            string // Unique session identifier.
+	CommonName           string // Human-readable name for the client.
+	UsernameIsDefined    int    // Flag indicating if the username is defined.
+	AuthFailedReasonFile string // Path or reference explaining authentication failure reasons.
+	AuthControlFile      string // Path or reference for authentication control settings.
 }
 
-func New(client ClientIdentifier, ipAddr, ipPort, commonName, sessionState string) State {
+// New returns a new State.
+func New(client ClientIdentifier, ipAddr, ipPort, sessionState string) State {
 	return State{
 		Client:       client,
 		IPAddr:       ipAddr,
 		IPPort:       ipPort,
-		CommonName:   commonName,
 		SessionState: sessionState,
 		Issued:       time.Now().Round(time.Second).Unix(),
 	}
@@ -66,11 +77,11 @@ func (state *State) Encode(secretKey string) (string, error) {
 	data.WriteString(" ")
 	data.WriteString(strconv.Itoa(state.Client.UsernameIsDefined))
 	data.WriteString(" ")
+	data.WriteString(encodeString(state.Client.CommonName))
+	data.WriteString(" ")
 	data.WriteString(encodeString(state.IPAddr))
 	data.WriteString(" ")
 	data.WriteString(encodeString(state.IPPort))
-	data.WriteString(" ")
-	data.WriteString(encodeString(state.CommonName))
 	data.WriteString(" ")
 	data.WriteString(encodeSessionState(state.SessionState))
 	data.WriteString(" ")
@@ -103,9 +114,9 @@ func (state *State) decode(encodedState, secretKey string) error {
 		&state.Client.AuthControlFile,
 		&state.Client.SessionID,
 		&state.Client.UsernameIsDefined,
+		&state.Client.CommonName,
 		&state.IPAddr,
 		&state.IPPort,
-		&state.CommonName,
 		&state.SessionState,
 		&state.Issued,
 	)
@@ -116,9 +127,9 @@ func (state *State) decode(encodedState, secretKey string) error {
 	state.Client.AuthFailedReasonFile = decodeString(state.Client.AuthFailedReasonFile)
 	state.Client.AuthControlFile = decodeString(state.Client.AuthControlFile)
 	state.Client.SessionID = decodeString(state.Client.SessionID)
+	state.Client.CommonName = decodeString(state.Client.CommonName)
 	state.IPAddr = decodeString(state.IPAddr)
 	state.IPPort = decodeString(state.IPPort)
-	state.CommonName = decodeString(state.CommonName)
 	state.SessionState = decodeSessionState(state.SessionState)
 
 	issuedSince := time.Since(time.Unix(state.Issued, 0))

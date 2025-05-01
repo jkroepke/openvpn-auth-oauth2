@@ -94,13 +94,14 @@ func (c *Client) handleClientAuthentication(ctx context.Context, logger *slog.Lo
 // startClientAuth initiates the authentication process for the client.
 // The openvpn-auth-oauth2 plugin will send a client-pending-auth command to the OpenVPN management interface.
 func (c *Client) startClientAuth(ctx context.Context, logger *slog.Logger, client connection.Client) error {
-	clientIdentifier := state.ClientIdentifier{
-		CID:       client.CID,
-		KID:       client.KID,
-		SessionID: client.SessionID,
-	}
-
 	commonName := utils.TransformCommonName(c.conf.OpenVpn.CommonName.Mode, client.CommonName)
+
+	clientIdentifier := state.ClientIdentifier{
+		CID:        client.CID,
+		KID:        client.KID,
+		SessionID:  client.SessionID,
+		CommonName: commonName,
+	}
 
 	var (
 		ipAddr string
@@ -112,7 +113,7 @@ func (c *Client) startClientAuth(ctx context.Context, logger *slog.Logger, clien
 		ipPort = client.IPPort
 	}
 
-	session := state.New(clientIdentifier, ipAddr, ipPort, commonName, client.SessionState)
+	session := state.New(clientIdentifier, ipAddr, ipPort, client.SessionState)
 
 	encodedSession, err := session.Encode(c.conf.HTTP.Secret.String())
 	if err != nil {
