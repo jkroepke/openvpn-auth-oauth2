@@ -133,7 +133,7 @@ linters:
         - l net.Listener
         - t reflect.Type
         - wg sync.WaitGroup
-        - k *koanf.Koanf
+        - sb strings.Builder
         - mu sync.Mutex
         - ts oauth2.TokenSource
         - ca *testcerts.CertificateAuthority

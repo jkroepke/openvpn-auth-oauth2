@@ -49,7 +49,7 @@ func (c *Client) handleClientAuthentication(ctx context.Context, logger *slog.Lo
 	// Check if the client is allowed to bypass authentication. If so, accept the client.
 	if c.checkAuthBypass(client) {
 		logger.LogAttrs(ctx, slog.LevelInfo, "client bypass authentication")
-		c.AcceptClient(logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, client.CommonName)
+		c.AcceptClient(logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, true, client.CommonName)
 
 		return
 	}
@@ -65,8 +65,7 @@ func (c *Client) handleClientAuthentication(ctx context.Context, logger *slog.Lo
 
 	// Check if the client is already authenticated and refresh the client's authentication if enabled.
 	// If the client is successfully re-authenticated, accept the client.
-	ok, err := c.silentReAuthentication(ctx, logger, client)
-	if err != nil {
+	if ok, err := c.silentReAuthentication(ctx, logger, client); err != nil {
 		c.DenyClient(logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, ReasonStateExpiredOrInvalid)
 
 		logger.LogAttrs(ctx, slog.LevelError, "error refreshing client auth",
@@ -75,7 +74,7 @@ func (c *Client) handleClientAuthentication(ctx context.Context, logger *slog.Lo
 
 		return
 	} else if ok {
-		c.AcceptClient(logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, client.CommonName)
+		c.AcceptClient(logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, true, client.CommonName)
 
 		return
 	}
@@ -94,13 +93,14 @@ func (c *Client) handleClientAuthentication(ctx context.Context, logger *slog.Lo
 // startClientAuth initiates the authentication process for the client.
 // The openvpn-auth-oauth2 plugin will send a client-pending-auth command to the OpenVPN management interface.
 func (c *Client) startClientAuth(ctx context.Context, logger *slog.Logger, client connection.Client) error {
-	clientIdentifier := state.ClientIdentifier{
-		CID:       client.CID,
-		KID:       client.KID,
-		SessionID: client.SessionID,
-	}
-
 	commonName := utils.TransformCommonName(c.conf.OpenVpn.CommonName.Mode, client.CommonName)
+
+	clientIdentifier := state.ClientIdentifier{
+		CID:        client.CID,
+		KID:        client.KID,
+		SessionID:  client.SessionID,
+		CommonName: commonName,
+	}
 
 	var (
 		ipAddr string
@@ -112,7 +112,7 @@ func (c *Client) startClientAuth(ctx context.Context, logger *slog.Logger, clien
 		ipPort = client.IPPort
 	}
 
-	session := state.New(clientIdentifier, ipAddr, ipPort, commonName, client.SessionState)
+	session := state.New(clientIdentifier, ipAddr, ipPort, client.SessionState)
 
 	encodedSession, err := session.Encode(c.conf.HTTP.Secret.String())
 	if err != nil {

@@ -70,6 +70,12 @@ nfpms:
           owner: root
           group: openvpn-auth-oauth2
           mode: 0750
+      - dst: /etc/openvpn-auth-oauth2/client-config/
+        type: dir
+        file_info:
+          owner: root
+          group: openvpn-auth-oauth2
+          mode: 0750
       - src: packaging/etc/openvpn-auth-oauth2/config.yaml
         dst: /etc/openvpn-auth-oauth2/config.yaml
         type: "config|noreplace"

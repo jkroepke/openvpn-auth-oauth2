@@ -63,8 +63,8 @@ services:
           printf password > /etc/openvpn/password.txt
         fi
 
-        if [ ! -d /etc/openvpn/ccd ]; then
-          mkdir /etc/openvpn/ccd
+        if [ ! -d /etc/openvpn/client-config ]; then
+          mkdir /etc/openvpn/client-config
         fi
 
         cat > "/etc/openvpn/openvpn.conf" <<EOF
@@ -102,7 +102,7 @@ services:
         disable-dco
         duplicate-cn
 
-        client-config-dir /etc/openvpn/ccd
+        client-config-dir /etc/openvpn/client-config
 
         management 0.0.0.0 8081 /etc/openvpn/password.txt
         management-hold

@@ -21,7 +21,7 @@ import (
 )
 
 type openvpnManagementClient interface {
-	AcceptClient(logger *slog.Logger, client state.ClientIdentifier, username string)
+	AcceptClient(logger *slog.Logger, client state.ClientIdentifier, reAuth bool, username string)
 	DenyClient(logger *slog.Logger, client state.ClientIdentifier, reason string)
 }
 
@@ -52,7 +52,7 @@ func (c Client) OAuth2Start() http.Handler {
 			slog.String("ip", fmt.Sprintf("%s:%s", session.IPAddr, session.IPPort)),
 			slog.Uint64("cid", session.Client.CID),
 			slog.Uint64("kid", session.Client.KID),
-			slog.String("common_name", session.CommonName),
+			slog.String("common_name", session.Client.CommonName),
 		)
 
 		if c.conf.HTTP.Check.IPAddr {
@@ -116,7 +116,7 @@ func (c Client) OAuth2Callback() http.Handler {
 			slog.String("ip", fmt.Sprintf("%s:%s", session.IPAddr, session.IPPort)),
 			slog.Uint64("cid", session.Client.CID),
 			slog.Uint64("kid", session.Client.KID),
-			slog.String("common_name", session.CommonName),
+			slog.String("common_name", session.Client.CommonName),
 			slog.String("session_id", session.Client.SessionID),
 			slog.String("session_state", session.SessionState),
 		)
@@ -181,10 +181,10 @@ func (c Client) postCodeExchangeHandler(logger *slog.Logger, session state.State
 
 		username := user.PreferredUsername
 		if username == "" {
-			username = session.CommonName
+			username = session.Client.CommonName
 		}
 
-		c.openvpn.AcceptClient(logger, session.Client, username)
+		c.openvpn.AcceptClient(logger, session.Client, false, username)
 		c.postCodeExchangeHandlerStoreRefreshToken(ctx, logger, session, clientID, tokens)
 		c.writeHTTPSuccess(w, logger)
 	}
@@ -240,7 +240,7 @@ func (c Client) httpErrorHandler(w http.ResponseWriter, httpStatus int, errorTyp
 			slog.String("ip", fmt.Sprintf("%s:%s", session.IPAddr, session.IPPort)),
 			slog.Uint64("cid", session.Client.CID),
 			slog.Uint64("kid", session.Client.KID),
-			slog.String("common_name", session.CommonName),
+			slog.String("common_name", session.Client.CommonName),
 		)
 
 		c.openvpn.DenyClient(logger, session.Client, "client rejected")

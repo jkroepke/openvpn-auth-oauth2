@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"testing"
+	"testing/fstest"
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
@@ -47,7 +48,7 @@ func TestHandler(t *testing.T) {
 
 				return conf
 			}(),
-			state.New(state.ClientIdentifier{CID: 0, KID: 1}, "127.0.0.1", "12345", "name", ""),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.1", "12345", ""),
 			false,
 			"",
 			true,
@@ -71,7 +72,7 @@ func TestHandler(t *testing.T) {
 
 				return conf
 			}(),
-			state.New(state.ClientIdentifier{CID: 0, KID: 1, UsernameIsDefined: 1}, "127.0.0.1", "12345", "name", ""),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1, UsernameIsDefined: 1, CommonName: "name"}, "127.0.0.1", "12345", ""),
 			false,
 			"",
 			true,
@@ -98,7 +99,7 @@ func TestHandler(t *testing.T) {
 
 				return conf
 			}(),
-			state.New(state.ClientIdentifier{CID: 0, KID: 1}, "127.0.0.1", "12345", "name", ""),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.1", "12345", ""),
 			false,
 			"",
 			true,
@@ -126,7 +127,7 @@ func TestHandler(t *testing.T) {
 
 				return conf
 			}(),
-			state.New(state.ClientIdentifier{CID: 0, KID: 1}, "127.0.0.1", "12345", "name", ""),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.1", "12345", ""),
 			false,
 			"",
 			true,
@@ -150,7 +151,7 @@ func TestHandler(t *testing.T) {
 
 				return conf
 			}(),
-			state.New(state.ClientIdentifier{CID: 0, KID: 1}, "127.0.0.1", "12345", "name", ""),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.1", "12345", ""),
 			false,
 			"",
 			true,
@@ -175,7 +176,7 @@ func TestHandler(t *testing.T) {
 
 				return conf
 			}(),
-			state.New(state.ClientIdentifier{CID: 0, KID: 1}, "127.0.0.2", "12345", "name", ""),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.2", "12345", ""),
 			false,
 			"127.0.0.2",
 			true,
@@ -200,7 +201,7 @@ func TestHandler(t *testing.T) {
 
 				return conf
 			}(),
-			state.New(state.ClientIdentifier{CID: 0, KID: 1}, "127.0.0.2", "12345", "name", ""),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.2", "12345", ""),
 			false,
 			"127.0.0.2",
 			false,
@@ -225,7 +226,69 @@ func TestHandler(t *testing.T) {
 
 				return conf
 			}(),
-			state.New(state.ClientIdentifier{CID: 0, KID: 1}, "127.0.0.2", "12345", "name", ""),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.2", "12345", ""),
+			false,
+			"127.0.0.2, 8.8.8.8",
+			true,
+			true,
+		},
+		{
+			"with client config found",
+			func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Check.IPAddr = true
+				conf.HTTP.EnableProxyHeaders = true
+				conf.OAuth2.Provider = generic.Name
+				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
+				conf.OAuth2.Scopes = []string{"openid", "profile"}
+				conf.OAuth2.Validate.Groups = make([]string, 0)
+				conf.OAuth2.Validate.Roles = make([]string, 0)
+				conf.OAuth2.Validate.Issuer = true
+				conf.OAuth2.Validate.IPAddr = false
+				conf.OpenVpn.Bypass.CommonNames = make([]string, 0)
+				conf.OpenVpn.AuthTokenUser = true
+				conf.OpenVpn.ClientConfig.Enabled = true
+				conf.OpenVpn.ClientConfig.Path = types.FS{
+					FS: fstest.MapFS{
+						"name.conf": &fstest.MapFile{
+							Data: []byte("push \"ping 60\"\npush \"ping-restart 180\"\r\npush \"ping-timer-rem\" 0\r\n"),
+						},
+					},
+				}
+
+				return conf
+			}(),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.2", "12345", ""),
+			false,
+			"127.0.0.2, 8.8.8.8",
+			true,
+			true,
+		},
+		{
+			"with client config not found",
+			func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Check.IPAddr = true
+				conf.HTTP.EnableProxyHeaders = true
+				conf.OAuth2.Provider = generic.Name
+				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
+				conf.OAuth2.Scopes = []string{"openid", "profile"}
+				conf.OAuth2.Validate.Groups = make([]string, 0)
+				conf.OAuth2.Validate.Roles = make([]string, 0)
+				conf.OAuth2.Validate.Issuer = true
+				conf.OAuth2.Validate.IPAddr = false
+				conf.OpenVpn.Bypass.CommonNames = make([]string, 0)
+				conf.OpenVpn.AuthTokenUser = true
+				conf.OpenVpn.ClientConfig.Enabled = true
+				conf.OpenVpn.ClientConfig.Path = types.FS{
+					FS: fstest.MapFS{},
+				}
+
+				return conf
+			}(),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "client"}, "127.0.0.2", "12345", ""),
 			false,
 			"127.0.0.2, 8.8.8.8",
 			true,
@@ -420,6 +483,19 @@ func TestHandler(t *testing.T) {
 			case tc.state.Client.UsernameIsDefined == 1:
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth-nt 0 1")
 				testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
+			case tc.conf.OpenVpn.ClientConfig.Enabled:
+				if tc.state.Client.CommonName == "name" {
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 0 1\r\n"+
+						"push \"ping 60\"\r\n"+
+						"push \"ping-restart 180\"\r\n"+
+						"push \"ping-timer-rem\" 0\r\n"+
+						"push \"auth-token-user bmFtZQ==\"\r\n"+
+						"END")
+					testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
+				} else {
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 0 1\r\npush \"auth-token-user Y2xpZW50\"\r\nEND")
+					testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
+				}
 			default:
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 0 1\r\npush \"auth-token-user bmFtZQ==\"\r\nEND")
 				testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
