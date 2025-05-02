@@ -342,31 +342,7 @@ func TestRefreshReAuth(t *testing.T) {
 				return
 			}
 
-			switch {
-			case tc.conf.OpenVpn.OverrideUsername:
-				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 1 3")
-
-				if tc.clientCommonName == "" {
-					testutils.ExpectMessage(t, managementInterfaceConn, reader, "override-username \"username\"")
-				} else {
-					testutils.ExpectMessage(t, managementInterfaceConn, reader, "override-username \"test\"")
-				}
-
-				testutils.ExpectMessage(t, managementInterfaceConn, reader, "END")
-			case tc.conf.OpenVpn.AuthTokenUser:
-				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 1 3")
-
-				if tc.clientCommonName == "" {
-					testutils.ExpectMessage(t, managementInterfaceConn, reader, "push \"auth-token-user dXNlcm5hbWUK\"")
-				} else {
-					testutils.ExpectMessage(t, managementInterfaceConn, reader, "push \"auth-token-user dGVzdA==\"")
-				}
-
-				testutils.ExpectMessage(t, managementInterfaceConn, reader, "END")
-			default:
-				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth-nt 1 3")
-			}
-
+			testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth-nt 1 3")
 			testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
 
 			// Testing ReAuth
@@ -375,31 +351,7 @@ func TestRefreshReAuth(t *testing.T) {
 				tc.clientCommonName,
 			)
 
-			switch {
-			case tc.conf.OpenVpn.OverrideUsername:
-				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 1 4")
-
-				if tc.clientCommonName == "" {
-					testutils.ExpectMessage(t, managementInterfaceConn, reader, "override-username \"username\"")
-				} else {
-					testutils.ExpectMessage(t, managementInterfaceConn, reader, "override-username \"test\"")
-				}
-
-				testutils.ExpectMessage(t, managementInterfaceConn, reader, "END")
-			case tc.conf.OpenVpn.AuthTokenUser:
-				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 1 4")
-
-				if tc.clientCommonName == "" {
-					testutils.ExpectMessage(t, managementInterfaceConn, reader, "push \"auth-token-user dXNlcm5hbWUK\"")
-				} else {
-					testutils.ExpectMessage(t, managementInterfaceConn, reader, "push \"auth-token-user dGVzdA==\"")
-				}
-
-				testutils.ExpectMessage(t, managementInterfaceConn, reader, "END")
-			default:
-				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth-nt 1 4")
-			}
-
+			testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth-nt 1 4")
 			testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
 
 			// Test Disconnect

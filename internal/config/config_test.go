@@ -109,7 +109,7 @@ openvpn:
         common-names:
         - "test"
         - "test2"
-    ccd:
+    client-config:
         enabled: true
         token-claim: sub
         path: "."
