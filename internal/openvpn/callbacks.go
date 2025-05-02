@@ -10,6 +10,10 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 )
 
+// AcceptClient accepts an OpenVPN client connection.
+// It reads the client configuration from the CCD path if enabled.
+//
+//nolint:cyclop
 func (c *Client) AcceptClient(logger *slog.Logger, client state.ClientIdentifier, username string) {
 	logger.Info("accept OpenVPN client")
 
@@ -20,7 +24,8 @@ func (c *Client) AcceptClient(logger *slog.Logger, client state.ClientIdentifier
 
 	clientConfig, err := c.readClientConfig(username)
 	if err != nil {
-		logger.Warn("failed to read client config",
+		logger.Debug("failed to read client config",
+			slog.String("username", username),
 			slog.Any("error", err),
 		)
 	}
@@ -81,7 +86,7 @@ func (c *Client) readClientConfig(username string) ([]string, error) {
 
 	clientConfigFile, err := c.conf.OpenVpn.CCD.Path.Open(username + ".conf")
 	if err != nil {
-		return make([]string, 0), nil
+		return make([]string, 0), fmt.Errorf("failed to open client config file: %w", err)
 	}
 
 	clientConfigBytes, err := io.ReadAll(clientConfigFile)
