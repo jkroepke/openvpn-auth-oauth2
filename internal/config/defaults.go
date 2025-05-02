@@ -48,16 +48,16 @@ var Defaults = Config{
 		}},
 		AuthTokenUser:      true,
 		AuthPendingTimeout: 3 * time.Minute,
-		CCD: OpenVPNCCD{
+		ClientConfig: OpenVPNConfig{
 			Enabled: false,
-			Path:    types.FS{FS: os.DirFS("/etc/openvpn-auth-oauth2/ccd/")},
+			Path:    types.FS{FS: os.DirFS("/etc/openvpn-auth-oauth2/client-config-dir/")},
 		},
 		CommonName: OpenVPNCommonName{
 			EnvironmentVariableName: "common_name",
 			Mode:                    CommonNameModePlain,
 		},
 		OverrideUsername: false,
-		Bypass: OpenVpnBypass{
+		Bypass: OpenVPNBypass{
 			CommonNames: make([]string, 0),
 		},
 		Passthrough: OpenVPNPassthrough{

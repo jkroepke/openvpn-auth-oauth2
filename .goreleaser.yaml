@@ -70,7 +70,7 @@ nfpms:
           owner: root
           group: openvpn-auth-oauth2
           mode: 0750
-      - dst: /etc/openvpn-auth-oauth2/ccd/
+      - dst: /etc/openvpn-auth-oauth2/client-config/
         type: dir
         file_info:
           owner: root

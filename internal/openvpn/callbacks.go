@@ -12,15 +12,30 @@ import (
 
 // AcceptClient accepts an OpenVPN client connection.
 // It reads the client configuration from the CCD path if enabled.
-//
-//nolint:cyclop
-func (c *Client) AcceptClient(logger *slog.Logger, client state.ClientIdentifier, username string) {
-	logger.Info("accept OpenVPN client")
+func (c *Client) AcceptClient(logger *slog.Logger, client state.ClientIdentifier, reAuth bool, username string) {
+	if reAuth {
+		logger.Info("client re-authentication")
 
+		if _, err := c.SendCommandf(`client-auth-nt %d %d`, client.CID, client.KID); err != nil {
+			logger.Warn("failed to accept client",
+				slog.Any("error", err),
+			)
+		}
+
+		return
+	}
+
+	c.acceptClientAuth(logger, client, username)
+}
+
+//nolint:cyclop
+func (c *Client) acceptClientAuth(logger *slog.Logger, client state.ClientIdentifier, username string) {
 	var (
 		err           error
 		tokenUsername string
 	)
+
+	logger.Info("client authentication")
 
 	clientConfig, err := c.readClientConfig(username)
 	if err != nil {
@@ -80,11 +95,11 @@ func (c *Client) DenyClient(logger *slog.Logger, client state.ClientIdentifier, 
 }
 
 func (c *Client) readClientConfig(username string) ([]string, error) {
-	if !c.conf.OpenVpn.CCD.Enabled || c.conf.OpenVpn.CCD.Path.IsEmpty() || len(username) == 0 {
+	if !c.conf.OpenVpn.ClientConfig.Enabled || c.conf.OpenVpn.ClientConfig.Path.IsEmpty() || len(username) == 0 {
 		return make([]string, 0), nil
 	}
 
-	clientConfigFile, err := c.conf.OpenVpn.CCD.Path.Open(username + ".conf")
+	clientConfigFile, err := c.conf.OpenVpn.ClientConfig.Path.Open(username + ".conf")
 	if err != nil {
 		return make([]string, 0), fmt.Errorf("failed to open client config file: %w", err)
 	}
@@ -94,5 +109,5 @@ func (c *Client) readClientConfig(username string) ([]string, error) {
 		return make([]string, 0), fmt.Errorf("failed to read client config file: %w", err)
 	}
 
-	return strings.Split(strings.TrimSpace(string(clientConfigBytes)), "\n"), nil
+	return strings.Split(strings.TrimSpace(strings.ReplaceAll(string(clientConfigBytes), "\r", "")), "\n"), nil
 }

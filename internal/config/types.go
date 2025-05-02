@@ -51,8 +51,8 @@ type Log struct {
 type OpenVpn struct {
 	Addr               types.URL          `json:"addr"                 yaml:"addr"`
 	Password           types.Secret       `json:"password"             yaml:"password"`
-	Bypass             OpenVpnBypass      `json:"bypass"               yaml:"bypass"`
-	CCD                OpenVPNCCD         `json:"ccd"                  yaml:"ccd"`
+	Bypass             OpenVPNBypass      `json:"bypass"               yaml:"bypass"`
+	ClientConfig       OpenVPNConfig      `json:"client-config"        yaml:"client-config"`
 	AuthTokenUser      bool               `json:"auth-token-user"      yaml:"auth-token-user"`
 	AuthPendingTimeout time.Duration      `json:"auth-pending-timeout" yaml:"auth-pending-timeout"`
 	OverrideUsername   bool               `json:"override-username"    yaml:"override-username"`
@@ -61,10 +61,10 @@ type OpenVpn struct {
 	CommandTimeout     time.Duration      `json:"command-timeout"      yaml:"command-timeout"`
 }
 
-type OpenVpnBypass struct {
+type OpenVPNBypass struct {
 	CommonNames types.StringSlice `json:"common-names" yaml:"common-names"`
 }
-type OpenVPNCCD struct {
+type OpenVPNConfig struct {
 	Enabled    bool     `json:"enabled"     yaml:"enabled"`
 	TokenClaim string   `json:"token-claim" yaml:"token-claim"`
 	Path       types.FS `json:"path"        yaml:"path"`

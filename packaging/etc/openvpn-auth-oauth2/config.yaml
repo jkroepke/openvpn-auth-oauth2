@@ -65,7 +65,7 @@
 #      - "test2"
 #  ccd:
 #    enabled: false
-#    path: "/etc/openvpn-auth-oauth2/ccd/"
+#    path: "/etc/openvpn-auth-oauth2/client-config/"
 #    token-claim: ""
 #  common-name:
 #    environment-variable-name: common_name

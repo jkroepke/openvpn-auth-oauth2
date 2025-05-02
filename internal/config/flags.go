@@ -141,21 +141,21 @@ func (c *Config) flagSetOpenVPN(flagSet *flag.FlagSet) {
 		"bypass oauth authentication for CNs. Comma separated list.",
 	)
 	flagSet.BoolVar(
-		&c.OpenVpn.CCD.Enabled,
-		"openvpn.ccd.enabled",
-		lookupEnvOrDefault("openvpn.ccd.enabled", c.OpenVpn.CCD.Enabled),
+		&c.OpenVpn.ClientConfig.Enabled,
+		"openvpn.client-config.enabled",
+		lookupEnvOrDefault("openvpn.client-config.enabled", c.OpenVpn.ClientConfig.Enabled),
 		"If true, openvpn-auth-oauth2 will read the CCD directory for additional configuration. This function mimic the client-config-dir directive in OpenVPN.",
 	)
 	flagSet.TextVar(
-		&c.OpenVpn.CCD.Path,
-		"openvpn.ccd.path",
-		lookupEnvOrDefault("openvpn.ccd.path", c.OpenVpn.CCD.Path),
+		&c.OpenVpn.ClientConfig.Path,
+		"openvpn.client-config.path",
+		lookupEnvOrDefault("openvpn.client-config.path", c.OpenVpn.ClientConfig.Path),
 		"Path to the CCD directory. openvpn-auth-oauth2 will look for an file with an .conf suffix and returns the content back.",
 	)
 	flagSet.StringVar(
-		&c.OpenVpn.CCD.TokenClaim,
-		"openvpn.ccd.token-claim",
-		lookupEnvOrDefault("openvpn.ccd.token-claim", c.OpenVpn.CCD.TokenClaim),
+		&c.OpenVpn.ClientConfig.TokenClaim,
+		"openvpn.client-config.token-claim",
+		lookupEnvOrDefault("openvpn.client-config.token-claim", c.OpenVpn.ClientConfig.TokenClaim),
 		"If non-empty, the value of the token claim is used to lookup the configuration file in the CCD directory. If empty, the common name is used.",
 	)
 	flagSet.StringVar(

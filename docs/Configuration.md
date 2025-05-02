@@ -82,7 +82,7 @@ openvpn:
   ccd:
     enabled: false
     token-claim: ""
-    path: "/etc/openvpn-auth-oauth2/ccd/"
+    path: "/etc/openvpn-auth-oauth2/client-config/"
   common-name:
     environment-variable-name: common_name
     mode: plain
@@ -196,12 +196,12 @@ Usage of openvpn-auth-oauth2:
     	Override the username of a session with the username from the token by using auth-token-user, if the client username is empty (env: CONFIG_OPENVPN_AUTH__TOKEN__USER) (default true)
   --openvpn.bypass.common-names value
     	bypass oauth authentication for CNs. Comma separated list. (env: CONFIG_OPENVPN_BYPASS_COMMON__NAMES)
-  --openvpn.ccd.enabled
-    	If true, openvpn-auth-oauth2 will read the CCD directory for additional configuration. This function mimic the client-config-dir directive in OpenVPN. (env: CONFIG_OPENVPN_CCD_ENABLED)
-  --openvpn.ccd.path value
-    	Path to the CCD directory. openvpn-auth-oauth2 will look for an file with an .conf suffix and returns the content back. (env: CONFIG_OPENVPN_CCD_PATH)
-  --openvpn.ccd.token-claim string
-    	If non-empty, the value of the token claim is used to lookup the configuration file in the CCD directory. If empty, the common name is used. (env: CONFIG_OPENVPN_CCD_TOKEN__CLAIM)
+  --openvpn.client-config.enabled
+    	If true, openvpn-auth-oauth2 will read the CCD directory for additional configuration. This function mimic the client-config-dir directive in OpenVPN. (env: CONFIG_OPENVPN_CLIENT__CONFIG_ENABLED)
+  --openvpn.client-config.path value
+    	Path to the CCD directory. openvpn-auth-oauth2 will look for an file with an .conf suffix and returns the content back. (env: CONFIG_OPENVPN_CLIENT__CONFIG_PATH)
+  --openvpn.client-config.token-claim string
+    	If non-empty, the value of the token claim is used to lookup the configuration file in the CCD directory. If empty, the common name is used. (env: CONFIG_OPENVPN_CLIENT__CONFIG_TOKEN__CLAIM)
   --openvpn.common-name.environment-variable-name string
     	Name of the environment variable in the OpenVPN management interface which contains the common name. If username-as-common-name is enabled, this should be set to 'username' to use the username as common name. Other values like 'X509_0_emailAddress' are supported. See https://openvpn.net/community-resources/reference-manual-for-openvpn-2-6/#environmental-variables for more information. (env: CONFIG_OPENVPN_COMMON__NAME_ENVIRONMENT__VARIABLE__NAME) (default "common_name")
   --openvpn.common-name.mode value

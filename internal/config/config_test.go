@@ -172,10 +172,10 @@ http:
 						Path:     "/run/openvpn/server2.sock",
 						OmitHost: false,
 					}},
-					Bypass: config.OpenVpnBypass{
+					Bypass: config.OpenVPNBypass{
 						CommonNames: []string{"test", "test2"},
 					},
-					CCD: config.OpenVPNCCD{
+					ClientConfig: config.OpenVPNConfig{
 						Enabled:    true,
 						TokenClaim: "sub",
 						Path: func() types.FS {

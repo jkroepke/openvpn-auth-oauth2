@@ -248,8 +248,8 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVpn.Bypass.CommonNames = make([]string, 0)
 				conf.OpenVpn.AuthTokenUser = true
-				conf.OpenVpn.CCD.Enabled = true
-				conf.OpenVpn.CCD.Path = types.FS{
+				conf.OpenVpn.ClientConfig.Enabled = true
+				conf.OpenVpn.ClientConfig.Path = types.FS{
 					FS: fstest.MapFS{
 						"name.conf": &fstest.MapFile{
 							Data: []byte("push \"ping 60\"\npush \"ping-restart 180\"\r\npush \"ping-timer-rem\" 0\r\n"),
@@ -281,8 +281,8 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVpn.Bypass.CommonNames = make([]string, 0)
 				conf.OpenVpn.AuthTokenUser = true
-				conf.OpenVpn.CCD.Enabled = true
-				conf.OpenVpn.CCD.Path = types.FS{
+				conf.OpenVpn.ClientConfig.Enabled = true
+				conf.OpenVpn.ClientConfig.Path = types.FS{
 					FS: fstest.MapFS{},
 				}
 
@@ -483,7 +483,7 @@ func TestHandler(t *testing.T) {
 			case tc.state.Client.UsernameIsDefined == 1:
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth-nt 0 1")
 				testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
-			case tc.conf.OpenVpn.CCD.Enabled:
+			case tc.conf.OpenVpn.ClientConfig.Enabled:
 				if tc.state.Client.CommonName == "name" {
 					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 0 1\r\n"+
 						"push \"ping 60\"\r\n"+
