@@ -209,6 +209,10 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 		conf.HTTP.AssetPath = config.Defaults.HTTP.AssetPath
 	}
 
+	if conf.HTTP.Template.IsEmpty() {
+		conf.HTTP.Template = config.Defaults.HTTP.Template
+	}
+
 	if conf.OpenVpn.CCD.Path.IsEmpty() {
 		conf.OpenVpn.CCD.Path = config.Defaults.OpenVpn.CCD.Path
 	}
