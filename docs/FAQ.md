@@ -84,3 +84,22 @@ It's also worth noting that for an attacker to reuse a session with openvpn-auth
 they’d need a valid OpenVPN session cookie from an active and authenticated connection.
 This requirement provides an additional layer of security,
 as getting a cookie is highly unlikely without a prior compromise.
+
+## Q: If the refresh token expires, OpenVPN keeps opening browser sessions endlessly. How can I prevent that?
+
+A: This behavior can occur if the OpenVPN client is configured to retry authentication using the auth-retry option.
+By default, OpenVPN does not retry after an AUTH_FAILURE, but if auth-retry is set (e.g., to interact or nointeract), it may trigger repeated browser sessions.
+
+In addition, some server-side settings can cause re-authentication loops.
+
+A common issue is the inactive directive on the OpenVPN server.
+If it’s set lower than the authentication timeout, OpenVPN may interrupt the session too early, restarting the auth process.
+
+To avoid this, ensure the inactive timeout is higher than the auth timeout.
+You can find the auth timeout value in the OpenVPN server logs by searching for:
+
+```
+AUTH_PENDING,timeout
+```
+
+If the log shows timeout=60, then set inactive to at least 65 — always add 5 seconds to the timeout value as a safety margin.

@@ -90,6 +90,8 @@ services:
 
         tls-cert-profile preferred
 
+        inactive 65
+
         topology subnet
         proto udp
         port 1194
