@@ -46,6 +46,30 @@
       "matchPackageNames": [
         "*"
       ]
+    }.
+    {
+      "matchPackageNames": [
+        "golang.org/x/net"
+      ],
+      "sourceUrl": "https://github.com/golang/net"
+    },
+    {
+      "matchPackageNames": [
+        "golang.org/x/oauth2"
+      ],
+      "sourceUrl": "https://github.com/golang/oauth2"
+    },
+    {
+      "matchPackageNames": [
+        "golang.org/x/sys"
+      ],
+      "sourceUrl": "https://github.com/golang/sys"
+    },
+    {
+      "matchPackageNames": [
+        "golang.org/x/text"
+      ],
+      "sourceUrl": "https://github.com/golang/text"
     }
   ],
   "postUpdateOptions": [
