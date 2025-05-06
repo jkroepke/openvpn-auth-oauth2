@@ -70,9 +70,9 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 	for _, tt := range tests {
 		b.Run(tt.name, func(b *testing.B) {
 			for b.Loop() {
-				testutils.SendMessage(b, managementInterfaceConn, tt.client)
+				testutils.SendMessagef(b, managementInterfaceConn, tt.client)
 				assert.Contains(b, testutils.ReadLine(b, managementInterfaceConn, reader), "client-pending-auth 0 1 \"WEB_AUTH::")
-				testutils.SendMessage(b, managementInterfaceConn, "SUCCESS: client-pending-auth command succeeded")
+				testutils.SendMessagef(b, managementInterfaceConn, "SUCCESS: client-pending-auth command succeeded")
 			}
 
 			b.ReportAllocs()
@@ -115,9 +115,9 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 	require.NoError(b, err)
 
 	if conf.OpenVPN.Password != "" {
-		testutils.SendMessage(b, managementInterfaceConn, "ENTER PASSWORD:")
+		testutils.SendMessagef(b, managementInterfaceConn, "ENTER PASSWORD:")
 		testutils.ExpectMessage(b, managementInterfaceConn, reader, conf.OpenVPN.Password.String())
-		testutils.SendMessage(b, managementInterfaceConn, "SUCCESS: password is correct")
+		testutils.SendMessagef(b, managementInterfaceConn, "SUCCESS: password is correct")
 	}
 
 	testutils.ExpectVersionAndReleaseHold(b, managementInterfaceConn, reader)
@@ -169,9 +169,9 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 
 	for _, tt := range tests {
 		b.Run(tt.command, func(b *testing.B) {
-			testutils.SendMessage(b, passThroughConn, tt.command)
+			testutils.SendMessagef(b, passThroughConn, tt.command)
 			testutils.ExpectMessage(b, managementInterfaceConn, reader, tt.command)
-			testutils.SendMessage(b, managementInterfaceConn, tt.response)
+			testutils.SendMessagef(b, managementInterfaceConn, tt.response)
 			testutils.ExpectMessage(b, passThroughConn, passThroughReader, tt.response)
 
 			b.ReportAllocs()

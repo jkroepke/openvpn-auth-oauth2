@@ -429,7 +429,7 @@ func TestHandler(t *testing.T) {
 
 			if !tc.preAllow {
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, `client-deny 0 1 "client rejected: http client ip 127.0.0.1 and vpn ip 127.0.0.2 is different"`)
-				testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: client-deny command succeeded")
+				testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-deny command succeeded")
 			}
 
 			select {
@@ -479,10 +479,10 @@ func TestHandler(t *testing.T) {
 			switch {
 			case !tc.postAllow:
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, `client-deny 0 1 "client rejected"`)
-				testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: client-deny command succeeded")
+				testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-deny command succeeded")
 			case tc.state.Client.UsernameIsDefined == 1:
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth-nt 0 1")
-				testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
+				testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
 			case tc.conf.OpenVPN.ClientConfig.Enabled:
 				if tc.state.Client.CommonName == "name" {
 					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 0 1\r\n"+
@@ -491,14 +491,14 @@ func TestHandler(t *testing.T) {
 						"push \"ping-timer-rem\" 0\r\n"+
 						"push \"auth-token-user bmFtZQ==\"\r\n"+
 						"END")
-					testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
+					testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
 				} else {
 					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 0 1\r\npush \"auth-token-user Y2xpZW50\"\r\nEND")
-					testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
+					testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
 				}
 			default:
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 0 1\r\npush \"auth-token-user bmFtZQ==\"\r\nEND")
-				testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
+				testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
 			}
 
 			select {

@@ -298,11 +298,11 @@ func TestClientFull(t *testing.T) {
 
 			if tc.conf.OpenVPN.Password != "" {
 				testutils.SendAndExpectMessage(t, managementInterfaceConn, reader, "ENTER PASSWORD:", tc.conf.OpenVPN.Password.String())
-				testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: password is correct")
+				testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: password is correct")
 			}
 
 			testutils.ExpectVersionAndReleaseHold(t, managementInterfaceConn, reader)
-			testutils.SendMessage(t, managementInterfaceConn, tc.client)
+			testutils.SendMessagef(t, managementInterfaceConn, tc.client)
 
 			if tc.err != nil {
 				_, _ = reader.ReadString('\n')
@@ -324,10 +324,10 @@ func TestClientFull(t *testing.T) {
 				require.Contains(t, logger.String(), `CLIENT:ENV,password=***`, logger.String())
 			}
 
-			testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: %s command succeeded\r\n", strings.SplitN(auth, " ", 2)[0])
+			testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: %s command succeeded\r\n", strings.SplitN(auth, " ", 2)[0])
 
 			if strings.Contains(auth, "client-deny") {
-				testutils.SendMessage(t, managementInterfaceConn, ">CLIENT:DISCONNECT,0\r\n>CLIENT:ENV,END")
+				testutils.SendMessagef(t, managementInterfaceConn, ">CLIENT:DISCONNECT,0\r\n>CLIENT:ENV,END")
 			} else if strings.Contains(auth, "WEB_AUTH::") {
 				matches := regexp.MustCompile(`state=(.+)"`).FindStringSubmatch(auth)
 				require.Len(t, matches, 2)
@@ -382,9 +382,9 @@ func TestClientInvalidPassword(t *testing.T) {
 
 	reader := bufio.NewReader(managementInterfaceConn)
 
-	testutils.SendMessage(t, managementInterfaceConn, "ENTER PASSWORD:")
+	testutils.SendMessagef(t, managementInterfaceConn, "ENTER PASSWORD:")
 	testutils.ExpectMessage(t, managementInterfaceConn, reader, conf.OpenVPN.Password.String())
-	testutils.SendMessage(t, managementInterfaceConn, "ERROR: bad password")
+	testutils.SendMessagef(t, managementInterfaceConn, "ERROR: bad password")
 
 	select {
 	case err := <-errOpenVPNClientCh:
@@ -452,7 +452,7 @@ func TestClientInvalidVersion(t *testing.T) {
 				"version",
 			)
 
-			testutils.SendMessage(t, managementInterfaceConn, tc.version)
+			testutils.SendMessagef(t, managementInterfaceConn, tc.version)
 
 			select {
 			case err := <-errOpenVPNClientCh:
@@ -558,7 +558,7 @@ func TestCommandTimeout(t *testing.T) {
 
 	defer func() {
 		testutils.ExpectMessage(t, managementInterfaceConn, reader, "help")
-		testutils.SendMessage(t, managementInterfaceConn, "")
+		testutils.SendMessagef(t, managementInterfaceConn, "")
 	}()
 
 	_, err = openVPNClient.SendCommandf("help")
@@ -622,7 +622,7 @@ func TestDeadLocks(t *testing.T) {
 			testutils.ExpectVersionAndReleaseHold(t, managementInterfaceConn, reader)
 
 			for range 12 {
-				testutils.SendMessage(t, managementInterfaceConn, tc.message)
+				testutils.SendMessagef(t, managementInterfaceConn, tc.message)
 			}
 
 			require.NoError(t, managementInterfaceConn.Close())
@@ -694,7 +694,7 @@ func TestInvalidCommandResponses(t *testing.T) {
 				"hold release",
 			)
 
-			testutils.SendMessage(t, managementInterfaceConn, tc.message)
+			testutils.SendMessagef(t, managementInterfaceConn, tc.message)
 
 			require.NoError(t, managementInterfaceConn.Close())
 

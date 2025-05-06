@@ -272,14 +272,14 @@ func TestRefreshReAuth(t *testing.T) {
 
 			time.Sleep(time.Millisecond * 100)
 
-			testutils.SendMessage(t, managementInterfaceConn,
+			testutils.SendMessagef(t, managementInterfaceConn,
 				">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=%s\r\n>CLIENT:ENV,session_state=Initial\r\n>CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END",
 				tc.clientCommonName,
 			)
 
 			auth := testutils.ReadLine(t, managementInterfaceConn, reader)
 			assert.Contains(t, auth, "client-pending-auth 1 2 \"WEB_AUTH::")
-			testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: %s command succeeded", strings.SplitN(auth, " ", 2)[0])
+			testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: %s command succeeded", strings.SplitN(auth, " ", 2)[0])
 
 			authURL := strings.TrimPrefix(strings.Split(auth, `"`)[1], "WEB_AUTH::")
 
@@ -303,7 +303,6 @@ func TestRefreshReAuth(t *testing.T) {
 			t.Cleanup(func() {
 				require.NoError(t, managementInterfaceConn.Close())
 
-				wg.Wait()
 				select {
 				case err := <-errOpenVPNClientCh:
 					require.NoError(t, err, logger.String())
@@ -337,7 +336,7 @@ func TestRefreshReAuth(t *testing.T) {
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth-nt 1 2")
 			}
 
-			testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
+			testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
 
 			wg.Wait()
 
@@ -350,14 +349,19 @@ func TestRefreshReAuth(t *testing.T) {
 			_ = resp.Body.Close()
 
 			// Testing ReAuth
-			testutils.SendMessage(t, managementInterfaceConn,
+			testutils.SendMessagef(t, managementInterfaceConn,
+				">CLIENT:ESTABLISHED,0\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END\r\n",
+			)
+
+			// Testing ReAuth
+			testutils.SendMessagef(t, managementInterfaceConn,
 				">CLIENT:REAUTH,1,3\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=%s\r\n>CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,session_state=AuthenticatedEmptyUser\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END",
 				tc.clientCommonName,
 			)
 
 			if !tc.conf.OpenVPN.ReAuthentication {
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-deny 1 3 \"client re-authentication not enabled\"")
-				testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: client-deny command succeeded")
+				testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-deny command succeeded")
 
 				return
 			}
@@ -365,28 +369,28 @@ func TestRefreshReAuth(t *testing.T) {
 			if !tc.nonInteractiveShouldWork {
 				auth := testutils.ReadLine(t, managementInterfaceConn, reader)
 				assert.Contains(t, auth, "client-pending-auth 1 3 \"WEB_AUTH::")
-				testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: %s command succeeded", strings.SplitN(auth, " ", 2)[0])
+				testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: %s command succeeded", strings.SplitN(auth, " ", 2)[0])
 
 				return
 			}
 
 			testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth-nt 1 3")
-			testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
+			testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
 
 			// Testing ReAuth
-			testutils.SendMessage(t, managementInterfaceConn,
+			testutils.SendMessagef(t, managementInterfaceConn,
 				">CLIENT:REAUTH,1,4\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=%s\r\n>CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,session_state=AuthenticatedEmptyUser\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END",
 				tc.clientCommonName,
 			)
 
 			testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth-nt 1 4")
-			testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
+			testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
 
 			// Test Disconnect
-			testutils.SendMessage(t, managementInterfaceConn, ">CLIENT:DISCONNECT,1\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,session_state=AuthenticatedEmptyUser\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END")
+			testutils.SendMessagef(t, managementInterfaceConn, ">CLIENT:DISCONNECT,1\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,session_state=AuthenticatedEmptyUser\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END")
 
 			// Test ReAuth after DC
-			testutils.SendMessage(t, managementInterfaceConn, ">CLIENT:REAUTH,1,4\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,session_state=AuthenticatedEmptyUser\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END")
+			testutils.SendMessagef(t, managementInterfaceConn, ">CLIENT:REAUTH,1,4\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,session_state=AuthenticatedEmptyUser\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END")
 
 			auth = testutils.ReadLine(t, managementInterfaceConn, reader)
 
@@ -396,10 +400,10 @@ func TestRefreshReAuth(t *testing.T) {
 				require.Contains(t, auth, "client-pending-auth 1 4 \"WEB_AUTH::")
 			}
 
-			testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: %s command succeeded", strings.SplitN(auth, " ", 2)[0])
+			testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: %s command succeeded", strings.SplitN(auth, " ", 2)[0])
 
 			// Test ReAuth after DC with different CID
-			testutils.SendMessage(t, managementInterfaceConn, ">CLIENT:CONNECT,2,3\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,session_state=AuthenticatedEmptyUser\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END")
+			testutils.SendMessagef(t, managementInterfaceConn, ">CLIENT:CONNECT,2,3\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,session_state=AuthenticatedEmptyUser\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END")
 
 			auth = testutils.ReadLine(t, managementInterfaceConn, reader)
 
@@ -409,10 +413,10 @@ func TestRefreshReAuth(t *testing.T) {
 				require.Contains(t, auth, "client-pending-auth 2 3 \"WEB_AUTH::")
 			}
 
-			testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: %s command succeeded", strings.SplitN(auth, " ", 2)[0])
+			testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: %s command succeeded", strings.SplitN(auth, " ", 2)[0])
 
 			// Test ReAuth after DC with different CID with invalid session
-			testutils.SendMessage(t, managementInterfaceConn, ">CLIENT:CONNECT,3,3\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,session_state=Expired\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END")
+			testutils.SendMessagef(t, managementInterfaceConn, ">CLIENT:CONNECT,3,3\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,session_state=Expired\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END")
 
 			auth = testutils.ReadLine(t, managementInterfaceConn, reader)
 
@@ -422,7 +426,7 @@ func TestRefreshReAuth(t *testing.T) {
 				assert.Contains(t, auth, `client-pending-auth 3 3 "WEB_AUTH::`)
 			}
 
-			testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: %s command succeeded", strings.SplitN(auth, " ", 2)[0])
+			testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: %s command succeeded", strings.SplitN(auth, " ", 2)[0])
 		})
 	}
 }

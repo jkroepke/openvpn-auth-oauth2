@@ -209,15 +209,15 @@ func TestPassThroughFull(t *testing.T) {
 			reader := bufio.NewReader(managementInterfaceConn)
 
 			if tt.conf.OpenVPN.Password != "" {
-				testutils.SendMessage(t, managementInterfaceConn, "ENTER PASSWORD:")
+				testutils.SendMessagef(t, managementInterfaceConn, "ENTER PASSWORD:")
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, tt.conf.OpenVPN.Password.String())
 
-				testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: password is correct")
+				testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: password is correct")
 			}
 
 			testutils.ExpectVersionAndReleaseHold(t, managementInterfaceConn, reader)
-			testutils.SendMessage(t, managementInterfaceConn, "")
-			testutils.SendMessage(t, managementInterfaceConn, "\r\n")
+			testutils.SendMessagef(t, managementInterfaceConn, "")
+			testutils.SendMessagef(t, managementInterfaceConn, "\r\n")
 
 			var passThroughAddr []string
 
@@ -272,9 +272,9 @@ func TestPassThroughFull(t *testing.T) {
 			testutils.ExpectMessage(t, passThroughConn, passThroughReader, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info")
 
 			for range 10 {
-				testutils.SendMessage(t, passThroughConn, "")
-				testutils.SendMessage(t, passThroughConn, "\n")
-				testutils.SendMessage(t, passThroughConn, "\r\n")
+				testutils.SendMessagef(t, passThroughConn, "")
+				testutils.SendMessagef(t, passThroughConn, "\n")
+				testutils.SendMessagef(t, passThroughConn, "\r\n")
 
 				testutils.SendAndExpectMessage(t, passThroughConn, passThroughReader,
 					"hold",
@@ -282,21 +282,21 @@ func TestPassThroughFull(t *testing.T) {
 				)
 
 				// PID
-				testutils.SendMessage(t, passThroughConn, "pid")
+				testutils.SendMessagef(t, passThroughConn, "pid")
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "pid")
-				testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: pid=7")
+				testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: pid=7")
 				testutils.ExpectMessage(t, passThroughConn, passThroughReader, "SUCCESS: pid=7")
 
 				// unknown command
-				testutils.SendMessage(t, passThroughConn, "foo")
+				testutils.SendMessagef(t, passThroughConn, "foo")
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "foo")
-				testutils.SendMessage(t, managementInterfaceConn, "ERROR: unknown command, enter 'help' for more options")
+				testutils.SendMessagef(t, managementInterfaceConn, "ERROR: unknown command, enter 'help' for more options")
 				testutils.ExpectMessage(t, passThroughConn, passThroughReader, "ERROR: unknown command, enter 'help' for more options")
 
 				// kill 1
-				testutils.SendMessage(t, passThroughConn, "kill 1")
+				testutils.SendMessagef(t, passThroughConn, "kill 1")
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "kill 1")
-				testutils.SendMessage(t, managementInterfaceConn, "ERROR: common name '1' not found")
+				testutils.SendMessagef(t, managementInterfaceConn, "ERROR: common name '1' not found")
 				testutils.ExpectMessage(t, passThroughConn, passThroughReader, "ERROR: common name '1' not found")
 
 				// client-auth-nt 1
@@ -306,46 +306,46 @@ func TestPassThroughFull(t *testing.T) {
 				)
 
 				// client-kill 1
-				testutils.SendMessage(t, passThroughConn, "client-kill 1")
+				testutils.SendMessagef(t, passThroughConn, "client-kill 1")
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-kill 1")
-				testutils.SendMessage(t, managementInterfaceConn, "ERROR: client-kill command failed")
+				testutils.SendMessagef(t, managementInterfaceConn, "ERROR: client-kill command failed")
 				testutils.ExpectMessage(t, passThroughConn, passThroughReader, "ERROR: client-kill command failed")
 
 				// version
-				testutils.SendMessage(t, passThroughConn, "version")
+				testutils.SendMessagef(t, passThroughConn, "version")
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "version")
-				testutils.SendMessage(t, managementInterfaceConn, "OpenVPN Version: openvpn-auth-oauth2\r\nManagement Interface Version: 5\r\nEND")
+				testutils.SendMessagef(t, managementInterfaceConn, "OpenVPN Version: openvpn-auth-oauth2\r\nManagement Interface Version: 5\r\nEND")
 				testutils.ExpectMessage(t, passThroughConn, passThroughReader, "OpenVPN Version: openvpn-auth-oauth2\r\nManagement Interface Version: 5\r\nEND")
 
 				// status
-				testutils.SendMessage(t, passThroughConn, "status")
+				testutils.SendMessagef(t, passThroughConn, "status")
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "status")
-				testutils.SendMessage(t, managementInterfaceConn, OpenVPNManagementInterfaceCommandResultStatus)
+				testutils.SendMessagef(t, managementInterfaceConn, OpenVPNManagementInterfaceCommandResultStatus)
 				testutils.ExpectMessage(t, passThroughConn, passThroughReader, OpenVPNManagementInterfaceCommandResultStatus)
 
 				// status 2
-				testutils.SendMessage(t, passThroughConn, "status 2")
+				testutils.SendMessagef(t, passThroughConn, "status 2")
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "status 2")
-				testutils.SendMessage(t, managementInterfaceConn, OpenVPNManagementInterfaceCommandResultStatus2)
+				testutils.SendMessagef(t, managementInterfaceConn, OpenVPNManagementInterfaceCommandResultStatus2)
 				testutils.ExpectMessage(t, passThroughConn, passThroughReader, OpenVPNManagementInterfaceCommandResultStatus2)
 
 				// status 3
-				testutils.SendMessage(t, passThroughConn, "status 3")
+				testutils.SendMessagef(t, passThroughConn, "status 3")
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "status 3")
-				testutils.SendMessage(t, managementInterfaceConn, OpenVPNManagementInterfaceCommandResultStatus3)
+				testutils.SendMessagef(t, managementInterfaceConn, OpenVPNManagementInterfaceCommandResultStatus3)
 				testutils.ExpectMessage(t, passThroughConn, passThroughReader, OpenVPNManagementInterfaceCommandResultStatus3)
 			}
 
 			// help
 			for range 10 {
-				testutils.SendMessage(t, passThroughConn, "help")
+				testutils.SendMessagef(t, passThroughConn, "help")
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "help")
-				testutils.SendMessage(t, managementInterfaceConn, OpenVPNManagementInterfaceCommandResultHelp)
+				testutils.SendMessagef(t, managementInterfaceConn, OpenVPNManagementInterfaceCommandResultHelp)
 				testutils.ExpectMessage(t, passThroughConn, passThroughReader, OpenVPNManagementInterfaceCommandResultHelp)
 			}
 
 			if tt.scheme == openvpn.SchemeUnix {
-				testutils.SendMessage(t, passThroughConn, " exit ")
+				testutils.SendMessagef(t, passThroughConn, " exit ")
 				require.NoError(t, passThroughConn.Close())
 
 				gid, err := testutils.GetGIDOfFile(tt.conf.OpenVPN.Passthrough.Address.Path)
@@ -358,7 +358,7 @@ func TestPassThroughFull(t *testing.T) {
 
 				assert.Equal(t, os.FileMode(tt.conf.OpenVPN.Passthrough.SocketMode).String(), permission) //nolint:gosec
 			} else {
-				testutils.SendMessage(t, passThroughConn, " quit ")
+				testutils.SendMessagef(t, passThroughConn, " quit ")
 				require.NoError(t, passThroughConn.Close())
 			}
 

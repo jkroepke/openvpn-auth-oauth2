@@ -189,10 +189,10 @@ func TestFull(t *testing.T) {
 					">CLIENT:ENV,END",
 				}, "\r\n")
 
-				testutils.SendMessage(t, managementInterfaceConn, msg+"\r\n")
+				testutils.SendMessagef(t, managementInterfaceConn, msg+"\r\n")
 
 				authURL := testutils.ReadLine(t, managementInterfaceConn, reader)
-				testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: client-pending-auth command succeeded")
+				testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-pending-auth command succeeded")
 
 				_, authURL, _ = strings.Cut(authURL, `"`)
 				authURL, _, _ = strings.Cut(authURL, `"`)
@@ -207,7 +207,7 @@ func TestFull(t *testing.T) {
 					defer wg.Done()
 
 					testutils.ReadLine(t, managementInterfaceConn, reader)
-					testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
+					testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
 				}()
 
 				resp, err := httpClient.Do(request)
