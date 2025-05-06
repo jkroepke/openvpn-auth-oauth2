@@ -7,7 +7,6 @@ before:
 builds:
   - id: "openvpn-auth-oauth2"
     binary: openvpn-auth-oauth2
-    buildmode: pie
     goos:
       - linux
       - freebsd
@@ -34,11 +33,21 @@ builds:
         -X internal/version.Version={{.Version}}
         -X internal/version.Commit={{.Commit}}
         -X internal/version.Date={{.Date}}
-    tags:
-      - osusergo
-      - netgo
-      - static_build
-
+    overrides:
+      - goos: linux
+        goarch: amd64
+        buildmode: pie
+        tags:
+          - osusergo
+          - netgo
+          - static_build
+      - goos: linux
+        goarch: arm64
+        buildmode: pie
+        tags:
+          - osusergo
+          - netgo
+          - static_build
 archives:
   - id: openvpn-auth-oauth2
     ids:
