@@ -136,7 +136,7 @@ func (c Client) getRelyingPartyOptions(httpClient *http.Client) []rp.Option {
 	basePath := c.conf.HTTP.BaseURL.JoinPath("/oauth2/")
 	cookieKey := []byte(c.conf.HTTP.Secret)
 	cookieOpt := []httphelper.CookieHandlerOpt{
-		httphelper.WithMaxAge(int(c.conf.OpenVpn.AuthPendingTimeout.Seconds()) + 5),
+		httphelper.WithMaxAge(int(c.conf.OpenVPN.AuthPendingTimeout.Seconds()) + 5),
 		httphelper.WithPath(fmt.Sprintf("/%s/", strings.Trim(basePath.Path, "/"))),
 		httphelper.WithDomain(basePath.Hostname()),
 	}

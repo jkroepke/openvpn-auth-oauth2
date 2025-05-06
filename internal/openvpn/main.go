@@ -53,10 +53,10 @@ func (c *Client) Connect(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	c.logger.LogAttrs(ctx, slog.LevelInfo, "connect to openvpn management interface "+c.conf.OpenVpn.Addr.String())
+	c.logger.LogAttrs(ctx, slog.LevelInfo, "connect to openvpn management interface "+c.conf.OpenVPN.Addr.String())
 
 	if err = c.setupConnection(); err != nil {
-		return fmt.Errorf("unable to connect to openvpn management interface %s: %w", c.conf.OpenVpn.Addr.String(), err)
+		return fmt.Errorf("unable to connect to openvpn management interface %s: %w", c.conf.OpenVPN.Addr.String(), err)
 	}
 
 	c.scanner = bufio.NewScanner(c.conn)
@@ -82,7 +82,7 @@ func (c *Client) Connect(ctx context.Context) error {
 
 	c.logger.LogAttrs(ctx, slog.LevelInfo, "connection to OpenVPN management interface established")
 
-	if c.conf.OpenVpn.Passthrough.Enabled {
+	if c.conf.OpenVPN.Passthrough.Enabled {
 		go c.handlePassThrough(ctx, errChPassThrough)
 	}
 
@@ -126,13 +126,13 @@ func (c *Client) setupConnection() error {
 
 	var err error
 
-	switch c.conf.OpenVpn.Addr.Scheme {
+	switch c.conf.OpenVPN.Addr.Scheme {
 	case SchemeTCP:
-		c.conn, err = net.DialTimeout(c.conf.OpenVpn.Addr.Scheme, c.conf.OpenVpn.Addr.Host, 1*time.Second)
+		c.conn, err = net.DialTimeout(c.conf.OpenVPN.Addr.Scheme, c.conf.OpenVPN.Addr.Host, 1*time.Second)
 	case SchemeUnix:
-		c.conn, err = net.DialTimeout(c.conf.OpenVpn.Addr.Scheme, c.conf.OpenVpn.Addr.Path, 1*time.Second)
+		c.conn, err = net.DialTimeout(c.conf.OpenVPN.Addr.Scheme, c.conf.OpenVPN.Addr.Path, 1*time.Second)
 	default:
-		err = fmt.Errorf("unable to connect to openvpn management interface: %w %s", ErrUnknownProtocol, c.conf.OpenVpn.Addr.Scheme)
+		err = fmt.Errorf("unable to connect to openvpn management interface: %w %s", ErrUnknownProtocol, c.conf.OpenVPN.Addr.Scheme)
 	}
 
 	return err
@@ -234,7 +234,7 @@ func (c *Client) SendCommand(cmd string, passthrough bool) (string, error) {
 		}
 
 		return resp, nil
-	case <-time.After(c.conf.OpenVpn.CommandTimeout):
+	case <-time.After(c.conf.OpenVPN.CommandTimeout):
 		cmdFirstLine := strings.SplitN(cmd, "\r\n", 2)[0]
 
 		return "", fmt.Errorf("command error '%s': %w", cmdFirstLine, ErrTimeout)

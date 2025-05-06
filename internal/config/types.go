@@ -21,7 +21,7 @@ type Config struct {
 	Debug      Debug   `json:"debug"   yaml:"debug"`
 	Log        Log     `json:"log"     yaml:"log"`
 	HTTP       HTTP    `json:"http"    yaml:"http"`
-	OpenVpn    OpenVpn `json:"openvpn" yaml:"openvpn"`
+	OpenVPN    OpenVPN `json:"openvpn" yaml:"openvpn"`
 	OAuth2     OAuth2  `json:"oauth2"  yaml:"oauth2"`
 }
 
@@ -48,17 +48,18 @@ type Log struct {
 	VPNClientIP bool       `json:"vpn-client-ip" yaml:"vpn-client-ip"`
 }
 
-type OpenVpn struct {
+type OpenVPN struct {
 	Addr               types.URL          `json:"addr"                 yaml:"addr"`
-	Password           types.Secret       `json:"password"             yaml:"password"`
-	Bypass             OpenVPNBypass      `json:"bypass"               yaml:"bypass"`
-	ClientConfig       OpenVPNConfig      `json:"client-config"        yaml:"client-config"`
 	AuthTokenUser      bool               `json:"auth-token-user"      yaml:"auth-token-user"`
 	AuthPendingTimeout time.Duration      `json:"auth-pending-timeout" yaml:"auth-pending-timeout"`
-	OverrideUsername   bool               `json:"override-username"    yaml:"override-username"`
+	Bypass             OpenVpnBypass      `json:"bypass"               yaml:"bypass"`
+	ClientConfig       OpenVPNConfig      `json:"client-config"        yaml:"client-config"`
 	CommonName         OpenVPNCommonName  `json:"common-name"          yaml:"common-name"`
-	Passthrough        OpenVPNPassthrough `json:"pass-through"         yaml:"pass-through"`
 	CommandTimeout     time.Duration      `json:"command-timeout"      yaml:"command-timeout"`
+	OverrideUsername   bool               `json:"override-username"    yaml:"override-username"`
+	Password           types.Secret       `json:"password"             yaml:"password"`
+	Passthrough        OpenVPNPassthrough `json:"pass-through"         yaml:"pass-through"`
+	ReAuthentication   bool               `json:"reauthentication"     yaml:"reauthentication"`
 }
 
 type OpenVPNBypass struct {

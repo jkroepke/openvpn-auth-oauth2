@@ -120,7 +120,7 @@ func (c *Client) handlePassThrough(ctx context.Context, errCh chan<- error) {
 }
 
 func (c *Client) writeToPassThroughClient(message string) {
-	if c.conf.OpenVpn.Passthrough.Enabled {
+	if c.conf.OpenVPN.Passthrough.Enabled {
 		c.passThroughCh <- message
 	}
 }
@@ -133,13 +133,13 @@ func (c *Client) handlePassThroughClient(ctx context.Context, conn net.Conn) {
 		logger *slog.Logger
 	)
 
-	switch c.conf.OpenVpn.Passthrough.Address.Scheme {
+	switch c.conf.OpenVPN.Passthrough.Address.Scheme {
 	case SchemeTCP:
 		logger = c.logger.With(slog.String("client", conn.RemoteAddr().String()))
 	case SchemeUnix:
 		logger = c.logger.With(slog.String("client", conn.RemoteAddr().Network()))
 	default:
-		panic(fmt.Errorf("%w %s", ErrUnknownProtocol, c.conf.OpenVpn.Passthrough.Address.Scheme))
+		panic(fmt.Errorf("%w %s", ErrUnknownProtocol, c.conf.OpenVPN.Passthrough.Address.Scheme))
 	}
 
 	logger.LogAttrs(ctx, slog.LevelInfo, "pass-through: accepted connection")
@@ -211,7 +211,7 @@ func (c *Client) handlePassThroughClientCommands(ctx context.Context, conn net.C
 }
 
 func (c *Client) handlePassThroughClientAuth(_ context.Context, conn net.Conn, scanner *bufio.Scanner) error {
-	if c.conf.OpenVpn.Passthrough.Password.String() == "" {
+	if c.conf.OpenVPN.Passthrough.Password.String() == "" {
 		return nil
 	}
 
@@ -232,7 +232,7 @@ func (c *Client) handlePassThroughClientAuth(_ context.Context, conn net.Conn, s
 		return fmt.Errorf("pass-through: unable to read from client: %w", err)
 	}
 
-	if scanner.Text() != c.conf.OpenVpn.Passthrough.Password.String() {
+	if scanner.Text() != c.conf.OpenVPN.Passthrough.Password.String() {
 		_ = conn.SetWriteDeadline(time.Now().Add(writeTimeout))
 		_, _ = conn.Write([]byte("ERROR: bad password\r\n"))
 
@@ -251,16 +251,16 @@ func (c *Client) setupPassThroughListener() (net.Listener, func(), error) {
 		closer   func()
 	)
 
-	switch c.conf.OpenVpn.Passthrough.Address.Scheme {
+	switch c.conf.OpenVPN.Passthrough.Address.Scheme {
 	case SchemeTCP:
-		listener, err = net.Listen(c.conf.OpenVpn.Passthrough.Address.Scheme, c.conf.OpenVpn.Passthrough.Address.Host)
+		listener, err = net.Listen(c.conf.OpenVPN.Passthrough.Address.Scheme, c.conf.OpenVPN.Passthrough.Address.Host)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error listen: %w", err)
 		}
 
 		closer = func() { _ = listener.Close() }
 	case SchemeUnix:
-		listener, err = net.Listen(c.conf.OpenVpn.Passthrough.Address.Scheme, c.conf.OpenVpn.Passthrough.Address.Path)
+		listener, err = net.Listen(c.conf.OpenVPN.Passthrough.Address.Scheme, c.conf.OpenVPN.Passthrough.Address.Path)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error listen: %w", err)
 		}
@@ -269,28 +269,28 @@ func (c *Client) setupPassThroughListener() (net.Listener, func(), error) {
 			return nil, nil, err
 		}
 
-		closer = func() { _ = listener.Close(); _ = os.Remove(c.conf.OpenVpn.Passthrough.Address.Path) }
+		closer = func() { _ = listener.Close(); _ = os.Remove(c.conf.OpenVPN.Passthrough.Address.Path) }
 	default:
-		return nil, nil, fmt.Errorf("%w %s", ErrUnknownProtocol, c.conf.OpenVpn.Addr.Scheme)
+		return nil, nil, fmt.Errorf("%w %s", ErrUnknownProtocol, c.conf.OpenVPN.Addr.Scheme)
 	}
 
 	return listener, closer, nil
 }
 
 func (c *Client) setupUNIXSocketPermissions() error {
-	if c.conf.OpenVpn.Passthrough.SocketGroup != "" {
-		gid, err := utils.LookupGroup(c.conf.OpenVpn.Passthrough.SocketGroup)
+	if c.conf.OpenVPN.Passthrough.SocketGroup != "" {
+		gid, err := utils.LookupGroup(c.conf.OpenVPN.Passthrough.SocketGroup)
 		if err != nil {
 			return fmt.Errorf("error lookup group: %w", err)
 		}
 
-		if err = os.Chown(c.conf.OpenVpn.Passthrough.Address.Path, -1, gid); err != nil {
+		if err = os.Chown(c.conf.OpenVPN.Passthrough.Address.Path, -1, gid); err != nil {
 			return fmt.Errorf("error chown: %w", err)
 		}
 	}
 
 	//nolint:gosec
-	if err := os.Chmod(c.conf.OpenVpn.Passthrough.Address.Path, os.FileMode(c.conf.OpenVpn.Passthrough.SocketMode)); err != nil {
+	if err := os.Chmod(c.conf.OpenVPN.Passthrough.Address.Path, os.FileMode(c.conf.OpenVPN.Passthrough.SocketMode)); err != nil {
 		return fmt.Errorf("error chmod: %w", err)
 	}
 

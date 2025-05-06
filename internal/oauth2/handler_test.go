@@ -43,8 +43,8 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
 				conf.OAuth2.Validate.IPAddr = false
-				conf.OpenVpn.Bypass.CommonNames = make([]string, 0)
-				conf.OpenVpn.AuthTokenUser = true
+				conf.OpenVPN.Bypass.CommonNames = make([]string, 0)
+				conf.OpenVPN.AuthTokenUser = true
 
 				return conf
 			}(),
@@ -67,8 +67,8 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
 				conf.OAuth2.Validate.IPAddr = false
-				conf.OpenVpn.Bypass.CommonNames = make([]string, 0)
-				conf.OpenVpn.AuthTokenUser = true
+				conf.OpenVPN.Bypass.CommonNames = make([]string, 0)
+				conf.OpenVPN.AuthTokenUser = true
 
 				return conf
 			}(),
@@ -94,8 +94,8 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OAuth2.Nonce = true
 				conf.OAuth2.PKCE = true
-				conf.OpenVpn.Bypass.CommonNames = make([]string, 0)
-				conf.OpenVpn.AuthTokenUser = true
+				conf.OpenVPN.Bypass.CommonNames = make([]string, 0)
+				conf.OpenVPN.AuthTokenUser = true
 
 				return conf
 			}(),
@@ -122,8 +122,8 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
 				conf.OAuth2.Validate.IPAddr = false
-				conf.OpenVpn.Bypass.CommonNames = make([]string, 0)
-				conf.OpenVpn.AuthTokenUser = true
+				conf.OpenVPN.Bypass.CommonNames = make([]string, 0)
+				conf.OpenVPN.AuthTokenUser = true
 
 				return conf
 			}(),
@@ -146,8 +146,8 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
 				conf.OAuth2.Validate.IPAddr = false
-				conf.OpenVpn.Bypass.CommonNames = make([]string, 0)
-				conf.OpenVpn.AuthTokenUser = true
+				conf.OpenVPN.Bypass.CommonNames = make([]string, 0)
+				conf.OpenVPN.AuthTokenUser = true
 
 				return conf
 			}(),
@@ -171,8 +171,8 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
 				conf.OAuth2.Validate.IPAddr = false
-				conf.OpenVpn.Bypass.CommonNames = make([]string, 0)
-				conf.OpenVpn.AuthTokenUser = true
+				conf.OpenVPN.Bypass.CommonNames = make([]string, 0)
+				conf.OpenVPN.AuthTokenUser = true
 
 				return conf
 			}(),
@@ -196,8 +196,8 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
 				conf.OAuth2.Validate.IPAddr = false
-				conf.OpenVpn.Bypass.CommonNames = make([]string, 0)
-				conf.OpenVpn.AuthTokenUser = true
+				conf.OpenVPN.Bypass.CommonNames = make([]string, 0)
+				conf.OpenVPN.AuthTokenUser = true
 
 				return conf
 			}(),
@@ -221,8 +221,8 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
 				conf.OAuth2.Validate.IPAddr = false
-				conf.OpenVpn.Bypass.CommonNames = make([]string, 0)
-				conf.OpenVpn.AuthTokenUser = true
+				conf.OpenVPN.Bypass.CommonNames = make([]string, 0)
+				conf.OpenVPN.AuthTokenUser = true
 
 				return conf
 			}(),
@@ -308,8 +308,8 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
 				conf.OAuth2.Validate.IPAddr = false
-				conf.OpenVpn.Bypass.CommonNames = make([]string, 0)
-				conf.OpenVpn.AuthTokenUser = true
+				conf.OpenVPN.Bypass.CommonNames = make([]string, 0)
+				conf.OpenVPN.AuthTokenUser = true
 
 				return conf
 			}(),
@@ -333,8 +333,8 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
 				conf.OAuth2.Validate.IPAddr = false
-				conf.OpenVpn.Bypass.CommonNames = make([]string, 0)
-				conf.OpenVpn.AuthTokenUser = true
+				conf.OpenVPN.Bypass.CommonNames = make([]string, 0)
+				conf.OpenVPN.AuthTokenUser = true
 
 				return conf
 			}(),

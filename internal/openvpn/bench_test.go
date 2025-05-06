@@ -35,8 +35,8 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 	conf := config.Defaults
 	conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
 	conf.HTTP.Secret = testutils.Secret
-	conf.OpenVpn.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
-	conf.OpenVpn.Bypass = config.OpenVPNBypass{CommonNames: make([]string, 0)}
+	conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
+	conf.OpenVPN.Bypass = config.OpenVPNBypass{CommonNames: make([]string, 0)}
 
 	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
 	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, b, conf, logger.Logger, http.DefaultClient, tokenStorage)
@@ -92,7 +92,7 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 
 	conf := config.Defaults
 	conf.HTTP.Secret = testutils.Secret
-	conf.OpenVpn.Passthrough.Enabled = true
+	conf.OpenVPN.Passthrough.Enabled = true
 
 	managementInterface, err := nettest.NewLocalListener("tcp")
 	require.NoError(b, err)
@@ -101,8 +101,8 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 		require.NoError(b, managementInterface.Close())
 	})
 
-	conf.OpenVpn.Passthrough.Address = types.URL{URL: &url.URL{Scheme: "tcp", Host: "127.0.0.1:0"}}
-	conf.OpenVpn.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
+	conf.OpenVPN.Passthrough.Address = types.URL{URL: &url.URL{Scheme: "tcp", Host: "127.0.0.1:0"}}
+	conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
 
 	tokenStorage := tokenstorage.NewInMemory(b.Context(), testutils.Secret, time.Hour)
 	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(b.Context(), b, conf, logger.Logger, http.DefaultClient, tokenStorage)
@@ -114,9 +114,9 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 
 	require.NoError(b, err)
 
-	if conf.OpenVpn.Password != "" {
+	if conf.OpenVPN.Password != "" {
 		testutils.SendMessage(b, managementInterfaceConn, "ENTER PASSWORD:")
-		testutils.ExpectMessage(b, managementInterfaceConn, reader, conf.OpenVpn.Password.String())
+		testutils.ExpectMessage(b, managementInterfaceConn, reader, conf.OpenVPN.Password.String())
 		testutils.SendMessage(b, managementInterfaceConn, "SUCCESS: password is correct")
 	}
 

@@ -40,7 +40,7 @@ var Defaults = Config{
 		},
 		Template: types.Template{Template: template.Must(template.New("index.gohtml").ParseFS(ui.Template, "index.gohtml"))},
 	},
-	OpenVpn: OpenVpn{
+	OpenVPN: OpenVPN{
 		Addr: types.URL{URL: &url.URL{
 			Scheme:   "unix",
 			Path:     "/run/openvpn/server.sock",
@@ -70,7 +70,8 @@ var Defaults = Config{
 			SocketMode:  660,
 			SocketGroup: "",
 		},
-		CommandTimeout: 10 * time.Second,
+		CommandTimeout:   10 * time.Second,
+		ReAuthentication: true,
 	},
 	OAuth2: OAuth2{
 		AuthStyle: OAuth2AuthStyle(oauth2.AuthStyleInParams),

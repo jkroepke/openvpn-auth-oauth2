@@ -29,7 +29,16 @@ func (c *Client) processClient(ctx context.Context, client connection.Client) er
 	defer cancel()
 
 	switch client.Reason {
-	case "CONNECT", "REAUTH":
+	case "REAUTH":
+		if !c.conf.OpenVPN.ReAuthentication {
+			logger.LogAttrs(ctx, slog.LevelInfo, "client re-authentication not enabled")
+			c.DenyClient(logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, "client re-authentication not enabled")
+
+			return nil
+		}
+
+		fallthrough
+	case "CONNECT":
 		c.handleClientAuthentication(ctx, logger, client)
 	case "ESTABLISHED":
 		c.clientEstablished(ctx, logger, client)
@@ -93,7 +102,7 @@ func (c *Client) handleClientAuthentication(ctx context.Context, logger *slog.Lo
 // startClientAuth initiates the authentication process for the client.
 // The openvpn-auth-oauth2 plugin will send a client-pending-auth command to the OpenVPN management interface.
 func (c *Client) startClientAuth(ctx context.Context, logger *slog.Logger, client connection.Client) error {
-	commonName := utils.TransformCommonName(c.conf.OpenVpn.CommonName.Mode, client.CommonName)
+	commonName := utils.TransformCommonName(c.conf.OpenVPN.CommonName.Mode, client.CommonName)
 
 	clientIdentifier := state.ClientIdentifier{
 		CID:        client.CID,
@@ -129,7 +138,7 @@ func (c *Client) startClientAuth(ctx context.Context, logger *slog.Logger, clien
 
 	logger.LogAttrs(ctx, slog.LevelInfo, "sent client-pending-auth command")
 
-	_, err = c.SendCommandf(`client-pending-auth %d %d "WEB_AUTH::%s" %.0f`, client.CID, client.KID, startURL, c.conf.OpenVpn.AuthPendingTimeout.Seconds())
+	_, err = c.SendCommandf(`client-pending-auth %d %d "WEB_AUTH::%s" %.0f`, client.CID, client.KID, startURL, c.conf.OpenVPN.AuthPendingTimeout.Seconds())
 	if err != nil {
 		return fmt.Errorf("error sending client-pending-auth command: %w", err)
 	}
@@ -138,7 +147,7 @@ func (c *Client) startClientAuth(ctx context.Context, logger *slog.Logger, clien
 }
 
 func (c *Client) checkAuthBypass(client connection.Client) bool {
-	return slices.Contains(c.conf.OpenVpn.Bypass.CommonNames, client.CommonName)
+	return slices.Contains(c.conf.OpenVPN.Bypass.CommonNames, client.CommonName)
 }
 
 func (c *Client) silentReAuthentication(ctx context.Context, logger *slog.Logger, client connection.Client) (bool, error) {

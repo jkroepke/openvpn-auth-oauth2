@@ -242,7 +242,7 @@ func TestValidateCommonName(t *testing.T) {
 			"apple",
 			"",
 			config.Config{
-				OpenVpn: config.OpenVpn{
+				OpenVPN: config.OpenVPN{
 					CommonName: config.OpenVPNCommonName{
 						Mode: config.CommonNameModePlain,
 					},
@@ -260,7 +260,7 @@ func TestValidateCommonName(t *testing.T) {
 			"apple",
 			"apple",
 			config.Config{
-				OpenVpn: config.OpenVpn{
+				OpenVPN: config.OpenVPN{
 					CommonName: config.OpenVPNCommonName{
 						Mode: config.CommonNameModePlain,
 					},
@@ -278,7 +278,7 @@ func TestValidateCommonName(t *testing.T) {
 			"APPLE",
 			"apple",
 			config.Config{
-				OpenVpn: config.OpenVpn{
+				OpenVPN: config.OpenVPN{
 					CommonName: config.OpenVPNCommonName{
 						Mode: config.CommonNameModePlain,
 					},
@@ -297,7 +297,7 @@ func TestValidateCommonName(t *testing.T) {
 			"APPLE",
 			"apple",
 			config.Config{
-				OpenVpn: config.OpenVpn{
+				OpenVPN: config.OpenVPN{
 					CommonName: config.OpenVPNCommonName{
 						Mode: config.CommonNameModePlain,
 					},
@@ -316,7 +316,7 @@ func TestValidateCommonName(t *testing.T) {
 			"pear",
 			"apple",
 			config.Config{
-				OpenVpn: config.OpenVpn{
+				OpenVPN: config.OpenVPN{
 					CommonName: config.OpenVPNCommonName{
 						Mode: config.CommonNameModePlain,
 					},
@@ -334,7 +334,7 @@ func TestValidateCommonName(t *testing.T) {
 			"pear",
 			"apple",
 			config.Config{
-				OpenVpn: config.OpenVpn{
+				OpenVPN: config.OpenVPN{
 					CommonName: config.OpenVPNCommonName{
 						Mode: config.CommonNameModePlain,
 					},
@@ -352,7 +352,7 @@ func TestValidateCommonName(t *testing.T) {
 			"apple",
 			config.CommonNameModeOmitValue,
 			config.Config{
-				OpenVpn: config.OpenVpn{
+				OpenVPN: config.OpenVPN{
 					CommonName: config.OpenVPNCommonName{
 						Mode: config.CommonNameModeOmit,
 					},

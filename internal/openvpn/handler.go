@@ -39,14 +39,14 @@ func (c *Client) handlePassword(ctx context.Context) error {
 
 	switch {
 	case string(buf) == "ENTER PASSWORD:":
-		if c.conf.OpenVpn.Password == "" {
+		if c.conf.OpenVPN.Password == "" {
 			return errors.New("management password required")
 		}
 
 		if err = c.sendPassword(ctx); err != nil {
 			return err
 		}
-	case c.conf.OpenVpn.Password != "":
+	case c.conf.OpenVPN.Password != "":
 		return errors.New("management password expected, but server does not ask for me")
 	default:
 		// In case there is no password, read the whole line
@@ -58,7 +58,7 @@ func (c *Client) handlePassword(ctx context.Context) error {
 
 // sendPassword enters the password on the OpenVPN management interface connection.
 func (c *Client) sendPassword(ctx context.Context) error {
-	if err := c.rawCommand(ctx, c.conf.OpenVpn.Password.String()); err != nil {
+	if err := c.rawCommand(ctx, c.conf.OpenVPN.Password.String()); err != nil {
 		return fmt.Errorf("error from password command: %w", err)
 	}
 

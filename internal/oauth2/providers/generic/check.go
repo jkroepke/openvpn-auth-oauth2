@@ -102,7 +102,7 @@ func (p Provider) CheckCommonName(session state.State, tokens *oidc.Tokens[*idto
 		return fmt.Errorf("%w: %s", oauth2.ErrMissingClaim, p.Conf.OAuth2.Validate.CommonName)
 	}
 
-	tokenCommonName = utils.TransformCommonName(p.Conf.OpenVpn.CommonName.Mode, tokenCommonName)
+	tokenCommonName = utils.TransformCommonName(p.Conf.OpenVPN.CommonName.Mode, tokenCommonName)
 
 	if !p.Conf.OAuth2.Validate.CommonNameCaseSensitive {
 		session.Client.CommonName = strings.ToLower(session.Client.CommonName)

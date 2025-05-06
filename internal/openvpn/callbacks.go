@@ -45,7 +45,7 @@ func (c *Client) acceptClientAuth(logger *slog.Logger, client state.ClientIdenti
 		)
 	}
 
-	if c.conf.OpenVpn.AuthTokenUser && client.UsernameIsDefined == 0 {
+	if c.conf.OpenVPN.AuthTokenUser && client.UsernameIsDefined == 0 {
 		tokenUsername = base64.StdEncoding.EncodeToString([]byte(username))
 		if tokenUsername == "" {
 			tokenUsername = "dXNlcm5hbWUK" // "username" //nolint:gosec // No hardcoded credentials
@@ -53,7 +53,7 @@ func (c *Client) acceptClientAuth(logger *slog.Logger, client state.ClientIdenti
 		}
 	}
 
-	if c.conf.OpenVpn.OverrideUsername && username != "" {
+	if c.conf.OpenVPN.OverrideUsername && username != "" {
 		clientConfig = append(clientConfig, fmt.Sprintf(`override-username "%s"`, username))
 	} else if tokenUsername != "" {
 		clientConfig = append(clientConfig, fmt.Sprintf(`push "auth-token-user %s"`, tokenUsername))

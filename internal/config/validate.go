@@ -21,14 +21,14 @@ func Validate(mode int, conf Config) error {
 
 	if mode == ManagementClient {
 		for key, value := range map[string]types.URL{
-			"openvpn.addr": conf.OpenVpn.Addr,
+			"openvpn.addr": conf.OpenVPN.Addr,
 		} {
 			if value.IsEmpty() {
 				return fmt.Errorf("%s is %w", key, ErrRequired)
 			}
 		}
 
-		if !slices.Contains([]string{"tcp", "unix"}, conf.OpenVpn.Addr.Scheme) {
+		if !slices.Contains([]string{"tcp", "unix"}, conf.OpenVPN.Addr.Scheme) {
 			return errors.New("openvpn.addr: invalid URL. only tcp://addr or unix://addr scheme supported")
 		}
 	}

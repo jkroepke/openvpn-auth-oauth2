@@ -111,33 +111,33 @@ func (c *Config) flagSetHTTP(flagSet *flag.FlagSet) {
 //goland:noinspection GoMixedReceiverTypes
 func (c *Config) flagSetOpenVPN(flagSet *flag.FlagSet) {
 	flagSet.TextVar(
-		&c.OpenVpn.Addr,
+		&c.OpenVPN.Addr,
 		"openvpn.addr",
-		lookupEnvOrDefault("openvpn.addr", c.OpenVpn.Addr),
+		lookupEnvOrDefault("openvpn.addr", c.OpenVPN.Addr),
 		"openvpn management interface addr. Must start with unix:// or tcp://",
 	)
 	flagSet.TextVar(
-		&c.OpenVpn.Password,
+		&c.OpenVPN.Password,
 		"openvpn.password",
-		lookupEnvOrDefault("openvpn.password", c.OpenVpn.Password),
+		lookupEnvOrDefault("openvpn.password", c.OpenVPN.Password),
 		"openvpn management interface password. If argument starts with file:// it reads the secret from a file.",
 	)
 	flagSet.BoolVar(
-		&c.OpenVpn.AuthTokenUser,
+		&c.OpenVPN.AuthTokenUser,
 		"openvpn.auth-token-user",
-		lookupEnvOrDefault("openvpn.auth-token-user", c.OpenVpn.AuthTokenUser),
+		lookupEnvOrDefault("openvpn.auth-token-user", c.OpenVPN.AuthTokenUser),
 		"Override the username of a session with the username from the token by using auth-token-user, if the client username is empty",
 	)
 	flagSet.DurationVar(
-		&c.OpenVpn.AuthPendingTimeout,
+		&c.OpenVPN.AuthPendingTimeout,
 		"openvpn.auth-pending-timeout",
-		lookupEnvOrDefault("openvpn.auth-pending-timeout", c.OpenVpn.AuthPendingTimeout),
+		lookupEnvOrDefault("openvpn.auth-pending-timeout", c.OpenVPN.AuthPendingTimeout),
 		"How long OpenVPN server wait until user is authenticated",
 	)
 	flagSet.TextVar(
-		&c.OpenVpn.Bypass.CommonNames,
+		&c.OpenVPN.Bypass.CommonNames,
 		"openvpn.bypass.common-names",
-		lookupEnvOrDefault("openvpn.bypass.common-names", c.OpenVpn.Bypass.CommonNames),
+		lookupEnvOrDefault("openvpn.bypass.common-names", c.OpenVPN.Bypass.CommonNames),
 		"bypass oauth authentication for CNs. Comma separated list.",
 	)
 	flagSet.BoolVar(
@@ -159,60 +159,66 @@ func (c *Config) flagSetOpenVPN(flagSet *flag.FlagSet) {
 		"If non-empty, the value of the token claim is used to lookup the configuration file in the CCD directory. If empty, the common name is used.",
 	)
 	flagSet.StringVar(
-		&c.OpenVpn.CommonName.EnvironmentVariableName,
+		&c.OpenVPN.CommonName.EnvironmentVariableName,
 		"openvpn.common-name.environment-variable-name",
-		lookupEnvOrDefault("openvpn.common-name.environment-variable-name", c.OpenVpn.CommonName.EnvironmentVariableName),
+		lookupEnvOrDefault("openvpn.common-name.environment-variable-name", c.OpenVPN.CommonName.EnvironmentVariableName),
 		"Name of the environment variable in the OpenVPN management interface which contains the common name. "+
 			"If username-as-common-name is enabled, this should be set to 'username' to use the username as common name. "+
 			"Other values like 'X509_0_emailAddress' are supported. "+
 			"See https://openvpn.net/community-resources/reference-manual-for-openvpn-2-6/#environmental-variables for more information.",
 	)
 	flagSet.TextVar(
-		&c.OpenVpn.CommonName.Mode,
+		&c.OpenVPN.CommonName.Mode,
 		"openvpn.common-name.mode",
-		lookupEnvOrDefault("openvpn.common-name.mode", c.OpenVpn.CommonName.Mode),
+		lookupEnvOrDefault("openvpn.common-name.mode", c.OpenVPN.CommonName.Mode),
 		"If common names are too long, use md5/sha1 to hash them or omit to skip them. "+
 			"If omit, oauth2.validate.common-name does not work anymore. Values: [plain,omit]",
 	)
 	flagSet.BoolVar(
-		&c.OpenVpn.OverrideUsername,
+		&c.OpenVPN.OverrideUsername,
 		"openvpn.override-username",
-		lookupEnvOrDefault("openvpn.override-username", c.OpenVpn.OverrideUsername),
+		lookupEnvOrDefault("openvpn.override-username", c.OpenVPN.OverrideUsername),
 		"Requires OpenVPN Server 2.7! "+
 			"If true, openvpn-auth-oauth2 use the override-username command to set the username in OpenVPN connection. "+
 			"This is useful to use real usernames in OpenVPN statistics. The username will be set after client configs are read. "+
 			"Read openvpn man page for limitations of the override-username.",
 	)
 	flagSet.BoolVar(
-		&c.OpenVpn.Passthrough.Enabled,
+		&c.OpenVPN.Passthrough.Enabled,
 		"openvpn.pass-through.enabled",
-		lookupEnvOrDefault("openvpn.pass-through.enabled", c.OpenVpn.Passthrough.Enabled),
+		lookupEnvOrDefault("openvpn.pass-through.enabled", c.OpenVPN.Passthrough.Enabled),
 		"If true, openvpn-auth-oauth2 will setup a pass-through socket for the OpenVPN management interface.",
 	)
 	flagSet.TextVar(
-		&c.OpenVpn.Passthrough.Address,
+		&c.OpenVPN.Passthrough.Address,
 		"openvpn.pass-through.address",
-		lookupEnvOrDefault("openvpn.pass-through.address", c.OpenVpn.Passthrough.Address),
+		lookupEnvOrDefault("openvpn.pass-through.address", c.OpenVPN.Passthrough.Address),
 		"The address of the pass-through socket. Must start with unix:// or tcp://",
 	)
 	flagSet.TextVar(
-		&c.OpenVpn.Passthrough.Password,
+		&c.OpenVPN.Passthrough.Password,
 		"openvpn.pass-through.password",
-		lookupEnvOrDefault("openvpn.pass-through.password", c.OpenVpn.Passthrough.Password),
+		lookupEnvOrDefault("openvpn.pass-through.password", c.OpenVPN.Passthrough.Password),
 		"The password for the pass-through socket. If argument starts with file:// it reads the secret from a file.",
 	)
 	flagSet.StringVar(
-		&c.OpenVpn.Passthrough.SocketGroup,
+		&c.OpenVPN.Passthrough.SocketGroup,
 		"openvpn.pass-through.socket-group",
-		lookupEnvOrDefault("openvpn.pass-through.socket-group", c.OpenVpn.Passthrough.SocketGroup),
+		lookupEnvOrDefault("openvpn.pass-through.socket-group", c.OpenVPN.Passthrough.SocketGroup),
 		"The group for the pass-through socket. Used only, if openvpn.pass-through.address starts with unix:// "+
 			"If empty, the group of the process is used.",
 	)
 	flagSet.UintVar(
-		&c.OpenVpn.Passthrough.SocketMode,
+		&c.OpenVPN.Passthrough.SocketMode,
 		"openvpn.pass-through.socket-mode",
-		lookupEnvOrDefault("openvpn.pass-through.socket-mode", c.OpenVpn.Passthrough.SocketMode),
+		lookupEnvOrDefault("openvpn.pass-through.socket-mode", c.OpenVPN.Passthrough.SocketMode),
 		"The unix file permission mode for the pass-through socket. Used only, if openvpn.pass-through.address starts with unix://",
+	)
+	flagSet.BoolVar(
+		&c.OpenVPN.ReAuthentication,
+		"openvpn.reauthentication",
+		lookupEnvOrDefault("openvpn.reauthentication", c.OpenVPN.ReAuthentication),
+		"If set to false, openvpn-auth-oauth2 rejects all re-authentication requests.",
 	)
 }
 

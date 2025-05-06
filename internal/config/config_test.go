@@ -166,7 +166,7 @@ http:
 						return tmpl
 					}(),
 				},
-				OpenVpn: config.OpenVpn{
+				OpenVPN: config.OpenVPN{
 					Addr: types.URL{URL: &url.URL{
 						Scheme:   "unix",
 						Path:     "/run/openvpn/server2.sock",
@@ -312,7 +312,7 @@ func TestConfigFlagSet(t *testing.T) {
 			[]string{"--openvpn.bypass.common-names=a,b"},
 			func() config.Config {
 				conf := config.Defaults
-				conf.OpenVpn.Bypass.CommonNames = []string{"a", "b"}
+				conf.OpenVPN.Bypass.CommonNames = []string{"a", "b"}
 
 				return conf
 			}(),
@@ -332,7 +332,7 @@ func TestConfigFlagSet(t *testing.T) {
 			[]string{"--openvpn.common-name.mode=plain"},
 			func() config.Config {
 				conf := config.Defaults
-				conf.OpenVpn.CommonName.Mode = config.CommonNameModePlain
+				conf.OpenVPN.CommonName.Mode = config.CommonNameModePlain
 
 				return conf
 			}(),

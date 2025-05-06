@@ -56,9 +56,9 @@ func NewClient(conf config.Config, message string) (Client, error) { //nolint:cy
 				client.IPAddr = envValue
 			case "untrusted_port":
 				client.IPPort = envValue
-			case conf.OpenVpn.CommonName.EnvironmentVariableName:
+			case conf.OpenVPN.CommonName.EnvironmentVariableName:
 				client.CommonName = envValue
-				if conf.OpenVpn.CommonName.EnvironmentVariableName == "username" {
+				if conf.OpenVPN.CommonName.EnvironmentVariableName == "username" {
 					client.UsernameIsDefined = 1
 				}
 			case "IV_SSO":

@@ -58,7 +58,7 @@ func TestRefreshReAuth(t *testing.T) {
 			nonInteractiveShouldWork: true,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OpenVpn.AuthTokenUser = true
+				conf.OpenVPN.AuthTokenUser = true
 				conf.OAuth2.Refresh.Enabled = true
 				conf.OAuth2.Refresh.ValidateUser = true
 				conf.OAuth2.Refresh.UseSessionID = false
@@ -73,8 +73,8 @@ func TestRefreshReAuth(t *testing.T) {
 			nonInteractiveShouldWork: true,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OpenVpn.AuthTokenUser = true
-				conf.OpenVpn.OverrideUsername = true
+				conf.OpenVPN.AuthTokenUser = true
+				conf.OpenVPN.OverrideUsername = true
 				conf.OAuth2.Refresh.Enabled = true
 				conf.OAuth2.Refresh.ValidateUser = true
 				conf.OAuth2.Refresh.UseSessionID = false
@@ -103,7 +103,7 @@ func TestRefreshReAuth(t *testing.T) {
 			nonInteractiveShouldWork: true,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OpenVpn.AuthTokenUser = false
+				conf.OpenVPN.AuthTokenUser = false
 				conf.OAuth2.Refresh.Enabled = true
 				conf.OAuth2.Refresh.ValidateUser = false
 				conf.OAuth2.Refresh.UseSessionID = true
@@ -118,7 +118,7 @@ func TestRefreshReAuth(t *testing.T) {
 			nonInteractiveShouldWork: true,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OpenVpn.AuthTokenUser = false
+				conf.OpenVPN.AuthTokenUser = false
 				conf.OAuth2.Provider = google.Name
 				conf.OAuth2.Scopes = []string{types.ScopeEmail, types.ScopeProfile, types.ScopeOpenID, types.ScopeOfflineAccess}
 				conf.OAuth2.Refresh.Enabled = true
@@ -135,7 +135,7 @@ func TestRefreshReAuth(t *testing.T) {
 			nonInteractiveShouldWork: true,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OpenVpn.AuthTokenUser = false
+				conf.OpenVPN.AuthTokenUser = false
 				conf.OAuth2.Provider = github.Name
 				conf.OAuth2.Refresh.Enabled = true
 				conf.OAuth2.Refresh.ValidateUser = true
@@ -151,7 +151,7 @@ func TestRefreshReAuth(t *testing.T) {
 			nonInteractiveShouldWork: false,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OpenVpn.AuthTokenUser = false
+				conf.OpenVPN.AuthTokenUser = false
 				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Refresh.Enabled = true
 				conf.OAuth2.Refresh.ValidateUser = true
@@ -188,7 +188,7 @@ func TestRefreshReAuth(t *testing.T) {
 			nonInteractiveShouldWork: true,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OpenVpn.AuthTokenUser = false
+				conf.OpenVPN.AuthTokenUser = false
 				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Refresh.Enabled = true
 				conf.OAuth2.Refresh.ValidateUser = true
@@ -289,7 +289,7 @@ func TestRefreshReAuth(t *testing.T) {
 			}()
 
 			switch {
-			case tc.conf.OpenVpn.OverrideUsername:
+			case tc.conf.OpenVPN.OverrideUsername:
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 1 2")
 
 				if tc.clientCommonName == "" {
@@ -299,7 +299,7 @@ func TestRefreshReAuth(t *testing.T) {
 				}
 
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "END")
-			case tc.conf.OpenVpn.AuthTokenUser:
+			case tc.conf.OpenVPN.AuthTokenUser:
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 1 2")
 
 				if tc.clientCommonName == "" {
