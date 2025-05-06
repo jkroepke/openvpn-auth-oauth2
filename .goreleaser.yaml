@@ -34,12 +34,11 @@ builds:
         -X internal/version.Version={{.Version}}
         -X internal/version.Commit={{.Commit}}
         -X internal/version.Date={{.Date}}
-    overrides:
-      - goos: linux
-        tags:
-          - osusergo
-          - netgo
-          - static_build
+    tags:
+      - osusergo
+      - netgo
+      - static_build
+
 archives:
   - id: openvpn-auth-oauth2
     ids:
