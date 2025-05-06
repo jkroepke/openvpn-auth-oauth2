@@ -53,6 +53,18 @@ func TestRefreshReAuth(t *testing.T) {
 			rt: http.DefaultTransport,
 		},
 		{
+			name:                     "ReAuthentication disabled",
+			clientCommonName:         "test",
+			nonInteractiveShouldWork: true,
+			conf: func() config.Config {
+				conf := config.Defaults
+				conf.OpenVPN.ReAuthentication = false
+
+				return conf
+			}(),
+			rt: http.DefaultTransport,
+		},
+		{
 			name:                     "Refresh with empty common name",
 			clientCommonName:         "",
 			nonInteractiveShouldWork: true,
@@ -288,6 +300,18 @@ func TestRefreshReAuth(t *testing.T) {
 				resp, reqErr = httpClient.Do(request) //nolint:bodyclose
 			}()
 
+			t.Cleanup(func() {
+				require.NoError(t, managementInterfaceConn.Close())
+
+				wg.Wait()
+				select {
+				case err := <-errOpenVPNClientCh:
+					require.NoError(t, err, logger.String())
+				case <-time.After(1 * time.Second):
+					t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", logger.String())
+				}
+			})
+
 			switch {
 			case tc.conf.OpenVPN.OverrideUsername:
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 1 2")
@@ -331,13 +355,17 @@ func TestRefreshReAuth(t *testing.T) {
 				tc.clientCommonName,
 			)
 
+			if !tc.conf.OpenVPN.ReAuthentication {
+				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-deny 1 3 \"client re-authentication not enabled\"")
+				testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: client-deny command succeeded")
+
+				return
+			}
+
 			if !tc.nonInteractiveShouldWork {
 				auth := testutils.ReadLine(t, managementInterfaceConn, reader)
 				assert.Contains(t, auth, "client-pending-auth 1 3 \"WEB_AUTH::")
 				testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: %s command succeeded", strings.SplitN(auth, " ", 2)[0])
-
-				openVPNClient.Shutdown()
-				wg.Wait()
 
 				return
 			}
@@ -395,16 +423,6 @@ func TestRefreshReAuth(t *testing.T) {
 			}
 
 			testutils.SendMessage(t, managementInterfaceConn, "SUCCESS: %s command succeeded", strings.SplitN(auth, " ", 2)[0])
-
-			require.NoError(t, managementInterfaceConn.Close())
-
-			wg.Wait()
-			select {
-			case err := <-errOpenVPNClientCh:
-				require.NoError(t, err, logger.String())
-			case <-time.After(1 * time.Second):
-				t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", logger.String())
-			}
 		})
 	}
 }
