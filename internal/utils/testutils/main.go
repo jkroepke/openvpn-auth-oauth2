@@ -43,8 +43,8 @@ const (
 func ExpectVersionAndReleaseHold(tb testing.TB, conn net.Conn, reader *bufio.Reader) {
 	tb.Helper()
 
-	SendMessage(tb, conn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info")
-	SendMessage(tb, conn, ">HOLD:Waiting for hold release:0")
+	SendMessagef(tb, conn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info")
+	SendMessagef(tb, conn, ">HOLD:Waiting for hold release:0")
 
 	var expectedCommand int
 
@@ -52,11 +52,11 @@ func ExpectVersionAndReleaseHold(tb testing.TB, conn net.Conn, reader *bufio.Rea
 		line := ReadLine(tb, conn, reader)
 		switch line {
 		case "hold release":
-			SendMessage(tb, conn, "SUCCESS: hold release succeeded")
+			SendMessagef(tb, conn, "SUCCESS: hold release succeeded")
 
 			expectedCommand++
 		case "version":
-			SendMessage(tb, conn, "OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 5\r\nEND")
+			SendMessagef(tb, conn, "OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 5\r\nEND")
 
 			expectedCommand++
 		default:
@@ -67,7 +67,7 @@ func ExpectVersionAndReleaseHold(tb testing.TB, conn net.Conn, reader *bufio.Rea
 	require.Equal(tb, 2, expectedCommand)
 }
 
-func SendMessage(tb testing.TB, conn net.Conn, sendMessage string, args ...any) {
+func SendMessagef(tb testing.TB, conn net.Conn, sendMessage string, args ...any) {
 	tb.Helper()
 
 	require.NotNil(tb, conn, "connection is nil")
@@ -106,7 +106,7 @@ func ExpectMessage(tb testing.TB, conn net.Conn, reader *bufio.Reader, expectMes
 func SendAndExpectMessage(tb testing.TB, conn net.Conn, reader *bufio.Reader, sendMessage, expectMessage string) {
 	tb.Helper()
 
-	SendMessage(tb, conn, sendMessage)
+	SendMessagef(tb, conn, sendMessage)
 	ExpectMessage(tb, conn, reader, expectMessage)
 }
 
@@ -213,8 +213,8 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 		conf.HTTP.Template = config.Defaults.HTTP.Template
 	}
 
-	if conf.OpenVpn.ClientConfig.Path.IsEmpty() {
-		conf.OpenVpn.ClientConfig.Path = config.Defaults.OpenVpn.ClientConfig.Path
+	if conf.OpenVPN.ClientConfig.Path.IsEmpty() {
+		conf.OpenVPN.ClientConfig.Path = config.Defaults.OpenVPN.ClientConfig.Path
 	}
 
 	conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}

@@ -93,6 +93,7 @@ openvpn:
     # password: ""
     # socket-group: ""
     # socket-mode: 660
+  reauthentication: true
 ```
 </details>
 
@@ -220,6 +221,8 @@ Usage of openvpn-auth-oauth2:
     	The unix file permission mode for the pass-through socket. Used only, if openvpn.pass-through.address starts with unix:// (env: CONFIG_OPENVPN_PASS__THROUGH_SOCKET__MODE) (default 660)
   --openvpn.password value
     	openvpn management interface password. If argument starts with file:// it reads the secret from a file. (env: CONFIG_OPENVPN_PASSWORD)
+  --openvpn.reauthentication
+    	If set to false, openvpn-auth-oauth2 rejects all re-authentication requests. (env: CONFIG_OPENVPN_REAUTHENTICATION) (default true)
   --version
     	show version
 ```

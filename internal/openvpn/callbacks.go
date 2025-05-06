@@ -95,11 +95,11 @@ func (c *Client) DenyClient(logger *slog.Logger, client state.ClientIdentifier, 
 }
 
 func (c *Client) readClientConfig(username string) ([]string, error) {
-	if !c.conf.OpenVpn.ClientConfig.Enabled || c.conf.OpenVpn.ClientConfig.Path.IsEmpty() || len(username) == 0 {
+	if !c.conf.OpenVPN.ClientConfig.Enabled || c.conf.OpenVPN.ClientConfig.Path.IsEmpty() || len(username) == 0 {
 		return make([]string, 0), nil
 	}
 
-	clientConfigFile, err := c.conf.OpenVpn.ClientConfig.Path.Open(username + ".conf")
+	clientConfigFile, err := c.conf.OpenVPN.ClientConfig.Path.Open(username + ".conf")
 	if err != nil {
 		return make([]string, 0), fmt.Errorf("failed to open client config file: %w", err)
 	}
