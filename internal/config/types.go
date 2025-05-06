@@ -52,7 +52,7 @@ type OpenVPN struct {
 	Addr               types.URL          `json:"addr"                 yaml:"addr"`
 	AuthTokenUser      bool               `json:"auth-token-user"      yaml:"auth-token-user"`
 	AuthPendingTimeout time.Duration      `json:"auth-pending-timeout" yaml:"auth-pending-timeout"`
-	Bypass             OpenVpnBypass      `json:"bypass"               yaml:"bypass"`
+	Bypass             OpenVPNBypass      `json:"bypass"               yaml:"bypass"`
 	ClientConfig       OpenVPNConfig      `json:"client-config"        yaml:"client-config"`
 	CommonName         OpenVPNCommonName  `json:"common-name"          yaml:"common-name"`
 	CommandTimeout     time.Duration      `json:"command-timeout"      yaml:"command-timeout"`

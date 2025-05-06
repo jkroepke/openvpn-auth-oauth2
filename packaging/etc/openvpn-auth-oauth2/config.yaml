@@ -72,6 +72,7 @@
 #    mode: plain
 #  password: ""
 #  override-username: false # (requires OpenVPN 2.7 server)
+#  reauthentication: true
 #pass-through:
 #  enabled: false
 #  address: "unix:///run/openvpn/pass-through.sock"

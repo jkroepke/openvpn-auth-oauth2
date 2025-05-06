@@ -123,6 +123,7 @@ openvpn:
         password: "password"
         socket-group: "group"
         socket-mode: 0666
+    reauthentication: false
 http:
     listen: ":9001"
     secret: "1jd93h5b6s82lf03jh5b2hf9"
@@ -204,7 +205,8 @@ http:
 						SocketMode:  0o666,
 						Password:    "password",
 					},
-					CommandTimeout: 10 * time.Second,
+					CommandTimeout:   10 * time.Second,
+					ReAuthentication: false,
 				},
 				OAuth2: config.OAuth2{
 					Issuer: types.URL{URL: &url.URL{

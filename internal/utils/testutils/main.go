@@ -213,8 +213,8 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 		conf.HTTP.Template = config.Defaults.HTTP.Template
 	}
 
-	if conf.OpenVpn.ClientConfig.Path.IsEmpty() {
-		conf.OpenVpn.ClientConfig.Path = config.Defaults.OpenVpn.ClientConfig.Path
+	if conf.OpenVPN.ClientConfig.Path.IsEmpty() {
+		conf.OpenVPN.ClientConfig.Path = config.Defaults.OpenVPN.ClientConfig.Path
 	}
 
 	conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
