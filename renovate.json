@@ -46,7 +46,7 @@
       "matchPackageNames": [
         "*"
       ]
-    }.
+    },
     {
       "matchPackageNames": [
         "golang.org/x/net"
