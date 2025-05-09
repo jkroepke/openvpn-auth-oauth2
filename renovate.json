@@ -79,6 +79,8 @@
   "postUpdateOptions": [
     "gomodTidy"
   ],
+  "automerge": true,
+  "platformAutomerge": true,
   "customManagers": [
     {
       "customType": "regex",
