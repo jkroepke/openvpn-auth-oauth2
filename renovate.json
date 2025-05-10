@@ -11,6 +11,8 @@
   "schedule": [
     "* 14-17 * * 5"
   ],
+  "automerge": true,
+  "platformAutomerge": true,
   "packageRules": [
     {
       "groupName": "golangci-lint",
@@ -79,8 +81,6 @@
   "postUpdateOptions": [
     "gomodTidy"
   ],
-  "automerge": true,
-  "platformAutomerge": true,
   "customManagers": [
     {
       "customType": "regex",
