@@ -43,7 +43,7 @@ jobs:
           GITHUB_TOKEN: ""
           GPG_KEY_PATH: ""
 
-      - uses: codecov/codecov-action@ad3126e916f78f00edff4ed0317cf185271ccc2d # v5.4.2
+      - uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5.4.3
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
