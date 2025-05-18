@@ -164,4 +164,5 @@ linters:
           - maintidx
           - wrapcheck
         path: _test\.go
+      - path: _test\.go
         text: "fieldalignment:"
