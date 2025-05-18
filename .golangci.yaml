@@ -10,9 +10,13 @@ linters:
     - mnd
     - recvcheck
   settings:
+    gomoddirectives:
+      toolchain-forbidden: true
     gosec:
       excludes:
         - G101
+    govet:
+      enable-all: true
     lll:
       line-length: 160
     revive:
