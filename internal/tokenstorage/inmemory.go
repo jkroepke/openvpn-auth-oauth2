@@ -10,22 +10,21 @@ import (
 )
 
 type InMemory struct {
+	data          sync.Map
 	encryptionKey string
-
-	expires time.Duration
-	data    sync.Map
+	expires       time.Duration
 }
 
 type item struct {
-	token   []byte
 	expires time.Time
+	token   []byte
 }
 
 func NewInMemory(ctx context.Context, encryptionKey string, expires time.Duration) *InMemory {
 	storage := &InMemory{
-		encryptionKey,
-		expires,
-		sync.Map{},
+		data:          sync.Map{},
+		encryptionKey: encryptionKey,
+		expires:       expires,
 	}
 	go storage.collect(ctx)
 
@@ -38,7 +37,7 @@ func (s *InMemory) Set(client, token string) error {
 		return fmt.Errorf("decrypt error: %w", err)
 	}
 
-	s.data.Store(client, item{encryptedBytes, time.Now().Add(s.expires)})
+	s.data.Store(client, item{token: encryptedBytes, expires: time.Now().Add(s.expires)})
 
 	return nil
 }

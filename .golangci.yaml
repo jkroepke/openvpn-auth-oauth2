@@ -10,9 +10,15 @@ linters:
     - mnd
     - recvcheck
   settings:
+    gomoddirectives:
+      toolchain-forbidden: true
     gosec:
       excludes:
         - G101
+    govet:
+      enable-all: true
+      disable:
+        - shadow
     lll:
       line-length: 160
     revive:
@@ -158,3 +164,5 @@ linters:
           - maintidx
           - wrapcheck
         path: _test\.go
+      - path: _test\.go
+        text: "fieldalignment:"

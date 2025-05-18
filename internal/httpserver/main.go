@@ -22,12 +22,11 @@ const (
 )
 
 type Server struct {
-	name   string
-	conf   config.HTTP
-	logger *slog.Logger
-	server *http.Server
-
+	logger           *slog.Logger
+	server           *http.Server
 	tlsCertificate   *tls.Certificate
+	name             string
+	conf             config.HTTP
 	tlsCertificateMu sync.RWMutex
 }
 

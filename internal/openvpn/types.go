@@ -19,23 +19,19 @@ const (
 )
 
 type Client struct {
-	conf    config.Config
-	conn    net.Conn
-	scanner *bufio.Scanner
-	logger  *slog.Logger
-	oauth2  oauth2Client
-
-	connMu    sync.Mutex
-	closed    atomic.Uint32
-	commandMu sync.RWMutex
-
-	commandsBuffer bytes.Buffer
-
-	clientsCh         chan connection.Client
-	commandResponseCh chan string
-	commandsCh        chan string
-
+	oauth2               oauth2Client
+	conn                 net.Conn
+	commandsCh           chan string
+	logger               *slog.Logger
+	scanner              *bufio.Scanner
+	commandResponseCh    chan string
+	clientsCh            chan connection.Client
 	passThroughCh        chan string
+	commandsBuffer       bytes.Buffer
+	conf                 config.Config
+	commandMu            sync.RWMutex
+	connMu               sync.Mutex
+	closed               atomic.Uint32
 	passThroughConnected atomic.Uint32
 }
 

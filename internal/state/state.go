@@ -20,24 +20,24 @@ import (
 //
 // To prevent tampering, the `State` is protected using AES encryption.
 type State struct {
-	Client       ClientIdentifier // Detailed information about the client initiating the flow.
-	IPAddr       string           // IP address of the client.
-	IPPort       string           // Port used by the client.
-	SessionState string           // Session identifier for tracking the login state.
-	Issued       int64            // Timestamp when the state was created.
+	IPAddr       string
+	IPPort       string
+	SessionState string
+	Client       ClientIdentifier
+	Issued       int64
 }
 
 // ClientIdentifier holds detailed information about the client initiating an OAuth2 login flow.
 //
 // This struct provides more context for the client and can be passed to [github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn.Client.AcceptClient].
 type ClientIdentifier struct {
-	CID                  uint64 // Unique identifier for the client.
-	KID                  uint64 // Identifier for cryptographic keys.
-	SessionID            string // Unique session identifier.
-	CommonName           string // Human-readable name for the client.
-	UsernameIsDefined    int    // Flag indicating if the username is defined.
-	AuthFailedReasonFile string // Path or reference explaining authentication failure reasons.
-	AuthControlFile      string // Path or reference for authentication control settings.
+	SessionID            string
+	CommonName           string
+	AuthFailedReasonFile string
+	AuthControlFile      string
+	CID                  uint64
+	KID                  uint64
+	UsernameIsDefined    int
 }
 
 // New returns a new State.
