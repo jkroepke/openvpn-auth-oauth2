@@ -9,17 +9,17 @@ import (
 )
 
 type Client struct {
-	KID               uint64
-	CID               uint64
 	Reason            string
 	IPAddr            string
 	IPPort            string
 	VPNAddress        string
 	CommonName        string
-	UsernameIsDefined int
 	SessionID         string
 	SessionState      string
 	IvSSO             string
+	KID               uint64
+	CID               uint64
+	UsernameIsDefined int
 }
 
 func NewClient(conf config.Config, message string) (Client, error) { //nolint:cyclop

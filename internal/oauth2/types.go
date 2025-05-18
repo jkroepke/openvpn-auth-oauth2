@@ -14,15 +14,13 @@ import (
 )
 
 type Client struct {
-	relyingParty rp.RelyingParty
-	openvpn      openvpnManagementClient
-
-	conf    types2.Config
-	logger  *slog.Logger
-	storage tokenstorage.Storage
-
+	relyingParty    rp.RelyingParty
+	openvpn         openvpnManagementClient
+	storage         tokenstorage.Storage
 	provider        Provider
+	logger          *slog.Logger
 	authorizeParams []rp.URLParamOpt
+	conf            types2.Config
 }
 
 type Provider interface {

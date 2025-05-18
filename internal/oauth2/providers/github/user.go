@@ -16,8 +16,8 @@ import (
 type userType struct {
 	Name  string `json:"name"`
 	Login string `json:"login"`
-	ID    int    `json:"id"`
 	Email string `json:"email"`
+	ID    int    `json:"id"`
 }
 
 func (p Provider) GetUser(ctx context.Context, _ *slog.Logger, tokens *oidc.Tokens[*idtoken.Claims]) (types.UserData, error) {

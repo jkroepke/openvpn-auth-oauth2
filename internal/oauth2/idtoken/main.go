@@ -9,19 +9,15 @@ import (
 
 //nolint:tagliatelle
 type Claims struct {
-	oidc.TokenClaims
-	PreferredUsername string `json:"preferred_username,omitempty"`
-	AccessTokenHash   string `json:"at_hash,omitempty"`
-	IPAddr            string `json:"ipaddr,omitempty"`
-	EMail             string `json:"email,omitempty"`
-
-	Groups []string `json:"groups,omitempty"`
-	Roles  []string `json:"roles,omitempty"`
-
-	// https://developers.google.com/identity/openid-connect/openid-connect#hd-param
-	Hd string `json:"hd,omitempty"`
-
 	Claims map[string]any `json:"-"`
+	oidc.TokenClaims
+	PreferredUsername string   `json:"preferred_username,omitempty"`
+	AccessTokenHash   string   `json:"at_hash,omitempty"`
+	IPAddr            string   `json:"ipaddr,omitempty"`
+	EMail             string   `json:"email,omitempty"`
+	Hd                string   `json:"hd,omitempty"`
+	Groups            []string `json:"groups,omitempty"`
+	Roles             []string `json:"roles,omitempty"`
 }
 
 // GetAccessTokenHash implements the oidc.IDTokenClaims interface.
