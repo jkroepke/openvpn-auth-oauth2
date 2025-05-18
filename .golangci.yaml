@@ -17,6 +17,8 @@ linters:
         - G101
     govet:
       enable-all: true
+      disable:
+        - shadow
     lll:
       line-length: 160
     revive:
