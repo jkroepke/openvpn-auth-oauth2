@@ -1,6 +1,9 @@
 package state_test
 
 import (
+	"encoding/base64"
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -8,6 +11,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/zitadel/oidc/v3/pkg/crypto"
 )
 
 func TestState(t *testing.T) {
@@ -100,36 +104,148 @@ func TestState_WithState(t *testing.T) {
 	}
 }
 
-func TestStateInvalid_Future(t *testing.T) {
+func TestStateInvalid(t *testing.T) {
 	t.Parallel()
 
-	encryptionKey := testutils.Secret
+	for _, tc := range []struct {
+		name         string
+		encodedToken func() (string, error)
+		expectedErr  string
+	}{
+		{
+			name: "too old",
+			encodedToken: func() (string, error) {
+				token := state.New(state.ClientIdentifier{CID: 1, KID: 2, CommonName: "test"}, "127.0.0.1", "12345", "")
+				token.Issued = time.Now().Add(-1 * time.Hour).Unix()
 
-	token := state.New(state.ClientIdentifier{CID: 1, KID: 2, CommonName: "test"}, "127.0.0.1", "12345", "")
-	token.Issued = time.Now().Add(time.Hour).Unix()
-	encodedTokenString, err := token.Encode(encryptionKey)
+				return token.Encode(testutils.Secret)
+			},
+			expectedErr: "invalid state: expired after 2 minutes, issued at:",
+		},
+		{
+			name: "future",
+			encodedToken: func() (string, error) {
+				token := state.New(state.ClientIdentifier{CID: 1, KID: 2, CommonName: "test"}, "127.0.0.1", "12345", "")
+				token.Issued = time.Now().Add(time.Hour).Unix()
 
-	require.NoError(t, err)
+				return token.Encode(testutils.Secret)
+			},
+			expectedErr: "invalid state: issued in future, issued at:",
+		},
+		{
+			name: "invalid base64",
+			encodedToken: func() (string, error) {
+				return "aaaaaa", nil
+			},
+			expectedErr: "illegal base64 data at input",
+		},
+		{
+			name: "invalid ciphertext",
+			encodedToken: func() (string, error) {
+				return base64.URLEncoding.EncodeToString([]byte("a")), nil
+			},
+			expectedErr: "ciphertext block size is too short",
+		},
+		{
+			name: "invalid state too long",
+			encodedToken: func() (string, error) {
+				return strings.Repeat("a", 10000), nil
+			},
+			expectedErr: "invalid state: token too large",
+		},
+		{
+			name: "invalid AES key",
+			encodedToken: func() (string, error) {
+				encrypted, err := crypto.EncryptBytesAES([]byte("____"), testutils.Secret+testutils.Secret)
+				if err != nil {
+					return "", err
+				}
 
-	_, err = state.NewWithEncodedToken(encodedTokenString, encryptionKey)
+				return base64.URLEncoding.EncodeToString(encrypted), nil
+			},
+			expectedErr: "expected 12 fields",
+		},
+		{
+			name: "invalid CID",
+			encodedToken: func() (string, error) {
+				token := fmt.Sprintf("%s A B C D E F G H I J %d", testutils.Secret[:2], time.Now().Unix())
 
-	assert.ErrorContains(t, err, "invalid state: issued in future, issued at:")
-}
+				encrypted, err := crypto.EncryptBytesAES([]byte(token), testutils.Secret)
+				if err != nil {
+					return "", err
+				}
 
-func TestStateInvalid_TooOld(t *testing.T) {
-	t.Parallel()
+				return base64.URLEncoding.EncodeToString(encrypted), nil
+			},
+			expectedErr: "parse CID: strconv.ParseUint",
+		},
+		{
+			name: "invalid prefix",
+			encodedToken: func() (string, error) {
+				token := fmt.Sprintf("%s A B C D E F G H I J %d", "00", time.Now().Unix())
 
-	encryptionKey := testutils.Secret
+				encrypted, err := crypto.EncryptBytesAES([]byte(token), testutils.Secret)
+				if err != nil {
+					return "", err
+				}
 
-	token := state.New(state.ClientIdentifier{CID: 1, KID: 2, CommonName: "test"}, "127.0.0.1", "12345", "")
-	token.Issued = time.Now().Add(-1 * time.Hour).Unix()
-	encodedTokenString, err := token.Encode(encryptionKey)
+				return base64.URLEncoding.EncodeToString(encrypted), nil
+			},
+			expectedErr: "expected secret key prefix",
+		},
+		{
+			name: "invalid KID",
+			encodedToken: func() (string, error) {
+				token := fmt.Sprintf("%s 1 B C D E F G H I J %d", testutils.Secret[:2], time.Now().Unix())
 
-	require.NoError(t, err)
+				encrypted, err := crypto.EncryptBytesAES([]byte(token), testutils.Secret)
+				if err != nil {
+					return "", err
+				}
 
-	_, err = state.NewWithEncodedToken(encodedTokenString, encryptionKey)
+				return base64.URLEncoding.EncodeToString(encrypted), nil
+			},
+			expectedErr: "parse KID: strconv.ParseUint",
+		},
+		{
+			name: "invalid UsernameIsDefined",
+			encodedToken: func() (string, error) {
+				token := fmt.Sprintf("%s 1 1 C D E F G H I J %d", testutils.Secret[:2], time.Now().Unix())
 
-	assert.ErrorContains(t, err, "invalid state: expired after 2 minutes, issued at:")
+				encrypted, err := crypto.EncryptBytesAES([]byte(token), testutils.Secret)
+				if err != nil {
+					return "", err
+				}
+
+				return base64.URLEncoding.EncodeToString(encrypted), nil
+			},
+			expectedErr: "parse UsernameIsDefined: strconv.Atoi",
+		},
+		{
+			name: "invalid issued",
+			encodedToken: func() (string, error) {
+				token := testutils.Secret[:2] + " 1 1 C D E 1 G H I J K"
+				encrypted, err := crypto.EncryptBytesAES([]byte(token), testutils.Secret)
+				if err != nil {
+					return "", err
+				}
+
+				return base64.URLEncoding.EncodeToString(encrypted), nil
+			},
+			expectedErr: "parse Issued: strconv.ParseInt",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			encodedTokenString, err := tc.encodedToken()
+			require.NoError(t, err)
+
+			_, err = state.NewWithEncodedToken(encodedTokenString, testutils.Secret)
+
+			require.ErrorContains(t, err, tc.expectedErr)
+		})
+	}
 }
 
 func TestStateInvalid_Encoded(t *testing.T) {
