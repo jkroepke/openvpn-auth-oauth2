@@ -74,3 +74,4 @@ $RECYCLE.BIN/
 /local/
 /tests/**/*.sysconfig
 Test*.te*
+*.test.exe
