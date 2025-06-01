@@ -10,7 +10,7 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/crypto"
 )
 
-const numFields = 11
+const numFields = 12
 
 // State represents the context and security information associated with an OAuth2 login flow.
 //
@@ -84,6 +84,8 @@ func (state *State) Encode(secretKey string) (string, error) {
 	var scratch [20]byte // Scratch buffer for integer conversions
 
 	// Write each field in order, separated by spaces.
+	data.WriteString(secretKey[0:2])
+	data.WriteByte(' ')
 	data.Write(strconv.AppendUint(scratch[:0], state.Client.CID, 10))
 	data.WriteByte(' ')
 	data.Write(strconv.AppendUint(scratch[:0], state.Client.KID, 10))
@@ -113,7 +115,7 @@ func (state *State) Encode(secretKey string) (string, error) {
 		return "", fmt.Errorf("encrypt aes: %w", err)
 	}
 
-	return base64.RawURLEncoding.EncodeToString(encrypted), nil
+	return base64.URLEncoding.EncodeToString(encrypted), nil
 }
 
 // decode parses and decrypts a state string, populating the State struct fields.
@@ -138,6 +140,10 @@ func (state *State) decode(encodedState, secretKey string) error {
 		return err
 	}
 
+	if len(fields[0]) < 2 || !bytes.Equal(fields[0], []byte(secretKey[:2])) {
+		return fmt.Errorf("expected secret key prefix %s, got %s", secretKey[:2], string(fields[0]))
+	}
+
 	if err := parseStateFields(state, fields); err != nil {
 		return err
 	}
@@ -156,7 +162,7 @@ func checkTokenSize(encodedState string) error {
 
 // Helper to decode base64.
 func decodeBase64(encodedState string) ([]byte, error) {
-	encrypted, err := base64.RawURLEncoding.DecodeString(encodedState)
+	encrypted, err := base64.URLEncoding.DecodeString(encodedState)
 	if err != nil {
 		return nil, fmt.Errorf("base64 decode %s: %w", encodedState, err)
 	}
@@ -188,28 +194,28 @@ func splitStateFields(data []byte) ([][]byte, error) {
 func parseStateFields(state *State, fields [][]byte) error {
 	var err error
 
-	if state.Client.CID, err = strconv.ParseUint(string(fields[0]), 10, 64); err != nil {
+	if state.Client.CID, err = strconv.ParseUint(string(fields[1]), 10, 64); err != nil {
 		return fmt.Errorf("parse CID: %w", err)
 	}
 
-	if state.Client.KID, err = strconv.ParseUint(string(fields[1]), 10, 64); err != nil {
+	if state.Client.KID, err = strconv.ParseUint(string(fields[2]), 10, 64); err != nil {
 		return fmt.Errorf("parse KID: %w", err)
 	}
 
-	state.Client.AuthFailedReasonFile = decodeStringBytes(fields[2])
-	state.Client.AuthControlFile = decodeStringBytes(fields[3])
-	state.Client.SessionID = decodeStringBytes(fields[4])
+	state.Client.AuthFailedReasonFile = decodeStringBytes(fields[3])
+	state.Client.AuthControlFile = decodeStringBytes(fields[4])
+	state.Client.SessionID = decodeStringBytes(fields[5])
 
-	if state.Client.UsernameIsDefined, err = strconv.Atoi(string(fields[5])); err != nil {
+	if state.Client.UsernameIsDefined, err = strconv.Atoi(string(fields[6])); err != nil {
 		return fmt.Errorf("parse UsernameIsDefined: %w", err)
 	}
 
-	state.Client.CommonName = decodeStringBytes(fields[6])
-	state.IPAddr = string(fields[7])
-	state.IPPort = string(fields[8])
-	state.SessionState = decodeSessionState(string(fields[9]))
+	state.Client.CommonName = decodeStringBytes(fields[7])
+	state.IPAddr = string(fields[8])
+	state.IPPort = string(fields[9])
+	state.SessionState = decodeSessionState(string(fields[10]))
 
-	if state.Issued, err = strconv.ParseInt(string(fields[10]), 10, 64); err != nil {
+	if state.Issued, err = strconv.ParseInt(string(fields[11]), 10, 64); err != nil {
 		return fmt.Errorf("parse Issued: %w", err)
 	}
 
