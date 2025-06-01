@@ -180,6 +180,20 @@ func TestStateInvalid(t *testing.T) {
 			expectedErr: "parse CID: strconv.ParseUint",
 		},
 		{
+			name: "invalid prefix",
+			encodedToken: func() (string, error) {
+				token := fmt.Sprintf("%s A B C D E F G H I J %d", "00", time.Now().Unix())
+
+				encrypted, err := crypto.EncryptBytesAES([]byte(token), testutils.Secret)
+				if err != nil {
+					return "", err
+				}
+
+				return base64.URLEncoding.EncodeToString(encrypted), nil
+			},
+			expectedErr: "expected secret key prefix",
+		},
+		{
 			name: "invalid KID",
 			encodedToken: func() (string, error) {
 				token := fmt.Sprintf("%s 1 B C D E F G H I J %d", testutils.Secret[:2], time.Now().Unix())
@@ -206,6 +220,19 @@ func TestStateInvalid(t *testing.T) {
 				return base64.URLEncoding.EncodeToString(encrypted), nil
 			},
 			expectedErr: "parse UsernameIsDefined: strconv.Atoi",
+		},
+		{
+			name: "invalid issued",
+			encodedToken: func() (string, error) {
+				token := fmt.Sprintf("%s 1 1 C D E 1 G H I J K", testutils.Secret[:2])
+				encrypted, err := crypto.EncryptBytesAES([]byte(token), testutils.Secret)
+				if err != nil {
+					return "", err
+				}
+
+				return base64.URLEncoding.EncodeToString(encrypted), nil
+			},
+			expectedErr: "parse Issued: strconv.ParseInt",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
