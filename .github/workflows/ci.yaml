@@ -24,7 +24,7 @@ jobs:
 
       - run: go build
       - run: go test ./... -timeout 20s -race -covermode=atomic -coverprofile=coverage.out -coverpkg=./...
-      - run: go test ./... -timeout 20s -test '' -bench . -benchmem -count 3
+      - run: go test ./... -timeout 20s -run='^$' -bench=. -benchmem -count 3
 
       - name: Write gpg sign key
         if: env.GPG_KEY != null
