@@ -11,46 +11,43 @@ const (
 	SessionStateExpiredEmptyUser       = "7"
 )
 
+//nolint:gochecknoglobals
+var sessionStateMap = map[string]string{
+	"Empty":                  SessionStateEmpty,
+	"Initial":                SessionStateInitial,
+	"Authenticated":          SessionStateAuthenticated,
+	"Expired":                SessionStateExpired,
+	"Invalid":                SessionStateInvalid,
+	"AuthenticatedEmptyUser": SessionStateAuthenticatedEmptyUser,
+	"ExpiredEmptyUser":       SessionStateExpiredEmptyUser,
+}
+
+//nolint:gochecknoglobals
+var sessionStateReverseMap = map[string]string{
+	SessionStateEmpty:                  "Empty",
+	SessionStateInitial:                "Initial",
+	SessionStateAuthenticated:          "Authenticated",
+	SessionStateExpired:                "Expired",
+	SessionStateInvalid:                "Invalid",
+	SessionStateAuthenticatedEmptyUser: "AuthenticatedEmptyUser",
+	SessionStateExpiredEmptyUser:       "ExpiredEmptyUser",
+}
+
 // decodeSessionState returns the string representation of the session state.
 func decodeSessionState(s string) string {
-	switch s {
-	case SessionStateEmpty:
-		return "Empty"
-	case SessionStateInitial:
-		return "Initial"
-	case SessionStateAuthenticated:
-		return "Authenticated"
-	case SessionStateExpired:
-		return "Expired"
-	case SessionStateInvalid:
-		return "Invalid"
-	case SessionStateAuthenticatedEmptyUser:
-		return "AuthenticatedEmptyUser"
-	case SessionStateExpiredEmptyUser:
-		return "ExpiredEmptyUser"
-	default:
-		return ""
+	if v, ok := sessionStateReverseMap[s]; ok {
+		return v
 	}
+
+	return ""
 }
 
 // encodeSessionState returns the compact representation of the session state.
+
 func encodeSessionState(s string) string {
-	switch s {
-	case "Empty":
-		return SessionStateEmpty
-	case "Initial":
-		return SessionStateInitial
-	case "Authenticated":
-		return SessionStateAuthenticated
-	case "Expired":
-		return SessionStateExpired
-	case "Invalid":
-		return SessionStateInvalid
-	case "AuthenticatedEmptyUser":
-		return SessionStateAuthenticatedEmptyUser
-	case "ExpiredEmptyUser":
-		return SessionStateExpiredEmptyUser
-	default:
-		return SessionNoState
+	if v, ok := sessionStateMap[s]; ok {
+		return v
 	}
+
+	return SessionNoState
 }
