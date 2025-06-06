@@ -9,7 +9,7 @@
   ],
   "timezone": "Europe/Berlin",
   "schedule": [
-    "* 10-20 * * 5"
+    "0,15,30,45 * * * 5"
   ],
   "automerge": true,
   "platformAutomerge": true,
