@@ -233,7 +233,7 @@ func (c *Client) handlePassThroughClientAuth(_ context.Context, conn net.Conn, s
 		return fmt.Errorf("pass-through: unable to read from client: %w", err)
 	}
 
-	if subtle.ConstantTimeCompare(scanner.Bytes(), []byte(c.conf.OpenVPN.Passthrough.Password.String())) == 1 {
+	if subtle.ConstantTimeCompare(scanner.Bytes(), []byte(c.conf.OpenVPN.Passthrough.Password.String())) == 0 {
 		_ = conn.SetWriteDeadline(time.Now().Add(writeTimeout))
 		_, _ = conn.Write([]byte("ERROR: bad password\r\n"))
 
@@ -241,7 +241,11 @@ func (c *Client) handlePassThroughClientAuth(_ context.Context, conn net.Conn, s
 	}
 
 	_ = conn.SetWriteDeadline(time.Now().Add(writeTimeout))
-	_, _ = conn.Write([]byte("SUCCESS: password is correct\r\n"))
+
+	_, err = conn.Write([]byte("SUCCESS: password is correct\r\n"))
+	if err != nil {
+		return fmt.Errorf("unable to write to client: %w", err)
+	}
 
 	return nil
 }
