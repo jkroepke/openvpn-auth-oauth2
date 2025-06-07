@@ -225,7 +225,8 @@ func (c *Client) handlePassThroughClientAuth(_ context.Context, conn net.Conn, s
 	}
 
 	if !scanner.Scan() {
-		if err = c.scanner.Err(); err != nil {
+		err = scanner.Err()
+		if err == nil {
 			err = io.EOF
 		}
 
