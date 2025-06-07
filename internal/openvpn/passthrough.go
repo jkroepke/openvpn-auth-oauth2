@@ -143,6 +143,7 @@ func (c *Client) handlePassThroughClient(ctx context.Context, conn net.Conn) {
 	}
 
 	logger.LogAttrs(ctx, slog.LevelInfo, "pass-through: accepted connection")
+	c.passThroughConnected.CompareAndSwap(0, 1)
 
 	scanner := bufio.NewScanner(conn)
 	scanner.Split(bufio.ScanLines)
@@ -155,7 +156,6 @@ func (c *Client) handlePassThroughClient(ctx context.Context, conn net.Conn) {
 	}
 
 	c.writeToPassThroughClient(">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info")
-	c.passThroughConnected.CompareAndSwap(0, 1)
 
 	if err = c.handlePassThroughClientCommands(ctx, conn, logger, scanner); err != nil {
 		logger.LogAttrs(ctx, slog.LevelWarn, err.Error())
