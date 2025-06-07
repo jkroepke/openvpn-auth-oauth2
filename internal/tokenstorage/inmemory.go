@@ -93,15 +93,7 @@ func (s *InMemory) collect(ctx context.Context, ticker *time.Ticker) {
 			return
 		case <-ticker.C:
 			s.data.Range(func(client, data any) bool {
-				entry, ok := data.(item)
-				if !ok {
-					// Log instead of panic to avoid crashing the cleanup goroutine
-					fmt.Printf("tokenstorage: unexpected type in data map: %T\n", data)
-					s.data.Delete(client)
-					return true
-				}
-
-				if entry.expires.Compare(time.Now()) == -1 {
+				if entry, _ := data.(item); entry.expires.Compare(time.Now()) == -1 {
 					s.data.Delete(client)
 				}
 

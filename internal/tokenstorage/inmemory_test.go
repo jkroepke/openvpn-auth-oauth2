@@ -18,6 +18,7 @@ func TestStorage(t *testing.T) {
 	t.Cleanup(cancel)
 
 	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Millisecond*400, 5*time.Minute)
+
 	t.Cleanup(func() {
 		require.NoError(t, tokenStorage.Close())
 	})
@@ -57,6 +58,7 @@ func TestStorageCleanup(t *testing.T) {
 	t.Cleanup(cancel)
 
 	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, 0, time.Millisecond*50)
+
 	t.Cleanup(func() {
 		require.NoError(t, tokenStorage.Close())
 	})
