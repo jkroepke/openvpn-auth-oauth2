@@ -19,20 +19,21 @@ var ErrVersion = errors.New("flag: version requested")
 // New loads the configuration from configuration files, command line arguments and environment variables in that order.
 //
 //goland:noinspection GoMixedReceiverTypes
-func New(args []string, writer io.Writer) (Config, error) {
+func New(args []string, writer io.Writer) (*ConfigHolder, error) {
 	config := Defaults
 
-	if configFilePath := lookupConfigArgument(args); configFilePath != "" {
+	configFilePath := lookupConfigArgument(args)
+	if configFilePath != "" {
 		if err := config.ReadFromConfigFile(configFilePath); err != nil && !errors.Is(err, io.EOF) {
-			return Config{}, err
+			return nil, err
 		}
 	}
 
 	if err := config.ReadFromFlagAndEnvironment(args, writer); err != nil {
-		return Config{}, err
+		return nil, err
 	}
 
-	return config, nil
+	return NewConfigHolder(configFilePath, &config), nil
 }
 
 // ReadFromConfigFile reads the configuration from a configuration file and command line arguments.

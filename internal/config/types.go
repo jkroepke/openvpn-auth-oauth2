@@ -2,9 +2,12 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
@@ -246,4 +249,73 @@ func (h HTTP) MarshalJSON() ([]byte, error) {
 	}{
 		Alias: (Alias)(h),
 	})
+}
+
+// ConfigHolder provides a thread-safe mechanism to store and access
+// a shared *Config instance. It allows atomic replacement of the entire
+// configuration object, which is ideal for long-running daemons that
+// support dynamic configuration reloads.
+//
+// The configuration stored in ConfigHolder must be treated as immutable
+// once set, to avoid data races.
+type ConfigHolder struct {
+	configFilePath string
+	ptr            atomic.Pointer[Config]
+}
+
+func NewConfigHolder(configFilePath string, cfg *Config) *ConfigHolder {
+	holder := &ConfigHolder{configFilePath: configFilePath}
+	holder.set(cfg)
+
+	return holder
+}
+
+// Get returns the current configuration.
+//
+// The returned *Config is safe for concurrent reads. Callers must not
+// modify the returned config to preserve thread safety.
+//
+// If no configuration has been set yet, Get will return nil.
+func (c *ConfigHolder) Get() *Config {
+	return c.ptr.Load()
+}
+
+// Set atomically replaces the current configuration with the provided one.
+//
+// The new *Config must be fully initialized and must not be modified
+// after being passed to Set. This ensures that all goroutines accessing
+// the config via Get observe a consistent and immutable snapshot.
+func (c *ConfigHolder) set(cfg *Config) {
+	c.ptr.Store(cfg)
+}
+
+// Update atomically replaces the current configuration with a new one
+// created by applying the provided function to the current config.
+// If the current config is nil, it will use the provided default config
+// to create the new configuration.
+func (c *ConfigHolder) Reload() error {
+	if c.configFilePath == "" {
+		return nil
+	}
+
+	var config Config
+
+	if err := config.ReadFromConfigFile(c.configFilePath); err != nil && !errors.Is(err, io.EOF) {
+		return err
+	}
+
+	cfg := c.Get()
+	if cfg == nil {
+		return fmt.Errorf("no configuration loaded, cannot reload from %s", c.configFilePath)
+	}
+
+	// Clone the old config
+	cloned := *cfg
+
+	// Replace only the updated part
+	cloned.OpenVPN.Bypass.CommonNames = config.OpenVPN.Bypass.CommonNames
+
+	c.set(&cloned)
+
+	return nil
 }
