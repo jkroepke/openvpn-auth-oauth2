@@ -1,4 +1,4 @@
-[![CI](https://github.com/jkroepke/openvpn-auth-oauth2/workflows/CI/badge.svg)](https://github.com/jkroepke/openvpn-auth-oauth2/actions?query=workflow%3ACI)
+[![CI](https://github.com/jkroepke/openvpn-auth-oauth2/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/jkroepke/openvpn-auth-oauth2/actions/workflows/ci.yaml)
 [![GitHub license](https://img.shields.io/github/license/jkroepke/openvpn-auth-oauth2)](https://github.com/jkroepke/openvpn-auth-oauth2/blob/master/LICENSE.txt)
 [![Current Release](https://img.shields.io/github/release/jkroepke/openvpn-auth-oauth2.svg?logo=github)](https://github.com/jkroepke/openvpn-auth-oauth2/releases/latest)
 [![GitHub Repo stars](https://img.shields.io/github/stars/jkroepke/openvpn-auth-oauth2?style=flat&logo=github)](https://github.com/jkroepke/openvpn-auth-oauth2/stargazers)
