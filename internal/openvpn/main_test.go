@@ -42,7 +42,7 @@ func TestClientInvalidServer(t *testing.T) {
 		},
 	}
 
-	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
+	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour, 5*time.Minute)
 	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 	err := openVPNClient.Connect(t.Context())
@@ -272,7 +272,7 @@ func TestClientFull(t *testing.T) {
 
 			tc.conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
 
-			tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
+			tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour, 5*time.Minute)
 			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, tc.conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 			managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
@@ -371,7 +371,7 @@ func TestClientInvalidPassword(t *testing.T) {
 		},
 	}
 
-	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
+	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour, 5*time.Minute)
 	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 	managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
@@ -439,7 +439,7 @@ func TestClientInvalidVersion(t *testing.T) {
 			conf.OpenVPN.Bypass = config.OpenVPNBypass{CommonNames: []string{"bypass"}}
 			conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
 
-			tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
+			tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour, 5*time.Minute)
 			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 			managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
@@ -491,7 +491,7 @@ func TestHoldRelease(t *testing.T) {
 
 	conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
 
-	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
+	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour, 5*time.Minute)
 	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 	managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
@@ -546,7 +546,7 @@ func TestCommandTimeout(t *testing.T) {
 
 	conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
 
-	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
+	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour, 5*time.Minute)
 	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 	managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
@@ -612,7 +612,7 @@ func TestDeadLocks(t *testing.T) {
 
 			conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
 
-			tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
+			tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour, 5*time.Minute)
 			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 			managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
@@ -680,7 +680,7 @@ func TestInvalidCommandResponses(t *testing.T) {
 
 			conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
 
-			tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour)
+			tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour, 5*time.Minute)
 			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 			managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)

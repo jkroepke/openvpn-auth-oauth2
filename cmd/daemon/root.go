@@ -15,6 +15,7 @@ import (
 	"runtime/debug"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/httphandler"
@@ -63,7 +64,7 @@ func Execute(args []string, logWriter io.Writer) int {
 	logger.LogAttrs(ctx, slog.LevelDebug, "config", slog.String("config", conf.String()))
 
 	httpClient := &http.Client{Transport: utils.NewUserAgentTransport(http.DefaultTransport)}
-	tokenStorage := tokenstorage.NewInMemory(ctx, conf.OAuth2.Refresh.Secret.String(), conf.OAuth2.Refresh.Expires)
+	tokenStorage := tokenstorage.NewInMemory(ctx, conf.OAuth2.Refresh.Secret.String(), conf.OAuth2.Refresh.Expires, 5*time.Minute)
 
 	var provider oauth2.Provider
 
