@@ -3,6 +3,7 @@ package openvpn
 import (
 	"bufio"
 	"context"
+	"crypto/subtle"
 	"errors"
 	"fmt"
 	"io"
@@ -154,8 +155,8 @@ func (c *Client) handlePassThroughClient(ctx context.Context, conn net.Conn) {
 		return
 	}
 
-	c.writeToPassThroughClient(">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info")
 	c.passThroughConnected.CompareAndSwap(0, 1)
+	c.writeToPassThroughClient(">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info")
 
 	if err = c.handlePassThroughClientCommands(ctx, conn, logger, scanner); err != nil {
 		logger.LogAttrs(ctx, slog.LevelWarn, err.Error())
@@ -232,14 +233,19 @@ func (c *Client) handlePassThroughClientAuth(_ context.Context, conn net.Conn, s
 		return fmt.Errorf("pass-through: unable to read from client: %w", err)
 	}
 
-	if scanner.Text() != c.conf.OpenVPN.Passthrough.Password.String() {
+	if subtle.ConstantTimeCompare(scanner.Bytes(), []byte(c.conf.OpenVPN.Passthrough.Password.String())) == 0 {
 		_ = conn.SetWriteDeadline(time.Now().Add(writeTimeout))
 		_, _ = conn.Write([]byte("ERROR: bad password\r\n"))
 
 		return errors.New("pass-through: client provide invalid password")
 	}
 
-	c.writeToPassThroughClient("SUCCESS: password is correct")
+	_ = conn.SetWriteDeadline(time.Now().Add(writeTimeout))
+
+	_, err = conn.Write([]byte("SUCCESS: password is correct\r\n"))
+	if err != nil {
+		return fmt.Errorf("unable to write to client: %w", err)
+	}
 
 	return nil
 }

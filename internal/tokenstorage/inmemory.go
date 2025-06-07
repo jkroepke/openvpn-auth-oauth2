@@ -10,6 +10,7 @@ import (
 )
 
 type InMemory struct {
+	cancelFn      context.CancelFunc
 	data          sync.Map
 	encryptionKey string
 	expires       time.Duration
@@ -20,13 +21,17 @@ type item struct {
 	token   []byte
 }
 
-func NewInMemory(ctx context.Context, encryptionKey string, expires time.Duration) *InMemory {
+func NewInMemory(ctx context.Context, encryptionKey string, expires, cleanupInterval time.Duration) *InMemory {
+	ctx, cancel := context.WithCancel(ctx)
+
 	storage := &InMemory{
+		cancelFn:      cancel,
 		data:          sync.Map{},
 		encryptionKey: encryptionKey,
 		expires:       expires,
 	}
-	go storage.collect(ctx)
+
+	go storage.collect(ctx, time.NewTicker(cleanupInterval))
 
 	return storage
 }
@@ -72,19 +77,23 @@ func (s *InMemory) Delete(client string) {
 	s.data.Delete(client)
 }
 
-func (s *InMemory) collect(ctx context.Context) {
+func (s *InMemory) Close() error {
+	s.cancelFn()
+
+	return nil
+}
+
+// collect periodically removes expired tokens from the in-memory store.
+func (s *InMemory) collect(ctx context.Context, ticker *time.Ticker) {
+	defer ticker.Stop()
+
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case <-time.After(time.Minute * 5):
+		case <-ticker.C:
 			s.data.Range(func(client, data any) bool {
-				entry, ok := data.(item)
-				if !ok {
-					panic(data)
-				}
-
-				if entry.expires.Compare(time.Now()) == -1 {
+				if entry, _ := data.(item); entry.expires.Compare(time.Now()) == -1 {
 					s.data.Delete(client)
 				}
 

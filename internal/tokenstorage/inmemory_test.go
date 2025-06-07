@@ -17,7 +17,12 @@ func TestStorage(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	t.Cleanup(cancel)
 
-	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Millisecond*400)
+	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Millisecond*400, 5*time.Minute)
+
+	t.Cleanup(func() {
+		require.NoError(t, tokenStorage.Close())
+	})
+
 	require.NoError(t, tokenStorage.Set("0", "TEST0"))
 	require.NoError(t, tokenStorage.Set("1", "TEST1"))
 
@@ -43,5 +48,29 @@ func TestStorage(t *testing.T) {
 
 	_, err = tokenStorage.Get("1")
 	require.Error(t, err)
+	require.ErrorIs(t, err, tokenstorage.ErrNotExists)
+}
+
+func TestStorageCleanup(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	t.Cleanup(cancel)
+
+	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, 0, time.Millisecond*50)
+
+	t.Cleanup(func() {
+		require.NoError(t, tokenStorage.Close())
+	})
+
+	require.NoError(t, tokenStorage.Set("0", "TEST0"))
+	require.NoError(t, tokenStorage.Set("1", "TEST1"))
+
+	time.Sleep(time.Millisecond * 100)
+
+	_, err := tokenStorage.Get("0")
+	require.ErrorIs(t, err, tokenstorage.ErrNotExists)
+
+	_, err = tokenStorage.Get("1")
 	require.ErrorIs(t, err, tokenstorage.ErrNotExists)
 }
