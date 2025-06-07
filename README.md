@@ -29,6 +29,10 @@ integrating OpenVPN with OIDC providers such as
 
 For detailed installation instructions, please refer to the [Installation Guide](https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Installation).
 
+### Downstream Packages
+
+[![Packaging status](https://repology.org/badge/vertical-allrepos/openvpn-auth-oauth2.svg)](https://repology.org/project/openvpn-auth-oauth2/versions)
+
 ## Configuration
 
 For information on how to configure `openvpn-auth-oauth2`, please refer to the [Configuration Guide](https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Configuration).
