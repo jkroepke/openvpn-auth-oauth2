@@ -4,7 +4,7 @@ This document provides a technical overview of the project and highlights the mo
 
 ## Overview
 
-`openvpn-auth-oauth2` is a Go application that acts as a management client for OpenVPN. It handles user authentication through OIDC/OAuth2. The README lists example OIDC providers and points to the installation and configuration guides.
+`openvpn-auth-oauth2` is a Go application that acts as a management client for OpenVPN. It handles user authentication through OIDC/OAuth2. The [`README.md`](README.md) lists example OIDC providers and points to the installation and configuration guides.
 
 The entry point is `main.go`, which starts either the daemon or the `state` helper program based on the first command-line argument.
 
