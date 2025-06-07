@@ -10,6 +10,14 @@ linters:
     - mnd
     - recvcheck
   settings:
+    forbidigo:
+      forbid:
+        - name: "os.Stderr"
+          text: "os.Stderr"
+          message: "Direct use of os.Stderr is forbidden. Use a logger instead."
+        - name: "os.Stdout"
+          text: "os.Stdout"
+          message: "Direct use of os.Stdout is forbidden. Use a logger instead."
     gomoddirectives:
       toolchain-forbidden: true
     gosec:
