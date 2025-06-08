@@ -119,6 +119,8 @@ type OAuth2Refresh struct {
 	Enabled      bool          `json:"enabled"        yaml:"enabled"`
 	UseSessionID bool          `json:"use-session-id" yaml:"use-session-id"`
 	ValidateUser bool          `json:"validate-user"  yaml:"validate-user"`
+	Storage      string        `json:"storage"        yaml:"storage"`
+	File         string        `json:"file"           yaml:"file"`
 }
 
 type OpenVPNPassthrough struct {
@@ -222,6 +224,50 @@ func (s *OAuth2AuthStyle) UnmarshalText(text []byte) error {
 		*s = OAuth2AuthStyle(oauth2.AuthStyleInHeader)
 	default:
 		return fmt.Errorf("unknown auth-style %d", s)
+	}
+
+	return nil
+}
+
+type OAuth2RefreshTokenStorage int
+
+const (
+	OAuth2RefreshTokenStorageInMemory OAuth2RefreshTokenStorage = iota
+	OAuth2RefreshTokenStorageFile
+)
+
+//goland:noinspection GoMixedReceiverTypes
+func (s OAuth2RefreshTokenStorage) String() string {
+	text, err := s.MarshalText()
+	if err != nil {
+		panic(err)
+	}
+
+	return string(text)
+}
+
+//goland:noinspection GoMixedReceiverTypes
+func (s OAuth2RefreshTokenStorage) MarshalText() ([]byte, error) {
+	switch s {
+	case OAuth2RefreshTokenStorageInMemory:
+		return []byte("inmemory"), nil
+	case OAuth2RefreshTokenStorageFile:
+		return []byte("file"), nil
+	default:
+		return nil, fmt.Errorf("unknown identitfer %d", s)
+	}
+}
+
+//goland:noinspection GoMixedReceiverTypes
+func (s *OAuth2RefreshTokenStorage) UnmarshalText(text []byte) error {
+	config := strings.ToLower(string(text))
+	switch config {
+	case "inmemory":
+		*s = OAuth2RefreshTokenStorageInMemory
+	case "file":
+		*s = OAuth2RefreshTokenStorageFile
+	default:
+		return fmt.Errorf("invalid value %s", config)
 	}
 
 	return nil

@@ -15,7 +15,6 @@ import (
 	"runtime/debug"
 	"sync"
 	"syscall"
-	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/httphandler"
@@ -64,7 +63,13 @@ func Execute(args []string, logWriter io.Writer) int {
 	logger.LogAttrs(ctx, slog.LevelDebug, "config", slog.String("config", conf.String()))
 
 	httpClient := &http.Client{Transport: utils.NewUserAgentTransport(http.DefaultTransport)}
-	tokenStorage := tokenstorage.NewInMemory(ctx, conf.OAuth2.Refresh.Secret.String(), conf.OAuth2.Refresh.Expires, 5*time.Minute)
+
+	tokenStorage, err := configureTokenStorage(conf)
+	if err != nil {
+		logger.Error(fmt.Sprintf("error configure token storage: %s", err.Error()))
+
+		return 1
+	}
 
 	var provider oauth2.Provider
 
@@ -234,4 +239,15 @@ func printVersion(writer io.Writer) {
 	}
 
 	_, _ = fmt.Fprintf(writer, "version: %s\ncommit: %s\ndate: %s\ngo: %s\n", version.Version, version.Commit, version.Date, runtime.Version())
+}
+
+func configureTokenStorage(conf config.Config) (tokenstorage.Storage, error) {
+	switch conf.OAuth2.Refresh.Storage {
+	case config.TokenStorageFile:
+		return tokenstorage.NewFile(conf.OAuth2.Refresh.File.String(), conf.OAuth2.Refresh.Secret.String(), conf.OAuth2.Refresh.Expires)
+	case config.TokenStorageInMemory:
+		return tokenstorage.NewInMemory(conf.OAuth2.Refresh.Secret.String(), conf.OAuth2.Refresh.Expires), nil
+	default:
+		return nil, fmt.Errorf("unknown token storage: %s", conf.OAuth2.Refresh.Storage)
+	}
 }

@@ -1,7 +1,6 @@
 package tokenstorage_test
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -11,13 +10,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestStorage(t *testing.T) {
+func TestStorage_InMemory(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithCancel(t.Context())
-	t.Cleanup(cancel)
-
-	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Millisecond*400, 5*time.Minute)
+	tokenStorage := tokenstorage.NewInMemory(testutils.Secret, time.Millisecond*400)
 
 	t.Cleanup(func() {
 		require.NoError(t, tokenStorage.Close())
@@ -44,20 +40,18 @@ func TestStorage(t *testing.T) {
 	_, err = tokenStorage.Get("2")
 	require.ErrorIs(t, err, tokenstorage.ErrNotExists)
 
-	tokenStorage.Delete("1")
+	err = tokenStorage.Delete("1")
+	require.NoError(t, err)
 
 	_, err = tokenStorage.Get("1")
 	require.Error(t, err)
 	require.ErrorIs(t, err, tokenstorage.ErrNotExists)
 }
 
-func TestStorageCleanup(t *testing.T) {
+func TestStorageCleanup_InMemory(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithCancel(t.Context())
-	t.Cleanup(cancel)
-
-	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, 0, time.Millisecond*50)
+	tokenStorage := tokenstorage.NewInMemory(testutils.Secret, 0)
 
 	t.Cleanup(func() {
 		require.NoError(t, tokenStorage.Close())

@@ -88,6 +88,7 @@ var Defaults = Config{
 		Refresh: OAuth2Refresh{
 			Expires:      time.Hour * 8,
 			ValidateUser: true,
+			File:         "/etc/openvpn-auth-oauth2/tokenstorage.bin",
 		},
 		Scopes: make([]string, 0),
 		Validate: OAuth2Validate{
