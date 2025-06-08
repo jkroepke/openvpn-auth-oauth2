@@ -206,24 +206,22 @@ func (s OAuth2AuthStyle) MarshalText() ([]byte, error) {
 	case OAuth2AuthStyle(oauth2.AuthStyleInHeader):
 		return []byte("AuthStyleInHeader"), nil
 	default:
-		return nil, fmt.Errorf("unknown auth-style %d", s)
+		return nil, fmt.Errorf("unknown auth-style: %d", s)
 	}
 }
 
 //goland:noinspection GoMixedReceiverTypes
 func (s *OAuth2AuthStyle) UnmarshalText(text []byte) error {
-	config := strings.ToLower(string(text))
-	switch config {
-	case strings.ToLower("AuthStyleAutoDetect"):
+	switch strings.ToLower(string(text)) {
+	case "authstyleautodetect":
 		*s = OAuth2AuthStyle(oauth2.AuthStyleAutoDetect)
-	case strings.ToLower("AuthStyleInParams"):
+	case "authstyleinparams":
 		*s = OAuth2AuthStyle(oauth2.AuthStyleInParams)
-	case strings.ToLower("AuthStyleInHeader"):
+	case "authstyleinheader":
 		*s = OAuth2AuthStyle(oauth2.AuthStyleInHeader)
 	default:
-		return fmt.Errorf("unknown auth-style %d", s)
+		return fmt.Errorf("unknown auth-style: %s", text)
 	}
-
 	return nil
 }
 
