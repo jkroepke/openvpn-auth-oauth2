@@ -222,6 +222,7 @@ func (s *OAuth2AuthStyle) UnmarshalText(text []byte) error {
 	default:
 		return fmt.Errorf("unknown auth-style: %s", text)
 	}
+
 	return nil
 }
 
