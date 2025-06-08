@@ -1,7 +1,7 @@
 package tokenstorage
 
 import (
-	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -10,60 +10,78 @@ import (
 )
 
 type InMemory struct {
-	cancelFn      context.CancelFunc
-	data          sync.Map
+	data          DataMap
 	encryptionKey string
+	mu            sync.RWMutex
 	expires       time.Duration
 }
 
-type item struct {
-	expires time.Time
-	token   []byte
-}
-
-func NewInMemory(ctx context.Context, encryptionKey string, expires, cleanupInterval time.Duration) *InMemory {
-	ctx, cancel := context.WithCancel(ctx)
-
+func NewInMemory(encryptionKey string, expires time.Duration) *InMemory {
 	storage := &InMemory{
-		cancelFn:      cancel,
-		data:          sync.Map{},
+		data:          DataMap{},
 		encryptionKey: encryptionKey,
 		expires:       expires,
+		mu:            sync.RWMutex{},
 	}
-
-	go storage.collect(ctx, time.NewTicker(cleanupInterval))
 
 	return storage
 }
 
+func (s *InMemory) SetStorage(data DataMap) {
+	s.mu.Lock()
+
+	s.data = data
+
+	s.mu.Unlock()
+}
+
 func (s *InMemory) Set(client, token string) error {
+	s.mu.Lock()
+
 	encryptedBytes, err := crypto.EncryptBytesAES([]byte(token), s.encryptionKey)
 	if err != nil {
+		s.mu.Unlock()
+
 		return fmt.Errorf("decrypt error: %w", err)
 	}
 
-	s.data.Store(client, item{token: encryptedBytes, expires: time.Now().Add(s.expires)})
+	s.data[client] = item{
+		Data:    encryptedBytes,
+		Expires: time.Now().Add(s.expires),
+	}
+
+	s.mu.Unlock()
 
 	return nil
 }
 
 func (s *InMemory) Get(client string) (string, error) {
-	data, ok := s.data.Load(client)
-	if !ok {
-		return "", ErrNotExists
-	}
-
-	item, ok := data.(item)
-	if !ok {
-		s.Delete(client)
+	s.mu.RLock()
+	if s.data == nil {
+		s.mu.RUnlock()
 
 		return "", ErrNotExists
 	}
 
-	encryptedBytes := make([]byte, len(item.token))
+	data, ok := s.data[client]
+	if !ok {
+		s.mu.RUnlock()
+
+		return "", ErrNotExists
+	}
+
+	s.mu.RUnlock()
+
+	if data.Expires.Before(time.Now()) {
+		delErr := s.Delete(client)
+
+		return "", errors.Join(ErrNotExists, delErr)
+	}
+
+	encryptedBytes := make([]byte, len(data.Data))
 
 	// we need to copy the data, since crypto.DecryptBytesAES will modify the slice in place
-	copy(encryptedBytes, item.token)
+	copy(encryptedBytes, data.Data)
 
 	token, err := crypto.DecryptBytesAES(encryptedBytes, s.encryptionKey)
 	if err != nil {
@@ -73,32 +91,22 @@ func (s *InMemory) Get(client string) (string, error) {
 	return string(token), nil
 }
 
-func (s *InMemory) Delete(client string) {
-	s.data.Delete(client)
-}
+func (s *InMemory) Delete(client string) error {
+	s.mu.Lock()
 
-func (s *InMemory) Close() error {
-	s.cancelFn()
+	if s.data == nil {
+		s.mu.Unlock()
+
+		return nil
+	}
+
+	delete(s.data, client)
+
+	s.mu.Unlock()
 
 	return nil
 }
 
-// collect periodically removes expired tokens from the in-memory store.
-func (s *InMemory) collect(ctx context.Context, ticker *time.Ticker) {
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			s.data.Range(func(client, data any) bool {
-				if entry, _ := data.(item); entry.expires.Compare(time.Now()) == -1 {
-					s.data.Delete(client)
-				}
-
-				return true
-			})
-		}
-	}
+func (s *InMemory) Close() error {
+	return nil
 }

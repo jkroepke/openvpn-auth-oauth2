@@ -200,7 +200,7 @@ func TestPassThroughFull(t *testing.T) {
 				tt.conf.OpenVPN.Passthrough.Address = types.URL{URL: &url.URL{Scheme: tt.scheme, Path: temp}}
 			}
 
-			tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour, 5*time.Minute)
+			tokenStorage := tokenstorage.NewInMemory(testutils.Secret, time.Hour)
 			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, tt.conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 			managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
