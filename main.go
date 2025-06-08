@@ -14,8 +14,8 @@ func main() {
 
 	switch os.Args[1] {
 	case "state":
-		os.Exit(state.Execute(os.Args, os.Stdout))
+		os.Exit(state.Execute(os.Args, os.Stdout)) //nolint:forbidigo // entry point
 	default:
-		os.Exit(daemon.Execute(os.Args, os.Stdout))
+		os.Exit(daemon.Execute(os.Args, os.Stdout)) //nolint:forbidigo // entry point
 	}
 }
