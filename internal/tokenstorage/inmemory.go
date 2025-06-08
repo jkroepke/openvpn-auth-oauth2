@@ -50,7 +50,7 @@ func (s *InMemory) Set(client, token string) error {
 	if err != nil {
 		s.mu.Unlock()
 
-		return fmt.Errorf("decrypt error: %w", err)
+		return fmt.Errorf("encrypt error: %w", err)
 	}
 
 	s.data[client] = item{
