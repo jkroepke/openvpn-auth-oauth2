@@ -158,7 +158,7 @@ func run(args []string, logWriter io.Writer, tokenDataStorage tokenstorage.DataM
 	}()
 
 	termCh := make(chan os.Signal, 1)
-	signal.Notify(termCh, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM)
+	signal.Notify(termCh, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGUSR1)
 
 	logger.LogAttrs(ctx, slog.LevelInfo,
 		"openvpn-auth-oauth2 started with base url "+conf.HTTP.BaseURL.String(),
@@ -184,7 +184,7 @@ func run(args []string, logWriter io.Writer, tokenDataStorage tokenstorage.DataM
 
 			return 0
 		case sig := <-termCh:
-			logger.Info("receiving signal: " + sig.String())
+			logger.LogAttrs(ctx, slog.LevelInfo, "receiving signal: "+sig.String())
 
 			switch sig {
 			case syscall.SIGHUP:
@@ -192,6 +192,7 @@ func run(args []string, logWriter io.Writer, tokenDataStorage tokenstorage.DataM
 					cancel(fmt.Errorf("error reloading http server: %w", err))
 				}
 			case syscall.SIGUSR1:
+				logger.LogAttrs(ctx, slog.LevelInfo, "reloading configuration")
 				cancel(ErrReload)
 			default:
 				cancel(nil)

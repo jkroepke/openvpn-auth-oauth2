@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"strconv"
 	"strings"
@@ -192,6 +193,18 @@ func lookupEnvOrDefault[T any](key string, defaultValue T) T {
 
 		value, ok = any(typedValue).(T)
 	case types.StringSlice:
+		if err := typedValue.UnmarshalText([]byte(envValue)); err != nil {
+			return defaultValue
+		}
+
+		value, ok = any(typedValue).(T)
+	case slog.Level:
+		if err := typedValue.UnmarshalText([]byte(envValue)); err != nil {
+			return defaultValue
+		}
+
+		value, ok = any(typedValue).(T)
+	case OpenVPNCommonNameMode:
 		if err := typedValue.UnmarshalText([]byte(envValue)); err != nil {
 			return defaultValue
 		}
