@@ -1,7 +1,7 @@
 package tokenstorage
 
 import (
-	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -9,61 +9,88 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/crypto"
 )
 
+// InMemory provides an in-memory implementation of a token storage system.
+// It stores encrypted tokens associated with clients, supports expiration, and is safe for concurrent use.
 type InMemory struct {
-	cancelFn      context.CancelFunc
-	data          sync.Map
-	encryptionKey string
-	expires       time.Duration
+	data DataMap // holds the actual token data mapped by client identifier.
+
+	encryptionKey string        // used to encrypt and decrypt token data.
+	mu            sync.RWMutex  // read-write mutex to ensure safe concurrent access.
+	expires       time.Duration // defines the duration after which a token is considered expired.
 }
 
-type item struct {
-	expires time.Time
-	token   []byte
-}
-
-func NewInMemory(ctx context.Context, encryptionKey string, expires, cleanupInterval time.Duration) *InMemory {
-	ctx, cancel := context.WithCancel(ctx)
-
+// NewInMemory creates a new in-memory token storage with the given encryption key and expiration duration.
+func NewInMemory(encryptionKey string, expires time.Duration) *InMemory {
 	storage := &InMemory{
-		cancelFn:      cancel,
-		data:          sync.Map{},
+		data:          DataMap{},
 		encryptionKey: encryptionKey,
 		expires:       expires,
+		mu:            sync.RWMutex{},
 	}
-
-	go storage.collect(ctx, time.NewTicker(cleanupInterval))
 
 	return storage
 }
 
+// SetStorage replaces the current storage data with the provided DataMap.
+// This is mainly used for testing or restoring state.
+func (s *InMemory) SetStorage(data DataMap) {
+	s.mu.Lock()
+
+	s.data = data
+
+	s.mu.Unlock()
+}
+
+// Set stores an encrypted token for a given client, with an expiration time.
+// The token is encrypted using AES before storage.
 func (s *InMemory) Set(client, token string) error {
+	s.mu.Lock()
+
 	encryptedBytes, err := crypto.EncryptBytesAES([]byte(token), s.encryptionKey)
 	if err != nil {
-		return fmt.Errorf("decrypt error: %w", err)
+		s.mu.Unlock()
+
+		return fmt.Errorf("encrypt error: %w", err)
 	}
 
-	s.data.Store(client, item{token: encryptedBytes, expires: time.Now().Add(s.expires)})
+	s.data[client] = item{
+		Data:    encryptedBytes,
+		Expires: time.Now().Add(s.expires),
+	}
+
+	s.mu.Unlock()
 
 	return nil
 }
 
+// Get retrieves and decrypts the token for a given client.
+// If the token is expired or does not exist, an error is returned.
 func (s *InMemory) Get(client string) (string, error) {
-	data, ok := s.data.Load(client)
-	if !ok {
-		return "", ErrNotExists
-	}
-
-	item, ok := data.(item)
-	if !ok {
-		s.Delete(client)
+	s.mu.RLock()
+	if s.data == nil {
+		s.mu.RUnlock()
 
 		return "", ErrNotExists
 	}
 
-	encryptedBytes := make([]byte, len(item.token))
+	data, ok := s.data[client]
+	if !ok {
+		s.mu.RUnlock()
+
+		return "", ErrNotExists
+	}
+
+	s.mu.RUnlock()
+
+	if data.Expires.Before(time.Now()) {
+		delErr := s.Delete(client)
+
+		return "", errors.Join(ErrNotExists, delErr)
+	}
 
 	// we need to copy the data, since crypto.DecryptBytesAES will modify the slice in place
-	copy(encryptedBytes, item.token)
+	encryptedBytes := make([]byte, len(data.Data))
+	copy(encryptedBytes, data.Data)
 
 	token, err := crypto.DecryptBytesAES(encryptedBytes, s.encryptionKey)
 	if err != nil {
@@ -73,32 +100,25 @@ func (s *InMemory) Get(client string) (string, error) {
 	return string(token), nil
 }
 
-func (s *InMemory) Delete(client string) {
-	s.data.Delete(client)
-}
+// Delete removes the token data for a given client from storage.
+// If the storage is empty or the client does not exist, it does nothing.
+func (s *InMemory) Delete(client string) error {
+	s.mu.Lock()
 
-func (s *InMemory) Close() error {
-	s.cancelFn()
+	if s.data == nil {
+		s.mu.Unlock()
+
+		return nil
+	}
+
+	delete(s.data, client)
+
+	s.mu.Unlock()
 
 	return nil
 }
 
-// collect periodically removes expired tokens from the in-memory store.
-func (s *InMemory) collect(ctx context.Context, ticker *time.Ticker) {
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			s.data.Range(func(client, data any) bool {
-				if entry, _ := data.(item); entry.expires.Compare(time.Now()) == -1 {
-					s.data.Delete(client)
-				}
-
-				return true
-			})
-		}
-	}
+// Close is a no-op for in-memory storage, but implements the interface for compatibility.
+func (s *InMemory) Close() error {
+	return nil
 }

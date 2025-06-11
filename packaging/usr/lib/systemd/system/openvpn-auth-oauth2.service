@@ -1,5 +1,3 @@
-#suppress inspection "DuplicateKeyInSection" for whole file
-
 [Unit]
 Description=OpenVPN authenticator
 Documentation=https://github.com/jkroepke/openvpn-auth-oauth2
@@ -16,8 +14,8 @@ SupplementaryGroups=openvpn-auth-oauth2
 
 ExecStart=/usr/bin/openvpn-auth-oauth2 --config ${CONFIG_FILE}
 NoExecPaths=/
-ExecPaths=/usr/bin/openvpn-auth-oauth2
-ExecReload=kill -HUP $MAINPID
+ExecPaths=/usr/bin/openvpn-auth-oauth2 /usr/bin/env /usr/bin/kill
+ExecReload=/usr/bin/env kill -USR1 $MAINPID
 
 Environment=CONFIG_FILE=/etc/openvpn-auth-oauth2/config.yaml
 EnvironmentFile=-/etc/sysconfig/openvpn-auth-oauth2

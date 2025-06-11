@@ -116,7 +116,11 @@ func (c Client) ClientDisconnect(ctx context.Context, logger *slog.Logger, clien
 		return
 	}
 
-	c.storage.Delete(id)
+	if err = c.storage.Delete(id); err != nil {
+		logger.LogAttrs(ctx, slog.LevelWarn, fmt.Errorf("error delete refresh token from storage: %w", err).Error())
+
+		return
+	}
 
 	if !c.conf.OAuth2.Refresh.ValidateUser {
 		return

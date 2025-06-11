@@ -38,7 +38,7 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 	conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
 	conf.OpenVPN.Bypass = config.OpenVPNBypass{CommonNames: make([]string, 0)}
 
-	tokenStorage := tokenstorage.NewInMemory(ctx, testutils.Secret, time.Hour, 5*time.Minute)
+	tokenStorage := tokenstorage.NewInMemory(testutils.Secret, time.Hour)
 	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, b, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 	managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(b, managementInterface, openVPNClient)
@@ -104,7 +104,7 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 	conf.OpenVPN.Passthrough.Address = types.URL{URL: &url.URL{Scheme: "tcp", Host: "127.0.0.1:0"}}
 	conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
 
-	tokenStorage := tokenstorage.NewInMemory(b.Context(), testutils.Secret, time.Hour, 5*time.Minute)
+	tokenStorage := tokenstorage.NewInMemory(testutils.Secret, time.Hour)
 	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(b.Context(), b, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 	managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(b, managementInterface, openVPNClient)

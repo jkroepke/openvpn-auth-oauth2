@@ -30,10 +30,25 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/version"
 )
 
-// Execute runs the main program logic of openvpn-auth-oauth2.
-//
-//nolint:cyclop
+var ErrReload = errors.New("reload")
+
+// Execute is the main entry point for the openvpn-auth-oauth2 daemon.
 func Execute(args []string, logWriter io.Writer) int {
+	tokenDataStorage := tokenstorage.DataMap{}
+
+	for {
+		if rt := run(args, logWriter, tokenDataStorage); rt != -1 {
+			return rt
+		}
+
+		time.Sleep(300 * time.Millisecond) // Wait before reloading configuration
+	}
+}
+
+// run runs the main program logic of openvpn-auth-oauth2.
+//
+//nolint:cyclop,gocognit
+func run(args []string, logWriter io.Writer, tokenDataStorage tokenstorage.DataMap) int {
 	conf, err := configure(args, logWriter)
 	if err != nil {
 		if errors.Is(err, flag.ErrHelp) {
@@ -64,7 +79,8 @@ func Execute(args []string, logWriter io.Writer) int {
 	logger.LogAttrs(ctx, slog.LevelDebug, "config", slog.String("config", conf.String()))
 
 	httpClient := &http.Client{Transport: utils.NewUserAgentTransport(http.DefaultTransport)}
-	tokenStorage := tokenstorage.NewInMemory(ctx, conf.OAuth2.Refresh.Secret.String(), conf.OAuth2.Refresh.Expires, 5*time.Minute)
+	tokenStorage := tokenstorage.NewInMemory(conf.OAuth2.Refresh.Secret.String(), conf.OAuth2.Refresh.Expires)
+	tokenStorage.SetStorage(tokenDataStorage)
 
 	var provider oauth2.Provider
 
@@ -142,7 +158,7 @@ func Execute(args []string, logWriter io.Writer) int {
 	}()
 
 	termCh := make(chan os.Signal, 1)
-	signal.Notify(termCh, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM)
+	signal.Notify(termCh, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGUSR1)
 
 	logger.LogAttrs(ctx, slog.LevelInfo,
 		"openvpn-auth-oauth2 started with base url "+conf.HTTP.BaseURL.String(),
@@ -152,7 +168,15 @@ func Execute(args []string, logWriter io.Writer) int {
 		select {
 		case <-ctx.Done():
 			err = context.Cause(ctx)
-			if err != nil && !errors.Is(err, context.Canceled) {
+			if err != nil {
+				if errors.Is(err, context.Canceled) {
+					return 0
+				}
+
+				if errors.Is(err, ErrReload) {
+					return -1
+				}
+
 				logger.Error(err.Error())
 
 				return 1
@@ -160,13 +184,16 @@ func Execute(args []string, logWriter io.Writer) int {
 
 			return 0
 		case sig := <-termCh:
-			logger.Info("receiving signal: " + sig.String())
+			logger.LogAttrs(ctx, slog.LevelInfo, "receiving signal: "+sig.String())
 
 			switch sig {
 			case syscall.SIGHUP:
 				if err = server.Reload(); err != nil {
 					cancel(fmt.Errorf("error reloading http server: %w", err))
 				}
+			case syscall.SIGUSR1:
+				logger.LogAttrs(ctx, slog.LevelInfo, "reloading configuration")
+				cancel(ErrReload)
 			default:
 				cancel(nil)
 			}
