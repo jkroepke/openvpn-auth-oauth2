@@ -210,6 +210,12 @@ func lookupEnvOrDefault[T any](key string, defaultValue T) T {
 		}
 
 		value, ok = any(typedValue).(T)
+	case types.Template:
+		if err := typedValue.UnmarshalText([]byte(envValue)); err != nil {
+			return defaultValue
+		}
+
+		value, ok = any(typedValue).(T)
 	default:
 		// If the type is not supported, panic
 		panic(fmt.Sprintf("unsupported type %T for environment variable %s", defaultValue, key))
