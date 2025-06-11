@@ -79,6 +79,18 @@ func TestLookupEnvOrDefault(t *testing.T) {
 			expected:     types.StringSlice{"a", "b"},
 		},
 		{
+			name:         "TextUnmarshaler/types.Template",
+			defaultValue: types.Template{},
+			input:        "../../README.md",
+			badInput:     "....",
+			expected: func() types.Template {
+				tmpl, err := types.NewTemplate("../../README.md")
+				require.NoError(t, err)
+
+				return tmpl
+			}(),
+		},
+		{
 			name:         "float64",
 			defaultValue: float64(1336),
 			input:        "1337",
