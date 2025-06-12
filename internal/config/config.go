@@ -148,6 +148,8 @@ func lookupEnvOrDefault[T any](key string, defaultValue T) T {
 		return defaultValue
 	}
 
+	ok = false
+
 	var value T
 
 	switch any(defaultValue).(type) {
@@ -174,6 +176,13 @@ func lookupEnvOrDefault[T any](key string, defaultValue T) T {
 		}
 
 		value, ok = any(uint(intValue)).(T)
+	case float64:
+		floatValue, err := strconv.ParseFloat(envValue, 64)
+		if err != nil {
+			return defaultValue
+		}
+
+		value, ok = any(floatValue).(T)
 	case time.Duration:
 		durationValue, err := time.ParseDuration(envValue)
 		if err != nil {
@@ -199,15 +208,11 @@ func lookupEnvOrDefault[T any](key string, defaultValue T) T {
 			}
 
 			if t.Kind() == reflect.Pointer {
-				//nolint:forcetypeassert
-				return valPtr.Convert(t).Interface().(T)
+				value, ok = valPtr.Convert(t).Interface().(T)
+			} else {
+				value, ok = valPtr.Elem().Interface().(T)
 			}
-
-			//nolint:forcetypeassert
-			return valPtr.Elem().Interface().(T)
 		}
-
-		panic(fmt.Sprintf("unsupported type %T for environment variable %s", defaultValue, key))
 	}
 
 	if !ok {

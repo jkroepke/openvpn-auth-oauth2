@@ -103,6 +103,12 @@ func TestLookupEnvOrDefault(t *testing.T) {
 			defaultValue: float64(1336),
 			input:        "1337",
 			expected:     float64(1337),
+		},
+		{
+			name:         "float32",
+			defaultValue: float32(1336),
+			input:        "1337",
+			expected:     float32(1337),
 			panic:        true,
 		},
 	} {
