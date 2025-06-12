@@ -30,6 +30,17 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/version"
 )
 
+type ReturnCode = int
+
+const (
+	// ReturnCodeReload indicates that the configuration should be reloaded.
+	ReturnCodeReload ReturnCode = -1
+	// ReturnCodeOK indicates a successful execution of the program.
+	ReturnCodeOK ReturnCode = 0
+	// ReturnCodeError indicates an error during execution.
+	ReturnCodeError ReturnCode = 1
+)
+
 var ErrReload = errors.New("reload")
 
 // Execute is the main entry point for the openvpn-auth-oauth2 daemon.
@@ -37,8 +48,8 @@ func Execute(args []string, logWriter io.Writer) int {
 	tokenDataStorage := tokenstorage.DataMap{}
 
 	for {
-		if rt := run(args, logWriter, tokenDataStorage); rt != -1 {
-			return rt
+		if returnCode := run(args, logWriter, tokenDataStorage); returnCode != ReturnCodeReload {
+			return returnCode
 		}
 
 		time.Sleep(300 * time.Millisecond) // Wait before reloading configuration
@@ -48,29 +59,29 @@ func Execute(args []string, logWriter io.Writer) int {
 // run runs the main program logic of openvpn-auth-oauth2.
 //
 //nolint:cyclop,gocognit
-func run(args []string, logWriter io.Writer, tokenDataStorage tokenstorage.DataMap) int {
+func run(args []string, logWriter io.Writer, tokenDataStorage tokenstorage.DataMap) ReturnCode {
 	conf, err := setupConfiguration(args, logWriter)
 	if err != nil {
 		if errors.Is(err, flag.ErrHelp) {
-			return 0
+			return ReturnCodeOK
 		}
 
 		if errors.Is(err, config.ErrVersion) {
 			printVersion(logWriter)
 
-			return 0
+			return ReturnCodeOK
 		}
 
 		_, _ = fmt.Fprintln(logWriter, err.Error())
 
-		return 1
+		return ReturnCodeError
 	}
 
 	logger, err := setupLogger(conf, logWriter)
 	if err != nil {
 		_, _ = fmt.Fprintln(logWriter, fmt.Errorf("error setupConfiguration logging: %w", err).Error())
 
-		return 1
+		return ReturnCodeError
 	}
 
 	ctx, cancel := context.WithCancelCause(context.Background())
@@ -82,7 +93,7 @@ func run(args []string, logWriter io.Writer, tokenDataStorage tokenstorage.DataM
 	if err != nil {
 		_, _ = fmt.Fprintln(logWriter, err.Error())
 
-		return 1
+		return ReturnCodeError
 	}
 
 	wg := sync.WaitGroup{}
@@ -141,19 +152,19 @@ func run(args []string, logWriter io.Writer, tokenDataStorage tokenstorage.DataM
 			err = context.Cause(ctx)
 			if err != nil {
 				if errors.Is(err, context.Canceled) {
-					return 0
+					return ReturnCodeOK
 				}
 
 				if errors.Is(err, ErrReload) {
-					return -1
+					return ReturnCodeReload
 				}
 
 				logger.Error(err.Error())
 
-				return 1
+				return ReturnCodeError
 			}
 
-			return 0
+			return ReturnCodeOK
 		case sig := <-termCh:
 			logger.LogAttrs(ctx, slog.LevelInfo, "receiving signal: "+sig.String())
 
