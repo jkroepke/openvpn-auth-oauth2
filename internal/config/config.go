@@ -6,13 +6,13 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log/slog"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/goccy/go-yaml"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 )
 
 var ErrVersion = errors.New("flag: version requested")
@@ -138,7 +138,7 @@ func lookupConfigArgument(args []string) string {
 
 // lookupEnvOrDefault looks up the environment variable by the flag name and returns the value.
 // If the environment variable is not set, it returns the default value.
-// It supports the following types: string, bool, int, uint and [encoding.TextUnmarshaler].
+// It supports the following types: string, bool, int, uint, time.Duration and types implementing [encoding.TextUnmarshaler].
 // If the type is not supported, it panics.
 //
 //nolint:cyclop
@@ -150,7 +150,7 @@ func lookupEnvOrDefault[T any](key string, defaultValue T) T {
 
 	var value T
 
-	switch typedValue := any(defaultValue).(type) {
+	switch any(defaultValue).(type) {
 	case string:
 		value, ok = any(envValue).(T)
 	case bool:
@@ -174,50 +174,39 @@ func lookupEnvOrDefault[T any](key string, defaultValue T) T {
 		}
 
 		value, ok = any(uint(intValue)).(T)
-	case encoding.TextUnmarshaler:
-		if err := typedValue.UnmarshalText([]byte(envValue)); err != nil {
+	case time.Duration:
+		dur, err := time.ParseDuration(envValue)
+		if err != nil {
 			return defaultValue
 		}
 
-		value, ok = any(typedValue).(T)
-	case types.Secret:
-		if err := typedValue.UnmarshalText([]byte(envValue)); err != nil {
-			return defaultValue
-		}
-
-		value, ok = any(typedValue).(T)
-	case types.URL:
-		if err := typedValue.UnmarshalText([]byte(envValue)); err != nil {
-			return defaultValue
-		}
-
-		value, ok = any(typedValue).(T)
-	case types.StringSlice:
-		if err := typedValue.UnmarshalText([]byte(envValue)); err != nil {
-			return defaultValue
-		}
-
-		value, ok = any(typedValue).(T)
-	case slog.Level:
-		if err := typedValue.UnmarshalText([]byte(envValue)); err != nil {
-			return defaultValue
-		}
-
-		value, ok = any(typedValue).(T)
-	case OpenVPNCommonNameMode:
-		if err := typedValue.UnmarshalText([]byte(envValue)); err != nil {
-			return defaultValue
-		}
-
-		value, ok = any(typedValue).(T)
-	case types.Template:
-		if err := typedValue.UnmarshalText([]byte(envValue)); err != nil {
-			return defaultValue
-		}
-
-		value, ok = any(typedValue).(T)
+		value, ok = any(dur).(T)
 	default:
-		// If the type is not supported, panic
+		// Handle types implementing encoding.TextUnmarshaler via reflection
+		t := reflect.TypeOf(defaultValue)
+
+		var valPtr reflect.Value
+
+		if t.Kind() == reflect.Pointer {
+			valPtr = reflect.New(t.Elem())
+		} else {
+			valPtr = reflect.New(t)
+		}
+
+		if unmarshaler, okUnmarshal := valPtr.Interface().(encoding.TextUnmarshaler); okUnmarshal {
+			if err := unmarshaler.UnmarshalText([]byte(envValue)); err != nil {
+				return defaultValue
+			}
+
+			if t.Kind() == reflect.Pointer {
+				//nolint:forcetypeassert
+				return valPtr.Convert(t).Interface().(T)
+			}
+
+			//nolint:forcetypeassert
+			return valPtr.Elem().Interface().(T)
+		}
+
 		panic(fmt.Sprintf("unsupported type %T for environment variable %s", defaultValue, key))
 	}
 
