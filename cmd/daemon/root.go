@@ -244,7 +244,9 @@ func setupDebugListener(ctx context.Context, logger *slog.Logger, conf config.Co
 }
 
 // setupOpenVPNClient initializes the OpenVPN client with the provided configuration and OAuth2 provider.
-func setupOpenVPNClient(ctx context.Context, logger *slog.Logger, conf config.Config, tokenDataStorage tokenstorage.DataMap) (*openvpn.Client, *http.ServeMux, error) {
+func setupOpenVPNClient(
+	ctx context.Context, logger *slog.Logger, conf config.Config, tokenDataStorage tokenstorage.DataMap,
+) (*openvpn.Client, *http.ServeMux, error) {
 	httpClient := &http.Client{Transport: utils.NewUserAgentTransport(http.DefaultTransport)}
 	tokenStorage := tokenstorage.NewInMemory(conf.OAuth2.Refresh.Secret.String(), conf.OAuth2.Refresh.Expires)
 	tokenStorage.SetStorage(tokenDataStorage)
@@ -280,5 +282,5 @@ func setupOpenVPNClient(ctx context.Context, logger *slog.Logger, conf config.Co
 
 	httpHandler := httphandler.New(conf, oAuth2Client)
 
-	return openvpnClient, httpHandler, err
+	return openvpnClient, httpHandler, nil
 }
