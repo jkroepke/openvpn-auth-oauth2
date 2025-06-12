@@ -1,7 +1,18 @@
 *.iml
 *.out
 
-.idea
+/.idea/*
+!/.idea/inspectionProfiles/
+/.idea/inspectionProfiles/*
+!/.idea/inspectionProfiles/Project_Default.xml
+!/.idea/dictionaries/
+/.idea/dictionaries/*
+!/.idea/dictionaries/project.xml
+/.idea/copyright/*
+!/.idea/copyright/profiles_settings.xml
+!/.idea/copyright/windows_exporter.xml
+!/.idea/vcs.xml
+!/.idea/go.imports.xml
 
 tests/*
 !tests/docker-compose.yaml

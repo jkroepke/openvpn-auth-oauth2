@@ -45,10 +45,13 @@ var ErrReload = errors.New("reload")
 
 // Execute is the main entry point for the openvpn-auth-oauth2 daemon.
 func Execute(args []string, logWriter io.Writer) int {
+	termCh := make(chan os.Signal, 1)
+	signal.Notify(termCh, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGUSR1)
+
 	tokenDataStorage := tokenstorage.DataMap{}
 
 	for {
-		if returnCode := run(args, logWriter, tokenDataStorage); returnCode != ReturnCodeReload {
+		if returnCode := run(args, logWriter, tokenDataStorage, termCh); returnCode != ReturnCodeReload {
 			return returnCode
 		}
 
@@ -59,7 +62,7 @@ func Execute(args []string, logWriter io.Writer) int {
 // run runs the main program logic of openvpn-auth-oauth2.
 //
 //nolint:cyclop,gocognit
-func run(args []string, logWriter io.Writer, tokenDataStorage tokenstorage.DataMap) ReturnCode {
+func run(args []string, logWriter io.Writer, tokenDataStorage tokenstorage.DataMap, termCh <-chan os.Signal) ReturnCode {
 	conf, err := setupConfiguration(args, logWriter)
 	if err != nil {
 		if errors.Is(err, flag.ErrHelp) {
@@ -138,9 +141,6 @@ func run(args []string, logWriter io.Writer, tokenDataStorage tokenstorage.DataM
 
 		cancel(nil)
 	}()
-
-	termCh := make(chan os.Signal, 1)
-	signal.Notify(termCh, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGUSR1)
 
 	logger.LogAttrs(ctx, slog.LevelInfo,
 		"openvpn-auth-oauth2 started with base url "+conf.HTTP.BaseURL.String(),
