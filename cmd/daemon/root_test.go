@@ -1,6 +1,7 @@
 package daemon_test
 
 import (
+	"os"
 	"testing"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/cmd/daemon"
@@ -14,7 +15,7 @@ func TestExecuteVersion(t *testing.T) {
 	t.Parallel()
 
 	logger := testutils.NewTestLogger()
-	returnCode := daemon.Execute([]string{"", "--version"}, logger)
+	returnCode := daemon.Execute([]string{"", "--version"}, logger, make(chan os.Signal, 1))
 	output := logger.String()
 
 	assert.Equal(t, 0, returnCode, output)
@@ -24,7 +25,7 @@ func TestExecuteHelp(t *testing.T) {
 	t.Parallel()
 
 	logger := testutils.NewTestLogger()
-	returnCode := daemon.Execute([]string{"openvpn-auth-oauth2", "--help"}, logger)
+	returnCode := daemon.Execute([]string{"openvpn-auth-oauth2", "--help"}, logger, make(chan os.Signal, 1))
 	output := logger.String()
 
 	assert.Equal(t, 0, returnCode, output)
@@ -115,7 +116,7 @@ func TestExecuteConfigInvalid(t *testing.T) {
 			})
 
 			logger := testutils.NewTestLogger()
-			returnCode := daemon.Execute(append(tt.args, "--openvpn.addr=tcp://"+managementInterface.Addr().String()), logger)
+			returnCode := daemon.Execute(append(tt.args, "--openvpn.addr=tcp://"+managementInterface.Addr().String()), logger, make(chan os.Signal, 1))
 			output := logger.String()
 
 			assert.Equal(t, 1, returnCode, output)

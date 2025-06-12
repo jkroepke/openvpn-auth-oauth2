@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"net/http/pprof"
 	"os"
-	"os/signal"
 	"runtime"
 	"runtime/debug"
 	"sync"
@@ -44,10 +43,7 @@ const (
 var ErrReload = errors.New("reload")
 
 // Execute is the main entry point for the openvpn-auth-oauth2 daemon.
-func Execute(args []string, logWriter io.Writer) int {
-	termCh := make(chan os.Signal, 1)
-	signal.Notify(termCh, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGUSR1)
-
+func Execute(args []string, logWriter io.Writer, termCh <-chan os.Signal) int {
 	tokenDataStorage := tokenstorage.DataMap{}
 
 	for {
