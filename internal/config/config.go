@@ -181,12 +181,6 @@ func lookupEnvOrDefault[T any](key string, defaultValue T) T {
 		}
 
 		value, ok = any(durationValue).(T)
-	case encoding.TextUnmarshaler:
-		if err := typedValue.UnmarshalText([]byte(envValue)); err != nil {
-			return defaultValue
-		}
-
-		value, ok = any(dur).(T)
 	default:
 		// Handle types implementing encoding.TextUnmarshaler via reflection
 		t := reflect.TypeOf(defaultValue)
