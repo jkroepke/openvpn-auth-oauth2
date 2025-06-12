@@ -3,6 +3,7 @@ package config //nolint:testpackage
 import (
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/ui/assets"
@@ -44,6 +45,13 @@ func TestLookupEnvOrDefault(t *testing.T) {
 			input:        "1337",
 			badInput:     "A",
 			expected:     uint(1337),
+		},
+		{
+			name:         "time.Duration",
+			defaultValue: time.Minute,
+			input:        "5s",
+			badInput:     "A",
+			expected:     5 * time.Second,
 		},
 		{
 			name:         "TextUnmarshaler/FS",
