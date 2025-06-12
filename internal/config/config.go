@@ -175,8 +175,14 @@ func lookupEnvOrDefault[T any](key string, defaultValue T) T {
 
 		value, ok = any(uint(intValue)).(T)
 	case time.Duration:
-		dur, err := time.ParseDuration(envValue)
+		durationValue, err := time.ParseDuration(envValue)
 		if err != nil {
+			return defaultValue
+		}
+
+		value, ok = any(durationValue).(T)
+	case encoding.TextUnmarshaler:
+		if err := typedValue.UnmarshalText([]byte(envValue)); err != nil {
 			return defaultValue
 		}
 
