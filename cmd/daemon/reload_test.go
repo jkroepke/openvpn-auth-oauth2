@@ -156,7 +156,7 @@ func TestReload(t *testing.T) {
 	go func() {
 		defer wg.Done()
 
-		resp, err = httpClient.Do(request)
+		resp, err = httpClient.Do(request) //nolint:bodyclose
 	}()
 
 	testutils.ReadLine(t, managementInterfaceConn, reader)
