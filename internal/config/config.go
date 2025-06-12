@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/goccy/go-yaml"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
@@ -174,6 +175,13 @@ func lookupEnvOrDefault[T any](key string, defaultValue T) T {
 		}
 
 		value, ok = any(uint(intValue)).(T)
+	case time.Duration:
+		duration, err := time.ParseDuration(envValue)
+		if err != nil {
+			return defaultValue
+		}
+
+		value, ok = any(duration).(T)
 	case encoding.TextUnmarshaler:
 		if err := typedValue.UnmarshalText([]byte(envValue)); err != nil {
 			return defaultValue
