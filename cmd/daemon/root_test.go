@@ -61,7 +61,7 @@ func TestExecuteConfigInvalid(t *testing.T) {
 				"", "--config=../../config.example.yaml", "--log.format=invalid", "--log.level=warn", "--http.secret=" + testutils.Secret,
 				"--http.listen=127.0.0.1:0",
 			},
-			"error configure logging: unknown log format: invalid",
+			"error setupConfiguration logging: unknown log format: invalid",
 		},
 		{
 			"invalid log level",
