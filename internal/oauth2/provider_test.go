@@ -25,7 +25,7 @@ func TestNewProvider(t *testing.T) {
 	clientListener, err := nettest.NewLocalListener("tcp")
 	require.NoError(t, err)
 
-	_, resourceServerURL, clientCredentials, err := testutils.SetupResourceServer(t, clientListener)
+	_, resourceServerURL, clientCredentials, err := testutils.SetupResourceServer(t, clientListener, nil)
 	require.NoError(t, err)
 
 	tests := []struct {

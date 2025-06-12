@@ -1,6 +1,7 @@
 package daemon_test
 
 import (
+	"os"
 	"testing"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/cmd/daemon"
@@ -14,7 +15,7 @@ func TestExecuteVersion(t *testing.T) {
 	t.Parallel()
 
 	logger := testutils.NewTestLogger()
-	returnCode := daemon.Execute([]string{"", "--version"}, logger)
+	returnCode := daemon.Execute([]string{"", "--version"}, logger, make(chan os.Signal, 1))
 	output := logger.String()
 
 	assert.Equal(t, 0, returnCode, output)
@@ -24,7 +25,7 @@ func TestExecuteHelp(t *testing.T) {
 	t.Parallel()
 
 	logger := testutils.NewTestLogger()
-	returnCode := daemon.Execute([]string{"openvpn-auth-oauth2", "--help"}, logger)
+	returnCode := daemon.Execute([]string{"openvpn-auth-oauth2", "--help"}, logger, make(chan os.Signal, 1))
 	output := logger.String()
 
 	assert.Equal(t, 0, returnCode, output)
@@ -61,7 +62,7 @@ func TestExecuteConfigInvalid(t *testing.T) {
 				"", "--config=../../config.example.yaml", "--log.format=invalid", "--log.level=warn", "--http.secret=" + testutils.Secret,
 				"--http.listen=127.0.0.1:0",
 			},
-			"error configure logging: unknown log format: invalid",
+			"error setupConfiguration logging: unknown log format: invalid",
 		},
 		{
 			"invalid log level",
@@ -115,7 +116,7 @@ func TestExecuteConfigInvalid(t *testing.T) {
 			})
 
 			logger := testutils.NewTestLogger()
-			returnCode := daemon.Execute(append(tt.args, "--openvpn.addr=tcp://"+managementInterface.Addr().String()), logger)
+			returnCode := daemon.Execute(append(tt.args, "--openvpn.addr=tcp://"+managementInterface.Addr().String()), logger, make(chan os.Signal, 1))
 			output := logger.String()
 
 			assert.Equal(t, 1, returnCode, output)

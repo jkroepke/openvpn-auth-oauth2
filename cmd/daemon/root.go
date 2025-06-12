@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"net/http/pprof"
 	"os"
-	"os/signal"
 	"runtime"
 	"runtime/debug"
 	"sync"
@@ -30,15 +29,26 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/version"
 )
 
+type ReturnCode = int
+
+const (
+	// ReturnCodeReload indicates that the configuration should be reloaded.
+	ReturnCodeReload ReturnCode = -1
+	// ReturnCodeOK indicates a successful execution of the program.
+	ReturnCodeOK ReturnCode = 0
+	// ReturnCodeError indicates an error during execution.
+	ReturnCodeError ReturnCode = 1
+)
+
 var ErrReload = errors.New("reload")
 
 // Execute is the main entry point for the openvpn-auth-oauth2 daemon.
-func Execute(args []string, logWriter io.Writer) int {
+func Execute(args []string, logWriter io.Writer, termCh <-chan os.Signal) int {
 	tokenDataStorage := tokenstorage.DataMap{}
 
 	for {
-		if rt := run(args, logWriter, tokenDataStorage); rt != -1 {
-			return rt
+		if returnCode := run(args, logWriter, tokenDataStorage, termCh); returnCode != ReturnCodeReload {
+			return returnCode
 		}
 
 		time.Sleep(300 * time.Millisecond) // Wait before reloading configuration
@@ -47,30 +57,30 @@ func Execute(args []string, logWriter io.Writer) int {
 
 // run runs the main program logic of openvpn-auth-oauth2.
 //
-//nolint:cyclop,gocognit
-func run(args []string, logWriter io.Writer, tokenDataStorage tokenstorage.DataMap) int {
-	conf, err := configure(args, logWriter)
+//nolint:gocognit,cyclop
+func run(args []string, logWriter io.Writer, tokenDataStorage tokenstorage.DataMap, termCh <-chan os.Signal) ReturnCode {
+	conf, err := setupConfiguration(args, logWriter)
 	if err != nil {
 		if errors.Is(err, flag.ErrHelp) {
-			return 0
+			return ReturnCodeOK
 		}
 
 		if errors.Is(err, config.ErrVersion) {
 			printVersion(logWriter)
 
-			return 0
+			return ReturnCodeOK
 		}
 
 		_, _ = fmt.Fprintln(logWriter, err.Error())
 
-		return 1
+		return ReturnCodeError
 	}
 
-	logger, err := configureLogger(conf, logWriter)
+	logger, err := setupLogger(conf, logWriter)
 	if err != nil {
-		_, _ = fmt.Fprintln(logWriter, fmt.Errorf("error configure logging: %w", err).Error())
+		_, _ = fmt.Fprintln(logWriter, fmt.Errorf("error setupConfiguration logging: %w", err).Error())
 
-		return 1
+		return ReturnCodeError
 	}
 
 	ctx, cancel := context.WithCancelCause(context.Background())
@@ -78,41 +88,12 @@ func run(args []string, logWriter io.Writer, tokenDataStorage tokenstorage.DataM
 
 	logger.LogAttrs(ctx, slog.LevelDebug, "config", slog.String("config", conf.String()))
 
-	httpClient := &http.Client{Transport: utils.NewUserAgentTransport(http.DefaultTransport)}
-	tokenStorage := tokenstorage.NewInMemory(conf.OAuth2.Refresh.Secret.String(), conf.OAuth2.Refresh.Expires)
-	tokenStorage.SetStorage(tokenDataStorage)
-
-	var provider oauth2.Provider
-
-	switch conf.OAuth2.Provider {
-	case generic.Name:
-		provider, err = generic.NewProvider(ctx, conf, httpClient)
-	case github.Name:
-		provider, err = github.NewProvider(ctx, conf, httpClient)
-	case google.Name:
-		provider, err = google.NewProvider(ctx, conf, httpClient)
-	default:
-		err = errors.New("unknown oauth2 provider: " + conf.OAuth2.Provider)
-	}
-
+	openvpnClient, httpHandler, err := setupOpenVPNClient(ctx, logger, conf, tokenDataStorage)
 	if err != nil {
-		logger.Error(err.Error())
+		_, _ = fmt.Fprintln(logWriter, err.Error())
 
-		return 1
+		return ReturnCodeError
 	}
-
-	openvpnClient := openvpn.New(logger, conf)
-
-	oAuth2Client, err := oauth2.New(ctx, logger, conf, httpClient, tokenStorage, provider, openvpnClient)
-	if err != nil {
-		logger.Error(err.Error())
-
-		return 1
-	}
-
-	openvpnClient.SetOAuth2Client(oAuth2Client)
-
-	httpHandler := httphandler.New(conf, oAuth2Client)
 
 	wg := sync.WaitGroup{}
 	defer wg.Wait()
@@ -157,9 +138,6 @@ func run(args []string, logWriter io.Writer, tokenDataStorage tokenstorage.DataM
 		cancel(nil)
 	}()
 
-	termCh := make(chan os.Signal, 1)
-	signal.Notify(termCh, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGUSR1)
-
 	logger.LogAttrs(ctx, slog.LevelInfo,
 		"openvpn-auth-oauth2 started with base url "+conf.HTTP.BaseURL.String(),
 	)
@@ -170,19 +148,19 @@ func run(args []string, logWriter io.Writer, tokenDataStorage tokenstorage.DataM
 			err = context.Cause(ctx)
 			if err != nil {
 				if errors.Is(err, context.Canceled) {
-					return 0
+					return ReturnCodeOK
 				}
 
 				if errors.Is(err, ErrReload) {
-					return -1
+					return ReturnCodeReload
 				}
 
 				logger.Error(err.Error())
 
-				return 1
+				return ReturnCodeError
 			}
 
-			return 0
+			return ReturnCodeOK
 		case sig := <-termCh:
 			logger.LogAttrs(ctx, slog.LevelInfo, "receiving signal: "+sig.String())
 
@@ -201,6 +179,51 @@ func run(args []string, logWriter io.Writer, tokenDataStorage tokenstorage.DataM
 	}
 }
 
+func printVersion(writer io.Writer) {
+	//goland:noinspection GoBoolExpressions
+	if version.Version == "dev" {
+		if buildInfo, ok := debug.ReadBuildInfo(); ok {
+			_, _ = fmt.Fprintf(writer, "version: %s\ngo: %s\n", buildInfo.Main.Version, buildInfo.GoVersion)
+
+			return
+		}
+	}
+
+	_, _ = fmt.Fprintf(writer, "version: %s\ncommit: %s\ndate: %s\ngo: %s\n", version.Version, version.Commit, version.Date, runtime.Version())
+}
+
+// setupConfiguration parses the command line arguments and loads the configuration.
+func setupConfiguration(args []string, logWriter io.Writer) (config.Config, error) {
+	conf, err := config.New(args, logWriter)
+	if err != nil {
+		return config.Config{}, fmt.Errorf("configuration error: %w", err)
+	}
+
+	if err = config.Validate(config.ManagementClient, conf); err != nil {
+		return config.Config{}, fmt.Errorf("configuration validation error: %w", err)
+	}
+
+	return conf, nil
+}
+
+// setupLogger initializes the logger based on the configuration.
+func setupLogger(conf config.Config, writer io.Writer) (*slog.Logger, error) {
+	opts := &slog.HandlerOptions{
+		AddSource: false,
+		Level:     conf.Log.Level,
+	}
+
+	switch conf.Log.Format {
+	case "json":
+		return slog.New(slog.NewJSONHandler(writer, opts)), nil
+	case "console":
+		return slog.New(slog.NewTextHandler(writer, opts)), nil
+	default:
+		return nil, fmt.Errorf("unknown log format: %s", conf.Log.Format)
+	}
+}
+
+// setupDebugListener sets up an HTTP server for debugging purposes, including pprof endpoints.
 func setupDebugListener(ctx context.Context, logger *slog.Logger, conf config.Config) error {
 	mux := http.NewServeMux()
 	mux.Handle("GET /", http.RedirectHandler("/debug/pprof/", http.StatusTemporaryRedirect))
@@ -220,45 +243,44 @@ func setupDebugListener(ctx context.Context, logger *slog.Logger, conf config.Co
 	return nil
 }
 
-// configure parses the command line arguments and loads the configuration.
-func configure(args []string, logWriter io.Writer) (config.Config, error) {
-	conf, err := config.New(args, logWriter)
-	if err != nil {
-		return config.Config{}, fmt.Errorf("configuration error: %w", err)
-	}
+// setupOpenVPNClient initializes the OpenVPN client with the provided configuration and OAuth2 provider.
+func setupOpenVPNClient(
+	ctx context.Context, logger *slog.Logger, conf config.Config, tokenDataStorage tokenstorage.DataMap,
+) (*openvpn.Client, *http.ServeMux, error) {
+	httpClient := &http.Client{Transport: utils.NewUserAgentTransport(http.DefaultTransport)}
+	tokenStorage := tokenstorage.NewInMemory(conf.OAuth2.Refresh.Secret.String(), conf.OAuth2.Refresh.Expires)
+	tokenStorage.SetStorage(tokenDataStorage)
 
-	if err = config.Validate(config.ManagementClient, conf); err != nil {
-		return config.Config{}, fmt.Errorf("configuration validation error: %w", err)
-	}
+	var (
+		err      error
+		provider oauth2.Provider
+	)
 
-	return conf, nil
-}
-
-func configureLogger(conf config.Config, writer io.Writer) (*slog.Logger, error) {
-	opts := &slog.HandlerOptions{
-		AddSource: false,
-		Level:     conf.Log.Level,
-	}
-
-	switch conf.Log.Format {
-	case "json":
-		return slog.New(slog.NewJSONHandler(writer, opts)), nil
-	case "console":
-		return slog.New(slog.NewTextHandler(writer, opts)), nil
+	switch conf.OAuth2.Provider {
+	case generic.Name:
+		provider, err = generic.NewProvider(ctx, conf, httpClient)
+	case github.Name:
+		provider, err = github.NewProvider(ctx, conf, httpClient)
+	case google.Name:
+		provider, err = google.NewProvider(ctx, conf, httpClient)
 	default:
-		return nil, fmt.Errorf("unknown log format: %s", conf.Log.Format)
-	}
-}
-
-func printVersion(writer io.Writer) {
-	//goland:noinspection GoBoolExpressions
-	if version.Version == "dev" {
-		if buildInfo, ok := debug.ReadBuildInfo(); ok {
-			_, _ = fmt.Fprintf(writer, "version: %s\ngo: %s\n", buildInfo.Main.Version, buildInfo.GoVersion)
-
-			return
-		}
+		err = errors.New("unknown oauth2 provider: " + conf.OAuth2.Provider)
 	}
 
-	_, _ = fmt.Fprintf(writer, "version: %s\ncommit: %s\ndate: %s\ngo: %s\n", version.Version, version.Commit, version.Date, runtime.Version())
+	if err != nil {
+		return nil, nil, fmt.Errorf("error creating oauth2 provider: %w", err)
+	}
+
+	openvpnClient := openvpn.New(logger, conf)
+
+	oAuth2Client, err := oauth2.New(ctx, logger, conf, httpClient, tokenStorage, provider, openvpnClient)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error creating oauth2 client: %w", err)
+	}
+
+	openvpnClient.SetOAuth2Client(oAuth2Client)
+
+	httpHandler := httphandler.New(conf, oAuth2Client)
+
+	return openvpnClient, httpHandler, nil
 }

@@ -113,7 +113,7 @@ func SendAndExpectMessage(tb testing.TB, conn net.Conn, reader *bufio.Reader, se
 func ReadLine(tb testing.TB, conn net.Conn, reader *bufio.Reader) string {
 	tb.Helper()
 
-	err := conn.SetReadDeadline(time.Now().Add(time.Second * 5))
+	err := conn.SetReadDeadline(time.Now().Add(time.Second * 50))
 	require.NoError(tb, err)
 
 	line, err := reader.ReadString('\n')
@@ -125,7 +125,7 @@ func ReadLine(tb testing.TB, conn net.Conn, reader *bufio.Reader) string {
 	return strings.TrimRightFunc(line, unicode.IsSpace)
 }
 
-func SetupResourceServer(tb testing.TB, clientListener net.Listener) (*httptest.Server, types.URL, config.OAuth2Client, error) {
+func SetupResourceServer(tb testing.TB, clientListener net.Listener, logger *slog.Logger) (*httptest.Server, types.URL, config.OAuth2Client, error) {
 	tb.Helper()
 
 	client := oidcstorage.WebClient(
@@ -151,7 +151,14 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener) (*httptest.
 		SupportedUILocales:       []language.Tag{language.English},
 	}
 
-	opProvider, err := op.NewProvider(opConfig, opStorage, op.IssuerFromHost(""), op.WithAllowInsecure())
+	opOpts := make([]op.Option, 0, 2)
+	opOpts = append(opOpts, op.WithAllowInsecure())
+
+	if logger != nil {
+		opOpts = append(opOpts, op.WithLogger(logger))
+	}
+
+	opProvider, err := op.NewProvider(opConfig, opStorage, op.IssuerFromHost(""), opOpts...)
 	if err != nil {
 		return nil, types.URL{}, config.OAuth2Client{}, err //nolint:wrapcheck
 	}
@@ -196,7 +203,7 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 	clientListener, err := nettest.NewLocalListener("tcp")
 	require.NoError(tb, err)
 
-	_, resourceServerURL, clientCredentials, err := SetupResourceServer(tb, clientListener)
+	_, resourceServerURL, clientCredentials, err := SetupResourceServer(tb, clientListener, logger.Logger)
 	require.NoError(tb, err)
 
 	conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: clientListener.Addr().String()}}

@@ -95,6 +95,8 @@ func (c *Client) Connect(ctx context.Context) error {
 	}
 
 	select {
+	case <-ctx.Done():
+		c.Shutdown()
 	case err = <-errChMessages:
 		if err != nil {
 			err = fmt.Errorf("error handling messages: %w", err)
