@@ -56,8 +56,6 @@ func Execute(args []string, logWriter io.Writer, termCh <-chan os.Signal) int {
 }
 
 // run runs the main program logic of openvpn-auth-oauth2.
-//
-//nolint:cyclop,gocognit
 func run(args []string, logWriter io.Writer, tokenDataStorage tokenstorage.DataMap, termCh <-chan os.Signal) ReturnCode {
 	conf, err := setupConfiguration(args, logWriter)
 	if err != nil {
