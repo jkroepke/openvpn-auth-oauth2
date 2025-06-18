@@ -10,7 +10,7 @@ This page documents the setup at the OIDC provider.
 ### Register an app with Microsoft Entra ID
 
 1. Sign in to your admin account on the tenant.
-2. Navigate to the [App registrations](https://aad.portal.azure.com/#blade/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/RegisteredApps) page in the Azure AD admin center.
+2. Navigate to the [App registrations](https://aad.portal.azure.com/#blade/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/RegisteredApps) page in the Entra ID admin center.
 3. Click on the `New registration` button to start the process of registering a new application.
 4. Enter a unique name for your application in the `Name` field.
 5. In the `Supported account types` section, select the appropriate option based on your requirements. If unsure, leave the default value selected.
@@ -74,7 +74,7 @@ Users get the notice from Azure that they aren’t part of the group, and the lo
 
 Reference: https://learn.microsoft.com/en-us/entra/identity-platform/howto-restrict-your-app-to-a-set-of-users#assign-the-app-to-users-and-groups-to-restrict-access
 
-How require multiple groups, check you could define `CONFIG_OAUTH2_VALIDATE_GROUPS`.
+To require multiple groups, define `CONFIG_OAUTH2_VALIDATE_GROUPS`.
 
 </details>
 
@@ -93,7 +93,7 @@ How require multiple groups, check you could define `CONFIG_OAUTH2_VALIDATE_GROU
 4. In the left Nav pane, choose **"Credentials"**.
 5. In the center pane, choose **"OAuth consent screen"** tab. Fill in **"Product name shown to users"** and hit save.
 6. In the center pane, choose **"Credentials"** tab.
-    * Open the "New credentials"** drop down
+    * Open the **"New credentials"** drop-down
     * Choose **"OAuth client ID"**
     * Choose **"Web application"**
     * Application name is freeform, choose something appropriate
