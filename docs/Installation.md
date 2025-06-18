@@ -8,7 +8,7 @@ We provide DEB/RPM packages for Linux distributions. You can download the latest
 
 ### For Debian based distributions:
 
-openvpn-auth-oauth2 provides a APT repository for Debian based distributions. You can add the repository to your system and install the package using the following commands:
+openvpn-auth-oauth2 provides an APT repository for Debian based distributions. You can add the repository to your system and install the package using the following commands:
 
 ```bash
 curl -L https://raw.githubusercontent.com/jkroepke/openvpn-auth-oauth2/refs/heads/main/packaging/apt/openvpn-auth-oauth2.sources | sudo tee /etc/apt/sources.list.d/openvpn-auth-oauth2.sources
@@ -34,7 +34,7 @@ Replace `<package_file>` with the name of the downloaded file.
 
 ### For RedHat based distributions:
 
-1. Download the DEB package from the releases page.
+1. Download the RPM package from the releases page.
 2. Open a terminal.
 3. Navigate to the directory where you downloaded the package.
 4. Install the package using the following command:
@@ -62,3 +62,10 @@ If you prefer to build the binary yourself, follow these steps:
     ```bash
     sudo mv openvpn-auth-oauth2 /usr/bin/
     ```
+
+7. Verify the installation by checking the version:
+    ```bash
+    openvpn-auth-oauth2 --version
+    ```
+
+Continue with the [Configuration Guide](./Configuration.md) to set up your provider details.

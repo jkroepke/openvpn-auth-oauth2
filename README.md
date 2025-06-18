@@ -20,8 +20,8 @@ integrating OpenVPN with OIDC providers such as
 * GitHub
 * Okta
 * Google Workspace
-* Zittal
-* Digitalocean
+* Zitadel
+* DigitalOcean
 * Keycloak
 * [... any other OIDC compatible auth server](https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Providers)
 
