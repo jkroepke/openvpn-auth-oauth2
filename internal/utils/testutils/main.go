@@ -40,6 +40,8 @@ const (
 	Secret   = "0123456789101112"
 )
 
+// ExpectVersionAndReleaseHold performs the initial handshake with the mocked
+// management interface. It checks for a version query and hold release.
 func ExpectVersionAndReleaseHold(tb testing.TB, conn net.Conn, reader *bufio.Reader) {
 	tb.Helper()
 
@@ -67,6 +69,7 @@ func ExpectVersionAndReleaseHold(tb testing.TB, conn net.Conn, reader *bufio.Rea
 	require.Equal(tb, 2, expectedCommand)
 }
 
+// SendMessagef sends a formatted string to the management interface connection.
 func SendMessagef(tb testing.TB, conn net.Conn, sendMessage string, args ...any) {
 	tb.Helper()
 
@@ -81,6 +84,8 @@ func SendMessagef(tb testing.TB, conn net.Conn, sendMessage string, args ...any)
 	require.NoError(tb, err)
 }
 
+// ExpectMessage reads from the connection and compares the output with the
+// expected message.
 func ExpectMessage(tb testing.TB, conn net.Conn, reader *bufio.Reader, expectMessage string) {
 	tb.Helper()
 
@@ -103,6 +108,7 @@ func ExpectMessage(tb testing.TB, conn net.Conn, reader *bufio.Reader, expectMes
 	}
 }
 
+// SendAndExpectMessage sends a message and immediately validates the response.
 func SendAndExpectMessage(tb testing.TB, conn net.Conn, reader *bufio.Reader, sendMessage, expectMessage string) {
 	tb.Helper()
 
@@ -110,6 +116,7 @@ func SendAndExpectMessage(tb testing.TB, conn net.Conn, reader *bufio.Reader, se
 	ExpectMessage(tb, conn, reader, expectMessage)
 }
 
+// ReadLine reads a single line from the connection with a timeout.
 func ReadLine(tb testing.TB, conn net.Conn, reader *bufio.Reader) string {
 	tb.Helper()
 
@@ -125,6 +132,7 @@ func ReadLine(tb testing.TB, conn net.Conn, reader *bufio.Reader) string {
 	return strings.TrimRightFunc(line, unicode.IsSpace)
 }
 
+// SetupResourceServer starts a minimal OIDC server used for integration tests.
 func SetupResourceServer(tb testing.TB, clientListener net.Listener, logger *slog.Logger) (*httptest.Server, types.URL, config.OAuth2Client, error) {
 	tb.Helper()
 
@@ -184,7 +192,9 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener, logger *slo
 	return resourceServer, resourceServerURL, config.OAuth2Client{ID: client.GetID(), Secret: "SECRET"}, nil
 }
 
-// SetupMockEnvironment setups an OpenVPN and IDP mock.
+// SetupMockEnvironment sets up an OpenVPN management interface and a mock OIDC
+// provider. It returns the adjusted configuration and helper instances used in
+// tests.
 func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config, rt http.RoundTripper) (
 	config.Config, *openvpn.Client, net.Listener, *oauth2.Client, *httptest.Server, *http.Client, *Logger,
 ) {
@@ -269,6 +279,8 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 	return conf, openvpnClient, managementInterface, oAuth2Client, httpClientListener, httpClientListenerClient, logger
 }
 
+// SetupOpenVPNOAuth2Clients creates mocked OpenVPN and OAuth2 clients using the
+// provided configuration.
 func SetupOpenVPNOAuth2Clients(
 	ctx context.Context, tb testing.TB, conf config.Config, logger *slog.Logger, httpClient *http.Client, tokenStorage tokenstorage.Storage,
 ) (*oauth2.Client, *openvpn.Client) {
@@ -313,6 +325,9 @@ func SetupOpenVPNOAuth2Clients(
 	return oAuth2Client, openVPNClient
 }
 
+// ConnectToManagementInterface establishes a connection to the given management
+// interface and returns the accepted net.Conn and an error channel for the
+// OpenVPN client.
 func ConnectToManagementInterface(tb testing.TB, managementInterface net.Listener, openVPNClient *openvpn.Client) (net.Conn, <-chan error, error) {
 	tb.Helper()
 
