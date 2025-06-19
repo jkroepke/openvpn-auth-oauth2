@@ -9,6 +9,7 @@ import (
 	"syscall"
 )
 
+// GetGIDOfFile returns the numeric group ID of the given file.
 func GetGIDOfFile(fileName string) (int, error) {
 	stat, err := os.Stat(fileName)
 	if err != nil {
@@ -24,6 +25,8 @@ func GetGIDOfFile(fileName string) (int, error) {
 	return int(gid.Gid), nil
 }
 
+// GetPermissionsOfFile returns the permission bits of the given file as a
+// string, for example "drwxr-xr-x".
 func GetPermissionsOfFile(fileName string) (string, error) {
 	stat, err := os.Stat(fileName)
 	if err != nil {

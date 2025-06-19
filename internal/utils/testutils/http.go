@@ -12,23 +12,32 @@ import (
 	"time"
 )
 
+// RoundTripperFunc wraps an http.RoundTripper and allows a custom function to
+// intercept each request.
 type RoundTripperFunc struct {
 	fn func(rt http.RoundTripper, req *http.Request) (*http.Response, error)
 	rt http.RoundTripper
 }
 
+// NewRoundTripperFunc returns a RoundTripperFunc that calls fn with the wrapped
+// RoundTripper for each request.
 func NewRoundTripperFunc(rt http.RoundTripper, fn func(rt http.RoundTripper, req *http.Request) (*http.Response, error)) *RoundTripperFunc {
 	return &RoundTripperFunc{fn, rt}
 }
 
+// RoundTrip implements http.RoundTripper.
 func (f *RoundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 	return f.fn(f.rt, req)
 }
 
+// MockRoundTripper mocks selected HTTP calls while delegating everything else to
+// the provided RoundTripper.
 type MockRoundTripper struct {
 	rt http.RoundTripper
 }
 
+// NewMockRoundTripper creates a MockRoundTripper. If rt is nil the default
+// transport is used.
 func NewMockRoundTripper(rt http.RoundTripper) *MockRoundTripper {
 	if rt == nil {
 		rt = http.DefaultTransport
@@ -37,6 +46,9 @@ func NewMockRoundTripper(rt http.RoundTripper) *MockRoundTripper {
 	return &MockRoundTripper{rt}
 }
 
+// RoundTrip implements http.RoundTripper and returns mocked responses for
+// specific hosts.
+//
 //nolint:cyclop
 func (f *MockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	switch req.URL.Host {
@@ -99,6 +111,8 @@ func (f *MockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) 
 	}
 }
 
+// WaitUntilListening tries to connect to a network address until it is
+// available. It returns the connection or an error after several retries.
 func WaitUntilListening(tb testing.TB, network, address string) (net.Conn, error) {
 	tb.Helper()
 
