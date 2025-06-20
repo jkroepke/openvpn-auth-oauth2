@@ -6,6 +6,9 @@ import (
 	"strconv"
 )
 
+// LookupGroup returns the numeric gid for groupName. It accepts either a
+// numeric string or a system group name and returns an error if the group
+// cannot be resolved.
 func LookupGroup(groupName string) (int, error) {
 	var (
 		gid   int
