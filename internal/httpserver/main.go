@@ -30,6 +30,10 @@ type Server struct {
 	tlsCertificateMu sync.RWMutex
 }
 
+// NewHTTPServer creates a new Server instance configured with the given name,
+// logger and HTTP configuration. fnHandler is registered as the HTTP handler
+// for the server. The returned server can optionally serve TLS depending on
+// the configuration.
 func NewHTTPServer(name string, logger *slog.Logger, conf config.HTTP, fnHandler *http.ServeMux) *Server {
 	return &Server{
 		name:   name,
@@ -47,6 +51,9 @@ func NewHTTPServer(name string, logger *slog.Logger, conf config.HTTP, fnHandler
 	}
 }
 
+// Listen starts the HTTP server and blocks until the context is cancelled.
+// It configures TLS if enabled and performs graceful shutdown when the
+// context signals cancellation.
 func (s *Server) Listen(ctx context.Context) error {
 	if s.server == nil {
 		return nil
@@ -97,6 +104,8 @@ func (s *Server) Listen(ctx context.Context) error {
 	return nil
 }
 
+// GetCertificateFunc returns a function compatible with tls.Config.GetCertificate.
+// It serves the currently loaded TLS certificate and allows hot reloading.
 func (s *Server) GetCertificateFunc() func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
 	return func(_ *tls.ClientHelloInfo) (*tls.Certificate, error) {
 		s.tlsCertificateMu.RLock()
@@ -106,6 +115,8 @@ func (s *Server) GetCertificateFunc() func(*tls.ClientHelloInfo) (*tls.Certifica
 	}
 }
 
+// Reload loads the TLS certificate from disk and updates the server's
+// in-memory certificate. It does nothing if TLS support is disabled.
 func (s *Server) Reload() error {
 	if !s.conf.TLS {
 		return nil
@@ -129,6 +140,8 @@ func (s *Server) Reload() error {
 	return nil
 }
 
+// serve runs the underlying http.Server using either plain HTTP or HTTPS based
+// on the configuration. It returns once the listener stops serving.
 func (s *Server) serve(ctx context.Context) error {
 	if s.server == nil {
 		return fmt.Errorf("http %s server is nil", s.name)
@@ -175,6 +188,7 @@ func (s *Server) serve(ctx context.Context) error {
 	return nil
 }
 
+// shutdown gracefully shuts down the http.Server with a 10 second timeout.
 func (s *Server) shutdown() error {
 	if s.server == nil {
 		return fmt.Errorf("http %s server is nil", s.name)
