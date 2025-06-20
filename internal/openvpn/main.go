@@ -19,8 +19,12 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
+// minManagementInterfaceVersion defines the minimum supported version of the
+// OpenVPN management interface.
 const minManagementInterfaceVersion = 5
 
+// New creates a new Client configured with the provided logger and
+// configuration.
 func New(logger *slog.Logger, conf config.Config) *Client {
 	client := &Client{
 		conf:   conf,
@@ -42,10 +46,16 @@ func New(logger *slog.Logger, conf config.Config) *Client {
 	return client
 }
 
+// SetOAuth2Client assigns the OAuth2 client used for token refresh and
+// disconnect callbacks.
 func (c *Client) SetOAuth2Client(client oauth2Client) {
 	c.oauth2 = client
 }
 
+// Connect establishes the management interface connection and starts the
+// internal handlers. The call blocks until the context is cancelled or the
+// connection terminates.
+//
 //nolint:cyclop
 func (c *Client) Connect(ctx context.Context) error {
 	var err error
@@ -122,6 +132,8 @@ func (c *Client) Connect(ctx context.Context) error {
 	return nil
 }
 
+// setupConnection dials the OpenVPN management interface and stores the
+// resulting connection on the Client.
 func (c *Client) setupConnection() error {
 	c.connMu.Lock()
 	defer c.connMu.Unlock()
@@ -140,6 +152,8 @@ func (c *Client) setupConnection() error {
 	return err
 }
 
+// checkManagementInterfaceVersion verifies that the management interface meets
+// the minimum required version.
 func (c *Client) checkManagementInterfaceVersion() error {
 	resp, err := c.SendCommand("version", false)
 	if resp == "" {
@@ -176,11 +190,13 @@ func (c *Client) checkManagementInterfaceVersion() error {
 	return nil
 }
 
+// checkClientSsoCapabilities reports whether the given client supports SSO via
+// the webauth protocol.
 func (c *Client) checkClientSsoCapabilities(client connection.Client) bool {
 	return strings.Contains(client.IvSSO, "webauth")
 }
 
-// Shutdown shutdowns the client connection.
+// Shutdown closes the management connection and stops command processing.
 func (c *Client) Shutdown() {
 	c.commandMu.Lock()
 	defer c.commandMu.Unlock()
@@ -203,7 +219,9 @@ func (c *Client) Shutdown() {
 	close(c.commandsCh)
 }
 
-// SendCommand passes command to a given connection (adds logging and EOL character) and returns the response.
+// SendCommand sends a command to the management interface and waits for its
+// response. When passthrough is true the raw response is returned without any
+// validation.
 func (c *Client) SendCommand(cmd string, passthrough bool) (string, error) {
 	c.commandMu.RLock()
 	defer c.commandMu.RUnlock()
@@ -243,12 +261,12 @@ func (c *Client) SendCommand(cmd string, passthrough bool) (string, error) {
 	}
 }
 
-// SendCommandf passes command to a given connection (adds logging and EOL character) and returns the response.
+// SendCommandf formats a command using fmt.Sprintf and then calls SendCommand.
 func (c *Client) SendCommandf(format string, a ...any) (string, error) {
 	return c.SendCommand(fmt.Sprintf(format, a...), false)
 }
 
-// rawCommand passes command to a given connection (adds logging and EOL character).
+// rawCommand writes a command followed by CRLF to the management interface.
 func (c *Client) rawCommand(ctx context.Context, cmd string) error {
 	if c.logger.Enabled(ctx, slog.LevelDebug) {
 		c.logger.LogAttrs(ctx, slog.LevelDebug, "send command", slog.String("command", cmd))
