@@ -16,6 +16,8 @@ type Provider struct {
 	httpClient *http.Client
 }
 
+// NewProvider instantiates the Google provider using the generic implementation
+// as a base. It wires in the HTTP client for REST API calls.
 func NewProvider(ctx context.Context, conf config.Config, httpClient *http.Client) (*Provider, error) {
 	provider, err := generic.NewProvider(ctx, conf, httpClient)
 	if err != nil {
@@ -28,6 +30,7 @@ func NewProvider(ctx context.Context, conf config.Config, httpClient *http.Clien
 	}, nil
 }
 
+// GetName returns the provider name used in configuration and logging.
 func (p Provider) GetName() string {
 	return Name
 }
