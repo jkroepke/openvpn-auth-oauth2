@@ -7,6 +7,9 @@ type OverlayFS struct {
 	overlay fs.FS
 }
 
+// NewOverlayFS creates a filesystem that overlays the provided overlay over the
+// base root filesystem. Files present in the overlay take precedence over files
+// in the root.
 func NewOverlayFS(root, over fs.FS) *OverlayFS { return &OverlayFS{root, over} }
 
 func (f *OverlayFS) Open(name string) (fs.File, error) {

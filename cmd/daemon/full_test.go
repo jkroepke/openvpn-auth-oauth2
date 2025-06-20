@@ -197,9 +197,7 @@ func TestFull(t *testing.T) {
 			wg := sync.WaitGroup{}
 			wg.Add(1)
 
-			var (
-				resp *http.Response
-			)
+			var resp *http.Response
 
 			go func() {
 				defer wg.Done()
