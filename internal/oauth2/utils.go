@@ -68,6 +68,9 @@ func (c Client) getNonce(id string) string {
 	return hex.EncodeToString(nonce.Sum(nil))
 }
 
+// OAuthConfig returns the underlying [oauth2.Config] used by the relying party.
+// It is primarily exposed for tests that need direct access to the client
+// configuration.
 func (c Client) OAuthConfig() *oauth2.Config {
 	return c.relyingParty.OAuthConfig()
 }
