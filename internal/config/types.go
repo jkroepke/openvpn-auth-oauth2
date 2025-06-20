@@ -142,6 +142,8 @@ const (
 	CommonNameModeOmitValue = "-"
 )
 
+// String returns the string representation of the common name mode.
+//
 //goland:noinspection GoMixedReceiverTypes
 func (s OpenVPNCommonNameMode) String() string {
 	text, err := s.MarshalText()
@@ -152,6 +154,8 @@ func (s OpenVPNCommonNameMode) String() string {
 	return string(text)
 }
 
+// MarshalText implements the [encoding.TextMarshaler] interface.
+//
 //goland:noinspection GoMixedReceiverTypes
 func (s OpenVPNCommonNameMode) MarshalText() ([]byte, error) {
 	switch s {
@@ -164,6 +168,8 @@ func (s OpenVPNCommonNameMode) MarshalText() ([]byte, error) {
 	}
 }
 
+// UnmarshalText implements the [encoding.TextUnmarshaler] interface.
+//
 //goland:noinspection GoMixedReceiverTypes
 func (s *OpenVPNCommonNameMode) UnmarshalText(text []byte) error {
 	config := strings.ToLower(string(text))
@@ -181,6 +187,8 @@ func (s *OpenVPNCommonNameMode) UnmarshalText(text []byte) error {
 
 type OAuth2AuthStyle oauth2.AuthStyle
 
+// String returns the string representation of the auth style.
+//
 //goland:noinspection GoMixedReceiverTypes
 func (s OAuth2AuthStyle) String() string {
 	text, err := s.MarshalText()
@@ -191,11 +199,15 @@ func (s OAuth2AuthStyle) String() string {
 	return string(text)
 }
 
+// AuthStyle converts the wrapper type to [oauth2.AuthStyle].
+//
 //goland:noinspection GoMixedReceiverTypes
 func (s OAuth2AuthStyle) AuthStyle() oauth2.AuthStyle {
 	return oauth2.AuthStyle(s)
 }
 
+// MarshalText implements the [encoding.TextMarshaler] interface.
+//
 //goland:noinspection GoMixedReceiverTypes
 func (s OAuth2AuthStyle) MarshalText() ([]byte, error) {
 	switch s {
@@ -210,6 +222,8 @@ func (s OAuth2AuthStyle) MarshalText() ([]byte, error) {
 	}
 }
 
+// UnmarshalText implements the [encoding.TextUnmarshaler] interface.
+//
 //goland:noinspection GoMixedReceiverTypes
 func (s *OAuth2AuthStyle) UnmarshalText(text []byte) error {
 	switch strings.ToLower(string(text)) {
