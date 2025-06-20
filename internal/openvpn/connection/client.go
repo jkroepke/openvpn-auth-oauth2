@@ -22,6 +22,13 @@ type Client struct {
 	UsernameIsDefined int
 }
 
+// NewClient parses a multi-line message from the OpenVPN management interface
+// and returns the extracted information. The message contains several
+// `>CLIENT:` records separated by CRLF. Each line is inspected to collect the
+// connection reason with its CID/KID and to read environment variables such as
+// untrusted IP address, port and session identifiers. Unsupported or empty
+// environment lines are ignored. If no valid reason line is found,
+// ErrParseErrorClientReason is returned.
 func NewClient(conf config.Config, message string) (Client, error) { //nolint:cyclop
 	client := Client{}
 
