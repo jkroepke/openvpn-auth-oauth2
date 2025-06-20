@@ -9,6 +9,17 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 )
 
+// New returns a ServeMux with all HTTP endpoints for the management listener.
+//
+// The handlers are mounted under the base path from conf.HTTP.BaseURL and
+// register the following routes:
+//   - GET <basePath>/ready           readiness probe responding with "OK".
+//   - GET <basePath>/assets/*        serves embedded or custom static files.
+//   - GET <basePath>/oauth2/start    initiates the OAuth2 login flow.
+//   - GET <basePath>/oauth2/callback handles the OAuth2 redirect.
+// All other paths respond with 404 via http.NotFoundHandler.
+// The returned mux can be passed to an HTTP server directly.
+
 func New(conf config.Config, oAuth2Client *oauth2.Client) *http.ServeMux {
 	basePath := strings.TrimSuffix(conf.HTTP.BaseURL.Path, "/")
 
