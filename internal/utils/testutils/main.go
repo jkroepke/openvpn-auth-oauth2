@@ -139,9 +139,11 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener, logger *slo
 ) {
 	tb.Helper()
 
+	clientSecret := Secret
+
 	client := oidcstorage.WebClient(
 		clientListener.Addr().String(),
-		"SECRET",
+		clientSecret,
 		fmt.Sprintf("http://%s/oauth2/callback", clientListener.Addr().String()),
 		fmt.Sprintf("https://%s/oauth2/callback", clientListener.Addr().String()),
 	)
@@ -154,7 +156,7 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener, logger *slo
 
 	if opConfig == nil {
 		opConfig = &op.Config{
-			CryptoKey:                sha256.Sum256([]byte("test")),
+			CryptoKey:                sha256.Sum256([]byte(Secret)),
 			DefaultLogoutRedirectURI: "/",
 			CodeMethodS256:           true,
 			AuthMethodPost:           true,
@@ -196,7 +198,7 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener, logger *slo
 		return nil, types.URL{}, config.OAuth2Client{}, err //nolint:wrapcheck
 	}
 
-	return resourceServer, resourceServerURL, config.OAuth2Client{ID: client.GetID(), Secret: "SECRET"}, nil
+	return resourceServer, resourceServerURL, config.OAuth2Client{ID: client.GetID(), Secret: types.Secret(clientSecret)}, nil
 }
 
 // SetupMockEnvironment sets up an OpenVPN management interface and a mock OIDC
