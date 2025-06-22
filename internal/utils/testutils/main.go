@@ -41,6 +41,11 @@ const (
 	Secret   = "0123456789101112"
 )
 
+var (
+	HashSecret         = sha256.Sum256([]byte(Secret))
+	SupportedUILocales = []language.Tag{language.English}
+)
+
 // ExpectVersionAndReleaseHold performs the initial handshake with the mocked
 // management interface. It checks for a version query and hold release.
 func ExpectVersionAndReleaseHold(tb testing.TB, conn net.Conn, reader *bufio.Reader) {
@@ -156,14 +161,14 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener, logger *slo
 
 	if opConfig == nil {
 		opConfig = &op.Config{
-			CryptoKey:                sha256.Sum256([]byte(Secret)),
+			CryptoKey:                HashSecret,
 			DefaultLogoutRedirectURI: "/",
 			CodeMethodS256:           true,
 			AuthMethodPost:           true,
 			AuthMethodPrivateKeyJWT:  true,
 			GrantTypeRefreshToken:    true,
 			RequestObjectSupported:   true,
-			SupportedUILocales:       []language.Tag{language.English},
+			SupportedUILocales:       SupportedUILocales,
 			SupportedScopes:          []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile, oauth2types.ScopeOfflineAccess},
 		}
 	}

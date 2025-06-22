@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -26,7 +25,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 	"github.com/zitadel/oidc/v3/pkg/op"
-	"golang.org/x/text/language"
 )
 
 func TestRefreshReAuth(t *testing.T) {
@@ -175,14 +173,15 @@ func TestRefreshReAuth(t *testing.T) {
 			}(),
 			rt: http.DefaultTransport,
 			opConf: &op.Config{
-				CryptoKey:                sha256.Sum256([]byte("test")),
+				CryptoKey:                testutils.HashSecret,
 				DefaultLogoutRedirectURI: "/",
 				CodeMethodS256:           true,
 				AuthMethodPost:           true,
 				AuthMethodPrivateKeyJWT:  true,
 				GrantTypeRefreshToken:    false,
 				RequestObjectSupported:   true,
-				SupportedUILocales:       []language.Tag{language.English},
+				SupportedUILocales:       testutils.SupportedUILocales,
+				SupportedScopes:          []string{types.ScopeOpenID, types.ScopeProfile, types.ScopeOfflineAccess},
 			},
 		},
 		{
