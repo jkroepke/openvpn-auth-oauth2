@@ -19,7 +19,7 @@ import (
 func BenchmarkFull(b *testing.B) {
 	b.StopTimer()
 
-	_, client, managementInterface, _, _, httpClient, _ := testutils.SetupMockEnvironment(b.Context(), b, config.Config{}, nil)
+	_, client, managementInterface, _, _, httpClient, _ := testutils.SetupMockEnvironment(b.Context(), b, config.Config{}, nil, nil)
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)

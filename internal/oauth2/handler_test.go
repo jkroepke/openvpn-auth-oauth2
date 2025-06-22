@@ -13,6 +13,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
+	oauth2types "github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/stretchr/testify/require"
@@ -38,7 +39,7 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.Check.IPAddr = false
 				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
-				conf.OAuth2.Scopes = []string{"openid", "profile"}
+				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OAuth2.Validate.Groups = make([]string, 0)
 				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
@@ -62,7 +63,7 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.Check.IPAddr = false
 				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
-				conf.OAuth2.Scopes = []string{"openid", "profile"}
+				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OAuth2.Validate.Groups = make([]string, 0)
 				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
@@ -86,7 +87,7 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.Check.IPAddr = false
 				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
-				conf.OAuth2.Scopes = []string{"openid", "profile"}
+				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OAuth2.Validate.Acr = []string{"phr"}
 				conf.OAuth2.Validate.Groups = make([]string, 0)
 				conf.OAuth2.Validate.Roles = make([]string, 0)
@@ -117,7 +118,7 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.Template = tmpl
 				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
-				conf.OAuth2.Scopes = []string{"openid", "profile"}
+				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OAuth2.Validate.Groups = make([]string, 0)
 				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
@@ -141,7 +142,7 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.Check.IPAddr = true
 				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
-				conf.OAuth2.Scopes = []string{"openid", "profile"}
+				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OAuth2.Validate.Groups = make([]string, 0)
 				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
@@ -166,7 +167,7 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.EnableProxyHeaders = true
 				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
-				conf.OAuth2.Scopes = []string{"openid", "profile"}
+				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OAuth2.Validate.Groups = make([]string, 0)
 				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
@@ -191,7 +192,7 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.EnableProxyHeaders = false
 				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
-				conf.OAuth2.Scopes = []string{"openid", "profile"}
+				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OAuth2.Validate.Groups = make([]string, 0)
 				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
@@ -216,7 +217,7 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.EnableProxyHeaders = true
 				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
-				conf.OAuth2.Scopes = []string{"openid", "profile"}
+				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OAuth2.Validate.Groups = make([]string, 0)
 				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
@@ -241,7 +242,7 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.EnableProxyHeaders = true
 				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
-				conf.OAuth2.Scopes = []string{"openid", "profile"}
+				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OAuth2.Validate.Groups = make([]string, 0)
 				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
@@ -274,7 +275,7 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.EnableProxyHeaders = true
 				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
-				conf.OAuth2.Scopes = []string{"openid", "profile"}
+				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OAuth2.Validate.Groups = make([]string, 0)
 				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
@@ -303,7 +304,7 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.EnableProxyHeaders = true
 				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
-				conf.OAuth2.Scopes = []string{"openid", "profile"}
+				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OAuth2.Validate.Groups = make([]string, 0)
 				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
@@ -328,7 +329,7 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.EnableProxyHeaders = true
 				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
-				conf.OAuth2.Scopes = []string{"openid", "profile"}
+				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OAuth2.Validate.Groups = make([]string, 0)
 				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
@@ -351,7 +352,7 @@ func TestHandler(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
 
-			conf, openVPNClient, managementInterface, _, httpClientListener, httpClient, logger := testutils.SetupMockEnvironment(ctx, t, tc.conf, nil)
+			conf, openVPNClient, managementInterface, _, httpClientListener, httpClient, logger := testutils.SetupMockEnvironment(ctx, t, tc.conf, nil, nil)
 
 			managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
 			require.NoError(t, err)

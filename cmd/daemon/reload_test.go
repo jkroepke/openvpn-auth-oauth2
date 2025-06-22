@@ -29,7 +29,7 @@ func TestReload(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, httpListener.Close())
 
-	resourceServer, _, clientCredentials, err := testutils.SetupResourceServer(t, httpListener, nil)
+	resourceServer, _, clientCredentials, err := testutils.SetupResourceServer(t, httpListener, nil, nil)
 	require.NoError(t, err)
 
 	buf := new(testutils.SyncBuffer)
