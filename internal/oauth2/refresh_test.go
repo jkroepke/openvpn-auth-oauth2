@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -24,6 +25,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
+	"github.com/zitadel/oidc/v3/pkg/op"
+	"golang.org/x/text/language"
 )
 
 func TestRefreshReAuth(t *testing.T) {
@@ -37,6 +40,7 @@ func TestRefreshReAuth(t *testing.T) {
 		nonInteractiveShouldWork bool
 		conf                     config.Config
 		rt                       http.RoundTripper
+		opConf                   *op.Config
 	}{
 		{
 			name:                     "Refresh",
@@ -158,6 +162,30 @@ func TestRefreshReAuth(t *testing.T) {
 			rt: http.DefaultTransport,
 		},
 		{
+			name:                     "Refresh without server support",
+			clientCommonName:         "test",
+			nonInteractiveShouldWork: false,
+			conf: func() config.Config {
+				conf := config.Defaults
+				conf.OAuth2.Refresh.Enabled = true
+				conf.OAuth2.Refresh.ValidateUser = true
+				conf.OAuth2.Refresh.UseSessionID = false
+
+				return conf
+			}(),
+			rt: http.DefaultTransport,
+			opConf: &op.Config{
+				CryptoKey:                sha256.Sum256([]byte("test")),
+				DefaultLogoutRedirectURI: "/",
+				CodeMethodS256:           true,
+				AuthMethodPost:           true,
+				AuthMethodPrivateKeyJWT:  true,
+				GrantTypeRefreshToken:    false,
+				RequestObjectSupported:   true,
+				SupportedUILocales:       []language.Tag{language.English},
+			},
+		},
+		{
 			name:                     "Refresh with failed non-interactive authentication",
 			clientCommonName:         "test",
 			nonInteractiveShouldWork: false,
@@ -261,7 +289,7 @@ func TestRefreshReAuth(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
 
-			conf, openVPNClient, managementInterface, _, _, httpClient, logger := testutils.SetupMockEnvironment(ctx, t, tc.conf, tc.rt)
+			conf, openVPNClient, managementInterface, _, _, httpClient, logger := testutils.SetupMockEnvironment(ctx, t, tc.conf, tc.rt, tc.opConf)
 
 			managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
 			require.NoError(t, err)

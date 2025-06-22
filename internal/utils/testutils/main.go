@@ -133,7 +133,7 @@ func ReadLine(tb testing.TB, conn net.Conn, reader *bufio.Reader) string {
 }
 
 // SetupResourceServer starts a minimal OIDC server used for integration tests.
-func SetupResourceServer(tb testing.TB, clientListener net.Listener, logger *slog.Logger) (*httptest.Server, types.URL, config.OAuth2Client, error) {
+func SetupResourceServer(tb testing.TB, clientListener net.Listener, logger *slog.Logger, opConfig *op.Config) (*httptest.Server, types.URL, config.OAuth2Client, error) {
 	tb.Helper()
 
 	client := oidcstorage.WebClient(
@@ -148,15 +148,17 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener, logger *slo
 	}
 
 	opStorage := oidcstorage.NewStorageWithClients(oidcstorage.NewUserStore("http://localhost"), clients)
-	opConfig := &op.Config{
-		CryptoKey:                sha256.Sum256([]byte("test")),
-		DefaultLogoutRedirectURI: "/",
-		CodeMethodS256:           true,
-		AuthMethodPost:           true,
-		AuthMethodPrivateKeyJWT:  true,
-		GrantTypeRefreshToken:    true,
-		RequestObjectSupported:   true,
-		SupportedUILocales:       []language.Tag{language.English},
+	if opConfig == nil {
+		opConfig = &op.Config{
+			CryptoKey:                sha256.Sum256([]byte("test")),
+			DefaultLogoutRedirectURI: "/",
+			CodeMethodS256:           true,
+			AuthMethodPost:           true,
+			AuthMethodPrivateKeyJWT:  true,
+			GrantTypeRefreshToken:    true,
+			RequestObjectSupported:   true,
+			SupportedUILocales:       []language.Tag{language.English},
+		}
 	}
 
 	opOpts := make([]op.Option, 0, 2)
@@ -195,7 +197,7 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener, logger *slo
 // SetupMockEnvironment sets up an OpenVPN management interface and a mock OIDC
 // provider. It returns the adjusted configuration and helper instances used in
 // tests.
-func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config, rt http.RoundTripper) (
+func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config, rt http.RoundTripper, opConf *op.Config) (
 	config.Config, *openvpn.Client, net.Listener, *oauth2.Client, *httptest.Server, *http.Client, *Logger,
 ) {
 	tb.Helper()
@@ -213,7 +215,7 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 	clientListener, err := nettest.NewLocalListener("tcp")
 	require.NoError(tb, err)
 
-	_, resourceServerURL, clientCredentials, err := SetupResourceServer(tb, clientListener, logger.Logger)
+	_, resourceServerURL, clientCredentials, err := SetupResourceServer(tb, clientListener, logger.Logger, opConf)
 	require.NoError(tb, err)
 
 	conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: clientListener.Addr().String()}}
