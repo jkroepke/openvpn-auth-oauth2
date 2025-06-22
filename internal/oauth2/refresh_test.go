@@ -160,6 +160,31 @@ func TestRefreshReAuth(t *testing.T) {
 			rt: http.DefaultTransport,
 		},
 		{
+			name:                     "Refresh without server support",
+			clientCommonName:         "test",
+			nonInteractiveShouldWork: false,
+			conf: func() config.Config {
+				conf := config.Defaults
+				conf.OAuth2.Refresh.Enabled = true
+				conf.OAuth2.Refresh.ValidateUser = true
+				conf.OAuth2.Refresh.UseSessionID = false
+
+				return conf
+			}(),
+			rt: http.DefaultTransport,
+			opConf: &op.Config{
+				CryptoKey:                testutils.HashSecret,
+				DefaultLogoutRedirectURI: "/",
+				CodeMethodS256:           true,
+				AuthMethodPost:           true,
+				AuthMethodPrivateKeyJWT:  true,
+				GrantTypeRefreshToken:    false,
+				RequestObjectSupported:   true,
+				SupportedUILocales:       testutils.SupportedUILocales,
+				SupportedScopes:          []string{types.ScopeOpenID, types.ScopeProfile, types.ScopeOfflineAccess},
+			},
+		},
+		{
 			name:                     "Refresh with failed non-interactive authentication",
 			clientCommonName:         "test",
 			nonInteractiveShouldWork: false,

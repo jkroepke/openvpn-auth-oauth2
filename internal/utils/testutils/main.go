@@ -25,7 +25,6 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/github"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/google"
-	oauth2types "github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
@@ -170,7 +169,7 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener, logger *slo
 			GrantTypeRefreshToken:    true,
 			RequestObjectSupported:   true,
 			SupportedUILocales:       SupportedUILocales,
-			SupportedScopes:          []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile, oauth2types.ScopeOfflineAccess},
+			// SupportedScopes:          []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile, oauth2types.ScopeOfflineAccess},
 		}
 	}
 
