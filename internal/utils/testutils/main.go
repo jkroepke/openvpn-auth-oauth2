@@ -25,6 +25,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/github"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/google"
+	oauth2types "github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
@@ -133,7 +134,9 @@ func ReadLine(tb testing.TB, conn net.Conn, reader *bufio.Reader) string {
 }
 
 // SetupResourceServer starts a minimal OIDC server used for integration tests.
-func SetupResourceServer(tb testing.TB, clientListener net.Listener, logger *slog.Logger, opConfig *op.Config) (*httptest.Server, types.URL, config.OAuth2Client, error) {
+func SetupResourceServer(tb testing.TB, clientListener net.Listener, logger *slog.Logger, opConfig *op.Config) (
+	*httptest.Server, types.URL, config.OAuth2Client, error,
+) {
 	tb.Helper()
 
 	client := oidcstorage.WebClient(
@@ -148,6 +151,7 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener, logger *slo
 	}
 
 	opStorage := oidcstorage.NewStorageWithClients(oidcstorage.NewUserStore("http://localhost"), clients)
+
 	if opConfig == nil {
 		opConfig = &op.Config{
 			CryptoKey:                sha256.Sum256([]byte("test")),
@@ -158,6 +162,7 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener, logger *slo
 			GrantTypeRefreshToken:    true,
 			RequestObjectSupported:   true,
 			SupportedUILocales:       []language.Tag{language.English},
+			SupportedScopes:          []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile, oauth2types.ScopeOfflineAccess},
 		}
 	}
 

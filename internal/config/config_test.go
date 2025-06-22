@@ -13,6 +13,7 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
+	oauth2types "github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/oauth2"
@@ -227,7 +228,7 @@ http:
 					},
 					Nonce:     true,
 					PKCE:      true,
-					Scopes:    []string{"openid", "profile"},
+					Scopes:    []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile},
 					AuthStyle: config.OAuth2AuthStyle(oauth2.AuthStyleInHeader),
 					Refresh: config.OAuth2Refresh{
 						Enabled:      true,
