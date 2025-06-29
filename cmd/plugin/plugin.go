@@ -132,9 +132,16 @@ func openvpn_plugin_func_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_
 		return C.OPENVPN_PLUGIN_FUNC_ERROR
 	}
 
-	client := NewClient(unsafe.Pointer(args.envp))
+	client, err := NewClient(unsafe.Pointer(args.envp))
+	if err != nil {
+		handle.logger.Error(fmt.Errorf("create client: %w", err).Error())
+		return C.OPENVPN_PLUGIN_FUNC_ERROR
+	}
 
-	handle.managementClient.SendClient(client)
+	if err := handle.managementClient.SendClient(client); err != nil {
+		handle.logger.Error(fmt.Errorf("send client to management interface: %w", err).Error())
+		return C.OPENVPN_PLUGIN_FUNC_ERROR
+	}
 
 	if err := os.WriteFile(client.AuthPendingFile, []byte(pendingAuth), 0o600); err != nil {
 		handle.logger.Error(fmt.Errorf("write to file %s: %w", client.AuthPendingFile, err).Error())
