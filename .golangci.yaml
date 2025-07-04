@@ -8,7 +8,7 @@ linters:
     - funlen
     - ireturn
     - mnd
-    - nolintlint
+    - noinlineerr
     - recvcheck
   settings:
     forbidigo:
