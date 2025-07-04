@@ -111,7 +111,9 @@ linters:
         - name: var-declaration
         - name: var-naming
           arguments:
-            skip-package-name-checks: false
+            - [] # AllowList - do not remove as args for the rule are positional and won't work without lists first
+            - [] # DenyList
+            - - skip-package-name-checks: true
         - name: waitgroup-by-value
     sloglint:
       no-mixed-args: true
