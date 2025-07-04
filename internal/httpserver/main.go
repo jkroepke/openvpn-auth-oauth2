@@ -64,8 +64,7 @@ func (s *Server) Listen(ctx context.Context) error {
 	errCh := make(chan error, 1)
 
 	if s.conf.TLS {
-		err := s.Reload()
-		if err != nil {
+		if err := s.Reload(); err != nil {
 			return err
 		}
 
@@ -86,16 +85,14 @@ func (s *Server) Listen(ctx context.Context) error {
 	case <-ctx.Done():
 		s.logger.LogAttrs(ctx, slog.LevelInfo, fmt.Sprintf("start graceful shutdown of http %s listener", s.name))
 
-		err := s.shutdown()
-		if err != nil && !errors.Is(err, context.Canceled) { //nolint:contextcheck
+		if err := s.shutdown(); err != nil && !errors.Is(err, context.Canceled) { //nolint:contextcheck
 			s.logger.LogAttrs(ctx, slog.LevelError, fmt.Errorf("error graceful shutdown %s: %w", s.name, err).Error())
 
 			return nil
 		}
 
 		// Wait for the server to finish serving
-		err = <-errCh
-		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+		if err := <-errCh; err != nil && !errors.Is(err, http.ErrServerClosed) {
 			s.logger.LogAttrs(ctx, slog.LevelError, fmt.Errorf("error during shutdown of http %s listener: %w", s.name, err).Error())
 
 			return fmt.Errorf("error during shutdown of http %s listener: %w", s.name, err)
@@ -173,8 +170,7 @@ func (s *Server) serve(ctx context.Context) error {
 			"start HTTPS %s listener on %s", s.name, listener.Addr().String(),
 		))
 
-		err = s.server.ServeTLS(listener, "", "")
-		if err != nil {
+		if err = s.server.ServeTLS(listener, "", ""); err != nil {
 			return fmt.Errorf("http.ServeTLS: %w", err)
 		}
 
