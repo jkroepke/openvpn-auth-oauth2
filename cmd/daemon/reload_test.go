@@ -169,6 +169,7 @@ func TestReload(t *testing.T) {
 	require.Equal(t, http.StatusOK, resp.StatusCode, buf.String())
 
 	termCh <- syscall.SIGHUP
+
 	termCh <- syscall.SIGUSR1
 
 	managementInterfaceConn, err = managementInterface.Accept()

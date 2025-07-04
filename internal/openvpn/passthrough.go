@@ -79,6 +79,7 @@ func (c *Client) handlePassThrough(ctx context.Context, errCh chan<- error) {
 				}
 
 				connMu.Lock()
+
 				if conn == nil || c.passThroughConnected.Load() == 0 {
 					connMu.Unlock()
 
@@ -115,7 +116,9 @@ func (c *Client) handlePassThrough(ctx context.Context, errCh chan<- error) {
 		c.passThroughConnected.Store(0)
 
 		connMu.Lock()
+
 		conn = nil
+
 		connMu.Unlock()
 	}
 }

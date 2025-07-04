@@ -65,7 +65,6 @@ func (p Provider) getTeams(ctx context.Context, tokens *oidc.Tokens[*idtoken.Cla
 			teams []teamType
 			err   error
 		)
-
 		if apiURL, err = get[[]teamType](ctx, p.httpClient, tokens.AccessToken, apiURL, &teams); err != nil {
 			return nil, err
 		}
@@ -97,7 +96,6 @@ func (p Provider) getOrganizations(ctx context.Context, tokens *oidc.Tokens[*idt
 			orgs []orgType
 			err  error
 		)
-
 		if apiURL, err = get[[]orgType](ctx, p.httpClient, tokens.AccessToken, apiURL, &orgs); err != nil {
 			return nil, err
 		}

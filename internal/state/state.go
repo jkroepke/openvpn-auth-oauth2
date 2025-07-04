@@ -193,7 +193,6 @@ func splitStateFields(data []byte) ([][]byte, error) {
 // Helper to parse all fields into the State struct.
 func parseStateFields(state *State, fields [][]byte) error {
 	var err error
-
 	if state.Client.CID, err = strconv.ParseUint(string(fields[1]), 10, 64); err != nil {
 		return fmt.Errorf("parse CID: %w", err)
 	}
