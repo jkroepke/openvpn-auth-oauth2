@@ -10,6 +10,7 @@ linters:
     - mnd
     - noinlineerr
     - recvcheck
+    - wsl
   settings:
     forbidigo:
       forbid:
@@ -109,6 +110,9 @@ linters:
         - name: unused-parameter
         - name: var-declaration
         - name: var-naming
+          arguments:
+            - - skip-package-name-checks: false
+        - name: while
         - name: waitgroup-by-value
     sloglint:
       no-mixed-args: true

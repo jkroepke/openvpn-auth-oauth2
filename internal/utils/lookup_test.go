@@ -31,7 +31,6 @@ func TestLookupGroup(t *testing.T) {
 			t.Parallel()
 
 			got, err := utils.LookupGroup(tt.name)
-
 			if tt.err != nil {
 				require.Error(t, err)
 				require.Equal(t, tt.err, err)

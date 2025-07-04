@@ -128,7 +128,6 @@ func ReadLine(tb testing.TB, conn net.Conn, reader *bufio.Reader) string {
 	require.NoError(tb, err)
 
 	line, err := reader.ReadString('\n')
-
 	if err != nil && !errors.Is(err, io.EOF) {
 		require.NoError(tb, err)
 	}
