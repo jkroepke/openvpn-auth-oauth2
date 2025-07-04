@@ -112,7 +112,6 @@ linters:
         - name: var-naming
           arguments:
             - - skip-package-name-checks: false
-        - name: while
         - name: waitgroup-by-value
     sloglint:
       no-mixed-args: true
