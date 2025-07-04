@@ -67,6 +67,7 @@ func (s *InMemory) Set(client, token string) error {
 // If the token is expired or does not exist, an error is returned.
 func (s *InMemory) Get(client string) (string, error) {
 	s.mu.RLock()
+
 	if s.data == nil {
 		s.mu.RUnlock()
 

@@ -254,6 +254,7 @@ http:
 			t.Parallel()
 
 			var buf bytes.Buffer
+
 			_ = io.Writer(&buf)
 
 			file, err := os.CreateTemp(t.TempDir(), "openvpn-auth-oauth2-*")
@@ -284,6 +285,7 @@ func TestConfigHelpFlag(t *testing.T) {
 	t.Parallel()
 
 	var buf bytes.Buffer
+
 	_ = io.Writer(&buf)
 
 	_, err := config.New([]string{"openvpn-auth-oauth2", "--help"}, &buf)
@@ -295,6 +297,7 @@ func TestConfigVersionFlag(t *testing.T) {
 	t.Parallel()
 
 	var buf bytes.Buffer
+
 	_ = io.Writer(&buf)
 
 	_, err := config.New([]string{"openvpn-auth-oauth2", "--version"}, &buf)
@@ -358,6 +361,7 @@ func TestConfigFlagSet(t *testing.T) {
 			t.Parallel()
 
 			var buf bytes.Buffer
+
 			_ = io.Writer(&buf)
 
 			conf, err := config.New(slices.Concat([]string{"openvpn-auth-oauth2"}, tt.args), &buf)

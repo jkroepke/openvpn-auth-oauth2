@@ -424,6 +424,7 @@ func TestHandler(t *testing.T) {
 
 			go func() {
 				var err error
+
 				resp, err = httpClient.Do(request) //nolint:bodyclose
 				reqErrCh <- err
 			}()
@@ -473,6 +474,7 @@ func TestHandler(t *testing.T) {
 
 			go func() {
 				var err error
+
 				resp, err = httpClient.Do(request) //nolint:bodyclose
 				reqErrCh <- err
 			}()

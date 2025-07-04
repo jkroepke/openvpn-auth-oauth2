@@ -9,6 +9,7 @@ import (
 
 type FS struct {
 	fs.FS
+
 	path string
 }
 

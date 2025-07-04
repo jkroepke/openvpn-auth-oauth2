@@ -9,6 +9,7 @@ import (
 
 type Template struct {
 	*template.Template
+
 	path string
 }
 

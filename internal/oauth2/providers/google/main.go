@@ -13,6 +13,7 @@ const Name = "google"
 
 type Provider struct {
 	*generic.Provider
+
 	httpClient *http.Client
 }
 

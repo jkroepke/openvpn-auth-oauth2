@@ -9,8 +9,10 @@ import (
 
 //nolint:tagliatelle
 type Claims struct {
-	Claims map[string]any `json:"-"`
 	oidc.TokenClaims
+
+	Claims map[string]any `json:"-"`
+
 	PreferredUsername string   `json:"preferred_username,omitempty"`
 	AccessTokenHash   string   `json:"at_hash,omitempty"`
 	IPAddr            string   `json:"ipaddr,omitempty"`
