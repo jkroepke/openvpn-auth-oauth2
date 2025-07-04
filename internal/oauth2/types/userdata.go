@@ -12,6 +12,7 @@ type UserData struct {
 
 type ProviderConfig struct {
 	oauth2.Endpoint
+
 	AuthCodeOptions []oauth2.AuthCodeOption
 	Scopes          []string
 }
