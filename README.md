@@ -51,6 +51,13 @@ For information on the OpenVPN version requirements, please refer to the [OpenVP
 
 This project is licensed under the [MIT License](LICENSE.txt).
 
+## Open Source Sponsors
+
+Thanks to all sponsors!
+
+* [@hegawa](https://github.com/hegawa) (25$) onetime
+* [@Zero-Down-Time](https://github.com/Zero-Down-Time) (25$) onetime
+
 ## Acknowledgements
 
 Thanks to JetBrains IDEs and Sparklabs for their support.
@@ -67,7 +74,10 @@ Thanks to JetBrains IDEs and Sparklabs for their support.
       <td>
         <center>
           <a href="https://www.jetbrains.com/?from=jkroepke">
-            <img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jetbrains.svg" alt="JetBrains-Logo (Haupt) logo" height="100px">
+            <picture>
+              <source srcset="https://www.jetbrains.com/company/brand/img/logo_jb_dos_3.svg" media="(prefers-color-scheme: dark)">
+              <img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jetbrains.svg">
+            </picture>
           </a>
         </center>
       </td>
