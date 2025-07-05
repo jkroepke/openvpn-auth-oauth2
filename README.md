@@ -84,7 +84,7 @@ Thanks to JetBrains IDEs and Sparklabs for their support.
       <td>
         <center>
           <a href="https://www.sparklabs.com/viscosity">
-            <img src="https://www.sparklabs.com/static/other/logo_assets/logo_cropped.png" alt="Sparklabs Viscosity logo" height="50px">
+            <img src="https://www.sparklabs.com/static/other/logo_assets/logo_cropped.png" alt="Sparklabs Viscosity logo" style="height: 100px">
           </a>
         </center>
       </td>
