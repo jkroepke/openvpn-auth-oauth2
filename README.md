@@ -76,7 +76,7 @@ Thanks to JetBrains IDEs and Sparklabs for their support.
           <a href="https://www.jetbrains.com/?from=jkroepke">
             <picture>
               <source srcset="https://www.jetbrains.com/company/brand/img/logo_jb_dos_3.svg" media="(prefers-color-scheme: dark)">
-              <img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jetbrains.svg" style="height: 100px">
+              <img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jetbrains.svg" style="height: 50px">
             </picture>
           </a>
         </center>
