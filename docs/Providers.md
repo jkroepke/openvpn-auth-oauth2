@@ -103,10 +103,13 @@ To require multiple groups, define `CONFIG_OAUTH2_VALIDATE_GROUPS`.
 
 ### Restrict auth to specific Google Groups in your domain. (optional)
 
+> [!IMPORTANT]
+> For `oauth2.validate.groups`, you have to set the IDs of the groups, not the names.
+
 1. Navigate to the [Google Cloud Identity API](https://console.cloud.google.com/apis/api/cloudidentity.googleapis.com/) page and click on the "Enable API" button.
 2. Access the [Google Admin Portal](https://admin.google.com/ac/groups) and locate the group that is required for the `openvpn-auth-oauth2` authorization.
-3. The URL of the group page should follow this pattern: `https://admin.google.com/ac/groups/<ID>`. Replace `<ID>` with the actual ID of the group. Make sure to copy this ID for future use. If there are multiple groups, repeat this step for each one.
-4. Insert the copied ID(s) into the `CONFIG_OAUTH2_VALIDATE_GROUPS` configuration setting in your `openvpn-auth-oauth2` setup.
+3. The URL of the group page should follow this pattern: `https://admin.google.com/ac/groups/<ID>`. Replace `<ID>` with the ID of the group. Make sure to copy this ID for future use. If there are multiple groups, repeat this step for each one.
+4. Insert the copied IDs into the `CONFIG_OAUTH2_VALIDATE_GROUPS` configuration setting in your `openvpn-auth-oauth2` setup.
 5. **Optional**: If oauth2 scopes are set in the configuration, the `https://www.googleapis.com/auth/cloud-identity.groups.readonly` scope is required for group validation.
 
 ### Configuration
