@@ -129,8 +129,8 @@ func TestNewProvider(t *testing.T) {
 			},
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			ctx, cancel := context.WithCancel(t.Context())
@@ -143,38 +143,38 @@ func TestNewProvider(t *testing.T) {
 				provider oauth2.Provider
 			)
 
-			switch tt.conf.OAuth2.Provider {
+			switch tc.conf.OAuth2.Provider {
 			case generic.Name:
-				provider, err = generic.NewProvider(ctx, tt.conf, http.DefaultClient)
+				provider, err = generic.NewProvider(ctx, tc.conf, http.DefaultClient)
 			case github.Name:
-				provider, err = github.NewProvider(ctx, tt.conf, http.DefaultClient)
+				provider, err = github.NewProvider(ctx, tc.conf, http.DefaultClient)
 			case google.Name:
-				provider, err = google.NewProvider(ctx, tt.conf, http.DefaultClient)
+				provider, err = google.NewProvider(ctx, tc.conf, http.DefaultClient)
 			default:
-				t.Fatal("unknown oauth2 provider: " + tt.conf.OAuth2.Provider)
+				t.Fatal("unknown oauth2 provider: " + tc.conf.OAuth2.Provider)
 			}
 
 			require.NoError(t, err)
 
-			oAuth2Client, err := oauth2.New(ctx, logger.Logger, tt.conf, http.DefaultClient, testutils.NewFakeStorage(), provider, testutils.NewFakeOpenVPNClient())
-			if tt.err != "" {
+			oAuth2Client, err := oauth2.New(ctx, logger.Logger, tc.conf, http.DefaultClient, testutils.NewFakeStorage(), provider, testutils.NewFakeOpenVPNClient())
+			if tc.err != "" {
 				require.Error(t, err)
-				assert.Equal(t, tt.err, strings.TrimSpace(err.Error()))
+				assert.Equal(t, tc.err, strings.TrimSpace(err.Error()))
 
 				return
 			}
 
-			assert.Equal(t, oAuth2Client.OAuthConfig().ClientID, tt.conf.OAuth2.Client.ID)
-			assert.Equal(t, oAuth2Client.OAuthConfig().ClientSecret, tt.conf.OAuth2.Client.Secret.String())
+			assert.Equal(t, oAuth2Client.OAuthConfig().ClientID, tc.conf.OAuth2.Client.ID)
+			assert.Equal(t, oAuth2Client.OAuthConfig().ClientSecret, tc.conf.OAuth2.Client.Secret.String())
 
-			if !tt.conf.OAuth2.Endpoints.Auth.IsEmpty() {
-				assert.Equal(t, oAuth2Client.OAuthConfig().Endpoint.AuthURL, tt.conf.OAuth2.Endpoints.Auth.String())
+			if !tc.conf.OAuth2.Endpoints.Auth.IsEmpty() {
+				assert.Equal(t, oAuth2Client.OAuthConfig().Endpoint.AuthURL, tc.conf.OAuth2.Endpoints.Auth.String())
 			} else {
 				assert.NotEmpty(t, oAuth2Client.OAuthConfig().Endpoint.AuthURL)
 			}
 
-			if !tt.conf.OAuth2.Endpoints.Token.IsEmpty() {
-				assert.Equal(t, oAuth2Client.OAuthConfig().Endpoint.TokenURL, tt.conf.OAuth2.Endpoints.Token.String())
+			if !tc.conf.OAuth2.Endpoints.Token.IsEmpty() {
+				assert.Equal(t, oAuth2Client.OAuthConfig().Endpoint.TokenURL, tc.conf.OAuth2.Endpoints.Token.String())
 			} else {
 				assert.NotEmpty(t, oAuth2Client.OAuthConfig().Endpoint.TokenURL)
 			}

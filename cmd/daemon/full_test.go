@@ -69,9 +69,9 @@ func TestFull(t *testing.T) {
 			if tc.conf.HTTP.TLS {
 				protocol = "https"
 
-				ca := testcerts.NewCA()
+				certificateAuthority := testcerts.NewCA()
 
-				keyPair, err := ca.NewKeyPair()
+				keyPair, err := certificateAuthority.NewKeyPair()
 				require.NoError(t, err)
 
 				certFile, keyFile, err := keyPair.ToTempFile(t.TempDir())
@@ -80,7 +80,7 @@ func TestFull(t *testing.T) {
 				cert = certFile.Name()
 				key = keyFile.Name()
 
-				httpTransport.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12, RootCAs: ca.CertPool()}
+				httpTransport.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12, RootCAs: certificateAuthority.CertPool()}
 			}
 
 			httpClient := &http.Client{Transport: utils.NewUserAgentTransport(httpTransport)}

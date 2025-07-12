@@ -104,8 +104,8 @@ func TestExecuteConfigInvalid(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			managementInterface, err := nettest.NewLocalListener("tcp")
@@ -116,11 +116,11 @@ func TestExecuteConfigInvalid(t *testing.T) {
 			})
 
 			logger := testutils.NewTestLogger()
-			returnCode := daemon.Execute(append(tt.args, "--openvpn.addr=tcp://"+managementInterface.Addr().String()), logger, make(chan os.Signal, 1))
+			returnCode := daemon.Execute(append(tc.args, "--openvpn.addr=tcp://"+managementInterface.Addr().String()), logger, make(chan os.Signal, 1))
 			output := logger.String()
 
 			assert.Equal(t, 1, returnCode, output)
-			assert.Contains(t, output, tt.err)
+			assert.Contains(t, output, tc.err)
 		})
 	}
 }

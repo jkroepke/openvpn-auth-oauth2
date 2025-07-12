@@ -168,8 +168,8 @@ func TestPassThroughFull(t *testing.T) {
 		},
 	}
 
-	for _, tt := range configs {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, tc := range configs {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			ctx, cancel := context.WithCancel(t.Context())
@@ -177,7 +177,7 @@ func TestPassThroughFull(t *testing.T) {
 
 			logger := testutils.NewTestLogger()
 
-			if tt.scheme == openvpn.SchemeUnix && runtime.GOOS == "windows" {
+			if tc.scheme == openvpn.SchemeUnix && runtime.GOOS == "windows" {
 				t.Skip("skipping test on windows")
 			}
 
@@ -188,29 +188,29 @@ func TestPassThroughFull(t *testing.T) {
 				require.NoError(t, managementInterface.Close())
 			})
 
-			tt.conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
+			tc.conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
 
-			switch tt.scheme {
+			switch tc.scheme {
 			case openvpn.SchemeTCP:
-				tt.conf.OpenVPN.Passthrough.Address = types.URL{URL: &url.URL{Scheme: tt.scheme, Host: "127.0.0.1:0"}}
+				tc.conf.OpenVPN.Passthrough.Address = types.URL{URL: &url.URL{Scheme: tc.scheme, Host: "127.0.0.1:0"}}
 			case openvpn.SchemeUnix:
 				temp, err := nettest.LocalPath()
 				require.NoError(t, err)
 
-				tt.conf.OpenVPN.Passthrough.Address = types.URL{URL: &url.URL{Scheme: tt.scheme, Path: temp}}
+				tc.conf.OpenVPN.Passthrough.Address = types.URL{URL: &url.URL{Scheme: tc.scheme, Path: temp}}
 			}
 
 			tokenStorage := tokenstorage.NewInMemory(testutils.Secret, time.Hour)
-			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, tt.conf, logger.Logger, http.DefaultClient, tokenStorage)
+			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, tc.conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 			managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
 			require.NoError(t, err)
 
 			reader := bufio.NewReader(managementInterfaceConn)
 
-			if tt.conf.OpenVPN.Password != "" {
+			if tc.conf.OpenVPN.Password != "" {
 				testutils.SendMessagef(t, managementInterfaceConn, "ENTER PASSWORD:")
-				testutils.ExpectMessage(t, managementInterfaceConn, reader, tt.conf.OpenVPN.Password.String())
+				testutils.ExpectMessage(t, managementInterfaceConn, reader, tc.conf.OpenVPN.Password.String())
 
 				testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: password is correct")
 			}
@@ -232,12 +232,12 @@ func TestPassThroughFull(t *testing.T) {
 
 			require.Len(t, passThroughAddr, 2, "unexpected log output: %s", logger.String())
 
-			passThroughConn, err := testutils.WaitUntilListening(t, tt.scheme, passThroughAddr[1])
+			passThroughConn, err := testutils.WaitUntilListening(t, tc.scheme, passThroughAddr[1])
 			require.NoError(t, err)
 
 			passThroughReader := bufio.NewReader(passThroughConn)
 
-			if tt.conf.OpenVPN.Passthrough.Password != "" {
+			if tc.conf.OpenVPN.Passthrough.Password != "" {
 				buf := make([]byte, 15)
 
 				_, err = passThroughConn.Read(buf)
@@ -245,7 +245,7 @@ func TestPassThroughFull(t *testing.T) {
 
 				require.Equal(t, "ENTER PASSWORD:", string(buf))
 
-				if strings.Contains(tt.name, "invalid") {
+				if strings.Contains(tc.name, "invalid") {
 					testutils.SendAndExpectMessage(t, passThroughConn, passThroughReader,
 						"invalid",
 						"ERROR: bad password",
@@ -264,7 +264,7 @@ func TestPassThroughFull(t *testing.T) {
 				}
 
 				testutils.SendAndExpectMessage(t, passThroughConn, passThroughReader,
-					tt.conf.OpenVPN.Passthrough.Password.String(),
+					tc.conf.OpenVPN.Passthrough.Password.String(),
 					"SUCCESS: password is correct",
 				)
 			}
@@ -344,19 +344,19 @@ func TestPassThroughFull(t *testing.T) {
 				testutils.ExpectMessage(t, passThroughConn, passThroughReader, OpenVPNManagementInterfaceCommandResultHelp)
 			}
 
-			if tt.scheme == openvpn.SchemeUnix {
+			if tc.scheme == openvpn.SchemeUnix {
 				testutils.SendMessagef(t, passThroughConn, " exit ")
 				require.NoError(t, passThroughConn.Close())
 
-				gid, err := testutils.GetGIDOfFile(tt.conf.OpenVPN.Passthrough.Address.Path)
+				gid, err := testutils.GetGIDOfFile(tc.conf.OpenVPN.Passthrough.Address.Path)
 				require.NoError(t, err)
 
-				assert.Equal(t, tt.conf.OpenVPN.Passthrough.SocketGroup, strconv.Itoa(gid))
+				assert.Equal(t, tc.conf.OpenVPN.Passthrough.SocketGroup, strconv.Itoa(gid))
 
-				permission, err := testutils.GetPermissionsOfFile(tt.conf.OpenVPN.Passthrough.Address.Path)
+				permission, err := testutils.GetPermissionsOfFile(tc.conf.OpenVPN.Passthrough.Address.Path)
 				require.NoError(t, err)
 
-				assert.Equal(t, os.FileMode(tt.conf.OpenVPN.Passthrough.SocketMode).String(), permission) //nolint:gosec
+				assert.Equal(t, os.FileMode(tc.conf.OpenVPN.Passthrough.SocketMode).String(), permission) //nolint:gosec
 			} else {
 				testutils.SendMessagef(t, passThroughConn, " quit ")
 				require.NoError(t, passThroughConn.Close())

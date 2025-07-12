@@ -47,7 +47,7 @@ func TestCheckUser(t *testing.T) {
 func TestInvalidToken(t *testing.T) {
 	t.Parallel()
 
-	for _, tt := range []struct {
+	for _, tc := range []struct {
 		name  string
 		conf  config.Config
 		token *oidc.Tokens[*idtoken.Claims]
@@ -108,21 +108,21 @@ func TestInvalidToken(t *testing.T) {
 			oauth2.ErrMissingClaim,
 		},
 	} {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			provider, err := generic.NewProvider(t.Context(), tt.conf, http.DefaultClient)
+			provider, err := generic.NewProvider(t.Context(), tc.conf, http.DefaultClient)
 			require.NoError(t, err)
 
-			userData, err := provider.GetUser(t.Context(), testutils.NewTestLogger().Logger, tt.token)
+			userData, err := provider.GetUser(t.Context(), testutils.NewTestLogger().Logger, tc.token)
 			require.NoError(t, err)
 
-			err = provider.CheckUser(t.Context(), state.State{Client: state.ClientIdentifier{CommonName: "user"}}, userData, tt.token)
-			if tt.err == nil {
+			err = provider.CheckUser(t.Context(), state.State{Client: state.ClientIdentifier{CommonName: "user"}}, userData, tc.token)
+			if tc.err == nil {
 				require.NoError(t, err)
 			} else {
 				require.Error(t, err)
-				assert.ErrorIs(t, err, tt.err)
+				assert.ErrorIs(t, err, tc.err)
 			}
 		})
 	}
@@ -131,7 +131,7 @@ func TestInvalidToken(t *testing.T) {
 func TestValidateGroups(t *testing.T) {
 	t.Parallel()
 
-	for _, tt := range []struct {
+	for _, tc := range []struct {
 		name           string
 		tokenGroups    []string
 		requiredGroups []string
@@ -146,19 +146,19 @@ func TestValidateGroups(t *testing.T) {
 		{"configure two group, missing one", []string{"apple"}, []string{"apple", "pear"}, ""},
 		{"configure two group", []string{"apple", "pear"}, []string{"apple", "pear"}, ""},
 	} {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			token := &oidc.Tokens[*idtoken.Claims]{
 				IDTokenClaims: &idtoken.Claims{
-					Groups: tt.tokenGroups,
+					Groups: tc.tokenGroups,
 				},
 			}
 
 			conf := config.Config{
 				OAuth2: config.OAuth2{
 					Validate: config.OAuth2Validate{
-						Groups: tt.requiredGroups,
+						Groups: tc.requiredGroups,
 					},
 				},
 			}
@@ -168,11 +168,11 @@ func TestValidateGroups(t *testing.T) {
 
 			err = provider.CheckGroups(token)
 
-			if tt.err == "" {
+			if tc.err == "" {
 				require.NoError(t, err)
 			} else {
 				require.Error(t, err)
-				assert.Equal(t, tt.err, err.Error())
+				assert.Equal(t, tc.err, err.Error())
 			}
 		})
 	}
@@ -181,7 +181,7 @@ func TestValidateGroups(t *testing.T) {
 func TestValidateRoles(t *testing.T) {
 	t.Parallel()
 
-	for _, tt := range []struct {
+	for _, tc := range []struct {
 		name          string
 		tokenRoles    []string
 		requiredRoles []string
@@ -196,19 +196,19 @@ func TestValidateRoles(t *testing.T) {
 		{"configure two role, missing one", []string{"apple"}, []string{"apple", "pear"}, ""},
 		{"configure two role", []string{"apple", "pear"}, []string{"apple", "pear"}, ""},
 	} {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			token := &oidc.Tokens[*idtoken.Claims]{
 				IDTokenClaims: &idtoken.Claims{
-					Roles: tt.tokenRoles,
+					Roles: tc.tokenRoles,
 				},
 			}
 
 			conf := config.Config{
 				OAuth2: config.OAuth2{
 					Validate: config.OAuth2Validate{
-						Roles: tt.requiredRoles,
+						Roles: tc.requiredRoles,
 					},
 				},
 			}
@@ -217,11 +217,11 @@ func TestValidateRoles(t *testing.T) {
 			require.NoError(t, err)
 
 			err = provider.CheckRoles(token)
-			if tt.err == "" {
+			if tc.err == "" {
 				require.NoError(t, err)
 			} else {
 				require.Error(t, err)
-				assert.Equal(t, tt.err, err.Error())
+				assert.Equal(t, tc.err, err.Error())
 			}
 		})
 	}
@@ -230,7 +230,7 @@ func TestValidateRoles(t *testing.T) {
 func TestValidateCommonName(t *testing.T) {
 	t.Parallel()
 
-	for _, tt := range []struct {
+	for _, tc := range []struct {
 		name               string
 		tokenCommonName    string
 		requiredCommonName string
@@ -366,30 +366,30 @@ func TestValidateCommonName(t *testing.T) {
 			errors.New("common_name mismatch: openvpn client is empty"),
 		},
 	} {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			token := &oidc.Tokens[*idtoken.Claims]{
 				IDTokenClaims: &idtoken.Claims{
 					Claims: map[string]any{
-						"sub": tt.tokenCommonName,
+						"sub": tc.tokenCommonName,
 					},
 				},
 			}
 
 			session := state.State{
-				Client: state.ClientIdentifier{CommonName: tt.requiredCommonName},
+				Client: state.ClientIdentifier{CommonName: tc.requiredCommonName},
 			}
 
-			provider, err := generic.NewProvider(t.Context(), tt.conf, http.DefaultClient)
+			provider, err := generic.NewProvider(t.Context(), tc.conf, http.DefaultClient)
 			require.NoError(t, err)
 
 			err = provider.CheckCommonName(session, token)
-			if tt.err == nil {
+			if tc.err == nil {
 				require.NoError(t, err)
 			} else {
 				require.Error(t, err)
-				assert.EqualError(t, tt.err, err.Error())
+				assert.EqualError(t, tc.err, err.Error())
 			}
 		})
 	}
@@ -398,7 +398,7 @@ func TestValidateCommonName(t *testing.T) {
 func TestValidateIpAddr(t *testing.T) {
 	t.Parallel()
 
-	for _, tt := range []struct {
+	for _, tc := range []struct {
 		name           string
 		validateIPAddr bool
 		setClaim       bool
@@ -412,38 +412,38 @@ func TestValidateIpAddr(t *testing.T) {
 		{"sub required wrong", true, true, "pear", "apple", "ipaddr mismatch: openvpn client: pear - oidc token: apple"},
 		{"nonexists claim", true, false, "pear", "apple", "missing claim: ipaddr"},
 	} {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			token := &oidc.Tokens[*idtoken.Claims]{
 				IDTokenClaims: &idtoken.Claims{},
 			}
 
-			if tt.setClaim {
-				token.IDTokenClaims.IPAddr = tt.tokenIPAddr
+			if tc.setClaim {
+				token.IDTokenClaims.IPAddr = tc.tokenIPAddr
 			}
 
 			conf := config.Config{
 				OAuth2: config.OAuth2{
 					Validate: config.OAuth2Validate{
-						IPAddr: tt.validateIPAddr,
+						IPAddr: tc.validateIPAddr,
 					},
 				},
 			}
 
 			session := state.State{
-				IPAddr: tt.requiredIPAddr,
+				IPAddr: tc.requiredIPAddr,
 			}
 
 			provider, err := generic.NewProvider(t.Context(), conf, http.DefaultClient)
 			require.NoError(t, err)
 
 			err = provider.CheckIPAddress(session, token)
-			if tt.err == "" {
+			if tc.err == "" {
 				require.NoError(t, err)
 			} else {
 				require.Error(t, err)
-				assert.Equal(t, tt.err, err.Error())
+				assert.Equal(t, tc.err, err.Error())
 			}
 		})
 	}

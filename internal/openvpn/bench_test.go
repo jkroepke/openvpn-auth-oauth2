@@ -3,6 +3,7 @@ package openvpn_test
 import (
 	"bufio"
 	"context"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
@@ -24,7 +25,6 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 	ctx, cancel := context.WithCancel(b.Context())
 	b.Cleanup(cancel)
 
-	logger := testutils.NewTestLogger()
 	managementInterface, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(b, err)
 
@@ -39,7 +39,7 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 	conf.OpenVPN.Bypass = config.OpenVPNBypass{CommonNames: make([]string, 0)}
 
 	tokenStorage := tokenstorage.NewInMemory(testutils.Secret, time.Hour)
-	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, b, conf, logger.Logger, http.DefaultClient, tokenStorage)
+	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, b, conf, slog.New(slog.DiscardHandler), http.DefaultClient, tokenStorage)
 
 	managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(b, managementInterface, openVPNClient)
 	require.NoError(b, err)

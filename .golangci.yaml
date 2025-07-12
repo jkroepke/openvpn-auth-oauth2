@@ -138,24 +138,21 @@ linters:
           koanf: kebab
     varnamelen:
       ignore-names:
-        - tt
         - tc
       ignore-decls:
         - i int
         - a ...any
         - err error
         - ok bool
-        - id string
         - w http.ResponseWriter
-        - rt http.RoundTripper
         - r *http.Request
+        - rt http.RoundTripper
         - l net.Listener
         - t reflect.Type
         - wg sync.WaitGroup
+        - wg *sync.WaitGroup
         - sb strings.Builder
         - mu sync.Mutex
-        - ts oauth2.TokenSource
-        - ca *testcerts.CertificateAuthority
   exclusions:
     generated: lax
     presets:

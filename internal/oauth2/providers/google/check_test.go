@@ -22,7 +22,7 @@ import (
 func TestValidateGroups(t *testing.T) {
 	t.Parallel()
 
-	for _, tt := range []struct {
+	for _, tc := range []struct {
 		name           string
 		tokenGroups    string
 		requiredGroups []string
@@ -95,7 +95,7 @@ func TestValidateGroups(t *testing.T) {
 			"",
 		},
 	} {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			token := &oidc.Tokens[*idtoken.Claims]{
@@ -105,14 +105,14 @@ func TestValidateGroups(t *testing.T) {
 				IDTokenClaims: &idtoken.Claims{},
 			}
 
-			if tt.name == "access token is empty" {
+			if tc.name == "access token is empty" {
 				token.AccessToken = ""
 			}
 
 			conf := types2.Config{
 				OAuth2: types2.OAuth2{
 					Validate: types2.OAuth2Validate{
-						Groups: tt.requiredGroups,
+						Groups: tc.requiredGroups,
 					},
 				},
 			}
@@ -120,14 +120,14 @@ func TestValidateGroups(t *testing.T) {
 			httpClient := &http.Client{
 				Transport: testutils.NewRoundTripperFunc(nil, func(_ http.RoundTripper, req *http.Request) (*http.Response, error) {
 					resp := httptest.NewRecorder()
-					if strings.Contains(tt.tokenGroups, "error") {
+					if strings.Contains(tc.tokenGroups, "error") {
 						resp.WriteHeader(http.StatusInternalServerError)
 					}
 
 					if req.URL.Query().Has("pageToken") {
 						_, _ = resp.WriteString(`{"memberships": [], "nextPageToken": ""}`)
 					} else {
-						_, _ = resp.WriteString(tt.tokenGroups)
+						_, _ = resp.WriteString(tc.tokenGroups)
 					}
 
 					return resp.Result(), nil
@@ -139,11 +139,11 @@ func TestValidateGroups(t *testing.T) {
 
 			err = provider.CheckUser(t.Context(), state.State{}, types.UserData{Subject: "123456789101112131415"}, token)
 
-			if tt.err == "" {
+			if tc.err == "" {
 				require.NoError(t, err)
 			} else {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err)
+				assert.EqualError(t, err, tc.err)
 			}
 		})
 	}
