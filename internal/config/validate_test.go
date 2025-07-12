@@ -14,7 +14,7 @@ import (
 func TestValidate(t *testing.T) {
 	t.Parallel()
 
-	for _, tt := range []struct {
+	for _, tc := range []struct {
 		conf config.Config
 		err  string
 	}{
@@ -191,17 +191,17 @@ func TestValidate(t *testing.T) {
 			"",
 		},
 	} {
-		t.Run(tt.err, func(t *testing.T) {
+		t.Run(tc.err, func(t *testing.T) {
 			t.Parallel()
 
-			err := config.Validate(config.ManagementClient, tt.conf)
-			if tt.err == "" {
+			err := config.Validate(config.ManagementClient, tc.conf)
+			if tc.err == "" {
 				require.NoError(t, err)
 			} else {
 				require.Error(t, err)
 
-				if tt.err != "-" {
-					assert.EqualError(t, err, tt.err)
+				if tc.err != "-" {
+					assert.EqualError(t, err, tc.err)
 				}
 			}
 		})

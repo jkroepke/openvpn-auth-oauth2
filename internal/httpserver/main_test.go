@@ -71,14 +71,14 @@ func TestNewHTTPServer(t *testing.T) {
 		},
 	}
 
-	for _, tt := range confs {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, tc := range confs {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			mux := gohttp.NewServeMux()
 			mux.Handle("/", gohttp.NotFoundHandler())
 
-			svr := httpserver.NewHTTPServer(httpserver.ServerNameDefault, logger.Logger, tt.conf.HTTP, mux)
+			svr := httpserver.NewHTTPServer(httpserver.ServerNameDefault, logger.Logger, tc.conf.HTTP, mux)
 
 			ctx, cancel := context.WithCancel(t.Context())
 
@@ -88,7 +88,7 @@ func TestNewHTTPServer(t *testing.T) {
 				errCh <- svr.Listen(ctx)
 			}()
 
-			if tt.err == nil {
+			if tc.err == nil {
 				require.NoError(t, svr.Reload())
 
 				time.Sleep(50 * time.Millisecond)
@@ -97,7 +97,7 @@ func TestNewHTTPServer(t *testing.T) {
 				require.NoError(t, <-errCh)
 			} else {
 				cancel()
-				require.ErrorContains(t, <-errCh, tt.err.Error())
+				require.ErrorContains(t, <-errCh, tc.err.Error())
 			}
 		})
 	}

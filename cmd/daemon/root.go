@@ -59,15 +59,13 @@ func Execute(args []string, stdout io.Writer, termCh <-chan os.Signal) int {
 }
 
 // run runs the main program logic of openvpn-auth-oauth2.
-//
-//nolint:gocognit,cyclop
 func run(ctx context.Context, args []string, stdout io.Writer, tokenDataStorage tokenstorage.DataMap, termCh <-chan os.Signal) ReturnCode {
 	conf, logger, rc := initializeConfigAndLogger(args, stdout)
 	if rc != ReturnCodeNoError {
 		return rc
 	}
 
-	// initalize the root context with a cancel function
+	// initialize the root context with a cancel function
 	ctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(nil)
 
@@ -198,7 +196,7 @@ func setupOpenVPNClient(
 	return openvpnClient, httpHandler, nil
 }
 
-// initializeConfigAndLogger handles configuration parsing and logger setup
+// initializeConfigAndLogger handles configuration parsing and logger setup.
 func initializeConfigAndLogger(args []string, stdout io.Writer) (config.Config, *slog.Logger, ReturnCode) {
 	conf, err := setupConfiguration(args, stdout)
 	if err != nil {
@@ -208,23 +206,26 @@ func initializeConfigAndLogger(args []string, stdout io.Writer) (config.Config, 
 
 		if errors.Is(err, config.ErrVersion) {
 			printVersion(stdout)
+
 			return config.Config{}, nil, ReturnCodeOK
 		}
 
 		_, _ = fmt.Fprintln(stdout, err.Error())
+
 		return config.Config{}, nil, ReturnCodeError
 	}
 
 	logger, err := setupLogger(conf, stdout)
 	if err != nil {
 		_, _ = fmt.Fprintln(stdout, fmt.Errorf("error setupConfiguration logging: %w", err).Error())
+
 		return config.Config{}, nil, ReturnCodeError
 	}
 
 	return conf, logger, ReturnCodeNoError
 }
 
-// startServices starts all the background services (HTTP server, OpenVPN client, debug listener)
+// startServices starts all the background services (HTTP server, OpenVPN client, debug listener).
 func startServices(
 	ctx context.Context,
 	cancel context.CancelCauseFunc,
@@ -249,42 +250,52 @@ func startServices(
 	return server
 }
 
-// startDebugListener starts the debug/pprof HTTP server in a goroutine
+// startDebugListener starts the debug/pprof HTTP server in a goroutine.
 func startDebugListener(ctx context.Context, cancel context.CancelCauseFunc, wg *sync.WaitGroup, logger *slog.Logger, conf config.Config) {
 	wg.Add(1)
+
 	go func() {
 		defer wg.Done()
+
 		cancel(setupDebugListener(ctx, logger, conf))
 	}()
 }
 
-// startHTTPServer starts the main HTTP server in a goroutine
+// startHTTPServer starts the main HTTP server in a goroutine.
 func startHTTPServer(ctx context.Context, cancel context.CancelCauseFunc, wg *sync.WaitGroup, server *httpserver.Server) {
 	wg.Add(1)
+
 	go func() {
 		defer wg.Done()
+
 		if err := server.Listen(ctx); err != nil {
 			cancel(fmt.Errorf("error http listener: %w", err))
+
 			return
 		}
+
 		cancel(nil)
 	}()
 }
 
-// startOpenVPNClient starts the OpenVPN client in a goroutine
+// startOpenVPNClient starts the OpenVPN client in a goroutine.
 func startOpenVPNClient(ctx context.Context, cancel context.CancelCauseFunc, wg *sync.WaitGroup, openvpnClient *openvpn.Client) {
 	wg.Add(1)
+
 	go func() {
 		defer wg.Done()
+
 		if err := openvpnClient.Connect(ctx); err != nil {
 			cancel(fmt.Errorf("openvpn: %w", err))
+
 			return
 		}
+
 		cancel(nil)
 	}()
 }
 
-// handleSignalsAndShutdown manages the main event loop for signals and shutdown
+// handleSignalsAndShutdown manages the main event loop for signals and shutdown.
 func handleSignalsAndShutdown(
 	ctx context.Context,
 	cancel context.CancelCauseFunc,
@@ -302,7 +313,7 @@ func handleSignalsAndShutdown(
 	}
 }
 
-// handleContextDone processes context cancellation and returns appropriate return code
+// handleContextDone processes context cancellation and returns appropriate return code.
 func handleContextDone(ctx context.Context, logger *slog.Logger) ReturnCode {
 	err := context.Cause(ctx)
 	if err != nil {
@@ -314,14 +325,15 @@ func handleContextDone(ctx context.Context, logger *slog.Logger) ReturnCode {
 			return ReturnCodeReload
 		}
 
-		logger.Error(err.Error())
+		logger.ErrorContext(ctx, err.Error())
+
 		return ReturnCodeError
 	}
 
 	return ReturnCodeOK
 }
 
-// handleSignal processes incoming OS signals
+// handleSignal processes incoming OS signals.
 func handleSignal(
 	ctx context.Context,
 	cancel context.CancelCauseFunc,

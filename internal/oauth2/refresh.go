@@ -102,9 +102,12 @@ func (c Client) ClientDisconnect(ctx context.Context, logger *slog.Logger, clien
 		return
 	}
 
-	id := strconv.FormatUint(client.CID, 10)
+	clientID := strconv.FormatUint(client.CID, 10)
+	if c.conf.OAuth2.Refresh.UseSessionID && client.SessionID != "" {
+		clientID = client.SessionID
+	}
 
-	refreshToken, err := c.storage.Get(id)
+	refreshToken, err := c.storage.Get(clientID)
 	if err != nil {
 		logLevel := slog.LevelWarn
 		if errors.Is(err, tokenstorage.ErrNotExists) {
@@ -116,7 +119,7 @@ func (c Client) ClientDisconnect(ctx context.Context, logger *slog.Logger, clien
 		return
 	}
 
-	if err = c.storage.Delete(id); err != nil {
+	if err = c.storage.Delete(clientID); err != nil {
 		logger.LogAttrs(ctx, slog.LevelWarn, fmt.Errorf("error delete refresh token from storage: %w", err).Error())
 
 		return

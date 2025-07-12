@@ -20,7 +20,7 @@ import (
 func TestGetUser(t *testing.T) {
 	t.Parallel()
 
-	for _, tt := range []struct {
+	for _, tc := range []struct {
 		name     string
 		user     string
 		userData types.UserData
@@ -55,7 +55,7 @@ func TestGetUser(t *testing.T) {
 			"unable to decode JSON from GitHub API https://api.github.com/user: 'ERROR': invalid character 'E' looking for beginning of value",
 		},
 	} {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			token := &oidc.Tokens[*idtoken.Claims]{
@@ -65,7 +65,7 @@ func TestGetUser(t *testing.T) {
 				IDTokenClaims: &idtoken.Claims{},
 			}
 
-			if tt.name == "access token is empty" {
+			if tc.name == "access token is empty" {
 				token.AccessToken = ""
 			}
 
@@ -81,11 +81,11 @@ func TestGetUser(t *testing.T) {
 			httpClient := &http.Client{
 				Transport: testutils.NewRoundTripperFunc(nil, func(_ http.RoundTripper, _ *http.Request) (*http.Response, error) {
 					resp := httptest.NewRecorder()
-					if strings.Contains(tt.user, "error") {
+					if strings.Contains(tc.user, "error") {
 						resp.WriteHeader(http.StatusInternalServerError)
 					}
 
-					_, _ = resp.WriteString(tt.user)
+					_, _ = resp.WriteString(tc.user)
 
 					return resp.Result(), nil
 				}),
@@ -96,12 +96,12 @@ func TestGetUser(t *testing.T) {
 
 			userData, err := provider.GetUser(t.Context(), testutils.NewTestLogger().Logger, token)
 
-			if tt.err == "" {
+			if tc.err == "" {
 				require.NoError(t, err)
-				assert.Equal(t, tt.userData, userData)
+				assert.Equal(t, tc.userData, userData)
 			} else {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err)
+				assert.EqualError(t, err, tc.err)
 			}
 		})
 	}

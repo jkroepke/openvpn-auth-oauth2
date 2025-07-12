@@ -13,7 +13,7 @@ import (
 func TestNewClientConnection(t *testing.T) {
 	t.Parallel()
 
-	for _, tt := range []struct {
+	for _, tc := range []struct {
 		name             string
 		conf             config.Config
 		lines            []string
@@ -168,18 +168,18 @@ func TestNewClientConnection(t *testing.T) {
 			"unable to parse line '>CLIENT:CONNECT': message invalid",
 		},
 	} {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			message := strings.Join(tt.lines, "\r\n")
+			message := strings.Join(tc.lines, "\r\n")
 
-			clientConnection, err := connection.NewClient(tt.conf, message)
-			if tt.err == "" {
+			clientConnection, err := connection.NewClient(tc.conf, message)
+			if tc.err == "" {
 				require.NoError(t, err)
-				assert.Equal(t, tt.clientConnection, clientConnection)
+				assert.Equal(t, tc.clientConnection, clientConnection)
 			} else {
 				require.Error(t, err)
-				assert.Equal(t, tt.err, err.Error())
+				assert.Equal(t, tc.err, err.Error())
 			}
 		})
 	}

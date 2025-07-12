@@ -22,7 +22,7 @@ import (
 func TestConfig(t *testing.T) {
 	t.Parallel()
 
-	for _, tt := range []struct {
+	for _, tc := range []struct {
 		name       string
 		configFile string
 		conf       config.Config
@@ -250,7 +250,7 @@ http:
 			nil,
 		},
 	} {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			var buf bytes.Buffer
@@ -266,16 +266,16 @@ http:
 				require.NoError(t, os.Remove(file.Name()))
 			})
 
-			_, err = file.WriteString(tt.configFile)
+			_, err = file.WriteString(tc.configFile)
 			require.NoError(t, err)
 
 			conf, err := config.New([]string{"openvpn-auth-oauth2", "--config", file.Name()}, &buf)
-			if tt.err != nil {
+			if tc.err != nil {
 				require.Error(t, err)
-				assert.Equal(t, tt.err.Error(), err.Error())
+				assert.Equal(t, tc.err.Error(), err.Error())
 			} else {
 				require.NoError(t, err)
-				assert.Equal(t, tt.conf, conf)
+				assert.Equal(t, tc.conf, conf)
 			}
 		})
 	}
@@ -308,7 +308,7 @@ func TestConfigVersionFlag(t *testing.T) {
 func TestConfigFlagSet(t *testing.T) {
 	t.Parallel()
 
-	for _, tt := range []struct {
+	for _, tc := range []struct {
 		name         string
 		args         []string
 		expectConfig config.Config
@@ -357,17 +357,17 @@ func TestConfigFlagSet(t *testing.T) {
 			}(),
 		},
 	} {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			var buf bytes.Buffer
 
 			_ = io.Writer(&buf)
 
-			conf, err := config.New(slices.Concat([]string{"openvpn-auth-oauth2"}, tt.args), &buf)
+			conf, err := config.New(slices.Concat([]string{"openvpn-auth-oauth2"}, tc.args), &buf)
 
 			require.NoError(t, err)
-			assert.Equal(t, tt.expectConfig, conf)
+			assert.Equal(t, tc.expectConfig, conf)
 		})
 	}
 }

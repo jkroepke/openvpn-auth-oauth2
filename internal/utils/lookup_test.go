@@ -17,7 +17,7 @@ func TestLookupGroup(t *testing.T) {
 		t.Skip("skipping test on windows")
 	}
 
-	for _, tt := range []struct {
+	for _, tc := range []struct {
 		name string
 		want int
 		err  error
@@ -27,16 +27,16 @@ func TestLookupGroup(t *testing.T) {
 		{"-", 0, fmt.Errorf("error lookup group: %w", user.UnknownGroupError("-"))},
 		{"", 0, fmt.Errorf("error lookup group: %w", user.UnknownGroupError(""))},
 	} {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := utils.LookupGroup(tt.name)
-			if tt.err != nil {
+			got, err := utils.LookupGroup(tc.name)
+			if tc.err != nil {
 				require.Error(t, err)
-				require.Equal(t, tt.err, err)
+				require.Equal(t, tc.err, err)
 			} else {
 				require.NoError(t, err)
-				require.Equal(t, tt.want, got)
+				require.Equal(t, tc.want, got)
 			}
 		})
 	}

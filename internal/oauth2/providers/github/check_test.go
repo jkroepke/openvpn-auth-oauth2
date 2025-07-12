@@ -24,7 +24,7 @@ const EmptyToken = "access token is empty"
 func TestValidateGroups(t *testing.T) {
 	t.Parallel()
 
-	for _, tt := range []struct {
+	for _, tc := range []struct {
 		name           string
 		userOrgs       string
 		requiredGroups []string
@@ -85,7 +85,7 @@ func TestValidateGroups(t *testing.T) {
 			"",
 		},
 	} {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			token := &oidc.Tokens[*idtoken.Claims]{
@@ -95,14 +95,14 @@ func TestValidateGroups(t *testing.T) {
 				IDTokenClaims: &idtoken.Claims{},
 			}
 
-			if tt.name == EmptyToken {
+			if tc.name == EmptyToken {
 				token.AccessToken = ""
 			}
 
 			conf := types2.Config{
 				OAuth2: types2.OAuth2{
 					Validate: types2.OAuth2Validate{
-						Groups: tt.requiredGroups,
+						Groups: tc.requiredGroups,
 					},
 				},
 			}
@@ -110,11 +110,11 @@ func TestValidateGroups(t *testing.T) {
 			httpClient := &http.Client{
 				Transport: testutils.NewRoundTripperFunc(nil, func(_ http.RoundTripper, _ *http.Request) (*http.Response, error) {
 					resp := httptest.NewRecorder()
-					if strings.Contains(tt.userOrgs, "error") {
+					if strings.Contains(tc.userOrgs, "error") {
 						resp.WriteHeader(http.StatusInternalServerError)
 					}
 
-					_, _ = resp.WriteString(tt.userOrgs)
+					_, _ = resp.WriteString(tc.userOrgs)
 
 					return resp.Result(), nil
 				}),
@@ -125,11 +125,11 @@ func TestValidateGroups(t *testing.T) {
 
 			err = provider.CheckUser(t.Context(), state.State{}, types.UserData{Email: "ID"}, token)
 
-			if tt.err == "" {
+			if tc.err == "" {
 				require.NoError(t, err)
 			} else {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err)
+				assert.EqualError(t, err, tc.err)
 			}
 		})
 	}
@@ -138,7 +138,7 @@ func TestValidateGroups(t *testing.T) {
 func TestValidateRoles(t *testing.T) {
 	t.Parallel()
 
-	for _, tt := range []struct {
+	for _, tc := range []struct {
 		name          string
 		userTeams     string
 		requiredRoles []string
@@ -199,7 +199,7 @@ func TestValidateRoles(t *testing.T) {
 			"",
 		},
 	} {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			token := &oidc.Tokens[*idtoken.Claims]{
@@ -209,14 +209,14 @@ func TestValidateRoles(t *testing.T) {
 				IDTokenClaims: &idtoken.Claims{},
 			}
 
-			if tt.name == EmptyToken {
+			if tc.name == EmptyToken {
 				token.AccessToken = ""
 			}
 
 			conf := types2.Config{
 				OAuth2: types2.OAuth2{
 					Validate: types2.OAuth2Validate{
-						Roles: tt.requiredRoles,
+						Roles: tc.requiredRoles,
 					},
 				},
 			}
@@ -224,11 +224,11 @@ func TestValidateRoles(t *testing.T) {
 			httpClient := &http.Client{
 				Transport: testutils.NewRoundTripperFunc(nil, func(_ http.RoundTripper, _ *http.Request) (*http.Response, error) {
 					resp := httptest.NewRecorder()
-					if strings.Contains(tt.userTeams, "error") {
+					if strings.Contains(tc.userTeams, "error") {
 						resp.WriteHeader(http.StatusInternalServerError)
 					}
 
-					_, _ = resp.WriteString(tt.userTeams)
+					_, _ = resp.WriteString(tc.userTeams)
 
 					return resp.Result(), nil
 				}),
@@ -239,11 +239,11 @@ func TestValidateRoles(t *testing.T) {
 
 			err = provider.CheckUser(t.Context(), state.State{}, types.UserData{Email: "ID"}, token)
 
-			if tt.err == "" {
+			if tc.err == "" {
 				require.NoError(t, err)
 			} else {
 				require.Error(t, err)
-				assert.EqualError(t, err, tt.err)
+				assert.EqualError(t, err, tc.err)
 			}
 		})
 	}
