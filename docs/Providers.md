@@ -103,7 +103,8 @@ To require multiple groups, define `CONFIG_OAUTH2_VALIDATE_GROUPS`.
 
 ### Restrict auth to specific Google Groups in your domain. (optional)
 
-> [!IMPORTANT]
+> **IMPORTANT**
+>
 > For `oauth2.validate.groups`, you have to set the IDs of the groups, not the names.
 
 1. Navigate to the [Google Cloud Identity API](https://console.cloud.google.com/apis/api/cloudidentity.googleapis.com/) page and click on the "Enable API" button.
