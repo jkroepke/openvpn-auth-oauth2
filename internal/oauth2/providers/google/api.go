@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
@@ -91,6 +92,13 @@ func get[T any](ctx context.Context, httpClient *http.Client, accessToken string
 
 		if bytes.HasPrefix(respBody, []byte("{")) {
 			_ = json.Unmarshal(respBody, &apiErr)
+		}
+
+		if strings.HasPrefix(apiErr.Error.Message, "Error(4001):") {
+			// This error indicates that the current user does not have the required permissions to access the group.
+			data = new(T) // Reset data to avoid returning an error.
+
+			return nil
 		}
 
 		return fmt.Errorf("error from Google API %s: http status code: %d; message: %s", apiURL, resp.StatusCode, apiErr.Error.Message)

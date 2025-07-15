@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	types2 "github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	oauth3 "github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/google"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
-	"golang.org/x/oauth2"
+	gooauth2 "golang.org/x/oauth2"
 )
 
 func TestValidateGroups(t *testing.T) {
@@ -77,10 +77,16 @@ func TestValidateGroups(t *testing.T) {
 			"error from Google API https://cloudidentity.googleapis.com/v1/groups/000000000000000/memberships: http status code: 500; message: error",
 		},
 		{
+			"permission denied",
+			`{"error": {"message": "Error(4001): Permission denied for membership resource 'groups/000000000000000' (or it may not exist)."}}`,
+			[]string{"000000000000000"},
+			oauth2.ErrMissingRequiredGroup.Error(),
+		},
+		{
 			"configure two group, none match",
 			`{"memberships": [{"name": "groups/000000000000002/memberships/123456789101112131416", "memberKey": {"id": "user@example.com"}, "roles": [{"name": "MEMBER"}], "preferredMemberKey": {"id": "user@example.com"}}], "nextPageToken": ""}`,
 			[]string{"000000000000000", "000000000000001"},
-			oauth3.ErrMissingRequiredGroup.Error(),
+			oauth2.ErrMissingRequiredGroup.Error(),
 		},
 		{
 			"configure two group, missing one",
@@ -99,7 +105,7 @@ func TestValidateGroups(t *testing.T) {
 			t.Parallel()
 
 			token := &oidc.Tokens[*idtoken.Claims]{
-				Token: &oauth2.Token{
+				Token: &gooauth2.Token{
 					AccessToken: "TOKEN",
 				},
 				IDTokenClaims: &idtoken.Claims{},
@@ -109,9 +115,9 @@ func TestValidateGroups(t *testing.T) {
 				token.AccessToken = ""
 			}
 
-			conf := types2.Config{
-				OAuth2: types2.OAuth2{
-					Validate: types2.OAuth2Validate{
+			conf := config.Config{
+				OAuth2: config.OAuth2{
+					Validate: config.OAuth2Validate{
 						Groups: tc.requiredGroups,
 					},
 				},
