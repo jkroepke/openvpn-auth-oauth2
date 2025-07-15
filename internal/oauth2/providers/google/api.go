@@ -97,7 +97,8 @@ func get[T any](ctx context.Context, httpClient *http.Client, accessToken string
 		if strings.HasPrefix(apiErr.Error.Message, "Error(4001):") {
 			// This error indicates that the current user does not have the required permissions to access the group.
 			// Clear the data to indicate that the user is not a member of the group.
-			data = new(T) //nolint:ineffectual // Not sure what the best way to handle this.
+			//nolint:ineffassign // Not sure what the best way to handle this.
+			data = new(T)
 
 			return nil
 		}
