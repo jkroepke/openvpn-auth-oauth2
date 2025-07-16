@@ -27,10 +27,6 @@ jobs:
       - uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5.4.3
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: dists
-          path: dist/
   goreleaser:
     runs-on: ubuntu-24.04
     name: Test goreleaser
@@ -59,6 +55,10 @@ jobs:
           GITHUB_TOKEN: ""
           GPG_KEY_PATH: ""
 
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: dists
+          path: dist/
   lint:
     name: lint
     runs-on: ubuntu-24.04
