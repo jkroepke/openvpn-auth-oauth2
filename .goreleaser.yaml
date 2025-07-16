@@ -17,6 +17,8 @@ builds:
     mod_timestamp: '{{ .CommitTimestamp }}'
     env:
       - CGO_ENABLED=0
+    tags:
+      - no_otel
     flags:
       - -trimpath
     ldflags:
