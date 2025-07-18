@@ -208,7 +208,7 @@ Usage of openvpn-auth-oauth2:
   --openvpn.common-name.mode value
     	If common names are too long, use md5/sha1 to hash them or omit to skip them. If omit, oauth2.validate.common-name does not work anymore. Values: [plain,omit] (env: CONFIG_OPENVPN_COMMON__NAME_MODE) (default plain)
   --openvpn.override-username
-    	Requires OpenVPN Server 2.7! If true, openvpn-auth-oauth2 use the override-username command to set the username in OpenVPN connection. This is useful to use real usernames in OpenVPN statistics. The username will be set after client configs are read. Read openvpn man page for limitations of the override-username. (env: CONFIG_OPENVPN_OVERRIDE__USERNAME)
+    	Requires OpenVPN Server 2.7! If true, openvpn-auth-oauth2 use the override-username command to set the username in OpenVPN connection. This is useful to use real usernames in OpenVPN statistics. The username will be set after client configs are read. Read OpenVPN man page for limitations of the override-username. (env: CONFIG_OPENVPN_OVERRIDE__USERNAME)
   --openvpn.pass-through.address value
     	The address of the pass-through socket. Must start with unix:// or tcp:// (env: CONFIG_OPENVPN_PASS__THROUGH_ADDRESS) (default unix:/run/openvpn-auth-oauth2/server.sock)
   --openvpn.pass-through.enabled
@@ -276,7 +276,7 @@ See [Filesystem Permissions](Filesystem%20Permissions) for more information.
 
 ## Setup OpenVPN server
 
-To connect openvpn-auth-oauth2 with openvpn server, add lines below:
+To connect openvpn-auth-oauth2 with OpenVPN server, add lines below:
 
 ```ini
 # openvpn server.conf

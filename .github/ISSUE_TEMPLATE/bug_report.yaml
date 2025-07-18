@@ -78,7 +78,7 @@ body:
     attributes:
       label: openvpn server logs
       description: |
-        Log of openvpn server
+        Log of OpenVPN server
       render: shell
     validations:
       required: false
