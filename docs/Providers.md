@@ -83,9 +83,9 @@ To require multiple groups, define `CONFIG_OAUTH2_VALIDATE_GROUPS`.
 <details>
 <summary>Expand</summary>
 
-### Register an app on google cloud console
+### Register an app on Google Cloud Console
 
-1. Login as admin into your [Google console](https://console.cloud.google.com/).
+1. Login as admin into your [Google Cloud Console](https://console.cloud.google.com/).
 2. In the project Dashboard center pane, choose **"APIs & Services"**.
 3. If necessary, complete the `OAuth consent screen` wizard. You will probably want to create an `Internal` application.
     * If you reuse an existing application, your users may already have given consent for the usage of this application,

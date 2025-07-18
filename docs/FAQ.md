@@ -28,7 +28,7 @@ we encourage users to up-vote the relevant feature requests on the OpenVPN GitHu
 You can find and support these requests at the following link:
 [Feature Request on GitHub](https://github.com/OpenVPN/openvpn/issues/299)
 
-## Q: `mismatch: openvpn client is empty` / `username-as-common-name`
+## Q: `mismatch: OpenVPNclient is empty` / `username-as-common-name`
 
 A: When setting up `username-as-common-name` on the OpenVPN server, it's crucial to also configure `openvpn.common-name.environment-variable-name` to `username`.
 
@@ -36,13 +36,13 @@ This configuration is indispensable because `username-as-common-name` functions 
 
 On authentication, it's expected that common-name is not the values of the username. That may mis-leading, because after authentication, the common name has the correct value at OpenVPN logs.
 
-**Upstream Issue:** [OpenVPN/openvpn #498](https://github.com/OpenVPN/openvpn/issues/498#issuecomment-1939194149)
+**Upstream Issue:** [`OpenVPN/openvpn` #498](https://github.com/OpenVPN/openvpn/issues/498#issuecomment-1939194149)
 
 ## Q: Options error: No client-side authentication method is specified.
 
 A: Although openvpn-auth-oauth2 theoretically doesn't require client-side authentication, the OpenVPN client expects it.
 
-**Upstream Issue:** [OpenVPN/openvpn #501](https://github.com/OpenVPN/openvpn/issues/501) (Please react with :+1: if you're affected.)
+**Upstream Issue:** [`OpenVPN/openvpn` #501](https://github.com/OpenVPN/openvpn/issues/501) (Please react with :+1: if you're affected.)
 
 **Potential Workarounds:**
 

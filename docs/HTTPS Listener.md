@@ -68,7 +68,7 @@ You need to install `certbot` and suitable for you `DNS plugin`. More informatio
 
 You can create certs with command below and than copy them to `/etc/openvpn-auth-oauth2/` directory or create a link to files. Do not forget to set right permissions.
 
-The command below uses certbot to create a free SSL certificate for a domain hosted on cloudflare.
+The command below uses certbot to create a free SSL certificate for a domain hosted on Cloudflare.
 
 ```bash
 certbot certonly --noninteractive --verbose \

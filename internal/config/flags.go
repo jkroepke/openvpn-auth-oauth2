@@ -181,7 +181,7 @@ func (c *Config) flagSetOpenVPN(flagSet *flag.FlagSet) {
 		"Requires OpenVPN Server 2.7! "+
 			"If true, openvpn-auth-oauth2 use the override-username command to set the username in OpenVPN connection. "+
 			"This is useful to use real usernames in OpenVPN statistics. The username will be set after client configs are read. "+
-			"Read openvpn man page for limitations of the override-username.",
+			"Read OpenVPN man page for limitations of the override-username.",
 	)
 	flagSet.BoolVar(
 		&c.OpenVPN.Passthrough.Enabled,
