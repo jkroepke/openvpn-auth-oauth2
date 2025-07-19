@@ -83,7 +83,7 @@ func TestValidate(t *testing.T) {
 					Addr: types.URL{URL: &url.URL{Scheme: "tcp", Host: "127.0.0.1:9000"}},
 				},
 			},
-			"invalid rendering http.template",
+			"invalid rendering http.template: template: index.gohtml:1:3: executing \"index.gohtml\" at <slice .invalid.error 1 2>: error calling slice: slice of untyped nil",
 		},
 		{
 			config.Config{
