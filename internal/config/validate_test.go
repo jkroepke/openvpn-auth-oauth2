@@ -3,6 +3,7 @@ package config_test
 import (
 	"net/url"
 	"testing"
+	"text/template"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
@@ -66,6 +67,23 @@ func TestValidate(t *testing.T) {
 				},
 			},
 			"http.baseurl is required",
+		},
+		{
+			config.Config{
+				HTTP: config.HTTP{
+					BaseURL:  types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
+					Secret:   testutils.Secret,
+					Template: types.Template{Template: template.Must(template.New("index.gohtml").Parse("{{ slice .invalid.error 1 2 }}"))},
+				},
+				OAuth2: config.OAuth2{
+					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
+					Issuer: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
+				},
+				OpenVPN: config.OpenVPN{
+					Addr: types.URL{URL: &url.URL{Scheme: "tcp", Host: "127.0.0.1:9000"}},
+				},
+			},
+			"invalid rendering http.template: template: index.gohtml:1:3: executing \"index.gohtml\" at <slice .invalid.error 1 2>: error calling slice: slice of untyped nil",
 		},
 		{
 			config.Config{

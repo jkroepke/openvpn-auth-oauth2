@@ -9,6 +9,8 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/crypto"
 )
 
+var ErrNilData = errors.New("data map cannot be nil")
+
 // InMemory provides an in-memory implementation of a token storage system.
 // It stores encrypted tokens associated with clients, supports expiration, and is safe for concurrent use.
 type InMemory struct {
@@ -33,12 +35,20 @@ func NewInMemory(encryptionKey string, expires time.Duration) *InMemory {
 
 // SetStorage replaces the current storage data with the provided DataMap.
 // This is mainly used for testing or restoring state.
-func (s *InMemory) SetStorage(data DataMap) {
+func (s *InMemory) SetStorage(data DataMap) error {
 	s.mu.Lock()
+
+	if data == nil {
+		s.mu.Unlock()
+
+		return ErrNilData
+	}
 
 	s.data = data
 
 	s.mu.Unlock()
+
+	return nil
 }
 
 // Set stores an encrypted token for a given client, with an expiration time.
@@ -67,12 +77,6 @@ func (s *InMemory) Set(client, token string) error {
 // If the token is expired or does not exist, an error is returned.
 func (s *InMemory) Get(client string) (string, error) {
 	s.mu.RLock()
-
-	if s.data == nil {
-		s.mu.RUnlock()
-
-		return "", ErrNotExists
-	}
 
 	data, ok := s.data[client]
 	if !ok {
@@ -105,12 +109,6 @@ func (s *InMemory) Get(client string) (string, error) {
 // If the storage is empty or the client does not exist, it does nothing.
 func (s *InMemory) Delete(client string) error {
 	s.mu.Lock()
-
-	if s.data == nil {
-		s.mu.Unlock()
-
-		return nil
-	}
 
 	delete(s.data, client)
 

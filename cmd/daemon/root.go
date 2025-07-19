@@ -160,10 +160,13 @@ func setupOpenVPNClient(
 ) (*openvpn.Client, *http.ServeMux, error) {
 	httpClient := &http.Client{Transport: utils.NewUserAgentTransport(http.DefaultTransport)}
 	tokenStorage := tokenstorage.NewInMemory(conf.OAuth2.Refresh.Secret.String(), conf.OAuth2.Refresh.Expires)
-	tokenStorage.SetStorage(tokenDataStorage)
+
+	err := tokenStorage.SetStorage(tokenDataStorage)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error setting token storage: %w", err)
+	}
 
 	var (
-		err      error
 		provider oauth2.Provider
 	)
 
