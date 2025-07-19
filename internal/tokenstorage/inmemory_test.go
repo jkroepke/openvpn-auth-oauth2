@@ -1,6 +1,7 @@
 package tokenstorage_test
 
 import (
+	"crypto/aes"
 	"testing"
 	"time"
 
@@ -10,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestStorage_InMemory(t *testing.T) {
+func TestStorageInMemory(t *testing.T) {
 	t.Parallel()
 
 	tokenStorage := tokenstorage.NewInMemory(testutils.Secret, time.Millisecond*400)
@@ -48,7 +49,7 @@ func TestStorage_InMemory(t *testing.T) {
 	require.ErrorIs(t, err, tokenstorage.ErrNotExists)
 }
 
-func TestStorageExpire_InMemory(t *testing.T) {
+func TestStorageInMemory_Expire(t *testing.T) {
 	t.Parallel()
 
 	tokenStorage := tokenstorage.NewInMemory(testutils.Secret, 0)
@@ -65,4 +66,28 @@ func TestStorageExpire_InMemory(t *testing.T) {
 
 	_, err = tokenStorage.Get("1")
 	require.ErrorIs(t, err, tokenstorage.ErrNotExists)
+}
+
+func TestStorageInMemory_InvalidSecret(t *testing.T) {
+	t.Parallel()
+
+	tokenStorage := tokenstorage.NewInMemory(testutils.Secret, 0)
+
+	key := "invalid"
+
+	tokenStorage = tokenstorage.NewInMemory(key, 0)
+
+	t.Cleanup(func() {
+		require.NoError(t, tokenStorage.Close())
+	})
+
+	require.ErrorIs(t, tokenStorage.Set("0", "TEST0"), aes.KeySizeError(len(key)))
+}
+
+func TestStorageInMemory_InvalidData(t *testing.T) {
+	t.Parallel()
+
+	tokenStorage := tokenstorage.NewInMemory(testutils.Secret, 0)
+
+	require.ErrorIs(t, tokenStorage.SetStorage(nil), tokenstorage.ErrNilData)
 }
