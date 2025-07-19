@@ -71,11 +71,9 @@ func TestStorageInMemory_Expire(t *testing.T) {
 func TestStorageInMemory_InvalidSecret(t *testing.T) {
 	t.Parallel()
 
-	tokenStorage := tokenstorage.NewInMemory(testutils.Secret, 0)
-
 	key := "invalid"
 
-	tokenStorage = tokenstorage.NewInMemory(key, 0)
+	tokenStorage := tokenstorage.NewInMemory(key, 0)
 
 	t.Cleanup(func() {
 		require.NoError(t, tokenStorage.Close())
