@@ -12,16 +12,15 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
-	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
 func (p Provider) CheckUser(
 	_ context.Context,
 	session state.State,
-	_ types.UserInfo,
-	tokens *oidc.Tokens[*idtoken.Claims],
+	userInfo types.UserInfo,
+	tokens idtoken.IDToken,
 ) error {
-	if err := p.CheckGroups(tokens); err != nil {
+	if err := p.CheckGroups(userInfo, tokens); err != nil {
 		return err
 	}
 
@@ -36,21 +35,25 @@ func (p Provider) CheckUser(
 	return p.CheckIPAddress(session, tokens)
 }
 
-func (p Provider) CheckGroups(tokens idtoken.IDToken) error {
+func (p Provider) CheckGroups(userInfo types.UserInfo, tokens idtoken.IDToken) error {
 	if len(p.Conf.OAuth2.Validate.Groups) == 0 {
 		return nil
 	}
 
-	if tokens.IDTokenClaims == nil {
-		return fmt.Errorf("%w: id_token", oauth2.ErrMissingClaim)
-	}
+	if userInfo.Groups == nil {
+		if tokens.IDTokenClaims == nil {
+			return fmt.Errorf("%w: id_token", oauth2.ErrMissingClaim)
+		}
 
-	if tokens.IDTokenClaims.Groups == nil {
-		return fmt.Errorf("%w: groups", oauth2.ErrMissingClaim)
+		if tokens.IDTokenClaims.Groups == nil {
+			return fmt.Errorf("%w: groups", oauth2.ErrMissingClaim)
+		}
+
+		userInfo.Groups = tokens.IDTokenClaims.Groups
 	}
 
 	for _, group := range p.Conf.OAuth2.Validate.Groups {
-		if slices.Contains(tokens.IDTokenClaims.Groups, group) {
+		if slices.Contains(userInfo.Groups, group) {
 			return nil
 		}
 	}

@@ -214,7 +214,7 @@ func TestValidateGroups(t *testing.T) {
 			provider, err := generic.NewProvider(t.Context(), conf, http.DefaultClient)
 			require.NoError(t, err)
 
-			err = provider.CheckGroups(token)
+			err = provider.CheckGroups(types.UserInfo{}, token)
 
 			if tc.err == "" {
 				require.NoError(t, err)

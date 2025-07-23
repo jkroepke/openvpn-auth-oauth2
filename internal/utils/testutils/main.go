@@ -188,6 +188,23 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener, logger *slo
 		_ = opStorage.CheckUsernamePassword("test-user@localhost", "verysecure", r.FormValue("authRequestID"))
 		http.Redirect(w, r, op.AuthCallbackURL(opProvider)(r.Context(), r.FormValue("authRequestID")), http.StatusFound)
 	}))
+	mux.Handle(opProvider.UserinfoEndpoint().Relative(), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		wMock := httptest.NewRecorder()
+
+		opProvider.ServeHTTP(wMock, r)
+
+		if wMock.Code != http.StatusOK {
+			http.Error(w, wMock.Body.String(), wMock.Code)
+			return
+		}
+
+		userInfo := wMock.Body.String()
+
+		userInfo = strings.TrimSpace(userInfo[:len(userInfo)-2]) + ", \"groups\": [\"group1\", \"group2\"]}\n"
+
+		w.WriteHeader(wMock.Code)
+		_, _ = w.Write([]byte(userInfo))
+	}))
 
 	resourceServer := httptest.NewServer(mux)
 

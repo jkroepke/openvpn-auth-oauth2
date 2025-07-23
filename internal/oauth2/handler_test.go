@@ -135,6 +135,56 @@ func TestHandler(t *testing.T) {
 			true,
 		},
 		{
+			"with userinfo enabled",
+			func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Check.IPAddr = false
+				conf.OAuth2.Provider = generic.Name
+				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
+				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
+				conf.OAuth2.Validate.Groups = []string{"group1"}
+				conf.OAuth2.Validate.Roles = make([]string, 0)
+				conf.OAuth2.Validate.Issuer = true
+				conf.OAuth2.Validate.IPAddr = false
+				conf.OAuth2.UserInfo = true
+				conf.OpenVPN.Bypass.CommonNames = make([]string, 0)
+				conf.OpenVPN.AuthTokenUser = true
+
+				return conf
+			}(),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.1", "12345", ""),
+			false,
+			"",
+			true,
+			true,
+		},
+		{
+			"with userinfo enabled + validate groups",
+			func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Check.IPAddr = false
+				conf.OAuth2.Provider = generic.Name
+				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
+				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
+				conf.OAuth2.Validate.Groups = []string{"group0", "group1"}
+				conf.OAuth2.Validate.Roles = make([]string, 0)
+				conf.OAuth2.Validate.Issuer = true
+				conf.OAuth2.Validate.IPAddr = false
+				conf.OAuth2.UserInfo = true
+				conf.OpenVPN.Bypass.CommonNames = make([]string, 0)
+				conf.OpenVPN.AuthTokenUser = true
+
+				return conf
+			}(),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.1", "12345", ""),
+			false,
+			"",
+			true,
+			true,
+		},
+		{
 			"with ipaddr",
 			func() config.Config {
 				conf := config.Defaults
@@ -358,6 +408,7 @@ func TestHandler(t *testing.T) {
 			require.NoError(t, err)
 
 			t.Cleanup(func() {
+				managementInterfaceConn.Close()
 				openVPNClient.Shutdown()
 
 				select {
@@ -500,7 +551,11 @@ func TestHandler(t *testing.T) {
 					testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
 				}
 			default:
-				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 0 1\r\npush \"auth-token-user bmFtZQ==\"\r\nEND")
+				if tc.conf.OAuth2.UserInfo {
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 0 1\r\npush \"auth-token-user dGVzdC11c2VyQGxvY2FsaG9zdA==\"\r\nEND")
+				} else {
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 0 1\r\npush \"auth-token-user bmFtZQ==\"\r\nEND")
+				}
 				testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
 			}
 
