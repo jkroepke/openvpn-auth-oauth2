@@ -112,6 +112,22 @@ func TestRefreshReAuth(t *testing.T) {
 			rt: http.DefaultTransport,
 		},
 		{
+			name:                     "Refresh with UserInfo=true",
+			clientCommonName:         "test",
+			nonInteractiveShouldWork: true,
+			conf: func() config.Config {
+				conf := config.Defaults
+				conf.OAuth2.Validate.Groups = []string{"group1"}
+				conf.OAuth2.UserInfo = true
+				conf.OAuth2.Refresh.Enabled = true
+				conf.OAuth2.Refresh.ValidateUser = false
+				conf.OAuth2.Refresh.UseSessionID = false
+
+				return conf
+			}(),
+			rt: http.DefaultTransport,
+		},
+		{
 			name:                     "Refresh with SessionID=true + ValidateUser=false",
 			clientCommonName:         "test",
 			nonInteractiveShouldWork: true,
@@ -354,6 +370,8 @@ func TestRefreshReAuth(t *testing.T) {
 
 				if tc.clientCommonName == "" {
 					testutils.ExpectMessage(t, managementInterfaceConn, reader, "push \"auth-token-user dXNlcm5hbWUK\"")
+				} else if tc.conf.OAuth2.UserInfo {
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, "push \"auth-token-user dGVzdC11c2VyQGxvY2FsaG9zdA==\"")
 				} else {
 					testutils.ExpectMessage(t, managementInterfaceConn, reader, "push \"auth-token-user dGVzdA==\"")
 				}
