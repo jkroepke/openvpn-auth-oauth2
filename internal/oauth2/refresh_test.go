@@ -120,8 +120,6 @@ func TestRefreshReAuth(t *testing.T) {
 				conf.OAuth2.Validate.Groups = []string{"group1"}
 				conf.OAuth2.UserInfo = true
 				conf.OAuth2.Refresh.Enabled = true
-				conf.OAuth2.Refresh.ValidateUser = false
-				conf.OAuth2.Refresh.UseSessionID = false
 
 				return conf
 			}(),
