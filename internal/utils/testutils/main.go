@@ -195,6 +195,7 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener, logger *slo
 
 		if wMock.Code != http.StatusOK {
 			http.Error(w, wMock.Body.String(), wMock.Code)
+
 			return
 		}
 

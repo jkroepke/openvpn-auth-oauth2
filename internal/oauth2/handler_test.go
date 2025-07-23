@@ -556,6 +556,7 @@ func TestHandler(t *testing.T) {
 				} else {
 					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 0 1\r\npush \"auth-token-user bmFtZQ==\"\r\nEND")
 				}
+
 				testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
 			}
 
