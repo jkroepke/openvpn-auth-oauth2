@@ -4,6 +4,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
+//nolint:tagliatelle
 type UserInfo struct {
 	Subject           string   `json:"sub,omitempty"`
 	Email             string   `json:"email,omitempty"`

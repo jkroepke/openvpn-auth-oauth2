@@ -77,6 +77,8 @@ func TestCheckUser(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			provider, err := generic.NewProvider(t.Context(), tc.conf, http.DefaultClient)
 			require.NoError(t, err)
 

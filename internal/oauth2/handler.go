@@ -132,7 +132,10 @@ func (c Client) OAuth2Callback() http.Handler {
 			r = r.WithContext(ctx)
 		}
 
-		codeExchangeHandler := rp.CodeExchangeCallback[*idtoken.Claims](func(w http.ResponseWriter, r *http.Request, tokens idtoken.IDToken, state string, provider rp.RelyingParty) {
+		codeExchangeHandler := rp.CodeExchangeCallback[*idtoken.Claims](func(
+			w http.ResponseWriter, r *http.Request,
+			tokens idtoken.IDToken, state string, provider rp.RelyingParty,
+		) {
 			c.postCodeExchangeHandler(logger, session, clientID)(w, r, tokens, state, provider, nil)
 		})
 
@@ -147,7 +150,9 @@ func (c Client) OAuth2Callback() http.Handler {
 	})
 }
 
-func (c Client) postCodeExchangeHandler(logger *slog.Logger, session state.State, clientID string) rp.CodeExchangeUserinfoCallback[*idtoken.Claims, *types.UserInfo] {
+func (c Client) postCodeExchangeHandler(
+	logger *slog.Logger, session state.State, clientID string,
+) rp.CodeExchangeUserinfoCallback[*idtoken.Claims, *types.UserInfo] {
 	return func(
 		w http.ResponseWriter, r *http.Request, tokens idtoken.IDToken, _ string,
 		_ rp.RelyingParty, userInfo *types.UserInfo,
