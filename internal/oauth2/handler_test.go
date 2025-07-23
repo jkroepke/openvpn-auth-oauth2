@@ -185,6 +185,31 @@ func TestHandler(t *testing.T) {
 			true,
 		},
 		{
+			"with userinfo enabled + missing validate groups",
+			func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Check.IPAddr = false
+				conf.OAuth2.Provider = generic.Name
+				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
+				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
+				conf.OAuth2.Validate.Groups = []string{"group0"}
+				conf.OAuth2.Validate.Roles = make([]string, 0)
+				conf.OAuth2.Validate.Issuer = true
+				conf.OAuth2.Validate.IPAddr = false
+				conf.OAuth2.UserInfo = true
+				conf.OpenVPN.Bypass.CommonNames = make([]string, 0)
+				conf.OpenVPN.AuthTokenUser = true
+
+				return conf
+			}(),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.1", "12345", ""),
+			false,
+			"",
+			true,
+			false,
+		},
+		{
 			"with ipaddr",
 			func() config.Config {
 				conf := config.Defaults

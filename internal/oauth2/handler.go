@@ -184,7 +184,7 @@ func (c Client) postCodeExchangeHandler(
 
 		if err = c.provider.CheckUser(ctx, session, user, tokens); err != nil {
 			c.openvpn.DenyClient(logger, session.Client, "client rejected")
-			c.writeHTTPError(w, logger, http.StatusInternalServerError, "user validation", err.Error())
+			c.writeHTTPError(w, logger, http.StatusForbidden, "user validation", err.Error())
 
 			return
 		}
