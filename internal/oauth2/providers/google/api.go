@@ -13,7 +13,6 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
-	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
 //nolint:tagliatelle // The API response is a JSON object with a dynamic structure.
@@ -31,7 +30,7 @@ type apiError struct {
 }
 
 // checkGroupMembership fetches the groups from a user using the Google Identity API.
-func (p Provider) checkGroupMembership(ctx context.Context, groupID string, userData types.UserData, tokens *oidc.Tokens[*idtoken.Claims]) (bool, error) {
+func (p Provider) checkGroupMembership(ctx context.Context, groupID string, userInfo types.UserInfo, tokens idtoken.IDToken) (bool, error) {
 	// https://cloud.google.com/identity/docs/reference/rest/v1beta1/groups.memberships/searchDirectGroups
 	apiURL := &url.URL{
 		Scheme: "https",
@@ -50,7 +49,7 @@ func (p Provider) checkGroupMembership(ctx context.Context, groupID string, user
 		}
 
 		for _, membership := range result.Memberships {
-			if fmt.Sprintf("groups/%s/memberships/%s", groupID, userData.Subject) == membership.Name {
+			if fmt.Sprintf("groups/%s/memberships/%s", groupID, userInfo.Subject) == membership.Name {
 				return true, nil
 			}
 		}

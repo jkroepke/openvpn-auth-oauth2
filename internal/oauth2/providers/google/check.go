@@ -7,14 +7,13 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
-	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
 func (p Provider) CheckUser(
 	ctx context.Context,
 	session state.State,
-	userData types.UserData,
-	tokens *oidc.Tokens[*idtoken.Claims],
+	userData types.UserInfo,
+	tokens idtoken.IDToken,
 ) error {
 	if len(p.Conf.OAuth2.Validate.Groups) > 0 {
 		tokens.IDTokenClaims.Groups = make([]string, 0)

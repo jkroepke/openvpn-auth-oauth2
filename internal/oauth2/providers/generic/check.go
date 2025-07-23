@@ -18,7 +18,7 @@ import (
 func (p Provider) CheckUser(
 	_ context.Context,
 	session state.State,
-	_ types.UserData,
+	_ types.UserInfo,
 	tokens *oidc.Tokens[*idtoken.Claims],
 ) error {
 	if err := p.CheckGroups(tokens); err != nil {
@@ -36,7 +36,7 @@ func (p Provider) CheckUser(
 	return p.CheckIPAddress(session, tokens)
 }
 
-func (p Provider) CheckGroups(tokens *oidc.Tokens[*idtoken.Claims]) error {
+func (p Provider) CheckGroups(tokens idtoken.IDToken) error {
 	if len(p.Conf.OAuth2.Validate.Groups) == 0 {
 		return nil
 	}
@@ -58,7 +58,7 @@ func (p Provider) CheckGroups(tokens *oidc.Tokens[*idtoken.Claims]) error {
 	return oauth2.ErrMissingRequiredGroup
 }
 
-func (p Provider) CheckRoles(tokens *oidc.Tokens[*idtoken.Claims]) error {
+func (p Provider) CheckRoles(tokens idtoken.IDToken) error {
 	if len(p.Conf.OAuth2.Validate.Roles) == 0 {
 		return nil
 	}
@@ -80,7 +80,7 @@ func (p Provider) CheckRoles(tokens *oidc.Tokens[*idtoken.Claims]) error {
 	return oauth2.ErrMissingRequiredRole
 }
 
-func (p Provider) CheckCommonName(session state.State, tokens *oidc.Tokens[*idtoken.Claims]) error {
+func (p Provider) CheckCommonName(session state.State, tokens idtoken.IDToken) error {
 	if p.Conf.OAuth2.Validate.CommonName == "" {
 		return nil
 	}
@@ -117,7 +117,7 @@ func (p Provider) CheckCommonName(session state.State, tokens *oidc.Tokens[*idto
 	return nil
 }
 
-func (p Provider) CheckIPAddress(session state.State, tokens *oidc.Tokens[*idtoken.Claims]) error {
+func (p Provider) CheckIPAddress(session state.State, tokens idtoken.IDToken) error {
 	if !p.Conf.OAuth2.Validate.IPAddr {
 		return nil
 	}

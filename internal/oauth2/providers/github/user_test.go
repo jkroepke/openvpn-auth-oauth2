@@ -23,13 +23,13 @@ func TestGetUser(t *testing.T) {
 	for _, tc := range []struct {
 		name     string
 		user     string
-		userData types.UserData
+		userData types.UserInfo
 		err      string
 	}{
 		{
 			"user",
 			`{"login": "login","email": "email","id": 10}`,
-			types.UserData{
+			types.UserInfo{
 				PreferredUsername: "login",
 				Email:             "email",
 				Subject:           "10",
@@ -39,19 +39,19 @@ func TestGetUser(t *testing.T) {
 		{
 			"access token is empty",
 			`ERROR`,
-			types.UserData{},
+			types.UserInfo{},
 			"access token is empty",
 		},
 		{
 			"http status error",
 			`error`,
-			types.UserData{},
+			types.UserInfo{},
 			"error from GitHub API https://api.github.com/user: http status code: 500; message: error",
 		},
 		{
 			"invalid json",
 			`ERROR`,
-			types.UserData{},
+			types.UserInfo{},
 			"unable to decode JSON from GitHub API https://api.github.com/user: 'ERROR': invalid character 'E' looking for beginning of value",
 		},
 	} {
@@ -94,7 +94,7 @@ func TestGetUser(t *testing.T) {
 			provider, err := github.NewProvider(t.Context(), conf, httpClient)
 			require.NoError(t, err)
 
-			userData, err := provider.GetUser(t.Context(), testutils.NewTestLogger().Logger, token)
+			userData, err := provider.GetUser(t.Context(), nil, token, nil)
 
 			if tc.err == "" {
 				require.NoError(t, err)

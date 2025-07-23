@@ -120,6 +120,12 @@ func validateOAuth2Config(conf Config) error {
 		_ = file.Close()
 	}
 
+	if !conf.OAuth2.Endpoints.Auth.IsEmpty() && !conf.OAuth2.Endpoints.Token.IsEmpty() {
+		if conf.OAuth2.UserInfo {
+			return errors.New("oauth2.userinfo: cannot be used if oauth2.endpoint.auth and oauth2.endpoint.token is set")
+		}
+	}
+
 	return nil
 }
 

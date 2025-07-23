@@ -291,6 +291,12 @@ func (c *Config) flagSetOAuth2(flagSet *flag.FlagSet) {
 		"If true, Proof Key for Code Exchange (PKCE) RFC 7636 is used for token exchange.",
 	)
 	flagSet.BoolVar(
+		&c.OAuth2.UserInfo,
+		"oauth2.user-info",
+		lookupEnvOrDefault("oauth2.user-info", c.OAuth2.UserInfo),
+		"If true, openvpn-auth-oauth2 uses the OIDC UserInfo endpoint to fetch additional information about the user (e.g. groups).",
+	)
+	flagSet.BoolVar(
 		&c.OAuth2.Nonce,
 		"oauth2.nonce",
 		lookupEnvOrDefault("oauth2.nonce", c.OAuth2.Nonce),

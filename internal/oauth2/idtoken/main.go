@@ -7,6 +7,8 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
+type IDToken = *oidc.Tokens[*Claims]
+
 //nolint:tagliatelle
 type Claims struct {
 	oidc.TokenClaims

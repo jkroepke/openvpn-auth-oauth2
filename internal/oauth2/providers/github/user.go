@@ -8,7 +8,6 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
-	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
 // user holds GitHub user information as defined by
@@ -20,21 +19,22 @@ type userType struct {
 	ID    int    `json:"id"`
 }
 
-func (p Provider) GetUser(ctx context.Context, _ *slog.Logger, tokens *oidc.Tokens[*idtoken.Claims]) (types.UserData, error) {
+func (p Provider) GetUser(ctx context.Context, _ *slog.Logger, tokens idtoken.IDToken, _ *types.UserInfo) (types.UserInfo, error) {
 	if tokens.AccessToken == "" {
-		return types.UserData{}, errors.New("access token is empty")
+		return types.UserInfo{}, errors.New("access token is empty")
 	}
 
 	var user userType
 
 	_, err := get[userType](ctx, p.httpClient, tokens.AccessToken, "https://api.github.com/user", &user)
 	if err != nil {
-		return types.UserData{}, err
+		return types.UserInfo{}, err
 	}
 
-	return types.UserData{
+	return types.UserInfo{
 		PreferredUsername: user.Login,
 		Email:             user.Email,
 		Subject:           strconv.Itoa(user.ID),
+		Groups:            nil,
 	}, nil
 }

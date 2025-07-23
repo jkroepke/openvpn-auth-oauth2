@@ -9,6 +9,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/stretchr/testify/assert"
@@ -19,29 +20,74 @@ import (
 func TestCheckUser(t *testing.T) {
 	t.Parallel()
 
-	token := &oidc.Tokens[*idtoken.Claims]{
-		IDTokenClaims: &idtoken.Claims{
-			TokenClaims: oidc.TokenClaims{
-				Subject: "subnect",
+	for _, tc := range []struct {
+		name     string
+		conf     config.Config
+		token    idtoken.IDToken
+		userInfo *types.UserInfo
+		userData types.UserInfo
+		err      error
+	}{
+		{
+			"default token",
+			config.Config{
+				OAuth2: config.OAuth2{
+					Validate: config.OAuth2Validate{},
+				},
 			},
-			PreferredUsername: "username",
+			&oidc.Tokens[*idtoken.Claims]{
+				IDTokenClaims: &idtoken.Claims{
+					TokenClaims: oidc.TokenClaims{
+						Subject: "subject",
+					},
+					PreferredUsername: "username",
+				},
+			},
+			nil,
+			types.UserInfo{
+				Subject:           "subject",
+				PreferredUsername: "username",
+			},
+			nil,
 		},
-	}
-
-	conf := config.Config{
-		OAuth2: config.OAuth2{
-			Validate: config.OAuth2Validate{},
+		{
+			"default token with user info",
+			config.Config{
+				OAuth2: config.OAuth2{
+					Validate: config.OAuth2Validate{},
+				},
+			},
+			&oidc.Tokens[*idtoken.Claims]{
+				IDTokenClaims: &idtoken.Claims{
+					TokenClaims: oidc.TokenClaims{
+						Subject: "subject",
+					},
+					PreferredUsername: "username",
+				},
+			},
+			&types.UserInfo{
+				Subject:           "subject",
+				PreferredUsername: "username2",
+			},
+			types.UserInfo{
+				Subject:           "subject",
+				PreferredUsername: "username2",
+			},
+			nil,
 		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			provider, err := generic.NewProvider(t.Context(), tc.conf, http.DefaultClient)
+			require.NoError(t, err)
+
+			userData, err := provider.GetUser(t.Context(), testutils.NewTestLogger().Logger, tc.token, tc.userInfo)
+			require.NoError(t, err)
+			require.Equal(t, tc.userData, userData)
+
+			err = provider.CheckUser(t.Context(), state.State{}, userData, tc.token)
+			require.NoError(t, err)
+		})
 	}
-
-	provider, err := generic.NewProvider(t.Context(), conf, http.DefaultClient)
-	require.NoError(t, err)
-
-	userData, err := provider.GetUser(t.Context(), testutils.NewTestLogger().Logger, token)
-	require.NoError(t, err)
-
-	err = provider.CheckUser(t.Context(), state.State{}, userData, token)
-	require.NoError(t, err)
 }
 
 func TestInvalidToken(t *testing.T) {
@@ -50,7 +96,7 @@ func TestInvalidToken(t *testing.T) {
 	for _, tc := range []struct {
 		name  string
 		conf  config.Config
-		token *oidc.Tokens[*idtoken.Claims]
+		token idtoken.IDToken
 		err   error
 	}{
 		{
@@ -114,7 +160,7 @@ func TestInvalidToken(t *testing.T) {
 			provider, err := generic.NewProvider(t.Context(), tc.conf, http.DefaultClient)
 			require.NoError(t, err)
 
-			userData, err := provider.GetUser(t.Context(), testutils.NewTestLogger().Logger, tc.token)
+			userData, err := provider.GetUser(t.Context(), testutils.NewTestLogger().Logger, tc.token, nil)
 			require.NoError(t, err)
 
 			err = provider.CheckUser(t.Context(), state.State{Client: state.ClientIdentifier{CommonName: "user"}}, userData, tc.token)

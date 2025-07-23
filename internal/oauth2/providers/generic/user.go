@@ -6,10 +6,9 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
-	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
-func (p Provider) GetUser(ctx context.Context, logger *slog.Logger, tokens *oidc.Tokens[*idtoken.Claims]) (types.UserData, error) {
+func (p Provider) GetUser(ctx context.Context, logger *slog.Logger, tokens idtoken.IDToken, userinfo *types.UserInfo) (types.UserInfo, error) {
 	if tokens.IDTokenClaims == nil {
 		if tokens.IDToken == "" {
 			// if tokens.Token.Extra("id_token") != nil {
@@ -26,12 +25,21 @@ func (p Provider) GetUser(ctx context.Context, logger *slog.Logger, tokens *oidc
 			)
 		}
 
-		return types.UserData{}, nil
+		return types.UserInfo{}, nil
 	}
 
-	return types.UserData{
-		PreferredUsername: tokens.IDTokenClaims.PreferredUsername,
-		Subject:           tokens.IDTokenClaims.Subject,
-		Email:             tokens.IDTokenClaims.EMail,
-	}, nil
+	var userData types.UserInfo
+
+	if userinfo != nil {
+		userData = *userinfo
+	} else {
+		userData = types.UserInfo{
+			PreferredUsername: tokens.IDTokenClaims.PreferredUsername,
+			Subject:           tokens.IDTokenClaims.Subject,
+			Email:             tokens.IDTokenClaims.EMail,
+			Groups:            tokens.IDTokenClaims.Groups,
+		}
+	}
+
+	return userData, nil
 }

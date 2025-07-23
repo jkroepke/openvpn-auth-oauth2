@@ -4,10 +4,15 @@ import (
 	"golang.org/x/oauth2"
 )
 
-type UserData struct {
-	Subject           string
-	Email             string
-	PreferredUsername string
+type UserInfo struct {
+	Subject           string   `json:"sub,omitempty"`
+	Email             string   `json:"email,omitempty"`
+	PreferredUsername string   `json:"preferred_username,omitempty"`
+	Groups            []string `json:"groups,omitempty"`
+}
+
+func (u UserInfo) GetSubject() string {
+	return u.Subject
 }
 
 type ProviderConfig struct {
