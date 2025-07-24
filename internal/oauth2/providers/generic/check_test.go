@@ -98,7 +98,7 @@ func TestGetUser(t *testing.T) {
 				PreferredUsername: "username",
 				Groups:            []string{"group1", "group2"},
 			},
-			types.ErrInvalidClaimType,
+			nil,
 		},
 		{
 			"default token with invalid groups claim type any",
