@@ -87,6 +87,33 @@ func TestGetUser(t *testing.T) {
 						Subject: "subject",
 					},
 					Claims: map[string]any{
+						"groups": []any{any("group1"), any("group2")},
+					},
+					PreferredUsername: "username",
+				},
+			},
+			nil,
+			types.UserInfo{
+				Subject:           "subject",
+				PreferredUsername: "username",
+				Groups:            []string{"group1", "group2"},
+			},
+			types.ErrInvalidClaimType,
+		},
+		{
+			"default token with invalid groups claim type any",
+			func() config.Config {
+				conf := config.Defaults
+				conf.OAuth2.Validate.Groups = []string{"group"}
+
+				return conf
+			}(),
+			&oidc.Tokens[*idtoken.Claims]{
+				IDTokenClaims: &idtoken.Claims{
+					TokenClaims: oidc.TokenClaims{
+						Subject: "subject",
+					},
+					Claims: map[string]any{
 						"groups": []any{any("group1"), any(0)},
 					},
 					PreferredUsername: "username",
