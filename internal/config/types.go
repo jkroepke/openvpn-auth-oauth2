@@ -81,6 +81,7 @@ type OAuth2 struct {
 	Endpoints       OAuth2Endpoints   `json:"endpoint"         yaml:"endpoint"`
 	Issuer          types.URL         `json:"issuer"           yaml:"issuer"`
 	Client          OAuth2Client      `json:"client"           yaml:"client"`
+	GroupsClaim     string            `json:"groups-claim"     yaml:"groups-claim"`
 	AuthorizeParams string            `json:"authorize-params" yaml:"authorize-params"`
 	Provider        string            `json:"provider"         yaml:"provider"`
 	Scopes          types.StringSlice `json:"scopes"           yaml:"scopes"`

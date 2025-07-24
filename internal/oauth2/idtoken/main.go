@@ -20,7 +20,6 @@ type Claims struct {
 	IPAddr            string   `json:"ipaddr,omitempty"`
 	EMail             string   `json:"email,omitempty"`
 	Hd                string   `json:"hd,omitempty"`
-	Groups            []string `json:"groups,omitempty"`
 	Roles             []string `json:"roles,omitempty"`
 }
 

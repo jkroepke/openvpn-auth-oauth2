@@ -34,7 +34,7 @@ func (p Provider) CheckUser(
 			return fmt.Errorf("error getting GitHub organizations: %w", err)
 		}
 
-		tokens.IDTokenClaims.Groups = organizations
+		userData.Groups = organizations
 	}
 
 	if len(p.Conf.OAuth2.Validate.Roles) > 0 {

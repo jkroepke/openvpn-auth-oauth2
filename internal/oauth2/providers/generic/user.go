@@ -2,6 +2,7 @@ package generic
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
@@ -9,6 +10,10 @@ import (
 )
 
 func (p Provider) GetUser(ctx context.Context, logger *slog.Logger, tokens idtoken.IDToken, userinfo *types.UserInfo) (types.UserInfo, error) {
+	if userinfo != nil {
+		return *userinfo, nil
+	}
+
 	if tokens.IDTokenClaims == nil {
 		if tokens.IDToken == "" {
 			// if tokens.Token.Extra("id_token") != nil {
@@ -28,18 +33,53 @@ func (p Provider) GetUser(ctx context.Context, logger *slog.Logger, tokens idtok
 		return types.UserInfo{}, nil
 	}
 
-	var userData types.UserInfo
+	var groups []string
 
-	if userinfo != nil {
-		userData = *userinfo
-	} else {
-		userData = types.UserInfo{
-			PreferredUsername: tokens.IDTokenClaims.PreferredUsername,
-			Subject:           tokens.IDTokenClaims.Subject,
-			Email:             tokens.IDTokenClaims.EMail,
-			Groups:            tokens.IDTokenClaims.Groups,
+	if len(p.Conf.OAuth2.Validate.Groups) != 0 {
+		var err error
+
+		groups, err = p.extractGroups(ctx, logger, tokens)
+		if err != nil {
+			return types.UserInfo{}, err
 		}
 	}
 
-	return userData, nil
+	return types.UserInfo{
+		PreferredUsername: tokens.IDTokenClaims.PreferredUsername,
+		Subject:           tokens.IDTokenClaims.Subject,
+		Email:             tokens.IDTokenClaims.EMail,
+		Groups:            groups,
+	}, nil
+}
+
+func (p Provider) extractGroups(ctx context.Context, logger *slog.Logger, tokens idtoken.IDToken) ([]string, error) {
+	groupClaim, ok := tokens.IDTokenClaims.Claims[p.Conf.OAuth2.GroupsClaim]
+	if !ok {
+		logger.LogAttrs(ctx, slog.LevelWarn, "provider did not return a groups claim. validation of groups is not possible.")
+
+		return nil, nil
+	}
+
+	if groupClaim == nil {
+		return nil, nil
+	}
+
+	switch groups := groupClaim.(type) {
+	case []string:
+		return groups, nil
+	case []any:
+		var convertedGroups []string
+		for _, group := range groups {
+			strGroup, ok := group.(string)
+			if !ok {
+				return nil, fmt.Errorf("%w: groups claim contains non-string element: %T", types.ErrInvalidClaimType, group)
+			}
+
+			convertedGroups = append(convertedGroups, strGroup)
+		}
+
+		return convertedGroups, nil
+	default:
+		return nil, fmt.Errorf("%w: groups claim: %T", types.ErrInvalidClaimType, groupClaim)
+	}
 }

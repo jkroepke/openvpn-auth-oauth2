@@ -96,6 +96,7 @@ oauth2:
     nonce: true
     pkce: false
     user-info: true
+    groups-claim: groups_direct
     refresh:
         enabled: true
         expires: 10h0m0s
@@ -227,11 +228,12 @@ http:
 						Secret:       "test",
 						PrivateKeyID: "openvpn-auth-oauth2",
 					},
-					Nonce:     true,
-					PKCE:      false,
-					UserInfo:  true,
-					Scopes:    []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile},
-					AuthStyle: config.OAuth2AuthStyle(oauth2.AuthStyleInHeader),
+					Nonce:       true,
+					PKCE:        false,
+					UserInfo:    true,
+					GroupsClaim: "groups_direct",
+					Scopes:      []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile},
+					AuthStyle:   config.OAuth2AuthStyle(oauth2.AuthStyleInHeader),
 					Refresh: config.OAuth2Refresh{
 						Enabled:      true,
 						Expires:      10 * time.Hour,

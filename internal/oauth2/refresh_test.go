@@ -141,6 +141,21 @@ func TestRefreshReAuth(t *testing.T) {
 			rt: http.DefaultTransport,
 		},
 		{
+			name:                     "Refresh with SessionID=true + ValidateUser=true",
+			clientCommonName:         "test",
+			nonInteractiveShouldWork: true,
+			conf: func() config.Config {
+				conf := config.Defaults
+				conf.OpenVPN.AuthTokenUser = false
+				conf.OAuth2.Refresh.Enabled = true
+				conf.OAuth2.Refresh.ValidateUser = true
+				conf.OAuth2.Refresh.UseSessionID = true
+
+				return conf
+			}(),
+			rt: http.DefaultTransport,
+		},
+		{
 			name:                     "Refresh with provider=google",
 			clientCommonName:         "test",
 			nonInteractiveShouldWork: true,

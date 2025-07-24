@@ -296,6 +296,12 @@ func (c *Config) flagSetOAuth2(flagSet *flag.FlagSet) {
 		lookupEnvOrDefault("oauth2.user-info", c.OAuth2.UserInfo),
 		"If true, openvpn-auth-oauth2 uses the OIDC UserInfo endpoint to fetch additional information about the user (e.g. groups).",
 	)
+	flagSet.StringVar(
+		&c.OAuth2.GroupsClaim,
+		"oauth2.groups-claim",
+		lookupEnvOrDefault("oauth2.groups-claim", c.OAuth2.GroupsClaim),
+		"Defines the claim name in the IDToken which contains the user groups.",
+	)
 	flagSet.BoolVar(
 		&c.OAuth2.Nonce,
 		"oauth2.nonce",

@@ -20,7 +20,7 @@ func (p Provider) CheckUser(
 	userInfo types.UserInfo,
 	tokens idtoken.IDToken,
 ) error {
-	if err := p.CheckGroups(userInfo, tokens); err != nil {
+	if err := p.CheckGroups(userInfo); err != nil {
 		return err
 	}
 
@@ -35,21 +35,13 @@ func (p Provider) CheckUser(
 	return p.CheckIPAddress(session, tokens)
 }
 
-func (p Provider) CheckGroups(userInfo types.UserInfo, tokens idtoken.IDToken) error {
+func (p Provider) CheckGroups(userInfo types.UserInfo) error {
 	if len(p.Conf.OAuth2.Validate.Groups) == 0 {
 		return nil
 	}
 
 	if userInfo.Groups == nil {
-		if tokens.IDTokenClaims == nil {
-			return fmt.Errorf("%w: id_token", oauth2.ErrMissingClaim)
-		}
-
-		if tokens.IDTokenClaims.Groups == nil {
-			return fmt.Errorf("%w: groups", oauth2.ErrMissingClaim)
-		}
-
-		userInfo.Groups = tokens.IDTokenClaims.Groups
+		return fmt.Errorf("%w: groups", oauth2.ErrMissingClaim)
 	}
 
 	for _, group := range p.Conf.OAuth2.Validate.Groups {
