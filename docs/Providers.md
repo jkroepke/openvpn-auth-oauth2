@@ -306,6 +306,59 @@ oauth2:
 
 </details>
 
+## GitLab
+
+
+<details>
+<summary>Expand</summary>
+
+Supported: Self-Managed GitLab, GitLab.com
+
+### Register an app in GitLab
+
+To use GitLab as an OpenID Connect provider, you need to register an application in your GitLab account.
+This will provide you with a client ID and client secret that you will use in the configuration.
+Supported apps:
+
+* [User owned applications](https://docs.gitlab.com/integration/oauth_provider/#create-a-user-owned-application).
+* [Group owned applications](https://docs.gitlab.com/integration/oauth_provider/#create-a-group-owned-application).
+* [Instance-wide applications](https://docs.gitlab.com/integration/oauth_provider/#create-an-instance-wide-application).
+
+If you are using Self-Managed GitLab, your instance must have enabled HTTPS.
+
+### Configuration
+
+<table>
+<thead><tr><td>env/sysconfig configuration</td></tr></thead>
+<tbody><tr><td>
+
+```ini
+CONFIG_OAUTH2_ISSUER=https://gitlab.com/
+CONFIG_OAUTH2_SCOPES=openid profile email
+CONFIG_OAUTH2_USERINFO=true
+CONFIG_OAUTH2_CLIENT_ID=<client_id>
+CONFIG_OAUTH2_CLIENT_SECRET=<client_secret>
+```
+</td></tr></tbody>
+<thead><tr><td>yaml configuration</td></tr></thead>
+<tbody><tr><td>
+
+```yaml
+oauth2:
+  issuer: "https://gitlab.com/"
+  scopes:
+    - "openid"
+    - "profile"
+    - "email"
+  client:
+    id: "<client_id>"
+    secret: "<client_secret>"
+```
+</td></tr></tbody>
+</table>
+
+</details>
+
 ## Digitalocean
 
 
