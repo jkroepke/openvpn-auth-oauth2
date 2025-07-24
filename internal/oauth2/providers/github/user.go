@@ -35,6 +35,5 @@ func (p Provider) GetUser(ctx context.Context, _ *slog.Logger, tokens idtoken.ID
 		PreferredUsername: user.Login,
 		Email:             user.Email,
 		Subject:           strconv.Itoa(user.ID),
-		Groups:            nil,
 	}, nil
 }
