@@ -201,10 +201,22 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener, logger *slo
 
 		userInfo := wMock.Body.String()
 
-		userInfo = strings.TrimSpace(userInfo[:len(userInfo)-2]) + ", \"groups\": [\"group1\", \"group2\"]}\n"
+		var userInfoMap map[string]interface{}
+		if err := json.Unmarshal([]byte(userInfo), &userInfoMap); err != nil {
+			http.Error(w, "Invalid user info JSON", http.StatusInternalServerError)
+			return
+		}
+
+		userInfoMap["groups"] = []string{"group1", "group2"}
+
+		updatedUserInfo, err := json.Marshal(userInfoMap)
+		if err != nil {
+			http.Error(w, "Failed to marshal user info JSON", http.StatusInternalServerError)
+			return
+		}
 
 		w.WriteHeader(wMock.Code)
-		_, _ = w.Write([]byte(userInfo))
+		_, _ = w.Write(updatedUserInfo)
 	}))
 
 	resourceServer := httptest.NewServer(mux)
