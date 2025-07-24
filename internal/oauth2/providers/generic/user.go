@@ -60,24 +60,13 @@ func (p Provider) extractGroups(ctx context.Context, logger *slog.Logger, tokens
 		return nil, nil
 	}
 
-	groupsSlice, ok := groupClaim.([]any)
-	if !ok {
-		return nil, fmt.Errorf("%w: groups claim", types.ErrInvalidClaimType)
-	}
-
-	if groupsSlice == nil {
+	if groupClaim == nil {
 		return nil, nil
 	}
 
-	groups := make([]string, 0)
-
-	for _, group := range groupsSlice {
-		groupStr, ok := group.(string)
-		if !ok {
-			return nil, fmt.Errorf("%w: groups claim", types.ErrInvalidClaimType)
-		}
-
-		groups = append(groups, groupStr)
+	groups, ok := groupClaim.([]string)
+	if !ok {
+		return nil, fmt.Errorf("%w: groups claim: %T", types.ErrInvalidClaimType, groupClaim)
 	}
 
 	return groups, nil

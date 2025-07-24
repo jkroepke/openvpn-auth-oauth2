@@ -2,6 +2,7 @@ package generic_test
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
 	"testing"
 
@@ -11,11 +12,188 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
+
+func TestGetUser(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		name     string
+		conf     config.Config
+		token    idtoken.IDToken
+		userInfo *types.UserInfo
+		userData types.UserInfo
+		err      error
+	}{
+		{
+			"default token",
+			config.Defaults,
+			&oidc.Tokens[*idtoken.Claims]{
+				IDTokenClaims: &idtoken.Claims{
+					TokenClaims: oidc.TokenClaims{
+						Subject: "subject",
+					},
+					PreferredUsername: "username",
+				},
+			},
+			nil,
+			types.UserInfo{
+				Subject:           "subject",
+				PreferredUsername: "username",
+			},
+			nil,
+		},
+		{
+			"default token with groups claim",
+			func() config.Config {
+				conf := config.Defaults
+				conf.OAuth2.Validate.Groups = []string{"group"}
+
+				return conf
+			}(),
+			&oidc.Tokens[*idtoken.Claims]{
+				IDTokenClaims: &idtoken.Claims{
+					TokenClaims: oidc.TokenClaims{
+						Subject: "subject",
+					},
+					Claims: map[string]any{
+						"groups": []string{"group1", "group2"},
+					},
+					PreferredUsername: "username",
+				},
+			},
+			nil,
+			types.UserInfo{
+				Subject:           "subject",
+				PreferredUsername: "username",
+				Groups:            []string{"group1", "group2"},
+			},
+			nil,
+		},
+		{
+			"default token with custom groups claim",
+			func() config.Config {
+				conf := config.Defaults
+				conf.OAuth2.Validate.Groups = []string{"group"}
+
+				return conf
+			}(),
+			&oidc.Tokens[*idtoken.Claims]{
+				IDTokenClaims: &idtoken.Claims{
+					TokenClaims: oidc.TokenClaims{
+						Subject: "subject",
+					},
+					Claims: map[string]any{
+						"groups_direct": []string{"group1", "group2"},
+					},
+					PreferredUsername: "username",
+				},
+			},
+			nil,
+			types.UserInfo{
+				Subject:           "subject",
+				PreferredUsername: "username",
+			},
+			nil,
+		},
+		{
+			"default token with custom groups claim",
+			func() config.Config {
+				conf := config.Defaults
+				conf.OAuth2.Validate.Groups = []string{"group"}
+				conf.OAuth2.GroupsClaim = "groups_direct"
+
+				return conf
+			}(),
+			&oidc.Tokens[*idtoken.Claims]{
+				IDTokenClaims: &idtoken.Claims{
+					TokenClaims: oidc.TokenClaims{
+						Subject: "subject",
+					},
+					Claims: map[string]any{
+						"groups_direct": []string{"group1", "group2"},
+					},
+					PreferredUsername: "username",
+				},
+			},
+			nil,
+			types.UserInfo{
+				Subject:           "subject",
+				PreferredUsername: "username",
+				Groups:            []string{"group1", "group2"},
+			},
+			nil,
+		},
+		{
+			"default token with invalid groups claim",
+			func() config.Config {
+				conf := config.Defaults
+				conf.OAuth2.Validate.Groups = []string{"group"}
+
+				return conf
+			}(),
+			&oidc.Tokens[*idtoken.Claims]{
+				IDTokenClaims: &idtoken.Claims{
+					TokenClaims: oidc.TokenClaims{
+						Subject: "subject",
+					},
+					Claims: map[string]any{
+						"groups": "group1",
+					},
+					PreferredUsername: "username",
+				},
+			},
+			nil,
+			types.UserInfo{},
+			types.ErrInvalidClaimType,
+		},
+		{
+			"default token with nil groups claim",
+			func() config.Config {
+				conf := config.Defaults
+				conf.OAuth2.Validate.Groups = []string{"group"}
+
+				return conf
+			}(),
+			&oidc.Tokens[*idtoken.Claims]{
+				IDTokenClaims: &idtoken.Claims{
+					TokenClaims: oidc.TokenClaims{
+						Subject: "subject",
+					},
+					Claims: map[string]any{
+						"groups": nil,
+					},
+					PreferredUsername: "username",
+				},
+			},
+			nil,
+			types.UserInfo{
+				Subject:           "subject",
+				PreferredUsername: "username",
+			},
+			nil,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			provider, err := generic.NewProvider(t.Context(), tc.conf, http.DefaultClient)
+			require.NoError(t, err)
+
+			userData, err := provider.GetUser(t.Context(), slog.New(slog.DiscardHandler), tc.token, tc.userInfo)
+			if tc.err == nil {
+				require.NoError(t, err)
+				require.Equal(t, tc.userData, userData)
+			} else {
+				require.Error(t, err)
+				require.ErrorIs(t, err, tc.err)
+			}
+		})
+	}
+}
 
 func TestCheckUser(t *testing.T) {
 	t.Parallel()
@@ -82,7 +260,7 @@ func TestCheckUser(t *testing.T) {
 			provider, err := generic.NewProvider(t.Context(), tc.conf, http.DefaultClient)
 			require.NoError(t, err)
 
-			userData, err := provider.GetUser(t.Context(), testutils.NewTestLogger().Logger, tc.token, tc.userInfo)
+			userData, err := provider.GetUser(t.Context(), slog.New(slog.DiscardHandler), tc.token, tc.userInfo)
 			require.NoError(t, err)
 			require.Equal(t, tc.userData, userData)
 
@@ -162,7 +340,7 @@ func TestInvalidToken(t *testing.T) {
 			provider, err := generic.NewProvider(t.Context(), tc.conf, http.DefaultClient)
 			require.NoError(t, err)
 
-			userData, err := provider.GetUser(t.Context(), testutils.NewTestLogger().Logger, tc.token, nil)
+			userData, err := provider.GetUser(t.Context(), slog.New(slog.DiscardHandler), tc.token, nil)
 			require.NoError(t, err)
 
 			err = provider.CheckUser(t.Context(), state.State{Client: state.ClientIdentifier{CommonName: "user"}}, userData, tc.token)
