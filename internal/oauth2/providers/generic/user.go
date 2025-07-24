@@ -74,6 +74,7 @@ func (p Provider) extractGroups(ctx context.Context, logger *slog.Logger, tokens
 			if !ok {
 				return nil, fmt.Errorf("%w: groups claim contains non-string element: %T", types.ErrInvalidClaimType, group)
 			}
+
 			convertedGroups = append(convertedGroups, strGroup)
 		}
 
