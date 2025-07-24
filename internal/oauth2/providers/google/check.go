@@ -16,7 +16,7 @@ func (p Provider) CheckUser(
 	tokens idtoken.IDToken,
 ) error {
 	if len(p.Conf.OAuth2.Validate.Groups) > 0 {
-		tokens.IDTokenClaims.Groups = make([]string, 0)
+		userData.Groups = make([]string, 0)
 
 		if tokens.AccessToken == "" {
 			return errors.New("access token is empty")
@@ -29,7 +29,7 @@ func (p Provider) CheckUser(
 			}
 
 			if isMember {
-				tokens.IDTokenClaims.Groups = append(tokens.IDTokenClaims.Groups, group)
+				userData.Groups = append(userData.Groups, group)
 			}
 		}
 	}

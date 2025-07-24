@@ -90,6 +90,7 @@ type OAuth2 struct {
 	Nonce           bool              `json:"nonce"            yaml:"nonce"`
 	PKCE            bool              `json:"pkce"             yaml:"pkce"`
 	UserInfo        bool              `json:"user-info"        yaml:"user-info"`
+	GroupsClaim     string            `json:"groups-claim"     yaml:"groups-claim"`
 }
 
 type OAuth2Client struct {

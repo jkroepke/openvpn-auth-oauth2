@@ -170,7 +170,7 @@ func TestInvalidToken(t *testing.T) {
 				require.NoError(t, err)
 			} else {
 				require.Error(t, err)
-				assert.ErrorIs(t, err, tc.err)
+				require.ErrorIs(t, err, tc.err)
 			}
 		})
 	}
@@ -197,24 +197,15 @@ func TestValidateGroups(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			token := &oidc.Tokens[*idtoken.Claims]{
-				IDTokenClaims: &idtoken.Claims{
-					Groups: tc.tokenGroups,
-				},
-			}
-
-			conf := config.Config{
-				OAuth2: config.OAuth2{
-					Validate: config.OAuth2Validate{
-						Groups: tc.requiredGroups,
-					},
-				},
-			}
+			conf := config.Defaults
+			conf.OAuth2.Validate.Groups = tc.requiredGroups
 
 			provider, err := generic.NewProvider(t.Context(), conf, http.DefaultClient)
 			require.NoError(t, err)
 
-			err = provider.CheckGroups(types.UserInfo{}, token)
+			err = provider.CheckGroups(types.UserInfo{
+				Groups: tc.tokenGroups,
+			})
 
 			if tc.err == "" {
 				require.NoError(t, err)

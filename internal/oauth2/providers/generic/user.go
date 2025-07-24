@@ -2,6 +2,7 @@ package generic
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
@@ -9,6 +10,10 @@ import (
 )
 
 func (p Provider) GetUser(ctx context.Context, logger *slog.Logger, tokens idtoken.IDToken, userinfo *types.UserInfo) (types.UserInfo, error) {
+	if userinfo != nil {
+		return *userinfo, nil
+	}
+
 	if tokens.IDTokenClaims == nil {
 		if tokens.IDToken == "" {
 			// if tokens.Token.Extra("id_token") != nil {
@@ -28,18 +33,36 @@ func (p Provider) GetUser(ctx context.Context, logger *slog.Logger, tokens idtok
 		return types.UserInfo{}, nil
 	}
 
-	var userData types.UserInfo
+	var groups []string
 
-	if userinfo != nil {
-		userData = *userinfo
-	} else {
-		userData = types.UserInfo{
-			PreferredUsername: tokens.IDTokenClaims.PreferredUsername,
-			Subject:           tokens.IDTokenClaims.Subject,
-			Email:             tokens.IDTokenClaims.EMail,
-			Groups:            tokens.IDTokenClaims.Groups,
+	if len(p.Conf.OAuth2.Validate.Groups) != 0 {
+		if groupClaim, ok := tokens.IDTokenClaims.Claims[p.Conf.OAuth2.GroupsClaim]; ok {
+			groupsSlice, ok := groupClaim.([]any)
+			if !ok {
+				return types.UserInfo{}, fmt.Errorf("%w: groups claim", types.ErrInvalidClaimType)
+			}
+
+			if groupsSlice != nil {
+				groups = make([]string, 0)
+
+				for _, group := range groupsSlice {
+					groupStr, ok := group.(string)
+					if !ok {
+						return types.UserInfo{}, fmt.Errorf("%w: groups claim", types.ErrInvalidClaimType)
+					}
+
+					groups = append(groups, groupStr)
+				}
+			}
+		} else {
+			logger.LogAttrs(ctx, slog.LevelWarn, "provider did not return a groups claim. validation of groups is not possible.")
 		}
 	}
 
-	return userData, nil
+	return types.UserInfo{
+		PreferredUsername: tokens.IDTokenClaims.PreferredUsername,
+		Subject:           tokens.IDTokenClaims.Subject,
+		Email:             tokens.IDTokenClaims.EMail,
+		Groups:            groups,
+	}, nil
 }
