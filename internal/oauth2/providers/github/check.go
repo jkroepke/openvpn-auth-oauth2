@@ -9,7 +9,6 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
-	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
 type orgType struct {
@@ -24,7 +23,7 @@ type teamType struct {
 // CheckUser implements the [github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2.Provider] interface.
 // It checks if it meets specific GitHub related conditions.
 func (p Provider) CheckUser(
-	ctx context.Context, sessionState state.State, userData types.UserData, tokens *oidc.Tokens[*idtoken.Claims],
+	ctx context.Context, sessionState state.State, userData types.UserInfo, tokens idtoken.IDToken,
 ) error {
 	//nolint:exhaustruct
 	tokens.IDTokenClaims = &idtoken.Claims{}
@@ -51,7 +50,7 @@ func (p Provider) CheckUser(
 }
 
 // getTeams fetch the users GitHub team by accessing the GitHub API.
-func (p Provider) getTeams(ctx context.Context, tokens *oidc.Tokens[*idtoken.Claims]) ([]string, error) {
+func (p Provider) getTeams(ctx context.Context, tokens idtoken.IDToken) ([]string, error) {
 	if tokens.AccessToken == "" {
 		return nil, errors.New("access token is empty")
 	}
@@ -82,7 +81,7 @@ func (p Provider) getTeams(ctx context.Context, tokens *oidc.Tokens[*idtoken.Cla
 }
 
 // getOrganizations fetch the users GitHub organization by accessing the GitHub API.
-func (p Provider) getOrganizations(ctx context.Context, tokens *oidc.Tokens[*idtoken.Claims]) ([]string, error) {
+func (p Provider) getOrganizations(ctx context.Context, tokens idtoken.IDToken) ([]string, error) {
 	if tokens.AccessToken == "" {
 		return nil, errors.New("access token is empty")
 	}

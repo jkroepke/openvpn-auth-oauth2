@@ -166,9 +166,7 @@ func setupOpenVPNClient(
 		return nil, nil, fmt.Errorf("error setting token storage: %w", err)
 	}
 
-	var (
-		provider oauth2.Provider
-	)
+	var provider oauth2.Provider
 
 	switch conf.OAuth2.Provider {
 	case generic.Name:

@@ -17,7 +17,6 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 	"github.com/zitadel/logging"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
-	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
 type openvpnManagementClient interface {
@@ -133,17 +132,30 @@ func (c Client) OAuth2Callback() http.Handler {
 			r = r.WithContext(ctx)
 		}
 
+		codeExchangeHandler := rp.CodeExchangeCallback[*idtoken.Claims](func(
+			w http.ResponseWriter, r *http.Request,
+			tokens idtoken.IDToken, state string, provider rp.RelyingParty,
+		) {
+			c.postCodeExchangeHandler(logger, session, clientID)(w, r, tokens, state, provider, nil)
+		})
+
+		if c.conf.OAuth2.UserInfo {
+			codeExchangeHandler = rp.UserinfoCallback(c.postCodeExchangeHandler(logger, session, clientID))
+		}
+
 		rp.CodeExchangeHandler(
-			c.postCodeExchangeHandler(logger, session, clientID),
+			codeExchangeHandler,
 			c.relyingParty,
 		).ServeHTTP(w, r)
 	})
 }
 
-func (c Client) postCodeExchangeHandler(logger *slog.Logger, session state.State, clientID string) rp.CodeExchangeCallback[*idtoken.Claims] {
+func (c Client) postCodeExchangeHandler(
+	logger *slog.Logger, session state.State, clientID string,
+) rp.CodeExchangeUserinfoCallback[*idtoken.Claims, *types.UserInfo] {
 	return func(
-		w http.ResponseWriter, r *http.Request, tokens *oidc.Tokens[*idtoken.Claims], _ string,
-		_ rp.RelyingParty,
+		w http.ResponseWriter, r *http.Request, tokens idtoken.IDToken, _ string,
+		_ rp.RelyingParty, userInfo *types.UserInfo,
 	) {
 		ctx := r.Context()
 
@@ -157,7 +169,7 @@ func (c Client) postCodeExchangeHandler(logger *slog.Logger, session state.State
 			logger.Debug("claims", slog.Any("claims", tokens.IDTokenClaims.Claims))
 		}
 
-		user, err := c.provider.GetUser(ctx, logger, tokens)
+		user, err := c.provider.GetUser(ctx, logger, tokens, userInfo)
 		if err != nil {
 			c.openvpn.DenyClient(logger, session.Client, "unable to fetch user data")
 			c.writeHTTPError(w, logger, http.StatusInternalServerError, "fetchUser", err.Error())
@@ -172,7 +184,7 @@ func (c Client) postCodeExchangeHandler(logger *slog.Logger, session state.State
 
 		if err = c.provider.CheckUser(ctx, session, user, tokens); err != nil {
 			c.openvpn.DenyClient(logger, session.Client, "client rejected")
-			c.writeHTTPError(w, logger, http.StatusInternalServerError, "user validation", err.Error())
+			c.writeHTTPError(w, logger, http.StatusForbidden, "user validation", err.Error())
 
 			return
 		}
@@ -191,7 +203,7 @@ func (c Client) postCodeExchangeHandler(logger *slog.Logger, session state.State
 }
 
 func (c Client) postCodeExchangeHandlerStoreRefreshToken(
-	ctx context.Context, logger *slog.Logger, session state.State, clientID string, tokens *oidc.Tokens[*idtoken.Claims],
+	ctx context.Context, logger *slog.Logger, session state.State, clientID string, tokens idtoken.IDToken,
 ) {
 	if !c.conf.OAuth2.Refresh.Enabled {
 		return

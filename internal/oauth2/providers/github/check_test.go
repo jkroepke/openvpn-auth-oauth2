@@ -123,7 +123,7 @@ func TestValidateGroups(t *testing.T) {
 			provider, err := github.NewProvider(t.Context(), conf, httpClient)
 			require.NoError(t, err)
 
-			err = provider.CheckUser(t.Context(), state.State{}, types.UserData{Email: "ID"}, token)
+			err = provider.CheckUser(t.Context(), state.State{}, types.UserInfo{Email: "ID"}, token)
 
 			if tc.err == "" {
 				require.NoError(t, err)
@@ -237,7 +237,7 @@ func TestValidateRoles(t *testing.T) {
 			provider, err := github.NewProvider(t.Context(), conf, httpClient)
 			require.NoError(t, err)
 
-			err = provider.CheckUser(t.Context(), state.State{}, types.UserData{Email: "ID"}, token)
+			err = provider.CheckUser(t.Context(), state.State{}, types.UserInfo{Email: "ID"}, token)
 
 			if tc.err == "" {
 				require.NoError(t, err)

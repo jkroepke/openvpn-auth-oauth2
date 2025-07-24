@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -187,6 +188,38 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener, logger *slo
 	mux.Handle("/login/username", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_ = opStorage.CheckUsernamePassword("test-user@localhost", "verysecure", r.FormValue("authRequestID"))
 		http.Redirect(w, r, op.AuthCallbackURL(opProvider)(r.Context(), r.FormValue("authRequestID")), http.StatusFound)
+	}))
+	mux.Handle(opProvider.UserinfoEndpoint().Relative(), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		wMock := httptest.NewRecorder()
+
+		opProvider.ServeHTTP(wMock, r)
+
+		if wMock.Code != http.StatusOK {
+			http.Error(w, wMock.Body.String(), wMock.Code)
+
+			return
+		}
+
+		userInfo := wMock.Body.String()
+
+		var userInfoMap map[string]interface{}
+		if err := json.Unmarshal([]byte(userInfo), &userInfoMap); err != nil {
+			http.Error(w, "Invalid user info JSON", http.StatusInternalServerError)
+
+			return
+		}
+
+		userInfoMap["groups"] = []string{"group1", "group2"}
+
+		updatedUserInfo, err := json.Marshal(userInfoMap)
+		if err != nil {
+			http.Error(w, "Failed to marshal user info JSON", http.StatusInternalServerError)
+
+			return
+		}
+
+		w.WriteHeader(wMock.Code)
+		_, _ = w.Write(updatedUserInfo)
 	}))
 
 	resourceServer := httptest.NewServer(mux)

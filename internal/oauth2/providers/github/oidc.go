@@ -13,7 +13,7 @@ import (
 
 // GetRefreshToken returns the [oauth2.Token.AccessToken] of the user, since it does not expire.
 // OAuth2 App on GitHub doesn't provide a refresh token.
-func (p Provider) GetRefreshToken(tokens *oidc.Tokens[*idtoken.Claims]) (string, error) {
+func (p Provider) GetRefreshToken(tokens idtoken.IDToken) (string, error) {
 	if tokens == nil {
 		return "", errors.New("no tokens provided")
 	}
@@ -23,7 +23,7 @@ func (p Provider) GetRefreshToken(tokens *oidc.Tokens[*idtoken.Claims]) (string,
 
 // Refresh use the [oauth2.Token.AccessToken] from initial authentication and call the REST API if the user is still present
 // inside the required groups.
-func (p Provider) Refresh(_ context.Context, _ *slog.Logger, _ rp.RelyingParty, refreshToken string) (*oidc.Tokens[*idtoken.Claims], error) {
+func (p Provider) Refresh(_ context.Context, _ *slog.Logger, _ rp.RelyingParty, refreshToken string) (idtoken.IDToken, error) {
 	return &oidc.Tokens[*idtoken.Claims]{
 		Token:         &oauth2.Token{AccessToken: refreshToken},
 		IDTokenClaims: &idtoken.Claims{},

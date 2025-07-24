@@ -11,6 +11,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
+//goland:noinspection GoUnusedConst
 const (
 	Plugin = iota
 	ManagementClient
@@ -88,6 +89,7 @@ type OAuth2 struct {
 	AuthStyle       OAuth2AuthStyle   `json:"auth-style"       yaml:"auth-style"`
 	Nonce           bool              `json:"nonce"            yaml:"nonce"`
 	PKCE            bool              `json:"pkce"             yaml:"pkce"`
+	UserInfo        bool              `json:"user-info"        yaml:"user-info"`
 }
 
 type OAuth2Client struct {

@@ -94,7 +94,8 @@ oauth2:
     - "openid"
     - "profile"
     nonce: true
-    pkce: true
+    pkce: false
+    user-info: true
     refresh:
         enabled: true
         expires: 10h0m0s
@@ -227,7 +228,8 @@ http:
 						PrivateKeyID: "openvpn-auth-oauth2",
 					},
 					Nonce:     true,
-					PKCE:      true,
+					PKCE:      false,
+					UserInfo:  true,
 					Scopes:    []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile},
 					AuthStyle: config.OAuth2AuthStyle(oauth2.AuthStyleInHeader),
 					Refresh: config.OAuth2Refresh{

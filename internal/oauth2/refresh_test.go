@@ -112,6 +112,20 @@ func TestRefreshReAuth(t *testing.T) {
 			rt: http.DefaultTransport,
 		},
 		{
+			name:                     "Refresh with UserInfo=true",
+			clientCommonName:         "test",
+			nonInteractiveShouldWork: true,
+			conf: func() config.Config {
+				conf := config.Defaults
+				conf.OAuth2.Validate.Groups = []string{"group1"}
+				conf.OAuth2.UserInfo = true
+				conf.OAuth2.Refresh.Enabled = true
+
+				return conf
+			}(),
+			rt: http.DefaultTransport,
+		},
+		{
 			name:                     "Refresh with SessionID=true + ValidateUser=false",
 			clientCommonName:         "test",
 			nonInteractiveShouldWork: true,
@@ -342,20 +356,26 @@ func TestRefreshReAuth(t *testing.T) {
 			case tc.conf.OpenVPN.OverrideUsername:
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 1 2")
 
-				if tc.clientCommonName == "" {
-					testutils.ExpectMessage(t, managementInterfaceConn, reader, "override-username \"username\"")
-				} else {
-					testutils.ExpectMessage(t, managementInterfaceConn, reader, "override-username \"test\"")
+				switch {
+				case tc.clientCommonName == "":
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, `override-username "username"`)
+				case tc.conf.OAuth2.UserInfo:
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, `override-username "test-user@localhost"`)
+				default:
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, `override-username "test"`)
 				}
 
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "END")
 			case tc.conf.OpenVPN.AuthTokenUser:
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 1 2")
 
-				if tc.clientCommonName == "" {
-					testutils.ExpectMessage(t, managementInterfaceConn, reader, "push \"auth-token-user dXNlcm5hbWUK\"")
-				} else {
-					testutils.ExpectMessage(t, managementInterfaceConn, reader, "push \"auth-token-user dGVzdA==\"")
+				switch {
+				case tc.clientCommonName == "":
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, `push "auth-token-user dXNlcm5hbWUK"`)
+				case tc.conf.OAuth2.UserInfo:
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, `push "auth-token-user dGVzdC11c2VyQGxvY2FsaG9zdA=="`)
+				default:
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, `push "auth-token-user dGVzdA=="`)
 				}
 
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "END")

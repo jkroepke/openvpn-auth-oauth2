@@ -10,7 +10,6 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
-	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
 type Client struct {
@@ -24,13 +23,13 @@ type Client struct {
 }
 
 type Provider interface {
-	CheckUser(ctx context.Context, session state.State, user types.UserData, tokens *oidc.Tokens[*idtoken.Claims]) error
+	CheckUser(ctx context.Context, session state.State, user types.UserInfo, tokens idtoken.IDToken) error
 	GetProviderConfig() (types.ProviderConfig, error)
 	GetName() string
-	GetRefreshToken(tokens *oidc.Tokens[*idtoken.Claims]) (string, error)
-	GetUser(ctx context.Context, logger *slog.Logger, tokens *oidc.Tokens[*idtoken.Claims]) (types.UserData, error)
+	GetRefreshToken(tokens idtoken.IDToken) (string, error)
+	GetUser(ctx context.Context, logger *slog.Logger, tokens idtoken.IDToken, userinfo *types.UserInfo) (types.UserInfo, error)
 
 	// Refresh initiates a non-interactive authentication against the sso provider.
-	Refresh(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, refreshToken string) (*oidc.Tokens[*idtoken.Claims], error)
+	Refresh(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, refreshToken string) (idtoken.IDToken, error)
 	RevokeRefreshToken(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, refreshToken string) error
 }

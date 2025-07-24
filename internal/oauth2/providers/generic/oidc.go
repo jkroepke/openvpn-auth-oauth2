@@ -14,7 +14,7 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
-func (p Provider) GetRefreshToken(tokens *oidc.Tokens[*idtoken.Claims]) (string, error) {
+func (p Provider) GetRefreshToken(tokens idtoken.IDToken) (string, error) {
 	if tokens == nil {
 		return "", oauth2.ErrMissingToken
 	}
@@ -27,7 +27,7 @@ func (p Provider) GetRefreshToken(tokens *oidc.Tokens[*idtoken.Claims]) (string,
 }
 
 // Refresh initiates a non-interactive authentication against the sso provider.
-func (p Provider) Refresh(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, refreshToken string) (*oidc.Tokens[*idtoken.Claims], error) {
+func (p Provider) Refresh(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, refreshToken string) (idtoken.IDToken, error) {
 	ctx = logging.ToContext(ctx, logger)
 
 	tokens, err := rp.RefreshTokens[*idtoken.Claims](ctx, relyingParty, refreshToken, "", "")

@@ -11,6 +11,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
+	"github.com/zitadel/oidc/v3/pkg/client/rp"
 )
 
 // RefreshClientAuth initiate a non-interactive authentication against the sso provider.
@@ -59,7 +60,16 @@ func (c Client) RefreshClientAuth(ctx context.Context, logger *slog.Logger, clie
 		client.IPAddr, client.IPPort, client.SessionState,
 	)
 
-	user, err := c.provider.GetUser(ctx, logger, tokens)
+	var userInfo *types.UserInfo
+
+	if c.conf.OAuth2.UserInfo {
+		userInfo, err = rp.Userinfo[*types.UserInfo](ctx, tokens.AccessToken, tokens.TokenType, tokens.IDTokenClaims.GetSubject(), c.relyingParty)
+		if err != nil {
+			return false, fmt.Errorf("error during UserInfo request (subject: %s, token type: %s): %w", tokens.IDTokenClaims.GetSubject(), tokens.TokenType, err)
+		}
+	}
+
+	user, err := c.provider.GetUser(ctx, logger, tokens, userInfo)
 	if err != nil {
 		return false, fmt.Errorf("error fetch user data: %w", err)
 	}

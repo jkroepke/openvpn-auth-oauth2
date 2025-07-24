@@ -84,6 +84,7 @@ var Defaults = Config{
 		Issuer:   types.URL{URL: &url.URL{Scheme: "", Host: ""}},
 		Nonce:    true,
 		PKCE:     true,
+		UserInfo: false,
 		Provider: "generic",
 		Refresh: OAuth2Refresh{
 			Expires:      time.Hour * 8,

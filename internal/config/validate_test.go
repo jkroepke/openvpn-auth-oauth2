@@ -208,6 +208,33 @@ func TestValidate(t *testing.T) {
 			},
 			"",
 		},
+		{
+			config.Config{
+				HTTP: config.HTTP{
+					BaseURL:  types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
+					Secret:   testutils.Secret,
+					Template: config.Defaults.HTTP.Template,
+				},
+				OAuth2: config.OAuth2{
+					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
+					Issuer: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
+					Refresh: config.OAuth2Refresh{
+						Enabled: true,
+						Secret:  testutils.Secret,
+					},
+					UserInfo: true,
+					Endpoints: config.OAuth2Endpoints{
+						Discovery: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
+						Auth:      types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
+						Token:     types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
+					},
+				},
+				OpenVPN: config.OpenVPN{
+					Addr: types.URL{URL: &url.URL{Scheme: "tcp", Host: "127.0.0.1:9000"}},
+				},
+			},
+			"oauth2.userinfo: cannot be used if oauth2.endpoint.auth and oauth2.endpoint.token is set",
+		},
 	} {
 		t.Run(tc.err, func(t *testing.T) {
 			t.Parallel()
