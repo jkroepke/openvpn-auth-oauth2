@@ -36,26 +36,11 @@ func (p Provider) GetUser(ctx context.Context, logger *slog.Logger, tokens idtok
 	var groups []string
 
 	if len(p.Conf.OAuth2.Validate.Groups) != 0 {
-		if groupClaim, ok := tokens.IDTokenClaims.Claims[p.Conf.OAuth2.GroupsClaim]; ok {
-			groupsSlice, ok := groupClaim.([]any)
-			if !ok {
-				return types.UserInfo{}, fmt.Errorf("%w: groups claim", types.ErrInvalidClaimType)
-			}
+		var err error
 
-			if groupsSlice != nil {
-				groups = make([]string, 0)
-
-				for _, group := range groupsSlice {
-					groupStr, ok := group.(string)
-					if !ok {
-						return types.UserInfo{}, fmt.Errorf("%w: groups claim", types.ErrInvalidClaimType)
-					}
-
-					groups = append(groups, groupStr)
-				}
-			}
-		} else {
-			logger.LogAttrs(ctx, slog.LevelWarn, "provider did not return a groups claim. validation of groups is not possible.")
+		groups, err = p.extractGroups(ctx, logger, tokens)
+		if err != nil {
+			return types.UserInfo{}, err
 		}
 	}
 
@@ -65,4 +50,35 @@ func (p Provider) GetUser(ctx context.Context, logger *slog.Logger, tokens idtok
 		Email:             tokens.IDTokenClaims.EMail,
 		Groups:            groups,
 	}, nil
+}
+
+func (p Provider) extractGroups(ctx context.Context, logger *slog.Logger, tokens idtoken.IDToken) ([]string, error) {
+	groupClaim, ok := tokens.IDTokenClaims.Claims[p.Conf.OAuth2.GroupsClaim]
+	if !ok {
+		logger.LogAttrs(ctx, slog.LevelWarn, "provider did not return a groups claim. validation of groups is not possible.")
+
+		return nil, nil
+	}
+
+	groupsSlice, ok := groupClaim.([]any)
+	if !ok {
+		return nil, fmt.Errorf("%w: groups claim", types.ErrInvalidClaimType)
+	}
+
+	if groupsSlice == nil {
+		return nil, nil
+	}
+
+	groups := make([]string, 0)
+
+	for _, group := range groupsSlice {
+		groupStr, ok := group.(string)
+		if !ok {
+			return nil, fmt.Errorf("%w: groups claim", types.ErrInvalidClaimType)
+		}
+
+		groups = append(groups, groupStr)
+	}
+
+	return groups, nil
 }
