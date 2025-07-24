@@ -65,7 +65,7 @@ func (c Client) RefreshClientAuth(ctx context.Context, logger *slog.Logger, clie
 	if c.conf.OAuth2.UserInfo {
 		userInfo, err = rp.Userinfo[*types.UserInfo](ctx, tokens.AccessToken, tokens.TokenType, tokens.IDTokenClaims.GetSubject(), c.relyingParty)
 		if err != nil {
-			return false, fmt.Errorf("error userinfo request: %w", err)
+			return false, fmt.Errorf("error during UserInfo request (subject: %s, token type: %s): %w", tokens.IDTokenClaims.GetSubject(), tokens.TokenType, err)
 		}
 	}
 
