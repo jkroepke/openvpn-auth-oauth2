@@ -64,22 +64,21 @@ func (p Provider) extractGroups(ctx context.Context, logger *slog.Logger, tokens
 		return nil, nil
 	}
 
-	groups, ok := groupClaim.([]string)
-	if !ok {
-		// Handle []interface{} case
-		if groupInterfaces, ok := groupClaim.([]interface{}); ok {
-			var convertedGroups []string
-			for _, group := range groupInterfaces {
-				strGroup, ok := group.(string)
-				if !ok {
-					return nil, fmt.Errorf("%w: groups claim contains non-string element: %T", types.ErrInvalidClaimType, group)
-				}
-				convertedGroups = append(convertedGroups, strGroup)
+	switch groups := groupClaim.(type) {
+	case []string:
+		return groups, nil
+	case []any:
+		var convertedGroups []string
+		for _, group := range groups {
+			strGroup, ok := group.(string)
+			if !ok {
+				return nil, fmt.Errorf("%w: groups claim contains non-string element: %T", types.ErrInvalidClaimType, group)
 			}
-			return convertedGroups, nil
+			convertedGroups = append(convertedGroups, strGroup)
 		}
+
+		return convertedGroups, nil
+	default:
 		return nil, fmt.Errorf("%w: groups claim: %T", types.ErrInvalidClaimType, groupClaim)
 	}
-
-	return groups, nil
 }

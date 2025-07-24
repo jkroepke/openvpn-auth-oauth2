@@ -74,6 +74,29 @@ func TestGetUser(t *testing.T) {
 			nil,
 		},
 		{
+			"default token with groups claim type any",
+			func() config.Config {
+				conf := config.Defaults
+				conf.OAuth2.Validate.Groups = []string{"group"}
+
+				return conf
+			}(),
+			&oidc.Tokens[*idtoken.Claims]{
+				IDTokenClaims: &idtoken.Claims{
+					TokenClaims: oidc.TokenClaims{
+						Subject: "subject",
+					},
+					Claims: map[string]any{
+						"groups": []any{any("group1"), any(0)},
+					},
+					PreferredUsername: "username",
+				},
+			},
+			nil,
+			types.UserInfo{},
+			types.ErrInvalidClaimType,
+		},
+		{
 			"default token with custom groups claim",
 			func() config.Config {
 				conf := config.Defaults
@@ -100,7 +123,7 @@ func TestGetUser(t *testing.T) {
 			nil,
 		},
 		{
-			"default token with custom groups claim",
+			"default token with configured custom groups claim",
 			func() config.Config {
 				conf := config.Defaults
 				conf.OAuth2.Validate.Groups = []string{"group"}
