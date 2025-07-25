@@ -364,7 +364,9 @@ func SetupOpenVPNOAuth2Clients(
 
 	openVPNClient.SetOAuth2Client(oAuth2Client)
 
-	tb.Cleanup(openVPNClient.Shutdown)
+	tb.Cleanup(func() {
+		openVPNClient.Shutdown(ctx)
+	})
 
 	return oAuth2Client, openVPNClient
 }

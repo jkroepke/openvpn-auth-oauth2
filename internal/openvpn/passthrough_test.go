@@ -206,6 +206,17 @@ func TestPassThroughFull(t *testing.T) {
 			managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
 			require.NoError(t, err)
 
+			t.Cleanup(func() {
+				openVPNClient.Shutdown(t.Context())
+
+				select {
+				case err := <-errOpenVPNClientCh:
+					require.NoError(t, err)
+				case <-time.After(1 * time.Second):
+					t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", logger.String())
+				}
+			})
+
 			reader := bufio.NewReader(managementInterfaceConn)
 
 			if tc.conf.OpenVPN.Password != "" {
@@ -250,15 +261,6 @@ func TestPassThroughFull(t *testing.T) {
 						"invalid",
 						"ERROR: bad password",
 					)
-
-					openVPNClient.Shutdown()
-
-					select {
-					case err := <-errOpenVPNClientCh:
-						require.NoError(t, err)
-					case <-time.After(1 * time.Second):
-						t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", logger.String())
-					}
 
 					return
 				}
@@ -360,15 +362,6 @@ func TestPassThroughFull(t *testing.T) {
 			} else {
 				testutils.SendMessagef(t, passThroughConn, " quit ")
 				require.NoError(t, passThroughConn.Close())
-			}
-
-			openVPNClient.Shutdown()
-
-			select {
-			case err := <-errOpenVPNClientCh:
-				require.NoError(t, err)
-			case <-time.After(1 * time.Second):
-				t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", logger.String())
 			}
 		})
 	}

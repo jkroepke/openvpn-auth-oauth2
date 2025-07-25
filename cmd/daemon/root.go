@@ -346,7 +346,7 @@ func handleSignal(
 
 	switch sig {
 	case syscall.SIGHUP:
-		if err := server.Reload(); err != nil {
+		if err := server.Reload(ctx); err != nil {
 			cancel(fmt.Errorf("error reloading http server: %w", err))
 		}
 	case syscall.SIGUSR1:

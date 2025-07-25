@@ -14,14 +14,13 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 	"github.com/zitadel/logging"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
 )
 
 type openvpnManagementClient interface {
-	AcceptClient(logger *slog.Logger, client state.ClientIdentifier, reAuth bool, username string)
-	DenyClient(logger *slog.Logger, client state.ClientIdentifier, reason string)
+	AcceptClient(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, reAuth bool, username string)
+	DenyClient(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, reason string)
 }
 
 // OAuth2Start returns a http.Handler that starts the OAuth2 authorization flow.
@@ -30,6 +29,8 @@ type openvpnManagementClient interface {
 // After the checks, the request is delegated to [rp.AuthURLHandler].
 func (c Client) OAuth2Start() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
 		// check if request has a state GET parameter generated state.New.
 		sessionState := r.URL.Query().Get("state")
 		if sessionState == "" {
@@ -41,7 +42,7 @@ func (c Client) OAuth2Start() http.Handler {
 		// decode the state GET parameter
 		session, err := state.NewWithEncodedToken(sessionState, c.conf.HTTP.Secret.String())
 		if err != nil {
-			c.logger.Warn(utils.StringConcat("invalid state: ", err.Error()))
+			c.logger.LogAttrs(ctx, slog.LevelWarn, "invalid state: "+err.Error())
 			w.WriteHeader(http.StatusBadRequest)
 
 			return
@@ -56,23 +57,23 @@ func (c Client) OAuth2Start() http.Handler {
 
 		if c.conf.HTTP.Check.IPAddr {
 			if err := checkClientIPAddr(r, c.conf, session); err != nil {
-				logger.LogAttrs(r.Context(), slog.LevelWarn, err.Error())
+				logger.LogAttrs(ctx, slog.LevelWarn, err.Error())
 
 				if !errors.Is(err, ErrClientRejected) {
-					c.openvpn.DenyClient(logger, session.Client, "client rejected")
+					c.openvpn.DenyClient(ctx, logger, session.Client, "client rejected")
 					w.WriteHeader(http.StatusInternalServerError)
 
 					return
 				}
 
-				c.openvpn.DenyClient(logger, session.Client, err.Error())
+				c.openvpn.DenyClient(ctx, logger, session.Client, err.Error())
 				w.WriteHeader(http.StatusForbidden)
 
 				return
 			}
 		}
 
-		logger.LogAttrs(r.Context(), slog.LevelInfo, "initialize authorization via oauth2")
+		logger.LogAttrs(ctx, slog.LevelInfo, "initialize authorization via oauth2")
 
 		authorizeParams := c.authorizeParams
 
@@ -99,14 +100,14 @@ func (c Client) OAuth2Callback() http.Handler {
 
 		encryptedState := r.URL.Query().Get("state")
 		if encryptedState == "" {
-			c.writeHTTPError(w, c.logger, http.StatusBadRequest, "Bad Request", "state is empty")
+			c.writeHTTPError(ctx, w, c.logger, http.StatusBadRequest, "Bad Request", "state is empty")
 
 			return
 		}
 
 		session, err := state.NewWithEncodedToken(encryptedState, c.conf.HTTP.Secret.String())
 		if err != nil {
-			c.writeHTTPError(w, c.logger, http.StatusBadRequest, "Invalid State", err.Error())
+			c.writeHTTPError(ctx, w, c.logger, http.StatusBadRequest, "Invalid State", err.Error())
 
 			return
 		}
@@ -166,13 +167,13 @@ func (c Client) postCodeExchangeHandler(
 				slog.String("idtoken_preferred_username", tokens.IDTokenClaims.PreferredUsername),
 			)
 
-			logger.Debug("claims", slog.Any("claims", tokens.IDTokenClaims.Claims))
+			logger.LogAttrs(ctx, slog.LevelDebug, "claims", slog.Any("claims", tokens.IDTokenClaims.Claims))
 		}
 
 		user, err := c.provider.GetUser(ctx, logger, tokens, userInfo)
 		if err != nil {
-			c.openvpn.DenyClient(logger, session.Client, "unable to fetch user data")
-			c.writeHTTPError(w, logger, http.StatusInternalServerError, "fetchUser", err.Error())
+			c.openvpn.DenyClient(ctx, logger, session.Client, "unable to fetch user data")
+			c.writeHTTPError(ctx, w, logger, http.StatusInternalServerError, "fetchUser", err.Error())
 
 			return
 		}
@@ -183,8 +184,8 @@ func (c Client) postCodeExchangeHandler(
 		)
 
 		if err = c.provider.CheckUser(ctx, session, user, tokens); err != nil {
-			c.openvpn.DenyClient(logger, session.Client, "client rejected")
-			c.writeHTTPError(w, logger, http.StatusForbidden, "user validation", err.Error())
+			c.openvpn.DenyClient(ctx, logger, session.Client, "client rejected")
+			c.writeHTTPError(ctx, w, logger, http.StatusForbidden, "user validation", err.Error())
 
 			return
 		}
@@ -196,9 +197,9 @@ func (c Client) postCodeExchangeHandler(
 			username = session.Client.CommonName
 		}
 
-		c.openvpn.AcceptClient(logger, session.Client, false, username)
+		c.openvpn.AcceptClient(ctx, logger, session.Client, false, username)
 		c.postCodeExchangeHandlerStoreRefreshToken(ctx, logger, session, clientID, tokens)
-		c.writeHTTPSuccess(w, logger)
+		c.writeHTTPSuccess(ctx, w, logger)
 	}
 }
 
@@ -243,7 +244,7 @@ func (c Client) postCodeExchangeHandlerStoreRefreshToken(
 	}
 }
 
-func (c Client) httpErrorHandler(w http.ResponseWriter, httpStatus int, errorType, errorDesc, encryptedSession string) {
+func (c Client) httpErrorHandler(ctx context.Context, w http.ResponseWriter, httpStatus int, errorType, errorDesc, encryptedSession string) {
 	logger := c.logger
 
 	session, err := state.NewWithEncodedToken(encryptedSession, c.conf.HTTP.Secret.String())
@@ -255,15 +256,15 @@ func (c Client) httpErrorHandler(w http.ResponseWriter, httpStatus int, errorTyp
 			slog.String("common_name", session.Client.CommonName),
 		)
 
-		c.openvpn.DenyClient(logger, session.Client, "client rejected")
+		c.openvpn.DenyClient(ctx, logger, session.Client, "client rejected")
 	} else {
-		c.logger.Debug("httpErrorHandler: " + err.Error())
+		logger.LogAttrs(ctx, slog.LevelDebug, "httpErrorHandler: "+err.Error())
 	}
 
-	c.writeHTTPError(w, logger, httpStatus, errorType, errorDesc)
+	c.writeHTTPError(ctx, w, logger, httpStatus, errorType, errorDesc)
 }
 
-func (c Client) writeHTTPError(w http.ResponseWriter, logger *slog.Logger, httpCode int, errorType, errorDesc string) {
+func (c Client) writeHTTPError(ctx context.Context, w http.ResponseWriter, logger *slog.Logger, httpCode int, errorType, errorDesc string) {
 	if httpCode == http.StatusUnauthorized {
 		httpCode = http.StatusForbidden
 	}
@@ -273,7 +274,7 @@ func (c Client) writeHTTPError(w http.ResponseWriter, logger *slog.Logger, httpC
 
 	errorID := hex.EncodeToString(h.Sum(nil))
 
-	logger.Warn(fmt.Sprintf("%s: %s", errorType, errorDesc), slog.String("error_id", errorID))
+	logger.LogAttrs(ctx, slog.LevelWarn, fmt.Sprintf("%s: %s", errorType, errorDesc), slog.String("error_id", errorID))
 	w.WriteHeader(httpCode)
 
 	err := c.conf.HTTP.Template.Execute(w, map[string]string{
@@ -282,19 +283,21 @@ func (c Client) writeHTTPError(w http.ResponseWriter, logger *slog.Logger, httpC
 		"errorID": errorID,
 	})
 	if err != nil {
-		logger.Error(fmt.Errorf("executing template: %w", err).Error())
+		logger.LogAttrs(ctx, slog.LevelError, fmt.Errorf("executing template: %w", err).Error())
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 }
 
-func (c Client) writeHTTPSuccess(w http.ResponseWriter, logger *slog.Logger) {
+func (c Client) writeHTTPSuccess(ctx context.Context, w http.ResponseWriter, logger *slog.Logger) {
 	err := c.conf.HTTP.Template.Execute(w, map[string]string{
 		"title":   "Access granted",
 		"message": "You can close this window now.",
 		"errorID": "",
 	})
 	if err != nil {
-		logger.Error(fmt.Errorf("executing template: %w", err).Error())
+		logger.LogAttrs(ctx, slog.LevelError, "template error", slog.Any(
+			"err", fmt.Errorf("executing template: %w", err),
+		))
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 }

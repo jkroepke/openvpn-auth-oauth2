@@ -39,7 +39,7 @@ func BenchmarkFull(b *testing.B) {
 	b.Cleanup(func() {
 		_ = managementInterfaceConn.Close()
 
-		client.Shutdown()
+		client.Shutdown(b.Context())
 	})
 
 	reader := bufio.NewReader(managementInterfaceConn)
@@ -88,7 +88,7 @@ func BenchmarkFull(b *testing.B) {
 
 	wgc.Wait()
 
-	client.Shutdown()
+	client.Shutdown(b.Context())
 	wg.Wait()
 
 	b.ReportAllocs()

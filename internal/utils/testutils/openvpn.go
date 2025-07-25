@@ -1,6 +1,7 @@
 package testutils
 
 import (
+	"context"
 	"log/slog"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
@@ -16,7 +17,9 @@ func NewFakeOpenVPNClient() FakeOpenVPNClient {
 }
 
 // AcceptClient is a no-op implementation of the real method.
-func (FakeOpenVPNClient) AcceptClient(_ *slog.Logger, _ state.ClientIdentifier, _ bool, _ string) {}
+func (FakeOpenVPNClient) AcceptClient(_ context.Context, _ *slog.Logger, _ state.ClientIdentifier, _ bool, _ string) {
+}
 
 // DenyClient is a no-op implementation of the real method.
-func (FakeOpenVPNClient) DenyClient(_ *slog.Logger, _ state.ClientIdentifier, _ string) {}
+func (FakeOpenVPNClient) DenyClient(_ context.Context, _ *slog.Logger, _ state.ClientIdentifier, _ string) {
+}
