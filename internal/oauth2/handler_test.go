@@ -434,7 +434,7 @@ func TestHandler(t *testing.T) {
 
 			t.Cleanup(func() {
 				managementInterfaceConn.Close()
-				openVPNClient.Shutdown()
+				openVPNClient.Shutdown(t.Context())
 
 				select {
 				case err := <-errOpenVPNClientCh:

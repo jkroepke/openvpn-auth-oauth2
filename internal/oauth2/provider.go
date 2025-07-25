@@ -175,11 +175,11 @@ func (c Client) getRelyingPartyOptions(httpClient *http.Client) []rp.Option {
 		rp.WithCookieHandler(cookieHandler),
 		rp.WithVerifierOpts(verifierOpts...),
 		rp.WithHTTPClient(httpClient),
-		rp.WithErrorHandler(func(w http.ResponseWriter, _ *http.Request, errorType, errorDesc, encryptedSession string) {
-			c.httpErrorHandler(w, http.StatusInternalServerError, errorType, errorDesc, encryptedSession)
+		rp.WithErrorHandler(func(w http.ResponseWriter, r *http.Request, errorType, errorDesc, encryptedSession string) {
+			c.httpErrorHandler(r.Context(), w, http.StatusInternalServerError, errorType, errorDesc, encryptedSession)
 		}),
-		rp.WithUnauthorizedHandler(func(w http.ResponseWriter, _ *http.Request, errorDesc, encryptedSession string) {
-			c.httpErrorHandler(w, http.StatusUnauthorized, "Unauthorized", errorDesc, encryptedSession)
+		rp.WithUnauthorizedHandler(func(w http.ResponseWriter, r *http.Request, errorDesc, encryptedSession string) {
+			c.httpErrorHandler(r.Context(), w, http.StatusUnauthorized, "Unauthorized", errorDesc, encryptedSession)
 		}),
 	)
 

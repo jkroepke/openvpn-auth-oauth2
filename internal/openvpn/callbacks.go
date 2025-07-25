@@ -1,6 +1,7 @@
 package openvpn
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -12,12 +13,12 @@ import (
 
 // AcceptClient accepts an OpenVPN client connection.
 // It reads the client configuration from the CCD path if enabled.
-func (c *Client) AcceptClient(logger *slog.Logger, client state.ClientIdentifier, reAuth bool, username string) {
+func (c *Client) AcceptClient(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, reAuth bool, username string) {
 	if reAuth {
-		logger.Info("client re-authentication")
+		logger.LogAttrs(ctx, slog.LevelInfo, "client re-authentication")
 
-		if _, err := c.SendCommandf(`client-auth-nt %d %d`, client.CID, client.KID); err != nil {
-			logger.Warn("failed to accept client",
+		if _, err := c.SendCommandf(ctx, `client-auth-nt %d %d`, client.CID, client.KID); err != nil {
+			logger.LogAttrs(ctx, slog.LevelWarn, "failed to accept client",
 				slog.Any("error", err),
 			)
 		}
@@ -25,21 +26,21 @@ func (c *Client) AcceptClient(logger *slog.Logger, client state.ClientIdentifier
 		return
 	}
 
-	c.acceptClientAuth(logger, client, username)
+	c.acceptClientAuth(ctx, logger, client, username)
 }
 
 //nolint:cyclop
-func (c *Client) acceptClientAuth(logger *slog.Logger, client state.ClientIdentifier, username string) {
+func (c *Client) acceptClientAuth(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, username string) {
 	var (
 		err           error
 		tokenUsername string
 	)
 
-	logger.Info("client authentication")
+	logger.LogAttrs(ctx, slog.LevelInfo, "client authentication")
 
 	clientConfig, err := c.readClientConfig(username)
 	if err != nil {
-		logger.Debug("failed to read client config",
+		logger.LogAttrs(ctx, slog.LevelDebug, "failed to read client config",
 			slog.String("username", username),
 			slog.Any("error", err),
 		)
@@ -60,7 +61,7 @@ func (c *Client) acceptClientAuth(logger *slog.Logger, client state.ClientIdenti
 	}
 
 	if len(clientConfig) == 0 {
-		_, err = c.SendCommandf(`client-auth-nt %d %d`, client.CID, client.KID)
+		_, err = c.SendCommandf(ctx, `client-auth-nt %d %d`, client.CID, client.KID)
 	} else {
 		sb := strings.Builder{}
 
@@ -73,22 +74,22 @@ func (c *Client) acceptClientAuth(logger *slog.Logger, client state.ClientIdenti
 
 		sb.WriteString("END")
 
-		_, err = c.SendCommand(sb.String(), false)
+		_, err = c.SendCommand(ctx, sb.String(), false)
 	}
 
 	if err != nil {
-		logger.Warn("failed to accept client",
+		logger.LogAttrs(ctx, slog.LevelWarn, "failed to accept client",
 			slog.Any("error", err),
 		)
 	}
 }
 
-func (c *Client) DenyClient(logger *slog.Logger, client state.ClientIdentifier, reason string) {
-	logger.Info(fmt.Sprintf("deny OpenVPN client cid %d, kid %d", client.CID, client.KID))
+func (c *Client) DenyClient(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, reason string) {
+	logger.LogAttrs(ctx, slog.LevelInfo, fmt.Sprintf("deny OpenVPN client cid %d, kid %d", client.CID, client.KID))
 
-	_, err := c.SendCommandf(`client-deny %d %d "%s"`, client.CID, client.KID, reason)
+	_, err := c.SendCommandf(ctx, `client-deny %d %d "%s"`, client.CID, client.KID, reason)
 	if err != nil {
-		logger.Warn("failed to deny client",
+		logger.LogAttrs(ctx, slog.LevelWarn, "failed to deny client",
 			slog.Any("error", err),
 		)
 	}

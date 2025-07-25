@@ -25,7 +25,9 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 	ctx, cancel := context.WithCancel(b.Context())
 	b.Cleanup(cancel)
 
-	managementInterface, err := net.Listen("tcp", "127.0.0.1:0")
+	var listenConf net.ListenConfig
+
+	managementInterface, err := listenConf.Listen(b.Context(), "tcp", "127.0.0.1:0")
 	require.NoError(b, err)
 
 	b.Cleanup(func() {
@@ -81,7 +83,6 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 
 	b.StopTimer()
 
-	openVPNClient.Shutdown()
 	require.NoError(b, <-errOpenVPNClientCh)
 }
 
@@ -164,6 +165,17 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 
 	testutils.ExpectMessage(b, passThroughConn, passThroughReader, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info")
 
+	b.Cleanup(func() {
+		openVPNClient.Shutdown(b.Context())
+
+		select {
+		case err := <-errOpenVPNClientCh:
+			require.NoError(b, err)
+		case <-time.After(1 * time.Second):
+			b.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", logger.String())
+		}
+	})
+
 	b.ResetTimer()
 	b.StartTimer()
 
@@ -179,13 +191,4 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 	}
 
 	b.StopTimer()
-
-	openVPNClient.Shutdown()
-
-	select {
-	case err := <-errOpenVPNClientCh:
-		require.NoError(b, err)
-	case <-time.After(1 * time.Second):
-		b.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", logger.String())
-	}
 }

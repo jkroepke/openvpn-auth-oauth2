@@ -16,7 +16,6 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
 // minManagementInterfaceVersion defines the minimum supported version of the
@@ -65,7 +64,7 @@ func (c *Client) Connect(ctx context.Context) error {
 
 	c.logger.LogAttrs(ctx, slog.LevelInfo, "connect to openvpn management interface "+c.conf.OpenVPN.Addr.String())
 
-	if err = c.setupConnection(); err != nil {
+	if err = c.setupConnection(ctx); err != nil {
 		return fmt.Errorf("unable to connect to openvpn management interface %s: %w", c.conf.OpenVPN.Addr.String(), err)
 	}
 
@@ -79,7 +78,7 @@ func (c *Client) Connect(ctx context.Context) error {
 		return fmt.Errorf("unable to authenticate with OpenVPN management interface: %w", err)
 	}
 
-	defer c.Shutdown()
+	defer c.Shutdown(ctx)
 
 	errChMessages := make(chan error, 1)
 	errChClients := make(chan error, 1)
@@ -96,7 +95,7 @@ func (c *Client) Connect(ctx context.Context) error {
 		go c.handlePassThrough(ctx, errChPassThrough)
 	}
 
-	if err := c.checkManagementInterfaceVersion(); err != nil {
+	if err := c.checkManagementInterfaceVersion(ctx); err != nil {
 		if errors.Is(err, ErrConnectionTerminated) {
 			return nil
 		}
@@ -106,7 +105,7 @@ func (c *Client) Connect(ctx context.Context) error {
 
 	select {
 	case <-ctx.Done():
-		c.Shutdown()
+		c.Shutdown(ctx)
 	case err = <-errChMessages:
 		if err != nil {
 			err = fmt.Errorf("error handling messages: %w", err)
@@ -134,17 +133,19 @@ func (c *Client) Connect(ctx context.Context) error {
 
 // setupConnection dials the OpenVPN management interface and stores the
 // resulting connection on the Client.
-func (c *Client) setupConnection() error {
+func (c *Client) setupConnection(ctx context.Context) error {
 	c.connMu.Lock()
 	defer c.connMu.Unlock()
 
 	var err error
 
+	dialer := &net.Dialer{Timeout: 1 * time.Second}
+
 	switch c.conf.OpenVPN.Addr.Scheme {
 	case SchemeTCP:
-		c.conn, err = net.DialTimeout(c.conf.OpenVPN.Addr.Scheme, c.conf.OpenVPN.Addr.Host, 1*time.Second)
+		c.conn, err = dialer.DialContext(ctx, c.conf.OpenVPN.Addr.Scheme, c.conf.OpenVPN.Addr.Host)
 	case SchemeUnix:
-		c.conn, err = net.DialTimeout(c.conf.OpenVPN.Addr.Scheme, c.conf.OpenVPN.Addr.Path, 1*time.Second)
+		c.conn, err = dialer.DialContext(ctx, c.conf.OpenVPN.Addr.Scheme, c.conf.OpenVPN.Addr.Path)
 	default:
 		err = fmt.Errorf("unable to connect to openvpn management interface: %w %s", ErrUnknownProtocol, c.conf.OpenVPN.Addr.Scheme)
 	}
@@ -154,8 +155,8 @@ func (c *Client) setupConnection() error {
 
 // checkManagementInterfaceVersion verifies that the management interface meets
 // the minimum required version.
-func (c *Client) checkManagementInterfaceVersion() error {
-	resp, err := c.SendCommand("version", false)
+func (c *Client) checkManagementInterfaceVersion(ctx context.Context) error {
+	resp, err := c.SendCommand(ctx, "version", false)
 	if resp == "" {
 		return nil
 	}
@@ -174,7 +175,7 @@ func (c *Client) checkManagementInterfaceVersion() error {
 		return fmt.Errorf("%w: %s", ErrUnexpectedResponseFromVersionCommand, resp)
 	}
 
-	c.logger.Info(utils.StringConcat(versionParts[0], " - ", versionParts[1]))
+	c.logger.LogAttrs(ctx, slog.LevelInfo, strings.Join(versionParts[0:1], " - "))
 
 	managementInterfaceVersion, err := strconv.Atoi(versionParts[1][len(versionParts[1])-1:])
 	if err != nil {
@@ -197,7 +198,7 @@ func (c *Client) checkClientSsoCapabilities(client connection.Client) bool {
 }
 
 // Shutdown closes the management connection and stops command processing.
-func (c *Client) Shutdown() {
+func (c *Client) Shutdown(ctx context.Context) {
 	c.commandMu.Lock()
 	defer c.commandMu.Unlock()
 
@@ -205,7 +206,7 @@ func (c *Client) Shutdown() {
 		return
 	}
 
-	c.logger.Info("shutdown OpenVPN management connection")
+	c.logger.LogAttrs(ctx, slog.LevelInfo, "shutdown OpenVPN management connection")
 
 	c.connMu.Lock()
 	defer c.connMu.Unlock()
@@ -222,7 +223,7 @@ func (c *Client) Shutdown() {
 // SendCommand sends a command to the management interface and waits for its
 // response. When passthrough is true the raw response is returned without any
 // validation.
-func (c *Client) SendCommand(cmd string, passthrough bool) (string, error) {
+func (c *Client) SendCommand(ctx context.Context, cmd string, passthrough bool) (string, error) {
 	c.commandMu.RLock()
 	defer c.commandMu.RUnlock()
 
@@ -250,7 +251,10 @@ func (c *Client) SendCommand(cmd string, passthrough bool) (string, error) {
 
 		if strings.HasPrefix(resp, "ERROR:") {
 			cmdFirstLine := strings.SplitN(cmd, "\r\n", 2)[0]
-			c.logger.Warn(fmt.Sprintf("command error '%s': %s", cmdFirstLine, resp))
+			c.logger.LogAttrs(ctx, slog.LevelWarn, "command error",
+				slog.String("command", cmdFirstLine),
+				slog.String("response", resp),
+			)
 		}
 
 		return resp, nil
@@ -262,8 +266,8 @@ func (c *Client) SendCommand(cmd string, passthrough bool) (string, error) {
 }
 
 // SendCommandf formats a command using fmt.Sprintf and then calls SendCommand.
-func (c *Client) SendCommandf(format string, a ...any) (string, error) {
-	return c.SendCommand(fmt.Sprintf(format, a...), false)
+func (c *Client) SendCommandf(ctx context.Context, format string, a ...any) (string, error) {
+	return c.SendCommand(ctx, fmt.Sprintf(format, a...), false)
 }
 
 // rawCommand writes a command followed by CRLF to the management interface.

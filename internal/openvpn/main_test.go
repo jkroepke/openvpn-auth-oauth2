@@ -552,6 +552,17 @@ func TestCommandTimeout(t *testing.T) {
 	managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
 	require.NoError(t, err)
 
+	t.Cleanup(func() {
+		openVPNClient.Shutdown(t.Context())
+
+		select {
+		case err := <-errOpenVPNClientCh:
+			require.NoError(t, err, logger.String())
+		case <-time.After(1 * time.Second):
+			t.Fatal("timeout waiting for connection to close")
+		}
+	})
+
 	reader := bufio.NewReader(managementInterfaceConn)
 
 	testutils.ExpectVersionAndReleaseHold(t, managementInterfaceConn, reader)
@@ -561,17 +572,8 @@ func TestCommandTimeout(t *testing.T) {
 		testutils.SendMessagef(t, managementInterfaceConn, "")
 	}()
 
-	_, err = openVPNClient.SendCommandf("help")
+	_, err = openVPNClient.SendCommandf(t.Context(), "help")
 	require.ErrorIs(t, err, openvpn.ErrTimeout)
-
-	openVPNClient.Shutdown()
-
-	select {
-	case err := <-errOpenVPNClientCh:
-		require.NoError(t, err, logger.String())
-	case <-time.After(1 * time.Second):
-		t.Fatal("timeout waiting for connection to close")
-	}
 }
 
 func TestDeadLocks(t *testing.T) {

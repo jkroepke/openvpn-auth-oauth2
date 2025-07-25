@@ -32,7 +32,7 @@ func (c *Client) processClient(ctx context.Context, client connection.Client) er
 	case "REAUTH":
 		if !c.conf.OpenVPN.ReAuthentication {
 			logger.LogAttrs(ctx, slog.LevelInfo, "client re-authentication not enabled")
-			c.DenyClient(logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, "client re-authentication not enabled")
+			c.DenyClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, "client re-authentication not enabled")
 
 			return nil
 		}
@@ -58,7 +58,7 @@ func (c *Client) handleClientAuthentication(ctx context.Context, logger *slog.Lo
 	// Check if the client is allowed to bypass authentication. If so, accept the client.
 	if c.checkAuthBypass(client) {
 		logger.LogAttrs(ctx, slog.LevelInfo, "client bypass authentication")
-		c.AcceptClient(logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, true, client.CommonName)
+		c.AcceptClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, true, client.CommonName)
 
 		return
 	}
@@ -67,7 +67,7 @@ func (c *Client) handleClientAuthentication(ctx context.Context, logger *slog.Lo
 	if !c.checkClientSsoCapabilities(client) {
 		errorSsoNotSupported := "OpenVPN Client does not support SSO authentication via webauth"
 		logger.LogAttrs(ctx, slog.LevelWarn, errorSsoNotSupported)
-		c.DenyClient(logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, errorSsoNotSupported)
+		c.DenyClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, errorSsoNotSupported)
 
 		return
 	}
@@ -75,7 +75,7 @@ func (c *Client) handleClientAuthentication(ctx context.Context, logger *slog.Lo
 	// Check if the client is already authenticated and refresh the client's authentication if enabled.
 	// If the client is successfully re-authenticated, accept the client.
 	if ok, err := c.silentReAuthentication(ctx, logger, client); err != nil {
-		c.DenyClient(logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, ReasonStateExpiredOrInvalid)
+		c.DenyClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, ReasonStateExpiredOrInvalid)
 
 		logger.LogAttrs(ctx, slog.LevelError, "error refreshing client auth",
 			slog.Any("err", err),
@@ -83,7 +83,7 @@ func (c *Client) handleClientAuthentication(ctx context.Context, logger *slog.Lo
 
 		return
 	} else if ok {
-		c.AcceptClient(logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, true, client.CommonName)
+		c.AcceptClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, true, client.CommonName)
 
 		return
 	}
@@ -95,7 +95,7 @@ func (c *Client) handleClientAuthentication(ctx context.Context, logger *slog.Lo
 			slog.Any("err", err),
 		)
 
-		c.DenyClient(logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, "internal error")
+		c.DenyClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, "internal error")
 	}
 }
 
@@ -138,7 +138,7 @@ func (c *Client) startClientAuth(ctx context.Context, logger *slog.Logger, clien
 
 	logger.LogAttrs(ctx, slog.LevelInfo, "sent client-pending-auth command")
 
-	_, err = c.SendCommandf(`client-pending-auth %d %d "WEB_AUTH::%s" %.0f`, client.CID, client.KID, startURL, c.conf.OpenVPN.AuthPendingTimeout.Seconds())
+	_, err = c.SendCommandf(ctx, `client-pending-auth %d %d "WEB_AUTH::%s" %.0f`, client.CID, client.KID, startURL, c.conf.OpenVPN.AuthPendingTimeout.Seconds())
 	if err != nil {
 		return fmt.Errorf("error sending client-pending-auth command: %w", err)
 	}

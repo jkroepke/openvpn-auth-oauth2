@@ -31,7 +31,7 @@ const writeTimeout = 20 * time.Millisecond
 func (c *Client) handlePassThrough(ctx context.Context, errCh chan<- error) {
 	var conn net.Conn
 
-	listener, closer, err := c.setupPassThroughListener()
+	listener, closer, err := c.setupPassThroughListener(ctx)
 	if err != nil {
 		errCh <- fmt.Errorf("error setup openvpn management pass-through listener: %w", err)
 
@@ -199,7 +199,7 @@ func (c *Client) handlePassThroughClientCommands(ctx context.Context, conn net.C
 			return nil
 		}
 
-		resp, err = c.SendCommand(line, true)
+		resp, err = c.SendCommand(ctx, line, true)
 		if err != nil {
 			logger.LogAttrs(ctx, slog.LevelWarn, fmt.Errorf("pass-through: error from command '%s': %w", line, err).Error())
 		} else {
@@ -253,23 +253,24 @@ func (c *Client) handlePassThroughClientAuth(_ context.Context, conn net.Conn, s
 	return nil
 }
 
-func (c *Client) setupPassThroughListener() (net.Listener, func(), error) {
+func (c *Client) setupPassThroughListener(ctx context.Context) (net.Listener, func(), error) {
 	var (
-		err      error
-		listener net.Listener
-		closer   func()
+		err          error
+		listenConfig net.ListenConfig
+		listener     net.Listener
+		closer       func()
 	)
 
 	switch c.conf.OpenVPN.Passthrough.Address.Scheme {
 	case SchemeTCP:
-		listener, err = net.Listen(c.conf.OpenVPN.Passthrough.Address.Scheme, c.conf.OpenVPN.Passthrough.Address.Host)
+		listener, err = listenConfig.Listen(ctx, c.conf.OpenVPN.Passthrough.Address.Scheme, c.conf.OpenVPN.Passthrough.Address.Host)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error listen: %w", err)
 		}
 
 		closer = func() { _ = listener.Close() }
 	case SchemeUnix:
-		listener, err = net.Listen(c.conf.OpenVPN.Passthrough.Address.Scheme, c.conf.OpenVPN.Passthrough.Address.Path)
+		listener, err = listenConfig.Listen(ctx, c.conf.OpenVPN.Passthrough.Address.Scheme, c.conf.OpenVPN.Passthrough.Address.Path)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error listen: %w", err)
 		}

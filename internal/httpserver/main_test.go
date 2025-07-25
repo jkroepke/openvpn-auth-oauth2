@@ -89,7 +89,7 @@ func TestNewHTTPServer(t *testing.T) {
 			}()
 
 			if tc.err == nil {
-				require.NoError(t, svr.Reload())
+				require.NoError(t, svr.Reload(t.Context()))
 
 				time.Sleep(50 * time.Millisecond)
 				cancel()
