@@ -83,6 +83,7 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 
 	b.StopTimer()
 
+	openVPNClient.Shutdown(b.Context())
 	require.NoError(b, <-errOpenVPNClientCh)
 }
 
