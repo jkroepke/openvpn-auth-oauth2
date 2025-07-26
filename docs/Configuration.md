@@ -10,92 +10,7 @@ Take a look at the [FAQ](./FAQ) section, for common questions, issues and soluti
 
 openvpn-auth-oauth2 supports configuration via a YAML file. The file can be passed via the `--config` flag.
 
-<details>
-<summary>Example config.yaml</summary>
-
-```yaml
-debug:
-  pprof: false
-  listen: ":9001"
-http:
-  assets-path: "" # Example: "/etc/openvpn-auth-oauth2/assets/"
-  baseurl: "http://localhost:9000/"
-  cert: ""
-  check:
-    ipaddr: false
-  enable-proxy-headers: true
-  key: ""
-  listen: ":9000"
-  # secret: ""
-  # template: "" # Path to a HTML file which is displayed at the end of the screen
-  tls: false
-log:
-  format: console
-  level: INFO
-  vpn-client-ip: true
-oauth2:
-  authorize-params: "a=c"
-  client:
-    id: "test"
-    secret: "test"
-  endpoint:
-  # discovery: "https://idp/.well-known/openid-configuration"
-  # auth: "https://idp/oauth/auth"
-  # token: "https://idp/oauth/token"
-  issuer: "https://idp"
-  # provider: "generic"
-  # scopes:
-  #  - "openid"
-  #  - "profile"
-  validate:
-    acr:
-    #  - "phr"
-    #  - "phrh"
-    common-name: ""
-    common-name-case-sensitive: false
-    # groups:
-    #  - "test"
-    #  - "test2"
-    # roles:
-    #   - "test"
-    #   - "test2"
-    ipaddr: false
-    issuer: true
-  nonce: true
-  pkce: true
-  auth-style: "AuthStyleInParams"
-  refresh:
-    enabled: false
-    expires: 8h0m0s
-    # secret: ""
-    use-session-id: false
-    validate-user: true
-openvpn:
-  addr: "unix:///run/openvpn/server.sock"
-  auth-token-user: false
-  auth-pending-timeout: 2m
-  bypass:
-  # common-names:
-  # - "test"
-  # - "test2"
-  override-username: false
-  ccd:
-    enabled: false
-    token-claim: ""
-    path: "/etc/openvpn-auth-oauth2/client-config/"
-  common-name:
-    environment-variable-name: common_name
-    mode: plain
-  # password: ""
-  pass-through:
-    address: "unix:///run/openvpn/pass-through.sock"
-    enabled: false
-    # password: ""
-    # socket-group: ""
-    # socket-mode: 660
-  reauthentication: true
-```
-</details>
+See the [example configuration file](https://github.com/jkroepke/openvpn-auth-oauth2/blob/main/packaging/etc/openvpn-auth-oauth2/config.yaml).
 
 ## Supported configuration properties
 
@@ -155,6 +70,8 @@ Usage of openvpn-auth-oauth2:
     	The flag is used to set a custom OAuth2 discovery URL. This URL retrieves the provider's configuration details. (env: CONFIG_OAUTH2_ENDPOINT_DISCOVERY)
   --oauth2.endpoint.token value
     	The flag is used to specify a custom OAuth2 token endpoint. (env: CONFIG_OAUTH2_ENDPOINT_TOKEN)
+  --oauth2.groups-claim string
+    	Defines the claim name in the IDToken which contains the user groups. (env: CONFIG_OAUTH2_GROUPS__CLAIM) (default "groups")
   --oauth2.issuer value
     	oauth2 issuer (env: CONFIG_OAUTH2_ISSUER)
   --oauth2.nonce
@@ -175,6 +92,8 @@ Usage of openvpn-auth-oauth2:
     	If true, openvpn-auth-oauth2 will validate the user against the OIDC provider on each refresh. Usefully, if API limits are exceeded or OIDC provider can't deliver an refresh token. (env: CONFIG_OAUTH2_REFRESH_VALIDATE__USER) (default true)
   --oauth2.scopes value
     	oauth2 token scopes. Defaults depends on oauth2.provider. Comma separated list. Example: openid,profile,email (env: CONFIG_OAUTH2_SCOPES)
+  --oauth2.user-info
+    	If true, openvpn-auth-oauth2 uses the OIDC UserInfo endpoint to fetch additional information about the user (e.g. groups). (env: CONFIG_OAUTH2_USER__INFO)
   --oauth2.validate.acr value
     	oauth2 required acr values. Comma separated list. Example: phr,phrh (env: CONFIG_OAUTH2_VALIDATE_ACR)
   --oauth2.validate.common-name string
