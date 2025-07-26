@@ -300,7 +300,7 @@ func (c *Config) flagSetOAuth2(flagSet *flag.FlagSet) {
 		&c.OAuth2.GroupsClaim,
 		"oauth2.groups-claim",
 		lookupEnvOrDefault("oauth2.groups-claim", c.OAuth2.GroupsClaim),
-		"Defines the claim name in the IDToken which contains the user groups.",
+		"Defines the claim name in the ID Token which contains the user groups.",
 	)
 	flagSet.BoolVar(
 		&c.OAuth2.Nonce,
@@ -386,7 +386,7 @@ func (c *Config) flagSetOAuth2(flagSet *flag.FlagSet) {
 		&c.OAuth2.Validate.CommonName,
 		"oauth2.validate.common-name",
 		lookupEnvOrDefault("oauth2.validate.common-name", c.OAuth2.Validate.CommonName),
-		"validate common_name from OpenVPN with IDToken claim. For example: preferred_username or sub",
+		"validate common_name from OpenVPN with ID Token claim. For example: preferred_username or sub",
 	)
 	flagSet.BoolVar(
 		&c.OAuth2.Validate.CommonNameCaseSensitive,

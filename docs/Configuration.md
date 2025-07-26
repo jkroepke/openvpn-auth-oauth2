@@ -71,7 +71,7 @@ Usage of openvpn-auth-oauth2:
   --oauth2.endpoint.token value
     	The flag is used to specify a custom OAuth2 token endpoint. (env: CONFIG_OAUTH2_ENDPOINT_TOKEN)
   --oauth2.groups-claim string
-    	Defines the claim name in the IDToken which contains the user groups. (env: CONFIG_OAUTH2_GROUPS__CLAIM) (default "groups")
+    	Defines the claim name in the ID Token which contains the user groups. (env: CONFIG_OAUTH2_GROUPS__CLAIM) (default "groups")
   --oauth2.issuer value
     	oauth2 issuer (env: CONFIG_OAUTH2_ISSUER)
   --oauth2.nonce
@@ -97,7 +97,7 @@ Usage of openvpn-auth-oauth2:
   --oauth2.validate.acr value
     	oauth2 required acr values. Comma separated list. Example: phr,phrh (env: CONFIG_OAUTH2_VALIDATE_ACR)
   --oauth2.validate.common-name string
-    	validate common_name from OpenVPN with IDToken claim. For example: preferred_username or sub (env: CONFIG_OAUTH2_VALIDATE_COMMON__NAME)
+    	validate common_name from OpenVPN with ID Token claim. For example: preferred_username or sub (env: CONFIG_OAUTH2_VALIDATE_COMMON__NAME)
   --oauth2.validate.common-name-case-sensitive
     	If true, openvpn-auth-oauth2 will validate the common case in sensitive mode (env: CONFIG_OAUTH2_VALIDATE_COMMON__NAME__CASE__SENSITIVE)
   --oauth2.validate.groups value
