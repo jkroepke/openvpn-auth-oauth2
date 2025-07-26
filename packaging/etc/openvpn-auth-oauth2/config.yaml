@@ -28,11 +28,13 @@
 #    discovery: "https://idp/.well-known/openid-configuration"
 #    auth: "https://idp/oauth/auth"
 #    token: "https://idp/oauth/token"
+#  group-claim: "groups"
 #  issuer: "https://idp"
 #  provider: "generic"
 #  scopes:
 #    - "openid"
 #    - "profile"
+#  user-info: false
 #  validate:
 #    acr: []
 #    #  - "phr"
