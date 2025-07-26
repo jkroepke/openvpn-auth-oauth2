@@ -335,7 +335,7 @@ If you are using Self-Managed GitLab, your instance must have enabled HTTPS.
 ```ini
 CONFIG_OAUTH2_ISSUER=https://gitlab.com/
 CONFIG_OAUTH2_SCOPES=openid profile email
-CONFIG_OAUTH2_USERINFO=true
+CONFIG_OAUTH2_USER__INFO=true
 CONFIG_OAUTH2_CLIENT_ID=<client_id>
 CONFIG_OAUTH2_CLIENT_SECRET=<client_secret>
 ```
@@ -353,6 +353,7 @@ oauth2:
   client:
     id: "<client_id>"
     secret: "<client_secret>"
+  user-info: true
 ```
 </td></tr></tbody>
 </table>
