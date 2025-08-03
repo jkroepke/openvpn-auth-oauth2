@@ -21,6 +21,6 @@ func main() {
 	case "state":
 		os.Exit(state.Execute(os.Args, os.Stdout)) //nolint:forbidigo // entry point
 	default:
-		os.Exit(daemon.Execute(os.Args, os.Stdout, make(chan os.Signal, 1))) //nolint:forbidigo // entry point
+		os.Exit(daemon.Execute(os.Args, os.Stdout, termCh)) //nolint:forbidigo // entry point
 	}
 }
