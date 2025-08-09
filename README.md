@@ -72,21 +72,21 @@ Thanks to JetBrains IDEs and Sparklabs for their support.
   <tbody>
     <tr>
       <td>
-        <center>
+        <p align="center">
           <a href="https://www.jetbrains.com/?from=jkroepke">
             <picture>
               <source srcset="https://www.jetbrains.com/company/brand/img/logo_jb_dos_3.svg" media="(prefers-color-scheme: dark)">
               <img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jetbrains.svg" style="height: 50px">
             </picture>
           </a>
-        </center>
+        </p>
       </td>
       <td>
-        <center>
+        <p align="center">
           <a href="https://www.sparklabs.com/viscosity">
             <img src="https://www.sparklabs.com/static/other/logo_assets/logo_cropped.png" alt="Sparklabs Viscosity logo" style="height: 100px">
           </a>
-        </center>
+        </p>
       </td>
     </tr>
   </tbody>

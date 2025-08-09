@@ -1,22 +1,28 @@
 # Introduction
 
-[OpenID Connect (OIDC)](https://auth0.com/intro-to-iam/what-is-openid-connect-oidc) is a powerful identity layer built on top of the OAuth 2.0 protocol. It enables clients to verify the identity of an end user based on the authentication performed by an authorization server. Single Sign-On (SSO) is a user authentication service that allows a user to use one set of login credentials to access multiple applications.
+[OpenID Connect (OIDC)](https://auth0.com/intro-to-iam/what-is-openid-connect-oidc) adds an identity layer to the OAuth 2.0 protocol. It allows clients to verify a user's identity based on authentication handled by an authorization server. Single Sign-On (SSO) lets users access multiple applications using a single set of login credentials.
 
-In the realm of secure and seamless user authentication, the [`openvpn-auth-oauth2`](https://github.com/jkroepke/openvpn-auth-oauth2) plugin emerges as a game-changer. It integrates OpenVPN Community Server with any OIDC provider, leveraging the robustness of OIDC and the convenience of SSO. This powerful combination not only simplifies the authentication process but also significantly enhances the security of your applications.
+Within the domain of secure and unified authentication,
+the [`openvpn-auth-oauth2`](https://github.com/jkroepke/openvpn-auth-oauth2) plugin delivers a practical solution.
+It connects OpenVPN Community Server to any OIDC provider, using the strength of OIDC and the flexibility of SSO.
+This setup streamlines authentication workflows and helps strengthen app security.
 
-This article will guide you through the intricacies of how OIDC SSO authentication works with OpenVPN Community Server using the `openvpn-auth-oauth2` plugin. We will delve into the technical details of the OIDC SSO authentication process, its benefits, and how it integrates with OpenVPN Community Server. This comprehensive guide aims to empower developers and system administrators to effectively implement and manage secure access to their applications using `openvpn-auth-oauth2`.
+Explore how OIDC SSO authentication works with OpenVPN Community Server through the openvpn-auth-oauth2 plugin.
+Understand the request flow, setup steps, and key advantages.
+This guide helps developers and system administrators apply secure,
+standards-based access control using openvpn-auth-oauth2.
 
 # The Authentication Process
 
 The authentication process using OIDC SSO with OpenVPN Community Server, specifically leveraging the [`openvpn-auth-oauth2`](https://github.com/jkroepke/openvpn-auth-oauth2) plugin and the OpenVPN [webauth protocol](https://github.com/OpenVPN/openvpn3/blob/cb9ce3d71c1cc485aa17ff7d1f53c56e97116e04/doc/webauth.md), unfolds as follows:
 
-1. **Initiation of User Authentication**: When a user attempts to access a resource on the OpenVPN Community Server and is not already authenticated, the server, utilizing the `openvpn-auth-oauth2` plugin, redirects the user to the OIDC provider. This redirection is facilitated by the OpenVPN webauth protocol.
+1. **Initiation of User Authentication**: When a user attempts to access a resource on the OpenVPN Community Server and is not already authenticated, the server, using the `openvpn-auth-oauth2` plugin, redirects the user to the OIDC provider. This redirection is facilitated by the OpenVPN webauth protocol.
 
 2. **Interaction with OIDC Provider**: The user is then required to authenticate with the OIDC provider. This could involve various methods such as entering credentials, using a biometric scanner, or any other method that the OIDC provider supports.
 
 3. **Issuance of Tokens**: Post successful authentication, the OIDC provider issues an ID token and an access token. The ID token contains claims about the authentication event and the user. The access token is used to authorize access to resources.
 
-4. **Validation of Tokens**: The OpenVPN Community Server, with the assistance of the `openvpn-auth-oauth2` plugin, validates the ID token and access token. This step is crucial to ensure that the tokens are authentic and have been issued by a trusted OIDC provider.
+4. **Validation of Tokens**: The OpenVPN Community Server, with the help of the `openvpn-auth-oauth2` plugin, validates the ID token and access token. This step plays an important role in verifying the authenticity of the tokens and confirming that a trusted OIDC provider issued them.
 
 5. **Granting User Access**: If the tokens are validated successfully, the OpenVPN Community Server grants the user access to the requested resource. This access is granted in accordance with the OpenVPN webauth protocol.
 
