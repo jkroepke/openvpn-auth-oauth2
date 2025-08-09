@@ -138,10 +138,13 @@ jobs:
           mkdir -p "$HOME/.gnupg"
           chmod 0700 "$HOME/.gnupg"
           echo "use-agent" > "$HOME/.gnupg/gpg.conf"
-          echo "pinentry-program $GITHUB_WORKSPACE/.github/scripts/pinentry.sh" > "$HOME/.gnupg/gpg-agent.conf"
-          echo "$GPG_PASSPHRASE" > "$HOME/.gnupg/passphrase"
+          echo "pinentry-mode loopback" >> "$HOME/.gnupg/gpg.conf"
+          echo "allow-loopback-pinentry" > "$HOME/.gnupg/gpg-agent.conf"
+          echo "max-cache-ttl 86400" >> "$HOME/.gnupg/gpg-agent.conf"
+          echo "default-cache-ttl 86400" >> "$HOME/.gnupg/gpg-agent.conf"
+          gpgconf --kill gpg-agent
           gpgconf --launch gpg-agent
-          gpg --import "$GPG_KEY_PATH"
+          echo "$GPG_PASSPHRASE" | gpg --batch --yes --passphrase-fd 0 --import "$GPG_KEY_PATH"
           echo "1F34F95B4F30BC5B06E0D7CC3F619F17002790D8:6:" | gpg --import-ownertrust
         env:
           GPG_KEY_ID: ${{ vars.GPG_KEY_ID }}

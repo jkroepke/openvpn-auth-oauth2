@@ -166,15 +166,10 @@ services:
         aliases:
           - keycloak
     healthcheck:
-      test:
-        - CMD
-        - sh
-        - -c
-        # doing black magic to check if the realm is imported - container does not have curl or wget
-        - >-
-          exec 5<>/dev/tcp/127.0.0.1/8080
-          && echo -e "HEAD /realms/openvpn-auth-oauth2/.well-known/openid-configuration HTTP/1.1\r\nHost: localhost:8080\r\nConnection: close\r\n\r\n" >&5
-          && grep -q "HTTP/1.1 200 OK" - <&5
+      test: >-
+        exec 5<>/dev/tcp/127.0.0.1/8080
+        && echo -e "HEAD /realms/openvpn-auth-oauth2/.well-known/openid-configuration HTTP/1.1\r\nHost: localhost:8080\r\nConnection: close\r\n\r\n" >&5
+        && grep -q "HTTP/1.1 200 OK" - <&5
       interval: 30s
       timeout: 10s
       retries: 4
