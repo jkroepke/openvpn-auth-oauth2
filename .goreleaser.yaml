@@ -122,3 +122,7 @@ release:
 
 changelog:
   use: github-native
+
+# https://goreleaser.com/customization/attestations/
+checksum:
+  name_template: "checksums.txt"
