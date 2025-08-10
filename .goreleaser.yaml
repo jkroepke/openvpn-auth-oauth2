@@ -106,6 +106,8 @@ nfpms:
       signature:
         key_file: "{{ .Env.GPG_KEY_PATH }}"
 
+sboms:
+  - artifacts: archive
 
 report_sizes: true
 
