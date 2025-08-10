@@ -186,7 +186,6 @@ jobs:
           pushd tmp
             apt-ftparchive packages . | tee Packages | xz > Packages.xz
             apt-ftparchive release . > Release
-            gpg --clearsign -o InRelease Release
             gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --clearsign -o InRelease Release
             gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --armor --detach-sign --sign -o Release.gpg Release
             gh release upload "${GITHUB_REF_NAME}" InRelease Packages Packages.xz Release Release.gpg --clobber
