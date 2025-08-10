@@ -187,11 +187,13 @@ jobs:
             apt-ftparchive packages . | tee Packages | xz > Packages.xz
             apt-ftparchive release . > Release
             gpg --clearsign -o InRelease Release
-            gpg --armor --detach-sign --sign -o Release.gpg Release
+            gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --clearsign -o InRelease Release
+            gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --armor --detach-sign --sign -o Release.gpg Release
             gh release upload "${GITHUB_REF_NAME}" InRelease Packages Packages.xz Release Release.gpg --clobber
           popd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GPG_PASSPHRASE: ${{ secrets.NFPM_PASSPHRASE }}
 
       - uses: actions/attest-build-provenance@v2.4.0
         with:
