@@ -45,7 +45,7 @@ jobs:
         with:
           go-version-file: 'go.mod'
 
-      - uses: anchore/sbom-action/download-syft@v0.20.4
+      - uses: anchore/sbom-action/download-syft@7b36ad622f042cab6f59a75c2ac24ccb256e9b45 # v0.20.4
 
       - name: Write gpg sign key
         if: env.GPG_KEY != null
@@ -145,7 +145,7 @@ jobs:
         with:
           go-version-file: 'go.mod'
 
-      - uses: anchore/sbom-action/download-syft@v0.20.4
+      - uses: anchore/sbom-action/download-syft@7b36ad622f042cab6f59a75c2ac24ccb256e9b45 # v0.20.4
 
       - name: GPG configuration
         run: |-
@@ -194,6 +194,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GPG_PASSPHRASE: ${{ secrets.NFPM_PASSPHRASE }}
 
-      - uses: actions/attest-build-provenance@v2.4.0
+      - uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
         with:
           subject-checksums: ./dist/checksums.txt
