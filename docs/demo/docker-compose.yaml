@@ -123,7 +123,7 @@ services:
       #language=dockerfile
       dockerfile_inline: |
         # renovate: docker=golang
-        FROM golang:1.24-alpine
+        FROM golang:1.25-alpine
 
         RUN go install github.com/jkroepke/openvpn-auth-oauth2@latest
     restart: unless-stopped
