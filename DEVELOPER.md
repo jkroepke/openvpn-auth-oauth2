@@ -36,9 +36,8 @@ All Markdown files in `docs/` are mirrored in the GitHub wiki. The file `Home.md
 
 ## What to Learn
 
-- **Go basics** – The codebase uses Go modules and targets Go 1.24.
+- **Go basics** – The codebase uses Go modules and targets Go 1.25.
 - **HTTP server & OIDC/OAuth2** – Understand how TLS is enabled, and how the OAuth2 flow works with nonce, PKCE and refresh tokens.
 - **OpenVPN management interface** – Communication with the OpenVPN server happens over Unix or TCP sockets. Learn which commands and events are exchanged.
 - **Configuration** – Behaviour is driven by YAML files or environment variables. See `config.example.yaml` or `Configuration.md` for examples.
 - **State handling** – Secure handling of the OAuth2 `state` parameter is essential for protecting the login flow.
-
