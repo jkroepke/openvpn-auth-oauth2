@@ -20,6 +20,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/httphandler"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/httpserver"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/authentik"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/github"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/google"
@@ -169,6 +170,8 @@ func setupOpenVPNClient(
 	var provider oauth2.Provider
 
 	switch conf.OAuth2.Provider {
+	case authentik.Name:
+		provider, err = authentik.NewProvider(ctx, conf, httpClient)
 	case generic.Name:
 		provider, err = generic.NewProvider(ctx, conf, httpClient)
 	case github.Name:

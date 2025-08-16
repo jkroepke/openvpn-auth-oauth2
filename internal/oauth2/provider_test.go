@@ -10,6 +10,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/authentik"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/github"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/google"
@@ -144,6 +145,8 @@ func TestNewProvider(t *testing.T) {
 			)
 
 			switch tc.conf.OAuth2.Provider {
+			case authentik.Name:
+				provider, err = authentik.NewProvider(ctx, tc.conf, http.DefaultClient)
 			case generic.Name:
 				provider, err = generic.NewProvider(ctx, tc.conf, http.DefaultClient)
 			case github.Name:
