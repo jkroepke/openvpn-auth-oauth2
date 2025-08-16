@@ -1,6 +1,6 @@
 module github.com/jkroepke/openvpn-auth-oauth2
 
-go 1.24
+go 1.25
 
 require (
 	github.com/goccy/go-yaml v1.17.1
