@@ -25,8 +25,6 @@ References:
 - https://curity.io/resources/learn/oauth-refresh/
 - https://developer.okta.com/docs/guides/refresh-tokens/main/
 
-Here is the corrected version of your text:
-
 # Security Considerations
 
 If `oauth2.refresh.validate-user` is set to `false`, a refresh token is not requested and validated against the OIDC
