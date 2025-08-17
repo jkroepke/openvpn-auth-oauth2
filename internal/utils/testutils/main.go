@@ -285,7 +285,7 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 	}
 
 	conf.OAuth2.Issuer = resourceServerURL
-	conf.OAuth2.Nonce = true // enable nonce for mock testing
+	conf.OAuth2.Nonce = true                                  // enable nonce for mock testing
 	conf.OAuth2.RefreshNonce = config.OAuth2RefreshNonceEmpty // use empty nonce for refresh to avoid mock issues
 
 	if conf.OAuth2.Client.ID == "" {

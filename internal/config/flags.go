@@ -312,7 +312,10 @@ func (c *Config) flagSetOAuth2(flagSet *flag.FlagSet) {
 		&c.OAuth2.RefreshNonce,
 		"oauth2.refresh-nonce",
 		lookupEnvOrDefault("oauth2.refresh-nonce", c.OAuth2.RefreshNonce),
-		"Controls nonce behavior on refresh token requests. Options: auto (try with nonce, retry without on error), empty (always use empty nonce), equal (use same nonce as initial auth).",
+		"Controls nonce behavior on refresh token requests. "+
+			"Options: auto (try with nonce, retry without on error), "+
+			"empty (always use empty nonce), "+
+			"equal (use same nonce as initial auth).",
 	)
 	flagSet.TextVar(
 		&c.OAuth2.AuthStyle,

@@ -22,8 +22,8 @@ type Config struct {
 	HTTP       HTTP    `json:"http"    yaml:"http"`
 	Debug      Debug   `json:"debug"   yaml:"debug"`
 	Log        Log     `json:"log"     yaml:"log"`
-	OAuth2     OAuth2  `json:"oauth2"  yaml:"oauth2"`
 	OpenVPN    OpenVPN `json:"openvpn" yaml:"openvpn"`
+	OAuth2     OAuth2  `json:"oauth2"  yaml:"oauth2"`
 }
 
 type HTTP struct {
@@ -88,8 +88,8 @@ type OAuth2 struct {
 	Validate        OAuth2Validate     `json:"validate"         yaml:"validate"`
 	Refresh         OAuth2Refresh      `json:"refresh"          yaml:"refresh"`
 	AuthStyle       OAuth2AuthStyle    `json:"auth-style"       yaml:"auth-style"`
-	Nonce           bool               `json:"nonce"            yaml:"nonce"`
 	RefreshNonce    OAuth2RefreshNonce `json:"refresh-nonce"    yaml:"refresh-nonce"`
+	Nonce           bool               `json:"nonce"            yaml:"nonce"`
 	PKCE            bool               `json:"pkce"             yaml:"pkce"`
 	UserInfo        bool               `json:"user-info"        yaml:"user-info"`
 }

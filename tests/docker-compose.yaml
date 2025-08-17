@@ -93,7 +93,7 @@ services:
         inactive 65
 
         topology subnet
-        proto udp
+        proto tcp
         port 1194
 
         fast-io
@@ -124,7 +124,7 @@ services:
         client
         dev tun
         nobind
-        remote 127.0.0.1 1194 udp4
+        remote 127.0.0.1 1194 tcp4
         remote-cert-tls server
         resolv-retry infinite
         tls-cert-profile preferred
