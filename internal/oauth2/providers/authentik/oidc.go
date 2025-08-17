@@ -13,7 +13,7 @@ import (
 
 // GetRefreshToken returns the refresh token from the provided tokens.
 func (p Provider) GetRefreshToken(tokens idtoken.IDToken) (string, error) {
-	return p.Provider.GetRefreshToken(tokens)
+	return p.Provider.GetRefreshToken(tokens) //nolint:wrapcheck
 }
 
 // Refresh initiates a non-interactive authentication against the Authentik OIDC provider.
@@ -33,5 +33,5 @@ func (p Provider) Refresh(ctx context.Context, logger *slog.Logger, relyingParty
 
 // RevokeRefreshToken revokes the given refresh token.
 func (p Provider) RevokeRefreshToken(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, refreshToken string) error {
-	return p.Provider.RevokeRefreshToken(ctx, logger, relyingParty, refreshToken)
+	return p.Provider.RevokeRefreshToken(ctx, logger, relyingParty, refreshToken) //nolint:wrapcheck
 }
