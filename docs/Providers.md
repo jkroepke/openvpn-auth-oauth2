@@ -40,6 +40,7 @@ References:
 CONFIG_OAUTH2_ISSUER=https://login.microsoftonline.com/$TENANT_ID/v2.0
 CONFIG_OAUTH2_CLIENT_ID=<client_id>
 CONFIG_OAUTH2_CLIENT_SECRET=<client_secret>
+# The scopes openid profile are required, but configured by default.
 # offline_access is required for non-interactive session refresh.
 # CONFIG_OAUTH2_SCOPES=openid profile offline_access
 ```
@@ -201,6 +202,7 @@ Set the following variables in your `openvpn-auth-oauth2` configuration file:
 CONFIG_OAUTH2_ISSUER=https://<keycloak-domain>/auth/realms/<realm-name>
 CONFIG_OAUTH2_CLIENT_ID=<client_id>
 CONFIG_OAUTH2_CLIENT_SECRET=<client_secret>
+# The scopes openid profile are required, but configured by default.
 # offline_access is required for non-interactive session refresh.
 # CONFIG_OAUTH2_SCOPES=openid profile offline_access
 ```
