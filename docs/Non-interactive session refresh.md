@@ -61,6 +61,17 @@ References:
 
 - https://openvpn.net/community-resources/reference-manual-for-openvpn-2-6/#server-options
 
+# Troubleshooting
+
+## OIDC Provider Issues with Refresh Tokens
+
+Some OIDC providers may generate new refresh tokens or behave unexpectedly during non-interactive refresh requests. If you experience issues where refresh tokens are invalidated or users need to re-authenticate frequently, you can adjust the nonce behavior using the `oauth2.refresh-nonce` parameter:
+
+- `auto` (default): Try with nonce, retry without nonce on error
+- `empty`: Always use empty nonce for refresh requests
+- `equal`: Use the same nonce as initial authentication
+
+For providers like Authentik that return empty nonces on refresh (per OIDC spec), use `refresh-nonce: empty` to avoid retry logic that could invalidate refresh tokens.
 
 ## openvpn-auth-oauth2 config
 

@@ -309,6 +309,12 @@ func (c *Config) flagSetOAuth2(flagSet *flag.FlagSet) {
 		"If true, a nonce will be defined on the auth URL which is expected inside the token.",
 	)
 	flagSet.TextVar(
+		&c.OAuth2.RefreshNonce,
+		"oauth2.refresh-nonce",
+		lookupEnvOrDefault("oauth2.refresh-nonce", c.OAuth2.RefreshNonce),
+		"Controls nonce behavior on refresh token requests. Options: auto (try with nonce, retry without on error), empty (always use empty nonce), equal (use same nonce as initial auth).",
+	)
+	flagSet.TextVar(
 		&c.OAuth2.AuthStyle,
 		"oauth2.auth-style",
 		lookupEnvOrDefault("oauth2.auth-style", c.OAuth2.AuthStyle),

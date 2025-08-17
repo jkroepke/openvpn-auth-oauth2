@@ -112,3 +112,53 @@ func TestOAuth2AuthStyleGetAuthStyle(t *testing.T) {
 	oAuth2AuthStyle = config.OAuth2AuthStyle(oauth2.AuthStyleAutoDetect).AuthStyle()
 	assert.Equal(t, oauth2.AuthStyleAutoDetect, oAuth2AuthStyle)
 }
+
+func TestOAuth2RefreshNonceUnmarshalText(t *testing.T) {
+	t.Parallel()
+
+	var refreshNonce config.OAuth2RefreshNonce
+
+	require.NoError(t, refreshNonce.UnmarshalText([]byte("auto")))
+	assert.Equal(t, config.OAuth2RefreshNonceAuto, refreshNonce)
+
+	require.NoError(t, refreshNonce.UnmarshalText([]byte("empty")))
+	assert.Equal(t, config.OAuth2RefreshNonceEmpty, refreshNonce)
+
+	require.NoError(t, refreshNonce.UnmarshalText([]byte("equal")))
+	assert.Equal(t, config.OAuth2RefreshNonceEqual, refreshNonce)
+
+	require.Error(t, refreshNonce.UnmarshalText([]byte("unknown")))
+}
+
+func TestOAuth2RefreshNonceMarshalText(t *testing.T) {
+	t.Parallel()
+
+	refreshNonce, err := config.OAuth2RefreshNonceAuto.MarshalText()
+
+	require.NoError(t, err)
+	assert.Equal(t, []byte("auto"), refreshNonce)
+
+	refreshNonce, err = config.OAuth2RefreshNonceEmpty.MarshalText()
+
+	require.NoError(t, err)
+	assert.Equal(t, []byte("empty"), refreshNonce)
+
+	refreshNonce, err = config.OAuth2RefreshNonceEqual.MarshalText()
+
+	require.NoError(t, err)
+	assert.Equal(t, []byte("equal"), refreshNonce)
+
+	_, err = config.OAuth2RefreshNonce(-1).MarshalText()
+
+	require.Error(t, err)
+}
+
+func TestOAuth2RefreshNonceString(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, "auto", config.OAuth2RefreshNonceAuto.String())
+	assert.Equal(t, "empty", config.OAuth2RefreshNonceEmpty.String())
+	assert.Equal(t, "equal", config.OAuth2RefreshNonceEqual.String())
+
+	assert.Panics(t, func() { _ = config.OAuth2RefreshNonce(-1).String() }, "The code did not panic")
+}

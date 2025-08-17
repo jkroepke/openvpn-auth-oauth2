@@ -78,19 +78,20 @@ type OpenVPNCommonName struct {
 }
 
 type OAuth2 struct {
-	Endpoints       OAuth2Endpoints   `json:"endpoint"         yaml:"endpoint"`
-	Issuer          types.URL         `json:"issuer"           yaml:"issuer"`
-	Client          OAuth2Client      `json:"client"           yaml:"client"`
-	GroupsClaim     string            `json:"groups-claim"     yaml:"groups-claim"`
-	AuthorizeParams string            `json:"authorize-params" yaml:"authorize-params"`
-	Provider        string            `json:"provider"         yaml:"provider"`
-	Scopes          types.StringSlice `json:"scopes"           yaml:"scopes"`
-	Validate        OAuth2Validate    `json:"validate"         yaml:"validate"`
-	Refresh         OAuth2Refresh     `json:"refresh"          yaml:"refresh"`
-	AuthStyle       OAuth2AuthStyle   `json:"auth-style"       yaml:"auth-style"`
-	Nonce           bool              `json:"nonce"            yaml:"nonce"`
-	PKCE            bool              `json:"pkce"             yaml:"pkce"`
-	UserInfo        bool              `json:"user-info"        yaml:"user-info"`
+	Endpoints       OAuth2Endpoints    `json:"endpoint"         yaml:"endpoint"`
+	Issuer          types.URL          `json:"issuer"           yaml:"issuer"`
+	Client          OAuth2Client       `json:"client"           yaml:"client"`
+	GroupsClaim     string             `json:"groups-claim"     yaml:"groups-claim"`
+	AuthorizeParams string             `json:"authorize-params" yaml:"authorize-params"`
+	Provider        string             `json:"provider"         yaml:"provider"`
+	Scopes          types.StringSlice  `json:"scopes"           yaml:"scopes"`
+	Validate        OAuth2Validate     `json:"validate"         yaml:"validate"`
+	Refresh         OAuth2Refresh      `json:"refresh"          yaml:"refresh"`
+	AuthStyle       OAuth2AuthStyle    `json:"auth-style"       yaml:"auth-style"`
+	Nonce           bool               `json:"nonce"            yaml:"nonce"`
+	RefreshNonce    OAuth2RefreshNonce `json:"refresh-nonce"    yaml:"refresh-nonce"`
+	PKCE            bool               `json:"pkce"             yaml:"pkce"`
+	UserInfo        bool               `json:"user-info"        yaml:"user-info"`
 }
 
 type OAuth2Client struct {
@@ -238,6 +239,61 @@ func (s *OAuth2AuthStyle) UnmarshalText(text []byte) error {
 		*s = OAuth2AuthStyle(oauth2.AuthStyleInHeader)
 	default:
 		return fmt.Errorf("unknown auth-style: %s", text)
+	}
+
+	return nil
+}
+
+type OAuth2RefreshNonce int
+
+const (
+	OAuth2RefreshNonceAuto OAuth2RefreshNonce = iota
+	OAuth2RefreshNonceEmpty
+	OAuth2RefreshNonceEqual
+)
+
+// String returns the string representation of the refresh nonce mode.
+//
+//goland:noinspection GoMixedReceiverTypes
+func (s OAuth2RefreshNonce) String() string {
+	text, err := s.MarshalText()
+	if err != nil {
+		panic(err)
+	}
+
+	return string(text)
+}
+
+// MarshalText implements the [encoding.TextMarshaler] interface.
+//
+//goland:noinspection GoMixedReceiverTypes
+func (s OAuth2RefreshNonce) MarshalText() ([]byte, error) {
+	switch s {
+	case OAuth2RefreshNonceAuto:
+		return []byte("auto"), nil
+	case OAuth2RefreshNonceEmpty:
+		return []byte("empty"), nil
+	case OAuth2RefreshNonceEqual:
+		return []byte("equal"), nil
+	default:
+		return nil, fmt.Errorf("unknown refresh-nonce %d", s)
+	}
+}
+
+// UnmarshalText implements the [encoding.TextUnmarshaler] interface.
+//
+//goland:noinspection GoMixedReceiverTypes
+func (s *OAuth2RefreshNonce) UnmarshalText(text []byte) error {
+	config := strings.ToLower(string(text))
+	switch config {
+	case "auto":
+		*s = OAuth2RefreshNonceAuto
+	case "empty":
+		*s = OAuth2RefreshNonceEmpty
+	case "equal":
+		*s = OAuth2RefreshNonceEqual
+	default:
+		return fmt.Errorf("invalid value %s", config)
 	}
 
 	return nil
