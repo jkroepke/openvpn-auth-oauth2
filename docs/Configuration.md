@@ -76,6 +76,8 @@ Usage of openvpn-auth-oauth2:
     	oauth2 issuer (env: CONFIG_OAUTH2_ISSUER)
   --oauth2.nonce
     	If true, a nonce will be defined on the auth URL which is expected inside the token. (env: CONFIG_OAUTH2_NONCE) (default true)
+  --oauth2.refresh-nonce value
+    	Controls nonce behavior on refresh token requests. Options: auto (try with nonce, retry without on error), empty (always use empty nonce), equal (use same nonce as initial auth). (env: CONFIG_OAUTH2_REFRESH__NONCE) (default auto)
   --oauth2.pkce
     	If true, Proof Key for Code Exchange (PKCE) RFC 7636 is used for token exchange. (env: CONFIG_OAUTH2_PKCE) (default true)
   --oauth2.provider string
