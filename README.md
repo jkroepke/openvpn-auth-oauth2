@@ -20,6 +20,7 @@ integrating OpenVPN with OIDC providers such as
 * GitHub
 * Okta
 * Google Workspace
+* Authentik
 * Zitadel
 * DigitalOcean
 * Keycloak

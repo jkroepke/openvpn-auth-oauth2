@@ -460,3 +460,60 @@ oauth2:
 </table>
 
 </details>
+
+## Authentik
+
+<details>
+<summary>Expand</summary>
+
+### Register an application in Authentik
+
+1. Sign in to your Authentik admin interface
+2. Navigate to **Applications** → **Providers**
+3. Click **Create** and select **OAuth2/OpenID Provider**
+4. Configure the provider:
+   - **Name**: `openvpn-auth-oauth2`
+   - **Client Type**: `confidential`
+   - **Redirect URIs**: `https://openvpn-auth-oauth2.example.com/oauth2/callback`
+   - **Signing Key**: Select an appropriate certificate
+   - **Subject Mode**: Based on the User's hashed ID
+   - **Issuer Mode**: Each provider has a different issuer, based on the application slug
+5. Under **Advanced protocol settings**, add `offline_access` to the **Scopes** list (defaults are typically email, openid, and profile). This is only needed if you intend to use [non-interactive session refresh](Non-interactive%20session%20refresh.md)
+6. Save and note the **Client ID** and **Client Secret**
+7. Create an Application:
+   - Navigate to **Applications** → **Applications**
+   - Click **Create**
+   - **Name**: `OpenVPN OAuth2`
+   - **Slug**: `openvpn-oauth2`
+   - **Provider**: Select the provider created above
+8. Configure group/user access as needed in the **Policy Bindings** tab
+
+### Configuration
+
+<table>
+<thead><tr><td>env/sysconfig configuration</td></tr></thead>
+<tbody><tr><td>
+
+```ini
+CONFIG_OAUTH2_ISSUER=https://auth.example.com/application/o/openvpn-oauth2/
+CONFIG_OAUTH2_CLIENT_ID=<client_id>
+CONFIG_OAUTH2_CLIENT_SECRET=<client_secret>
+CONFIG_OAUTH2_REFRESH__NONCE=empty
+```
+</td></tr></tbody>
+<thead><tr><td>yaml configuration</td></tr></thead>
+<tbody><tr><td>
+
+```yaml
+oauth2:
+  provider: "authentik"
+  issuer: "https://auth.example.com/application/o/openvpn-oauth2/"
+  client:
+    id: "<client_id>"
+    secret: "<client_secret>"
+  refresh-nonce: "empty"
+```
+</td></tr></tbody>
+</table>
+
+</details>
