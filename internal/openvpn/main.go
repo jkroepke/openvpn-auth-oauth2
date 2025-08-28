@@ -29,6 +29,7 @@ const (
 	newlineString                 = "\r\n"
 )
 
+//nolint:gochecknoglobals
 var (
 	clientEnvEnd           = []byte(">CLIENT:ENV,END")
 	newline                = []byte(newlineString)
@@ -331,12 +332,15 @@ func (c *Client) readMessage(buf *bytes.Buffer) error {
 	return io.EOF
 }
 
+// isMessageLineEOF checks whether the given line indicates the end of a message.
+//
+//nolint:cyclop
 func (c *Client) isMessageLineEOF(line []byte) bool {
 	if len(line) < 2 {
 		return false
 	}
 
-	// Check first two bytes directly
+	// Check the first two bytes directly
 	first, second := line[0], line[1]
 
 	switch {
