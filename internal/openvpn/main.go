@@ -9,6 +9,7 @@ import (
 	"io"
 	"log/slog"
 	"net"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -18,9 +19,21 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
 )
 
-// minManagementInterfaceVersion defines the minimum supported version of the
-// OpenVPN management interface.
-const minManagementInterfaceVersion = 5
+const (
+	// minManagementInterfaceVersion defines the minimum supported version of the
+	// OpenVPN management interface.
+	// Management Interface Version 5 is required at minimum
+	// ref: https://github.com/OpenVPN/openvpn/commit/a261e173341f8e68505a6ab5a413d09b0797a459
+	minManagementInterfaceVersion = 5
+	versionPrefix                 = "OpenVPN Version: "
+	newlineString                 = "\r\n"
+)
+
+var (
+	clientEnvEnd           = []byte(">CLIENT:ENV,END")
+	newline                = []byte(newlineString)
+	managementVersionRegex = regexp.MustCompile(`Management Interface Version: (\d+)`)
+)
 
 // New creates a new Client configured with the provided logger and
 // configuration.
@@ -72,6 +85,7 @@ func (c *Client) Connect(ctx context.Context) error {
 	c.scanner.Split(bufio.ScanLines)
 	c.scanner.Buffer(make([]byte, 0, bufio.MaxScanTokenSize), bufio.MaxScanTokenSize)
 
+	// Handle password authentication
 	if err = c.handlePassword(ctx); err != nil {
 		_ = c.conn.Close()
 
@@ -95,6 +109,7 @@ func (c *Client) Connect(ctx context.Context) error {
 		go c.handlePassThrough(ctx, errChPassThrough)
 	}
 
+	// Check version early
 	if err := c.checkManagementInterfaceVersion(ctx); err != nil {
 		if errors.Is(err, ErrConnectionTerminated) {
 			return nil
@@ -165,26 +180,25 @@ func (c *Client) checkManagementInterfaceVersion(ctx context.Context) error {
 		return fmt.Errorf("error from version command: %w", err)
 	}
 
-	if !strings.HasPrefix(resp, "OpenVPN Version: ") {
+	if !strings.HasPrefix(resp, versionPrefix) {
 		return fmt.Errorf("error from version command: %w: %s", ErrErrorResponse, resp)
 	}
 
-	versionParts := strings.Split(resp, "\r\n")
-
-	if len(versionParts) != 4 {
-		return fmt.Errorf("%w: %s", ErrUnexpectedResponseFromVersionCommand, resp)
+	// Use regex to extract version number
+	matches := managementVersionRegex.FindStringSubmatch(resp)
+	if len(matches) < 2 {
+		return fmt.Errorf("%w: management interface version not found in: %s",
+			ErrUnexpectedResponseFromVersionCommand, resp)
 	}
 
-	c.logger.LogAttrs(ctx, slog.LevelInfo, strings.Join(versionParts[0:1], " - "))
-
-	managementInterfaceVersion, err := strconv.Atoi(versionParts[1][len(versionParts[1])-1:])
+	version, err := strconv.Atoi(matches[1])
 	if err != nil {
-		return fmt.Errorf("unable to parse openvpn management interface version: %w", err)
+		return fmt.Errorf("unable to parse management interface version: %w", err)
 	}
 
-	// Management Interface Version 5 is required at minimum
-	// ref: https://github.com/OpenVPN/openvpn/commit/a261e173341f8e68505a6ab5a413d09b0797a459
-	if managementInterfaceVersion < minManagementInterfaceVersion {
+	c.logger.LogAttrs(ctx, slog.LevelInfo, fmt.Sprintf("OpenVPN Management Interface Version: %d", version))
+
+	if version < minManagementInterfaceVersion {
 		return ErrRequireManagementInterfaceVersion5
 	}
 
@@ -244,13 +258,13 @@ func (c *Client) SendCommand(ctx context.Context, cmd string, passthrough bool) 
 		}
 
 		if resp == "" {
-			cmdFirstLine := strings.SplitN(cmd, "\r\n", 2)[0]
+			cmdFirstLine := strings.SplitN(cmd, newlineString, 2)[0]
 
 			return "", fmt.Errorf("command error '%s': %w", cmdFirstLine, ErrEmptyResponse)
 		}
 
 		if strings.HasPrefix(resp, "ERROR:") {
-			cmdFirstLine := strings.SplitN(cmd, "\r\n", 2)[0]
+			cmdFirstLine := strings.SplitN(cmd, newlineString, 2)[0]
 			c.logger.LogAttrs(ctx, slog.LevelWarn, "command error",
 				slog.String("command", cmdFirstLine),
 				slog.String("response", resp),
@@ -259,7 +273,7 @@ func (c *Client) SendCommand(ctx context.Context, cmd string, passthrough bool) 
 
 		return resp, nil
 	case <-time.After(c.conf.OpenVPN.CommandTimeout):
-		cmdFirstLine := strings.SplitN(cmd, "\r\n", 2)[0]
+		cmdFirstLine := strings.SplitN(cmd, newlineString, 2)[0]
 
 		return "", fmt.Errorf("command error '%s': %w", cmdFirstLine, ErrTimeout)
 	}
@@ -278,7 +292,7 @@ func (c *Client) rawCommand(ctx context.Context, cmd string) error {
 
 	c.commandsBuffer.Reset()
 	c.commandsBuffer.WriteString(cmd)
-	c.commandsBuffer.WriteString("\r\n")
+	c.commandsBuffer.WriteString(newlineString)
 
 	if err := c.conn.SetWriteDeadline(time.Now().Add(time.Second)); err != nil {
 		return fmt.Errorf("unable to set read deadline: %w", err)
@@ -293,8 +307,6 @@ func (c *Client) rawCommand(ctx context.Context, cmd string) error {
 
 // readMessage .
 func (c *Client) readMessage(buf *bytes.Buffer) error {
-	buf.Reset()
-
 	var line []byte
 
 	for c.scanner.Scan() {
@@ -304,13 +316,8 @@ func (c *Client) readMessage(buf *bytes.Buffer) error {
 			continue
 		}
 
-		if _, err := buf.Write(line); err != nil {
-			return fmt.Errorf("unable to write string to buffer: %w", err)
-		}
-
-		if _, err := buf.WriteString("\r\n"); err != nil {
-			return fmt.Errorf("unable to write newline to buffer: %w", err)
-		}
+		buf.Write(line)
+		buf.Write(newline)
 
 		if c.isMessageLineEOF(line) {
 			return nil
@@ -325,11 +332,27 @@ func (c *Client) readMessage(buf *bytes.Buffer) error {
 }
 
 func (c *Client) isMessageLineEOF(line []byte) bool {
-	switch string(line[0:2]) {
-	// SUCCESS, ERROR, END, >HOLD, >INFO, >NOTIFY
-	case "SU", "ER", "EN", ">H", ">I", ">N":
+	if len(line) < 2 {
+		return false
+	}
+
+	// Check first two bytes directly
+	first, second := line[0], line[1]
+
+	switch {
+	case first == 'S' && second == 'U': // SUCCESS
+		return true
+	case first == 'E' && second == 'R': // ERROR
+		return true
+	case first == 'E' && second == 'N': // END
+		return true
+	case first == '>' && second == 'H': // >HOLD
+		return true
+	case first == '>' && second == 'I': // >INFO
+		return true
+	case first == '>' && second == 'N': // >NOTIFY
 		return true
 	default:
-		return bytes.Equal(line, []byte(">CLIENT:ENV,END"))
+		return bytes.Equal(line, clientEnvEnd)
 	}
 }

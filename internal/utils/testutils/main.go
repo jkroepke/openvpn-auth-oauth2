@@ -125,7 +125,7 @@ func SendAndExpectMessage(tb testing.TB, conn net.Conn, reader *bufio.Reader, se
 func ReadLine(tb testing.TB, conn net.Conn, reader *bufio.Reader) string {
 	tb.Helper()
 
-	err := conn.SetReadDeadline(time.Now().Add(time.Second * 50))
+	err := conn.SetReadDeadline(time.Now().Add(time.Second * 5))
 	require.NoError(tb, err)
 
 	line, err := reader.ReadString('\n')

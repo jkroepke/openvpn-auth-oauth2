@@ -90,6 +90,8 @@ func (c *Client) handleMessages(ctx context.Context, errCh chan<- error) {
 	buf.Grow(4096)
 
 	for {
+		buf.Reset()
+
 		if err = c.readMessage(&buf); err != nil {
 			if errors.Is(err, io.EOF) {
 				c.logger.LogAttrs(ctx, slog.LevelWarn, "OpenVPN management interface connection terminated")

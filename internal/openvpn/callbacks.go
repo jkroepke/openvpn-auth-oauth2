@@ -69,7 +69,7 @@ func (c *Client) acceptClientAuth(ctx context.Context, logger *slog.Logger, clie
 
 		for _, line := range clientConfig {
 			sb.WriteString(strings.TrimSpace(line))
-			sb.WriteString("\r\n")
+			sb.WriteString(newlineString)
 		}
 
 		sb.WriteString("END")

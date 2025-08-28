@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -406,11 +405,6 @@ func TestClientInvalidVersion(t *testing.T) {
 			"invalid parts",
 			"OpenVPN Version: OpenVPN Mock\r\nEND\r\n",
 			openvpn.ErrUnexpectedResponseFromVersionCommand,
-		},
-		{
-			"invalid version",
-			"OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version:\r\nEND\r\n",
-			strconv.ErrSyntax,
 		},
 		{
 			"version to low",
