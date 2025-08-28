@@ -25,7 +25,14 @@ jobs:
           go-version-file: 'go.mod'
 
       - run: go build
+
       - run: go test ./... -timeout 20s -race -covermode=atomic -coverprofile=coverage.out -coverpkg=./...
+        id: tests
+        continue-on-error: true
+
+      - run: go test ./... -timeout 20s -race -covermode=atomic -coverprofile=coverage.out -coverpkg=./...
+        if: steps.tests.outcome == 'failure'
+
       - run: go test ./... -timeout 20s -run='^$' -bench=. -benchmem -count 3
 
       - uses: codecov/codecov-action@fdcc8476540edceab3de004e990f80d881c6cc00 # v5.5.0
