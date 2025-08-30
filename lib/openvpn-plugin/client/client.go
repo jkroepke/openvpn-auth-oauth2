@@ -1,6 +1,6 @@
 //go:build linux
 
-package main
+package client
 
 import "C"
 
@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"strings"
 	"sync/atomic"
-	"unsafe"
 )
 
 const MaxEnvVars = 128 // Maximum number of environment variables to process
@@ -21,34 +20,25 @@ var (
 	// ErrMalformedEnvVar is returned when an environment variable is malformed
 	ErrMalformedEnvVar = errors.New("malformed environment variable")
 
-	// ClientID is a global counter for client IDs, incremented atomically
-	ClientID uint64
-	KeyIDs   = make(map[string]uint64) // Map to store key IDs for clients
+	// clientID is a global counter for client IDs, incremented atomically
+	clientID uint64
 )
-
-func NewClientID() uint64 {
-	return atomic.AddUint64(&ClientID, 1)
-}
 
 type Client struct {
 	ClientID             uint64 // A unique identifier for the client
 	AuthFailedReasonFile string
 	AuthPendingFile      string
 	AuthControlFile      string
-	IpAddr               string
-	IpPort               string
-	CommonName           string
-	Username             string
+	Env                  map[string]string
+	estimatedSize        int // Pre-calculated size for String() method
 }
 
-func NewClient(envp unsafe.Pointer) (Client, error) {
-	if envp == nil {
-		return Client{}, ErrInvalidPointer
+func NewClient(envArray *[MaxEnvVars]*C.char) (*Client, error) {
+	client := &Client{
+		Env: make(map[string]string),
+		// Initialize base size: ">CLIENT:CONNECT," + "\r\n>CLIENT:ENV,END"
+		estimatedSize: 17 + 18, // 35 base characters
 	}
-
-	// Cast to array of C string pointers
-	envArray := (*[MaxEnvVars]*C.char)(envp)
-	var client Client
 
 	// Iterate through NULL-terminated array
 	for i := 0; i < MaxEnvVars && envArray[i] != nil; i++ {
@@ -56,11 +46,14 @@ func NewClient(envp unsafe.Pointer) (Client, error) {
 		if err := client.parseEnvVar(envStr); err != nil {
 			// Log error but continue processing
 			// In production, you might want to use a proper logger
-			return Client{}, fmt.Errorf("failed to parse env var %q: %w", envStr, err)
+			return nil, fmt.Errorf("failed to parse env var %q: %w", envStr, err)
 		}
 	}
 
-	client.ClientID = NewClientID()
+	client.ClientID = atomic.AddUint64(&clientID, 1)
+
+	// Add the length of the client ID to the estimated size
+	client.estimatedSize += len(strconv.FormatUint(client.ClientID, 10))
 
 	return client, nil
 }
@@ -93,47 +86,34 @@ func (c *Client) setField(key, value string) error {
 		c.AuthPendingFile = value
 	case "auth_control_file":
 		c.AuthControlFile = value
-	case "untrusted_ip":
-		c.IpAddr = value
-	case "untrusted_ip6":
-		// Handle IPv6, might want to validate format
-		c.IpAddr = value
-	case "untrusted_port":
-		c.IpPort = value
-	case "common_name":
-		c.CommonName = value
-	case "username":
-		c.Username = value
 	default:
-		// Unknown environment variable - not an error, just ignore
-		return nil
+		c.Env[key] = value
+
+		// Incrementally calculate the estimated size
+		c.estimatedSize += len(key) + len(value) + 15 // 15 is for the additional formatting characters
 	}
 
 	return nil
 }
 
 func (c *Client) String() string {
-	sb := strings.Builder{}
-	sb.WriteString(">CLIENT:CONNECT,")
-	sb.WriteString(strconv.FormatUint(c.ClientID, 10))
-	sb.WriteString(",1\r\n>CLIENT:ENV,username=")
-	sb.WriteString(c.Username)
-	sb.WriteString("\r\n>CLIENT:ENV,common_name=")
-	sb.WriteString(c.CommonName)
-
-	if strings.Contains(c.IpAddr, ":") {
-		sb.WriteString("\r\n>CLIENT:ENV,untrusted_ip6=")
-		sb.WriteString(c.IpAddr)
-	} else {
-		sb.WriteString("\r\n>CLIENT:ENV,untrusted_ip=")
-		sb.WriteString(c.IpAddr)
+	if c == nil {
+		return ""
 	}
 
-	sb.WriteString("\r\n>CLIENT:ENV,untrusted_port=")
-	sb.WriteString(c.IpPort)
-	sb.WriteString("\n\n>CLIENT:ENV,X509_0_CN=")
-	sb.WriteString("\n\n>CLIENT:ENV,password=")
-	sb.WriteString("\n\n>CLIENT:ENV,IV_SSO=webauth,openurl,crtext")
+	sb := strings.Builder{}
+	sb.Grow(c.estimatedSize) // Use the pre-calculated size
+
+	sb.WriteString(">CLIENT:CONNECT,")
+	sb.WriteString(strconv.FormatUint(c.ClientID, 10))
+
+	for key, value := range c.Env {
+		sb.WriteString("\r\n>CLIENT:ENV,")
+		sb.WriteString(key)
+		sb.WriteString("=")
+		sb.WriteString(value)
+	}
+
 	sb.WriteString("\r\n>CLIENT:ENV,END")
 
 	return sb.String()

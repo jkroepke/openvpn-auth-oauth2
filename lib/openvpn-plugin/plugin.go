@@ -29,15 +29,13 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"net"
-	"net/url"
 	"os"
-	"slices"
-	"strings"
 	"unsafe"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/version"
+	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-plugin/cache"
+	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-plugin/client"
+	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-plugin/management"
 )
 
 //goland:noinspection GoSnakeCaseUsage
@@ -53,7 +51,7 @@ const OPENVPN_PLUGIN_STRUCTVER_MIN = 5
 // OPENVPN_PLUGIN_INIT_PRE_CONFIG_PARSE.
 //
 //export openvpn_plugin_select_initialization_point_v1
-//goland:noinspection GoSnakeCaseUsage
+//goland:noinspection GoSnakeCaseUsage,GoUnusedFunction
 func openvpn_plugin_select_initialization_point_v1() C.int {
 	return C.OPENVPN_PLUGIN_INIT_POST_UID_CHANGE
 }
@@ -63,7 +61,7 @@ func openvpn_plugin_select_initialization_point_v1() C.int {
 // plugin interface version number required by the plugin.
 //
 //export openvpn_plugin_min_version_required_v1
-//goland:noinspection GoSnakeCaseUsage
+//goland:noinspection GoSnakeCaseUsage,GoUnusedFunction
 func openvpn_plugin_min_version_required_v1() C.int {
 	return 3
 }
@@ -97,9 +95,10 @@ func openvpn_plugin_open_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_
 		listenSocketPassword = C.GoString(pluginArgs[2])
 	}
 
-	handle := &PluginHandle{
+	handle := &pluginHandle{
 		logger:           logger,
-		managementClient: NewManagementClient(logger, listenSocketPassword),
+		managementClient: management.NewServer(logger, listenSocketPassword),
+		cache:            cache.New(),
 	}
 
 	handle.ctx, handle.cancel = context.WithCancel(context.Background())
@@ -112,7 +111,7 @@ func openvpn_plugin_open_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_
 
 	ret.handle = (C.openvpn_plugin_handle_t)(unsafe.Pointer(handle))
 
-	logger.Info(fmt.Sprintf("plugin initialization done. version: %s", version))
+	logger.Info(fmt.Sprintf("plugin initialization done. version: %s", version.Version))
 	logger.Warn("THIS PLUGIN IS STILL IN EXPERIMENTAL STATE")
 
 	return C.OPENVPN_PLUGIN_FUNC_SUCCESS
@@ -125,26 +124,66 @@ func openvpn_plugin_func_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_
 		return C.OPENVPN_PLUGIN_FUNC_ERROR
 	}
 
-	handle := (*PluginHandle)(unsafe.Pointer(args.handle))
+	handle := (*pluginHandle)(unsafe.Pointer(args.handle))
 
 	if args._type != C.OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY {
 		handle.logger.Error("OPENVPN_PLUGIN_? called")
+
 		return C.OPENVPN_PLUGIN_FUNC_ERROR
 	}
 
-	client, err := NewClient(unsafe.Pointer(args.envp))
+	// Cast to array of C string pointers
+	envArray := (*[client.MaxEnvVars]*C.char)(unsafe.Pointer(args.envp))
+	if envArray == nil {
+		handle.logger.Error("invalid envp pointer")
+
+		return C.OPENVPN_PLUGIN_FUNC_ERROR
+	}
+
+	openVPNClient, err := client.NewClient(envArray)
 	if err != nil {
 		handle.logger.Error(fmt.Errorf("create client: %w", err).Error())
+
 		return C.OPENVPN_PLUGIN_FUNC_ERROR
 	}
 
-	if err := handle.managementClient.SendClient(client); err != nil {
+	handle.cache.Set(openVPNClient.ClientID, openVPNClient)
+
+	resp, err := handle.managementClient.ClientAuth(openVPNClient.String())
+	if err != nil {
 		handle.logger.Error(fmt.Errorf("send client to management interface: %w", err).Error())
+
 		return C.OPENVPN_PLUGIN_FUNC_ERROR
+	}
+
+	switch resp.ClientAuth {
+	case management.ClientAuthAccept:
+		handle.writeToAuthFile(openVPNClient, "0")
+		return C.OPENVPN_PLUGIN_FUNC_SUCCESS
+	case management.ClientAuthDeny:
+		handle.DenyClient(handle.logger, openVPNClient, resp.Reason)
+		return C.OPENVPN_PLUGIN_FUNC_ERROR
+	case management.ClientAuthDefer:
+		// continue below
+	default:
+		handle.logger.Error("unknown client auth response from management interface")
+
+		return C.OPENVPN_PLUGIN_FUNC_ERROR
+	}
+
+	pendingAuth := "0"
+	if resp.ClientAuth == management.ClientAuthDefer {
+		pendingAuth = "2"
+	}
+
+	// Write "2" to auth control file to indicate deferred auth
+	// OpenVPN will then wait for "1" (accept) or "0" (deny) in that file
+	// before proceeding with the connection
 	}
 
 	if err := os.WriteFile(client.AuthPendingFile, []byte(pendingAuth), 0o600); err != nil {
 		handle.logger.Error(fmt.Errorf("write to file %s: %w", client.AuthPendingFile, err).Error())
+
 		return C.OPENVPN_PLUGIN_FUNC_ERROR
 	}
 
@@ -154,7 +193,7 @@ func openvpn_plugin_func_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_
 //export openvpn_plugin_close_v1
 //goland:noinspection GoSnakeCaseUsage
 func openvpn_plugin_close_v1(pluginHandle C.openvpn_plugin_handle_t) {
-	handle := (*PluginHandle)(unsafe.Pointer(pluginHandle))
+	handle := (*pluginHandle)(unsafe.Pointer(pluginHandle))
 	if handle == nil {
 		return
 	}
@@ -167,7 +206,7 @@ func openvpn_plugin_close_v1(pluginHandle C.openvpn_plugin_handle_t) {
 //export openvpn_plugin_abort_v1
 //goland:noinspection GoSnakeCaseUsage
 func openvpn_plugin_abort_v1(pluginHandle C.openvpn_plugin_handle_t) {
-	handle := (*PluginHandle)(unsafe.Pointer(pluginHandle))
+	handle := (*pluginHandle)(unsafe.Pointer(pluginHandle))
 	if handle == nil {
 		return
 	}

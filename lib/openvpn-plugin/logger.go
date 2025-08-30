@@ -108,7 +108,7 @@ func (h *PluginHandler) appendAttr(buf []byte, a slog.Attr) []byte {
 		// Quote string values, to make them easy to parse.
 		buf = fmt.Appendf(buf, " %s=%q", a.Key, a.Value.String())
 	case slog.KindTime:
-		// Write times in a standard way, without the monotonic time.
+		// write times in a standard way, without the monotonic time.
 		buf = fmt.Appendf(buf, " %s=%s", a.Key, a.Value.Time().Format(time.RFC3339Nano))
 	case slog.KindGroup:
 		attrs := a.Value.Group()

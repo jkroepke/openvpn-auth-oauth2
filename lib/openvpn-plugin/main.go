@@ -7,21 +7,17 @@ import "C"
 import (
 	"context"
 	"log/slog"
+
+	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-plugin/cache"
+	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-plugin/management"
 )
 
-//nolint:gochecknoglobals
-//goland:noinspection GoUnusedGlobalVariable
-var (
-	version = "dev"
-	commit  = "none"
-	date    = "unknown"
-)
-
-type PluginHandle struct {
+type pluginHandle struct {
 	ctx              context.Context
 	cancel           context.CancelFunc
 	logger           *slog.Logger
-	managementClient *ManagementClient
+	managementClient *management.Server
+	cache            *cache.Cache
 }
 
 func main() {
