@@ -5,10 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/goccy/go-yaml"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 	"github.com/stretchr/testify/require"
+	"go.yaml.in/yaml/v3"
 )
 
 func TestTemplate(t *testing.T) {
@@ -144,7 +144,7 @@ func TestTemplateUnmarshalYAML(t *testing.T) {
 	t.Parallel()
 
 	actualTmpl := types.Template{}
-	require.NoError(t, yaml.NewDecoder(strings.NewReader(`"../../../README.md"`), yaml.UseJSONUnmarshaler()).Decode(&actualTmpl))
+	require.NoError(t, yaml.NewDecoder(strings.NewReader(`"../../../README.md"`)).Decode(&actualTmpl))
 
 	expectedTmpl, err := types.NewTemplate("../../../README.md")
 	require.NoError(t, err)

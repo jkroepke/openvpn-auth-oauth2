@@ -5,10 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/goccy/go-yaml"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.yaml.in/yaml/v3"
 )
 
 func TestSliceUnmarshalText(t *testing.T) {
@@ -46,7 +46,7 @@ func TestSliceUnmarshalYAML(t *testing.T) {
 
 	slice := types.StringSlice{}
 
-	require.NoError(t, yaml.NewDecoder(strings.NewReader("- a\n- b\n- c\n- d\n"), yaml.UseJSONUnmarshaler()).Decode(&slice))
+	require.NoError(t, yaml.NewDecoder(strings.NewReader("- a\n- b\n- c\n- d\n")).Decode(&slice))
 
 	assert.Equal(t, types.StringSlice{"a", "b", "c", "d"}, slice)
 }

@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/goccy/go-yaml"
+	"go.yaml.in/yaml/v3"
 )
 
 var ErrVersion = errors.New("flag: version requested")

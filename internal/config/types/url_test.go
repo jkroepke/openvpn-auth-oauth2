@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/goccy/go-yaml"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 	"github.com/stretchr/testify/require"
+	"go.yaml.in/yaml/v3"
 )
 
 func TestURL(t *testing.T) {
@@ -154,7 +154,7 @@ func TestURLUnmarshalYAML(t *testing.T) {
 	t.Parallel()
 
 	actualURL := types.URL{}
-	require.NoError(t, yaml.NewDecoder(strings.NewReader(`"https://example.com"`), yaml.UseJSONUnmarshaler()).Decode(&actualURL))
+	require.NoError(t, yaml.NewDecoder(strings.NewReader(`"https://example.com"`)).Decode(&actualURL))
 
 	expectedURL, err := types.NewURL("https://example.com")
 	require.NoError(t, err)
