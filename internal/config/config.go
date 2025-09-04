@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/goccy/go-yaml"
+	"go.yaml.in/yaml/v3"
 )
 
 var ErrVersion = errors.New("flag: version requested")
@@ -49,8 +49,11 @@ func (c *Config) ReadFromConfigFile(configFilePath string) error {
 		_ = configFile.Close()
 	}()
 
+	decoder := yaml.NewDecoder(configFile)
+	decoder.KnownFields(true)
+
 	// Load the config file
-	if err = yaml.NewDecoder(configFile, yaml.DisallowUnknownField(), yaml.UseJSONUnmarshaler()).Decode(c); err != nil {
+	if err = decoder.Decode(c); err != nil {
 		return fmt.Errorf("error decoding config file %s: %w", configFilePath, err)
 	}
 
