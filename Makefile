@@ -82,4 +82,4 @@ golangci:
 
 .PHONY: 3rdpartylicenses
 3rdpartylicenses:
-	@go run github.com/google/go-licenses@v1.6.0 save . --save_path=3rdpartylicenses
+	@go run github.com/google/go-licenses@v2.0.0 save . --save_path=3rdpartylicenses
