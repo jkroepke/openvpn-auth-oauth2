@@ -64,7 +64,7 @@ type OpenVPN struct {
 }
 
 type OpenVPNBypass struct {
-	CommonNames types.StringSlice `json:"common-names" yaml:"common-names"`
+	CommonNames types.RegexpSlice `json:"common-names" yaml:"common-names"`
 }
 type OpenVPNConfig struct {
 	Path       types.FS `json:"path"        yaml:"path"`
