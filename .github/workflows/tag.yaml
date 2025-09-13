@@ -1,0 +1,56 @@
+name: Create Tag
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to create (e.g. v1.2.3)'
+        required: true
+        type: string
+
+permissions: {}
+
+jobs:
+  create:
+    runs-on: ubuntu-24.04
+    name: Create Tag
+    if: startsWith(inputs.tag, 'v')
+    permissions:
+      contents: write
+    steps:
+      # Using a GitHub App token, because GitHub Actions doesn't run on commits from github-actions bot
+      # Used App:
+      # https://github.com/organizations/prometheus-community/settings/apps/helm-charts-renovate-helper.
+      # Ref: https://github.com/prometheus-community/helm-charts/issues/5213.
+      - uses: actions/create-github-app-token@a8d616148505b5069dccd32f177bb87d7f39123b # v2.1.1
+        id: app-token
+        with:
+          app-id: 1248576
+          private-key: ${{ secrets.AUTOMATION_APP_PRIVATE_KEY }}
+
+      - name: create git tag object
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.git.createTag({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag: "${{ inputs.tag }}",
+              object: ${{ github.sha }},
+              type: "commit",
+              message: "Release ${{ inputs.tag }}"
+            })
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - name: create git tag reference
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: 'refs/tags/${{ inputs.tag }}',
+              sha: context.sha
+            })
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
