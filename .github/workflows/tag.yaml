@@ -27,30 +27,31 @@ jobs:
           app-id: 1248576
           private-key: ${{ secrets.AUTOMATION_APP_PRIVATE_KEY }}
 
-      - name: create git tag object
-        uses: actions/github-script@v7
+      - name: Create Tag
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # 8.0.0
         with:
           script: |
-            github.rest.git.createTag({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              tag: "${{ inputs.tag }}",
-              object: context.sha,
-              type: "commit",
-              message: "Release ${{ inputs.tag }}"
-            })
-        env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+            try {
+              var tagResponse = await github.rest.git.createTag({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag: '${{ inputs.tag }}',
+                message: 'Release ${{ inputs.tag }}',
+                object: '${{ inputs.commit_sha }}',
+                type: 'commit',
+              });
 
-      - name: create git tag reference
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.git.createRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: 'refs/tags/${{ inputs.tag }}',
-              sha: context.sha
-            })
+              await github.rest.git.createRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: 'refs/tags/${{ inputs.tag }}',
+                sha: tagResponse.data.sha,
+              });
+
+              core.info('Tag ${{ inputs.tag }} created successfully!')
+            } catch (err) {
+              core.error('Failed to create tag ${{ inputs.tag }}')
+              core.setFailed(`Action failed with error: ${err}`);
+            }
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}

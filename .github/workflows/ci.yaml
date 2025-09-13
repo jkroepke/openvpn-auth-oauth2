@@ -194,6 +194,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GPG_PASSPHRASE: ${{ secrets.NFPM_PASSPHRASE }}
 
+      - name: Publish Release
+        run: gh release edit "${GITHUB_REF_NAME}" --draft=false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3.0.0
         with:
           subject-checksums: ./dist/checksums.txt
