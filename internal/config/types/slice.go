@@ -3,8 +3,11 @@ package types
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"regexp"
 	"strings"
+
+	"go.yaml.in/yaml/v3"
 )
 
 type StringSlice []string
@@ -36,14 +39,34 @@ func (s *StringSlice) UnmarshalText(text []byte) error {
 //
 //goland:noinspection GoMixedReceiverTypes
 func (s *StringSlice) UnmarshalJSON(jsonBytes []byte) error {
-	var slice []string
+	var stringList []string
 
-	err := json.NewDecoder(bytes.NewReader(jsonBytes)).Decode(&slice)
+	err := json.NewDecoder(bytes.NewReader(jsonBytes)).Decode(&stringList)
+	if err != nil {
+		//nolint:wrapcheck
+		return err
+	}
 
-	*s = slice
+	*s = stringList
 
-	//nolint:wrapcheck
-	return err
+	return nil
+}
+
+// UnmarshalYAML implements the [yaml.Unmarshaler] interface.
+//
+//goland:noinspection GoMixedReceiverTypes
+func (s *StringSlice) UnmarshalYAML(data *yaml.Node) error {
+	var stringList []string
+
+	err := data.Decode(&stringList)
+	if err != nil {
+		//nolint:wrapcheck
+		return err
+	}
+
+	*s = stringList
+
+	return nil
 }
 
 type RegexpSlice []*regexp.Regexp
@@ -71,20 +94,8 @@ func (s RegexpSlice) MarshalText() ([]byte, error) {
 //
 //goland:noinspection GoMixedReceiverTypes
 func (s *RegexpSlice) UnmarshalText(text []byte) error {
-	stringList := strings.Split(string(text), ",")
-	regexList := make([]*regexp.Regexp, 0, len(stringList))
-	for _, str := range stringList {
-		r, err := regexp.Compile(str)
-		if err != nil {
-			return err
-		}
-
-		regexList = append(regexList, r)
-	}
-
-	*s = regexList
-
-	return nil
+	//nolint:wrapcheck
+	return s.fromSlice(strings.Split(string(text), ","))
 }
 
 // UnmarshalJSON implements the [json.Unmarshaler] interface.
@@ -94,11 +105,36 @@ func (s *RegexpSlice) UnmarshalJSON(jsonBytes []byte) error {
 	var stringList []string
 
 	err := json.NewDecoder(bytes.NewReader(jsonBytes)).Decode(&stringList)
+	if err != nil {
+		//nolint:wrapcheck
+		return err
+	}
 
-	regexList := make([]*regexp.Regexp, 0, len(stringList))
+	return s.fromSlice(stringList)
+}
+
+// UnmarshalYAML implements the [yaml.Unmarshaler] interface.
+//
+//goland:noinspection GoMixedReceiverTypes
+func (s *RegexpSlice) UnmarshalYAML(data *yaml.Node) error {
+	var stringList []string
+
+	err := data.Decode(&stringList)
+	if err != nil {
+		//nolint:wrapcheck
+		return err
+	}
+
+	return s.fromSlice(stringList)
+}
+
+//goland:noinspection GoMixedReceiverTypes
+func (s *RegexpSlice) fromSlice(stringList []string) error {
+	regexList := make(RegexpSlice, 0, len(stringList))
 	for _, str := range stringList {
-		r, err := regexp.Compile(str)
+		r, err := regexp.Compile(fmt.Sprintf("^(?:%s)$", str))
 		if err != nil {
+			//nolint:wrapcheck
 			return err
 		}
 
@@ -107,6 +143,5 @@ func (s *RegexpSlice) UnmarshalJSON(jsonBytes []byte) error {
 
 	*s = regexList
 
-	//nolint:wrapcheck
-	return err
+	return nil
 }

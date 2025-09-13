@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/url"
 	"os"
+	"regexp"
 	"slices"
 	"testing"
 	"time"
@@ -177,7 +178,7 @@ http:
 						OmitHost: false,
 					}},
 					Bypass: config.OpenVPNBypass{
-						CommonNames: []string{"test", "test2"},
+						CommonNames: types.RegexpSlice{regexp.MustCompile(`^test$`), regexp.MustCompile(`^test2$`)},
 					},
 					ClientConfig: config.OpenVPNConfig{
 						Enabled:    true,
@@ -322,7 +323,7 @@ func TestConfigFlagSet(t *testing.T) {
 			[]string{"--openvpn.bypass.common-names=a,b"},
 			func() config.Config {
 				conf := config.Defaults
-				conf.OpenVPN.Bypass.CommonNames = []string{"a", "b"}
+				conf.OpenVPN.Bypass.CommonNames = types.RegexpSlice{regexp.MustCompile("a"), regexp.MustCompile("a")}
 
 				return conf
 			}(),

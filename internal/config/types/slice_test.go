@@ -59,7 +59,8 @@ func TestRegexpSliceUnmarshalText(t *testing.T) {
 
 	require.NoError(t, slice.UnmarshalText([]byte("a,b,c,d")))
 
-	assert.Equal(t, types.RegexpSlice{regexp.MustCompile("a"), regexp.MustCompile("b"), regexp.MustCompile("c"), regexp.MustCompile("d")}, slice)
+	//goland:noinspection RegExpUnnecessaryNonCapturingGroup
+	assert.Equal(t, types.RegexpSlice{regexp.MustCompile("^(?:a)$"), regexp.MustCompile("^(?:b)$"), regexp.MustCompile("^(?:c)$"), regexp.MustCompile("^(?:d)$")}, slice)
 }
 
 func TestRegexpSliceUnmarshalTextError(t *testing.T) {
@@ -67,7 +68,7 @@ func TestRegexpSliceUnmarshalTextError(t *testing.T) {
 
 	slice := types.RegexpSlice{}
 
-	require.EqualError(t, slice.UnmarshalText([]byte("^(a,b,c,d")), "error parsing regexp: missing closing ): `^(a`")
+	require.EqualError(t, slice.UnmarshalText([]byte("^(a,b,c,d")), "error parsing regexp: missing closing ): `^(?:^(a)$`")
 }
 
 func TestRegexpSliceMarshalText(t *testing.T) {
@@ -85,7 +86,7 @@ func TestRegexpSliceUnmarshalJSON(t *testing.T) {
 
 	slice := types.RegexpSlice{}
 
-	require.EqualError(t, json.NewDecoder(strings.NewReader(`["^(a","b","c","d"]`)).Decode(&slice), "error parsing regexp: missing closing ): `^(a`")
+	require.EqualError(t, json.NewDecoder(strings.NewReader(`["^(a","b","c","d"]`)).Decode(&slice), "error parsing regexp: missing closing ): `^(?:^(a)$`")
 }
 
 func TestRegexpSliceUnmarshalYAML(t *testing.T) {
@@ -93,5 +94,5 @@ func TestRegexpSliceUnmarshalYAML(t *testing.T) {
 
 	slice := types.RegexpSlice{}
 
-	require.EqualError(t, yaml.NewDecoder(strings.NewReader("- \"^(a\"\n- b\n- c\n- d\n")).Decode(&slice), "error parsing regexp: missing closing ): `^(a`")
+	require.EqualError(t, yaml.NewDecoder(strings.NewReader("- \"^(a\"\n- b\n- c\n- d\n")).Decode(&slice), "error parsing regexp: missing closing ): `^(?:^(a)$`")
 }

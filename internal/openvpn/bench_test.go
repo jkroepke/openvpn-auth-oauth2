@@ -38,7 +38,7 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 	conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
 	conf.HTTP.Secret = testutils.Secret
 	conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
-	conf.OpenVPN.Bypass = config.OpenVPNBypass{CommonNames: make([]string, 0)}
+	conf.OpenVPN.Bypass = config.OpenVPNBypass{CommonNames: make(types.RegexpSlice, 0)}
 
 	tokenStorage := tokenstorage.NewInMemory(testutils.Secret, time.Hour)
 	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, b, conf, slog.New(slog.DiscardHandler), http.DefaultClient, tokenStorage)
