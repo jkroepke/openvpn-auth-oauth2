@@ -37,7 +37,7 @@ jobs:
                 repo: context.repo.repo,
                 tag: '${{ inputs.tag }}',
                 message: 'Release ${{ inputs.tag }}',
-                object: '${{ inputs.commit_sha }}',
+                object: '${{ github.sha }}',
                 type: 'commit',
               });
 
