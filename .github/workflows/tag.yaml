@@ -1,4 +1,5 @@
 name: Create Tag
+run-name: 'Create Tag ${{ inputs.tag }}'
 on:
   workflow_dispatch:
     inputs:
