@@ -138,9 +138,10 @@ func (c *Config) flagSetOpenVPN(flagSet *flag.FlagSet) {
 		&c.OpenVPN.Bypass.CommonNames,
 		"openvpn.bypass.common-names",
 		lookupEnvOrDefault("openvpn.bypass.common-names", c.OpenVPN.Bypass.CommonNames),
-		`Skip OAuth authentication for client certificate common names (CNs) matching any of the given regular expressions.
-Multiple expressions can be provided as a comma-separated list.
-Note: regular expressions are used, so for example "client" will also match "client2".`,
+		"Skip OAuth authentication for client certificate common names (CNs) matching any of the given regular expressions. "+
+			"Multiple expressions can be provided as a comma-separated list. "+
+			"Regular expressions are automatically anchored (^…$) by default, so \"client\" matches only \"client\". "+
+			"To allow partial matches, specify explicitly (e.g. \"client.*\").",
 	)
 	flagSet.BoolVar(
 		&c.OpenVPN.ClientConfig.Enabled,

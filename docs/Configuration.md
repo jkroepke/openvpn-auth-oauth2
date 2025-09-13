@@ -117,7 +117,7 @@ Usage of openvpn-auth-oauth2:
   --openvpn.auth-token-user
     	Override the username of a session with the username from the token by using auth-token-user, if the client username is empty (env: CONFIG_OPENVPN_AUTH__TOKEN__USER) (default true)
   --openvpn.bypass.common-names value
-    	Skip OAuth authentication for client certificate common names (CNs) matching any of the given regular expressions. Multiple expressions can be provided as a comma-separated list. Note: regular expressions are used, so for example "client" will also match "client2". (env: CONFIG_OPENVPN_BYPASS_COMMON__NAMES)
+    	Skip OAuth authentication for client certificate common names (CNs) matching any of the given regular expressions. Multiple expressions can be provided as a comma-separated list. Regular expressions are automatically anchored (^…$) by default, so "client" matches only "client". To allow partial matches, specify explicitly (e.g. "client.*"). (env: CONFIG_OPENVPN_BYPASS_COMMON__NAMES)
   --openvpn.client-config.enabled
     	If true, openvpn-auth-oauth2 will read the CCD directory for additional configuration. This function mimic the client-config-dir directive in OpenVPN. (env: CONFIG_OPENVPN_CLIENT__CONFIG_ENABLED)
   --openvpn.client-config.path value

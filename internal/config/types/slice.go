@@ -94,7 +94,6 @@ func (s RegexpSlice) MarshalText() ([]byte, error) {
 //
 //goland:noinspection GoMixedReceiverTypes
 func (s *RegexpSlice) UnmarshalText(text []byte) error {
-	//nolint:wrapcheck
 	return s.fromSlice(strings.Split(string(text), ","))
 }
 
@@ -132,13 +131,13 @@ func (s *RegexpSlice) UnmarshalYAML(data *yaml.Node) error {
 func (s *RegexpSlice) fromSlice(stringList []string) error {
 	regexList := make(RegexpSlice, 0, len(stringList))
 	for _, str := range stringList {
-		r, err := regexp.Compile(fmt.Sprintf("^(?:%s)$", str))
+		regexPattern, err := regexp.Compile(fmt.Sprintf("^(?:%s)$", str))
 		if err != nil {
 			//nolint:wrapcheck
 			return err
 		}
 
-		regexList = append(regexList, r)
+		regexList = append(regexList, regexPattern)
 	}
 
 	*s = regexList
