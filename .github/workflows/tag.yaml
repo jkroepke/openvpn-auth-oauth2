@@ -35,7 +35,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               tag: "${{ inputs.tag }}",
-              object: ${{ github.sha }},
+              object: context.sha,
               type: "commit",
               message: "Release ${{ inputs.tag }}"
             })
