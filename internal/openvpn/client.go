@@ -146,10 +146,20 @@ func (c *Client) startClientAuth(ctx context.Context, logger *slog.Logger, clien
 	return nil
 }
 
+// checkAuthBypass checks if the client is allowed to bypass authentication based on its common name.
+// It returns true if the client is allowed to bypass authentication, false otherwise.
 func (c *Client) checkAuthBypass(client connection.Client) bool {
-	return slices.Contains(c.conf.OpenVPN.Bypass.CommonNames, client.CommonName)
+	for _, pattern := range c.conf.OpenVPN.Bypass.CommonNames {
+		if pattern.MatchString(client.CommonName) {
+			return true
+		}
+	}
+
+	return false
 }
 
+// silentReAuthentication attempts to silently re-authenticate the client using a refresh token if available.
+// It returns true if the client was successfully re-authenticated, false otherwise.
 func (c *Client) silentReAuthentication(ctx context.Context, logger *slog.Logger, client connection.Client) (bool, error) {
 	if !c.conf.OAuth2.Refresh.Enabled {
 		logger.LogAttrs(ctx, slog.LevelDebug, "silent re-authentication disabled by configuration")

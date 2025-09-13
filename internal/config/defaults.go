@@ -58,7 +58,7 @@ var Defaults = Config{
 		},
 		OverrideUsername: false,
 		Bypass: OpenVPNBypass{
-			CommonNames: make([]string, 0),
+			CommonNames: types.RegexpSlice{},
 		},
 		Passthrough: OpenVPNPassthrough{
 			Enabled: false,

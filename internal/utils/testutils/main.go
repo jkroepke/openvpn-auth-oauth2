@@ -281,7 +281,7 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 	conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
 
 	if conf.OpenVPN.Bypass.CommonNames == nil {
-		conf.OpenVPN.Bypass.CommonNames = make([]string, 0)
+		conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 	}
 
 	conf.OAuth2.Issuer = resourceServerURL

@@ -66,6 +66,7 @@
 #    common-names:
 #      - "test"
 #      - "test2"
+#      - "wildcard.*"
 #  ccd:
 #    enabled: false
 #    path: "/etc/openvpn-auth-oauth2/client-config/"
