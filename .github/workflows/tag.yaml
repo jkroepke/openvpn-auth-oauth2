@@ -14,8 +14,6 @@ jobs:
     runs-on: ubuntu-24.04
     name: Create Tag
     if: startsWith(inputs.tag, 'v')
-    permissions:
-      contents: write
     steps:
       # Using a GitHub App token, because GitHub Actions doesn't run on commits from github-actions bot
       # Used App:
@@ -32,25 +30,9 @@ jobs:
         with:
           github-token: ${{ steps.app-token.outputs.token }}
           script: |
-            try {
-              var tagResponse = await github.rest.git.createTag({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                tag: '${{ inputs.tag }}',
-                message: 'Release ${{ inputs.tag }}',
-                object: context.sha,
-                type: 'commit',
-              });
-
-              await github.rest.git.createRef({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                ref: 'refs/tags/${{ inputs.tag }}',
-                sha: tagResponse.data.sha,
-              });
-
-              core.info('Tag ${{ inputs.tag }} created successfully!')
-            } catch (err) {
-              core.error('Failed to create tag ${{ inputs.tag }}')
-              core.setFailed(`Action failed with error: ${err}`);
-            }
+            github.rest.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: 'refs/tags/${{ inputs.tag }}',
+              sha: context.sha,
+            });
