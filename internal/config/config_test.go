@@ -20,6 +20,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
+//goland:noinspection RegExpUnnecessaryNonCapturingGroup
 func TestConfig(t *testing.T) {
 	t.Parallel()
 
@@ -178,7 +179,7 @@ http:
 						OmitHost: false,
 					}},
 					Bypass: config.OpenVPNBypass{
-						CommonNames: types.RegexpSlice{regexp.MustCompile(`^test$`), regexp.MustCompile(`^test2$`)},
+						CommonNames: types.RegexpSlice{regexp.MustCompile(`^(?:test)$`), regexp.MustCompile(`^(?:test2)$`)},
 					},
 					ClientConfig: config.OpenVPNConfig{
 						Enabled:    true,
@@ -323,7 +324,8 @@ func TestConfigFlagSet(t *testing.T) {
 			[]string{"--openvpn.bypass.common-names=a,b"},
 			func() config.Config {
 				conf := config.Defaults
-				conf.OpenVPN.Bypass.CommonNames = types.RegexpSlice{regexp.MustCompile("a"), regexp.MustCompile("a")}
+				//goland:noinspection RegExpUnnecessaryNonCapturingGroup
+				conf.OpenVPN.Bypass.CommonNames = types.RegexpSlice{regexp.MustCompile("^(?:a)$"), regexp.MustCompile("^(?:b)$")}
 
 				return conf
 			}(),
