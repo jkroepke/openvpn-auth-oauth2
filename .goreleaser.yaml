@@ -2,7 +2,7 @@ version: 2
 before:
   hooks:
     - rm -rf 3rdpartylicenses
-    - go run github.com/google/go-licenses@latest save . --save_path=3rdpartylicenses
+    - make 3rdpartylicenses
 
 builds:
   - id: "openvpn-auth-oauth2"
