@@ -23,6 +23,7 @@ jobs:
       - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
         with:
           go-version-file: 'go.mod'
+          cache: "${{ github.actor != 'renovate[bot]' && github.actor != 'mend[bot]' }}"
 
       - run: go build
       - run: go test ./... -timeout 20s -race -covermode=atomic -coverprofile=coverage.out -coverpkg=./...
@@ -44,6 +45,7 @@ jobs:
       - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
         with:
           go-version-file: 'go.mod'
+          cache: "${{ github.actor != 'renovate[bot]' && github.actor != 'mend[bot]' }}"
 
       - uses: anchore/sbom-action/download-syft@da167eac915b4e86f08b264dbdbc867b61be6f0c # v0.20.5
 
@@ -78,6 +80,7 @@ jobs:
       - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
         with:
           go-version-file: 'go.mod'
+          cache: "${{ github.actor != 'renovate[bot]' && github.actor != 'mend[bot]' }}"
 
       - run: go mod tidy -diff
 
@@ -144,6 +147,7 @@ jobs:
       - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
         with:
           go-version-file: 'go.mod'
+          cache: true
 
       - uses: anchore/sbom-action/download-syft@da167eac915b4e86f08b264dbdbc867b61be6f0c # v0.20.5
 
