@@ -143,8 +143,9 @@ type OpenVPNCommonNameMode int
 const (
 	CommonNameModePlain OpenVPNCommonNameMode = iota
 	CommonNameModeOmit
-	CommonNameModeOmitValue = "-"
 )
+
+const CommonNameModeOmitValue = "-"
 
 // String returns the string representation of the common name mode.
 //
