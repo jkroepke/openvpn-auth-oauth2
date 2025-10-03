@@ -6,7 +6,7 @@ require (
 	github.com/madflojo/testcerts v1.4.0
 	github.com/stretchr/testify v1.11.1
 	github.com/zitadel/logging v0.6.2
-	github.com/zitadel/oidc/v3 v3.44.0
+	github.com/zitadel/oidc/v3 v3.45.0
 	go.yaml.in/yaml/v3 v3.0.4
 	golang.org/x/net v0.44.0
 	golang.org/x/oauth2 v0.31.0
