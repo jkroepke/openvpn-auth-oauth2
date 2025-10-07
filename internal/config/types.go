@@ -18,12 +18,13 @@ const (
 )
 
 type Config struct {
-	ConfigFile string  `json:"config"  yaml:"config"`
-	HTTP       HTTP    `json:"http"    yaml:"http"`
-	Debug      Debug   `json:"debug"   yaml:"debug"`
-	Log        Log     `json:"log"     yaml:"log"`
-	OpenVPN    OpenVPN `json:"openvpn" yaml:"openvpn"`
-	OAuth2     OAuth2  `json:"oauth2"  yaml:"oauth2"`
+	ConfigFile   string       `json:"config"        yaml:"config"`
+	HTTP         HTTP         `json:"http"          yaml:"http"`
+	Debug        Debug        `json:"debug"         yaml:"debug"`
+	Log          Log          `json:"log"           yaml:"log"`
+	OpenVPN      OpenVPN      `json:"openvpn"       yaml:"openvpn"`
+	OAuth2       OAuth2       `json:"oauth2"        yaml:"oauth2"`
+	TokenStorage TokenStorage `json:"token-storage" yaml:"token-storage"`
 }
 
 type HTTP struct {
@@ -50,8 +51,8 @@ type Log struct {
 }
 
 type OpenVPN struct {
-	Addr               types.URL          `json:"addr"                 yaml:"addr"`
-	Password           types.Secret       `json:"password"             yaml:"password"`
+	Servers []OpenVPNServer `json:"servers" yaml:"servers"`
+	// Global settings that apply to all servers
 	ClientConfig       OpenVPNConfig      `json:"client-config"        yaml:"client-config"`
 	Bypass             OpenVPNBypass      `json:"bypass"               yaml:"bypass"`
 	CommonName         OpenVPNCommonName  `json:"common-name"          yaml:"common-name"`
@@ -61,6 +62,16 @@ type OpenVPN struct {
 	AuthTokenUser      bool               `json:"auth-token-user"      yaml:"auth-token-user"`
 	OverrideUsername   bool               `json:"override-username"    yaml:"override-username"`
 	ReAuthentication   bool               `json:"reauthentication"     yaml:"reauthentication"`
+	// Legacy single server support (for backward compatibility)
+	Addr     types.URL    `json:"addr"     yaml:"addr"`
+	Password types.Secret `json:"password" yaml:"password"`
+}
+
+type OpenVPNServer struct {
+	Name     string       `json:"name"     yaml:"name"`
+	Addr     types.URL    `json:"addr"     yaml:"addr"`
+	Password types.Secret `json:"password" yaml:"password"`
+	Enabled  bool         `json:"enabled"  yaml:"enabled"`
 }
 
 type OpenVPNBypass struct {
@@ -136,6 +147,13 @@ type OpenVPNPassthrough struct {
 type Debug struct {
 	Listen string `json:"listen" yaml:"listen"`
 	Pprof  bool   `json:"pprof"  yaml:"pprof"`
+}
+
+// TokenStorage configuration
+type TokenStorage struct {
+	Type            string        `json:"type"            yaml:"type"`              // "memory" or "sqlite"
+	SQLitePath      string        `json:"sqlite-path"     yaml:"sqlite-path"`       // Path to SQLite database
+	CleanupInterval time.Duration `json:"cleanup-interval" yaml:"cleanup-interval"` // How often to cleanup expired tokens
 }
 
 type OpenVPNCommonNameMode int

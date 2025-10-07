@@ -100,4 +100,9 @@ var Defaults = Config{
 			Roles:  make([]string, 0),
 		},
 	},
+	TokenStorage: TokenStorage{
+		Type:            "memory",
+		SQLitePath:      "/var/lib/openvpn-auth-oauth2/tokens.db",
+		CleanupInterval: time.Hour,
+	},
 }

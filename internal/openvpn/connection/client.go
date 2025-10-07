@@ -20,6 +20,7 @@ type Client struct {
 	KID               uint64
 	CID               uint64
 	UsernameIsDefined int
+	ServerName        string
 }
 
 // NewClient parses a multi-line message from the OpenVPN management interface
@@ -76,6 +77,8 @@ func NewClient(conf config.Config, message string) (Client, error) { //nolint:cy
 				client.SessionState = envValue
 			case "username":
 				client.UsernameIsDefined = 1
+			case "OPENVPN_SERVER_NAME":
+				client.ServerName = envValue
 			}
 		case client.Reason == "" && isClientReason(line):
 			client.Reason, client.CID, client.KID, err = parseClientReason(line)
@@ -87,6 +90,11 @@ func NewClient(conf config.Config, message string) (Client, error) { //nolint:cy
 
 	if client.Reason == "" {
 		return Client{}, fmt.Errorf("%w: %s", ErrParseErrorClientReason, message)
+	}
+
+	// Set default server name if not provided
+	if client.ServerName == "" {
+		client.ServerName = "default"
 	}
 
 	return client, nil

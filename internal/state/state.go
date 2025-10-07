@@ -10,7 +10,7 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/crypto"
 )
 
-const numFields = 12
+const numFields = 13
 
 // State represents the context and security information associated with an OAuth2 login flow.
 //
@@ -25,6 +25,7 @@ type State struct {
 	IPPort       string           // Client's port
 	SessionState string           // Compact session state representation
 	Client       ClientIdentifier // Information about the client
+	ServerName   string           // OpenVPN server name
 	Issued       int64            // Timestamp (seconds since Unix epoch)
 }
 
@@ -42,12 +43,13 @@ type ClientIdentifier struct {
 }
 
 // New returns a new State with the current timestamp (rounded to the nearest second).
-func New(client ClientIdentifier, ipAddr, ipPort, sessionState string) State {
+func New(client ClientIdentifier, ipAddr, ipPort, sessionState, serverName string) State {
 	return State{
 		Client:       client,
 		IPAddr:       ipAddr,
 		IPPort:       ipPort,
 		SessionState: sessionState,
+		ServerName:   serverName,
 		Issued:       time.Now().Round(time.Second).Unix(),
 	}
 }
@@ -79,7 +81,8 @@ func (state *State) Encode(secretKey string) (string, error) {
 		len(state.Client.SessionID) +
 		len(state.Client.CommonName) +
 		len(state.IPAddr) +
-		len(state.IPPort))
+		len(state.IPPort) +
+		len(state.ServerName))
 
 	var scratch [20]byte // Scratch buffer for integer conversions
 
@@ -105,6 +108,8 @@ func (state *State) Encode(secretKey string) (string, error) {
 	encodeStringToBuffer(&data, state.IPPort)
 	data.WriteByte(' ')
 	data.WriteString(encodeSessionState(state.SessionState))
+	data.WriteByte(' ')
+	encodeStringToBuffer(&data, state.ServerName)
 	data.WriteByte(' ')
 	data.Write(strconv.AppendInt(scratch[:0], state.Issued, 10))
 	data.WriteString("\r\n")
@@ -213,8 +218,9 @@ func parseStateFields(state *State, fields [][]byte) error {
 	state.IPAddr = string(fields[8])
 	state.IPPort = string(fields[9])
 	state.SessionState = decodeSessionState(string(fields[10]))
+	state.ServerName = decodeStringBytes(fields[11])
 
-	if state.Issued, err = strconv.ParseInt(string(fields[11]), 10, 64); err != nil {
+	if state.Issued, err = strconv.ParseInt(string(fields[12]), 10, 64); err != nil {
 		return fmt.Errorf("parse Issued: %w", err)
 	}
 

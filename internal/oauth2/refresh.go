@@ -23,10 +23,27 @@ func (c Client) RefreshClientAuth(ctx context.Context, logger *slog.Logger, clie
 		clientID = client.SessionID
 	}
 
-	refreshToken, err := c.storage.Get(clientID)
+	// Extract server name from client
+	serverName := client.ServerName
+	if serverName == "" {
+		serverName = "default"
+	}
+
+	var refreshToken string
+	var err error
+
+	// Use MultiServerStorage if available
+	if multiServerStorage, ok := c.storage.(tokenstorage.MultiServerStorage); ok {
+		refreshToken, err = multiServerStorage.GetForServer(clientID, serverName)
+	} else {
+		refreshToken, err = c.storage.Get(clientID)
+	}
+
 	if err != nil {
 		if errors.Is(err, tokenstorage.ErrNotExists) {
-			logger.LogAttrs(ctx, slog.LevelDebug, "no refresh token found for client "+clientID)
+			logger.LogAttrs(ctx, slog.LevelDebug, "no refresh token found for client",
+				slog.String("client", clientID),
+				slog.String("server", serverName))
 
 			return false, nil
 		}
@@ -57,7 +74,7 @@ func (c Client) RefreshClientAuth(ctx context.Context, logger *slog.Logger, clie
 
 	session := state.New(
 		state.ClientIdentifier{CID: client.CID, KID: client.KID, SessionID: client.SessionID, CommonName: client.CommonName},
-		client.IPAddr, client.IPPort, client.SessionState,
+		client.IPAddr, client.IPPort, client.SessionState, serverName,
 	)
 
 	var userInfo *types.UserInfo
@@ -97,10 +114,20 @@ func (c Client) RefreshClientAuth(ctx context.Context, logger *slog.Logger, clie
 
 	if refreshToken == "" {
 		logger.LogAttrs(ctx, slog.LevelWarn, "refresh token is empty")
-	} else if err = c.storage.Set(clientID, refreshToken); err != nil {
-		logger.LogAttrs(ctx, slog.LevelWarn, "unable to store refresh token",
-			slog.Any("err", err),
-		)
+	} else {
+		// Use MultiServerStorage if available
+		if multiServerStorage, ok := c.storage.(tokenstorage.MultiServerStorage); ok {
+			err = multiServerStorage.SetForServer(clientID, serverName, refreshToken)
+		} else {
+			err = c.storage.Set(clientID, refreshToken)
+		}
+
+		if err != nil {
+			logger.LogAttrs(ctx, slog.LevelWarn, "unable to store refresh token",
+				slog.String("server", serverName),
+				slog.Any("err", err),
+			)
+		}
 	}
 
 	return true, nil
@@ -117,7 +144,22 @@ func (c Client) ClientDisconnect(ctx context.Context, logger *slog.Logger, clien
 		clientID = client.SessionID
 	}
 
-	refreshToken, err := c.storage.Get(clientID)
+	// Extract server name from client
+	serverName := client.ServerName
+	if serverName == "" {
+		serverName = "default"
+	}
+
+	var refreshToken string
+	var err error
+
+	// Use MultiServerStorage if available
+	if multiServerStorage, ok := c.storage.(tokenstorage.MultiServerStorage); ok {
+		refreshToken, err = multiServerStorage.GetForServer(clientID, serverName)
+	} else {
+		refreshToken, err = c.storage.Get(clientID)
+	}
+
 	if err != nil {
 		logLevel := slog.LevelWarn
 		if errors.Is(err, tokenstorage.ErrNotExists) {
@@ -129,7 +171,14 @@ func (c Client) ClientDisconnect(ctx context.Context, logger *slog.Logger, clien
 		return
 	}
 
-	if err = c.storage.Delete(clientID); err != nil {
+	// Use MultiServerStorage if available
+	if multiServerStorage, ok := c.storage.(tokenstorage.MultiServerStorage); ok {
+		err = multiServerStorage.DeleteForServer(clientID, serverName)
+	} else {
+		err = c.storage.Delete(clientID)
+	}
+
+	if err != nil {
 		logger.LogAttrs(ctx, slog.LevelWarn, fmt.Errorf("error delete refresh token from storage: %w", err).Error())
 
 		return

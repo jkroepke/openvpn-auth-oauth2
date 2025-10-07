@@ -1,0 +1,59 @@
+# Multi-Server Configuration Example
+# This configuration demonstrates how to use openvpn-auth-oauth2 with multiple OpenVPN servers
+
+oauth2:
+  issuer: http://localhost:9000
+  client:
+    id: SECRET
+    secret: SECRET
+  provider: generic
+
+# Token storage configuration
+token-storage:
+  type: sqlite
+  sqlite-path: /var/lib/openvpn-auth-oauth2/tokens.db
+  cleanup-interval: 1h
+
+# Multiple OpenVPN servers configuration
+openvpn:
+  servers:
+    - name: "server1"
+      addr: "unix:///run/openvpn/server1.sock"
+      password: "password1"
+      enabled: true
+    - name: "server2"
+      addr: "tcp://192.168.1.100:8081"
+      password: "password2"
+      enabled: true
+    - name: "server3"
+      addr: "unix:///run/openvpn/server3.sock"
+      password: "password3"
+      enabled: false  # This server is disabled
+  # Global settings that apply to all servers
+  auth-token-user: true
+  auth-pending-timeout: 3m
+  command-timeout: 10s
+  reauthentication: true
+  client-config:
+    enabled: false
+  bypass:
+    common-names: []
+  common-name:
+    environment-variable-name: "common_name"
+    mode: "plain"
+  pass-through:
+    enabled: false
+
+http:
+  listen: ":9000"
+  baseurl: "https://auth.example.com"
+  tls: false
+
+log:
+  format: console
+  level: info
+  vpn-client-ip: true
+
+debug:
+  listen: ":9001"
+  pprof: false

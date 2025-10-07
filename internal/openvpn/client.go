@@ -121,7 +121,7 @@ func (c *Client) startClientAuth(ctx context.Context, logger *slog.Logger, clien
 		ipPort = client.IPPort
 	}
 
-	session := state.New(clientIdentifier, ipAddr, ipPort, client.SessionState)
+	session := state.New(clientIdentifier, ipAddr, ipPort, client.SessionState, client.ServerName)
 
 	encodedSession, err := session.Encode(c.conf.HTTP.Secret.String())
 	if err != nil {

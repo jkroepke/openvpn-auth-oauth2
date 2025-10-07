@@ -14,6 +14,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
 	"github.com/zitadel/logging"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
 )
@@ -48,11 +49,25 @@ func (c Client) OAuth2Start() http.Handler {
 			return
 		}
 
+		// Extract server name from the state
+		serverName := session.ServerName
+		if serverName == "" {
+			serverName = "default"
+		}
+
+		// Add server name to context for later use
+		if manager, ok := c.openvpn.(interface {
+			SetServerNameInContext(context.Context, string) context.Context
+		}); ok {
+			ctx = manager.SetServerNameInContext(ctx, serverName)
+		}
+
 		logger := c.logger.With(
 			slog.String("ip", fmt.Sprintf("%s:%s", session.IPAddr, session.IPPort)),
 			slog.Uint64("cid", session.Client.CID),
 			slog.Uint64("kid", session.Client.KID),
 			slog.String("common_name", session.Client.CommonName),
+			slog.String("server", serverName), // Add server to logging
 		)
 
 		if c.conf.HTTP.Check.IPAddr {
@@ -160,11 +175,25 @@ func (c Client) postCodeExchangeHandler(
 	) {
 		ctx := r.Context()
 
+		// Extract server name from the state
+		serverName := session.ServerName
+		if serverName == "" {
+			serverName = "default"
+		}
+
+		// Add server name to context
+		if manager, ok := c.openvpn.(interface {
+			SetServerNameInContext(context.Context, string) context.Context
+		}); ok {
+			ctx = manager.SetServerNameInContext(ctx, serverName)
+		}
+
 		if tokens.IDTokenClaims != nil {
 			logger = logger.With(
 				slog.String("idtoken_subject", tokens.IDTokenClaims.Subject),
 				slog.String("idtoken_email", tokens.IDTokenClaims.EMail),
 				slog.String("idtoken_preferred_username", tokens.IDTokenClaims.PreferredUsername),
+				slog.String("server", serverName), // Add server to logging
 			)
 
 			logger.LogAttrs(ctx, slog.LevelDebug, "claims", slog.Any("claims", tokens.IDTokenClaims.Claims))
@@ -198,23 +227,33 @@ func (c Client) postCodeExchangeHandler(
 		}
 
 		c.openvpn.AcceptClient(ctx, logger, session.Client, false, username)
-		c.postCodeExchangeHandlerStoreRefreshToken(ctx, logger, session, clientID, tokens)
+		c.postCodeExchangeHandlerStoreRefreshToken(ctx, logger, session, clientID, tokens, serverName)
 		c.writeHTTPSuccess(ctx, w, logger)
 	}
 }
 
 func (c Client) postCodeExchangeHandlerStoreRefreshToken(
-	ctx context.Context, logger *slog.Logger, session state.State, clientID string, tokens idtoken.IDToken,
+	ctx context.Context, logger *slog.Logger, session state.State, clientID string, tokens idtoken.IDToken, serverName string,
 ) {
 	if !c.conf.OAuth2.Refresh.Enabled {
 		return
 	}
 
 	if !c.conf.OAuth2.Refresh.ValidateUser {
-		if err := c.storage.Set(clientID, types.EmptyToken); err != nil {
-			logger.LogAttrs(ctx, slog.LevelWarn, err.Error())
+		// Use MultiServerStorage if available
+		if multiServerStorage, ok := c.storage.(tokenstorage.MultiServerStorage); ok {
+			err := multiServerStorage.SetForServer(clientID, serverName, types.EmptyToken)
+			if err != nil {
+				logger.LogAttrs(ctx, slog.LevelWarn, err.Error())
+			} else {
+				logger.LogAttrs(ctx, slog.LevelDebug, "empty token for non-interactive re-authentication stored", slog.String("server", serverName))
+			}
 		} else {
-			logger.LogAttrs(ctx, slog.LevelDebug, "empty token for non-interactive re-authentication stored")
+			if err := c.storage.Set(clientID, types.EmptyToken); err != nil {
+				logger.LogAttrs(ctx, slog.LevelWarn, err.Error())
+			} else {
+				logger.LogAttrs(ctx, slog.LevelDebug, "empty token for non-interactive re-authentication stored")
+			}
 		}
 
 		return
@@ -235,12 +274,22 @@ func (c Client) postCodeExchangeHandlerStoreRefreshToken(
 
 	if refreshToken == "" {
 		logger.LogAttrs(ctx, slog.LevelWarn, "refresh token is empty")
-	} else if err = c.storage.Set(clientID, refreshToken); err != nil {
-		logger.LogAttrs(ctx, slog.LevelWarn, "unable to store refresh token",
-			slog.Any("err", err),
-		)
 	} else {
-		logger.LogAttrs(ctx, slog.LevelDebug, "refresh token for non-interactive re-authentication stored")
+		// Use MultiServerStorage if available
+		if multiServerStorage, ok := c.storage.(tokenstorage.MultiServerStorage); ok {
+			err = multiServerStorage.SetForServer(clientID, serverName, refreshToken)
+		} else {
+			err = c.storage.Set(clientID, refreshToken)
+		}
+
+		if err != nil {
+			logger.LogAttrs(ctx, slog.LevelWarn, "unable to store refresh token",
+				slog.String("server", serverName),
+				slog.Any("err", err),
+			)
+		} else {
+			logger.LogAttrs(ctx, slog.LevelDebug, "refresh token for non-interactive re-authentication stored", slog.String("server", serverName))
+		}
 	}
 }
 

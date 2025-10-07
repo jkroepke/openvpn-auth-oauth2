@@ -1,6 +1,7 @@
 package httphandler
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -33,7 +34,27 @@ func New(conf config.Config, oAuth2Client *oauth2.Client) *http.ServeMux {
 	mux.Handle(fmt.Sprintf("GET %s/oauth2/start", basePath), noCacheHeaders(oAuth2Client.OAuth2Start()))
 	mux.Handle(fmt.Sprintf("GET %s/oauth2/callback", basePath), noCacheHeaders(oAuth2Client.OAuth2Callback()))
 
+	// Server-specific OAuth2 endpoints (optional)
+	mux.Handle(fmt.Sprintf("GET %s/oauth2/start/", basePath), noCacheHeaders(serverSpecificHandler(oAuth2Client.OAuth2Start())))
+	mux.Handle(fmt.Sprintf("GET %s/oauth2/callback/", basePath), noCacheHeaders(serverSpecificHandler(oAuth2Client.OAuth2Callback())))
+
 	return mux
+}
+
+// serverSpecificHandler extracts server name from URL path and adds it to request context
+func serverSpecificHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Extract server name from URL path: /oauth2/start/server1 -> server1
+		pathParts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+		if len(pathParts) >= 3 {
+			serverName := pathParts[2]
+			// Add server name to request context
+			ctx := context.WithValue(r.Context(), "server_name", serverName)
+			r = r.WithContext(ctx)
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }
 
 func noCacheHeaders(h http.Handler) http.Handler {

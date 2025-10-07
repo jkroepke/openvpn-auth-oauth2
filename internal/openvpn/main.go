@@ -22,6 +22,13 @@ import (
 // OpenVPN management interface.
 const minManagementInterfaceVersion = 5
 
+// ServerStatus represents the status of an OpenVPN server connection
+type ServerStatus struct {
+	Connected bool      `json:"connected"`
+	LastError string    `json:"last_error,omitempty"`
+	LastSeen  time.Time `json:"last_seen"`
+}
+
 // New creates a new Client configured with the provided logger and
 // configuration.
 func New(logger *slog.Logger, conf config.Config) *Client {
@@ -189,6 +196,20 @@ func (c *Client) checkManagementInterfaceVersion(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// GetStatus returns the current status of the OpenVPN client connection
+func (c *Client) GetStatus() ServerStatus {
+	status := ServerStatus{
+		Connected: c.conn != nil && c.closed.Load() == 0,
+		LastSeen:  time.Now(),
+	}
+	
+	if c.conn == nil {
+		status.LastError = "not connected"
+	}
+	
+	return status
 }
 
 // checkClientSsoCapabilities reports whether the given client supports SSO via

@@ -71,7 +71,7 @@ func run(ctx context.Context, args []string, stdout io.Writer, tokenDataStorage 
 
 	logger.LogAttrs(ctx, slog.LevelDebug, "config", slog.String("config", conf.String()))
 
-	openvpnClient, httpHandler, err := setupOpenVPNClient(ctx, logger, conf, tokenDataStorage)
+	manager, httpHandler, err := setupOpenVPNClient(ctx, logger, conf, tokenDataStorage)
 	if err != nil {
 		_, _ = fmt.Fprintln(stdout, err.Error())
 
@@ -81,7 +81,7 @@ func run(ctx context.Context, args []string, stdout io.Writer, tokenDataStorage 
 	wg := &sync.WaitGroup{}
 	defer wg.Wait()
 
-	server := startServices(ctx, cancel, wg, logger, conf, openvpnClient, httpHandler)
+	server := startServices(ctx, cancel, wg, logger, conf, manager, httpHandler)
 
 	logger.LogAttrs(ctx, slog.LevelInfo,
 		"openvpn-auth-oauth2 started with base url "+conf.HTTP.BaseURL.String(),
@@ -154,16 +154,40 @@ func setupDebugListener(ctx context.Context, logger *slog.Logger, conf config.Co
 	return nil
 }
 
-// setupOpenVPNClient initializes the OpenVPN client with the provided configuration and OAuth2 provider.
+// setupOpenVPNClient initializes the OpenVPN client manager with the provided configuration and OAuth2 provider.
 func setupOpenVPNClient(
 	ctx context.Context, logger *slog.Logger, conf config.Config, tokenDataStorage tokenstorage.DataMap,
-) (*openvpn.Client, *http.ServeMux, error) {
+) (*openvpn.Manager, *http.ServeMux, error) {
 	httpClient := &http.Client{Transport: utils.NewUserAgentTransport(http.DefaultTransport)}
-	tokenStorage := tokenstorage.NewInMemory(conf.OAuth2.Refresh.Secret.String(), conf.OAuth2.Refresh.Expires)
 
-	err := tokenStorage.SetStorage(tokenDataStorage)
-	if err != nil {
-		return nil, nil, fmt.Errorf("error setting token storage: %w", err)
+	// Create token storage based on configuration
+	var tokenStorage tokenstorage.Storage
+	var err error
+
+	switch conf.TokenStorage.Type {
+	case "sqlite":
+		sqliteStorage, err := tokenstorage.NewSQLite(
+			conf.TokenStorage.SQLitePath,
+			conf.OAuth2.Refresh.Secret.String(),
+			conf.OAuth2.Refresh.Expires,
+		)
+		if err != nil {
+			return nil, nil, fmt.Errorf("error creating SQLite token storage: %w", err)
+		}
+		tokenStorage = sqliteStorage
+
+		// Start cleanup routine for expired tokens
+		go sqliteStorage.CleanupExpiredTokens(ctx, conf.TokenStorage.CleanupInterval)
+
+	case "memory":
+		fallthrough
+	default:
+		inMemoryStorage := tokenstorage.NewInMemory(conf.OAuth2.Refresh.Secret.String(), conf.OAuth2.Refresh.Expires)
+		err := inMemoryStorage.SetStorage(tokenDataStorage)
+		if err != nil {
+			return nil, nil, fmt.Errorf("error setting token storage: %w", err)
+		}
+		tokenStorage = inMemoryStorage
 	}
 
 	var provider oauth2.Provider
@@ -183,18 +207,47 @@ func setupOpenVPNClient(
 		return nil, nil, fmt.Errorf("error creating oauth2 provider: %w", err)
 	}
 
-	openvpnClient := openvpn.New(logger, conf)
+	// Create OpenVPN manager
+	manager := openvpn.NewManager(logger, conf)
 
-	oAuth2Client, err := oauth2.New(ctx, logger, conf, httpClient, tokenStorage, provider, openvpnClient)
+	// Add each server to the manager
+	for _, server := range conf.OpenVPN.Servers {
+		if !server.Enabled {
+			logger.LogAttrs(ctx, slog.LevelInfo, "skipping disabled server", slog.String("server", server.Name))
+			continue
+		}
+
+		if err := manager.AddServer(server.Name, server); err != nil {
+			return nil, nil, fmt.Errorf("error adding server %s: %w", server.Name, err)
+		}
+	}
+
+	// If no servers configured, try legacy single server configuration
+	if len(conf.OpenVPN.Servers) == 0 && conf.OpenVPN.Addr.String() != "" {
+		logger.LogAttrs(ctx, slog.LevelInfo, "using legacy single server configuration")
+		legacyServer := config.OpenVPNServer{
+			Name:     "default",
+			Addr:     conf.OpenVPN.Addr,
+			Password: conf.OpenVPN.Password,
+			Enabled:  true,
+		}
+		if err := manager.AddServer("default", legacyServer); err != nil {
+			return nil, nil, fmt.Errorf("error adding legacy server: %w", err)
+		}
+	}
+
+	// Create OAuth2 client
+	oAuth2Client, err := oauth2.New(ctx, logger, conf, httpClient, tokenStorage, provider, manager)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error creating oauth2 client: %w", err)
 	}
 
-	openvpnClient.SetOAuth2Client(oAuth2Client)
+	// Set OAuth2 client for all OpenVPN clients
+	manager.SetOAuth2Client(oAuth2Client)
 
 	httpHandler := httphandler.New(conf, oAuth2Client)
 
-	return openvpnClient, httpHandler, nil
+	return manager, httpHandler, nil
 }
 
 // initializeConfigAndLogger handles configuration parsing and logger setup.
@@ -226,14 +279,14 @@ func initializeConfigAndLogger(args []string, stdout io.Writer) (config.Config, 
 	return conf, logger, ReturnCodeNoError
 }
 
-// startServices starts all the background services (HTTP server, OpenVPN client, debug listener).
+// startServices starts all the background services (HTTP server, OpenVPN manager, debug listener).
 func startServices(
 	ctx context.Context,
 	cancel context.CancelCauseFunc,
 	wg *sync.WaitGroup,
 	logger *slog.Logger,
 	conf config.Config,
-	openvpnClient *openvpn.Client,
+	manager *openvpn.Manager,
 	httpHandler *http.ServeMux,
 ) *httpserver.Server {
 	// Start debug listener if enabled
@@ -245,8 +298,8 @@ func startServices(
 	server := httpserver.NewHTTPServer(httpserver.ServerNameDefault, logger, conf.HTTP, httpHandler)
 	startHTTPServer(ctx, cancel, wg, server)
 
-	// Start OpenVPN client
-	startOpenVPNClient(ctx, cancel, wg, openvpnClient)
+	// Start OpenVPN manager
+	startOpenVPNManager(ctx, cancel, wg, manager)
 
 	return server
 }
@@ -279,15 +332,15 @@ func startHTTPServer(ctx context.Context, cancel context.CancelCauseFunc, wg *sy
 	}()
 }
 
-// startOpenVPNClient starts the OpenVPN client in a goroutine.
-func startOpenVPNClient(ctx context.Context, cancel context.CancelCauseFunc, wg *sync.WaitGroup, openvpnClient *openvpn.Client) {
+// startOpenVPNManager starts the OpenVPN manager in a goroutine.
+func startOpenVPNManager(ctx context.Context, cancel context.CancelCauseFunc, wg *sync.WaitGroup, manager *openvpn.Manager) {
 	wg.Add(1)
 
 	go func() {
 		defer wg.Done()
 
-		if err := openvpnClient.Connect(ctx); err != nil {
-			cancel(fmt.Errorf("openvpn: %w", err))
+		if err := manager.ConnectAll(ctx); err != nil {
+			cancel(fmt.Errorf("openvpn manager: %w", err))
 
 			return
 		}
