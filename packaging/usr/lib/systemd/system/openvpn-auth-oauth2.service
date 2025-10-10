@@ -1,11 +1,16 @@
 [Unit]
 Description=OpenVPN authenticator
 Documentation=https://github.com/jkroepke/openvpn-auth-oauth2
-Wants=network-online.target openvpn.service
-After=network-online.target openvpn.service openvpn@.service openvpn-server@.service
+Requires=network-online.target
+Wants=network-online.target nss-lookup.target openvpn.service
+After=network-online.target nss-lookup.target basic.target openvpn.service openvpn@.service openvpn-server@.service
 PartOf=openvpn.service openvpn@.service openvpn-server@.service
+StartLimitIntervalSec=30
+StartLimitBurst=3
 
 [Service]
+Restart=on-failure
+RestartSec=30
 # Run as an unprivileged user with random user id.
 DynamicUser=true
 User=openvpn-auth-oauth2-dynamic
@@ -16,19 +21,13 @@ ExecStart=/usr/bin/openvpn-auth-oauth2 --config ${CONFIG_FILE}
 NoExecPaths=/
 ExecPaths=/usr/bin/openvpn-auth-oauth2 /usr/bin/env /usr/bin/kill
 ExecReload=/usr/bin/env kill -USR1 $MAINPID
-
 Environment=CONFIG_FILE=/etc/openvpn-auth-oauth2/config.yaml
 EnvironmentFile=-/etc/sysconfig/openvpn-auth-oauth2
 #LoadCredential=openvpn-auth-oauth2:/etc/openvpn-auth-oauth2/
 #ConfigurationDirectory=openvpn-auth-oauth2
 #ConfigurationDirectoryMode=0750
-
 RuntimeDirectory=openvpn-auth-oauth2
-
 ReadWritePaths=-/run/openvpn -/run/openvpn-server
-
-RestartSec=5s
-Restart=always
 
 # We don't need write access anywhere.
 AmbientCapabilities=
