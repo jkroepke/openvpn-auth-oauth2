@@ -29,9 +29,10 @@ func New(conf config.Config, oAuth2Client *oauth2.Client) *http.ServeMux {
 	}
 
 	mux.Handle(fmt.Sprintf("GET %s/", basePath), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Query().Has("s") {
+		if conf.HTTP.ShortURL && r.URL.Query().Has("s") {
 			w.Header().Set("Cache-Control", "must-revalidate,no-cache,no-store")
 			http.Redirect(w, r, fmt.Sprintf("%s/oauth2/start?state=%s", basePath, r.URL.Query().Get("s")), http.StatusTemporaryRedirect)
+
 			return
 		}
 
