@@ -67,7 +67,7 @@
 #      - "test"
 #      - "test2"
 #      - "wildcard.*"
-#  ccd:
+#  client-config:
 #    enabled: false
 #    path: "/etc/openvpn-auth-oauth2/client-config/"
 #    token-claim: ""

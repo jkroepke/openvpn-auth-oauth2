@@ -109,12 +109,12 @@ func validateOAuth2Config(conf Config) error {
 
 	if conf.OpenVPN.ClientConfig.Enabled {
 		if conf.OpenVPN.CommonName.Mode == CommonNameModeOmit {
-			return errors.New("openvpn.common-name.mode: omit is not supported with openvpn.ccd.enabled")
+			return errors.New("openvpn.common-name.mode: omit is not supported with openvpn.client-config.enabled")
 		}
 
 		file, err := conf.OpenVPN.ClientConfig.Path.Open(".")
 		if err != nil {
-			return fmt.Errorf("openvpn.ccd.path: %w", err)
+			return fmt.Errorf("openvpn.client-config.path: %w", err)
 		}
 
 		_ = file.Close()
