@@ -234,6 +234,30 @@ func TestHandler(t *testing.T) {
 			true,
 		},
 		{
+			"with short-url",
+			func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.ShortURL = true
+				conf.OAuth2.Provider = generic.Name
+				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
+				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
+				conf.OAuth2.Validate.Groups = make([]string, 0)
+				conf.OAuth2.Validate.Roles = make([]string, 0)
+				conf.OAuth2.Validate.Issuer = true
+				conf.OAuth2.Validate.IPAddr = false
+				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
+				conf.OpenVPN.AuthTokenUser = true
+
+				return conf
+			}(),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.1", "12345", ""),
+			false,
+			"",
+			true,
+			true,
+		},
+		{
 			"with ipaddr + forwarded-for",
 			func() config.Config {
 				conf := config.Defaults
@@ -477,12 +501,17 @@ func TestHandler(t *testing.T) {
 			case tc.state == (state.State{}):
 				session = ""
 			default:
-				session, err = tc.state.Encode(tc.conf.HTTP.Secret.String())
+				session, err = tc.state.Encode(conf.HTTP.Secret.String())
 				require.NoError(t, err)
 			}
 
+			urlPath := "/oauth2/start?state="
+			if conf.HTTP.ShortURL {
+				urlPath = "/?s="
+			}
+
 			request, err = http.NewRequestWithContext(t.Context(), http.MethodGet,
-				fmt.Sprintf("%s/oauth2/start?state=%s", httpClientListener.URL, session),
+				fmt.Sprintf("%s%s%s", httpClientListener.URL, urlPath, session),
 				nil,
 			)
 
@@ -562,7 +591,7 @@ func TestHandler(t *testing.T) {
 			case tc.state.Client.UsernameIsDefined == 1:
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth-nt 0 1")
 				testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
-			case tc.conf.OpenVPN.ClientConfig.Enabled:
+			case conf.OpenVPN.ClientConfig.Enabled:
 				if tc.state.Client.CommonName == "name" {
 					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 0 1\r\n"+
 						"push \"ping 60\"\r\n"+
@@ -576,7 +605,7 @@ func TestHandler(t *testing.T) {
 					testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
 				}
 			default:
-				if tc.conf.OAuth2.UserInfo {
+				if conf.OAuth2.UserInfo {
 					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 0 1\r\npush \"auth-token-user dGVzdC11c2VyQGxvY2FsaG9zdA==\"\r\nEND")
 				} else {
 					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 0 1\r\npush \"auth-token-user bmFtZQ==\"\r\nEND")
