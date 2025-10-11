@@ -234,6 +234,30 @@ func TestHandler(t *testing.T) {
 			true,
 		},
 		{
+			"with short-url",
+			func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.ShortURL = true
+				conf.OAuth2.Provider = generic.Name
+				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
+				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
+				conf.OAuth2.Validate.Groups = make([]string, 0)
+				conf.OAuth2.Validate.Roles = make([]string, 0)
+				conf.OAuth2.Validate.Issuer = true
+				conf.OAuth2.Validate.IPAddr = false
+				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
+				conf.OpenVPN.AuthTokenUser = true
+
+				return conf
+			}(),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.1", "12345", ""),
+			false,
+			"",
+			true,
+			true,
+		},
+		{
 			"with ipaddr + forwarded-for",
 			func() config.Config {
 				conf := config.Defaults
@@ -429,6 +453,10 @@ func TestHandler(t *testing.T) {
 
 			conf, openVPNClient, managementInterface, _, httpClientListener, httpClient, logger := testutils.SetupMockEnvironment(ctx, t, tc.conf, nil, nil)
 
+			httpClient.CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
+				return http.ErrUseLastResponse
+			}
+
 			managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
 			require.NoError(t, err)
 
@@ -477,23 +505,44 @@ func TestHandler(t *testing.T) {
 			case tc.state == (state.State{}):
 				session = ""
 			default:
-				session, err = tc.state.Encode(tc.conf.HTTP.Secret.String())
+				session, err = tc.state.Encode(conf.HTTP.Secret.String())
 				require.NoError(t, err)
 			}
 
+			urlPath := "/oauth2/start?state="
+			if conf.HTTP.ShortURL {
+				urlPath = "/?s="
+			}
+
 			request, err = http.NewRequestWithContext(t.Context(), http.MethodGet,
-				fmt.Sprintf("%s/oauth2/start?state=%s", httpClientListener.URL, session),
+				fmt.Sprintf("%s%s%s", httpClientListener.URL, urlPath, session),
 				nil,
 			)
 
 			require.NoError(t, err)
 
-			if tc.xForwardedFor != "" {
-				request.Header.Set("X-Forwarded-For", tc.xForwardedFor)
+			if conf.HTTP.ShortURL {
+				resp, err = httpClient.Do(request) //nolint:bodyclose
+				require.NoError(t, err)
+
+				_, err = io.Copy(io.Discard, resp.Body)
+				require.NoError(t, err)
+
+				err = resp.Body.Close()
+				require.NoError(t, err)
+
+				require.Equal(t, http.StatusFound, resp.StatusCode)
+				require.NotEmpty(t, resp.Header.Get("Location"))
+
+				request, err = http.NewRequestWithContext(t.Context(), http.MethodGet,
+					httpClientListener.URL+resp.Header.Get("Location"),
+					nil,
+				)
+				require.NoError(t, err)
 			}
 
-			httpClient.CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
-				return http.ErrUseLastResponse
+			if tc.xForwardedFor != "" {
+				request.Header.Set("X-Forwarded-For", tc.xForwardedFor)
 			}
 
 			reqErrCh := make(chan error, 1)
@@ -562,7 +611,7 @@ func TestHandler(t *testing.T) {
 			case tc.state.Client.UsernameIsDefined == 1:
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth-nt 0 1")
 				testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
-			case tc.conf.OpenVPN.ClientConfig.Enabled:
+			case conf.OpenVPN.ClientConfig.Enabled:
 				if tc.state.Client.CommonName == "name" {
 					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 0 1\r\n"+
 						"push \"ping 60\"\r\n"+
@@ -576,7 +625,7 @@ func TestHandler(t *testing.T) {
 					testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
 				}
 			default:
-				if tc.conf.OAuth2.UserInfo {
+				if conf.OAuth2.UserInfo {
 					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 0 1\r\npush \"auth-token-user dGVzdC11c2VyQGxvY2FsaG9zdA==\"\r\nEND")
 				} else {
 					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 0 1\r\npush \"auth-token-user bmFtZQ==\"\r\nEND")

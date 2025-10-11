@@ -132,7 +132,8 @@ openvpn:
 http:
     listen: ":9001"
     secret: "1jd93h5b6s82lf03jh5b2hf9"
-    enable-proxy-headers: true
+    enable-proxy-headers: false
+    short-url: false
     assets-path: "."
     template: "../../README.md"
     check:
@@ -162,7 +163,8 @@ http:
 					Check: config.HTTPCheck{
 						IPAddr: true,
 					},
-					EnableProxyHeaders: true,
+					EnableProxyHeaders: false,
+					ShortURL:           false,
 					Listen:             ":9001",
 					Secret:             "1jd93h5b6s82lf03jh5b2hf9",
 					Template: func() types.Template {

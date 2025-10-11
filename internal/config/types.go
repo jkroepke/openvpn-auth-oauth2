@@ -37,6 +37,7 @@ type HTTP struct {
 	TLS                bool           `json:"tls"                  yaml:"tls"`
 	Check              HTTPCheck      `json:"check"                yaml:"check"`
 	EnableProxyHeaders bool           `json:"enable-proxy-headers" yaml:"enable-proxy-headers"`
+	ShortURL           bool           `json:"short-url"            yaml:"short-url"`
 }
 
 type HTTPCheck struct {
