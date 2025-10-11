@@ -522,7 +522,7 @@ func TestHandler(t *testing.T) {
 			require.NoError(t, err)
 
 			if conf.HTTP.ShortURL {
-				resp, err = httpClient.Do(request)
+				resp, err = httpClient.Do(request) //nolint:bodyclose
 				require.NoError(t, err)
 
 				_, err = io.Copy(io.Discard, resp.Body)
