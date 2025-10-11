@@ -453,6 +453,10 @@ func TestHandler(t *testing.T) {
 
 			conf, openVPNClient, managementInterface, _, httpClientListener, httpClient, logger := testutils.SetupMockEnvironment(ctx, t, tc.conf, nil, nil)
 
+			httpClient.CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
+				return http.ErrUseLastResponse
+			}
+
 			managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
 			require.NoError(t, err)
 
@@ -517,12 +521,28 @@ func TestHandler(t *testing.T) {
 
 			require.NoError(t, err)
 
-			if tc.xForwardedFor != "" {
-				request.Header.Set("X-Forwarded-For", tc.xForwardedFor)
+			if conf.HTTP.ShortURL {
+				resp, err = httpClient.Do(request)
+				require.NoError(t, err)
+
+				_, err = io.Copy(io.Discard, resp.Body)
+				require.NoError(t, err)
+
+				err = resp.Body.Close()
+				require.NoError(t, err)
+
+				require.Equal(t, http.StatusFound, resp.StatusCode)
+				require.NotEmpty(t, resp.Header.Get("Location"))
+
+				request, err = http.NewRequestWithContext(t.Context(), http.MethodGet,
+					httpClientListener.URL+resp.Header.Get("Location"),
+					nil,
+				)
+				require.NoError(t, err)
 			}
 
-			httpClient.CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
-				return http.ErrUseLastResponse
+			if tc.xForwardedFor != "" {
+				request.Header.Set("X-Forwarded-For", tc.xForwardedFor)
 			}
 
 			reqErrCh := make(chan error, 1)

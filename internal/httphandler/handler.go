@@ -30,7 +30,7 @@ func New(conf config.Config, oAuth2Client *oauth2.Client) *http.ServeMux {
 
 	mux.Handle(fmt.Sprintf("GET %s/", basePath), noCacheHeaders(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if conf.HTTP.ShortURL && r.URL.Query().Has("s") {
-			http.Redirect(w, r, fmt.Sprintf("%s/oauth2/start?state=%s", basePath, r.URL.Query().Get("s")), http.StatusTemporaryRedirect)
+			http.Redirect(w, r, fmt.Sprintf("%s/oauth2/start?state=%s", basePath, r.URL.Query().Get("s")), http.StatusFound)
 
 			return
 		}
