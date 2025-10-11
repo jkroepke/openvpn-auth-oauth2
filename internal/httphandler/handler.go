@@ -28,16 +28,15 @@ func New(conf config.Config, oAuth2Client *oauth2.Client) *http.ServeMux {
 		mux.Handle("/", http.NotFoundHandler())
 	}
 
-	mux.Handle(fmt.Sprintf("GET %s/", basePath), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle(fmt.Sprintf("GET %s/", basePath), noCacheHeaders(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if conf.HTTP.ShortURL && r.URL.Query().Has("s") {
-			w.Header().Set("Cache-Control", "must-revalidate,no-cache,no-store")
 			http.Redirect(w, r, fmt.Sprintf("%s/oauth2/start?state=%s", basePath, r.URL.Query().Get("s")), http.StatusTemporaryRedirect)
 
 			return
 		}
 
 		http.NotFound(w, r)
-	}))
+	})))
 	mux.Handle(fmt.Sprintf("GET %s/ready", basePath), http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("OK"))
