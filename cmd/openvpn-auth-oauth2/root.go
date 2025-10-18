@@ -1,4 +1,4 @@
-package daemon
+package main
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/pprof"
 	"os"
+	"os/signal"
 	"runtime"
 	"runtime/debug"
 	"sync"
@@ -44,8 +45,15 @@ const (
 
 var ErrReload = errors.New("reload")
 
-// Execute is the main entry point for the openvpn-auth-oauth2 daemon.
-func Execute(args []string, stdout io.Writer, termCh <-chan os.Signal) int {
+func main() {
+	termCh := make(chan os.Signal, 1)
+	signal.Notify(termCh, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGUSR1)
+
+	os.Exit(execute(os.Args, os.Stdout, termCh)) //nolint:forbidigo // entry point
+}
+
+// execute is the main entry point for the openvpn-auth-oauth2 daemon.
+func execute(args []string, stdout io.Writer, termCh <-chan os.Signal) int {
 	tokenDataStorage := tokenstorage.DataMap{}
 	ctx := context.Background()
 
@@ -69,11 +77,15 @@ func run(ctx context.Context, args []string, stdout io.Writer, tokenDataStorage 
 	ctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(nil)
 
-	logger.LogAttrs(ctx, slog.LevelDebug, "config", slog.String("config", conf.String()))
+	logger.LogAttrs(ctx, slog.LevelDebug, "config",
+		slog.String("config", conf.String()),
+	)
 
 	openvpnClient, httpHandler, err := setupOpenVPNClient(ctx, logger, conf, tokenDataStorage)
 	if err != nil {
-		_, _ = fmt.Fprintln(stdout, err.Error())
+		logger.LogAttrs(ctx, slog.LevelError, "error setting up openvpn client",
+			slog.Any("err", err),
+		)
 
 		return ReturnCodeError
 	}
