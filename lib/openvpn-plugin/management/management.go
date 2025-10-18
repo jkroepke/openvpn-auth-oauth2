@@ -27,17 +27,13 @@ type Server struct {
 	listenSocket net.Listener
 	connection   net.Conn
 	logger       *slog.Logger
-	respCh       chan string
-	poller       map[uint64]chan clientResponse
+	clientAuthCh chan *Response
+	respCh       chan *Response
+	poller       map[uint64]chan *Response
 	password     string
 	connected    atomic.Int64
 	connectionMu sync.Mutex
 	pollerMu     sync.Mutex
-}
-
-type clientResponse struct {
-	clientConfig string
-	authState    ClientAuth
 }
 
 type Response struct {
@@ -58,10 +54,11 @@ const (
 
 func NewServer(logger *slog.Logger, password string) *Server {
 	return &Server{
-		logger:   logger,
-		password: password,
-		respCh:   make(chan string, 1),
-		poller:   make(map[uint64]chan clientResponse),
+		logger:       logger,
+		password:     password,
+		respCh:       make(chan *Response, 10),
+		clientAuthCh: make(chan *Response, 1),
+		poller:       make(map[uint64]chan *Response),
 	}
 }
 
@@ -74,7 +71,7 @@ func (s *Server) AuthPendingPoller(clientID uint64) (ClientAuth, string, error) 
 		return ClientAuthDeny, "", fmt.Errorf("poller for client ID %d already exists", clientID)
 	}
 
-	respCh := make(chan clientResponse, 1)
+	respCh := make(chan *Response, 1)
 	s.poller[clientID] = respCh
 	s.pollerMu.Unlock()
 
@@ -88,20 +85,20 @@ func (s *Server) AuthPendingPoller(clientID uint64) (ClientAuth, string, error) 
 	case <-time.After(5 * time.Minute):
 		return ClientAuthDeny, "", errors.New("timeout waiting for client response")
 	case resp := <-respCh:
-		return resp.authState, resp.clientConfig, nil
+		return resp.ClientAuth, resp.ClientConfig, nil
 	}
 }
 
 func (s *Server) ClientAuth(message string) (*Response, error) {
-	if err := s.write(message); err != nil {
+	if err := s.writeToClient(message); err != nil {
 		return nil, err
 	}
 
 	select {
 	case <-time.After(5 * time.Second):
 		return nil, errors.New("timeout waiting for client response")
-	case resp := <-s.respCh:
-		return s.parseResponse(resp)
+	case resp := <-s.clientAuthCh:
+		return resp, nil
 	}
 }
 
@@ -140,6 +137,27 @@ func (s *Server) Listen(ctx context.Context, addr string) error {
 		}
 	}()
 
+	go func() {
+		for {
+			resp, ok := <-s.respCh
+			if !ok {
+				return
+			}
+
+			s.pollerMu.Lock()
+			pollerCh, exists := s.poller[uint64(resp.ClientID)]
+			s.pollerMu.Unlock()
+
+			if exists {
+				pollerCh <- resp
+
+				return
+			}
+
+			s.clientAuthCh <- resp
+		}
+	}()
+
 	return nil
 }
 
@@ -159,6 +177,8 @@ func (s *Server) Close() {
 			s.logger.Error(fmt.Errorf("unable to close listen socket: %w", err).Error())
 		}
 	}
+
+	close(s.respCh)
 }
 
 // handleManagementClient handles a single management client connection.
@@ -185,7 +205,7 @@ func (s *Server) handleManagementClient(ctx context.Context, conn net.Conn) erro
 		return err
 	}
 
-	_ = s.write(">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info")
+	_ = s.writeToClient(">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info")
 	s.connected.Store(1)
 
 	for scanner.Scan() {
@@ -194,34 +214,47 @@ func (s *Server) handleManagementClient(ctx context.Context, conn net.Conn) erro
 		case strings.HasPrefix(line, "quit"):
 			fallthrough
 		case strings.HasPrefix(line, "exit"):
-			_ = s.write("SUCCESS: exiting")
+			_ = s.writeToClient("SUCCESS: exiting")
 		case strings.HasPrefix(line, "hold release"):
-			_ = s.write("SUCCESS: hold released")
+			_ = s.writeToClient("SUCCESS: hold released")
 		case strings.HasPrefix(line, "version"):
-			_ = s.write(fmt.Sprintf("OpenVPN Version: openvpn-auth-oauth2 %s\nManagement Interface Version: 5\nEND", version.Version))
+			_ = s.writeToClient(fmt.Sprintf("OpenVPN Version: openvpn-auth-oauth2 %s\nManagement Interface Version: 5\nEND", version.Version))
 		case strings.HasPrefix(line, "help"):
-			_ = s.write("SUCCESS: help")
+			_ = s.writeToClient("SUCCESS: help")
 		case strings.HasPrefix(line, "client-auth-nt"):
 			fallthrough
 		case strings.HasPrefix(line, "client-pending-auth"):
 			fallthrough
 		case strings.HasPrefix(line, "client-deny"):
-			s.respCh <- line
+			resp, err := s.parseResponse(line)
+			if err != nil {
+				s.logger.Error("unable to parse client response",
+					slog.Any("error", err),
+					slog.String("response", line),
+				)
+			}
+
+			s.respCh <- resp
 		case strings.HasPrefix(line, "client-auth"):
-			resp := line
-
 			for scanner.Scan() {
-				line = strings.TrimSpace(scanner.Text())
-				resp += newline + line
+				line += newline + strings.TrimSpace(scanner.Text())
 
-				if line == "END" {
+				if strings.HasSuffix(line, "END") {
 					break
 				}
 			}
 
-			s.respCh <- resp // Fixed: send the complete response, not just the last line
+			resp, err := s.parseResponse(line)
+			if err != nil {
+				s.logger.Error("unable to parse client response",
+					slog.Any("error", err),
+					slog.String("response", line),
+				)
+			}
+
+			s.respCh <- resp
 		default:
-			_ = s.write("UNKNOWN: " + line)
+			_ = s.writeToClient("UNKNOWN: " + line)
 		}
 	}
 
@@ -244,12 +277,12 @@ func (s *Server) handleManagementClientAuth(_ context.Context, conn net.Conn, sc
 	}
 
 	if err := conn.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil {
-		return fmt.Errorf("unable to set write deadline: %w", err)
+		return fmt.Errorf("unable to set writeToClient deadline: %w", err)
 	}
 
 	_, err := conn.Write([]byte("ENTER PASSWORD:"))
 	if err != nil {
-		return fmt.Errorf("unable to write to client: %w", err)
+		return fmt.Errorf("unable to writeToClient to client: %w", err)
 	}
 
 	if !scanner.Scan() {
@@ -261,12 +294,12 @@ func (s *Server) handleManagementClientAuth(_ context.Context, conn net.Conn, sc
 	}
 
 	if scanner.Text() != s.password {
-		_ = s.write("ERROR: bad password")
+		_ = s.writeToClient("ERROR: bad password")
 
 		return errors.New("client provide invalid password")
 	}
 
-	return s.write("SUCCESS: password is correct")
+	return s.writeToClient("SUCCESS: password is correct")
 }
 
 func (s *Server) parseResponse(response string) (*Response, error) {
@@ -321,7 +354,7 @@ func (s *Server) parseResponse(response string) (*Response, error) {
 	}
 }
 
-func (s *Server) write(message string) error {
+func (s *Server) writeToClient(message string) error {
 	s.connectionMu.Lock()
 	defer s.connectionMu.Unlock()
 
@@ -330,11 +363,11 @@ func (s *Server) write(message string) error {
 	}
 
 	if err := s.connection.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil {
-		return fmt.Errorf("unable to set write deadline: %w", err)
+		return fmt.Errorf("unable to set writeToClient deadline: %w", err)
 	}
 
 	if _, err := s.connection.Write([]byte(message + "\r\n")); err != nil {
-		return fmt.Errorf("unable to write to client: %w", err)
+		return fmt.Errorf("unable to writeToClient to client: %w", err)
 	}
 
 	return nil
