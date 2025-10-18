@@ -83,7 +83,7 @@ func (state *State) Encode(secretKey string) (string, error) {
 
 	var scratch [20]byte // Scratch buffer for integer conversions
 
-	// Write each field in order, separated by spaces.
+	// write each field in order, separated by spaces.
 	data.WriteString(secretKey[0:2])
 	data.WriteByte(' ')
 	data.Write(strconv.AppendUint(scratch[:0], state.Client.CID, 10))

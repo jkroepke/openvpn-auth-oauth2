@@ -57,6 +57,28 @@ jobs:
 
       - uses: anchore/sbom-action/download-syft@aa0e114b2e19480f157109b9922bda359bd98b90 # v0.20.8
 
+      - uses: actions/cache@v4
+        with:
+          path: |
+            /var/cache/apt
+            /var/lib/apt
+          key: ${{ runner.os }}
+
+      - name: Install plugin dependencies
+        run: |
+          sudo dpkg --add-architecture arm64
+          sudo sed -i '/^Types: deb$/a Architectures: amd64 i386' /etc/apt/sources.list.d/ubuntu.sources
+
+          echo "Types: deb
+          URIs: http://ports.ubuntu.com/ubuntu-ports
+          Suites: $(lsb_release -cs) $(lsb_release -cs)-updates $(lsb_release -cs)-security
+          Components: main restricted universe multiverse
+          Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+          Architectures: arm64" | sudo tee /etc/apt/sources.list.d/ubuntu-ports.sources
+
+          sudo apt-get update -q
+          sudo apt-get install --no-install-recommends -qy crossbuild-essential-arm64 libssl-dev:arm64
+
       - name: Write gpg sign key
         if: env.GPG_KEY != null
         run: echo "$GPG_KEY" > "$GPG_KEY_PATH"
