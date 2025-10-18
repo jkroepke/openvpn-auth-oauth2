@@ -13,10 +13,12 @@ import (
 	"log/slog"
 	"runtime/cgo"
 	"sync/atomic"
+	"time"
 	"unsafe"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/version"
 	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-plugin/client"
+	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-plugin/env"
 	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-plugin/management"
 )
 
@@ -175,7 +177,7 @@ func (p *pluginHandle) handlePluginUp() C.int {
 
 //nolint:cyclop
 func (p *pluginHandle) handleAuthUserPassVerify(envp unsafe.Pointer, perClientContext *clientContext) C.int {
-	envArray, err := NewEnvList(envp)
+	envArray, err := env.NewList(envp)
 	if err != nil {
 		p.logger.ErrorContext(p.ctx, "parse env vars",
 			slog.Any("err", err),
@@ -209,7 +211,7 @@ func (p *pluginHandle) handleAuthUserPassVerify(envp unsafe.Pointer, perClientCo
 		return C.OPENVPN_PLUGIN_FUNC_ERROR
 	}
 
-	resp, err := p.managementClient.ClientAuth(openVPNClient.String())
+	resp, err := p.managementClient.ClientAuth(clientID, openVPNClient.String())
 	if err != nil {
 		logger.ErrorContext(p.ctx, "send client to management interface",
 			slog.Any("err", err),
@@ -224,7 +226,7 @@ func (p *pluginHandle) handleAuthUserPassVerify(envp unsafe.Pointer, perClientCo
 
 	switch resp.ClientAuth {
 	case management.ClientAuthAccept:
-		if err := p.writeToAuthFile(openVPNClient, "1"); err != nil {
+		if err := openVPNClient.WriteToAuthFile("1"); err != nil {
 			logger.ErrorContext(p.ctx, "write to auth file",
 				slog.Any("err", err),
 			)
@@ -243,7 +245,7 @@ func (p *pluginHandle) handleAuthUserPassVerify(envp unsafe.Pointer, perClientCo
 			reason = resp.Message
 		}
 
-		if err := p.writeToAuthFile(openVPNClient, "0\n"+reason); err != nil {
+		if err := openVPNClient.WriteToAuthFile("0\n" + reason); err != nil {
 			logger.ErrorContext(p.ctx, "write to auth file",
 				slog.Any("err", err),
 			)
@@ -252,7 +254,7 @@ func (p *pluginHandle) handleAuthUserPassVerify(envp unsafe.Pointer, perClientCo
 		return C.OPENVPN_PLUGIN_FUNC_ERROR
 	case management.ClientAuthPending:
 		// Write "2" to auth control file to indicate deferred auth
-		if err := p.writeAuthPending(openVPNClient, resp); err != nil {
+		if err := openVPNClient.WriteAuthPending(resp); err != nil {
 			logger.ErrorContext(p.ctx, "write to auth file",
 				slog.Any("err", err),
 			)
@@ -261,11 +263,11 @@ func (p *pluginHandle) handleAuthUserPassVerify(envp unsafe.Pointer, perClientCo
 		}
 
 		defer func() {
-			authState, clientConfig, err := p.managementClient.AuthPendingPoller(clientID)
+			resp, err := p.managementClient.AuthPendingPoller(clientID, 5*time.Minute)
 			if perClientContext != nil {
 				perClientContext.mu.Lock()
-				perClientContext.authState = authState
-				perClientContext.clientConfig = clientConfig
+				perClientContext.authState = resp.ClientAuth
+				perClientContext.clientConfig = resp.ClientConfig
 				perClientContext.mu.Unlock()
 			}
 

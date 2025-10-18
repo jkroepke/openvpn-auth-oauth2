@@ -3,12 +3,18 @@
 package client
 
 import (
+	"errors"
+	"fmt"
+	"os"
 	"strconv"
 	"strings"
+
+	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-plugin/env"
+	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-plugin/management"
 )
 
 type Client struct {
-	env map[string]string
+	env env.List
 
 	AuthFailedReasonFile string
 	AuthPendingFile      string
@@ -20,7 +26,7 @@ type Client struct {
 }
 
 //nolint:cyclop
-func NewClient(clientID uint64, envArray map[string]string) (*Client, error) {
+func NewClient(clientID uint64, envArray env.List) (*Client, error) {
 	client := &Client{
 		env:      envArray,
 		ClientID: clientID,
@@ -80,4 +86,39 @@ func (c *Client) String() string {
 	sb.WriteString("\r\n>CLIENT:ENV,END")
 
 	return sb.String()
+}
+
+func (c *Client) WriteToAuthFile(auth string) error {
+	if c.AuthControlFile == "" {
+		return errors.New("auth_control_file not set")
+	}
+
+	if err := os.WriteFile(c.AuthControlFile, []byte(auth), 0o600); err != nil {
+		return fmt.Errorf("write to file %s: %w", c.AuthControlFile, err)
+	}
+
+	return nil
+}
+
+// WriteAuthPending writes the auth_pending_file can be written, which causes the openvpn
+// server to send a pending auth request to the client. See doc/management.txt
+// for more details on this authentication mechanism. The format of the
+// auth_pending_file is
+// line 1: timeout in seconds
+// line 2: Pending auth method the client needs to support (e.g. webauth)
+// line 3: EXTRA (e.g. WEB_AUTH::http://www.example.com)
+func (c *Client) WriteAuthPending(resp *management.Response) error {
+	if c.AuthPendingFile != "" {
+		pendingData := fmt.Sprintf("%s\nwebauth\n%s\n", resp.Timeout, resp.Message)
+		if err := os.WriteFile(c.AuthPendingFile, []byte(pendingData), 0o600); err != nil {
+			return fmt.Errorf("write to pending file %s: %w", c.AuthPendingFile, err)
+		}
+	}
+
+	// Also write "2" to the auth control file to indicate deferred auth
+	if err := c.WriteToAuthFile("2"); err != nil {
+		return err
+	}
+
+	return nil
 }

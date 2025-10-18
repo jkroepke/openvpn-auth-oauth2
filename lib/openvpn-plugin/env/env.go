@@ -1,6 +1,6 @@
 //go:build linux
 
-package main
+package env
 
 import "C"
 import (
@@ -17,16 +17,18 @@ var (
 	ErrMalformedEnvVar = errors.New("malformed environment variable")
 )
 
+type List map[string]string
+
 const MaxEnvVars = 128 // Maximum number of environment variables to process
 
-func NewEnvList(ptr unsafe.Pointer) (map[string]string, error) {
+func NewList(ptr unsafe.Pointer) (List, error) {
 	if ptr == nil || uintptr(ptr) == 0 {
 		return nil, ErrInvalidPointer
 	}
 
 	envVarsChar := (*[MaxEnvVars]*C.char)(ptr)
 
-	envArray := make(map[string]string)
+	envArray := make(List)
 
 	// Iterate through NULL-terminated array
 	for i := 0; i < MaxEnvVars && envVarsChar[i] != nil; i++ {
