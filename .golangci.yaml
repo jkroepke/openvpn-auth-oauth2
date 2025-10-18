@@ -15,6 +15,7 @@ linters:
     forbidigo:
       forbid:
         - pattern: "^(fmt\\.Print(|f|ln)|print|println)$"
+        - pattern: "^(fmt\\.Fprint(|f|ln)\\(stdout, .*\\))$"
         - pattern: "os.Stderr"
           msg: "Direct use of os.Stderr is forbidden. Use a logger instead."
         - pattern: "os.Stdout"
