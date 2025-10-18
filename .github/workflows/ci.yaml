@@ -23,9 +23,9 @@ jobs:
       - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
         with:
           go-version-file: 'go.mod'
-          cache: "${{ github.actor != 'renovate[bot]' && github.actor != 'mend[bot]' }}"
+          cache: "${{ github.actor != 'renovate[bot]' }}"
 
-      - run: go build
+      - run: go build ./cmd/openvpn-auth-oauth2
       - run: go test ./... -timeout 20s -race -covermode=atomic -coverprofile=coverage.out -coverpkg=./...
         id: test
         shell: bash
@@ -53,7 +53,7 @@ jobs:
       - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
         with:
           go-version-file: 'go.mod'
-          cache: "${{ github.actor != 'renovate[bot]' && github.actor != 'mend[bot]' }}"
+          cache: "${{ github.actor != 'renovate[bot]' }}"
 
       - uses: anchore/sbom-action/download-syft@aa0e114b2e19480f157109b9922bda359bd98b90 # v0.20.8
 
@@ -88,7 +88,7 @@ jobs:
       - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
         with:
           go-version-file: 'go.mod'
-          cache: "${{ github.actor != 'renovate[bot]' && github.actor != 'mend[bot]' }}"
+          cache: "${{ github.actor != 'renovate[bot]' }}"
 
       - run: go mod tidy -diff
 
