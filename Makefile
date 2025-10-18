@@ -82,4 +82,4 @@ golangci:
 
 .PHONY: 3rdpartylicenses
 3rdpartylicenses:
-	@go run github.com/google/go-licenses/v2@v2.0.1 save . --save_path=3rdpartylicenses
+	@go run github.com/google/go-licenses/v2@v2.0.1 save ./cmd/openvpn-auth-oauth2 --save_path=3rdpartylicenses
