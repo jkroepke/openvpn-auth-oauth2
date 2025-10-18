@@ -1,10 +1,9 @@
-package daemon_test
+package main
 
 import (
 	"os"
 	"testing"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/cmd/daemon"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -15,7 +14,7 @@ func TestExecuteVersion(t *testing.T) {
 	t.Parallel()
 
 	logger := testutils.NewTestLogger()
-	returnCode := daemon.Execute([]string{"", "--version"}, logger, make(chan os.Signal, 1))
+	returnCode := execute([]string{"", "--version"}, logger, make(chan os.Signal, 1))
 	output := logger.String()
 
 	assert.Equal(t, 0, returnCode, output)
@@ -25,7 +24,7 @@ func TestExecuteHelp(t *testing.T) {
 	t.Parallel()
 
 	logger := testutils.NewTestLogger()
-	returnCode := daemon.Execute([]string{"openvpn-auth-oauth2", "--help"}, logger, make(chan os.Signal, 1))
+	returnCode := execute([]string{"openvpn-auth-oauth2", "--help"}, logger, make(chan os.Signal, 1))
 	output := logger.String()
 
 	assert.Equal(t, 0, returnCode, output)
@@ -116,7 +115,7 @@ func TestExecuteConfigInvalid(t *testing.T) {
 			})
 
 			logger := testutils.NewTestLogger()
-			returnCode := daemon.Execute(append(tc.args, "--openvpn.addr=tcp://"+managementInterface.Addr().String()), logger, make(chan os.Signal, 1))
+			returnCode := execute(append(tc.args, "--openvpn.addr=tcp://"+managementInterface.Addr().String()), logger, make(chan os.Signal, 1))
 			output := logger.String()
 
 			assert.Equal(t, 1, returnCode, output)

@@ -9,6 +9,7 @@ before:
 builds:
   - id: "openvpn-auth-oauth2"
     binary: openvpn-auth-oauth2
+    main: ./cmd/openvpn-auth-oauth2
     goos:
       - linux
       - freebsd

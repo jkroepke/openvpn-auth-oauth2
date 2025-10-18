@@ -1,4 +1,4 @@
-package daemon_test
+package main
 
 import (
 	"bufio"
@@ -12,7 +12,6 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/cmd/daemon"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/stretchr/testify/require"
@@ -66,13 +65,13 @@ func TestReload(t *testing.T) {
 			"--oauth2.nonce=false",
 		}
 
-		returnCodeCh <- daemon.Execute(args, buf, termCh)
+		returnCodeCh <- execute(args, buf, termCh)
 	}()
 
 	t.Cleanup(func() {
 		termCh <- syscall.SIGTERM
 
-		require.Equal(t, daemon.ReturnCodeOK, <-returnCodeCh, buf.String())
+		require.Equal(t, ReturnCodeOK, <-returnCodeCh, buf.String())
 	})
 
 	managementInterfaceConn, err := managementInterface.Accept()
