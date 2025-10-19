@@ -27,13 +27,14 @@ type Server struct {
 	listenSocket net.Listener
 	connection   net.Conn
 	logger       *slog.Logger
-	clientAuthCh chan *Response
-	respCh       chan *Response
-	respChs      map[uint64]chan *Response
+
+	respCh   chan *Response
+	respChs  map[uint64]chan *Response
+	respChMu sync.Mutex
+
 	password     string
 	connected    atomic.Int64
 	connectionMu sync.Mutex
-	respChMu     sync.Mutex
 }
 
 type Response struct {
@@ -93,7 +94,6 @@ func (s *Server) ClientAuth(clientID uint64, message string) (*Response, error) 
 	return s.AuthPendingPoller(clientID, 5*time.Second)
 }
 
-//nolint:cyclop
 func (s *Server) Listen(ctx context.Context, addr string) error {
 	parsedURL, err := url.Parse(addr)
 	if err != nil {
