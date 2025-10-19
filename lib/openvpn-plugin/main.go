@@ -36,6 +36,7 @@ extern int openvpn_plugin_func_v3(
 
 */
 import "C"
+
 import (
 	"context"
 	"log/slog"

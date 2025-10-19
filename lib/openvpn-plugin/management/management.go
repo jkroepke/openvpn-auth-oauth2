@@ -20,19 +20,21 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/version"
 )
 
-const writeTimeout = 1000 * time.Millisecond
-const newline = "\r\n"
+const (
+	writeTimeout = 1000 * time.Millisecond
+	newline      = "\r\n"
+)
 
 type Server struct {
-	listenSocket net.Listener
-	connection   net.Conn
-	logger       *slog.Logger
-
+	logger   *slog.Logger
 	respCh   chan *Response
 	respChs  map[uint64]chan *Response
 	respChMu sync.Mutex
 
+	listenSocket net.Listener
+	connection   net.Conn
 	password     string
+
 	connected    atomic.Int64
 	connectionMu sync.Mutex
 }

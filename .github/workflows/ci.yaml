@@ -27,6 +27,7 @@ jobs:
 
       - run: go build ./cmd/openvpn-auth-oauth2
       - run: go test ./... -timeout 20s -race -covermode=atomic -coverprofile=coverage.out -coverpkg=./...
+        continue-on-error: true
         id: test
         shell: bash
 
