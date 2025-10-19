@@ -60,9 +60,7 @@ jobs:
 
       - uses: actions/cache@v4
         with:
-          path: |
-            /var/cache/apt
-            /var/lib/apt
+          path: /var/cache/apt
           key: ${{ runner.os }}
 
       - name: Install plugin dependencies
@@ -77,8 +75,10 @@ jobs:
           Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
           Architectures: arm64" | sudo tee /etc/apt/sources.list.d/ubuntu-ports.sources
 
-          sudo apt-get update -q
-          sudo apt-get install --no-install-recommends -qy crossbuild-essential-arm64 libssl-dev:arm64
+      - uses: tecolicom/actions-use-apt-tools@v1
+        with:
+          tools: 'crossbuild-essential-arm64 libssl-dev:arm64'
+          cache: yes
 
       - name: Write gpg sign key
         if: env.GPG_KEY != null
