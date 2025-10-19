@@ -58,11 +58,6 @@ jobs:
 
       - uses: anchore/sbom-action/download-syft@aa0e114b2e19480f157109b9922bda359bd98b90 # v0.20.8
 
-      - uses: actions/cache@v4
-        with:
-          path: /var/cache/apt
-          key: ${{ runner.os }}
-
       - name: Install plugin dependencies
         run: |
           sudo dpkg --add-architecture arm64
