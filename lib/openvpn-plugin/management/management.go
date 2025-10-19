@@ -1,5 +1,3 @@
-//go:build linux
-
 package management
 
 import (
@@ -26,16 +24,14 @@ const (
 )
 
 type Server struct {
-	logger   *slog.Logger
-	respCh   chan *Response
-	respChs  map[uint64]chan *Response
-	respChMu sync.Mutex
-
 	listenSocket net.Listener
 	connection   net.Conn
+	logger       *slog.Logger
+	respCh       chan *Response
+	respChs      map[uint64]chan *Response
 	password     string
-
 	connected    atomic.Int64
+	respChMu     sync.Mutex
 	connectionMu sync.Mutex
 }
 
