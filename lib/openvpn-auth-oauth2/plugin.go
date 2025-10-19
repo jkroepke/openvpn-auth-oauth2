@@ -26,10 +26,10 @@ import (
 //nolint:revive
 const OPENVPN_PLUGIN_STRUCTVER_MIN = 5
 
-// clientID is a global counter for client IDs, incremented atomically.
+// clientIDCounter is a global counter for client IDs, incremented atomically.
 //
 //nolint:gochecknoglobals
-var clientID uint64
+var clientIDCounter uint64
 
 // openvpn_plugin_select_initialization_point_v1
 //
@@ -94,11 +94,6 @@ func openvpn_plugin_open_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_
 
 		listenSocketPassword = strings.TrimSpace(string(password))
 	}
-	logger.Error("aaa", slog.String("listenSocketAddr", listenSocketAddr),
-		slog.Int("A", len(pluginArgs)),
-		slog.Any("pluginArgs", pluginArgs),
-	)
-
 	ctx := context.Background()
 
 	handle := cgo.NewHandle(&pluginHandle{
@@ -214,17 +209,17 @@ func (p *pluginHandle) handleAuthUserPassVerify(envp unsafe.Pointer, perClientCo
 		return C.OPENVPN_PLUGIN_FUNC_ERROR
 	}
 
-	clientID := atomic.AddUint64(&clientID, 1)
+	currentClientID := atomic.AddUint64(&clientIDCounter, 1)
 
 	logger := p.logger.With(
-		slog.Uint64("client_id", clientID),
+		slog.Uint64("client_id", currentClientID),
 		slog.String("session_id", sessionID),
 		slog.String("client_ip", fmt.Sprintf("%s:%s", envArray["untrusted_ip"], envArray["untrusted_port"])),
 	)
 
 	logger.DebugContext(p.ctx, "env", slog.Any("env", envArray))
 
-	openVPNClient, err := client.NewClient(clientID, envArray)
+	openVPNClient, err := client.NewClient(currentClientID, envArray)
 	if err != nil {
 		logger.ErrorContext(p.ctx, "create OpenVPN client from env vars",
 			slog.Any("err", err),
@@ -233,7 +228,7 @@ func (p *pluginHandle) handleAuthUserPassVerify(envp unsafe.Pointer, perClientCo
 		return C.OPENVPN_PLUGIN_FUNC_ERROR
 	}
 
-	resp, err := p.managementClient.ClientAuth(clientID, openVPNClient.String())
+	resp, err := p.managementClient.ClientAuth(currentClientID, openVPNClient.String())
 	if err != nil {
 		logger.ErrorContext(p.ctx, "send client to management interface",
 			slog.Any("err", err),
@@ -287,20 +282,20 @@ func (p *pluginHandle) handleAuthUserPassVerify(envp unsafe.Pointer, perClientCo
 		}
 
 		defer func() {
-			resp, err := p.managementClient.AuthPendingPoller(clientID, 5*time.Minute)
-			if perClientContext != nil {
-				perClientContext.mu.Lock()
-				perClientContext.authState = resp.ClientAuth
-				perClientContext.clientConfig = resp.ClientConfig
-				perClientContext.mu.Unlock()
-			}
-
+			resp, err := p.managementClient.AuthPendingPoller(currentClientID, 5*time.Minute)
 			if err != nil {
 				logger.ErrorContext(p.ctx, "poll deferred auth state",
 					slog.Any("err", err),
 				)
 
 				return
+			}
+
+			if perClientContext != nil {
+				perClientContext.mu.Lock()
+				perClientContext.authState = resp.ClientAuth
+				perClientContext.clientConfig = resp.ClientConfig
+				perClientContext.mu.Unlock()
 			}
 		}()
 
@@ -320,38 +315,45 @@ func (p *pluginHandle) handleClientConnect(perClientContext *clientContext, ret 
 	}
 
 	perClientContext.mu.Lock()
-	if perClientContext.authState != management.ClientAuthPending {
-		perClientContext.mu.Unlock()
+	defer perClientContext.mu.Unlock()
 
+	switch perClientContext.authState {
+	case management.ClientAuthPending:
 		return C.OPENVPN_PLUGIN_FUNC_DEFERRED
-	}
+	case management.ClientAuthAccept:
+		if perClientContext.clientConfig != "" {
+			if ret == nil || ret.return_list == nil {
+				p.logger.ErrorContext(p.ctx, "CLIENT_CONNECT_V2: missing return_list")
 
-	if perClientContext.clientConfig != "" {
-		if ret == nil || ret.return_list == nil {
-			p.logger.ErrorContext(p.ctx, "CLIENT_CONNECT_V2: missing return_list")
+				return C.OPENVPN_PLUGIN_FUNC_ERROR
+			}
 
-			return C.OPENVPN_PLUGIN_FUNC_ERROR
+			// allocate one struct in C memory (zeroed)
+			returnList := (*C.struct_openvpn_plugin_string_list)(
+				C.calloc(1, C.size_t(unsafe.Sizeof(C.struct_openvpn_plugin_string_list{}))),
+			)
+			if returnList == nil {
+				p.logger.ErrorContext(p.ctx, "malloc(return_list) failed")
+
+				return C.OPENVPN_PLUGIN_FUNC_ERROR
+			}
+
+			returnList.name = C.CString("config")
+			returnList.value = C.CString(perClientContext.clientConfig)
+
+			*ret.return_list = returnList
 		}
 
-		// allocate one struct in C memory (zeroed)
-		returnList := (*C.struct_openvpn_plugin_string_list)(
-			C.calloc(1, C.size_t(unsafe.Sizeof(C.struct_openvpn_plugin_string_list{}))),
+		return C.OPENVPN_PLUGIN_FUNC_SUCCESS
+	case management.ClientAuthDeny:
+		return C.OPENVPN_PLUGIN_FUNC_ERROR
+	default:
+		p.logger.ErrorContext(p.ctx, "CLIENT_CONNECT_V2: unexpected auth state",
+			slog.Any("state", perClientContext.authState),
 		)
-		if returnList == nil {
-			p.logger.ErrorContext(p.ctx, "malloc(return_list) failed")
 
-			return C.OPENVPN_PLUGIN_FUNC_ERROR
-		}
-
-		returnList.name = C.CString("config")
-		returnList.value = C.CString(perClientContext.clientConfig)
-
-		*ret.return_list = returnList
+		return C.OPENVPN_PLUGIN_FUNC_ERROR
 	}
-
-	perClientContext.mu.Unlock()
-
-	return C.OPENVPN_PLUGIN_FUNC_SUCCESS
 }
 
 //goland:noinspection GoUnusedParameter
@@ -399,7 +401,7 @@ func openvpn_plugin_client_destructor_v1(handlePtr C.openvpn_plugin_handle_t, pe
 
 	handle.logger.DebugContext(handle.ctx, "openvpn_plugin_client_destructor_v1: called")
 
-	cgo.NewHandle(perClientContext).Delete() // frees handle, allows GC to collect Go object
+	cgo.Handle(perClientContext).Delete() // frees handle, allows GC to collect Go object
 }
 
 //export openvpn_plugin_abort_v1
