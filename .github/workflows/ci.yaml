@@ -72,7 +72,7 @@ jobs:
 
       - uses: tecolicom/actions-use-apt-tools@v1
         with:
-          tools: 'crossbuild-essential-arm64 libssl-dev:arm64'
+          tools: 'gcc-aarch64-linux-gnu libssl-dev:arm64'
           cache: yes
 
       - name: Write gpg sign key
