@@ -59,9 +59,20 @@ jobs:
       - uses: anchore/sbom-action/download-syft@aa0e114b2e19480f157109b9922bda359bd98b90 # v0.20.8
 
       - name: Install plugin dependencies
-        uses: tecolicom/actions-use-apt-tools@v1
+        run: |
+          sudo dpkg --add-architecture arm64
+          sudo sed -i '/^Types: deb$/a Architectures: amd64 i386' /etc/apt/sources.list.d/ubuntu.sources
+
+          echo "Types: deb
+          URIs: http://ports.ubuntu.com/ubuntu-ports
+          Suites: $(lsb_release -cs) $(lsb_release -cs)-updates $(lsb_release -cs)-security
+          Components: main restricted universe multiverse
+          Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+          Architectures: arm64" | sudo tee /etc/apt/sources.list.d/ubuntu-ports.sources
+
+      - uses: tecolicom/actions-use-apt-tools@v1
         with:
-          tools: 'crossbuild-essential-arm64'
+          tools: 'crossbuild-essential-arm64 libssl-dev:arm64'
           cache: yes
 
       - name: Write gpg sign key
@@ -167,9 +178,20 @@ jobs:
       - uses: anchore/sbom-action/download-syft@aa0e114b2e19480f157109b9922bda359bd98b90 # v0.20.8
 
       - name: Install plugin dependencies
-        uses: tecolicom/actions-use-apt-tools@v1
+        run: |
+          sudo dpkg --add-architecture arm64
+          sudo sed -i '/^Types: deb$/a Architectures: amd64 i386' /etc/apt/sources.list.d/ubuntu.sources
+
+          echo "Types: deb
+          URIs: http://ports.ubuntu.com/ubuntu-ports
+          Suites: $(lsb_release -cs) $(lsb_release -cs)-updates $(lsb_release -cs)-security
+          Components: main restricted universe multiverse
+          Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+          Architectures: arm64" | sudo tee /etc/apt/sources.list.d/ubuntu-ports.sources
+
+      - uses: tecolicom/actions-use-apt-tools@v1
         with:
-          tools: 'crossbuild-essential-arm64'
+          tools: 'crossbuild-essential-arm64 libssl-dev:arm64'
           cache: yes
 
       - name: GPG configuration
