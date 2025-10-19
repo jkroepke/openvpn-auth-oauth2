@@ -40,7 +40,7 @@ import (
 	"log/slog"
 	"sync"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-plugin/management"
+	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/management"
 )
 
 type pluginHandle struct {

@@ -9,15 +9,17 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
 	"runtime/cgo"
+	"strings"
 	"sync/atomic"
 	"time"
 	"unsafe"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/version"
-	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-plugin/client"
-	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-plugin/env"
-	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-plugin/management"
+	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/client"
+	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/management"
+	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/util"
 )
 
 //goland:noinspection GoSnakeCaseUsage
@@ -41,7 +43,7 @@ var clientID uint64
 //export openvpn_plugin_select_initialization_point_v1
 //goland:noinspection GoSnakeCaseUsage,GoUnusedFunction
 func openvpn_plugin_select_initialization_point_v1() C.int {
-	return C.OPENVPN_PLUGIN_INIT_POST_UID_CHANGE
+	return C.OPENVPN_PLUGIN_INIT_PRE_DAEMON
 }
 
 // openvpn_plugin_min_version_required_v1
@@ -66,35 +68,49 @@ func openvpn_plugin_open_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_
 		1<<C.OPENVPN_PLUGIN_CLIENT_CONNECT_V2 |
 		1<<C.OPENVPN_PLUGIN_CLIENT_CONNECT_DEFER_V2
 
-	pluginArgs := unsafe.Slice(args.argv, 2)
+	pluginArgs := ArgvToStrings(args.argv)
 
 	logger := slog.New(NewOpenVPNPluginLogger(args.callbacks, nil))
 
 	if len(pluginArgs) > 3 || len(pluginArgs) < 2 {
-		logger.Error("Invalid amount of arguments! openvpn-auth-oauth2.so <listen socket> [<password>]")
+		logger.Error("Invalid amount of arguments! openvpn-auth-oauth2.so <listen socket> [<password-file>]")
 
 		return C.OPENVPN_PLUGIN_FUNC_ERROR
 	}
 
-	listenSocketAddr := C.GoString(pluginArgs[1])
+	listenSocketAddr := pluginArgs[1]
 
 	var listenSocketPassword string
+
 	if len(pluginArgs) == 3 {
-		listenSocketPassword = C.GoString(pluginArgs[2])
+		password, err := os.ReadFile(pluginArgs[2])
+		if err != nil {
+			logger.Error("Failed to read password file",
+				slog.Any("err", err),
+			)
+
+			return C.OPENVPN_PLUGIN_FUNC_ERROR
+		}
+
+		listenSocketPassword = strings.TrimSpace(string(password))
 	}
+	logger.Error("aaa", slog.String("listenSocketAddr", listenSocketAddr),
+		slog.Int("A", len(pluginArgs)),
+		slog.Any("pluginArgs", pluginArgs),
+	)
 
 	ctx := context.Background()
 
-	handle := cgo.NewHandle(unsafe.Pointer(&pluginHandle{
+	handle := cgo.NewHandle(&pluginHandle{
 		logger:           logger,
 		managementClient: management.NewServer(logger, listenSocketPassword),
 		ctx:              ctx,
 		listenSocketAddr: listenSocketAddr,
-	}))
+	})
 
-	ret.handle = (C.openvpn_plugin_handle_t)(unsafe.Pointer(handle))
+	ret.handle = (C.openvpn_plugin_handle_t)(unsafe.Pointer(&handle))
 
-	logger.InfoContext(ctx, "plugin initialization done",
+	logger.InfoContext(ctx, "plugin loaded",
 		slog.String("version", version.Version),
 	)
 
@@ -133,16 +149,19 @@ func openvpn_plugin_func_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_
 	// per_client_context: the per-client context pointer, which was returned by
 	//        openvpn_plugin_client_constructor_v1, if defined.
 
-	handle, ok := cgo.NewHandle(unsafe.Pointer(args.handle)).Value().(*pluginHandle)
+	handle, ok := (*(*cgo.Handle)(unsafe.Pointer(args.handle))).Value().(*pluginHandle)
 	if !ok {
 		panic("openvpn_plugin_func_v3: invalid plugin handle type")
 	}
 
-	perClientContext, ok := cgo.NewHandle(unsafe.Pointer(args.per_client_context)).Value().(*clientContext) //nolint:unconvert
-	if !ok && args.per_client_context != nil {
-		handle.logger.ErrorContext(handle.ctx, "invalid per_client_context type")
+	var perClientContext *clientContext
 
-		return C.OPENVPN_PLUGIN_FUNC_ERROR
+	if args._type != C.OPENVPN_PLUGIN_UP {
+		perClientContext, ok = cgo.Handle(args.per_client_context).Value().(*clientContext)
+		if !ok {
+			handle.logger.ErrorContext(handle.ctx, "invalid per_client_context type")
+			return C.OPENVPN_PLUGIN_FUNC_ERROR
+		}
 	}
 
 	switch args._type {
@@ -163,19 +182,23 @@ func openvpn_plugin_func_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_
 
 func (p *pluginHandle) handlePluginUp() C.int {
 	if err := p.managementClient.Listen(p.ctx, p.listenSocketAddr); err != nil {
-		p.logger.ErrorContext(p.ctx, "failed to start management client: ",
+		p.logger.ErrorContext(p.ctx, "failed to start management client",
 			slog.Any("err", err),
 		)
 
 		return C.OPENVPN_PLUGIN_FUNC_ERROR
 	}
 
+	p.logger.InfoContext(p.ctx, "listener started",
+		slog.Any("addr", p.listenSocketAddr),
+	)
+
 	return C.OPENVPN_PLUGIN_FUNC_SUCCESS
 }
 
 //nolint:cyclop
 func (p *pluginHandle) handleAuthUserPassVerify(envp unsafe.Pointer, perClientContext *clientContext) C.int {
-	envArray, err := env.NewList(envp)
+	envArray, err := util.NewEnvList(envp)
 	if err != nil {
 		p.logger.ErrorContext(p.ctx, "parse env vars",
 			slog.Any("err", err),
@@ -196,6 +219,7 @@ func (p *pluginHandle) handleAuthUserPassVerify(envp unsafe.Pointer, perClientCo
 	logger := p.logger.With(
 		slog.Uint64("client_id", clientID),
 		slog.String("session_id", sessionID),
+		slog.String("client_ip", fmt.Sprintf("%s:%s", envArray["untrusted_ip"], envArray["untrusted_port"])),
 	)
 
 	logger.DebugContext(p.ctx, "env", slog.Any("env", envArray))
@@ -221,6 +245,8 @@ func (p *pluginHandle) handleAuthUserPassVerify(envp unsafe.Pointer, perClientCo
 	perClientContext.mu.Lock()
 	perClientContext.authState = resp.ClientAuth
 	perClientContext.mu.Unlock()
+
+	logger.InfoContext(p.ctx, "client auth response: "+resp.ClientAuth.String())
 
 	switch resp.ClientAuth {
 	case management.ClientAuthAccept:
@@ -336,7 +362,7 @@ func (p *pluginHandle) handleClientConnectDefer(perClientContext *clientContext,
 //export openvpn_plugin_close_v1
 //goland:noinspection GoSnakeCaseUsage
 func openvpn_plugin_close_v1(handlePtr C.openvpn_plugin_handle_t) {
-	handle, ok := cgo.NewHandle(unsafe.Pointer(handlePtr)).Value().(*pluginHandle)
+	handle, ok := (*(*cgo.Handle)(handlePtr)).Value().(*pluginHandle)
 	if !ok {
 		panic("openvpn_plugin_close_v1: invalid plugin handle type")
 	}
@@ -345,14 +371,13 @@ func openvpn_plugin_close_v1(handlePtr C.openvpn_plugin_handle_t) {
 
 	handle.logger.InfoContext(handle.ctx, "plugin closed")
 
-	h := cgo.Handle(handlePtr)
-	h.Delete() // frees handle, allows GC to collect Go object
+	(*(*cgo.Handle)(handlePtr)).Delete() // frees handle, allows GC to collect Go object
 }
 
 //export openvpn_plugin_client_constructor_v1
 //goland:noinspection GoSnakeCaseUsage
 func openvpn_plugin_client_constructor_v1(handlePtr C.openvpn_plugin_handle_t) unsafe.Pointer {
-	handle, ok := cgo.NewHandle(unsafe.Pointer(handlePtr)).Value().(*pluginHandle)
+	handle, ok := (*(*cgo.Handle)(handlePtr)).Value().(*pluginHandle)
 	if !ok {
 		panic("openvpn_plugin_client_constructor_v1: invalid plugin handle type")
 	}
@@ -367,29 +392,28 @@ func openvpn_plugin_client_constructor_v1(handlePtr C.openvpn_plugin_handle_t) u
 //export openvpn_plugin_client_destructor_v1
 //goland:noinspection GoSnakeCaseUsage
 func openvpn_plugin_client_destructor_v1(handlePtr C.openvpn_plugin_handle_t, perClientContext unsafe.Pointer) {
-	handle, ok := cgo.NewHandle(unsafe.Pointer(handlePtr)).Value().(*pluginHandle)
+	handle, ok := (*(*cgo.Handle)(handlePtr)).Value().(*pluginHandle)
 	if !ok {
 		panic("openvpn_plugin_client_destructor_v1: invalid plugin handle type")
 	}
 
 	handle.logger.DebugContext(handle.ctx, "openvpn_plugin_client_destructor_v1: called")
 
-	h := cgo.Handle(perClientContext)
-	h.Delete() // frees handle, allows GC to collect Go object
+	cgo.NewHandle(perClientContext).Delete() // frees handle, allows GC to collect Go object
 }
 
 //export openvpn_plugin_abort_v1
 //goland:noinspection GoSnakeCaseUsage
 func openvpn_plugin_abort_v1(handlePtr C.openvpn_plugin_handle_t) {
-	handle, ok := cgo.NewHandle(unsafe.Pointer(handlePtr)).Value().(*pluginHandle)
+	handle, ok := (*(*cgo.Handle)(handlePtr)).Value().(*pluginHandle)
 	if !ok {
 		panic("openvpn_plugin_abort_v1: invalid plugin handle type")
 	}
 
 	handle.managementClient.Close()
 
-	h := cgo.Handle(handlePtr)
-	h.Delete() // frees handle, allows GC to collect Go object
+	// frees handle, allows GC to collect Go object
+	(*(*cgo.Handle)(handlePtr)).Delete()
 
 	handle.logger.WarnContext(handle.ctx, "plugin abort")
 }

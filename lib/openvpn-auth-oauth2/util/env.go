@@ -1,4 +1,4 @@
-package env
+package util
 
 import "C"
 
@@ -20,7 +20,7 @@ type List map[string]string
 
 const MaxEnvVars = 128 // Maximum number of environment variables to process
 
-func NewList(ptr unsafe.Pointer) (List, error) {
+func NewEnvList(ptr unsafe.Pointer) (List, error) {
 	if ptr == nil || uintptr(ptr) == 0 {
 		return nil, ErrInvalidPointer
 	}

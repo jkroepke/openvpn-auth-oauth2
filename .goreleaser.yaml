@@ -33,7 +33,7 @@ builds:
 
   - id: "openvpn-auth-oauth2.so"
     binary: openvpn-auth-oauth2-{{ .Os }}-{{ .Arch }}.so
-    main: ./lib/openvpn-plugin
+    main: ./lib/openvpn-auth-oauth2
     buildmode: c-shared
     env:
       - CGO_ENABLED=1

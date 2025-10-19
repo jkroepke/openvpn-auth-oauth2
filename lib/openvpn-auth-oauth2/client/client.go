@@ -7,12 +7,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-plugin/env"
-	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-plugin/management"
+	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/management"
+	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/util"
 )
 
 type Client struct {
-	env env.List
+	env util.List
 
 	AuthFailedReasonFile string
 	AuthPendingFile      string
@@ -24,12 +24,12 @@ type Client struct {
 }
 
 //nolint:cyclop
-func NewClient(clientID uint64, envArray env.List) (*Client, error) {
+func NewClient(clientID uint64, envArray util.List) (*Client, error) {
 	client := &Client{
 		env:      envArray,
 		ClientID: clientID,
 		// Initialize base size: ">CLIENT:CONNECT," + "\r\n>CLIENT:ENV,END"
-		estimatedSize: 17 + 18, // 35 base characters
+		estimatedSize: 17 + 18 + 2, // 35 base characters
 	}
 
 	if clientID >= 10_000 {
@@ -73,6 +73,7 @@ func (c *Client) String() string {
 
 	sb.WriteString(">CLIENT:CONNECT,")
 	sb.WriteString(strconv.FormatUint(c.ClientID, 10))
+	sb.WriteString(",0")
 
 	for key, value := range c.env {
 		sb.WriteString("\r\n>CLIENT:ENV,")

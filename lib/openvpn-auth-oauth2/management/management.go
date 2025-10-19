@@ -27,7 +27,6 @@ type Server struct {
 	listenSocket net.Listener
 	connection   net.Conn
 	logger       *slog.Logger
-	respCh       chan *Response
 	respChs      map[uint64]chan *Response
 	password     string
 	connected    atomic.Int64
@@ -50,6 +49,19 @@ const (
 	ClientAuthDeny
 	ClientAuthPending
 )
+
+func (ca ClientAuth) String() string {
+	switch ca {
+	case ClientAuthAccept:
+		return "ACCEPT"
+	case ClientAuthDeny:
+		return "DENY"
+	case ClientAuthPending:
+		return "PENDING"
+	default:
+		return "UNKNOWN"
+	}
+}
 
 func NewServer(logger *slog.Logger, password string) *Server {
 	return &Server{
@@ -85,6 +97,16 @@ func (s *Server) AuthPendingPoller(clientID uint64, timeout time.Duration) (*Res
 }
 
 func (s *Server) ClientAuth(clientID uint64, message string) (*Response, error) {
+	s.connectionMu.Lock()
+
+	if s.connection == nil {
+		s.connectionMu.Unlock()
+
+		return nil, errors.New("no client connected")
+	}
+
+	s.connectionMu.Unlock()
+
 	if err := s.writeToClient(message); err != nil {
 		return nil, err
 	}
@@ -111,19 +133,29 @@ func (s *Server) Listen(ctx context.Context, addr string) error {
 		for {
 			connection, err := s.listenSocket.Accept()
 			if err != nil {
-				s.logger.Warn("error accepting connection",
-					slog.Any("error", err),
-				)
+				if !errors.Is(err, net.ErrClosed) {
+					s.logger.Warn("error accepting connection",
+						slog.Any("error", err),
+					)
+				}
 
 				return
 			}
 
+			s.logger.InfoContext(ctx, "accepted new management client connection",
+				slog.String("remote_addr", connection.RemoteAddr().String()),
+			)
+
 			if err := s.handleManagementClient(ctx, connection); err != nil {
-				s.logger.Warn("error handling management client",
+				s.logger.WarnContext(ctx, "error handling management client",
 					slog.Any("error", err),
 					slog.String("remote_addr", connection.RemoteAddr().String()),
 				)
 			}
+
+			s.logger.InfoContext(ctx, "management client disconnected",
+				slog.String("remote_addr", connection.RemoteAddr().String()),
+			)
 		}
 	}()
 
@@ -146,8 +178,6 @@ func (s *Server) Close() {
 			s.logger.Error(fmt.Errorf("unable to close listen socket: %w", err).Error())
 		}
 	}
-
-	close(s.respCh)
 }
 
 // handleManagementClient handles a single management client connection.
@@ -313,16 +343,16 @@ func (s *Server) parseResponse(response string) (*Response, error) {
 		}, nil
 	case "client-pending-auth":
 		// client-pending-auth 0 1 "WEB_AUTH::https://example.com/..." 300
-		parts := strings.SplitN(message, " ", 2)
-		if len(parts) != 2 {
+		parts := strings.SplitN(message, " ", 3)
+		if len(parts) != 3 {
 			return nil, fmt.Errorf("invalid client-pending-auth message: %s", message)
 		}
 
 		return &Response{
 			ClientID:   uint32(clientID),
 			ClientAuth: ClientAuthPending,
-			Message:    strings.TrimPrefix(strings.Trim(parts[0], `"`), "WEB_AUTH::"),
-			Timeout:    parts[1],
+			Message:    strings.Trim(parts[1], `"`),
+			Timeout:    parts[2],
 		}, nil
 	default:
 		return nil, fmt.Errorf("unknown response command: %s", cmd)
