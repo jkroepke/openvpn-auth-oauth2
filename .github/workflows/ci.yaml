@@ -70,10 +70,8 @@ jobs:
           Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
           Architectures: arm64" | sudo tee /etc/apt/sources.list.d/ubuntu-ports.sources
 
-      - uses: tecolicom/actions-use-apt-tools@v1
-        with:
-          tools: 'gcc-aarch64-linux-gnu libssl-dev:arm64'
-          cache: yes
+          sudo apt-get update -q
+          sudo apt-get install --no-install-recommends -qy crossbuild-essential-arm64 libssl-dev:arm64
 
       - name: Write gpg sign key
         if: env.GPG_KEY != null
@@ -189,10 +187,8 @@ jobs:
           Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
           Architectures: arm64" | sudo tee /etc/apt/sources.list.d/ubuntu-ports.sources
 
-      - uses: tecolicom/actions-use-apt-tools@v1
-        with:
-          tools: 'gcc-aarch64-linux-gnu libssl-dev:arm64'
-          cache: yes
+          sudo apt-get update -q
+          sudo apt-get install --no-install-recommends -qy crossbuild-essential-arm64 libssl-dev:arm64
 
       - name: GPG configuration
         run: |-
