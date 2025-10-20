@@ -281,7 +281,7 @@ func (p *pluginHandle) handleAuthUserPassVerify(envp unsafe.Pointer, perClientCo
 			return C.OPENVPN_PLUGIN_FUNC_ERROR
 		}
 
-		defer func() {
+		go func() {
 			resp, err := p.managementClient.AuthPendingPoller(currentClientID, 5*time.Minute)
 			if err != nil {
 				logger.ErrorContext(p.ctx, "poll deferred auth state",
