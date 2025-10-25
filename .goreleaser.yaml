@@ -31,6 +31,35 @@ builds:
         -X internal/version.Commit={{.Commit}}
         -X internal/version.Date={{.Date}}
 
+  - id: "openvpn-auth-oauth2.so"
+    binary: openvpn-auth-oauth2-{{ .Os }}-{{ .Arch }}.so
+    main: ./lib/openvpn-auth-oauth2
+    buildmode: c-shared
+    env:
+      - CGO_ENABLED=1
+      - >-
+        {{- if eq .Arch "amd64"}}CC=x86_64-linux-gnu-gcc{{- end }}
+        {{- if eq .Arch "arm64"}}CC=aarch64-linux-gnu-gcc{{- end }}
+      - >-
+        {{- if eq .Arch "amd64"}}CXX=x86_64-linux-gnu-g++{{- end }}
+        {{- if eq .Arch "arm64"}}CXX=aarch64-linux-gnu-g++{{- end }}
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    mod_timestamp: '{{ .CommitTimestamp }}'
+    tags:
+      - no_otel
+    flags:
+      - -trimpath
+    ldflags:
+      - >-
+        -s -w
+        -X internal/version.Version={{.Version}}
+        -X internal/version.Commit={{.Commit}}
+        -X internal/version.Date={{.Date}}
+
 archives:
   - id: openvpn-auth-oauth2
     ids:
