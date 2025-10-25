@@ -31,8 +31,8 @@ builds:
         -X internal/version.Commit={{.Commit}}
         -X internal/version.Date={{.Date}}
 
-  - id: "openvpn-auth-oauth2.so"
-    binary: openvpn-auth-oauth2-{{ .Os }}-{{ .Arch }}.so
+  - id: "lib-openvpn-auth-oauth2"
+    binary: openvpn-auth-oauth2-{{ .Os }}-{{ .Arch }}
     main: ./lib/openvpn-auth-oauth2
     buildmode: c-shared
     env:
