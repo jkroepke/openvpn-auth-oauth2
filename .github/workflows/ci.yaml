@@ -25,17 +25,22 @@ jobs:
           go-version-file: 'go.mod'
           cache: "${{ github.actor != 'renovate[bot]' }}"
 
-      - run: go build ./cmd/openvpn-auth-oauth2
-      - run: go test ./... -timeout 20s -race -covermode=atomic -coverprofile=coverage.out -coverpkg=./...
+      - name: go build
+        run: go build ./cmd/openvpn-auth-oauth2
+
+      - name: go test
+        run: go test ./... -timeout 20s -race -covermode=atomic -coverprofile=coverage.out -coverpkg=./...
         id: test
         shell: bash
+        continue-on-error: true
 
-      - name: go test ./... -timeout 20s -race -covermode=atomic -coverprofile=coverage.out -coverpkg=./... (retry)
+      - name: go test (retry)
         if: steps.test.outcome == 'failure'
         shell: bash
         run: go test ./... -timeout 20s -race -covermode=atomic -coverprofile=coverage.out -coverpkg=./...
 
-      - run: go test ./... -timeout 20s -run='^$' -bench=. -benchmem -count 3
+      - name: go test -bench
+        run: go test ./... -timeout 20s -run='^$' -bench=. -benchmem -count 3
 
       - uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
         env:
