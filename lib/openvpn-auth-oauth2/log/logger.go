@@ -1,16 +1,5 @@
-package main
+package log
 
-/*
-#include <openvpn-plugin.h>
-static char *MODULE = "openvpn-auth-oauth2";
-
-// A wrapper function is needed because go is not able to call C pointer functions
-// https://stackoverflow.com/questions/37157379/passing-function-pointer-to-the-c-code-using-cgo
-int plugin_log(struct openvpn_plugin_callbacks* cb, int flags, char *msg) {
-	cb->plugin_log(flags, MODULE, "%s", msg);
-	return 0;
-}
-*/
 import "C"
 
 import (
@@ -20,15 +9,21 @@ import (
 	"sync"
 	"time"
 	"unsafe"
+
+	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/c"
 )
 
+// PluginHandler implements slog.Handler to integrate Go's structured logging with
+// OpenVPN's plugin logging system. It forwards log messages to OpenVPN using the
+// plugin_log callback function.
 type PluginHandler struct {
 	mu           *sync.Mutex
-	cb           *C.struct_openvpn_plugin_callbacks
+	cb           *c.OpenVPNPluginCallbacks
 	opts         Options
 	preformatted []byte
 }
 
+// Options configures the behavior of the PluginHandler.
 type Options struct {
 	// Level reports the minimum level to log.
 	// Levels with lower levels are discarded.
@@ -36,14 +31,18 @@ type Options struct {
 	Level slog.Leveler
 }
 
-func NewOpenVPNPluginLogger(cb *C.struct_openvpn_plugin_callbacks, opts *Options) *PluginHandler {
+// NewOpenVPNPluginLogger creates a new PluginHandler that sends log messages
+// to OpenVPN via the plugin callback interface.
+//
+// Parameters:
+//   - cb: OpenVPN plugin callbacks structure containing the plugin_log function
+//   - opts: Optional configuration for the handler (can be nil for defaults)
+//
+// Returns:
+//   - *PluginHandler: A new handler that implements slog.Handler
+func NewOpenVPNPluginLogger(cb *c.OpenVPNPluginCallbacks) *PluginHandler {
 	handler := &PluginHandler{cb: cb, mu: &sync.Mutex{}}
-	if opts != nil {
-		handler.opts = *opts
-	}
-	if handler.opts.Level == nil {
-		handler.opts.Level = slog.LevelInfo
-	}
+	handler.opts.Level = slog.LevelDebug
 
 	return handler
 }
@@ -85,11 +84,11 @@ func (h *PluginHandler) Handle(_ context.Context, record slog.Record) error {
 
 	h.mu.Lock()
 
-	msg := C.CString(string(buf))
+	msg := c.CString(string(buf))
 
-	C.plugin_log(h.cb, h.pluginLogLevel(record.Level), msg) //nolint:nlreturn
+	c.PluginLog(h.cb, h.pluginLogLevel(record.Level), msg)
 
-	C.free(unsafe.Pointer(msg))
+	c.Free(unsafe.Pointer(msg))
 
 	h.mu.Unlock()
 
@@ -151,17 +150,17 @@ func (h *PluginHandler) appendAttr(buf []byte, attr slog.Attr) []byte {
 	return buf
 }
 
-func (h *PluginHandler) pluginLogLevel(level slog.Level) C.int {
+func (h *PluginHandler) pluginLogLevel(level slog.Level) c.PLogLevel {
 	switch level {
 	case slog.LevelError:
-		return C.PLOG_ERR
+		return c.PLogErr
 	case slog.LevelWarn:
-		return C.PLOG_WARN
+		return c.PLogWarn
 	case slog.LevelDebug:
-		return C.PLOG_DEBUG
+		return c.PLogDebug
 	case slog.LevelInfo:
 		fallthrough
 	default:
-		return C.PLOG_NOTE
+		return c.PLogNote
 	}
 }

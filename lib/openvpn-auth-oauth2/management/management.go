@@ -114,6 +114,20 @@ func (s *Server) ClientAuth(clientID uint64, message string) (*Response, error) 
 	return s.AuthPendingPoller(clientID, 5*time.Second)
 }
 
+func (s *Server) ClientDisconnect(message string) error {
+	s.connectionMu.Lock()
+
+	if s.connection == nil {
+		s.connectionMu.Unlock()
+
+		return errors.New("no client connected")
+	}
+
+	s.connectionMu.Unlock()
+
+	return s.writeToClient(message)
+}
+
 func (s *Server) Listen(ctx context.Context, addr string) error {
 	parsedURL, err := url.Parse(addr)
 	if err != nil {

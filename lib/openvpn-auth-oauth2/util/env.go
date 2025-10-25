@@ -1,12 +1,12 @@
 package util
 
-import "C"
-
 import (
 	"errors"
 	"fmt"
 	"strings"
 	"unsafe"
+
+	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/c"
 )
 
 var (
@@ -18,20 +18,23 @@ var (
 
 type List map[string]string
 
-const MaxEnvVars = 128 // Maximum number of environment variables to process
-
-func NewEnvList(ptr unsafe.Pointer) (List, error) {
-	if ptr == nil || uintptr(ptr) == 0 {
+func NewEnvList(envVarsChar **c.Char) (List, error) {
+	if envVarsChar == nil {
 		return nil, ErrInvalidPointer
 	}
 
-	envVarsChar := (*[MaxEnvVars]*C.char)(ptr)
+	// Count
+	count := 0
+	for p := envVarsChar; *p != nil; p = (**c.Char)(unsafe.Pointer(uintptr(unsafe.Pointer(p)) + unsafe.Sizeof(*p))) {
+		count++
+	}
 
-	envArray := make(List)
+	ptrs := unsafe.Slice(envVarsChar, count)
+	envArray := make(List, count)
 
 	// Iterate through NULL-terminated array
-	for i := 0; i < MaxEnvVars && envVarsChar[i] != nil; i++ {
-		envStr := C.GoString(envVarsChar[i])
+	for _, s := range ptrs {
+		envStr := c.GoString(s)
 
 		key, value, err := parseEnvVar(envStr)
 		if err != nil {

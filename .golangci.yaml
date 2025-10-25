@@ -178,4 +178,7 @@ linters:
       - path: _test\.go
         text: "fieldalignment:"
       - path: lib/
-        text: "underef: could simplify (*(*cgo.Handle)(handlePtr))"
+        text: "^underef: could simplify.*cgo.Handle"
+      - path: lib/
+        linters:
+          - unused

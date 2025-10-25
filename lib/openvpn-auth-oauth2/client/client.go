@@ -20,7 +20,7 @@ type Client struct {
 	ClientConfig         string
 
 	ClientID      uint64 // A unique identifier for the client
-	estimatedSize int    // Pre-calculated size for String() method
+	estimatedSize int    // Pre-calculated size for GetConnectMessage() method
 }
 
 //nolint:cyclop
@@ -63,7 +63,7 @@ func NewClient(clientID uint64, envArray util.List) (*Client, error) {
 	return client, nil
 }
 
-func (c *Client) String() string {
+func (c *Client) GetConnectMessage() string {
 	if c == nil {
 		return ""
 	}
@@ -74,6 +74,29 @@ func (c *Client) String() string {
 	sb.WriteString(">CLIENT:CONNECT,")
 	sb.WriteString(strconv.FormatUint(c.ClientID, 10))
 	sb.WriteString(",0")
+
+	for key, value := range c.env {
+		sb.WriteString("\r\n>CLIENT:ENV,")
+		sb.WriteString(key)
+		sb.WriteString("=")
+		sb.WriteString(value)
+	}
+
+	sb.WriteString("\r\n>CLIENT:ENV,END")
+
+	return sb.String()
+}
+
+func (c *Client) GetDisconnectMessage() string {
+	if c == nil {
+		return ""
+	}
+
+	sb := strings.Builder{}
+	sb.Grow(c.estimatedSize - 2) // Use the pre-calculated size
+
+	sb.WriteString(">CLIENT:DISCONNECT,")
+	sb.WriteString(strconv.FormatUint(c.ClientID, 10))
 
 	for key, value := range c.env {
 		sb.WriteString("\r\n>CLIENT:ENV,")
