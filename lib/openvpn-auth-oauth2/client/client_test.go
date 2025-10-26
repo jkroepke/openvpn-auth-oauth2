@@ -26,8 +26,8 @@ func TestNewClient(t *testing.T) {
 		"untrusted_ip":            "127.0.0.1",
 		"untrusted_port":          "1194",
 	})
-
 	require.NoError(t, err)
+
 	require.Equal(t, uint64(12345), vpnClient.ClientID)
 	require.Equal(t, "/tmp/auth_failed_reason_file", vpnClient.AuthFailedReasonFile)
 	require.Equal(t, "/tmp/auth_pending_file", vpnClient.AuthPendingFile)
@@ -81,6 +81,7 @@ func TestClient_WriteToAuthFile(t *testing.T) {
 		vpnClient, err := client.NewClient(12345, map[string]string{
 			"auth_control_file": authControlFile.Name(),
 		})
+		require.NoError(t, err)
 
 		err = vpnClient.WriteToAuthFile("1")
 		require.NoError(t, err)
@@ -95,6 +96,7 @@ func TestClient_WriteToAuthFile(t *testing.T) {
 
 		vpnClient, err := client.NewClient(12345, map[string]string{})
 		require.NoError(t, err)
+
 		err = vpnClient.WriteToAuthFile("1")
 		require.ErrorIs(t, err, client.ErrAuthControlFileNotSet)
 	})
@@ -106,6 +108,7 @@ func TestClient_WriteToAuthFile(t *testing.T) {
 			"auth_control_file": "/non/existent/path/auth_control_file",
 		})
 		require.NoError(t, err)
+
 		err = vpnClient.WriteToAuthFile("1")
 		require.Error(t, err)
 	})
@@ -175,7 +178,7 @@ func TestClient_WriteAuthPending(t *testing.T) {
 			Message: "TEST",
 			Timeout: "300",
 		})
-		require.ErrorIs(t, err, client.ErrAuthControlFileNotSet)
+		require.ErrorIs(t, err, client.ErrAuthPendingFileNotSet)
 	})
 }
 
@@ -191,8 +194,8 @@ func BenchmarkClient_GetConnectMessage(b *testing.B) {
 		"untrusted_ip":            "127.0.0.1",
 		"untrusted_port":          "1194",
 	})
-
 	require.NoError(b, err)
+
 	b.ResetTimer()
 
 	for b.Loop() {
@@ -214,8 +217,8 @@ func BenchmarkClient_GetDisconnectMessage(b *testing.B) {
 		"untrusted_ip":            "127.0.0.1",
 		"untrusted_port":          "1194",
 	})
-
 	require.NoError(b, err)
+
 	b.ResetTimer()
 
 	for b.Loop() {

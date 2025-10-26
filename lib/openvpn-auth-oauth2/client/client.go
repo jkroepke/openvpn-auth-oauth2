@@ -12,6 +12,12 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/util"
 )
 
+const (
+	AuthControlFileEnvKey      = "auth_control_file"
+	AuthPendingFileEnvKey      = "auth_pending_file"
+	AuthFailedReasonFileEnvKey = "auth_failed_reason_file"
+)
+
 var (
 	ErrAuthControlFileNotSet = errors.New("auth_control_file not set")
 	ErrAuthPendingFileNotSet = errors.New("auth_pending_file not set")
@@ -55,11 +61,11 @@ func NewClient(clientID uint64, envArray util.List) (*Client, error) {
 
 	for key, value := range envArray {
 		switch key {
-		case "auth_failed_reason_file":
+		case AuthFailedReasonFileEnvKey:
 			client.AuthFailedReasonFile = value
-		case "auth_pending_file":
+		case AuthPendingFileEnvKey:
 			client.AuthPendingFile = value
-		case "auth_control_file":
+		case AuthControlFileEnvKey:
 			client.AuthControlFile = value
 		default:
 			client.estimatedSize += len(key) + len(value) + 15
@@ -86,7 +92,7 @@ func (c *Client) GetConnectMessage() string {
 	sb.WriteString(connectionID)
 
 	for key, value := range c.env {
-		if key == "auth_control_file" || key == "auth_pending_file" || key == "auth_failed_reason_file" {
+		if key == AuthControlFileEnvKey || key == AuthPendingFileEnvKey || key == AuthFailedReasonFileEnvKey {
 			continue
 		}
 
@@ -115,7 +121,7 @@ func (c *Client) GetDisconnectMessage() string {
 	sb.WriteString(clientID)
 
 	for key, value := range c.env {
-		if key == "auth_control_file" || key == "auth_pending_file" || key == "auth_failed_reason_file" {
+		if key == AuthControlFileEnvKey || key == AuthPendingFileEnvKey || key == AuthFailedReasonFileEnvKey {
 			continue
 		}
 
@@ -151,7 +157,7 @@ func (c *Client) WriteToAuthFile(auth string) error {
 // line 3: EXTRA (e.g. WEB_AUTH::http://www.example.com)
 func (c *Client) WriteAuthPending(resp *management.Response) error {
 	if c.AuthPendingFile == "" {
-		return ErrAuthControlFileNotSet
+		return ErrAuthPendingFileNotSet
 	}
 
 	pendingData := fmt.Sprintf("%s\nwebauth\n%s\n", resp.Timeout, resp.Message)
