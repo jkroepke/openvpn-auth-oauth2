@@ -19,6 +19,6 @@ import (
 )
 
 func PluginLog(cb *OpenVPNPluginCallbacks, flags PLogLevel, msg *Char) {
-	//nolint:nlreturn // false positive
+	//nolint:nlreturn,unconvert // false positive
 	C.plugin_log((*C.struct_openvpn_plugin_callbacks)(unsafe.Pointer(cb)), C.int(flags), (*C.char)(msg))
 }

@@ -60,7 +60,7 @@ func (p *pluginHandle) handlePluginUp() c.OpenVPNPluginFuncStatus {
 //   - c.OpenVPNPluginFuncError if authentication fails or an error occurs
 //   - C.OPENVPN_PLUGIN_FUNC_DEFERRED if authentication is pending (OAuth2 flow in progress)
 //
-//nolint:cyclop
+//nolint:cyclop,gocognit
 func (p *pluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClientContext *clientContext) c.OpenVPNPluginFuncStatus {
 	envArray, err := util.NewEnvList(clientEnvList)
 	if err != nil {

@@ -42,6 +42,7 @@ func CreateCStringArray(strings []string) (**c.Char, []*c.Char) {
 	}
 
 	// NULL terminator
+	//goland:noinspection GoVetUnsafePointer
 	*(**c.Char)(unsafe.Pointer(uintptr(argv) + uintptr(len(strings))*ptrSize)) = nil
 
 	return (**c.Char)(argv), cStrings

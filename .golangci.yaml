@@ -182,3 +182,7 @@ linters:
       - path: lib/
         linters:
           - unused
+      - path: lib/
+        text: "fieldalignment:"
+      - path: lib/
+        text: "missing cases in switch of type management.ClientAuth:"
