@@ -3,6 +3,7 @@ package c
 /*
 #cgo CFLAGS: -I../include
 #include <openvpn-plugin.h>
+#include <stdint.h>
 */
 import "C"
 
@@ -12,8 +13,9 @@ import (
 )
 
 type (
-	Int  = int
-	Char = C.char
+	Int     = int
+	Char    = C.char
+	Uintptr = C.uintptr_t
 )
 
 type OpenVPNPluginFuncStatus = Int
@@ -75,8 +77,8 @@ type OpenVPNPluginStringList struct {
 }
 
 type (
-	OpenVPNPluginHandle        = *cgo.Handle
-	OpenVPNPluginClientContext = unsafe.Pointer
+	OpenVPNPluginHandle        = cgo.Handle
+	OpenVPNPluginClientContext = cgo.Handle
 )
 
 type PLogLevel = Int

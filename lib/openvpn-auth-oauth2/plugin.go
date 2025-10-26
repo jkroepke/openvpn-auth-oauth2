@@ -3,10 +3,13 @@ package main
 /*
 #cgo CFLAGS: -I./include
 #include <openvpn-plugin.h>
+#include <stdint.h>
+#include <stdlib.h>
 */
 import "C"
 
 import (
+	"runtime/cgo"
 	"unsafe"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/c"
@@ -110,7 +113,16 @@ func openvpn_plugin_close_v1(handlePtr C.openvpn_plugin_handle_t) {
 //nolint:unsed
 //goland:noinspection GoSnakeCaseUsage,GoUnusedFunction
 func openvpn_plugin_client_constructor_v1(handlePtr C.openvpn_plugin_handle_t) unsafe.Pointer {
-	return openvpn.PluginClientConstructorV1(c.OpenVPNPluginHandle(handlePtr))
+	perClientContext := C.malloc(C.size_t(unsafe.Sizeof(C.uintptr_t(0))))
+	if perClientContext == nil {
+		panic("malloc failed")
+	}
+
+	handle := openvpn.PluginClientConstructorV1(c.OpenVPNPluginHandle(handlePtr))
+
+	*(*C.uintptr_t)(perClientContext) = C.uintptr_t(uintptr(handle))
+
+	return perClientContext
 }
 
 // openvpn_plugin_client_destructor_v1 is called by OpenVPN when a client disconnects.
@@ -125,7 +137,12 @@ func openvpn_plugin_client_constructor_v1(handlePtr C.openvpn_plugin_handle_t) u
 //nolint:unsed
 //goland:noinspection GoSnakeCaseUsage,GoUnusedFunction
 func openvpn_plugin_client_destructor_v1(handlePtr C.openvpn_plugin_handle_t, perClientContext unsafe.Pointer) {
-	openvpn.PluginClientDestructorV1(c.OpenVPNPluginHandle(handlePtr), perClientContext)
+	openvpn.PluginClientDestructorV1(
+		c.OpenVPNPluginHandle(handlePtr),
+		cgo.Handle(uintptr(*(*C.uintptr_t)(perClientContext))),
+	)
+
+	C.free(perClientContext)
 }
 
 // openvpn_plugin_abort_v1 is called by OpenVPN when an abort signal is received or

@@ -1,7 +1,9 @@
 package openvpn
 
+/*
+#include <stdint.h>
+*/
 import "C"
-
 import (
 	"context"
 	"fmt"
@@ -9,7 +11,6 @@ import (
 	"os"
 	"runtime/cgo"
 	"strings"
-	"unsafe"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/version"
 	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/c"
@@ -75,7 +76,7 @@ func PluginOpenV3(v3structver c.Int, args *c.OpenVPNPluginArgsOpenIn, ret *c.Ope
 		listenSocketAddr: listenSocketAddr,
 	})
 
-	ret.Handle = &handle
+	ret.Handle = handle
 
 	logger.InfoContext(ctx, "plugin loaded",
 		slog.String("version", version.Version),
@@ -123,7 +124,7 @@ func PluginFuncV3(v3structver c.Int, args *c.OpenVPNPluginArgsFuncIn, ret *c.Ope
 		return handle.handlePluginUp()
 	}
 
-	perClientContext, ok := cgo.Handle(args.PerClientContext).Value().(*ClientContext)
+	perClientContext, ok := args.PerClientContext.Value().(*ClientContext)
 	if !ok {
 		handle.logger.ErrorContext(handle.ctx, "invalid per_client_context type")
 
@@ -165,10 +166,7 @@ func PluginClientConstructorV1(handlePtr c.OpenVPNPluginHandle) c.OpenVPNPluginC
 
 	handle.logger.DebugContext(handle.ctx, "openvpn_plugin_client_constructor_v1: called")
 
-	clientHandle := cgo.NewHandle(&ClientContext{})
-
-	//goland:noinspection GoVetUnsafePointer
-	return unsafe.Pointer(uintptr(clientHandle))
+	return cgo.NewHandle(&ClientContext{})
 }
 
 func PluginClientDestructorV1(handlePtr c.OpenVPNPluginHandle, perClientContext c.OpenVPNPluginClientContext) {
@@ -179,11 +177,11 @@ func PluginClientDestructorV1(handlePtr c.OpenVPNPluginHandle, perClientContext 
 
 	handle.logger.DebugContext(handle.ctx, "openvpn_plugin_client_destructor_v1: called")
 
-	cgo.Handle(perClientContext).Delete() // frees handle, allows GC to collect Go object
+	perClientContext.Delete() // frees handle, allows GC to collect Go object
 }
 
 func PluginAbortV1(handlePtr c.OpenVPNPluginHandle) {
-	if handlePtr == nil {
+	if handlePtr == 0 {
 		return
 	}
 

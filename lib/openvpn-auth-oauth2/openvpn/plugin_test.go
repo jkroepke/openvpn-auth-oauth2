@@ -8,7 +8,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
-	"runtime/cgo"
 	"strings"
 	"sync"
 	"testing"
@@ -131,7 +130,7 @@ func TestPlugin(t *testing.T) {
 	clientContext := PluginClientConstructorV1(openRet.Handle)
 	require.NotNil(t, clientContext)
 
-	_, ok = cgo.Handle(clientContext).Value().(*ClientContext)
+	_, ok = clientContext.Value().(*ClientContext)
 	require.True(t, ok)
 
 	authControlFile, err := os.CreateTemp(t.TempDir(), "auth_control_file")
