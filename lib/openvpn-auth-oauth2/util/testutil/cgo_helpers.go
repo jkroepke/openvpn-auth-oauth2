@@ -1,5 +1,10 @@
 package testutil
 
+/*
+#include <stdlib.h>
+*/
+import "C"
+
 import (
 	"unsafe"
 
@@ -27,7 +32,7 @@ func CreateCStringArray(strings []string) (**c.Char, []*c.Char) {
 	// Allocate array of pointers (len + 1 for NULL terminator)
 	ptrSize := unsafe.Sizeof(uintptr(0))
 	arraySize := (uint64(len(strings)) + 1) * uint64(ptrSize)
-	argv := c.Malloc(c.SizeT(arraySize))
+	argv := C.malloc(C.size_t(arraySize))
 
 	// Fill the array
 	for i, cStr := range cStrings {
@@ -50,10 +55,10 @@ func CreateCStringArray(strings []string) (**c.Char, []*c.Char) {
 func FreeCStringArray(argv **c.Char, cStrings []*c.Char) {
 	// Free individual strings
 	for _, cStr := range cStrings {
-		c.Free(unsafe.Pointer(cStr))
+		C.free(unsafe.Pointer(cStr))
 	}
 	// Free the array
-	c.Free(unsafe.Pointer(argv))
+	C.free(unsafe.Pointer(argv))
 }
 
 // CreateEmptyCStringArray creates a NULL-terminated empty C string array.
@@ -65,7 +70,7 @@ func FreeCStringArray(argv **c.Char, cStrings []*c.Char) {
 //   - **c.Char: Pointer to a NULL-terminated empty array
 func CreateEmptyCStringArray() **c.Char {
 	// Allocate array with just NULL terminator
-	argv := c.Malloc(c.SizeT(unsafe.Sizeof(uintptr(0))))
+	argv := C.malloc(C.size_t(unsafe.Sizeof(uintptr(0))))
 	*(**c.Char)(argv) = nil
 
 	return (**c.Char)(argv)

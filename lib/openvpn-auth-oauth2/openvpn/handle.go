@@ -4,6 +4,7 @@ package openvpn
 #include <stdlib.h>
 */
 import "C"
+
 import (
 	"fmt"
 	"log/slog"

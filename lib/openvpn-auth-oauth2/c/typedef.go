@@ -12,9 +12,8 @@ import (
 )
 
 type (
-	Int   = int
-	Char  = C.char
-	SizeT = uint
+	Int  = int
+	Char = C.char
 )
 
 type OpenVPNPluginFuncStatus = Int
