@@ -31,7 +31,7 @@ builds:
         -X internal/version.Commit={{.Commit}}
         -X internal/version.Date={{.Date}}
 
-  - id: "lib-openvpn-auth-oauth2"
+  - id: "openvpn-auth-oauth2.so"
     binary: openvpn-auth-oauth2-{{ .Os }}-{{ .Arch }}
     main: ./lib/openvpn-auth-oauth2
     buildmode: c-shared
@@ -47,7 +47,7 @@ builds:
       - linux
     goarch:
       - amd64
-      - arm64
+    #  - arm64
     mod_timestamp: '{{ .CommitTimestamp }}'
     tags:
       - no_otel
@@ -63,22 +63,28 @@ builds:
 archives:
   - id: openvpn-auth-oauth2
     ids:
-        - openvpn-auth-oauth2
+      - openvpn-auth-oauth2
+      - openvpn-auth-oauth2.so
+    allow_different_binary_count: true
     formats: ['tar.xz']
     files:
-        - LICENSE.txt
-        - 3rdpartylicenses/**/*
+      - LICENSE.txt
+      - 3rdpartylicenses/**/*
 
 nfpms:
   - id: openvpn-auth-oauth2
     ids:
       - openvpn-auth-oauth2
+      - openvpn-auth-oauth2.so
     homepage: https://github.com/jkroepke/openvpn-auth-oauth2
     maintainer: Jan-Otto Kröpke <github@jkroepke.de>
     section: net
     description: |
       openvpn-auth-oauth2 is a management client for OpenVPN that handles the authentication of connecting users against OIDC providers like Azure AD or Keycloak.
     license: MIT License
+    libdirs:
+      headers: /usr/include/openvpn-auth-oauth2
+      cshared: /usr/lib/openvpn
     formats:
       - deb
       - rpm

@@ -63,6 +63,7 @@ jobs:
       - uses: anchore/sbom-action/download-syft@8e94d75ddd33f69f691467e42275782e4bfefe84 # v0.20.9
 
       - name: Install plugin dependencies
+        if: false
         run: |
           sudo dpkg --add-architecture arm64
           sudo sed -i '/^Types: deb$/a Architectures: amd64 i386' /etc/apt/sources.list.d/ubuntu.sources
@@ -180,6 +181,7 @@ jobs:
       - uses: anchore/sbom-action/download-syft@8e94d75ddd33f69f691467e42275782e4bfefe84 # v0.20.9
 
       - name: Install plugin dependencies
+        if: false
         run: |
           sudo dpkg --add-architecture arm64
           sudo sed -i '/^Types: deb$/a Architectures: amd64 i386' /etc/apt/sources.list.d/ubuntu.sources
