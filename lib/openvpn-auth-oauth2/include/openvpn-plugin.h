@@ -25,19 +25,7 @@
 
 #define OPENVPN_PLUGIN_VERSION 3
 
-#ifdef ENABLE_CRYPTO_MBEDTLS
-#include <mbedtls/x509_crt.h>
-#ifndef __OPENVPN_X509_CERT_T_DECLARED
-#define __OPENVPN_X509_CERT_T_DECLARED
-typedef mbedtls_x509_crt openvpn_x509_cert_t;
-#endif
-#else  /* ifdef ENABLE_CRYPTO_MBEDTLS */
-#include <openssl/x509.h>
-#ifndef __OPENVPN_X509_CERT_T_DECLARED
-#define __OPENVPN_X509_CERT_T_DECLARED
-typedef X509 openvpn_x509_cert_t;
-#endif
-#endif
+typedef void *openvpn_x509_cert_t;
 
 #include <stdarg.h>
 #include <stddef.h>
