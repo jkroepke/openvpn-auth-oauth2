@@ -77,8 +77,8 @@ type OpenVPNPluginStringList struct {
 }
 
 type (
-	OpenVPNPluginHandle        = cgo.Handle
-	OpenVPNPluginClientContext = cgo.Handle
+	OpenVPNPluginHandle        = *cgo.Handle
+	OpenVPNPluginClientContext = *cgo.Handle
 )
 
 type PLogLevel = Int

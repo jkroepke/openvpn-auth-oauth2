@@ -113,16 +113,7 @@ func openvpn_plugin_close_v1(handlePtr C.openvpn_plugin_handle_t) {
 //nolint:unsed
 //goland:noinspection GoSnakeCaseUsage,GoUnusedFunction
 func openvpn_plugin_client_constructor_v1(handlePtr C.openvpn_plugin_handle_t) unsafe.Pointer {
-	perClientContext := C.malloc(C.size_t(unsafe.Sizeof(C.uintptr_t(0))))
-	if perClientContext == nil {
-		panic("malloc failed")
-	}
-
-	handle := openvpn.PluginClientConstructorV1(c.OpenVPNPluginHandle(handlePtr))
-
-	*(*C.uintptr_t)(perClientContext) = C.uintptr_t(uintptr(handle))
-
-	return perClientContext
+	return unsafe.Pointer(openvpn.PluginClientConstructorV1(c.OpenVPNPluginHandle(handlePtr)))
 }
 
 // openvpn_plugin_client_destructor_v1 is called by OpenVPN when a client disconnects.
@@ -139,10 +130,8 @@ func openvpn_plugin_client_constructor_v1(handlePtr C.openvpn_plugin_handle_t) u
 func openvpn_plugin_client_destructor_v1(handlePtr C.openvpn_plugin_handle_t, perClientContext unsafe.Pointer) {
 	openvpn.PluginClientDestructorV1(
 		c.OpenVPNPluginHandle(handlePtr),
-		cgo.Handle(uintptr(*(*C.uintptr_t)(perClientContext))),
+		(*cgo.Handle)(perClientContext),
 	)
-
-	C.free(perClientContext)
 }
 
 // openvpn_plugin_abort_v1 is called by OpenVPN when an abort signal is received or

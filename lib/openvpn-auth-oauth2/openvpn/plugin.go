@@ -76,7 +76,7 @@ func PluginOpenV3(v3structver c.Int, args *c.OpenVPNPluginArgsOpenIn, ret *c.Ope
 		listenSocketAddr: listenSocketAddr,
 	})
 
-	ret.Handle = handle
+	ret.Handle = &handle
 
 	logger.InfoContext(ctx, "plugin loaded",
 		slog.String("version", version.Version),
@@ -166,7 +166,9 @@ func PluginClientConstructorV1(handlePtr c.OpenVPNPluginHandle) c.OpenVPNPluginC
 
 	handle.logger.DebugContext(handle.ctx, "openvpn_plugin_client_constructor_v1: called")
 
-	return cgo.NewHandle(&ClientContext{})
+	perClientContext := cgo.NewHandle(&ClientContext{})
+
+	return &perClientContext
 }
 
 func PluginClientDestructorV1(handlePtr c.OpenVPNPluginHandle, perClientContext c.OpenVPNPluginClientContext) {
@@ -181,7 +183,7 @@ func PluginClientDestructorV1(handlePtr c.OpenVPNPluginHandle, perClientContext 
 }
 
 func PluginAbortV1(handlePtr c.OpenVPNPluginHandle) {
-	if handlePtr == 0 {
+	if handlePtr == nil {
 		return
 	}
 
