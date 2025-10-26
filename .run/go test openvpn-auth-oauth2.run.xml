@@ -2,7 +2,10 @@
   <configuration default="false" name="go test openvpn-auth-oauth2" type="GoTestRunConfiguration" factoryName="Go Test" nameIsGenerated="true">
     <module name="openvpn-auth-oauth2" />
     <working_directory value="$PROJECT_DIR$" />
-    <go_parameters value="-race -count 10 -coverprofile coverage.out -coverpkg=./... -covermode=atomic -timeout 60s" />
+    <go_parameters value="-race -skip TestPlugin -count 10 -coverprofile coverage.out -coverpkg=./... -covermode=atomic -timeout 60s" />
+    <envs>
+      <env name="GOFLAGS" value="-ldflags=-extldflags=-Wl,-ld_classic " />
+    </envs>
     <kind value="DIRECTORY" />
     <package value="./..." />
     <directory value="$PROJECT_DIR$" />
