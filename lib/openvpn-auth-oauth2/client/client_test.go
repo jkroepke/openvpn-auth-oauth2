@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewClient(t *testing.T) {
+func TestNewClient_Full(t *testing.T) {
 	t.Parallel()
 
 	vpnClient, err := client.NewClient(12345, map[string]string{
@@ -64,6 +64,31 @@ func TestNewClient(t *testing.T) {
 			">CLIENT:ENV,username=testuser",
 		}, message)
 	})
+}
+
+func TestNewClient_ClientID(t *testing.T) {
+	var err error
+
+	_, err = client.NewClient(1, map[string]string{})
+	require.NoError(t, err)
+
+	_, err = client.NewClient(10, map[string]string{})
+	require.NoError(t, err)
+
+	_, err = client.NewClient(100, map[string]string{})
+	require.NoError(t, err)
+
+	_, err = client.NewClient(1000, map[string]string{})
+	require.NoError(t, err)
+
+	_, err = client.NewClient(10000, map[string]string{})
+	require.NoError(t, err)
+
+	_, err = client.NewClient(100000, map[string]string{})
+	require.NoError(t, err)
+
+	_, err = client.NewClient(1000000, map[string]string{})
+	require.NoError(t, err)
 }
 
 func TestClient_WriteToAuthFile(t *testing.T) {
