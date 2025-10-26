@@ -157,6 +157,5 @@ func (c *Client) WriteAuthPending(resp *management.Response) error {
 		return fmt.Errorf("write to pending file %s: %w", c.AuthPendingFile, err)
 	}
 
-	// Also write "2" to the auth control file to indicate deferred auth
-	return c.WriteToAuthFile("2")
+	return nil
 }

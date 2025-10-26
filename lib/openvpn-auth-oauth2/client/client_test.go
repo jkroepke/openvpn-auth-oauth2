@@ -147,12 +147,6 @@ func TestClient_WriteAuthPending(t *testing.T) {
 	t.Run("OK", func(t *testing.T) {
 		t.Parallel()
 
-		authControlFile, err := os.CreateTemp(t.TempDir(), "auth_control_file")
-		require.NoError(t, err)
-		t.Cleanup(func() {
-			require.NoError(t, authControlFile.Close())
-		})
-
 		authPendingFile, err := os.CreateTemp(t.TempDir(), "auth_pending_file")
 		require.NoError(t, err)
 		t.Cleanup(func() {
@@ -161,7 +155,6 @@ func TestClient_WriteAuthPending(t *testing.T) {
 
 		vpnClient, err := client.NewClient(12345, map[string]string{
 			"auth_pending_file": authPendingFile.Name(),
-			"auth_control_file": authControlFile.Name(),
 		})
 		require.NoError(t, err)
 
@@ -174,10 +167,6 @@ func TestClient_WriteAuthPending(t *testing.T) {
 		data, err := os.ReadFile(authPendingFile.Name())
 		require.NoError(t, err)
 		require.Equal(t, "300\nwebauth\nTEST\n", string(data))
-
-		data, err = os.ReadFile(authControlFile.Name())
-		require.NoError(t, err)
-		require.Equal(t, "2", string(data))
 	})
 
 	t.Run("WriteError", func(t *testing.T) {
