@@ -25,7 +25,7 @@ import (
 // Returns:
 //   - c.OpenVPNPluginFuncSuccess if the listener starts successfully
 //   - c.OpenVPNPluginFuncError if the listener fails to start
-func (p *pluginHandle) handlePluginUp() c.OpenVPNPluginFuncStatus {
+func (p *PluginHandle) handlePluginUp() c.OpenVPNPluginFuncStatus {
 	if err := p.managementClient.Listen(p.ctx, p.listenSocketAddr); err != nil {
 		p.logger.ErrorContext(p.ctx, "failed to start management client",
 			slog.Any("err", err),
@@ -61,7 +61,7 @@ func (p *pluginHandle) handlePluginUp() c.OpenVPNPluginFuncStatus {
 //   - C.OPENVPN_PLUGIN_FUNC_DEFERRED if authentication is pending (OAuth2 flow in progress)
 //
 //nolint:cyclop,gocognit
-func (p *pluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClientContext *clientContext) c.OpenVPNPluginFuncStatus {
+func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClientContext *ClientContext) c.OpenVPNPluginFuncStatus {
 	envArray, err := util.NewEnvList(clientEnvList)
 	if err != nil {
 		p.logger.ErrorContext(p.ctx, "parse env vars",
@@ -108,7 +108,6 @@ func (p *pluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 
 	perClientContext.mu.Lock()
 	perClientContext.clientID = currentClientID
-	perClientContext.authState = resp.ClientAuth
 	perClientContext.mu.Unlock()
 
 	logger.InfoContext(p.ctx, "client auth response: "+resp.ClientAuth.String())
@@ -123,6 +122,8 @@ func (p *pluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 			return c.OpenVPNPluginFuncError
 		}
 
+		logger.InfoContext(p.ctx, "authentication accepted")
+
 		perClientContext.mu.Lock()
 		perClientContext.clientConfig = resp.ClientConfig
 		perClientContext.mu.Unlock()
@@ -134,7 +135,11 @@ func (p *pluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 			reason = resp.Message
 		}
 
-		if err := openVPNClient.WriteToAuthFile("0\n" + reason); err != nil {
+		logger.InfoContext(p.ctx, "authentication denied",
+			slog.String("reason", reason),
+		)
+
+		if err := openVPNClient.WriteToAuthFile("0"); err != nil {
 			logger.ErrorContext(p.ctx, "write to auth file",
 				slog.Any("err", err),
 			)
@@ -152,6 +157,7 @@ func (p *pluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 
 			return c.OpenVPNPluginFuncError
 		}
+		logger.InfoContext(p.ctx, "authentication pending")
 
 		go func() {
 			resp, err := p.managementClient.AuthPendingPoller(currentClientID, 5*time.Minute)
@@ -163,8 +169,6 @@ func (p *pluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 				return
 			}
 
-			logger.InfoContext(p.ctx, "client auth response: "+resp.ClientAuth.String())
-
 			switch resp.ClientAuth {
 			case management.ClientAuthAccept:
 				if err := openVPNClient.WriteToAuthFile("1"); err != nil {
@@ -175,8 +179,9 @@ func (p *pluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 					return
 				}
 
+				logger.InfoContext(p.ctx, "authentication accepted")
+
 				perClientContext.mu.Lock()
-				perClientContext.authState = resp.ClientAuth
 				perClientContext.clientConfig = resp.ClientConfig
 				perClientContext.mu.Unlock()
 			case management.ClientAuthDeny:
@@ -185,7 +190,11 @@ func (p *pluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 					reason = resp.Message
 				}
 
-				if err := openVPNClient.WriteToAuthFile("0\n" + reason); err != nil {
+				logger.InfoContext(p.ctx, "authentication denied",
+					slog.String("reason", reason),
+				)
+
+				if err := openVPNClient.WriteToAuthFile("0"); err != nil {
 					logger.ErrorContext(p.ctx, "write to auth file",
 						slog.Any("err", err),
 					)
@@ -221,7 +230,7 @@ func (p *pluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 //   - c.OpenVPNPluginFuncSuccess if client is authenticated and can connect
 //   - c.OpenVPNPluginFuncError if authentication failed or context is invalid
 //   - C.OPENVPN_PLUGIN_FUNC_DEFERRED if authentication is still pending
-func (p *pluginHandle) handleClientConnect(perClientContext *clientContext, ret *c.OpenVPNPluginArgsFuncReturn) c.OpenVPNPluginFuncStatus {
+func (p *PluginHandle) handleClientConnect(perClientContext *ClientContext, ret *c.OpenVPNPluginArgsFuncReturn) c.OpenVPNPluginFuncStatus {
 	if perClientContext == nil {
 		p.logger.ErrorContext(p.ctx, "CLIENT_CONNECT_V2: missing perClientContext")
 
@@ -231,44 +240,35 @@ func (p *pluginHandle) handleClientConnect(perClientContext *clientContext, ret 
 	perClientContext.mu.Lock()
 	defer perClientContext.mu.Unlock()
 
-	switch perClientContext.authState {
-	case management.ClientAuthAccept:
-		if perClientContext.clientConfig != "" {
-			if ret == nil {
-				p.logger.ErrorContext(p.ctx, "CLIENT_CONNECT_V2: missing return_list")
-
-				return c.OpenVPNPluginFuncError
-			}
-
-			returnList := (*c.OpenVPNPluginStringList)(
-				C.calloc(1, C.size_t(unsafe.Sizeof(C.struct_openvpn_plugin_string_list{}))),
-			)
-
-			if returnList == nil {
-				p.logger.ErrorContext(p.ctx, "malloc(return_list) failed")
-
-				return c.OpenVPNPluginFuncError
-			}
-
-			returnList.Name = c.CString("config")
-			returnList.Value = c.CString(perClientContext.clientConfig)
-
-			*ret.ReturnList = returnList
-		}
-
+	if perClientContext.clientConfig == "" {
 		return c.OpenVPNPluginFuncSuccess
-	case management.ClientAuthDeny:
-		return c.OpenVPNPluginFuncError
-	default:
-		p.logger.ErrorContext(p.ctx, "CLIENT_CONNECT_V2: unexpected auth state",
-			slog.Any("state", perClientContext.authState),
-		)
+	}
+
+	if ret == nil || ret.ReturnList == nil {
+		p.logger.ErrorContext(p.ctx, "CLIENT_CONNECT_V2: missing return_list")
 
 		return c.OpenVPNPluginFuncError
 	}
+
+	returnList := (*c.OpenVPNPluginStringList)(
+		C.calloc(1, C.size_t(unsafe.Sizeof(C.struct_openvpn_plugin_string_list{}))),
+	)
+
+	if returnList == nil {
+		p.logger.ErrorContext(p.ctx, "malloc(return_list) failed")
+
+		return c.OpenVPNPluginFuncError
+	}
+
+	returnList.Name = c.CString("config")
+	returnList.Value = c.CString(perClientContext.clientConfig)
+
+	*ret.ReturnList = returnList
+
+	return c.OpenVPNPluginFuncSuccess
 }
 
-func (p *pluginHandle) handleClientDisconnect(clientEnvList **c.Char, perClientContext *clientContext) c.OpenVPNPluginFuncStatus {
+func (p *PluginHandle) handleClientDisconnect(clientEnvList **c.Char, perClientContext *ClientContext) c.OpenVPNPluginFuncStatus {
 	perClientContext.mu.Lock()
 	defer perClientContext.mu.Unlock()
 

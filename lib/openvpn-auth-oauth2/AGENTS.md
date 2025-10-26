@@ -445,7 +445,7 @@ The plugin uses CGo to interface with OpenVPN's C API:
 
 ```go
 /*
-#cgo CFLAGS: -Wno-discarded-qualifiers -I./include
+#cgo CFLAGS: -I./include
 #include <openvpn-plugin.h>
 
 extern int openvpn_plugin_open_v3(...) {

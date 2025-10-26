@@ -132,13 +132,19 @@ func (s *Server) Listen(ctx context.Context, addr string) error {
 	parsedURL, err := url.Parse(addr)
 	if err != nil {
 		return fmt.Errorf("invalid listen socket address '%s': %w", addr, err)
-	} else if parsedURL.Scheme != "tcp" && parsedURL.Scheme != "unix" {
+	}
+
+	var listenConfig net.ListenConfig
+
+	switch parsedURL.Scheme {
+	case "tcp":
+		s.listenSocket, err = listenConfig.Listen(ctx, parsedURL.Scheme, parsedURL.Host)
+	case "unix":
+		s.listenSocket, err = listenConfig.Listen(ctx, parsedURL.Scheme, parsedURL.Path)
+	default:
 		return fmt.Errorf("unsupported scheme: %s", parsedURL.Scheme)
 	}
 
-	var lc net.ListenConfig
-
-	s.listenSocket, err = lc.Listen(ctx, parsedURL.Scheme, parsedURL.Host)
 	if err != nil {
 		return fmt.Errorf("failed to listen on %s: %w", addr, err)
 	}
@@ -357,10 +363,12 @@ func (s *Server) parseResponse(response string) (*Response, error) {
 		}, nil
 	case "client-deny":
 		// client-deny 0 1 "OpenVPN Client does not support SSO authentication via webauth"
+		parts := strings.SplitN(message, " ", 2)
+
 		return &Response{
 			ClientID:   uint32(clientID),
 			ClientAuth: ClientAuthDeny,
-			Message:    strings.Trim(message, `"`),
+			Message:    strings.Trim(parts[1], `"`),
 		}, nil
 	case "client-pending-auth":
 		// client-pending-auth 0 1 "WEB_AUTH::https://example.com/..." 300

@@ -1,12 +1,15 @@
 package main
 
 /*
-#cgo CFLAGS: -Wno-discarded-qualifiers -I./include
+#cgo CFLAGS: -I./include
 #include <openvpn-plugin.h>
+#include <stdint.h>
+#include <stdlib.h>
 */
 import "C"
 
 import (
+	"runtime/cgo"
 	"unsafe"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/c"
@@ -16,11 +19,7 @@ import (
 // openvpn_plugin_select_initialization_point_v1
 //
 // Several points exist in OpenVPNs initialization sequence where
-// the openvpn_plugin_open function can be called. While the default is
-// OPENVPN_PLUGIN_INIT_PRE_DAEMON, this function can be used to select a
-// different initialization point. For example, if the plugin needs to
-// return configuration parameters to OpenVPN, use
-// OPENVPN_PLUGIN_INIT_PRE_CONFIG_PARSE.
+// the openvpn_plugin_open function can be called.
 //
 //export openvpn_plugin_select_initialization_point_v1
 //nolint:unsed
@@ -45,7 +44,7 @@ func openvpn_plugin_min_version_required_v1() C.int {
 // the plugin event types that this plugin will handle.
 //
 // Parameters:
-//   - v3structver: The OpenVPN plugin API structure version
+//   - v3structver: The OpenVPN Plugin API structure version
 //   - args: Plugin initialization arguments including argv and callbacks
 //   - ret: Return structure where the plugin sets the type_mask and handle
 //
@@ -114,7 +113,7 @@ func openvpn_plugin_close_v1(handlePtr C.openvpn_plugin_handle_t) {
 //nolint:unsed
 //goland:noinspection GoSnakeCaseUsage,GoUnusedFunction
 func openvpn_plugin_client_constructor_v1(handlePtr C.openvpn_plugin_handle_t) unsafe.Pointer {
-	return openvpn.PluginClientConstructorV1(c.OpenVPNPluginHandle(handlePtr))
+	return unsafe.Pointer(openvpn.PluginClientConstructorV1(c.OpenVPNPluginHandle(handlePtr)))
 }
 
 // openvpn_plugin_client_destructor_v1 is called by OpenVPN when a client disconnects.
@@ -129,7 +128,10 @@ func openvpn_plugin_client_constructor_v1(handlePtr C.openvpn_plugin_handle_t) u
 //nolint:unsed
 //goland:noinspection GoSnakeCaseUsage,GoUnusedFunction
 func openvpn_plugin_client_destructor_v1(handlePtr C.openvpn_plugin_handle_t, perClientContext unsafe.Pointer) {
-	openvpn.PluginClientDestructorV1(c.OpenVPNPluginHandle(handlePtr), perClientContext)
+	openvpn.PluginClientDestructorV1(
+		c.OpenVPNPluginHandle(handlePtr),
+		(*cgo.Handle)(perClientContext),
+	)
 }
 
 // openvpn_plugin_abort_v1 is called by OpenVPN when an abort signal is received or

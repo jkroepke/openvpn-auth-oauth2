@@ -3,6 +3,7 @@ package state
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -71,6 +72,10 @@ func NewWithEncodedToken(encodedState, secretKey string) (State, error) {
 // Empty strings are encoded as \x00, and spaces as \x00.
 // The result is safe for use in URL parameters and has a ~1-second resolution timestamp.
 func (state *State) Encode(secretKey string) (string, error) {
+	if secretKey == "" {
+		return "", errors.New("secret key is required")
+	}
+
 	var data bytes.Buffer
 	// Preallocate buffer space to minimize reallocations.
 	data.Grow(129 +
