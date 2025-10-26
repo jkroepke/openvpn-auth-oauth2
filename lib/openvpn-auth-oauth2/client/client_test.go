@@ -67,6 +67,8 @@ func TestNewClient_Full(t *testing.T) {
 }
 
 func TestNewClient_ClientID(t *testing.T) {
+	t.Parallel()
+
 	var err error
 
 	_, err = client.NewClient(1, map[string]string{})

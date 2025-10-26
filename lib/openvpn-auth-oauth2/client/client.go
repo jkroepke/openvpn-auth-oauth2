@@ -76,10 +76,6 @@ func NewClient(clientID uint64, envArray util.List) (*Client, error) {
 }
 
 func (c *Client) GetConnectMessage() string {
-	if c == nil {
-		return ""
-	}
-
 	clientID := strconv.FormatUint(c.ClientID, 10)
 	connectionID := strconv.FormatInt(time.Now().Unix(), 10)
 
@@ -108,10 +104,6 @@ func (c *Client) GetConnectMessage() string {
 }
 
 func (c *Client) GetDisconnectMessage() string {
-	if c == nil {
-		return ""
-	}
-
 	clientID := strconv.FormatUint(c.ClientID, 10)
 
 	sb := strings.Builder{}
