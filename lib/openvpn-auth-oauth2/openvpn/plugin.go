@@ -168,7 +168,7 @@ func PluginClientConstructorV1(handlePtr c.OpenVPNPluginHandle) c.OpenVPNPluginC
 	clientHandle := cgo.NewHandle(&ClientContext{})
 
 	//goland:noinspection GoVetUnsafePointer
-	return unsafe.Pointer(clientHandle)
+	return unsafe.Pointer(uintptr(clientHandle))
 }
 
 func PluginClientDestructorV1(handlePtr c.OpenVPNPluginHandle, perClientContext c.OpenVPNPluginClientContext) {
