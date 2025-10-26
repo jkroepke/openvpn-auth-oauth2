@@ -67,7 +67,7 @@ func NewServer(logger *slog.Logger, password string) *Server {
 	return &Server{
 		logger:   logger,
 		password: password,
-		respChs:  make(map[uint64]chan *Response),
+		respChs:  make(map[uint64]chan *Response, 1),
 	}
 }
 
@@ -243,8 +243,11 @@ func (s *Server) handleManagementClient(ctx context.Context, conn net.Conn) erro
 
 			continue
 		case strings.HasPrefix(line, "client-auth-nt"):
+			_ = s.writeToClient("SUCCESS: client-auth command succeeded")
 		case strings.HasPrefix(line, "client-pending-auth"):
+			_ = s.writeToClient("SUCCESS: client-pending-auth command succeeded")
 		case strings.HasPrefix(line, "client-deny"):
+			_ = s.writeToClient("SUCCESS: client-deny command succeeded")
 		case strings.HasPrefix(line, "client-auth"):
 			for scanner.Scan() {
 				line += newline + strings.TrimSpace(scanner.Text())
@@ -253,11 +256,15 @@ func (s *Server) handleManagementClient(ctx context.Context, conn net.Conn) erro
 					break
 				}
 			}
+
+			_ = s.writeToClient("SUCCESS: client-auth command succeeded")
 		default:
-			_ = s.writeToClient("UNKNOWN: " + line)
+			_ = s.writeToClient("ERROR: unknown command, enter 'help' for more options")
 
 			continue
 		}
+
+		s.logger.DebugContext(ctx, line)
 
 		resp, err := s.parseResponse(line)
 		if err != nil {

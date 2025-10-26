@@ -1,5 +1,7 @@
 package util
 
+import "C"
+
 import (
 	"unsafe"
 
@@ -29,7 +31,7 @@ func ArgvToStrings(argv **c.Char) []string {
 	ptrs := unsafe.Slice(argv, count)
 
 	stringArgs := make([]string, count)
-	
+
 	for i, s := range ptrs {
 		stringArgs[i] = c.GoString(s)
 	}

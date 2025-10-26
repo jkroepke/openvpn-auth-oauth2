@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/management"
 	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/util"
@@ -29,7 +30,7 @@ func NewClient(clientID uint64, envArray util.List) (*Client, error) {
 		env:      envArray,
 		ClientID: clientID,
 		// Initialize base size: ">CLIENT:CONNECT," + "\r\n>CLIENT:ENV,END"
-		estimatedSize: 17 + 18 + 2, // 35 base characters
+		estimatedSize: 17 + 19,
 	}
 
 	if clientID >= 10_000 {
@@ -68,12 +69,16 @@ func (c *Client) GetConnectMessage() string {
 		return ""
 	}
 
+	clientID := strconv.FormatUint(c.ClientID, 10)
+	connectionID := strconv.FormatInt(time.Now().Unix(), 10)
+
 	sb := strings.Builder{}
-	sb.Grow(c.estimatedSize) // Use the pre-calculated size
+	sb.Grow(c.estimatedSize + len(clientID) + 1 + len(connectionID)) // Use the pre-calculated size
 
 	sb.WriteString(">CLIENT:CONNECT,")
-	sb.WriteString(strconv.FormatUint(c.ClientID, 10))
-	sb.WriteString(",0")
+	sb.WriteString(clientID)
+	sb.WriteString(",")
+	sb.WriteString(connectionID)
 
 	for key, value := range c.env {
 		sb.WriteString("\r\n>CLIENT:ENV,")
@@ -92,11 +97,13 @@ func (c *Client) GetDisconnectMessage() string {
 		return ""
 	}
 
+	clientID := strconv.FormatUint(c.ClientID, 10)
+
 	sb := strings.Builder{}
-	sb.Grow(c.estimatedSize - 2) // Use the pre-calculated size
+	sb.Grow(c.estimatedSize + 4 + len(clientID))
 
 	sb.WriteString(">CLIENT:DISCONNECT,")
-	sb.WriteString(strconv.FormatUint(c.ClientID, 10))
+	sb.WriteString(clientID)
 
 	for key, value := range c.env {
 		sb.WriteString("\r\n>CLIENT:ENV,")

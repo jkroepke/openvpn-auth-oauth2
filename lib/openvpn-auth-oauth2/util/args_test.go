@@ -34,7 +34,7 @@ func TestArgvToStrings_SingleString(t *testing.T) {
 	t.Parallel()
 
 	testStr := "test-string"
-	
+
 	argv, cStrings := testutil.CreateCStringArray([]string{testStr})
 	defer testutil.FreeCStringArray(argv, cStrings)
 

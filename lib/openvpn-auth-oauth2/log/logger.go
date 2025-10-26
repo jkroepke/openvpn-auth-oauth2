@@ -1,5 +1,8 @@
 package log
 
+/*
+#include <stdlib.h>
+*/
 import "C"
 
 import (
@@ -51,6 +54,7 @@ func (h *PluginHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	if len(attrs) == 0 {
 		return h
 	}
+
 	handler := *h
 
 	// Pre-format the attributes.
@@ -88,7 +92,7 @@ func (h *PluginHandler) Handle(_ context.Context, record slog.Record) error {
 
 	c.PluginLog(h.cb, h.pluginLogLevel(record.Level), msg)
 
-	c.Free(unsafe.Pointer(msg))
+	C.free(unsafe.Pointer(msg))
 
 	h.mu.Unlock()
 
@@ -122,9 +126,11 @@ func (h *PluginHandler) appendAttr(buf []byte, attr slog.Attr) []byte {
 		if attr.Key != "" {
 			buf = fmt.Appendf(buf, " %s={", attr.Key)
 		}
+
 		for _, ga := range attrs {
 			buf = h.appendAttr(buf, ga)
 		}
+
 		if attr.Key != "" {
 			buf = fmt.Appendf(buf, "}")
 		}

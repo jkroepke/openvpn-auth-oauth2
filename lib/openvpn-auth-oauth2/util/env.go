@@ -1,5 +1,7 @@
 package util
 
+import "C"
+
 import (
 	"errors"
 	"fmt"
