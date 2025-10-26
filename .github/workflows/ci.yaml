@@ -34,7 +34,7 @@ jobs:
         shell: bash
         continue-on-error: true
 
-      - name: go test (retry)
+      - name: go test ./... -timeout 20s -race -covermode=atomic -coverprofile=coverage.out -coverpkg=./... (retry)
         if: steps.test.outcome == 'failure'
         shell: bash
         run: go test ./... -timeout 20s -race -covermode=atomic -coverprofile=coverage.out -coverpkg=./...
@@ -61,6 +61,22 @@ jobs:
           cache: "${{ github.actor != 'renovate[bot]' }}"
 
       - uses: anchore/sbom-action/download-syft@8e94d75ddd33f69f691467e42275782e4bfefe84 # v0.20.9
+
+      - name: Install plugin dependencies
+        if: false
+        run: |
+          sudo dpkg --add-architecture arm64
+          sudo sed -i '/^Types: deb$/a Architectures: amd64 i386' /etc/apt/sources.list.d/ubuntu.sources
+
+          echo "Types: deb
+          URIs: http://ports.ubuntu.com/ubuntu-ports
+          Suites: $(lsb_release -cs) $(lsb_release -cs)-updates $(lsb_release -cs)-security
+          Components: main restricted universe multiverse
+          Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+          Architectures: arm64" | sudo tee /etc/apt/sources.list.d/ubuntu-ports.sources
+
+          sudo apt-get update -q
+          sudo apt-get install --no-install-recommends -qy crossbuild-essential-arm64 libssl-dev:arm64
 
       - name: Write gpg sign key
         if: env.GPG_KEY != null
@@ -163,6 +179,22 @@ jobs:
           cache: true
 
       - uses: anchore/sbom-action/download-syft@8e94d75ddd33f69f691467e42275782e4bfefe84 # v0.20.9
+
+      - name: Install plugin dependencies
+        if: false
+        run: |
+          sudo dpkg --add-architecture arm64
+          sudo sed -i '/^Types: deb$/a Architectures: amd64 i386' /etc/apt/sources.list.d/ubuntu.sources
+
+          echo "Types: deb
+          URIs: http://ports.ubuntu.com/ubuntu-ports
+          Suites: $(lsb_release -cs) $(lsb_release -cs)-updates $(lsb_release -cs)-security
+          Components: main restricted universe multiverse
+          Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+          Architectures: arm64" | sudo tee /etc/apt/sources.list.d/ubuntu-ports.sources
+
+          sudo apt-get update -q
+          sudo apt-get install --no-install-recommends -qy crossbuild-essential-arm64 libssl-dev:arm64
 
       - name: GPG configuration
         run: |-

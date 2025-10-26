@@ -8,5 +8,8 @@ ignore:
   - "docs/**/*"
   - "tests/**/*"
   - "internal/utils/testutils/*"
+  - "lib/openvpn-auth-oauth2/*.go"
+  - "lib/openvpn-auth-oauth2/c/*"
+  - "lib/openvpn-auth-oauth2/log/*"
   - "pkg/**/*"
   - "wiki/**/*"

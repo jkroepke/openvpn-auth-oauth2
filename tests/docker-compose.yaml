@@ -6,10 +6,25 @@ services:
     build:
       #language=dockerfile
       dockerfile_inline: |
-        # renovate: docker=ubuntu
-        FROM ubuntu:24.04
+        FROM golang:1.25 AS builder
 
-        RUN apt update && apt install git build-essential autoconf automake libtool pkg-config libnl-genl-3-dev libcap-ng-dev libssl-dev liblz4-dev liblzo2-dev libpam0g-dev python3-docutils easy-rsa -y
+        ARG DEBIAN_FRONTEND=noninteractive
+
+        WORKDIR /app/
+
+        RUN apt-get update && apt-get install libssl-dev -y --no-install-recommends
+
+        COPY . /app/
+
+        RUN go build -o /plugin/openvpn-auth-oauth2.so -buildmode=c-shared ./lib/openvpn-auth-oauth2/
+        RUN ls -lah /plugin/openvpn-auth-oauth2.so
+
+        # renovate: docker=ubuntu
+        FROM ubuntu:24.04 AS openvpn
+
+        ARG DEBIAN_FRONTEND=noninteractive
+
+        RUN apt-get update && apt-get install git ca-certificates build-essential autoconf automake libtool pkg-config libnl-genl-3-dev libcap-ng-dev libssl-dev liblz4-dev liblzo2-dev libpam0g-dev python3-docutils easy-rsa -y --no-install-recommends
 
         WORKDIR /build/
 
@@ -22,9 +37,12 @@ services:
         RUN ./configure
         RUN make
         RUN make install
+        COPY --from=builder /plugin/openvpn-auth-oauth2.so /plugin/openvpn-auth-oauth2.so
+        RUN ls -lah /plugin/openvpn-auth-oauth2.so
       args:
         GIT_REPO: https://github.com/OpenVPN/openvpn.git
         GIT_BRANCH: master
+      context: ../
     cap_add:
       - NET_ADMIN
     devices:
@@ -36,7 +54,6 @@ services:
     volumes:
       - ./:/tests/:ro
       - ./data:/etc/openvpn
-      - ./../pkg/plugin:/plugin/
     #restart: always
     environment:
       EASYRSA: /usr/share/easy-rsa/
@@ -106,11 +123,11 @@ services:
 
         client-config-dir /etc/openvpn/client-config
 
-        management 0.0.0.0 8081 /etc/openvpn/password.txt
-        management-hold
-        management-client-auth
+        #management 0.0.0.0 8081 /etc/openvpn/password.txt
+        #management-hold
+        #management-client-auth
 
-        #plugin /plugin/openvpn-auth-oauth2.so /plugin/config.yaml
+        plugin /plugin/openvpn-auth-oauth2.so tcp://0.0.0.0:8081 /etc/openvpn/password.txt
 
         reneg-sec 120
         push "reneg-sec 0"

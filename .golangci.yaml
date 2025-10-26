@@ -177,3 +177,12 @@ linters:
         path: _test\.go
       - path: _test\.go
         text: "fieldalignment:"
+      - path: lib/
+        text: "^underef: could simplify.*cgo.Handle"
+      - path: lib/
+        linters:
+          - unused
+      - path: lib/
+        text: "fieldalignment:"
+      - path: lib/
+        text: "missing cases in switch of type management.ClientAuth:"
