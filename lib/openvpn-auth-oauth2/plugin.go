@@ -1,7 +1,7 @@
 package main
 
 /*
-#cgo CFLAGS: -Wno-discarded-qualifiers -I./include
+#cgo CFLAGS: -I./include
 #include <openvpn-plugin.h>
 */
 import "C"
@@ -16,11 +16,7 @@ import (
 // openvpn_plugin_select_initialization_point_v1
 //
 // Several points exist in OpenVPNs initialization sequence where
-// the openvpn_plugin_open function can be called. While the default is
-// OPENVPN_PLUGIN_INIT_PRE_DAEMON, this function can be used to select a
-// different initialization point. For example, if the plugin needs to
-// return configuration parameters to OpenVPN, use
-// OPENVPN_PLUGIN_INIT_PRE_CONFIG_PARSE.
+// the openvpn_plugin_open function can be called.
 //
 //export openvpn_plugin_select_initialization_point_v1
 //nolint:unsed
@@ -45,7 +41,7 @@ func openvpn_plugin_min_version_required_v1() C.int {
 // the plugin event types that this plugin will handle.
 //
 // Parameters:
-//   - v3structver: The OpenVPN plugin API structure version
+//   - v3structver: The OpenVPN Plugin API structure version
 //   - args: Plugin initialization arguments including argv and callbacks
 //   - ret: Return structure where the plugin sets the type_mask and handle
 //

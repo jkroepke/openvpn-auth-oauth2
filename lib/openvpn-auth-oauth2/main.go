@@ -1,7 +1,7 @@
 package main
 
 /*
-#cgo CFLAGS: -Wno-discarded-qualifiers -I./include
+#cgo CFLAGS: -I./include
 #include <openvpn-plugin.h>
 
 int openvpn_plugin_open_v3_go(

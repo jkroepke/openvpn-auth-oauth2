@@ -12,6 +12,11 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/util"
 )
 
+var (
+	ErrAuthControlFileNotSet = errors.New("auth_control_file not set")
+	ErrAuthPendingFileNotSet = errors.New("auth_pending_file not set")
+)
+
 type Client struct {
 	env util.List
 
@@ -29,8 +34,8 @@ func NewClient(clientID uint64, envArray util.List) (*Client, error) {
 	client := &Client{
 		env:      envArray,
 		ClientID: clientID,
-		// Initialize base size: ">CLIENT:CONNECT," + "\r\n>CLIENT:ENV,END"
-		estimatedSize: 17 + 19,
+		// Initialize base size: "\r\n>CLIENT:ENV,END"
+		estimatedSize: 19,
 	}
 
 	if clientID >= 10_000 {
@@ -73,7 +78,7 @@ func (c *Client) GetConnectMessage() string {
 	connectionID := strconv.FormatInt(time.Now().Unix(), 10)
 
 	sb := strings.Builder{}
-	sb.Grow(c.estimatedSize + len(clientID) + 1 + len(connectionID)) // Use the pre-calculated size
+	sb.Grow(16 + len(clientID) + 1 + len(connectionID) + c.estimatedSize) // Use the pre-calculated size
 
 	sb.WriteString(">CLIENT:CONNECT,")
 	sb.WriteString(clientID)
@@ -81,6 +86,10 @@ func (c *Client) GetConnectMessage() string {
 	sb.WriteString(connectionID)
 
 	for key, value := range c.env {
+		if key == "auth_control_file" || key == "auth_pending_file" || key == "auth_failed_reason_file" {
+			continue
+		}
+
 		sb.WriteString("\r\n>CLIENT:ENV,")
 		sb.WriteString(key)
 		sb.WriteString("=")
@@ -106,6 +115,10 @@ func (c *Client) GetDisconnectMessage() string {
 	sb.WriteString(clientID)
 
 	for key, value := range c.env {
+		if key == "auth_control_file" || key == "auth_pending_file" || key == "auth_failed_reason_file" {
+			continue
+		}
+
 		sb.WriteString("\r\n>CLIENT:ENV,")
 		sb.WriteString(key)
 		sb.WriteString("=")
@@ -119,7 +132,7 @@ func (c *Client) GetDisconnectMessage() string {
 
 func (c *Client) WriteToAuthFile(auth string) error {
 	if c.AuthControlFile == "" {
-		return errors.New("auth_control_file not set")
+		return ErrAuthControlFileNotSet
 	}
 
 	if err := os.WriteFile(c.AuthControlFile, []byte(auth), 0o600); err != nil {
@@ -137,11 +150,13 @@ func (c *Client) WriteToAuthFile(auth string) error {
 // line 2: Pending auth method the client needs to support (e.g. webauth)
 // line 3: EXTRA (e.g. WEB_AUTH::http://www.example.com)
 func (c *Client) WriteAuthPending(resp *management.Response) error {
-	if c.AuthPendingFile != "" {
-		pendingData := fmt.Sprintf("%s\nwebauth\n%s\n", resp.Timeout, resp.Message)
-		if err := os.WriteFile(c.AuthPendingFile, []byte(pendingData), 0o600); err != nil {
-			return fmt.Errorf("write to pending file %s: %w", c.AuthPendingFile, err)
-		}
+	if c.AuthPendingFile == "" {
+		return ErrAuthControlFileNotSet
+	}
+
+	pendingData := fmt.Sprintf("%s\nwebauth\n%s\n", resp.Timeout, resp.Message)
+	if err := os.WriteFile(c.AuthPendingFile, []byte(pendingData), 0o600); err != nil {
+		return fmt.Errorf("write to pending file %s: %w", c.AuthPendingFile, err)
 	}
 
 	// Also write "2" to the auth control file to indicate deferred auth

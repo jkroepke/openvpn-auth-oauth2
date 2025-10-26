@@ -1,7 +1,7 @@
 package c
 
 /*
-#cgo CFLAGS: -Wno-discarded-qualifiers -Wno-declaration-after-parameter -I../include
+#cgo CFLAGS: -I../include
 #include <openvpn-plugin.h>
 */
 import "C"
