@@ -100,7 +100,7 @@ func ExpectMessage(tb testing.TB, conn net.Conn, reader *bufio.Reader, expectMes
 		err  error
 		line string
 	)
-	for _, expected := range strings.Split(strings.TrimSpace(expectMessage), "\n") {
+	for expected := range strings.SplitSeq(strings.TrimSpace(expectMessage), "\n") {
 		err = conn.SetReadDeadline(time.Now().Add(time.Second * 5))
 		require.NoError(tb, err, "expected line: %s\nexpected message:\n%s", expected, expectMessage)
 

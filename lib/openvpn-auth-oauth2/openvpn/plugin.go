@@ -4,6 +4,7 @@ package openvpn
 #include <stdint.h>
 */
 import "C"
+
 import (
 	"context"
 	"fmt"

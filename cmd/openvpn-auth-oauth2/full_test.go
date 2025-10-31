@@ -194,6 +194,7 @@ func TestFull(t *testing.T) {
 			request, _ := http.NewRequestWithContext(t.Context(), http.MethodGet, authURL, nil)
 
 			var resp *http.Response
+
 			wg := sync.WaitGroup{}
 			wg.Go(func() {
 				resp, err = httpClient.Do(request) //nolint:bodyclose
