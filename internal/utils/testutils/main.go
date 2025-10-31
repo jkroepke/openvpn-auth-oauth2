@@ -202,7 +202,7 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener, logger *slo
 
 		userInfo := wMock.Body.String()
 
-		var userInfoMap map[string]interface{}
+		var userInfoMap map[string]any
 		if err := json.Unmarshal([]byte(userInfo), &userInfoMap); err != nil {
 			http.Error(w, "Invalid user info JSON", http.StatusInternalServerError)
 

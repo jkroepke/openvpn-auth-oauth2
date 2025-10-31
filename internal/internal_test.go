@@ -66,14 +66,10 @@ func BenchmarkFull(b *testing.B) {
 
 		request, _ = http.NewRequestWithContext(b.Context(), http.MethodGet, authURL, nil)
 
-		wgc.Add(1)
-
-		go func() {
-			defer wgc.Done()
-
+		wgc.Go(func() {
 			testutils.ReadLine(b, managementInterfaceConn, reader)
 			testutils.SendMessagef(b, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
-		}()
+		})
 
 		resp, _ = httpClient.Do(request)
 		_, _ = io.Copy(io.Discard, resp.Body)

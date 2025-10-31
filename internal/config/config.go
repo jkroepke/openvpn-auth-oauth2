@@ -115,16 +115,18 @@ func (c *Config) ReadFromFlagAndEnvironment(args []string, writer io.Writer) err
 }
 
 func lookupConfigArgument(args []string) string {
-	configFile := ""
+	var (
+		configFile string
+		ok         bool
+	)
 
 	for i, arg := range args {
 		if !strings.HasPrefix(arg, "--config") {
 			continue
 		}
 
-		if strings.HasPrefix(arg, "--config=") {
-			configFile = strings.TrimPrefix(arg, "--config=")
-
+		configFile, ok = strings.CutPrefix(arg, "--config=")
+		if ok {
 			break
 		}
 

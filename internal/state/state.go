@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"time"
 
@@ -249,17 +250,7 @@ func decodeStringBytes(field []byte) string {
 		return ""
 	}
 	// Fast-path: if no \x00, return the string as-is with no allocation.
-	needReplace := false
-
-	for _, c := range field {
-		if c == '\x00' {
-			needReplace = true
-
-			break
-		}
-	}
-
-	if !needReplace {
+	if !slices.Contains(field, '\x00') {
 		return string(field)
 	}
 
