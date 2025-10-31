@@ -250,7 +250,9 @@ func startServices(
 ) *httpserver.Server {
 	// Start debug listener if enabled
 	if conf.Debug.Pprof {
-		startDebugListener(ctx, cancel, wg, logger, conf)
+		wg.Go(func() {
+			cancel(setupDebugListener(ctx, logger, conf))
+		})
 	}
 
 	// Start HTTP server
@@ -263,24 +265,9 @@ func startServices(
 	return server
 }
 
-// startDebugListener starts the debug/pprof HTTP server in a goroutine.
-func startDebugListener(ctx context.Context, cancel context.CancelCauseFunc, wg *sync.WaitGroup, logger *slog.Logger, conf config.Config) {
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-
-		cancel(setupDebugListener(ctx, logger, conf))
-	}()
-}
-
 // startHTTPServer starts the main HTTP server in a goroutine.
 func startHTTPServer(ctx context.Context, cancel context.CancelCauseFunc, wg *sync.WaitGroup, server *httpserver.Server) {
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-
+	wg.Go(func() {
 		if err := server.Listen(ctx); err != nil {
 			cancel(fmt.Errorf("error http listener: %w", err))
 
@@ -288,16 +275,12 @@ func startHTTPServer(ctx context.Context, cancel context.CancelCauseFunc, wg *sy
 		}
 
 		cancel(nil)
-	}()
+	})
 }
 
 // startOpenVPNClient starts the OpenVPN client in a goroutine.
 func startOpenVPNClient(ctx context.Context, cancel context.CancelCauseFunc, wg *sync.WaitGroup, openvpnClient *openvpn.Client) {
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-
+	wg.Go(func() {
 		if err := openvpnClient.Connect(ctx); err != nil {
 			cancel(fmt.Errorf("openvpn: %w", err))
 
@@ -305,7 +288,7 @@ func startOpenVPNClient(ctx context.Context, cancel context.CancelCauseFunc, wg 
 		}
 
 		cancel(nil)
-	}()
+	})
 }
 
 // handleSignalsAndShutdown manages the main event loop for signals and shutdown.

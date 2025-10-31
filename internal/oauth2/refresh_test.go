@@ -342,19 +342,15 @@ func TestRefreshReAuth(t *testing.T) {
 			request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, authURL, nil)
 			require.NoError(t, err)
 
-			wg := sync.WaitGroup{}
-			wg.Add(1)
-
 			var (
 				resp   *http.Response
 				reqErr error
 			)
 
-			go func() {
-				defer wg.Done()
-
+			wg := sync.WaitGroup{}
+			wg.Go(func() {
 				resp, reqErr = httpClient.Do(request) //nolint:bodyclose
-			}()
+			})
 
 			t.Cleanup(func() {
 				require.NoError(t, managementInterfaceConn.Close())

@@ -22,16 +22,12 @@ func BenchmarkFull(b *testing.B) {
 	_, client, managementInterface, _, _, httpClient, _ := testutils.SetupMockEnvironment(b.Context(), b, config.Config{}, nil, nil)
 
 	wg := sync.WaitGroup{}
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-
+	wg.Go(func() {
 		err := client.Connect(b.Context())
 		if err != nil && !errors.Is(err, io.EOF) {
 			assert.NoError(b, err)
 		}
-	}()
+	})
 
 	managementInterfaceConn, err := managementInterface.Accept()
 	require.NoError(b, err)
@@ -70,14 +66,10 @@ func BenchmarkFull(b *testing.B) {
 
 		request, _ = http.NewRequestWithContext(b.Context(), http.MethodGet, authURL, nil)
 
-		wgc.Add(1)
-
-		go func() {
-			defer wgc.Done()
-
+		wgc.Go(func() {
 			testutils.ReadLine(b, managementInterfaceConn, reader)
 			testutils.SendMessagef(b, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
-		}()
+		})
 
 		resp, _ = httpClient.Do(request)
 		_, _ = io.Copy(io.Discard, resp.Body)
