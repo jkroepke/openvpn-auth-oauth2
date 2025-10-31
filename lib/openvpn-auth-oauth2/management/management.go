@@ -197,6 +197,8 @@ func (s *Server) Close() {
 		if err := s.listenSocket.Close(); err != nil {
 			s.logger.Error(fmt.Errorf("unable to close listen socket: %w", err).Error())
 		}
+
+		s.listenSocket = nil
 	}
 }
 
@@ -278,6 +280,8 @@ func (s *Server) handleManagementClient(ctx context.Context, conn net.Conn) erro
 				slog.Any("err", err),
 				slog.String("response", line),
 			)
+
+			continue
 		}
 
 		s.respChMu.Lock()
