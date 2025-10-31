@@ -88,3 +88,5 @@ Test*.te*
 *.test.exe
 *.test
 *.c
+.gocache/
+tmp/
