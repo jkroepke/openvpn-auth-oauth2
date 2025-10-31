@@ -22,16 +22,12 @@ func BenchmarkFull(b *testing.B) {
 	_, client, managementInterface, _, _, httpClient, _ := testutils.SetupMockEnvironment(b.Context(), b, config.Config{}, nil, nil)
 
 	wg := sync.WaitGroup{}
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-
+	wg.Go(func() {
 		err := client.Connect(b.Context())
 		if err != nil && !errors.Is(err, io.EOF) {
 			assert.NoError(b, err)
 		}
-	}()
+	})
 
 	managementInterfaceConn, err := managementInterface.Accept()
 	require.NoError(b, err)

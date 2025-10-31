@@ -145,16 +145,12 @@ func TestReload(t *testing.T) {
 
 	request, _ := http.NewRequestWithContext(t.Context(), http.MethodGet, authURL, nil)
 
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-
 	var resp *http.Response
 
-	go func() {
-		defer wg.Done()
-
+	wg := sync.WaitGroup{}
+	wg.Go(func() {
 		resp, err = httpClient.Do(request) //nolint:bodyclose
-	}()
+	})
 
 	testutils.ReadLine(t, managementInterfaceConn, reader)
 	testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")

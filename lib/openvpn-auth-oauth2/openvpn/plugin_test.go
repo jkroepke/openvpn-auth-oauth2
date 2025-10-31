@@ -51,7 +51,8 @@ func TestPlugin(t *testing.T) {
 	require.Equal(t, c.OpenVPNPluginFuncSuccess, status)
 
 	t.Cleanup(func() {
-		PluginCloseV1(openRet.Handle)
+		PluginCloseV1(
+			openRet.Handle)
 	})
 
 	require.Equal(t, PluginTypeMask, int(openRet.TypeMask))
@@ -195,13 +196,9 @@ func TestPlugin(t *testing.T) {
 	var resp *http.Response
 
 	wg := sync.WaitGroup{}
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-
+	wg.Go(func() {
 		resp, err = httpClient.Do(request) //nolint:bodyclose
-	}()
+	})
 
 	wg.Wait()
 
