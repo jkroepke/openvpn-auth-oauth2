@@ -12,6 +12,7 @@ import (
 	"os"
 	"runtime/cgo"
 	"strings"
+	"unsafe"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/version"
 	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/c"
@@ -125,12 +126,7 @@ func PluginFuncV3(v3structver c.Int, args *c.OpenVPNPluginArgsFuncIn, ret *c.Ope
 		return handle.handlePluginUp()
 	}
 
-	perClientContext, ok := args.PerClientContext.Value().(*ClientContext)
-	if !ok {
-		handle.logger.ErrorContext(handle.ctx, "invalid per_client_context type")
-
-		return c.OpenVPNPluginFuncError
-	}
+	perClientContext := (*ClientContext)(args.PerClientContext)
 
 	switch args.Type {
 	case c.OpenVPNPluginAuthUserPassVerify:
@@ -159,7 +155,7 @@ func PluginCloseV1(handlePtr c.OpenVPNPluginHandle) {
 	handlePtr.Delete() // frees handle, allows GC to collect Go object
 }
 
-func PluginClientConstructorV1(handlePtr c.OpenVPNPluginHandle) c.OpenVPNPluginClientContext {
+func PluginClientConstructorV1(handlePtr c.OpenVPNPluginHandle) *ClientContext {
 	handle, ok := handlePtr.Value().(*PluginHandle)
 	if !ok {
 		panic("getPluginHandleFromPtr: invalid plugin handle type")
@@ -167,12 +163,14 @@ func PluginClientConstructorV1(handlePtr c.OpenVPNPluginHandle) c.OpenVPNPluginC
 
 	handle.logger.DebugContext(handle.ctx, "openvpn_plugin_client_constructor_v1: called")
 
-	perClientContext := cgo.NewHandle(&ClientContext{})
+	perClientContext := (*ClientContext)(
+		C.calloc(1, C.size_t(unsafe.Sizeof(ClientContext{}))),
+	)
 
-	return &perClientContext
+	return perClientContext
 }
 
-func PluginClientDestructorV1(handlePtr c.OpenVPNPluginHandle, perClientContext c.OpenVPNPluginClientContext) {
+func PluginClientDestructorV1(handlePtr c.OpenVPNPluginHandle, perClientContext *ClientContext) {
 	handle, ok := handlePtr.Value().(*PluginHandle)
 	if !ok {
 		panic("getPluginHandleFromPtr: invalid plugin handle type")
@@ -180,7 +178,7 @@ func PluginClientDestructorV1(handlePtr c.OpenVPNPluginHandle, perClientContext 
 
 	handle.logger.DebugContext(handle.ctx, "openvpn_plugin_client_destructor_v1: called")
 
-	perClientContext.Delete() // frees handle, allows GC to collect Go object
+	C.free(unsafe.Pointer(perClientContext)) // frees handle, allows GC to collect Go object
 }
 
 func PluginAbortV1(handlePtr c.OpenVPNPluginHandle) {
