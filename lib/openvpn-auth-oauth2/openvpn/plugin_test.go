@@ -12,6 +12,7 @@ import (
 	"sync"
 	"testing"
 	"time"
+	"unsafe"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
@@ -98,7 +99,7 @@ func TestPlugin(t *testing.T) {
 	conf.HTTP.Secret = testutils.Secret
 	conf.OAuth2.Issuer = resourceServerURL
 	conf.OAuth2.Nonce = true                                  // enable nonce for mock testing
-	conf.OAuth2.RefreshNonce = config.OAuth2RefreshNonceEmpty // use empty nonce for refresh to avoid mock issues
+	conf.OAuth2.RefreshNonce = config.OAuth2RefreshNonceEmpty // use empty nonce for the token refresh to avoid mock issues.
 	conf.OAuth2.Client.ID = clientCredentials.ID
 	conf.OAuth2.Client.Secret = clientCredentials.Secret
 	conf.OAuth2.Refresh.Expires = time.Hour
@@ -130,9 +131,6 @@ func TestPlugin(t *testing.T) {
 
 	clientContext := PluginClientConstructorV1(openRet.Handle)
 	require.NotNil(t, clientContext)
-
-	_, ok = clientContext.Value().(*ClientContext)
-	require.True(t, ok)
 
 	authControlFile, err := os.CreateTemp(t.TempDir(), "auth_control_file")
 	require.NoError(t, err)
@@ -170,7 +168,7 @@ func TestPlugin(t *testing.T) {
 		Argv:             argv,
 		Envp:             envp,
 		Type:             c.OpenVPNPluginAuthUserPassVerify,
-		PerClientContext: clientContext,
+		PerClientContext: unsafe.Pointer(clientContext),
 	}
 	ret = &c.OpenVPNPluginArgsFuncReturn{}
 

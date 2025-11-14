@@ -53,7 +53,7 @@ type OpenVPNPluginArgsFuncIn struct {
 	Argv             **C.char
 	Envp             **C.char
 	Handle           OpenVPNPluginHandle
-	PerClientContext OpenVPNPluginClientContext
+	PerClientContext unsafe.Pointer
 	CurrentCertDepth C.int
 	CurrentCert      unsafe.Pointer // *C.openvpn_x509_cert_t
 }
@@ -77,8 +77,7 @@ type OpenVPNPluginStringList struct {
 }
 
 type (
-	OpenVPNPluginHandle        = *cgo.Handle
-	OpenVPNPluginClientContext = *cgo.Handle
+	OpenVPNPluginHandle = *cgo.Handle
 )
 
 type PLogLevel = Int
