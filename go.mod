@@ -3,7 +3,7 @@ module github.com/jkroepke/openvpn-auth-oauth2
 go 1.25
 
 require (
-	github.com/madflojo/testcerts v1.4.0
+	github.com/madflojo/testcerts v1.5.0
 	github.com/stretchr/testify v1.11.1
 	github.com/zitadel/logging v0.6.2
 	github.com/zitadel/oidc/v3 v3.45.0
