@@ -9,7 +9,6 @@ package main
 import "C"
 
 import (
-	"runtime/cgo"
 	"unsafe"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/c"
@@ -130,7 +129,7 @@ func openvpn_plugin_client_constructor_v1(handlePtr C.openvpn_plugin_handle_t) u
 func openvpn_plugin_client_destructor_v1(handlePtr C.openvpn_plugin_handle_t, perClientContext unsafe.Pointer) {
 	openvpn.PluginClientDestructorV1(
 		c.OpenVPNPluginHandle(handlePtr),
-		(*cgo.Handle)(perClientContext),
+		(*openvpn.ClientContext)(perClientContext),
 	)
 }
 
