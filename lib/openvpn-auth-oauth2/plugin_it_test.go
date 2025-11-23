@@ -14,7 +14,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/docker/api/types/build"
 	"github.com/docker/docker/api/types/container"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
@@ -136,9 +135,6 @@ func TestIT(t *testing.T) {
 			Dockerfile: `./tests/Dockerfile`,
 			Repo:       "testcontainers/openvpn-auth-oauth2",
 			Tag:        "latest",
-			BuildOptionsModifier: func(buildOptions *build.ImageBuildOptions) {
-				buildOptions.Version = build.BuilderBuildKit
-			},
 		}),
 		testcontainers.WithExposedPorts("8081/tcp", "8082/tcp"),
 		testcontainers.WithWaitStrategy(wait.ForExposedPort().WithPollInterval(1*time.Second)),
@@ -183,9 +179,6 @@ func TestIT(t *testing.T) {
 			Dockerfile: `./tests/Dockerfile`,
 			Repo:       "testcontainers/openvpn-auth-oauth2",
 			Tag:        "latest",
-			BuildOptionsModifier: func(buildOptions *build.ImageBuildOptions) {
-				buildOptions.Version = build.BuilderBuildKit
-			},
 		}),
 		testcontainers.WithLabels(map[string]string{
 			"testcontainers": "true",

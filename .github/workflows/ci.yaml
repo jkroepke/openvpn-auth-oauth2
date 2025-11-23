@@ -28,9 +28,6 @@ jobs:
       - name: go build
         run: go build ./cmd/openvpn-auth-oauth2
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
       - name: go test
         run: go test ./... -timeout 20s -race -covermode=atomic -coverprofile=coverage.out -coverpkg=./...
         id: test
