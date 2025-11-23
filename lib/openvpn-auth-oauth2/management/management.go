@@ -31,6 +31,7 @@ type Server struct {
 	password     string
 	connected    atomic.Int64
 	respChMu     sync.Mutex
+	listenMu     sync.Mutex
 	connectionMu sync.Mutex
 }
 
@@ -138,9 +139,13 @@ func (s *Server) Listen(ctx context.Context, addr string) error {
 
 	switch parsedURL.Scheme {
 	case "tcp":
+		s.connectionMu.Lock()
 		s.listenSocket, err = listenConfig.Listen(ctx, parsedURL.Scheme, parsedURL.Host)
+		s.connectionMu.Unlock()
 	case "unix":
+		s.connectionMu.Lock()
 		s.listenSocket, err = listenConfig.Listen(ctx, parsedURL.Scheme, parsedURL.Path)
+		s.connectionMu.Unlock()
 	default:
 		return fmt.Errorf("unsupported scheme: %s", parsedURL.Scheme)
 	}
@@ -151,7 +156,15 @@ func (s *Server) Listen(ctx context.Context, addr string) error {
 
 	go func() {
 		for {
-			connection, err := s.listenSocket.Accept()
+			s.connectionMu.Lock()
+			listenSocket := s.listenSocket
+			s.connectionMu.Unlock()
+
+			if s.listenSocket == nil {
+				return
+			}
+
+			connection, err := listenSocket.Accept()
 			if err != nil {
 				if !errors.Is(err, net.ErrClosed) {
 					s.logger.Warn("error accepting connection",
@@ -184,6 +197,7 @@ func (s *Server) Listen(ctx context.Context, addr string) error {
 
 func (s *Server) Close() {
 	s.connectionMu.Lock()
+	defer s.connectionMu.Unlock()
 
 	if s.connection != nil {
 		_ = s.connection.Close()
@@ -191,7 +205,8 @@ func (s *Server) Close() {
 		s.connection = nil
 	}
 
-	s.connectionMu.Unlock()
+	s.listenMu.Lock()
+	defer s.listenMu.Unlock()
 
 	if s.listenSocket != nil {
 		if err := s.listenSocket.Close(); err != nil {
