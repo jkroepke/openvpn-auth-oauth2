@@ -51,6 +51,10 @@ func TestServer_Listen(t *testing.T) {
 			client, err := dialer.DialContext(t.Context(), tc.protocol, managementInterface.Addr().String())
 			require.NoError(t, err)
 
+			t.Cleanup(func() {
+				_ = client.Close()
+			})
+
 			clientReader := bufio.NewReader(client)
 
 			testutils.ExpectMessage(t, client, clientReader, openvpn.WelcomeBanner)
@@ -111,7 +115,7 @@ func TestServer_Listen_Invalid_Addr(t *testing.T) {
 	}
 }
 
-func TestServer_Listen_Password(t *testing.T) {
+func TestServer_Listen_Password_Correct(t *testing.T) {
 	t.Parallel()
 
 	managementInterface, err := nettest.NewLocalListener("tcp")
@@ -131,6 +135,10 @@ func TestServer_Listen_Password(t *testing.T) {
 	client, err := dialer.DialContext(t.Context(), "tcp", managementInterface.Addr().String())
 	require.NoError(t, err)
 
+	t.Cleanup(func() {
+		_ = client.Close()
+	})
+
 	clientReader := bufio.NewReader(client)
 
 	resp, err := clientReader.ReadString(':')
@@ -140,6 +148,41 @@ func TestServer_Listen_Password(t *testing.T) {
 	testutils.SendMessagef(t, client, testutils.Password)
 	testutils.ExpectMessage(t, client, clientReader, "SUCCESS: password is correct")
 	testutils.ExpectMessage(t, client, clientReader, openvpn.WelcomeBanner)
+	testutils.SendMessagef(t, client, "quit")
+}
+
+func TestServer_Listen_Password_Incorrect(t *testing.T) {
+	t.Parallel()
+
+	managementInterface, err := nettest.NewLocalListener("tcp")
+	require.NoError(t, err)
+
+	err = managementInterface.Close()
+	require.NoError(t, err)
+
+	managementServer := management.NewServer(slog.New(slog.DiscardHandler), testutils.Secret)
+	err = managementServer.Listen(t.Context(), fmt.Sprintf("%s://%s", managementInterface.Addr().Network(), managementInterface.Addr().String()))
+	require.NoError(t, err)
+
+	t.Cleanup(managementServer.Close)
+
+	var dialer net.Dialer
+
+	client, err := dialer.DialContext(t.Context(), "tcp", managementInterface.Addr().String())
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		_ = client.Close()
+	})
+
+	clientReader := bufio.NewReader(client)
+
+	resp, err := clientReader.ReadString(':')
+	require.NoError(t, err)
+	require.Equal(t, "ENTER PASSWORD:", resp)
+
+	testutils.SendMessagef(t, client, testutils.Password)
+	testutils.ExpectMessage(t, client, clientReader, "ERROR: bad password")
 	testutils.SendMessagef(t, client, "quit")
 }
 
@@ -272,6 +315,10 @@ func TestServer_AuthPendingPoller(t *testing.T) {
 
 			client, err := dialer.DialContext(t.Context(), "tcp", managementInterface.Addr().String())
 			require.NoError(t, err)
+
+			t.Cleanup(func() {
+				_ = client.Close()
+			})
 
 			clientReader := bufio.NewReader(client)
 
