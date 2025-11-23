@@ -359,6 +359,7 @@ func TestServer_AuthPendingPoller_Twice(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Cleanup(managementServer.Close)
+
 	errCh := make(chan error, 1)
 
 	go func() {
