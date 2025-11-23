@@ -134,7 +134,7 @@ func TestIT(t *testing.T) {
 			KeepImage:  true,
 		}),
 		testcontainers.WithExposedPorts("8081/tcp", "8082/tcp"),
-		testcontainers.WithWaitStrategy(wait.ForExposedPort().WithPollInterval(1*time.Second)),
+		testcontainers.WithWaitStrategy(wait.ForLog("POST /plugin/openvpn-auth-oauth2.so/PLUGIN_UP status=0").WithPollInterval(1*time.Second)),
 		testcontainers.WithLabels(map[string]string{
 			"testcontainers": "true",
 		}),
