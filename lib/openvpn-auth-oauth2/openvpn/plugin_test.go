@@ -233,3 +233,17 @@ func TestPlugin(t *testing.T) {
 	// PluginClientDestructorV1
 	PluginClientDestructorV1(args.Handle, clientContext)
 }
+
+func TestPluginOpenV3_InvalidArgs(t *testing.T) {
+	t.Parallel()
+
+	status := PluginOpenV3(0, nil, nil)
+	require.Equal(t, c.OpenVPNPluginFuncError, status)
+}
+
+func TestPluginFuncV3_InvalidArgs(t *testing.T) {
+	t.Parallel()
+
+	status := PluginFuncV3(0, nil, nil)
+	require.Equal(t, c.OpenVPNPluginFuncError, status)
+}

@@ -181,6 +181,7 @@ linters:
         text: "^underef: could simplify.*cgo.Handle"
       - path: lib/
         linters:
+          - goconst
           - unused
       - path: lib/
         text: "fieldalignment:"
