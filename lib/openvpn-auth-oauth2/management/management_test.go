@@ -23,6 +23,9 @@ func TestServer_Listen(t *testing.T) {
 		{
 			protocol: "tcp",
 		},
+		{
+			protocol: "unix",
+		},
 	} {
 		t.Run(tc.protocol, func(t *testing.T) {
 			t.Parallel()
@@ -63,6 +66,10 @@ func TestServer_Listen(t *testing.T) {
 
 			testutils.ExpectMessage(t, client, clientReader, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info")
 			testutils.SendAndExpectMessage(t, client, clientReader, "quit", "SUCCESS: exiting")
+
+			client, err = net.Dial(tc.protocol, managementInterface.Addr().String())
+			require.NoError(t, err)
+			require.NoError(t, client.Close())
 
 			t.Cleanup(managementServer.Close)
 		})
