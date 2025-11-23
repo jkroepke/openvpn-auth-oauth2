@@ -298,6 +298,36 @@ func TestServer_AuthPendingPoller(t *testing.T) {
 	}
 }
 
+func TestServer_AuthPendingPoller_Twice(t *testing.T) {
+	t.Parallel()
+
+	managementInterface, err := nettest.NewLocalListener("tcp")
+	require.NoError(t, err)
+
+	err = managementInterface.Close()
+	require.NoError(t, err)
+
+	managementServer := management.NewServer(slog.New(slog.DiscardHandler), "")
+	err = managementServer.Listen(t.Context(), fmt.Sprintf("%s://%s", managementInterface.Addr().Network(), managementInterface.Addr().String()))
+	require.NoError(t, err)
+
+	t.Cleanup(managementServer.Close)
+	errCh := make(chan error, 1)
+
+	go func() {
+		_, err := managementServer.AuthPendingPoller(0, time.Millisecond*10)
+		errCh <- err
+	}()
+
+	go func() {
+		_, err := managementServer.AuthPendingPoller(0, time.Millisecond*10)
+		errCh <- err
+	}()
+
+	require.EqualError(t, <-errCh, "poller for client ID 0 already exists")
+	require.EqualError(t, <-errCh, "timeout waiting for client response")
+}
+
 func TestClientAuth_String(t *testing.T) {
 	t.Parallel()
 
