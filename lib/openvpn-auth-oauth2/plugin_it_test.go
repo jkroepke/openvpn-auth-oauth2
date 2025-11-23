@@ -54,16 +54,11 @@ key /etc/openvpn/pki/private/server.key
 cert /etc/openvpn/pki/issued/server.crt
 dh none
 keepalive 10 60
-#persist-key
+persist-key
 persist-tun
 explicit-exit-notify
 
 verify-client-cert none
-username-as-common-name
-script-security 2
-
-status /etc/openvpn/openvpn-status.log
-ifconfig-pool-persist /etc/openvpn/ipp.txt
 
 tls-cert-profile preferred
 
@@ -79,9 +74,6 @@ group nogroup
 
 # Does not work in containers
 disable-dco
-duplicate-cn
-
-client-config-dir /etc/openvpn/client-config
 
 plugin /plugin/openvpn-auth-oauth2.so tcp://0.0.0.0:8081 /etc/openvpn/password.txt
 
@@ -90,7 +82,6 @@ push "reneg-sec 0"
 
 auth-gen-token 300 external-auth
 auth-user-pass-optional
-
 EOF
 
 cat > "/etc/openvpn/${UPN}.ovpn" <<EOF
