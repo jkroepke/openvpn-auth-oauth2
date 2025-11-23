@@ -3,7 +3,7 @@ module github.com/jkroepke/openvpn-auth-oauth2
 go 1.25
 
 require (
-	github.com/docker/docker v28.5.1+incompatible
+	github.com/docker/docker v28.5.2+incompatible
 	github.com/madflojo/testcerts v1.5.0
 	github.com/stretchr/testify v1.11.1
 	github.com/testcontainers/testcontainers-go v0.40.0
