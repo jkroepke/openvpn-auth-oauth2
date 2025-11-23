@@ -129,6 +129,7 @@ func (s *Server) ClientDisconnect(message string) error {
 	return s.writeToClient(message)
 }
 
+//nolint:cyclop
 func (s *Server) Listen(ctx context.Context, addr string) error {
 	parsedURL, err := url.Parse(addr)
 	if err != nil {
@@ -244,15 +245,20 @@ func (s *Server) handleManagementClient(ctx context.Context, conn net.Conn) erro
 	_ = s.writeToClient(">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info")
 	s.connected.Store(1)
 
+scan:
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
+		}
+
 		switch {
 		case strings.HasPrefix(line, "quit"):
 			fallthrough
 		case strings.HasPrefix(line, "exit"):
 			_ = s.writeToClient("SUCCESS: exiting")
 
-			continue
+			break scan
 		case strings.HasPrefix(line, "hold release"):
 			_ = s.writeToClient("SUCCESS: hold released")
 
