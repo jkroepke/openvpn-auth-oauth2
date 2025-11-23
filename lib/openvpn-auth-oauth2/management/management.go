@@ -247,6 +247,8 @@ func (s *Server) handleManagementClient(ctx context.Context, conn net.Conn) erro
 
 scan:
 	for scanner.Scan() {
+		var cmd string
+
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" {
 			continue
@@ -272,11 +274,11 @@ scan:
 
 			continue
 		case strings.HasPrefix(line, "client-auth-nt"):
-			_ = s.writeToClient("SUCCESS: client-auth command succeeded")
+			cmd = "client-auth"
 		case strings.HasPrefix(line, "client-pending-auth"):
-			_ = s.writeToClient("SUCCESS: client-pending-auth command succeeded")
+			cmd = "client-pending-auth"
 		case strings.HasPrefix(line, "client-deny"):
-			_ = s.writeToClient("SUCCESS: client-deny command succeeded")
+			cmd = "client-deny"
 		case strings.HasPrefix(line, "client-auth"):
 			for scanner.Scan() {
 				line += newline + strings.TrimSpace(scanner.Text())
@@ -286,7 +288,7 @@ scan:
 				}
 			}
 
-			_ = s.writeToClient("SUCCESS: client-auth command succeeded")
+			cmd = "client-auth"
 		default:
 			_ = s.writeToClient("ERROR: unknown command, enter 'help' for more options")
 
@@ -301,6 +303,13 @@ scan:
 				slog.Any("err", err),
 				slog.String("response", line),
 			)
+			_ = s.writeToClient(fmt.Sprintf("ERROR: %s command failed", cmd))
+		} else {
+			_ = s.writeToClient(fmt.Sprintf("SUCCESS: %s command succeeded", cmd))
+		}
+
+		if resp == nil {
+			continue
 		}
 
 		s.respChMu.Lock()

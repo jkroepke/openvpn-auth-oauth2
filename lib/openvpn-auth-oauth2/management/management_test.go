@@ -149,11 +149,13 @@ func TestServer_AuthPendingPoller(t *testing.T) {
 	for _, tc := range []struct {
 		name    string
 		command string
+		resp    string
 		testFn  func(t *testing.T, response *management.Response)
 	}{
 		{
 			name:    "client-auth-nt",
 			command: "client-auth-nt 1 0",
+			resp:    "SUCCESS: client-auth command succeeded",
 			testFn: func(t *testing.T, response *management.Response) {
 				t.Helper()
 
@@ -162,8 +164,14 @@ func TestServer_AuthPendingPoller(t *testing.T) {
 			},
 		},
 		{
+			name:    "client-auth-nt invalid",
+			command: "client-auth-nt A B",
+			resp:    "ERROR: client-auth command failed",
+		},
+		{
 			name:    "client-auth",
 			command: "client-auth 2 0\r\npush \"reneg-sec 0\"\r\nEND",
+			resp:    "SUCCESS: client-auth command succeeded",
 			testFn: func(t *testing.T, response *management.Response) {
 				t.Helper()
 
@@ -175,6 +183,7 @@ func TestServer_AuthPendingPoller(t *testing.T) {
 		{
 			name:    "client-deny without reason",
 			command: "client-deny 3 0",
+			resp:    "SUCCESS: client-deny command succeeded",
 			testFn: func(t *testing.T, response *management.Response) {
 				t.Helper()
 
@@ -186,6 +195,7 @@ func TestServer_AuthPendingPoller(t *testing.T) {
 		{
 			name:    "client-deny",
 			command: "client-deny 3 0 \"internal error\"",
+			resp:    "SUCCESS: client-deny command succeeded",
 			testFn: func(t *testing.T, response *management.Response) {
 				t.Helper()
 
@@ -197,6 +207,7 @@ func TestServer_AuthPendingPoller(t *testing.T) {
 		{
 			name:    "client-pending-auth",
 			command: "client-pending-auth 4 0 \"WEB_AUTH::https://sso.example.com/auth?session=xyz\" 300",
+			resp:    "SUCCESS: client-pending-auth command succeeded",
 			testFn: func(t *testing.T, response *management.Response) {
 				t.Helper()
 
@@ -207,8 +218,9 @@ func TestServer_AuthPendingPoller(t *testing.T) {
 			},
 		},
 		{
-			name:    "client-pending-auth invalid",
+			name:    "client-pending-auth without timeout",
 			command: "client-pending-auth 4 0 \"WEB_AUTH::https://sso.example.com/auth?session=xyz\"",
+			resp:    "ERROR: client-pending-auth command failed",
 			testFn: func(t *testing.T, response *management.Response) {
 				t.Helper()
 
@@ -220,6 +232,7 @@ func TestServer_AuthPendingPoller(t *testing.T) {
 		{
 			name:    "invalid",
 			command: "invalid",
+			resp:    "ERROR: unknown command, enter 'help' for more options",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -242,18 +255,18 @@ func TestServer_AuthPendingPoller(t *testing.T) {
 
 			var clientID uint64
 
-			if tc.command != "invalid" {
+			if !strings.HasSuffix(tc.name, "invalid") {
 				clientID, err = strconv.ParseUint(strings.Split(tc.command, " ")[1], 10, 64)
 				require.NoError(t, err)
+
+				go func() {
+					response, err := managementServer.AuthPendingPoller(clientID, time.Second*5)
+
+					errCh <- err
+
+					responseCh <- response
+				}()
 			}
-
-			go func() {
-				response, err := managementServer.AuthPendingPoller(clientID, time.Second*5)
-
-				errCh <- err
-
-				responseCh <- response
-			}()
 
 			var dialer net.Dialer
 
@@ -265,13 +278,11 @@ func TestServer_AuthPendingPoller(t *testing.T) {
 			testutils.ExpectMessage(t, client, clientReader, openvpn.WelcomeBanner)
 			testutils.SendMessagef(t, client, tc.command)
 
-			if tc.command == "invalid" {
-				testutils.ExpectMessage(t, client, clientReader, "ERROR: unknown command, enter 'help' for more options")
+			testutils.ExpectMessage(t, client, clientReader, tc.resp)
 
+			if strings.HasSuffix(tc.name, "invalid") {
 				return
 			}
-
-			testutils.ExpectMessage(t, client, clientReader, fmt.Sprintf("SUCCESS: %s command succeeded", strings.TrimSuffix(strings.Split(tc.command, " ")[0], "-nt")))
 
 			require.NoError(t, <-errCh)
 
