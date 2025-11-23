@@ -124,9 +124,15 @@ exec openvpn --config "/etc/openvpn/openvpn.conf" --tmp-dir /tmp/
 func TestIT(t *testing.T) {
 	t.Parallel()
 
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
+
 	if os.Getenv("CI") == "" && os.Getenv("PLUGIN_IT_TEST") != "1" {
 		t.Skip("Skipping integration test, PLUGIN_IT_TEST not set")
 	}
+
+	testcontainers.SkipIfProviderIsNotHealthy(t)
 
 	containerServer, err := testcontainers.Run(t.Context(), "",
 		testcontainers.WithName("openvpn-auth-oauth2-it-server"),
