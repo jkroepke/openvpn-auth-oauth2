@@ -22,6 +22,8 @@ import (
 // OpenVPN management interface.
 const minManagementInterfaceVersion = 5
 
+const WelcomeBanner = ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info"
+
 // New creates a new Client configured with the provided logger and
 // configuration.
 func New(logger *slog.Logger, conf config.Config) *Client {

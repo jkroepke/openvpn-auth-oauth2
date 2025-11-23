@@ -29,18 +29,21 @@ jobs:
         run: go build ./cmd/openvpn-auth-oauth2
 
       - name: go test
-        run: go test ./... -timeout 20s -race -covermode=atomic -coverprofile=coverage.out -coverpkg=./...
+        run: go test ./... -short -timeout 20s -race -covermode=atomic -coverprofile=coverage.out -coverpkg=./...
         id: test
         shell: bash
         continue-on-error: true
 
-      - name: go test ./... -timeout 20s -race -covermode=atomic -coverprofile=coverage.out -coverpkg=./... (retry)
+      - name: go test (retry)
         if: steps.test.outcome == 'failure'
         shell: bash
-        run: go test ./... -timeout 20s -race -covermode=atomic -coverprofile=coverage.out -coverpkg=./...
+        run: go test ./... -short  -timeout 20s -race -covermode=atomic -coverprofile=coverage.out -coverpkg=./...
 
       - name: go test -bench
         run: go test ./... -timeout 20s -run='^$' -bench=. -benchmem -count 3
+
+      - name: go test (Plugin Integration Tests)
+        run: go test ./lib/openvpn-auth-oauth2 -run '^TestIT$'
 
       - uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
         env:

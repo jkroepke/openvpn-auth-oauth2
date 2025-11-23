@@ -12,6 +12,7 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/stretchr/testify/assert"
@@ -164,7 +165,7 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 		},
 	}
 
-	testutils.ExpectMessage(b, passThroughConn, passThroughReader, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info")
+	testutils.ExpectMessage(b, passThroughConn, passThroughReader, openvpn.WelcomeBanner)
 
 	b.Cleanup(func() {
 		openVPNClient.Shutdown(b.Context())
