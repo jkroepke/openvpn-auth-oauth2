@@ -40,6 +40,8 @@ func TestServer_Listen(t *testing.T) {
 			err = managementServer.Listen(t.Context(), fmt.Sprintf("%s://%s", managementInterface.Addr().Network(), managementInterface.Addr().String()))
 			require.NoError(t, err)
 
+			t.Cleanup(managementServer.Close)
+
 			client, err := net.Dial(tc.protocol, managementInterface.Addr().String())
 			require.NoError(t, err)
 			clientReader := bufio.NewReader(client)
@@ -70,8 +72,6 @@ func TestServer_Listen(t *testing.T) {
 			client, err = net.Dial(tc.protocol, managementInterface.Addr().String())
 			require.NoError(t, err)
 			require.NoError(t, client.Close())
-
-			t.Cleanup(managementServer.Close)
 		})
 	}
 }
@@ -100,4 +100,33 @@ func TestServer_Listen_Invalid_Addr(t *testing.T) {
 			require.Error(t, err)
 		})
 	}
+}
+
+func TestServer_Listen_Password(t *testing.T) {
+	t.Parallel()
+
+	managementInterface, err := nettest.NewLocalListener("tcp")
+	require.NoError(t, err)
+
+	err = managementInterface.Close()
+	require.NoError(t, err)
+
+	managementServer := management.NewServer(slog.New(slog.DiscardHandler), testutils.Password)
+	err = managementServer.Listen(t.Context(), fmt.Sprintf("%s://%s", managementInterface.Addr().Network(), managementInterface.Addr().String()))
+	require.NoError(t, err)
+
+	t.Cleanup(managementServer.Close)
+
+	client, err := net.Dial("tcp", managementInterface.Addr().String())
+	require.NoError(t, err)
+	clientReader := bufio.NewReader(client)
+
+	resp, err := clientReader.ReadString(':')
+	require.NoError(t, err)
+	require.Equal(t, "ENTER PASSWORD:", resp)
+
+	testutils.SendMessagef(t, client, testutils.Password)
+	testutils.ExpectMessage(t, client, clientReader, "SUCCESS: password is correct")
+	testutils.ExpectMessage(t, client, clientReader, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info")
+	testutils.SendMessagef(t, client, "quit")
 }
