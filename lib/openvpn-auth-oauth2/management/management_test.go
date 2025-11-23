@@ -206,6 +206,28 @@ func TestServer_AuthPendingPoller(t *testing.T) {
 				require.Equal(t, "300", response.Timeout)
 			},
 		},
+		{
+			name:    "client-pending-auth invalid",
+			command: "client-pending-auth 4 0 \"WEB_AUTH::https://sso.example.com/auth?session=xyz\"",
+			testFn: func(t *testing.T, response *management.Response) {
+				t.Helper()
+
+				require.Equal(t, uint32(4), response.ClientID)
+				require.Equal(t, management.ClientAuthDeny, response.ClientAuth)
+				require.Equal(t, "internal error", response.Message)
+			},
+		},
+		{
+			name:    "invalid",
+			command: "invalid",
+			testFn: func(t *testing.T, response *management.Response) {
+				t.Helper()
+
+				require.Equal(t, uint32(4), response.ClientID)
+				require.Equal(t, management.ClientAuthDeny, response.ClientAuth)
+				require.Equal(t, "internal error", response.Message)
+			},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -225,8 +247,12 @@ func TestServer_AuthPendingPoller(t *testing.T) {
 			responseCh := make(chan *management.Response, 1)
 			errCh := make(chan error, 1)
 
-			clientID, err := strconv.ParseUint(strings.Split(tc.command, " ")[1], 10, 64)
-			require.NoError(t, err)
+			var clientID uint64
+
+			if tc.command != "invalid" {
+				clientID, err = strconv.ParseUint(strings.Split(tc.command, " ")[1], 10, 64)
+				require.NoError(t, err)
+			}
 
 			go func() {
 				response, err := managementServer.AuthPendingPoller(clientID, time.Second*5)
@@ -245,7 +271,12 @@ func TestServer_AuthPendingPoller(t *testing.T) {
 
 			testutils.ExpectMessage(t, client, clientReader, openvpn.WelcomeBanner)
 			testutils.SendMessagef(t, client, tc.command)
-			testutils.ExpectMessage(t, client, clientReader, fmt.Sprintf("SUCCESS: %s command succeeded", strings.TrimSuffix(strings.Split(tc.command, " ")[0], "-nt")))
+
+			if tc.command == "invalid" {
+				testutils.ExpectMessage(t, client, clientReader, "ERROR: unknown command, enter 'help' for more options")
+			} else {
+				testutils.ExpectMessage(t, client, clientReader, fmt.Sprintf("SUCCESS: %s command succeeded", strings.TrimSuffix(strings.Split(tc.command, " ")[0], "-nt")))
+			}
 
 			require.NoError(t, <-errCh)
 
@@ -255,4 +286,13 @@ func TestServer_AuthPendingPoller(t *testing.T) {
 			tc.testFn(t, response)
 		})
 	}
+}
+
+func TestClientAuth_String(t *testing.T) {
+	t.Parallel()
+
+	require.Equal(t, "ACCEPT", management.ClientAuthAccept.String())
+	require.Equal(t, "DENY", management.ClientAuthDeny.String())
+	require.Equal(t, "PENDING", management.ClientAuthPending.String())
+	require.Equal(t, "UNKNOWN", management.ClientAuth(4).String())
 }

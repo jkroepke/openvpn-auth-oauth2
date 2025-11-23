@@ -301,8 +301,6 @@ scan:
 				slog.Any("err", err),
 				slog.String("response", line),
 			)
-
-			continue
 		}
 
 		s.respChMu.Lock()
@@ -406,7 +404,11 @@ func (s *Server) parseResponse(response string) (*Response, error) {
 		// client-pending-auth 0 1 "WEB_AUTH::https://example.com/..." 300
 		parts := strings.SplitN(message, " ", 3)
 		if len(parts) != 3 {
-			return nil, fmt.Errorf("invalid client-pending-auth message: %s", message)
+			return &Response{
+				ClientID:   uint32(clientID),
+				ClientAuth: ClientAuthDeny,
+				Message:    "internal error",
+			}, fmt.Errorf("invalid client-pending-auth message: %s", message)
 		}
 
 		return &Response{
@@ -416,7 +418,11 @@ func (s *Server) parseResponse(response string) (*Response, error) {
 			Timeout:    parts[2],
 		}, nil
 	default:
-		return nil, fmt.Errorf("unknown response command: %s", cmd)
+		return &Response{
+			ClientID:   uint32(clientID),
+			ClientAuth: ClientAuthDeny,
+			Message:    "internal error",
+		}, fmt.Errorf("unknown response command: %s", cmd)
 	}
 }
 
