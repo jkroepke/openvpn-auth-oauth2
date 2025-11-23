@@ -288,7 +288,7 @@ func TestIT(t *testing.T) {
 
 	containerServerLogs, _ = getContainerLogs(t, containerServer)
 	containerClientLogs, _ = getContainerLogs(t, containerClient)
-	require.Contains(t, line, ">INFOMSG:WEB_AUTH", fmt.Sprintf("server logs:\n%s\nclient logs:\n%s", containerServerLogs, containerClientLogs))
+	require.Contains(t, line, ">INFOMSG:WEB_AUTH", "server logs:\n%s\nclient logs:\n%s", containerServerLogs, containerClientLogs)
 
 	webauthURL := strings.TrimSpace(strings.TrimPrefix(line, ">INFOMSG:WEB_AUTH::"))
 
@@ -298,7 +298,7 @@ func TestIT(t *testing.T) {
 	httpClientListenerClient := httpClientListener.Client()
 	httpClientListenerClient.Jar = jar
 
-	req, err := http.NewRequestWithContext(t.Context(), "GET", webauthURL, nil)
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, webauthURL, nil)
 	require.NoError(t, err)
 
 	resp, err := httpClientListenerClient.Do(req)
@@ -318,7 +318,7 @@ func TestIT(t *testing.T) {
 
 	containerServerLogs, _ = getContainerLogs(t, containerServer)
 	containerClientLogs, _ = getContainerLogs(t, containerClient)
-	require.Contains(t, line, ">PASSWORD:Auth-Token:", fmt.Sprintf("server logs:\n%s\nclient logs:\n%s", containerServerLogs, containerClientLogs))
+	require.Contains(t, line, ">PASSWORD:Auth-Token:", "server logs:\n%s\nclient logs:\n%s", containerServerLogs, containerClientLogs)
 }
 
 func getContainerLogs(t *testing.T, ctr testcontainers.Container) (string, error) {

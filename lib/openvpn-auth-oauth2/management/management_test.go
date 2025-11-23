@@ -7,6 +7,7 @@ import (
 	"net"
 	"testing"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/version"
 	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/management"
@@ -42,8 +43,11 @@ func TestServer_Listen(t *testing.T) {
 
 			t.Cleanup(managementServer.Close)
 
-			client, err := net.Dial(tc.protocol, managementInterface.Addr().String())
+			var dialer net.Dialer
+
+			client, err := dialer.DialContext(t.Context(), tc.protocol, managementInterface.Addr().String())
 			require.NoError(t, err)
+
 			clientReader := bufio.NewReader(client)
 
 			testutils.ExpectMessage(t, client, clientReader, openvpn.WelcomeBanner)
@@ -55,21 +59,23 @@ func TestServer_Listen(t *testing.T) {
 
 			require.NoError(t, client.Close())
 
-			client, err = net.Dial(tc.protocol, managementInterface.Addr().String())
+			client, err = dialer.DialContext(t.Context(), tc.protocol, managementInterface.Addr().String())
 			require.NoError(t, err)
+
 			clientReader = bufio.NewReader(client)
 
 			testutils.ExpectMessage(t, client, clientReader, openvpn.WelcomeBanner)
 			testutils.SendAndExpectMessage(t, client, clientReader, "exit", "SUCCESS: exiting")
 
-			client, err = net.Dial(tc.protocol, managementInterface.Addr().String())
+			client, err = dialer.DialContext(t.Context(), tc.protocol, managementInterface.Addr().String())
 			require.NoError(t, err)
+
 			clientReader = bufio.NewReader(client)
 
 			testutils.ExpectMessage(t, client, clientReader, openvpn.WelcomeBanner)
 			testutils.SendAndExpectMessage(t, client, clientReader, "quit", "SUCCESS: exiting")
 
-			client, err = net.Dial(tc.protocol, managementInterface.Addr().String())
+			client, err = dialer.DialContext(t.Context(), tc.protocol, managementInterface.Addr().String())
 			require.NoError(t, err)
 			require.NoError(t, client.Close())
 		})
@@ -117,8 +123,11 @@ func TestServer_Listen_Password(t *testing.T) {
 
 	t.Cleanup(managementServer.Close)
 
-	client, err := net.Dial("tcp", managementInterface.Addr().String())
+	var dialer net.Dialer
+
+	client, err := dialer.DialContext(t.Context(), "tcp", managementInterface.Addr().String())
 	require.NoError(t, err)
+
 	clientReader := bufio.NewReader(client)
 
 	resp, err := clientReader.ReadString(':')

@@ -225,7 +225,7 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener, logger *slo
 	resourceServer := httptest.NewUnstartedServer(httpHandler)
 	require.NoError(tb, resourceServer.Listener.Close())
 
-	resourceServerListener, err := net.Listen("tcp4", strings.Split(clientListener.Addr().String(), ":")[0]+":0")
+	resourceServerListener, err := nettest.NewLocalListener("tcp")
 	require.NoError(tb, err)
 
 	resourceServer.Listener = resourceServerListener
