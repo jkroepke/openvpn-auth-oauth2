@@ -159,7 +159,7 @@ func (c *Client) handlePassThroughClient(ctx context.Context, conn net.Conn) {
 	}
 
 	c.passThroughConnected.CompareAndSwap(0, 1)
-	c.writeToPassThroughClient(">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info")
+	c.writeToPassThroughClient(WelcomeBanner)
 
 	if err = c.handlePassThroughClientCommands(ctx, conn, logger, scanner); err != nil {
 		logger.LogAttrs(ctx, slog.LevelWarn, err.Error())

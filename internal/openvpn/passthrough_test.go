@@ -271,7 +271,7 @@ func TestPassThroughFull(t *testing.T) {
 				)
 			}
 
-			testutils.ExpectMessage(t, passThroughConn, passThroughReader, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info")
+			testutils.ExpectMessage(t, passThroughConn, passThroughReader, openvpn.WelcomeBanner)
 
 			for range 10 {
 				testutils.SendMessagef(t, passThroughConn, "")

@@ -52,7 +52,7 @@ var (
 func ExpectVersionAndReleaseHold(tb testing.TB, conn net.Conn, reader *bufio.Reader) {
 	tb.Helper()
 
-	SendMessagef(tb, conn, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info")
+	SendMessagef(tb, conn, openvpn.WelcomeBanner)
 	SendMessagef(tb, conn, ">HOLD:Waiting for hold release:0")
 
 	var expectedCommand int
@@ -183,13 +183,13 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener, logger *slo
 		return nil, types.URL{}, config.OAuth2Client{}, err //nolint:wrapcheck
 	}
 
-	mux := http.NewServeMux()
-	mux.Handle("/", opProvider)
-	mux.Handle("/login/username", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	httpHandler := http.NewServeMux()
+	httpHandler.Handle("/", opProvider)
+	httpHandler.Handle("/login/username", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_ = opStorage.CheckUsernamePassword("test-user@localhost", "verysecure", r.FormValue("authRequestID"))
 		http.Redirect(w, r, op.AuthCallbackURL(opProvider)(r.Context(), r.FormValue("authRequestID")), http.StatusFound)
 	}))
-	mux.Handle(opProvider.UserinfoEndpoint().Relative(), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	httpHandler.Handle(opProvider.UserinfoEndpoint().Relative(), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		wMock := httptest.NewRecorder()
 
 		opProvider.ServeHTTP(wMock, r)
@@ -222,7 +222,15 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener, logger *slo
 		_, _ = w.Write(updatedUserInfo)
 	}))
 
-	resourceServer := httptest.NewServer(mux)
+	resourceServer := httptest.NewUnstartedServer(httpHandler)
+	require.NoError(tb, resourceServer.Listener.Close())
+
+	resourceServerListener, err := net.Listen("tcp4", strings.Split(clientListener.Addr().String(), ":")[0]+":0")
+	require.NoError(tb, err)
+
+	resourceServer.Listener = resourceServerListener
+	resourceServer.Start()
+	tb.Cleanup(resourceServer.Close)
 
 	tb.Cleanup(func() {
 		resourceServer.Close()

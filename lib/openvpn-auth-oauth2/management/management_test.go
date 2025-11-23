@@ -46,7 +46,7 @@ func TestServer_Listen(t *testing.T) {
 			require.NoError(t, err)
 			clientReader := bufio.NewReader(client)
 
-			testutils.ExpectMessage(t, client, clientReader, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info")
+			testutils.ExpectMessage(t, client, clientReader, openvpn.WelcomeBanner)
 			testutils.SendMessagef(t, client, "")
 			testutils.SendAndExpectMessage(t, client, clientReader, "hold release", "SUCCESS: hold released")
 			testutils.SendAndExpectMessage(t, client, clientReader, "version", fmt.Sprintf("OpenVPN Version: openvpn-auth-oauth2 %s\nManagement Interface Version: 5\nEND", version.Version))
@@ -59,14 +59,14 @@ func TestServer_Listen(t *testing.T) {
 			require.NoError(t, err)
 			clientReader = bufio.NewReader(client)
 
-			testutils.ExpectMessage(t, client, clientReader, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info")
+			testutils.ExpectMessage(t, client, clientReader, openvpn.WelcomeBanner)
 			testutils.SendAndExpectMessage(t, client, clientReader, "exit", "SUCCESS: exiting")
 
 			client, err = net.Dial(tc.protocol, managementInterface.Addr().String())
 			require.NoError(t, err)
 			clientReader = bufio.NewReader(client)
 
-			testutils.ExpectMessage(t, client, clientReader, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info")
+			testutils.ExpectMessage(t, client, clientReader, openvpn.WelcomeBanner)
 			testutils.SendAndExpectMessage(t, client, clientReader, "quit", "SUCCESS: exiting")
 
 			client, err = net.Dial(tc.protocol, managementInterface.Addr().String())
@@ -127,6 +127,6 @@ func TestServer_Listen_Password(t *testing.T) {
 
 	testutils.SendMessagef(t, client, testutils.Password)
 	testutils.ExpectMessage(t, client, clientReader, "SUCCESS: password is correct")
-	testutils.ExpectMessage(t, client, clientReader, ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info")
+	testutils.ExpectMessage(t, client, clientReader, openvpn.WelcomeBanner)
 	testutils.SendMessagef(t, client, "quit")
 }

@@ -447,7 +447,7 @@ func TestClientInvalidVersion(t *testing.T) {
 			reader := bufio.NewReader(managementInterfaceConn)
 
 			testutils.SendAndExpectMessage(t, managementInterfaceConn, reader,
-				">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info",
+				openvpn.WelcomeBanner,
 				"version",
 			)
 
