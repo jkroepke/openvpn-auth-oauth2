@@ -390,10 +390,17 @@ func (s *Server) parseResponse(response string) (*Response, error) {
 		// client-deny 0 1 "OpenVPN Client does not support SSO authentication via webauth"
 		parts := strings.SplitN(message, " ", 2)
 
+		var denyReason string
+		if len(parts) == 2 {
+			denyReason = strings.Trim(parts[1], `"`)
+		} else {
+			denyReason = "access denied"
+		}
+
 		return &Response{
 			ClientID:   uint32(clientID),
 			ClientAuth: ClientAuthDeny,
-			Message:    strings.Trim(parts[1], `"`),
+			Message:    denyReason,
 		}, nil
 	case "client-pending-auth":
 		// client-pending-auth 0 1 "WEB_AUTH::https://example.com/..." 300

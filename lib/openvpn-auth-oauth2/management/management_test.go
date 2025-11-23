@@ -155,6 +155,8 @@ func TestServer_AuthPendingPoller(t *testing.T) {
 			name:    "client-auth-nt",
 			command: "client-auth-nt 1 0",
 			testFn: func(t *testing.T, response *management.Response) {
+				t.Helper()
+
 				require.Equal(t, uint32(1), response.ClientID)
 				require.Equal(t, management.ClientAuthAccept, response.ClientAuth)
 			},
@@ -163,23 +165,41 @@ func TestServer_AuthPendingPoller(t *testing.T) {
 			name:    "client-auth",
 			command: "client-auth 2 0\r\npush \"reneg-sec 0\"\r\nEND",
 			testFn: func(t *testing.T, response *management.Response) {
+				t.Helper()
+
 				require.Equal(t, uint32(2), response.ClientID)
 				require.Equal(t, management.ClientAuthAccept, response.ClientAuth)
 				require.Equal(t, "push \"reneg-sec 0\"", response.ClientConfig)
 			},
 		},
 		{
-			name:    "client-deny",
+			name:    "client-deny without reason",
 			command: "client-deny 3 0",
 			testFn: func(t *testing.T, response *management.Response) {
+				t.Helper()
+
 				require.Equal(t, uint32(3), response.ClientID)
 				require.Equal(t, management.ClientAuthDeny, response.ClientAuth)
+				require.Equal(t, "access denied", response.Message)
+			},
+		},
+		{
+			name:    "client-deny",
+			command: "client-deny 3 0 \"internal error\"",
+			testFn: func(t *testing.T, response *management.Response) {
+				t.Helper()
+
+				require.Equal(t, uint32(3), response.ClientID)
+				require.Equal(t, management.ClientAuthDeny, response.ClientAuth)
+				require.Equal(t, "internal error", response.Message)
 			},
 		},
 		{
 			name:    "client-pending-auth",
 			command: "client-pending-auth 4 0 \"WEB_AUTH::https://sso.example.com/auth?session=xyz\" 300",
 			testFn: func(t *testing.T, response *management.Response) {
+				t.Helper()
+
 				require.Equal(t, uint32(4), response.ClientID)
 				require.Equal(t, management.ClientAuthPending, response.ClientAuth)
 				require.Equal(t, "WEB_AUTH::https://sso.example.com/auth?session=xyz", response.Message)
@@ -212,6 +232,7 @@ func TestServer_AuthPendingPoller(t *testing.T) {
 				response, err := managementServer.AuthPendingPoller(clientID, time.Second*5)
 
 				errCh <- err
+
 				responseCh <- response
 			}()
 
@@ -227,6 +248,7 @@ func TestServer_AuthPendingPoller(t *testing.T) {
 			testutils.ExpectMessage(t, client, clientReader, fmt.Sprintf("SUCCESS: %s command succeeded", strings.TrimSuffix(strings.Split(tc.command, " ")[0], "-nt")))
 
 			require.NoError(t, <-errCh)
+
 			response := <-responseCh
 			require.NotNil(t, response)
 
