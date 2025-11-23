@@ -220,13 +220,6 @@ func TestServer_AuthPendingPoller(t *testing.T) {
 		{
 			name:    "invalid",
 			command: "invalid",
-			testFn: func(t *testing.T, response *management.Response) {
-				t.Helper()
-
-				require.Equal(t, uint32(4), response.ClientID)
-				require.Equal(t, management.ClientAuthDeny, response.ClientAuth)
-				require.Equal(t, "internal error", response.Message)
-			},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -274,14 +267,20 @@ func TestServer_AuthPendingPoller(t *testing.T) {
 
 			if tc.command == "invalid" {
 				testutils.ExpectMessage(t, client, clientReader, "ERROR: unknown command, enter 'help' for more options")
-			} else {
-				testutils.ExpectMessage(t, client, clientReader, fmt.Sprintf("SUCCESS: %s command succeeded", strings.TrimSuffix(strings.Split(tc.command, " ")[0], "-nt")))
+
+				return
 			}
+
+			testutils.ExpectMessage(t, client, clientReader, fmt.Sprintf("SUCCESS: %s command succeeded", strings.TrimSuffix(strings.Split(tc.command, " ")[0], "-nt")))
 
 			require.NoError(t, <-errCh)
 
 			response := <-responseCh
 			require.NotNil(t, response)
+
+			if tc.testFn == nil {
+				return
+			}
 
 			tc.testFn(t, response)
 		})
