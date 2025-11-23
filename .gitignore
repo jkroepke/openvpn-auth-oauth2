@@ -19,6 +19,7 @@ tests/*
 !tests/Dockerfile
 !tests/.dockerignore
 !tests/systemd/
+!tests/plugin/
 tests/systemd/openvpn-auth-oauth2.conf
 
 /openvpn-auth-azure-adss

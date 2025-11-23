@@ -70,7 +70,7 @@ tls-cert-profile preferred
 inactive 65
 
 topology subnet
-proto tcp
+proto udp
 port 1194
 
 fast-io
@@ -98,7 +98,7 @@ client
 dev tun
 setenv "IV_SSO" "webauth"
 nobind
-remote 127.0.0.1 1194 tcp4
+remote 127.0.0.1 1194 udp4
 remote-cert-tls server
 connect-retry-max 2
 tls-cert-profile preferred
@@ -117,7 +117,6 @@ $(cat /etc/openvpn/pki/ca.crt)
 </ca>
 EOF
 
-git -C /build/ log -1
 exec openvpn --config "/etc/openvpn/openvpn.conf" --tmp-dir /tmp/
 `
 
@@ -138,9 +137,10 @@ func TestIT(t *testing.T) {
 		testcontainers.WithName("openvpn-auth-oauth2-it-server"),
 		testcontainers.WithDockerfile(testcontainers.FromDockerfile{
 			Context:    `../../`,
-			Dockerfile: `./tests/Dockerfile`,
+			Dockerfile: `./tests/plugin/Dockerfile`,
 			Repo:       "testcontainers/openvpn-auth-oauth2",
 			Tag:        "latest",
+			KeepImage:  true,
 		}),
 		testcontainers.WithExposedPorts("8081/tcp", "8082/tcp"),
 		testcontainers.WithWaitStrategy(wait.ForExposedPort().WithPollInterval(1*time.Second)),
@@ -160,7 +160,6 @@ func TestIT(t *testing.T) {
 			FileMode:          0o755,
 		}),
 		testcontainers.WithHostConfigModifier(func(hostConfig *container.HostConfig) {
-			hostConfig.ExtraHosts = []string{"host.docker.internal:host-gateway"}
 			hostConfig.Binds = []string{"/dev/net/tun:/dev/net/tun"}
 			hostConfig.CapAdd = []string{"NET_ADMIN"}
 		}),
@@ -182,9 +181,10 @@ func TestIT(t *testing.T) {
 		testcontainers.WithName("openvpn-auth-oauth2-it-client"),
 		testcontainers.WithDockerfile(testcontainers.FromDockerfile{
 			Context:    `../../`,
-			Dockerfile: `./tests/Dockerfile`,
+			Dockerfile: `./tests/plugin/Dockerfile`,
 			Repo:       "testcontainers/openvpn-auth-oauth2",
 			Tag:        "latest",
+			KeepImage:  true,
 		}),
 		testcontainers.WithLabels(map[string]string{
 			"testcontainers": "true",
