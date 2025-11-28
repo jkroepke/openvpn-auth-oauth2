@@ -13,7 +13,7 @@ import (
 
 // AcceptClient accepts an OpenVPN client connection.
 // It reads the client configuration from the CCD path if enabled.
-func (c *Client) AcceptClient(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, reAuth bool, username string) {
+func (c *Client) AcceptClient(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, reAuth bool, username, clientConfigName string) {
 	if reAuth {
 		logger.LogAttrs(ctx, slog.LevelInfo, "client re-authentication")
 
@@ -26,11 +26,11 @@ func (c *Client) AcceptClient(ctx context.Context, logger *slog.Logger, client s
 		return
 	}
 
-	c.acceptClientAuth(ctx, logger, client, username)
+	c.acceptClientAuth(ctx, logger, client, username, clientConfigName)
 }
 
 //nolint:cyclop
-func (c *Client) acceptClientAuth(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, username string) {
+func (c *Client) acceptClientAuth(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, username, clientConfigName string) {
 	var (
 		err           error
 		tokenUsername string
@@ -38,10 +38,10 @@ func (c *Client) acceptClientAuth(ctx context.Context, logger *slog.Logger, clie
 
 	logger.LogAttrs(ctx, slog.LevelInfo, "client authentication")
 
-	clientConfig, err := c.readClientConfig(username)
+	clientConfig, err := c.readClientConfig(clientConfigName)
 	if err != nil {
 		logger.LogAttrs(ctx, slog.LevelDebug, "failed to read client config",
-			slog.String("username", username),
+			slog.String("config", clientConfigName),
 			slog.Any("error", err),
 		)
 	}

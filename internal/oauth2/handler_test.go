@@ -366,6 +366,40 @@ func TestHandler(t *testing.T) {
 			true,
 		},
 		{
+			"with client config and custom claim",
+			func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Check.IPAddr = true
+				conf.HTTP.EnableProxyHeaders = true
+				conf.OAuth2.Provider = generic.Name
+				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
+				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
+				conf.OAuth2.Validate.Groups = make([]string, 0)
+				conf.OAuth2.Validate.Roles = make([]string, 0)
+				conf.OAuth2.Validate.Issuer = true
+				conf.OAuth2.Validate.IPAddr = false
+				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
+				conf.OpenVPN.AuthTokenUser = true
+				conf.OpenVPN.ClientConfig.Enabled = true
+				conf.OpenVPN.ClientConfig.TokenClaim = "sub"
+				conf.OpenVPN.ClientConfig.Path = types.FS{
+					FS: fstest.MapFS{
+						"id1.conf": &fstest.MapFile{
+							Data: []byte("push \"ping 60\"\npush \"ping-restart 180\"\r\npush \"ping-timer-rem\" 0\r\n"),
+						},
+					},
+				}
+
+				return conf
+			}(),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.2", "12345", ""),
+			false,
+			"127.0.0.2, 8.8.8.8",
+			true,
+			true,
+		},
+		{
 			"with client config not found",
 			func() config.Config {
 				conf := config.Defaults
