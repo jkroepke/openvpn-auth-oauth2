@@ -58,7 +58,7 @@ func (c *Client) handleClientAuthentication(ctx context.Context, logger *slog.Lo
 	// Check if the client is allowed to bypass authentication. If so, accept the client.
 	if c.checkAuthBypass(client) {
 		logger.LogAttrs(ctx, slog.LevelInfo, "client bypass authentication")
-		c.AcceptClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, true, client.CommonName)
+		c.AcceptClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, true, client.CommonName, "")
 
 		return
 	}
@@ -83,7 +83,7 @@ func (c *Client) handleClientAuthentication(ctx context.Context, logger *slog.Lo
 
 		return
 	} else if ok {
-		c.AcceptClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, true, client.CommonName)
+		c.AcceptClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, true, client.CommonName, "")
 
 		return
 	}

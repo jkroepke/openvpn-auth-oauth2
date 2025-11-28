@@ -19,7 +19,7 @@ import (
 )
 
 type openvpnManagementClient interface {
-	AcceptClient(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, reAuth bool, username string)
+	AcceptClient(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, reAuth bool, username string, clientConfigName string)
 	DenyClient(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, reason string)
 }
 
@@ -197,7 +197,17 @@ func (c Client) postCodeExchangeHandler(
 			username = session.Client.CommonName
 		}
 
-		c.openvpn.AcceptClient(ctx, logger, session.Client, false, username)
+		clientConfigName := username
+
+		if clientConfigClaim := c.conf.OpenVPN.ClientConfig.TokenClaim; clientConfigClaim != "" && tokens.IDTokenClaims != nil {
+			if claimValue, ok := tokens.IDTokenClaims.Claims[clientConfigClaim]; ok {
+				if clientConfigTokenValue, ok := claimValue.(string); ok && clientConfigName != "" {
+					clientConfigName = clientConfigTokenValue
+				}
+			}
+		}
+
+		c.openvpn.AcceptClient(ctx, logger, session.Client, false, username, clientConfigName)
 		c.postCodeExchangeHandlerStoreRefreshToken(ctx, logger, session, clientID, tokens)
 		c.writeHTTPSuccess(ctx, w, logger)
 	}
