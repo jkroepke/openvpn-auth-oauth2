@@ -65,22 +65,6 @@ jobs:
 
       - uses: anchore/sbom-action/download-syft@fbfd9c6c189226748411491745178e0c2017392d # v0.20.10
 
-      - name: Install plugin dependencies
-        if: false
-        run: |
-          sudo dpkg --add-architecture arm64
-          sudo sed -i '/^Types: deb$/a Architectures: amd64 i386' /etc/apt/sources.list.d/ubuntu.sources
-
-          echo "Types: deb
-          URIs: http://ports.ubuntu.com/ubuntu-ports
-          Suites: $(lsb_release -cs) $(lsb_release -cs)-updates $(lsb_release -cs)-security
-          Components: main restricted universe multiverse
-          Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
-          Architectures: arm64" | sudo tee /etc/apt/sources.list.d/ubuntu-ports.sources
-
-          sudo apt-get update -q
-          sudo apt-get install --no-install-recommends -qy crossbuild-essential-arm64 libssl-dev:arm64
-
       - name: Write gpg sign key
         if: env.GPG_KEY != null
         run: echo "$GPG_KEY" > "$GPG_KEY_PATH"
@@ -92,7 +76,7 @@ jobs:
         uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a # v6.4.0
         with:
           # renovate: github=goreleaser/goreleaser
-          version: v2.12.7
+          version: v2.13.0
           args: release --snapshot
         env:
           GITHUB_TOKEN: ""
@@ -135,7 +119,7 @@ jobs:
           fetch-depth: 0
 
       - name: Lint Code Base
-        uses: super-linter/super-linter/slim@2bdd90ed3262e023ac84bf8fe35dc480721fc1f2 # v8.2.1
+        uses: super-linter/super-linter/slim@502f4fe48a81a392756e173e39a861f8c8efe056 # v8.3.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MULTI_STATUS: false
@@ -183,22 +167,6 @@ jobs:
 
       - uses: anchore/sbom-action/download-syft@fbfd9c6c189226748411491745178e0c2017392d # v0.20.10
 
-      - name: Install plugin dependencies
-        if: false
-        run: |
-          sudo dpkg --add-architecture arm64
-          sudo sed -i '/^Types: deb$/a Architectures: amd64 i386' /etc/apt/sources.list.d/ubuntu.sources
-
-          echo "Types: deb
-          URIs: http://ports.ubuntu.com/ubuntu-ports
-          Suites: $(lsb_release -cs) $(lsb_release -cs)-updates $(lsb_release -cs)-security
-          Components: main restricted universe multiverse
-          Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
-          Architectures: arm64" | sudo tee /etc/apt/sources.list.d/ubuntu-ports.sources
-
-          sudo apt-get update -q
-          sudo apt-get install --no-install-recommends -qy crossbuild-essential-arm64 libssl-dev:arm64
-
       - name: GPG configuration
         run: |-
           echo "$GPG_KEY" > "$GPG_KEY_PATH"
@@ -223,7 +191,7 @@ jobs:
         uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a # v6.4.0
         with:
           # renovate: github=goreleaser/goreleaser
-          version: v2.12.7
+          version: v2.13.0
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
