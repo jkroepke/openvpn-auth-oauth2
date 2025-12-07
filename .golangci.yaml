@@ -71,12 +71,14 @@ linters:
         - name: error-return
         - name: error-strings
         - name: errorf
+        - name: forbidden-call-in-wg-go
         - name: get-return
         - name: identical-branches
         - name: if-return
         - name: import-alias-naming
         - name: import-shadowing
         - name: increment-decrement
+        - name: inefficient-map-lookup
         - name: indent-error-flow
         - name: modifies-parameter
         - name: modifies-value-receiver
@@ -106,6 +108,7 @@ linters:
         - name: time-naming
         - name: unconditional-recursion
         - name: unexported-naming
+        - name: unnecessary-if
         - name: unnecessary-stmt
         - name: unreachable-code
         - name: unused-parameter

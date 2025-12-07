@@ -8,10 +8,14 @@ on:
       - labeled
       - unlabeled
 
+permissions: {}
+
 jobs:
   required-labels-missing:
     name: required labels missing
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: check
         if: >-
