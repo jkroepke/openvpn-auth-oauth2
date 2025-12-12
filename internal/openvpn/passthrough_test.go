@@ -358,6 +358,7 @@ func TestPassThroughFull(t *testing.T) {
 				permission, err := testutils.GetPermissionsOfFile(tc.conf.OpenVPN.Passthrough.Address.Path)
 				require.NoError(t, err)
 
+				//nolint:gosec
 				assert.Equal(t, os.FileMode(tc.conf.OpenVPN.Passthrough.SocketMode).String(), permission)
 			} else {
 				testutils.SendMessagef(t, passThroughConn, " quit ")
