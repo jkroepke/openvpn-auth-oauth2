@@ -16,6 +16,9 @@ PROJECT_NAME := $(notdir $(CURRENT_DIR))
 # Get the GOOS value
 GOOS := $(shell go env GOOS)
 
+# Disable CGO for static binaries
+CGO_ENABLED := 0
+
 # Determine the output file extension based on the GOOS value
 ifeq ($(GOOS),windows)
 	EXT := .exe
