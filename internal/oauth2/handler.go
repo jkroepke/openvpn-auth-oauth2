@@ -8,9 +8,12 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"slices"
 	"strconv"
+	"strings"
 	"time"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
@@ -78,12 +81,7 @@ func (c Client) OAuth2Start() http.Handler {
 		authorizeParams := c.authorizeParams
 
 		if c.conf.OAuth2.Nonce {
-			id := strconv.FormatUint(session.Client.CID, 10)
-			if c.conf.OAuth2.Refresh.UseSessionID && session.Client.SessionID != "" {
-				id = session.Client.SessionID
-			}
-
-			authorizeParams = append(authorizeParams, rp.WithURLParam("nonce", c.getNonce(id)))
+			authorizeParams = append(authorizeParams, rp.WithURLParam("nonce", c.getNonce(c.getClientID(session))))
 		}
 
 		rp.AuthURLHandler(func() string {
@@ -123,25 +121,24 @@ func (c Client) OAuth2Callback() http.Handler {
 
 		ctx = logging.ToContext(ctx, logger)
 
-		clientID := strconv.FormatUint(session.Client.CID, 10)
-		if c.conf.OAuth2.Refresh.UseSessionID && session.Client.SessionID != "" {
-			clientID = session.Client.SessionID
-		}
+		clientID := c.getClientID(session)
 
 		if c.conf.OAuth2.Nonce {
 			ctx = context.WithValue(ctx, types.CtxNonce{}, c.getNonce(clientID))
 			r = r.WithContext(ctx)
 		}
 
-		codeExchangeHandler := rp.CodeExchangeCallback[*idtoken.Claims](func(
-			w http.ResponseWriter, r *http.Request,
-			tokens idtoken.IDToken, state string, provider rp.RelyingParty,
-		) {
-			c.postCodeExchangeHandler(logger, session, clientID)(w, r, tokens, state, provider, nil)
-		})
+		var codeExchangeHandler rp.CodeExchangeCallback[*idtoken.Claims]
 
 		if c.conf.OAuth2.UserInfo {
-			codeExchangeHandler = rp.UserinfoCallback(c.postCodeExchangeHandler(logger, session, clientID))
+			codeExchangeHandler = rp.UserinfoCallback(c.postCodeExchangeHandler(logger, encryptedState, session, clientID))
+		} else {
+			codeExchangeHandler = func(
+				w http.ResponseWriter, r *http.Request,
+				tokens idtoken.IDToken, state string, provider rp.RelyingParty,
+			) {
+				c.postCodeExchangeHandler(logger, encryptedState, session, clientID)(w, r, tokens, state, provider, nil)
+			}
 		}
 
 		rp.CodeExchangeHandler(
@@ -151,8 +148,133 @@ func (c Client) OAuth2Callback() http.Handler {
 	})
 }
 
+//nolint:cyclop
+func (c Client) OAuth2ProfileSubmit() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+		defer cancel()
+
+		encryptedState := r.FormValue("state")
+		if encryptedState == "" {
+			c.writeHTTPError(ctx, w, c.logger, http.StatusBadRequest, "Bad Request", "state is empty")
+
+			return
+		}
+
+		session, err := state.NewWithEncodedToken(encryptedState, c.conf.HTTP.Secret.String())
+		if err != nil {
+			c.writeHTTPError(ctx, w, c.logger, http.StatusBadRequest, "Invalid State", err.Error())
+
+			return
+		}
+
+		logger := c.logger.With(
+			slog.String("ip", fmt.Sprintf("%s:%s", session.IPAddr, session.IPPort)),
+			slog.Uint64("cid", session.Client.CID),
+			slog.Uint64("kid", session.Client.KID),
+			slog.String("common_name", session.Client.CommonName),
+			slog.String("session_id", session.Client.SessionID),
+			slog.String("session_state", session.SessionState),
+		)
+
+		clientID := c.getClientID(session)
+
+		stateHash := sha256.Sum256([]byte(encryptedState))
+		storageKey := fmt.Sprintf("%s-token-%x", clientID, stateHash[:8])
+
+		token, err := c.storage.Get(storageKey)
+		if err != nil {
+			c.writeHTTPError(ctx, w, logger, http.StatusBadRequest, "unable to retrieve refresh token from storage", err.Error())
+
+			return
+		}
+
+		_ = c.storage.Delete(storageKey)
+
+		encryptedToken := r.FormValue("token")
+		if encryptedToken == "" {
+			c.writeHTTPError(ctx, w, logger, http.StatusBadRequest, "Bad Request", "encrypted token is missing")
+
+			return
+		}
+
+		tokenBytes, err := state.Decrypt(encryptedToken, c.conf.HTTP.Secret.String())
+		if err != nil {
+			c.writeHTTPError(ctx, w, logger, http.StatusInternalServerError, "unable to decrypt token from profile selector", err.Error())
+
+			return
+		}
+
+		if string(tokenBytes) != token {
+			c.writeHTTPError(ctx, w, logger, http.StatusBadRequest, "Bad Request", "token mismatch from profile selector")
+
+			return
+		}
+
+		encryptedUsername := r.FormValue("username")
+		if encryptedUsername == "" {
+			c.writeHTTPError(ctx, w, logger, http.StatusBadRequest, "Bad Request", "encrypted username missing from profile selector")
+
+			return
+		}
+
+		usernameBytes, err := state.Decrypt(encryptedUsername, c.conf.HTTP.Secret.String())
+		if err != nil {
+			c.writeHTTPError(ctx, w, logger, http.StatusInternalServerError, "unable to decrypt username from profile selector", err.Error())
+
+			return
+		}
+
+		username := string(usernameBytes)
+		if username == config.CommonNameModeOmitValue {
+			username = ""
+		}
+
+		encryptedProfiles := r.FormValue("encryptedProfiles")
+		if encryptedProfiles == "" {
+			c.writeHTTPError(ctx, w, logger, http.StatusBadRequest, "encrypted profiles missing from profile selector", "encrypted profiles are missing")
+
+			return
+		}
+
+		profilesBytes, err := state.Decrypt(encryptedProfiles, c.conf.HTTP.Secret.String())
+		if err != nil {
+			c.writeHTTPError(ctx, w, logger, http.StatusInternalServerError, "unable to decrypt profiles from profile selector", err.Error())
+
+			return
+		}
+
+		allowedProfiles := strings.Split(string(profilesBytes), "\n")
+
+		clientConfigName := r.FormValue("profile")
+		logger = logger.With(slog.String("selected_profile", clientConfigName))
+
+		// Validate that the selected profile is in the allowed list
+		if !slices.Contains(allowedProfiles, clientConfigName) {
+			c.openvpn.DenyClient(ctx, logger, session.Client, "invalid profile selection")
+			c.writeHTTPError(ctx, w, logger, http.StatusForbidden, "Invalid Profile", "The selected profile is not allowed")
+
+			return
+		}
+
+		logger.LogAttrs(ctx, slog.LevelInfo, "successful authorization via oauth2 with profile selection")
+
+		c.openvpn.AcceptClient(ctx, logger, session.Client, false, username, clientConfigName)
+		c.writeHTTPSuccess(ctx, w, logger)
+	})
+}
+
+func (c Client) getClientID(session state.State) string {
+	if c.conf.OAuth2.Refresh.UseSessionID && session.Client.SessionID != "" {
+		return session.Client.SessionID
+	}
+
+	return strconv.FormatUint(session.Client.CID, 10)
+}
+
+//nolint:cyclop
 func (c Client) postCodeExchangeHandler(
-	logger *slog.Logger, session state.State, clientID string,
+	logger *slog.Logger, encryptedState string, session state.State, clientID string,
 ) rp.CodeExchangeUserinfoCallback[*idtoken.Claims, *types.UserInfo] {
 	return func(
 		w http.ResponseWriter, r *http.Request, tokens idtoken.IDToken, _ string,
@@ -195,6 +317,33 @@ func (c Client) postCodeExchangeHandler(
 		username := user.PreferredUsername
 		if username == "" {
 			username = session.Client.CommonName
+		}
+
+		if c.conf.OpenVPN.ClientConfig.UserSelector.Enabled {
+			profiles := c.extractProfiles(tokens)
+
+			// Only show profile selector if there's more than one profile to choose from
+			if len(profiles) > 1 {
+				c.postCodeExchangeHandlerStoreRefreshToken(ctx, logger, session, clientID, tokens)
+				c.clientConfigProfileSelector(ctx, logger, w, encryptedState, clientID, username, profiles, tokens)
+
+				logger.LogAttrs(ctx, slog.LevelInfo, "presented client configuration profile selector",
+					slog.String("profiles", strings.Join(profiles, ", ")),
+				)
+
+				return
+			}
+
+			// If there's exactly one profile, use it directly
+			if len(profiles) == 1 {
+				c.openvpn.AcceptClient(ctx, logger, session.Client, false, username, profiles[0])
+				c.postCodeExchangeHandlerStoreRefreshToken(ctx, logger, session, clientID, tokens)
+				c.writeHTTPSuccess(ctx, w, logger)
+
+				return
+			}
+
+			// If no profiles, fall through to default behavior
 		}
 
 		clientConfigName := username
@@ -254,6 +403,114 @@ func (c Client) postCodeExchangeHandlerStoreRefreshToken(
 	}
 }
 
+// extractProfiles extracts the list of available profiles from static configuration and token claims.
+func (c Client) extractProfiles(tokens idtoken.IDToken) []string {
+	profiles := c.conf.OpenVPN.ClientConfig.UserSelector.StaticValues
+
+	clientConfigClaim := c.conf.OpenVPN.ClientConfig.TokenClaim
+	if clientConfigClaim == "" || tokens.IDTokenClaims == nil {
+		return profiles
+	}
+
+	iClaimValue, ok := tokens.IDTokenClaims.Claims[clientConfigClaim]
+	if !ok {
+		return profiles
+	}
+
+	switch claimValue := iClaimValue.(type) {
+	case []any:
+		profiles = slices.Grow(profiles, len(claimValue))
+
+		for _, profile := range claimValue {
+			if profileStr, ok := profile.(string); ok {
+				profiles = append(profiles, profileStr)
+			}
+		}
+	case string:
+		profiles = append(profiles, claimValue)
+	}
+
+	return profiles
+}
+
+//nolint:revive
+func (c Client) clientConfigProfileSelector(
+	ctx context.Context, logger *slog.Logger, w http.ResponseWriter, encryptedState, clientID, username string, profiles []string, tokens idtoken.IDToken,
+) {
+	if username == "" {
+		username = config.CommonNameModeOmitValue
+	}
+
+	encryptedUsername, err := state.Encrypt([]byte(username), c.conf.HTTP.Secret.String())
+	if err != nil {
+		logger.LogAttrs(ctx, slog.LevelError, "unable to encrypt username for profile selector",
+			slog.Any("err", err),
+		)
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
+
+	encryptedProfiles, err := state.Encrypt([]byte(strings.Join(profiles, "\n")), c.conf.HTTP.Secret.String())
+	if err != nil {
+		logger.LogAttrs(ctx, slog.LevelError, "unable to encrypt profiles for profile selector",
+			slog.Any("err", err),
+		)
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
+
+	token, err := c.provider.GetToken(tokens)
+	if err != nil {
+		logger.LogAttrs(ctx, slog.LevelError, "unable to get token for profile selector",
+			slog.Any("err", err),
+		)
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
+
+	stateHash := sha256.Sum256([]byte(encryptedState))
+	storageKey := fmt.Sprintf("%s-token-%x", clientID, stateHash[:8])
+
+	err = c.storage.Set(storageKey, token)
+	if err != nil {
+		logger.LogAttrs(ctx, slog.LevelError, "unable to store token for profile selector",
+			slog.Any("err", err),
+		)
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
+
+	encryptedToken, err := state.Encrypt([]byte(token), c.conf.HTTP.Secret.String())
+	if err != nil {
+		logger.LogAttrs(ctx, slog.LevelError, "unable to encrypt token for profile selector",
+			slog.Any("err", err),
+		)
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
+
+	err = c.conf.HTTP.Template.Execute(w, map[string]any{
+		"title":             "Select Profile",
+		"message":           "Please select your client configuration profile.",
+		"encryptedState":    encryptedState,
+		"token":             encryptedToken,
+		"username":          encryptedUsername,
+		"profiles":          profiles,
+		"encryptedProfiles": encryptedProfiles,
+	})
+	if err != nil {
+		logger.LogAttrs(ctx, slog.LevelError, "template error", slog.Any(
+			"err", fmt.Errorf("executing template: %w", err),
+		))
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+}
+
 func (c Client) httpErrorHandler(ctx context.Context, w http.ResponseWriter, httpStatus int, errorType, errorDesc, encryptedSession string) {
 	logger := c.logger
 
@@ -302,7 +559,6 @@ func (c Client) writeHTTPSuccess(ctx context.Context, w http.ResponseWriter, log
 	err := c.conf.HTTP.Template.Execute(w, map[string]string{
 		"title":   "Access granted",
 		"message": "You can close this window now.",
-		"errorID": "",
 	})
 	if err != nil {
 		logger.LogAttrs(ctx, slog.LevelError, "template error", slog.Any(

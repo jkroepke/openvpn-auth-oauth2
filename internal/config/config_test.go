@@ -118,6 +118,10 @@ openvpn:
         enabled: true
         token-claim: sub
         path: "."
+        user-selector:
+            enabled: true
+            static-values:
+            - "default"
     common-name:
         environment-variable-name: X509_0_emailAddress
         mode: omit
@@ -192,6 +196,10 @@ http:
 
 							return dirFS
 						}(),
+						UserSelector: config.OpenVPNConfigProfileSelector{
+							Enabled:      true,
+							StaticValues: []string{"default"},
+						},
 					},
 					Password:           "1jd93h5b6s82lf03jh5b2hf9",
 					AuthTokenUser:      true,

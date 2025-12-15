@@ -51,6 +51,10 @@ var Defaults = Config{
 		ClientConfig: OpenVPNConfig{
 			Enabled: false,
 			Path:    types.FS{FS: os.DirFS("/etc/openvpn-auth-oauth2/client-config-dir/")},
+			UserSelector: OpenVPNConfigProfileSelector{
+				Enabled:      false,
+				StaticValues: make(types.StringSlice, 0),
+			},
 		},
 		CommonName: OpenVPNCommonName{
 			EnvironmentVariableName: "common_name",
