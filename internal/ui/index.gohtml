@@ -16,6 +16,20 @@
   <h1 id="title" data-i18n>{{ .title }}</h1>
   <section>
     <h2 id="message" data-i18n>{{ .message }}</h2>
+    {{- if .profiles }}
+      <div class="profile-buttons">
+      {{- range .profiles }}
+        <form method="POST" action="./profile-submit" class="profile-form">
+          <input type="hidden" name="token" value="{{ $.token }}">
+          <input type="hidden" name="state" value="{{ $.encryptedState }}">
+          <input type="hidden" name="username" value="{{ $.username }}">
+          <input type="hidden" name="encryptedProfiles" value="{{ $.encryptedProfiles }}">
+          <input type="hidden" name="profile" value="{{ . }}">
+          <button type="submit" class="profile-button">{{ . }}</button>
+        </form>
+      {{- end }}
+    </div>
+    {{- end }}
   </section>
 </main>
 {{- if .errorID }}

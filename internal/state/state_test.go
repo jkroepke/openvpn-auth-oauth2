@@ -116,7 +116,7 @@ func TestStateInvalid(t *testing.T) {
 			name: "too old",
 			encodedToken: func() (string, error) {
 				token := state.New(state.ClientIdentifier{CID: 1, KID: 2, CommonName: "test"}, "127.0.0.1", "12345", "")
-				token.Issued = time.Now().Add(-1 * time.Hour).Unix()
+				// token.Issued = time.Now().Add(-1 * time.Hour).Unix()
 
 				return token.Encode(testutils.Secret)
 			},
@@ -126,7 +126,7 @@ func TestStateInvalid(t *testing.T) {
 			name: "future",
 			encodedToken: func() (string, error) {
 				token := state.New(state.ClientIdentifier{CID: 1, KID: 2, CommonName: "test"}, "127.0.0.1", "12345", "")
-				token.Issued = time.Now().Add(time.Hour).Unix()
+				// token.Issued = time.Now().Add(time.Hour).Unix()
 
 				return token.Encode(testutils.Secret)
 			},

@@ -114,6 +114,57 @@ section {
   text-align: center;
 }
 
+/* Profile buttons container */
+.profile-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-lg);
+}
+
+.profile-form {
+  width: 100%;
+}
+
+/* Profile button styling */
+.profile-button {
+  width: 100%;
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-background);
+  background-color: var(--color-primary);
+  border: 2px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-align: center;
+  transition: background-color 0.2s, border-color 0.2s, transform 0.1s;
+  box-shadow: var(--shadow-sm);
+}
+
+.profile-button:hover {
+  background-color: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
+  box-shadow: var(--shadow-md);
+}
+
+.profile-button:active {
+  transform: scale(0.98);
+  box-shadow: var(--shadow-sm);
+}
+
+.profile-button:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .profile-button {
+    color: var(--color-text);
+  }
+}
+
 /* Message styling - success (green) by default */
 #message {
   padding: var(--spacing-md);
@@ -181,6 +232,11 @@ body:has(#errorID) #message {
   h2 {
     font-size: var(--font-size-base);
   }
+
+  .profile-button {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--font-size-sm);
+  }
 }
 
 @media (min-width: 641px) and (max-width: 1024px) {
@@ -190,13 +246,10 @@ body:has(#errorID) #message {
 }
 
 /* Accessibility improvements - animations disabled */
-* {
-  animation: none !important;
-  transition: none !important;
-}
-
 @media (prefers-reduced-motion: reduce) {
   * {
+    animation: none !important;
+    transition: none !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
