@@ -8,23 +8,19 @@
   <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>OpenVPN SSO Login</title>
-  <link rel="stylesheet" href="../assets/mvp.css">
   <link rel="stylesheet" href="../assets/style.css">
   <link rel="icon" href="../assets/favicon.png" sizes="192x192"/>
 </head>
 <body>
-<header>
-  <h1 id="title" data-i18n>{{ .title }}</h1>
-</header>
 <main>
-  <hr>
+  <h1 id="title" data-i18n>{{ .title }}</h1>
   <section>
-    {{- if .errorID }}
-    <h2 id="errorID"><span data-i18n>Error ID</span>: {{ .errorID }}</h2>
-    {{- end }}
     <h2 id="message" data-i18n>{{ .message }}</h2>
   </section>
 </main>
+{{- if .errorID }}
+<div id="errorID"><span data-i18n>Error ID</span>: {{ .errorID }}</div>
+{{- end }}
 <script src="../assets/i18n.js"></script>
 {{- if not .errorID }}<script>setTimeout(window.close,10000)</script>{{ end }}
 </body>
