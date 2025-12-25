@@ -167,6 +167,26 @@ func (c *Config) flagSetOpenVPN(flagSet *flag.FlagSet) {
 		lookupEnvOrDefault("openvpn.client-config.token-claim", c.OpenVPN.ClientConfig.TokenClaim),
 		"If non-empty, the value of the token claim is used to lookup the configuration file in the CCD directory. If empty, the common name is used.",
 	)
+	flagSet.BoolVar(
+		&c.OpenVPN.ClientConfig.UserSelector.Enabled,
+		"openvpn.client-config.user-selector.enabled",
+		lookupEnvOrDefault("openvpn.client-config.user-selector.enabled", c.OpenVPN.ClientConfig.UserSelector.Enabled),
+		"If true, openvpn-auth-oauth2 will display a profile selection UI after OAuth2 authentication, allowing users to choose their client configuration profile.",
+	)
+	flagSet.TextVar(
+		&c.OpenVPN.ClientConfig.UserSelector.StaticValues,
+		"openvpn.client-config.user-selector.static-values",
+		lookupEnvOrDefault("openvpn.client-config.user-selector.static-values", c.OpenVPN.ClientConfig.UserSelector.StaticValues),
+		"Comma-separated list of static profile names that are always available in the profile selector UI. "+
+			"These profiles will be displayed as selectable options for all users.",
+	)
+	flagSet.StringVar(
+		&c.OpenVPN.ClientConfig.UserSelector.TokenClaim,
+		"openvpn.client-config.user-selector.token-claim",
+		lookupEnvOrDefault("openvpn.client-config.user-selector.token-claim", c.OpenVPN.ClientConfig.UserSelector.TokenClaim),
+		"If non-empty, the value of this token claim will be used to dynamically add profile options to the selector UI. "+
+			"Supports both string and array values from the ID token.",
+	)
 	flagSet.StringVar(
 		&c.OpenVPN.CommonName.EnvironmentVariableName,
 		"openvpn.common-name.environment-variable-name",

@@ -51,7 +51,7 @@ var Defaults = Config{
 		ClientConfig: OpenVPNConfig{
 			Enabled: false,
 			Path:    types.FS{FS: os.DirFS("/etc/openvpn-auth-oauth2/client-config-dir/")},
-			ProfileSelector: OpenVPNConfigProfileSelector{
+			UserSelector: OpenVPNConfigProfileSelector{
 				Enabled:      false,
 				StaticValues: make(types.StringSlice, 0),
 			},

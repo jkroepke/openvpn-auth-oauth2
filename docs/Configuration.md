@@ -126,6 +126,12 @@ Usage of openvpn-auth-oauth2:
     	Path to the CCD directory. openvpn-auth-oauth2 will look for an file with an .conf suffix and returns the content back. (env: CONFIG_OPENVPN_CLIENT__CONFIG_PATH)
   --openvpn.client-config.token-claim string
     	If non-empty, the value of the token claim is used to lookup the configuration file in the CCD directory. If empty, the common name is used. (env: CONFIG_OPENVPN_CLIENT__CONFIG_TOKEN__CLAIM)
+  --openvpn.client-config.user-selector.enabled
+    	If true, openvpn-auth-oauth2 will display a profile selection UI after OAuth2 authentication, allowing users to choose their client configuration profile. (env: CONFIG_OPENVPN_CLIENT__CONFIG_USER__SELECTOR_ENABLED)
+  --openvpn.client-config.user-selector.static-values value
+    	Comma-separated list of static profile names that are always available in the profile selector UI. These profiles will be displayed as selectable options for all users. (env: CONFIG_OPENVPN_CLIENT__CONFIG_USER__SELECTOR_STATIC__VALUES)
+  --openvpn.client-config.user-selector.token-claim string
+    	If non-empty, the value of this token claim will be used to dynamically add profile options to the selector UI. Supports both string and array values from the ID token. (env: CONFIG_OPENVPN_CLIENT__CONFIG_USER__SELECTOR_TOKEN__CLAIM)
   --openvpn.common-name.environment-variable-name string
     	Name of the environment variable in the OpenVPN management interface which contains the common name. If username-as-common-name is enabled, this should be set to 'username' to use the username as common name. Other values like 'X509_0_emailAddress' are supported. See https://openvpn.net/community-resources/reference-manual-for-openvpn-2-6/#environmental-variables for more information. (env: CONFIG_OPENVPN_COMMON__NAME_ENVIRONMENT__VARIABLE__NAME) (default "common_name")
   --openvpn.common-name.mode value
