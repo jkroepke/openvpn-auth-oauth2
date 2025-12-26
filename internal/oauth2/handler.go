@@ -153,6 +153,7 @@ func (c Client) OAuth2Callback() http.Handler {
 		).ServeHTTP(w, r)
 	})
 }
+
 func (c Client) OAuth2ProfileSubmit() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
@@ -187,6 +188,20 @@ func (c Client) OAuth2ProfileSubmit() http.Handler {
 		if c.conf.OAuth2.Refresh.UseSessionID && session.Client.SessionID != "" {
 			clientID = session.Client.SessionID
 		}
+
+		usernameBytes, err := state.Decrypt(r.FormValue("username"), c.conf.HTTP.Secret.String())
+		if err != nil {
+			logger.LogAttrs(ctx, slog.LevelError, "unable to decrypt username from profile selector",
+				slog.Any("err", err),
+			)
+			c.writeHTTPError(ctx, w, logger, http.StatusInternalServerError, "decryptUsername", err.Error())
+
+			return
+		}
+
+		clientConfigName := r.FormValue("profile")
+
+		c.openvpn.AcceptClient(ctx, logger, session.Client, false, string(usernameBytes), clientConfigName)
 
 	})
 }
@@ -233,15 +248,16 @@ func (c Client) postCodeExchangeHandler(
 
 		logger.LogAttrs(ctx, slog.LevelInfo, "successful authorization via oauth2")
 
-		if c.conf.OpenVPN.ClientConfig.UserSelector.Enabled {
-			c.redirectClientConfigProfileSelector(ctx, logger, w, encryptedState, tokens)
-
-			return
-		}
-
 		username := user.PreferredUsername
 		if username == "" {
 			username = session.Client.CommonName
+		}
+
+		if c.conf.OpenVPN.ClientConfig.UserSelector.Enabled {
+			c.postCodeExchangeHandlerStoreRefreshToken(ctx, logger, session, clientID, tokens)
+			c.redirectClientConfigProfileSelector(ctx, logger, w, encryptedState, username, tokens)
+
+			return
 		}
 
 		clientConfigName := username
@@ -302,7 +318,7 @@ func (c Client) postCodeExchangeHandlerStoreRefreshToken(
 }
 
 func (c Client) redirectClientConfigProfileSelector(
-	ctx context.Context, logger *slog.Logger, w http.ResponseWriter, encryptedState string, tokens idtoken.IDToken,
+	ctx context.Context, logger *slog.Logger, w http.ResponseWriter, encryptedState, username string, tokens idtoken.IDToken,
 ) {
 	profiles := c.conf.OpenVPN.ClientConfig.UserSelector.StaticValues
 
@@ -323,12 +339,34 @@ func (c Client) redirectClientConfigProfileSelector(
 		}
 	}
 
-	err := c.conf.HTTP.Template.Execute(w, map[string]any{
-		"title":          "Select Profile",
-		"message":        "Please select your client configuration profile.",
-		"encryptedState": encryptedState,
-		"token":          tokens.IDToken,
-		"profiles":       profiles,
+	encryptedUsername, err := state.Encrypt([]byte(username), c.conf.HTTP.Secret.String())
+	if err != nil {
+		logger.LogAttrs(ctx, slog.LevelError, "unable to encrypt username for profile selector",
+			slog.Any("err", err),
+		)
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
+
+	encryptedProfiles, err := state.Encrypt([]byte(fmt.Sprintf("%q", profiles)), c.conf.HTTP.Secret.String())
+	if err != nil {
+		logger.LogAttrs(ctx, slog.LevelError, "unable to encrypt profiles for profile selector",
+			slog.Any("err", err),
+		)
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
+
+	err = c.conf.HTTP.Template.Execute(w, map[string]any{
+		"title":             "Select Profile",
+		"message":           "Please select your client configuration profile.",
+		"encryptedState":    encryptedState,
+		"token":             tokens.IDToken,
+		"username":          encryptedUsername,
+		"profiles":          profiles,
+		"encryptedProfiles": encryptedProfiles,
 	})
 	if err != nil {
 		logger.LogAttrs(ctx, slog.LevelError, "template error", slog.Any(

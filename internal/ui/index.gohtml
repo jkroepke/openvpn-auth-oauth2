@@ -19,8 +19,10 @@
     {{- if .profiles }}
       <div class="profile-buttons">
       {{- range .profiles }}
-        <form method="POST" action="./profile?state={{ $.encryptedState }}" class="profile-form">
+        <form method="POST" action="./profile" class="profile-form">
           <input type="hidden" name="token" value="{{ $.token }}">
+          <input type="hidden" name="state" value="{{ $.encryptedState }}">
+          <input type="hidden" name="encryptedProfiles" value="{{ $.encryptedProfiles }}">
           <input type="hidden" name="profile" value="{{ . }}">
           <button type="submit" class="profile-button">{{ . }}</button>
         </form>

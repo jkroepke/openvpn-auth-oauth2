@@ -41,6 +41,7 @@ func NewHTTPServer(name string, logger *slog.Logger, conf config.HTTP, fnHandler
 		logger: logger,
 		server: &http.Server{
 			Addr:              conf.Listen,
+			TLSNextProto:
 			ReadHeaderTimeout: 3 * time.Second,
 			ReadTimeout:       3 * time.Second,
 			WriteTimeout:      1 * time.Minute,
