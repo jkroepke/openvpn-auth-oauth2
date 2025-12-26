@@ -2,6 +2,7 @@ package state
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -53,6 +54,7 @@ func Decrypt(encodedState, secretKey string) ([]byte, error) {
 func extractIssued(data []byte) (int64, []byte, error) {
 	// Find the space separator
 	spaceIdx := -1
+
 	for i, b := range data {
 		if b == ' ' {
 			spaceIdx = i
@@ -62,7 +64,7 @@ func extractIssued(data []byte) (int64, []byte, error) {
 	}
 
 	if spaceIdx == -1 {
-		return 0, nil, fmt.Errorf("invalid data format: no timestamp found")
+		return 0, nil, errors.New("invalid data format: no timestamp found")
 	}
 
 	// Parse the timestamp

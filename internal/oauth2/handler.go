@@ -10,8 +10,10 @@ import (
 	"net/http"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
@@ -182,14 +184,15 @@ func (c Client) OAuth2ProfileSubmit() http.Handler {
 			slog.String("session_state", session.SessionState),
 		)
 
-		ctx = logging.ToContext(ctx, logger)
+		encryptedUsername := r.FormValue("username")
+		if encryptedUsername == "" {
+			logger.LogAttrs(ctx, slog.LevelError, "encrypted username missing from profile selector")
+			c.writeHTTPError(ctx, w, logger, http.StatusBadRequest, "Bad Request", "encrypted username is missing")
 
-		clientID := strconv.FormatUint(session.Client.CID, 10)
-		if c.conf.OAuth2.Refresh.UseSessionID && session.Client.SessionID != "" {
-			clientID = session.Client.SessionID
+			return
 		}
 
-		usernameBytes, err := state.Decrypt(r.FormValue("username"), c.conf.HTTP.Secret.String())
+		usernameBytes, err := state.Decrypt(encryptedUsername, c.conf.HTTP.Secret.String())
 		if err != nil {
 			logger.LogAttrs(ctx, slog.LevelError, "unable to decrypt username from profile selector",
 				slog.Any("err", err),
@@ -199,10 +202,47 @@ func (c Client) OAuth2ProfileSubmit() http.Handler {
 			return
 		}
 
+		username := string(usernameBytes)
+		if username == config.CommonNameModeOmitValue {
+			username = ""
+		}
+
+		encryptedProfiles := r.FormValue("encryptedProfiles")
+		if encryptedProfiles == "" {
+			logger.LogAttrs(ctx, slog.LevelError, "encrypted profiles missing from profile selector")
+			c.writeHTTPError(ctx, w, logger, http.StatusBadRequest, "Bad Request", "encrypted profiles are missing")
+
+			return
+		}
+
+		profilesBytes, err := state.Decrypt(encryptedProfiles, c.conf.HTTP.Secret.String())
+		if err != nil {
+			logger.LogAttrs(ctx, slog.LevelError, "unable to decrypt profiles from profile selector",
+				slog.Any("err", err),
+			)
+			c.writeHTTPError(ctx, w, logger, http.StatusInternalServerError, "decryptProfiles", err.Error())
+
+			return
+		}
+
+		allowedProfiles := strings.Split(string(profilesBytes), "\n")
+
 		clientConfigName := r.FormValue("profile")
+		logger = logger.With(slog.String("selected_profile", clientConfigName))
 
-		c.openvpn.AcceptClient(ctx, logger, session.Client, false, string(usernameBytes), clientConfigName)
+		// Validate that the selected profile is in the allowed list
+		if !slices.Contains(allowedProfiles, clientConfigName) {
+			logger.LogAttrs(ctx, slog.LevelWarn, "selected profile is not in the allowed list")
+			c.openvpn.DenyClient(ctx, logger, session.Client, "invalid profile selection")
+			c.writeHTTPError(ctx, w, logger, http.StatusForbidden, "Invalid Profile", "The selected profile is not allowed")
 
+			return
+		}
+
+		logger.LogAttrs(ctx, slog.LevelInfo, "successful authorization via oauth2 with profile selection")
+
+		c.openvpn.AcceptClient(ctx, logger, session.Client, false, username, clientConfigName)
+		c.writeHTTPSuccess(ctx, w, logger)
 	})
 }
 
@@ -254,10 +294,26 @@ func (c Client) postCodeExchangeHandler(
 		}
 
 		if c.conf.OpenVPN.ClientConfig.UserSelector.Enabled {
-			c.postCodeExchangeHandlerStoreRefreshToken(ctx, logger, session, clientID, tokens)
-			c.redirectClientConfigProfileSelector(ctx, logger, w, encryptedState, username, tokens)
+			profiles := c.extractProfiles(tokens)
 
-			return
+			// Only show profile selector if there's more than one profile to choose from
+			if len(profiles) > 1 {
+				c.postCodeExchangeHandlerStoreRefreshToken(ctx, logger, session, clientID, tokens)
+				c.clientConfigProfileSelector(ctx, logger, w, encryptedState, username, profiles, tokens)
+
+				return
+			}
+
+			// If there's exactly one profile, use it directly
+			if len(profiles) == 1 {
+				c.openvpn.AcceptClient(ctx, logger, session.Client, false, username, profiles[0])
+				c.postCodeExchangeHandlerStoreRefreshToken(ctx, logger, session, clientID, tokens)
+				c.writeHTTPSuccess(ctx, w, logger)
+
+				return
+			}
+
+			// If no profiles, fall through to default behavior
 		}
 
 		clientConfigName := username
@@ -317,26 +373,41 @@ func (c Client) postCodeExchangeHandlerStoreRefreshToken(
 	}
 }
 
-func (c Client) redirectClientConfigProfileSelector(
-	ctx context.Context, logger *slog.Logger, w http.ResponseWriter, encryptedState, username string, tokens idtoken.IDToken,
-) {
+// extractProfiles extracts the list of available profiles from static configuration and token claims.
+func (c Client) extractProfiles(tokens idtoken.IDToken) []string {
 	profiles := c.conf.OpenVPN.ClientConfig.UserSelector.StaticValues
 
-	if clientConfigClaim := c.conf.OpenVPN.ClientConfig.UserSelector.TokenClaim; clientConfigClaim != "" && tokens.IDTokenClaims != nil {
-		if iClaimValue, ok := tokens.IDTokenClaims.Claims[clientConfigClaim]; ok {
-			switch claimValue := iClaimValue.(type) {
-			case []any:
-				profiles = slices.Grow(profiles, len(claimValue))
+	clientConfigClaim := c.conf.OpenVPN.ClientConfig.UserSelector.TokenClaim
+	if clientConfigClaim == "" || tokens.IDTokenClaims == nil {
+		return profiles
+	}
 
-				for _, profile := range claimValue {
-					if profileStr, ok := profile.(string); ok {
-						profiles = append(profiles, profileStr)
-					}
-				}
-			case string:
-				profiles = append(profiles, claimValue)
+	iClaimValue, ok := tokens.IDTokenClaims.Claims[clientConfigClaim]
+	if !ok {
+		return profiles
+	}
+
+	switch claimValue := iClaimValue.(type) {
+	case []any:
+		profiles = slices.Grow(profiles, len(claimValue))
+
+		for _, profile := range claimValue {
+			if profileStr, ok := profile.(string); ok {
+				profiles = append(profiles, profileStr)
 			}
 		}
+	case string:
+		profiles = append(profiles, claimValue)
+	}
+
+	return profiles
+}
+
+func (c Client) clientConfigProfileSelector(
+	ctx context.Context, logger *slog.Logger, w http.ResponseWriter, encryptedState, username string, profiles []string, tokens idtoken.IDToken,
+) {
+	if username == "" {
+		username = config.CommonNameModeOmitValue
 	}
 
 	encryptedUsername, err := state.Encrypt([]byte(username), c.conf.HTTP.Secret.String())
@@ -349,7 +420,7 @@ func (c Client) redirectClientConfigProfileSelector(
 		return
 	}
 
-	encryptedProfiles, err := state.Encrypt([]byte(fmt.Sprintf("%q", profiles)), c.conf.HTTP.Secret.String())
+	encryptedProfiles, err := state.Encrypt([]byte(strings.Join(profiles, "\n")), c.conf.HTTP.Secret.String())
 	if err != nil {
 		logger.LogAttrs(ctx, slog.LevelError, "unable to encrypt profiles for profile selector",
 			slog.Any("err", err),
