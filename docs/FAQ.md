@@ -4,7 +4,7 @@
 
 A: No, it isn’t possible to implement a Remember Me or a caching credential function directly within openvpn-auth-oauth2 or OpenVPN.
 This limitation arises from the inability of openvpn-auth-oauth2 to store client cookies.
-While some OIDC providers like Keycloak offer a Remember Me feature,
+While some OIDC providers like Keycloak offer a [Remember Me](https://www.keycloak.org/docs/latest/server_admin/index.html#enabling-remember-me) feature,
 enabling automatic login would need implementation within the OIDC provider's settings rather than within openvpn-auth-oauth2 itself.
 
 ## Q: openvpn-auth-oauth2 re-authenticates the user on existing connections
