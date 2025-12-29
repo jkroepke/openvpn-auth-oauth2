@@ -22,8 +22,8 @@ type Config struct {
 	HTTP       HTTP    `json:"http"    yaml:"http"`
 	Debug      Debug   `json:"debug"   yaml:"debug"`
 	Log        Log     `json:"log"     yaml:"log"`
-	OpenVPN    OpenVPN `json:"openvpn" yaml:"openvpn"`
 	OAuth2     OAuth2  `json:"oauth2"  yaml:"oauth2"`
+	OpenVPN    OpenVPN `json:"openvpn" yaml:"openvpn"`
 }
 
 type HTTP struct {
@@ -53,10 +53,10 @@ type Log struct {
 type OpenVPN struct {
 	Addr               types.URL          `json:"addr"                 yaml:"addr"`
 	Password           types.Secret       `json:"password"             yaml:"password"`
-	ClientConfig       OpenVPNConfig      `json:"client-config"        yaml:"client-config"`
 	Bypass             OpenVPNBypass      `json:"bypass"               yaml:"bypass"`
 	CommonName         OpenVPNCommonName  `json:"common-name"          yaml:"common-name"`
 	Passthrough        OpenVPNPassthrough `json:"pass-through"         yaml:"pass-through"`
+	ClientConfig       OpenVPNConfig      `json:"client-config"        yaml:"client-config"`
 	AuthPendingTimeout time.Duration      `json:"auth-pending-timeout" yaml:"auth-pending-timeout"`
 	CommandTimeout     time.Duration      `json:"command-timeout"      yaml:"command-timeout"`
 	AuthTokenUser      bool               `json:"auth-token-user"      yaml:"auth-token-user"`
@@ -68,9 +68,15 @@ type OpenVPNBypass struct {
 	CommonNames types.RegexpSlice `json:"common-names" yaml:"common-names"`
 }
 type OpenVPNConfig struct {
-	Path       types.FS `json:"path"        yaml:"path"`
-	TokenClaim string   `json:"token-claim" yaml:"token-claim"`
-	Enabled    bool     `json:"enabled"     yaml:"enabled"`
+	Path         types.FS                     `json:"path"          yaml:"path"`
+	TokenClaim   string                       `json:"token-claim"   yaml:"token-claim"`
+	UserSelector OpenVPNConfigProfileSelector `json:"user-selector" yaml:"user-selector"`
+	Enabled      bool                         `json:"enabled"       yaml:"enabled"`
+}
+
+type OpenVPNConfigProfileSelector struct {
+	StaticValues types.StringSlice `json:"static-values" yaml:"static-values"`
+	Enabled      bool              `json:"enabled"       yaml:"enabled"`
 }
 
 type OpenVPNCommonName struct {
