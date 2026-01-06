@@ -108,14 +108,20 @@ type OAuth2Endpoints struct {
 	Token     types.URL `json:"token"     yaml:"token"`
 }
 
+type CommonNameEmailRegexp struct {
+	Pattern     string `json:"pattern"     yaml:"pattern"`
+	Replacement string `json:"replacement" yaml:"replacement"`
+}
+
 type OAuth2Validate struct {
-	CommonName              string            `json:"common-name"                yaml:"common-name"`
-	Acr                     types.StringSlice `json:"acr"                        yaml:"acr"`
-	Groups                  types.StringSlice `json:"groups"                     yaml:"groups"`
-	Roles                   types.StringSlice `json:"roles"                      yaml:"roles"`
-	IPAddr                  bool              `json:"ipaddr"                     yaml:"ipaddr"`
-	Issuer                  bool              `json:"issuer"                     yaml:"issuer"`
-	CommonNameCaseSensitive bool              `json:"common-name-case-sensitive" yaml:"common-name-case-sensitive"`
+	CommonName              string                 `json:"common-name"                yaml:"common-name"`
+	CommonNameEmailRegexp   *CommonNameEmailRegexp `json:"common-name-email-regexp"   yaml:"common-name-email-regexp"`
+	Acr                     types.StringSlice      `json:"acr"                        yaml:"acr"`
+	Groups                  types.StringSlice      `json:"groups"                     yaml:"groups"`
+	Roles                   types.StringSlice      `json:"roles"                      yaml:"roles"`
+	IPAddr                  bool                   `json:"ipaddr"                     yaml:"ipaddr"`
+	Issuer                  bool                   `json:"issuer"                     yaml:"issuer"`
+	CommonNameCaseSensitive bool                   `json:"common-name-case-sensitive" yaml:"common-name-case-sensitive"`
 }
 
 type OAuth2Refresh struct {

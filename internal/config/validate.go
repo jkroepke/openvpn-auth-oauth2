@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"regexp"
 	"slices"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
@@ -126,7 +127,7 @@ func validateOAuth2Config(conf Config) error {
 		}
 	}
 
-	return nil
+	return validateCommonNameEmailRegexp(conf)
 }
 
 func validateURL(uri types.URL) error {
@@ -144,6 +145,36 @@ func validateURL(uri types.URL) error {
 func validateEncryptionSecret(secret types.Secret) error {
 	if !slices.Contains([]int{16, 24, 32}, len(secret.String())) {
 		return errors.New("requires a length of 16, 24 or 32")
+	}
+
+	return nil
+}
+
+// validateCommonNameEmailRegexp validates the common-name-email-regexp configuration.
+func validateCommonNameEmailRegexp(conf Config) error {
+	regexpConf := conf.OAuth2.Validate.CommonNameEmailRegexp
+	if regexpConf == nil {
+		return nil
+	}
+
+	// common-name-email-regexp is only valid when common-name is "email"
+	if conf.OAuth2.Validate.CommonName != "email" {
+		return ErrCommonNameEmailRegexpRequiresEmail
+	}
+
+	// pattern is required
+	if regexpConf.Pattern == "" {
+		return ErrCommonNameEmailRegexpPatternMissing
+	}
+
+	// pattern must be a valid regexp
+	if _, err := regexp.Compile(regexpConf.Pattern); err != nil {
+		return fmt.Errorf("%w: %w", ErrCommonNameEmailRegexpInvalidPattern, err)
+	}
+
+	// replacement is required
+	if regexpConf.Replacement == "" {
+		return ErrCommonNameEmailRegexpReplaceMissing
 	}
 
 	return nil

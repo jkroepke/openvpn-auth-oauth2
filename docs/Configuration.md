@@ -102,6 +102,10 @@ Usage of openvpn-auth-oauth2:
     	validate common_name from OpenVPN with ID Token claim. For example: preferred_username or sub (env: CONFIG_OAUTH2_VALIDATE_COMMON__NAME)
   --oauth2.validate.common-name-case-sensitive
     	If true, openvpn-auth-oauth2 will validate the common case in sensitive mode (env: CONFIG_OAUTH2_VALIDATE_COMMON__NAME__CASE__SENSITIVE)
+  --oauth2.validate.common-name-email-regexp.pattern string
+    	Regular expression pattern to transform OpenVPN common_name to email address. Used only when oauth2.validate.common-name is set to 'email'. The pattern is applied using Go regexp.ReplaceAllString. Example: ^([^-]+).*$ (env: CONFIG_OAUTH2_VALIDATE_COMMON__NAME__EMAIL__REGEXP_PATTERN)
+  --oauth2.validate.common-name-email-regexp.replacement string
+    	Replacement string for common-name-email-regexp.pattern. Supports regexp capture groups like $1. Example: $1@example.com (env: CONFIG_OAUTH2_VALIDATE_COMMON__NAME__EMAIL__REGEXP_REPLACEMENT)
   --oauth2.validate.groups value
     	oauth2 required user groups. If multiple groups are configured, the user needs to be least in one group. Comma separated list. Example: group1,group2,group3 (env: CONFIG_OAUTH2_VALIDATE_GROUPS)
   --oauth2.validate.ipaddr

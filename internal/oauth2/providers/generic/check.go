@@ -3,10 +3,11 @@ package generic
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"slices"
 	"strings"
 
-	types2 "github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
@@ -80,36 +81,64 @@ func (p Provider) CheckCommonName(session state.State, tokens idtoken.IDToken) e
 		return nil
 	}
 
-	if session.Client.CommonName == "" || session.Client.CommonName == types2.CommonNameModeOmitValue {
+	if session.Client.CommonName == "" || session.Client.CommonName == config.CommonNameModeOmitValue {
 		return fmt.Errorf("common_name %w: openvpn client is empty", oauth2.ErrMismatch)
 	}
 
+	tokenCommonName, err := p.getTokenCommonName(tokens)
+	if err != nil {
+		return err
+	}
+
+	clientValue := p.getClientValue(session.Client.CommonName)
+
+	// Apply case insensitivity
+	if !p.Conf.OAuth2.Validate.CommonNameCaseSensitive {
+		clientValue = strings.ToLower(clientValue)
+		tokenCommonName = strings.ToLower(tokenCommonName)
+	}
+
+	if tokenCommonName != clientValue {
+		return fmt.Errorf("common_name %w: openvpn client: %s - oidc token: %s",
+			oauth2.ErrMismatch, clientValue, tokenCommonName)
+	}
+
+	return nil
+}
+
+// getTokenCommonName extracts and transforms the common name from the ID token claims.
+func (p Provider) getTokenCommonName(tokens idtoken.IDToken) (string, error) {
 	if tokens.IDTokenClaims == nil {
-		return fmt.Errorf("%w: id_token", oauth2.ErrMissingClaim)
+		return "", fmt.Errorf("%w: id_token", oauth2.ErrMissingClaim)
 	}
 
 	if tokens.IDTokenClaims.Claims == nil {
-		return fmt.Errorf("%w: id_token.claims", oauth2.ErrMissingClaim)
+		return "", fmt.Errorf("%w: id_token.claims", oauth2.ErrMissingClaim)
 	}
 
 	tokenCommonName, ok := tokens.IDTokenClaims.Claims[p.Conf.OAuth2.Validate.CommonName].(string)
 	if !ok {
-		return fmt.Errorf("%w: %s", oauth2.ErrMissingClaim, p.Conf.OAuth2.Validate.CommonName)
+		return "", fmt.Errorf("%w: %s", oauth2.ErrMissingClaim, p.Conf.OAuth2.Validate.CommonName)
 	}
 
-	tokenCommonName = utils.TransformCommonName(p.Conf.OpenVPN.CommonName.Mode, tokenCommonName)
+	return utils.TransformCommonName(p.Conf.OpenVPN.CommonName.Mode, tokenCommonName), nil
+}
 
-	if !p.Conf.OAuth2.Validate.CommonNameCaseSensitive {
-		session.Client.CommonName = strings.ToLower(session.Client.CommonName)
-		tokenCommonName = strings.ToLower(tokenCommonName)
+// getClientValue returns the client value to compare against the token.
+// If email validation with regexp transformation is configured, it transforms the common name to email.
+func (p Provider) getClientValue(commonName string) string {
+	if p.Conf.OAuth2.Validate.CommonName == "email" && p.Conf.OAuth2.Validate.CommonNameEmailRegexp != nil {
+		return transformCommonNameToEmail(commonName, p.Conf.OAuth2.Validate.CommonNameEmailRegexp)
 	}
 
-	if tokenCommonName != session.Client.CommonName {
-		return fmt.Errorf("common_name %w: openvpn client: %s - oidc token: %s",
-			oauth2.ErrMismatch, session.Client.CommonName, tokenCommonName)
-	}
+	return commonName
+}
 
-	return nil
+// transformCommonNameToEmail transforms a common name to an email address using regexp replacement.
+func transformCommonNameToEmail(commonName string, regexpConf *config.CommonNameEmailRegexp) string {
+	re := regexp.MustCompile(regexpConf.Pattern)
+
+	return re.ReplaceAllString(commonName, regexpConf.Replacement)
 }
 
 func (p Provider) CheckIPAddress(session state.State, tokens idtoken.IDToken) error {

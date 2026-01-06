@@ -632,15 +632,176 @@ func TestValidateCommonName(t *testing.T) {
 			},
 			errors.New("common_name mismatch: openvpn client is empty"),
 		},
+		// Email regexp transformation tests
+		{
+			"email regexp transform simple",
+			"user@example.com",
+			"user",
+			config.Config{
+				OpenVPN: config.OpenVPN{
+					CommonName: config.OpenVPNCommonName{
+						Mode: config.CommonNameModePlain,
+					},
+				},
+				OAuth2: config.OAuth2{
+					Validate: config.OAuth2Validate{
+						CommonName: "email",
+						CommonNameEmailRegexp: &config.CommonNameEmailRegexp{
+							Pattern:     "^([^-]+).*$",
+							Replacement: "$1@example.com",
+						},
+					},
+				},
+			},
+			nil,
+		},
+		{
+			"email regexp transform with suffix stripped",
+			"user@example.com",
+			"user-server",
+			config.Config{
+				OpenVPN: config.OpenVPN{
+					CommonName: config.OpenVPNCommonName{
+						Mode: config.CommonNameModePlain,
+					},
+				},
+				OAuth2: config.OAuth2{
+					Validate: config.OAuth2Validate{
+						CommonName: "email",
+						CommonNameEmailRegexp: &config.CommonNameEmailRegexp{
+							Pattern:     "^([^-]+).*$",
+							Replacement: "$1@example.com",
+						},
+					},
+				},
+			},
+			nil,
+		},
+		{
+			"email regexp transform different domain",
+			"user123@company.org",
+			"user123",
+			config.Config{
+				OpenVPN: config.OpenVPN{
+					CommonName: config.OpenVPNCommonName{
+						Mode: config.CommonNameModePlain,
+					},
+				},
+				OAuth2: config.OAuth2{
+					Validate: config.OAuth2Validate{
+						CommonName: "email",
+						CommonNameEmailRegexp: &config.CommonNameEmailRegexp{
+							Pattern:     "^(.+)",
+							Replacement: "$1@company.org",
+						},
+					},
+				},
+			},
+			nil,
+		},
+		{
+			"email regexp transform case insensitive",
+			"USER@example.com",
+			"user",
+			config.Config{
+				OpenVPN: config.OpenVPN{
+					CommonName: config.OpenVPNCommonName{
+						Mode: config.CommonNameModePlain,
+					},
+				},
+				OAuth2: config.OAuth2{
+					Validate: config.OAuth2Validate{
+						CommonName:              "email",
+						CommonNameCaseSensitive: false,
+						CommonNameEmailRegexp: &config.CommonNameEmailRegexp{
+							Pattern:     "^([^-]+).*$",
+							Replacement: "$1@example.com",
+						},
+					},
+				},
+			},
+			nil,
+		},
+		{
+			"email regexp transform mismatch",
+			"different@example.com",
+			"user",
+			config.Config{
+				OpenVPN: config.OpenVPN{
+					CommonName: config.OpenVPNCommonName{
+						Mode: config.CommonNameModePlain,
+					},
+				},
+				OAuth2: config.OAuth2{
+					Validate: config.OAuth2Validate{
+						CommonName: "email",
+						CommonNameEmailRegexp: &config.CommonNameEmailRegexp{
+							Pattern:     "^([^-]+).*$",
+							Replacement: "$1@example.com",
+						},
+					},
+				},
+			},
+			errors.New("common_name mismatch: openvpn client: user@example.com - oidc token: different@example.com"),
+		},
+		{
+			"email regexp no match uses original",
+			"test@example.com",
+			"test@example.com",
+			config.Config{
+				OpenVPN: config.OpenVPN{
+					CommonName: config.OpenVPNCommonName{
+						Mode: config.CommonNameModePlain,
+					},
+				},
+				OAuth2: config.OAuth2{
+					Validate: config.OAuth2Validate{
+						CommonName: "email",
+						CommonNameEmailRegexp: &config.CommonNameEmailRegexp{
+							Pattern:     "^nomatch",
+							Replacement: "replaced@example.com",
+						},
+					},
+				},
+			},
+			nil,
+		},
+		{
+			"email direct comparison without regexp",
+			"user@example.com",
+			"user@example.com",
+			config.Config{
+				OpenVPN: config.OpenVPN{
+					CommonName: config.OpenVPNCommonName{
+						Mode: config.CommonNameModePlain,
+					},
+				},
+				OAuth2: config.OAuth2{
+					Validate: config.OAuth2Validate{
+						CommonName: "email",
+					},
+				},
+			},
+			nil,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
+			// Use the claim name from config for the token, unless testing nonexistent claim
+			claimName := tc.conf.OAuth2.Validate.CommonName
+			claims := map[string]any{}
+			// Only set the claim if it's not a test for nonexistent claims
+			if claimName != "nonexists" {
+				claims[claimName] = tc.tokenCommonName
+			} else {
+				// For nonexists test, set a different claim name
+				claims["sub"] = tc.tokenCommonName
+			}
+
 			token := &oidc.Tokens[*idtoken.Claims]{
 				IDTokenClaims: &idtoken.Claims{
-					Claims: map[string]any{
-						"sub": tc.tokenCommonName,
-					},
+					Claims: claims,
 				},
 			}
 
@@ -656,7 +817,7 @@ func TestValidateCommonName(t *testing.T) {
 				require.NoError(t, err)
 			} else {
 				require.Error(t, err)
-				assert.EqualError(t, tc.err, err.Error())
+				assert.EqualError(t, err, tc.err.Error())
 			}
 		})
 	}

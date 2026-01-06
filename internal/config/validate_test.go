@@ -235,6 +235,127 @@ func TestValidate(t *testing.T) {
 			},
 			"oauth2.userinfo: cannot be used if oauth2.endpoint.auth and oauth2.endpoint.token is set",
 		},
+		// common-name-email-regexp validation tests
+		{
+			config.Config{
+				HTTP: config.HTTP{
+					BaseURL:  types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
+					Secret:   testutils.Secret,
+					Template: config.Defaults.HTTP.Template,
+				},
+				OAuth2: config.OAuth2{
+					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
+					Issuer: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
+					Validate: config.OAuth2Validate{
+						CommonName: "sub",
+						CommonNameEmailRegexp: &config.CommonNameEmailRegexp{
+							Pattern:     "^([^-]+)",
+							Replacement: "$1@example.com",
+						},
+					},
+				},
+				OpenVPN: config.OpenVPN{
+					Addr: types.URL{URL: &url.URL{Scheme: "tcp", Host: "127.0.0.1:9000"}},
+				},
+			},
+			"oauth2.validate.common-name-email-regexp requires oauth2.validate.common-name to be 'email'",
+		},
+		{
+			config.Config{
+				HTTP: config.HTTP{
+					BaseURL:  types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
+					Secret:   testutils.Secret,
+					Template: config.Defaults.HTTP.Template,
+				},
+				OAuth2: config.OAuth2{
+					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
+					Issuer: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
+					Validate: config.OAuth2Validate{
+						CommonName: "email",
+						CommonNameEmailRegexp: &config.CommonNameEmailRegexp{
+							Pattern:     "",
+							Replacement: "$1@example.com",
+						},
+					},
+				},
+				OpenVPN: config.OpenVPN{
+					Addr: types.URL{URL: &url.URL{Scheme: "tcp", Host: "127.0.0.1:9000"}},
+				},
+			},
+			"oauth2.validate.common-name-email-regexp.pattern is required",
+		},
+		{
+			config.Config{
+				HTTP: config.HTTP{
+					BaseURL:  types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
+					Secret:   testutils.Secret,
+					Template: config.Defaults.HTTP.Template,
+				},
+				OAuth2: config.OAuth2{
+					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
+					Issuer: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
+					Validate: config.OAuth2Validate{
+						CommonName: "email",
+						CommonNameEmailRegexp: &config.CommonNameEmailRegexp{
+							Pattern:     "[invalid",
+							Replacement: "$1@example.com",
+						},
+					},
+				},
+				OpenVPN: config.OpenVPN{
+					Addr: types.URL{URL: &url.URL{Scheme: "tcp", Host: "127.0.0.1:9000"}},
+				},
+			},
+			"-", // error message varies by Go version, just check that it fails
+		},
+		{
+			config.Config{
+				HTTP: config.HTTP{
+					BaseURL:  types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
+					Secret:   testutils.Secret,
+					Template: config.Defaults.HTTP.Template,
+				},
+				OAuth2: config.OAuth2{
+					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
+					Issuer: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
+					Validate: config.OAuth2Validate{
+						CommonName: "email",
+						CommonNameEmailRegexp: &config.CommonNameEmailRegexp{
+							Pattern:     "^([^-]+)",
+							Replacement: "",
+						},
+					},
+				},
+				OpenVPN: config.OpenVPN{
+					Addr: types.URL{URL: &url.URL{Scheme: "tcp", Host: "127.0.0.1:9000"}},
+				},
+			},
+			"oauth2.validate.common-name-email-regexp.replacement is required",
+		},
+		{
+			config.Config{
+				HTTP: config.HTTP{
+					BaseURL:  types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
+					Secret:   testutils.Secret,
+					Template: config.Defaults.HTTP.Template,
+				},
+				OAuth2: config.OAuth2{
+					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
+					Issuer: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
+					Validate: config.OAuth2Validate{
+						CommonName: "email",
+						CommonNameEmailRegexp: &config.CommonNameEmailRegexp{
+							Pattern:     "^([^-]+)",
+							Replacement: "$1@example.com",
+						},
+					},
+				},
+				OpenVPN: config.OpenVPN{
+					Addr: types.URL{URL: &url.URL{Scheme: "tcp", Host: "127.0.0.1:9000"}},
+				},
+			},
+			"",
+		},
 	} {
 		t.Run(tc.err, func(t *testing.T) {
 			t.Parallel()
