@@ -809,16 +809,7 @@ func TestHandler(t *testing.T) {
 			case len(tc.conf.OpenVPN.ClientConfig.UserSelector.StaticValues) > 1:
 				require.Contains(t, string(body), "Please select your client configuration profile")
 
-				/*
-					<form method="POST" action="./profile-submit" class="profile-form">
-					<input type="hidden" name="token" value="QsfAFyskl6nI6a5cQ37esh2pHX7EreJoiMKgIhv6WjJJ6xNWszk4rfpLPhyrDeQ0Y98G7mfa_rOHy58L5THkGM6Sv4Osi4iq6RWhWUxtWGpUVKlH44fjxiB_9lwMJsJ8yy6JOtaLV0wqABpgfEjtfVUyASlCQBjUO4LWtQiciC4w2UJqcOma6w3EsJLgrK8sA6g5RKnzKJq5s0F8PSS9GXmTHoRTDehh_L0vRwlP35ESBtmOwpRqlyMEFIcZgrE7SuNfRXRd4hsneTIyRrWI_-l4TodRFOkhJttMDHoyxuM1BJVlpBItLmuFYqxO_H0jtNRfixY2XEaqLmrL_F6ACzqAdpA9XLUZfDnTziRd4JhuMt_HVNeilIV5ShyLOAFR9Njw6Ceq1qSSjHMqIyvCxBdgYFVPq_eiU_ckJQFRFQNOEC02nKu_1LsWF9Tk67PkkHiAHYrYk016EJwUsOM64UqbWBRpejWRwY8Q-cDAP1TVSm1VcgDjPT8uBzePUKZS4He7f-0avvB-6XPPZHBToMIdjHZ11E0x6P5kF6UKaKdJoQVKRKXJdBHCLHCM0LcamLWgeJwKLFYrAejM4akU6xmgDQEdsPx8S7EgXUpCXSnTATG1AdxiYZZ1KTfxAPg15AOh9iNx1_ArbfCswi3exOLnoXmhKxAqMe9HSaknIPRbzrmCWi4ac4f66mKPoXUdz80jDJq135IKmXQUdrD_99gdTlh6IFgA5M6jDsEUfCJ2eQ3-rMXTY2AFmYt1rJ2STxg1nzu4hZE0qTUc8VLcGZYo5FMT-UMRiVXZhgxbxEgDMGWoyXC75JLqbLpY9kkvcvtRWeDzWN7iI0SYnuqZnehV8tUqrcSz0ZZ9zJjVqQjbzfIZc9513uAv7nrC3lGJmkHXp95HJrlVEsAly1r9Rlpl75cnqAhxB5Etktb-Yp_rMX7d99CPtobD9vDUWtPIfrE85y9Re_yh9bfTyZNtPgTacY9cJtEIfPus7ujH79Px3iwtxM5d4KcrAfc6DPsKcB3O8mAnZwkyCtd2tmdf5vGRP5b24OEfgtnNIRR-91RvwL-BLatavs1IWSF-t8717g4MinDyeVKMBUX5oWZg7_of5q-yOoSUSf-FWTlzr1_IxeDhmieLIryIx-R55t19NyV_bCpheMLGNAGs9nWadaxI-RRkzOTh6ZmswvXeHQs4FoMF0pLOmb44QciqBkQ7njkbPb0l5A==">
-					<input type="hidden" name="state" value="G7dNDWp6MtCmaIpeIGhOytX-nUtbXVXTybAhzKnfWUU-6iu11lO4_lhNhy7C75NBxW2_w6PfjesPP3L6_e09KGFb">
-					<input type="hidden" name="username" value="NW3N2ij9KlwdbwmpR5s3qMLlSDVf1J6Y84ymD3UR9Q==">
-					<input type="hidden" name="encryptedProfiles" value="z-HJv4hlUH73YljuoVBqS7QunLUfbp1vqJw0AVSmFcGu4MzphnlzGA==">
-					<input type="hidden" name="profile" value="group1">
-					<button type="submit" class="profile-button">group1</button>
-				*/
-				reInput := regexp.MustCompile(`<input type="hidden" name="([^"]+)" value="([^"]+)">`)
+				reInput := regexp.MustCompile(`type="(?:hidden|submit)" name="([^"]+)" value="([^"]+)">`)
 
 				matches := reInput.FindAllStringSubmatch(string(body), -1)
 				require.NotEmpty(t, matches, "no input fields found in profile selection form")
@@ -832,18 +823,11 @@ func TestHandler(t *testing.T) {
 				}
 
 				require.Contains(t, fields, "token")
-				require.Contains(t, fields, "state")
-				require.Contains(t, fields, "username")
-				require.Contains(t, fields, "encryptedProfiles")
-				require.Contains(t, fields, "profile")
 
 				request, err = http.NewRequestWithContext(t.Context(), http.MethodPost,
 					httpClientListener.URL+"/oauth2/profile-submit",
-					strings.NewReader(fmt.Sprintf("token=%s&state=%s&username=%s&encryptedProfiles=%s&profile=%s",
+					strings.NewReader(fmt.Sprintf("token=%s&profile=%s",
 						url.QueryEscape(fields["token"]),
-						url.QueryEscape(fields["state"]),
-						url.QueryEscape(fields["username"]),
-						url.QueryEscape(fields["encryptedProfiles"]),
 						url.QueryEscape(fields["profile"]),
 					)),
 				)

@@ -163,7 +163,7 @@ func TestStateInvalid(t *testing.T) {
 
 				return base64.URLEncoding.EncodeToString(encrypted), nil
 			},
-			expectedErr: "expected 12 fields",
+			expectedErr: "invalid data format: no timestamp found",
 		},
 		{
 			name: "invalid CID",

@@ -14,7 +14,7 @@ The feature must be enabled with `--openvpn.client-config.enabled`.
 openvpn-auth-oauth2 looks for a file
 named after the token claim or common name with `.conf` suffix in the client config directory.
 
-## User Profile Selector
+## Client Profile Selector
 
 The user profile selector feature allows users to choose their client configuration profile through a web UI after OAuth2 authentication. This is useful when:
 - Users need access to different VPN configurations (e.g., different network segments, access levels)
