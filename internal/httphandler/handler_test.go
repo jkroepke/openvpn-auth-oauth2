@@ -34,7 +34,7 @@ func TestAssets(t *testing.T) {
 
 	handler := httphandler.New(conf, oAuth2Client)
 
-	require.HTTPSuccess(t, handler.ServeHTTP, http.MethodGet, "/assets/favicon.png", nil)
+	require.HTTPSuccess(t, handler.ServeHTTP, http.MethodGet, "/assets/favicon.svg", nil)
 	require.HTTPSuccess(t, handler.ServeHTTP, http.MethodGet, "/assets/i18n/de.json", nil)
 }
 
