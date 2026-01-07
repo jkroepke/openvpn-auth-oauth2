@@ -1,5 +1,6 @@
 package generic
 
+import "github.com/google/cel-go/cel"
 import (
 	"context"
 	"fmt"
@@ -32,7 +33,11 @@ func (p Provider) CheckUser(
 		return err
 	}
 
-	return p.CheckIPAddress(session, tokens)
+	if err := p.CheckIPAddress(session, tokens); err != nil {
+		return err
+	}
+
+	return p.CheckCEL(userInfo, session, tokens)
 }
 
 func (p Provider) CheckGroups(userInfo types.UserInfo) error {
@@ -129,6 +134,15 @@ func (p Provider) CheckIPAddress(session state.State, tokens idtoken.IDToken) er
 		return fmt.Errorf("ipaddr %w: openvpn client: %s - oidc token: %s",
 			oauth2.ErrMismatch, tokens.IDTokenClaims.IPAddr, session.IPAddr)
 	}
+
+	return nil
+}
+
+func (p Provider) CheckCEL(session state.State, userInfo types.UserInfo, tokens idtoken.IDToken) error {
+	env, err := cel.NewEnv(
+		cel.Variable("name", cel.StringType),
+		cel.Variable("group", cel.StringType),
+	)
 
 	return nil
 }
