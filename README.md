@@ -6,6 +6,10 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/jkroepke/openvpn-auth-oauth2)](https://goreportcard.com/report/github.com/jkroepke/openvpn-auth-oauth2)
 [![codecov](https://codecov.io/gh/jkroepke/openvpn-auth-oauth2/graph/badge.svg?token=66VT000UYO)](https://codecov.io/gh/jkroepke/openvpn-auth-oauth2)
 
+<center>
+<img src="https://github.com/jkroepke/openvpn-auth-oauth2/blob/main/docs/img/logo.svg?raw=true" alt="openvpn-auth-oauth2 logo" width="400"/>
+</center>
+
 # openvpn-auth-oauth2
 
 ⭐ Don't forget to star this repository! ⭐
@@ -69,6 +73,7 @@ Thanks to JetBrains IDEs and Sparklabs for their support.
     <tr>
       <th><a href="https://www.jetbrains.com/?from=jkroepke">JetBrains IDEs</a></th>
       <th><a href="https://www.sparklabs.com/viscosity">Sparklabs</a></th>
+      <th><a href="https://rafaelalex.de/">Rafael Alex (Logo Design)</a></th>
     </tr>
   </thead>
   <tbody>
@@ -87,6 +92,13 @@ Thanks to JetBrains IDEs and Sparklabs for their support.
         <p align="center">
           <a href="https://www.sparklabs.com/viscosity">
             <img src="https://www.sparklabs.com/static/other/logo_assets/logo_cropped.png" alt="Sparklabs Viscosity logo" style="height: 100px">
+          </a>
+        </p>
+      </td>
+      <td>
+        <p align="center">
+          <a href="https://rafaelalex.de/">
+            <img src="https://rafaelalex.de/logo-rafaelalex.svg" alt="Sparklabs Viscosity logo" style="height: 100px">
           </a>
         </p>
       </td>

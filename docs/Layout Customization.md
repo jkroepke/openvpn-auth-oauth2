@@ -23,7 +23,7 @@ The default assets are here:
 
 - `style.css`: CSS file to enrich the default layout. By default, it is empty.
 - `mvp.css`: [MVP](https://github.com/andybrewer/mvp) CSS framework
-- `favicon.png`: Favicon of the login page
+- `favicon.svg`: Favicon of the login page
 - `i18n.js`: Localization script
 - `i18n/<lang>.json`: Language specific localization file. <lang> is the language code, e.g., `en` for English.
   See [de.json](https://github.com/jkroepke/openvpn-auth-oauth2/blob/main/internal/ui/static/i18n/de.json) for an example.
