@@ -57,7 +57,7 @@ update:  ## Run dependency updates
 build: clean $(PROJECT_NAME)
 
 $(PROJECT_NAME):
-	@go build -o $(PROJECT_NAME)$(EXT) .
+	@go build -o $(PROJECT_NAME)$(EXT) ./cmd/openvpn-auth-oauth2
 
 .PHONY: test
 test:  ## Test the project
