@@ -57,7 +57,7 @@ func NewEnvList(envVarsChar **c.Char) (List, error) {
 
 	// Count
 	count := 0
-	for p := envVarsChar; *p != nil; p = (**c.Char)(unsafe.Pointer(uintptr(unsafe.Pointer(p)) + unsafe.Sizeof(*p))) {
+	for p := envVarsChar; *p != nil; p = (**c.Char)(unsafe.Add(unsafe.Pointer(p), unsafe.Sizeof(*p))) {
 		count++
 	}
 
