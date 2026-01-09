@@ -66,7 +66,7 @@ jobs:
           go-version-file: 'go.mod'
           cache: "${{ github.actor != 'renovate[bot]' }}"
 
-      - uses: anchore/sbom-action/download-syft@a930d0ac434e3182448fe678398ba5713717112a # v0.21.0
+      - uses: anchore/sbom-action/download-syft@0b82b0b1a22399a1c542d4d656f70cd903571b5c # v0.21.1
 
       - name: Write gpg sign key
         if: env.GPG_KEY != null
@@ -110,7 +110,7 @@ jobs:
         uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
         with:
           # renovate: github=golangci/golangci-lint
-          version: v2.7.2
+          version: v2.8.0
           args: "--max-same-issues=0"
 
   super-lint:
@@ -175,7 +175,7 @@ jobs:
           go-version-file: 'go.mod'
           cache: true
 
-      - uses: anchore/sbom-action/download-syft@a930d0ac434e3182448fe678398ba5713717112a # v0.21.0
+      - uses: anchore/sbom-action/download-syft@0b82b0b1a22399a1c542d4d656f70cd903571b5c # v0.21.1
 
       - name: GPG configuration
         run: |-
