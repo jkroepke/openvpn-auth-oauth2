@@ -23,7 +23,7 @@ func ArgvToStrings(argv **c.Char) []string {
 
 	// Count
 	count := 0
-	for p := argv; *p != nil; p = (**c.Char)(unsafe.Pointer(uintptr(unsafe.Pointer(p)) + unsafe.Sizeof(*p))) {
+	for p := argv; *p != nil; p = (**c.Char)(unsafe.Add(unsafe.Pointer(p), unsafe.Sizeof(*p))) {
 		count++
 	}
 

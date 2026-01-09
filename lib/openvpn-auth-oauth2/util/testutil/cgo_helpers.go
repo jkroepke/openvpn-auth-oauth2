@@ -36,14 +36,12 @@ func CreateCStringArray(strings []string) (**c.Char, []*c.Char) {
 
 	// Fill the array
 	for i, cStr := range cStrings {
-		//goland:noinspection GoVetUnsafePointer
-		ptr := (**c.Char)(unsafe.Pointer(uintptr(argv) + uintptr(i)*ptrSize))
+		ptr := (**c.Char)(unsafe.Add(argv, uintptr(i)*ptrSize))
 		*ptr = cStr
 	}
 
 	// NULL terminator
-	//goland:noinspection GoVetUnsafePointer
-	*(**c.Char)(unsafe.Pointer(uintptr(argv) + uintptr(len(strings))*ptrSize)) = nil
+	*(**c.Char)(unsafe.Add(argv, uintptr(len(strings))*ptrSize)) = nil
 
 	return (**c.Char)(argv), cStrings
 }
