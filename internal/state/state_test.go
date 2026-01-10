@@ -115,20 +115,28 @@ func TestStateInvalid(t *testing.T) {
 		{
 			name: "too old",
 			encodedToken: func() (string, error) {
-				token := state.New(state.ClientIdentifier{CID: 1, KID: 2, CommonName: "test"}, "127.0.0.1", "12345", "")
-				// token.Issued = time.Now().Add(-1 * time.Hour).Unix()
+				token := fmt.Sprintf("%d %s A B C D E F G H I J", time.Now().Add(-1*time.Hour).Unix(), testutils.Secret[:2])
 
-				return token.Encode(testutils.Secret)
+				encrypted, err := crypto.EncryptBytesAES([]byte(token), testutils.Secret)
+				if err != nil {
+					return "", err
+				}
+
+				return base64.URLEncoding.EncodeToString(encrypted), nil
 			},
 			expectedErr: "invalid state: expired after 2 minutes, issued at:",
 		},
 		{
 			name: "future",
 			encodedToken: func() (string, error) {
-				token := state.New(state.ClientIdentifier{CID: 1, KID: 2, CommonName: "test"}, "127.0.0.1", "12345", "")
-				// token.Issued = time.Now().Add(time.Hour).Unix()
+				token := fmt.Sprintf("%d %s A B C D E F G H I J", time.Now().Add(time.Hour).Unix(), testutils.Secret[:2])
 
-				return token.Encode(testutils.Secret)
+				encrypted, err := crypto.EncryptBytesAES([]byte(token), testutils.Secret)
+				if err != nil {
+					return "", err
+				}
+
+				return base64.URLEncoding.EncodeToString(encrypted), nil
 			},
 			expectedErr: "invalid state: issued in future, issued at:",
 		},
@@ -168,7 +176,7 @@ func TestStateInvalid(t *testing.T) {
 		{
 			name: "invalid CID",
 			encodedToken: func() (string, error) {
-				token := fmt.Sprintf("%s A B C D E F G H I J %d", testutils.Secret[:2], time.Now().Unix())
+				token := fmt.Sprintf("%d %s A B C D E F G H I J", time.Now().Unix(), testutils.Secret[:2])
 
 				encrypted, err := crypto.EncryptBytesAES([]byte(token), testutils.Secret)
 				if err != nil {
@@ -182,7 +190,7 @@ func TestStateInvalid(t *testing.T) {
 		{
 			name: "invalid prefix",
 			encodedToken: func() (string, error) {
-				token := fmt.Sprintf("%s A B C D E F G H I J %d", "00", time.Now().Unix())
+				token := fmt.Sprintf("%d %s A B C D E F G H I J", time.Now().Unix(), "00")
 
 				encrypted, err := crypto.EncryptBytesAES([]byte(token), testutils.Secret)
 				if err != nil {
@@ -196,7 +204,7 @@ func TestStateInvalid(t *testing.T) {
 		{
 			name: "invalid KID",
 			encodedToken: func() (string, error) {
-				token := fmt.Sprintf("%s 1 B C D E F G H I J %d", testutils.Secret[:2], time.Now().Unix())
+				token := fmt.Sprintf("%d %s 1 B C D E F G H I J", time.Now().Unix(), testutils.Secret[:2])
 
 				encrypted, err := crypto.EncryptBytesAES([]byte(token), testutils.Secret)
 				if err != nil {
@@ -210,7 +218,7 @@ func TestStateInvalid(t *testing.T) {
 		{
 			name: "invalid UsernameIsDefined",
 			encodedToken: func() (string, error) {
-				token := fmt.Sprintf("%s 1 1 C D E F G H I J %d", testutils.Secret[:2], time.Now().Unix())
+				token := fmt.Sprintf("%d %s 1 1 C D E F G H I J", time.Now().Unix(), testutils.Secret[:2])
 
 				encrypted, err := crypto.EncryptBytesAES([]byte(token), testutils.Secret)
 				if err != nil {
@@ -224,7 +232,7 @@ func TestStateInvalid(t *testing.T) {
 		{
 			name: "invalid issued",
 			encodedToken: func() (string, error) {
-				token := testutils.Secret[:2] + " 1 1 C D E 1 G H I J K"
+				token := "A 1 1 C D E 1 G H I J K"
 				encrypted, err := crypto.EncryptBytesAES([]byte(token), testutils.Secret)
 				if err != nil {
 					return "", err
@@ -232,7 +240,7 @@ func TestStateInvalid(t *testing.T) {
 
 				return base64.URLEncoding.EncodeToString(encrypted), nil
 			},
-			expectedErr: "parse Issued: strconv.ParseInt",
+			expectedErr: "parse issued timestamp: strconv.ParseInt",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
