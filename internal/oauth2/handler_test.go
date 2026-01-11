@@ -22,6 +22,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const invalid = "invalid"
+
 func TestHandler(t *testing.T) {
 	t.Parallel()
 
@@ -557,7 +559,7 @@ func TestHandler(t *testing.T) {
 				conf.OpenVPN.ClientConfig.Enabled = true
 				conf.OpenVPN.ClientConfig.UserSelector.Enabled = true
 				conf.OpenVPN.ClientConfig.UserSelector.StaticValues = []string{"static"}
-				conf.OpenVPN.ClientConfig.TokenClaim = "invalid"
+				conf.OpenVPN.ClientConfig.TokenClaim = invalid
 				conf.OpenVPN.ClientConfig.Path = types.FS{
 					FS: fstest.MapFS{
 						"static.conf": &fstest.MapFile{
@@ -751,7 +753,7 @@ func TestHandler(t *testing.T) {
 
 			switch {
 			case tc.invalidState:
-				session = "invalid"
+				session = invalid
 			case tc.state == (state.State{}):
 				session = ""
 			default:
@@ -854,7 +856,7 @@ func TestHandler(t *testing.T) {
 				reqErrCh <- err
 			}()
 
-			clientConfigSelectorActive := conf.OpenVPN.ClientConfig.Enabled && conf.OpenVPN.ClientConfig.TokenClaim != "invalid" &&
+			clientConfigSelectorActive := conf.OpenVPN.ClientConfig.Enabled && conf.OpenVPN.ClientConfig.TokenClaim != invalid &&
 				(len(tc.conf.OpenVPN.ClientConfig.UserSelector.StaticValues) > 1 ||
 					(len(tc.conf.OpenVPN.ClientConfig.UserSelector.StaticValues) >= 1 && conf.OpenVPN.ClientConfig.TokenClaim != ""))
 

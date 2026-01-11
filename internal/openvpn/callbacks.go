@@ -44,6 +44,15 @@ func (c *Client) acceptClientAuth(ctx context.Context, logger *slog.Logger, clie
 			slog.String("config", clientConfigName),
 			slog.Any("error", err),
 		)
+	} else if len(clientConfig) > 0 {
+		logger.LogAttrs(ctx, slog.LevelDebug, "applying client config from CCD",
+			slog.String("config", clientConfigName),
+			slog.Any("content", clientConfig),
+		)
+	} else {
+		logger.LogAttrs(ctx, slog.LevelInfo, "no client config found in CCD",
+			slog.String("config", clientConfigName),
+		)
 	}
 
 	if c.conf.OpenVPN.AuthTokenUser && client.UsernameIsDefined == 0 {

@@ -114,28 +114,27 @@ section {
   text-align: center;
 }
 
-/* Profile buttons container */
+/* Profile form container */
 .profile-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
   margin-top: var(--spacing-lg);
 }
 
 .profile-form {
-  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
 }
 
 /* Profile button styling */
 .profile-button {
   width: 100%;
-  padding: var(--spacing-md) var(--spacing-lg);
+  padding: var(--spacing-sm) var(--spacing-md);
   font-family: var(--font-family);
   font-size: var(--font-size-base);
-  font-weight: 600;
+  font-weight: 500;
   color: var(--color-background);
   background-color: var(--color-primary);
-  border: 2px solid var(--color-primary);
+  border: 1px solid var(--color-primary);
   border-radius: var(--radius-md);
   cursor: pointer;
   text-align: center;
@@ -234,7 +233,7 @@ body:has(#errorID) #message {
   }
 
   .profile-button {
-    padding: var(--spacing-sm) var(--spacing-md);
+    padding: var(--spacing-xs) var(--spacing-sm);
     font-size: var(--font-size-sm);
   }
 }
