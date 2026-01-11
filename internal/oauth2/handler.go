@@ -52,12 +52,7 @@ func (c Client) OAuth2Start() http.Handler {
 			return
 		}
 
-		logger := c.logger.With(
-			slog.String("ip", fmt.Sprintf("%s:%s", session.IPAddr, session.IPPort)),
-			slog.Uint64("cid", session.Client.CID),
-			slog.Uint64("kid", session.Client.KID),
-			slog.String("common_name", session.Client.CommonName),
-		)
+		logger := c.createSessionLogger(session)
 
 		if c.conf.HTTP.Check.IPAddr {
 			if err := checkClientIPAddr(r, c.conf, session); err != nil {
@@ -111,14 +106,7 @@ func (c Client) OAuth2Callback() http.Handler {
 			return
 		}
 
-		logger := c.logger.With(
-			slog.String("ip", fmt.Sprintf("%s:%s", session.IPAddr, session.IPPort)),
-			slog.Uint64("cid", session.Client.CID),
-			slog.Uint64("kid", session.Client.KID),
-			slog.String("common_name", session.Client.CommonName),
-			slog.String("session_id", session.Client.SessionID),
-			slog.String("session_state", session.SessionState),
-		)
+		logger := c.createSessionLoggerWithState(session)
 
 		ctx = logging.ToContext(ctx, logger)
 
@@ -183,14 +171,7 @@ func (c Client) OAuth2ProfileSubmit() http.Handler {
 			return
 		}
 
-		logger := c.logger.With(
-			slog.String("ip", fmt.Sprintf("%s:%s", session.IPAddr, session.IPPort)),
-			slog.Uint64("cid", session.Client.CID),
-			slog.Uint64("kid", session.Client.KID),
-			slog.String("common_name", session.Client.CommonName),
-			slog.String("session_id", session.Client.SessionID),
-			slog.String("session_state", session.SessionState),
-		)
+		logger := c.createSessionLoggerWithState(session)
 
 		clientID := c.getClientID(session)
 		stateHash := sha256.Sum256([]byte(encryptedToken))
@@ -240,6 +221,28 @@ func (c Client) getClientID(session state.State) string {
 	}
 
 	return strconv.FormatUint(session.Client.CID, 10)
+}
+
+// createSessionLogger creates a logger with common session information.
+func (c Client) createSessionLogger(session state.State) *slog.Logger {
+	return c.logger.With(
+		slog.String("ip", fmt.Sprintf("%s:%s", session.IPAddr, session.IPPort)),
+		slog.Uint64("cid", session.Client.CID),
+		slog.Uint64("kid", session.Client.KID),
+		slog.String("common_name", session.Client.CommonName),
+	)
+}
+
+// createSessionLoggerWithState creates a logger with session information including session_id and session_state.
+func (c Client) createSessionLoggerWithState(session state.State) *slog.Logger {
+	return c.logger.With(
+		slog.String("ip", fmt.Sprintf("%s:%s", session.IPAddr, session.IPPort)),
+		slog.Uint64("cid", session.Client.CID),
+		slog.Uint64("kid", session.Client.KID),
+		slog.String("common_name", session.Client.CommonName),
+		slog.String("session_id", session.Client.SessionID),
+		slog.String("session_state", session.SessionState),
+	)
 }
 
 //nolint:cyclop,gocognit,nestif
@@ -474,12 +477,7 @@ func (c Client) httpErrorHandler(ctx context.Context, w http.ResponseWriter, htt
 
 	session, err := state.NewWithEncodedToken(encryptedSession, c.conf.HTTP.Secret.String())
 	if err == nil {
-		logger = c.logger.With(
-			slog.String("ip", fmt.Sprintf("%s:%s", session.IPAddr, session.IPPort)),
-			slog.Uint64("cid", session.Client.CID),
-			slog.Uint64("kid", session.Client.KID),
-			slog.String("common_name", session.Client.CommonName),
-		)
+		logger = c.createSessionLogger(session)
 
 		c.openvpn.DenyClient(ctx, logger, session.Client, "client rejected")
 	} else {

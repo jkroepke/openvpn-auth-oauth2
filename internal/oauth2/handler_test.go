@@ -467,6 +467,114 @@ func TestHandler(t *testing.T) {
 			true,
 		},
 		{
+			"with client config selector + static values + claim string",
+			func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Check.IPAddr = true
+				conf.HTTP.EnableProxyHeaders = true
+				conf.OAuth2.Provider = generic.Name
+				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
+				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
+				conf.OAuth2.Validate.Groups = make([]string, 0)
+				conf.OAuth2.Validate.Roles = make([]string, 0)
+				conf.OAuth2.Validate.Issuer = true
+				conf.OAuth2.Validate.IPAddr = false
+				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
+				conf.OpenVPN.AuthTokenUser = true
+				conf.OpenVPN.ClientConfig.Enabled = true
+				conf.OpenVPN.ClientConfig.UserSelector.Enabled = true
+				conf.OpenVPN.ClientConfig.UserSelector.StaticValues = []string{"static"}
+				conf.OpenVPN.ClientConfig.TokenClaim = "sub"
+				conf.OpenVPN.ClientConfig.Path = types.FS{
+					FS: fstest.MapFS{
+						"id1.conf": &fstest.MapFile{
+							Data: []byte("push \"ping 60\"\npush \"ping-restart 180\"\r\npush \"ping-timer-rem\" 0\r\n"),
+						},
+					},
+				}
+
+				return conf
+			}(),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.2", "12345", ""),
+			false,
+			"127.0.0.2, 8.8.8.8",
+			true,
+			true,
+		},
+		{
+			"with client config selector + static values + claim array",
+			func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Check.IPAddr = true
+				conf.HTTP.EnableProxyHeaders = true
+				conf.OAuth2.Provider = generic.Name
+				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
+				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
+				conf.OAuth2.Validate.Groups = make([]string, 0)
+				conf.OAuth2.Validate.Roles = make([]string, 0)
+				conf.OAuth2.Validate.Issuer = true
+				conf.OAuth2.Validate.IPAddr = false
+				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
+				conf.OpenVPN.AuthTokenUser = true
+				conf.OpenVPN.ClientConfig.Enabled = true
+				conf.OpenVPN.ClientConfig.UserSelector.Enabled = true
+				conf.OpenVPN.ClientConfig.UserSelector.StaticValues = []string{"aaa"}
+				conf.OpenVPN.ClientConfig.TokenClaim = "amr"
+				conf.OpenVPN.ClientConfig.Path = types.FS{
+					FS: fstest.MapFS{
+						"pwd.conf": &fstest.MapFile{
+							Data: []byte("push \"ping 60\"\npush \"ping-restart 180\"\r\npush \"ping-timer-rem\" 0\r\n"),
+						},
+					},
+				}
+
+				return conf
+			}(),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.2", "12345", ""),
+			false,
+			"127.0.0.2, 8.8.8.8",
+			true,
+			true,
+		},
+		{
+			"with client config selector + static values + claim invalid",
+			func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Check.IPAddr = true
+				conf.HTTP.EnableProxyHeaders = true
+				conf.OAuth2.Provider = generic.Name
+				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
+				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
+				conf.OAuth2.Validate.Groups = make([]string, 0)
+				conf.OAuth2.Validate.Roles = make([]string, 0)
+				conf.OAuth2.Validate.Issuer = true
+				conf.OAuth2.Validate.IPAddr = false
+				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
+				conf.OpenVPN.AuthTokenUser = true
+				conf.OpenVPN.ClientConfig.Enabled = true
+				conf.OpenVPN.ClientConfig.UserSelector.Enabled = true
+				conf.OpenVPN.ClientConfig.UserSelector.StaticValues = []string{"static"}
+				conf.OpenVPN.ClientConfig.TokenClaim = "invalid"
+				conf.OpenVPN.ClientConfig.Path = types.FS{
+					FS: fstest.MapFS{
+						"static.conf": &fstest.MapFile{
+							Data: []byte("push \"ping 60\"\npush \"ping-restart 180\"\r\npush \"ping-timer-rem\" 0\r\n"),
+						},
+					},
+				}
+
+				return conf
+			}(),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.2", "12345", ""),
+			false,
+			"127.0.0.2, 8.8.8.8",
+			true,
+			true,
+		},
+		{
 			"with client config selector + static values + not found",
 			func() config.Config {
 				conf := config.Defaults
@@ -746,6 +854,10 @@ func TestHandler(t *testing.T) {
 				reqErrCh <- err
 			}()
 
+			clientConfigSelectorActive := conf.OpenVPN.ClientConfig.Enabled && conf.OpenVPN.ClientConfig.TokenClaim != "invalid" &&
+				(len(tc.conf.OpenVPN.ClientConfig.UserSelector.StaticValues) > 1 ||
+					(len(tc.conf.OpenVPN.ClientConfig.UserSelector.StaticValues) >= 1 && conf.OpenVPN.ClientConfig.TokenClaim != ""))
+
 			switch {
 			case !tc.postAllow:
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, `client-deny 0 1 "client rejected"`)
@@ -753,7 +865,7 @@ func TestHandler(t *testing.T) {
 			case tc.state.Client.UsernameIsDefined == 1:
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth-nt 0 1")
 				testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
-			case conf.OpenVPN.ClientConfig.Enabled && len(tc.conf.OpenVPN.ClientConfig.UserSelector.StaticValues) > 1:
+			case clientConfigSelectorActive:
 				// Expect profile selection
 			case conf.OpenVPN.ClientConfig.Enabled:
 				if tc.state.Client.CommonName == "name" {
@@ -806,7 +918,7 @@ func TestHandler(t *testing.T) {
 			require.Contains(t, resp.Header.Get("Set-Cookie"), "Max-Age=0")
 
 			switch {
-			case len(tc.conf.OpenVPN.ClientConfig.UserSelector.StaticValues) > 1:
+			case clientConfigSelectorActive:
 				require.Contains(t, string(body), "Please select your client configuration profile")
 
 				reInput := regexp.MustCompile(`type="(?:hidden|submit)" name="([^"]+)" value="([^"]+)">`)
