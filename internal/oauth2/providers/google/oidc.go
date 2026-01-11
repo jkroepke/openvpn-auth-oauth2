@@ -8,10 +8,6 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
 )
 
-func (p Provider) GetToken(tokens idtoken.IDToken) (string, error) {
-	return p.Provider.GetToken(tokens) //nolint:wrapcheck
-}
-
 func (p Provider) GetRefreshToken(tokens idtoken.IDToken) (string, error) {
 	return p.Provider.GetRefreshToken(tokens) //nolint:wrapcheck
 }

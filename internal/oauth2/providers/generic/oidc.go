@@ -15,21 +15,6 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
-func (p Provider) GetToken(tokens idtoken.IDToken) (string, error) {
-	if tokens == nil {
-		return "", oauth2.ErrMissingToken
-	}
-
-	switch {
-	case tokens.IDToken != "":
-		return tokens.IDToken, nil
-	case tokens.AccessToken != "":
-		return tokens.AccessToken, nil
-	default:
-		return "", oauth2.ErrMissingToken
-	}
-}
-
 func (p Provider) GetRefreshToken(tokens idtoken.IDToken) (string, error) {
 	if tokens == nil {
 		return "", oauth2.ErrMissingToken

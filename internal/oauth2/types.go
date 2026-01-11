@@ -26,7 +26,6 @@ type Provider interface {
 	CheckUser(ctx context.Context, session state.State, user types.UserInfo, tokens idtoken.IDToken) error
 	GetProviderConfig() (types.ProviderConfig, error)
 	GetName() string
-	GetToken(tokens idtoken.IDToken) (string, error)
 	GetRefreshToken(tokens idtoken.IDToken) (string, error)
 	GetUser(ctx context.Context, logger *slog.Logger, tokens idtoken.IDToken, userinfo *types.UserInfo) (types.UserInfo, error)
 

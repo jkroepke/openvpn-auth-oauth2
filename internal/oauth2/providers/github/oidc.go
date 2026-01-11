@@ -11,14 +11,6 @@ import (
 	gooauth2 "golang.org/x/oauth2"
 )
 
-func (p Provider) GetToken(tokens idtoken.IDToken) (string, error) {
-	if tokens == nil {
-		return "", oauth2.ErrMissingToken
-	}
-
-	return tokens.AccessToken, nil
-}
-
 // GetRefreshToken returns the [oauth2.Token.AccessToken] of the user, since it does not expire.
 // OAuth2 App on GitHub doesn't provide a refresh token.
 func (p Provider) GetRefreshToken(tokens idtoken.IDToken) (string, error) {
