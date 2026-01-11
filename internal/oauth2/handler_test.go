@@ -3,6 +3,7 @@ package oauth2_test
 import (
 	"bufio"
 	"context"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
@@ -20,6 +21,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/stretchr/testify/require"
+	"github.com/zitadel/oidc/v3/pkg/crypto"
 )
 
 const invalid = "invalid"
@@ -985,6 +987,169 @@ func TestHandler(t *testing.T) {
 			default:
 				require.Contains(t, string(body), "Access granted")
 			}
+		})
+	}
+}
+
+func TestOAuth2ProfileSubmit(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		name          string
+		conf          config.Config
+		req           func(t *testing.T) *http.Request
+		expectedError string
+	}{
+		{
+			"missing token",
+			config.Defaults,
+			func(t *testing.T) *http.Request {
+				t.Helper()
+
+				req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth2/profile-submit", nil)
+				require.NoError(t, err)
+
+				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+				return req
+			},
+			"token is empty",
+		},
+		{
+			"invalid encrypted token",
+			config.Defaults,
+			func(t *testing.T) *http.Request {
+				t.Helper()
+
+				req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth2/profile-submit",
+					strings.NewReader("token="+url.QueryEscape("-")))
+
+				require.NoError(t, err)
+				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+				return req
+			},
+			"base64 decode -",
+		},
+		{
+			"invalid token content",
+			config.Defaults,
+
+			func(t *testing.T) *http.Request {
+				t.Helper()
+
+				token := fmt.Sprintf("%d -", time.Now().Unix())
+
+				encryptedToken, err := crypto.EncryptBytesAES([]byte(token), testutils.Secret)
+				require.NoError(t, err)
+
+				req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth2/profile-submit",
+					strings.NewReader("token="+url.QueryEscape(base64.URLEncoding.EncodeToString(encryptedToken))))
+				require.NoError(t, err)
+
+				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+				return req
+			},
+			"unable to parse token",
+		},
+		{
+			"empty token content",
+			config.Defaults,
+			func(t *testing.T) *http.Request {
+				t.Helper()
+
+				token := fmt.Sprintf(`%d {}`, time.Now().Unix())
+
+				encryptedToken, err := crypto.EncryptBytesAES([]byte(token), testutils.Secret)
+				require.NoError(t, err)
+
+				req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth2/profile-submit",
+					strings.NewReader("token="+url.QueryEscape(base64.URLEncoding.EncodeToString(encryptedToken))))
+
+				require.NoError(t, err)
+
+				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+				return req
+			},
+			"Invalid State: decrypt aes",
+		},
+		{
+			"no refresh token in storage",
+			config.Defaults,
+			func(t *testing.T) *http.Request {
+				t.Helper()
+
+				sessionState := state.New(state.ClientIdentifier{CID: 1, KID: 2}, "127.0.0.1", "12345", "")
+
+				encryptedState, err := sessionState.Encode(testutils.Secret)
+				require.NoError(t, err)
+
+				token := fmt.Sprintf(`%d {"state": %q}`, time.Now().Unix(), encryptedState)
+
+				encryptedToken, err := crypto.EncryptBytesAES([]byte(token), testutils.Secret)
+				require.NoError(t, err)
+
+				req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth2/profile-submit",
+					strings.NewReader("token="+url.QueryEscape(base64.URLEncoding.EncodeToString(encryptedToken))))
+				require.NoError(t, err)
+				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+				return req
+			},
+			"unable to retrieve refresh token from storage: value does not exist",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithCancel(t.Context())
+			t.Cleanup(cancel)
+
+			_, openVPNClient, managementInterface, _, httpClientListener, httpClient, logger := testutils.SetupMockEnvironment(ctx, t, tc.conf, nil, nil)
+
+			managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
+			require.NoError(t, err)
+
+			t.Cleanup(func() {
+				managementInterfaceConn.Close()
+				openVPNClient.Shutdown(t.Context())
+
+				select {
+				case err := <-errOpenVPNClientCh:
+					require.NoError(t, err)
+				case <-time.After(1 * time.Second):
+					t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", logger.String())
+				}
+			})
+
+			reader := bufio.NewReader(managementInterfaceConn)
+
+			testutils.ExpectVersionAndReleaseHold(t, managementInterfaceConn, reader)
+
+			listen, err := testutils.WaitUntilListening(t, httpClientListener.Listener.Addr().Network(), httpClientListener.Listener.Addr().String())
+			if err != nil {
+				return
+			}
+
+			require.NoError(t, listen.Close())
+
+			request := tc.req(t)
+			request.URL.Host = strings.Replace(httpClientListener.URL, "http://", "", 1)
+			request.URL.Scheme = "http"
+
+			resp, err := httpClient.Do(request)
+			require.NoError(t, err)
+
+			require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+			require.Contains(t, logger.String(), tc.expectedError)
+
+			_, err = io.Copy(io.Discard, resp.Body)
+			require.NoError(t, err)
+
+			err = resp.Body.Close()
+			require.NoError(t, err)
 		})
 	}
 }

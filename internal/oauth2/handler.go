@@ -144,7 +144,7 @@ func (c Client) OAuth2ProfileSubmit() http.Handler {
 
 		encryptedToken := r.FormValue("token")
 		if encryptedToken == "" {
-			c.writeHTTPError(ctx, w, c.logger, http.StatusBadRequest, "Bad Request", "state is empty")
+			c.writeHTTPError(ctx, w, c.logger, http.StatusBadRequest, "Bad Request", "token is empty")
 
 			return
 		}
