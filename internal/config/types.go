@@ -53,10 +53,10 @@ type Log struct {
 type OpenVPN struct {
 	Addr               types.URL          `json:"addr"                 yaml:"addr"`
 	Password           types.Secret       `json:"password"             yaml:"password"`
+	ClientConfig       OpenVPNConfig      `json:"client-config"        yaml:"client-config"`
 	Bypass             OpenVPNBypass      `json:"bypass"               yaml:"bypass"`
 	CommonName         OpenVPNCommonName  `json:"common-name"          yaml:"common-name"`
 	Passthrough        OpenVPNPassthrough `json:"pass-through"         yaml:"pass-through"`
-	ClientConfig       OpenVPNConfig      `json:"client-config"        yaml:"client-config"`
 	AuthPendingTimeout time.Duration      `json:"auth-pending-timeout" yaml:"auth-pending-timeout"`
 	CommandTimeout     time.Duration      `json:"command-timeout"      yaml:"command-timeout"`
 	AuthTokenUser      bool               `json:"auth-token-user"      yaml:"auth-token-user"`
