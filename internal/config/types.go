@@ -22,8 +22,8 @@ type Config struct {
 	HTTP       HTTP    `json:"http"    yaml:"http"`
 	Debug      Debug   `json:"debug"   yaml:"debug"`
 	Log        Log     `json:"log"     yaml:"log"`
-	OAuth2     OAuth2  `json:"oauth2"  yaml:"oauth2"`
 	OpenVPN    OpenVPN `json:"openvpn" yaml:"openvpn"`
+	OAuth2     OAuth2  `json:"oauth2"  yaml:"oauth2"`
 }
 
 type HTTP struct {
