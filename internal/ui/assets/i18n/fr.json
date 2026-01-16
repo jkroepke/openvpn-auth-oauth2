@@ -3,5 +3,7 @@
   "Access granted": "Accès autorisé",
   "Error ID": "ID de l'erreur",
   "Please contact your administrator.": "Veuillez contacter votre administrateur.",
-  "You can close this window now.": "Vous pouvez fermer cette fenêtre maintenant."
+  "You can close this window now.": "Vous pouvez fermer cette fenêtre maintenant.",
+  "Select Profile": "Sélectionner un profil",
+  "Please select your client configuration profile.": "Veuillez sélectionner votre profil de configuration client."
 }

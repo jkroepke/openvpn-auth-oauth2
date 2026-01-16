@@ -12,7 +12,7 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/crypto"
 )
 
-const numFields = 12
+const numFields = 11
 
 // State represents the context and security information associated with an OAuth2 login flow.
 //
@@ -27,7 +27,6 @@ type State struct {
 	IPPort       string           // Client's port
 	SessionState string           // Compact session state representation
 	Client       ClientIdentifier // Information about the client
-	Issued       int64            // Timestamp (seconds since Unix epoch)
 }
 
 // ClientIdentifier holds detailed information about the client initiating an OAuth2 login flow.
@@ -50,7 +49,6 @@ func New(client ClientIdentifier, ipAddr, ipPort, sessionState string) State {
 		IPAddr:       ipAddr,
 		IPPort:       ipPort,
 		SessionState: sessionState,
-		Issued:       time.Now().Round(time.Second).Unix(),
 	}
 }
 
@@ -79,7 +77,7 @@ func (state *State) Encode(secretKey string) (string, error) {
 
 	var data bytes.Buffer
 	// Preallocate buffer space to minimize reallocations.
-	data.Grow(129 +
+	data.Grow(118 +
 		len(state.Client.AuthFailedReasonFile) +
 		len(state.Client.AuthControlFile) +
 		len(state.Client.SessionID) +
@@ -111,32 +109,17 @@ func (state *State) Encode(secretKey string) (string, error) {
 	encodeStringToBuffer(&data, state.IPPort)
 	data.WriteByte(' ')
 	data.WriteString(encodeSessionState(state.SessionState))
-	data.WriteByte(' ')
-	data.Write(strconv.AppendInt(scratch[:0], state.Issued, 10))
 	data.WriteString("\r\n")
 
 	// Encrypt the buffer using AES and encode the result as base64 URL-safe.
-	encrypted, err := crypto.EncryptBytesAES(data.Bytes(), secretKey)
-	if err != nil {
-		return "", fmt.Errorf("encrypt aes: %w", err)
-	}
 
-	return base64.URLEncoding.EncodeToString(encrypted), nil
+	return Encrypt(data.Bytes(), secretKey)
 }
 
 // decode parses and decrypts a state string, populating the State struct fields.
 // Returns an error if the token is invalid, expired, or otherwise corrupt.
 func (state *State) decode(encodedState, secretKey string) error {
-	if err := checkTokenSize(encodedState); err != nil {
-		return err
-	}
-
-	encrypted, err := decodeBase64(encodedState)
-	if err != nil {
-		return err
-	}
-
-	data, err := decryptAES(encrypted, secretKey, encodedState)
+	data, err := Decrypt(encodedState, secretKey)
 	if err != nil {
 		return err
 	}
@@ -150,16 +133,12 @@ func (state *State) decode(encodedState, secretKey string) error {
 		return fmt.Errorf("expected secret key prefix %s, got %s", secretKey[:2], string(fields[0]))
 	}
 
-	if err := parseStateFields(state, fields); err != nil {
-		return err
-	}
-
-	return validateIssued(state.Issued)
+	return parseStateFields(state, fields)
 }
 
 // Helper to check token size.
 func checkTokenSize(encodedState string) error {
-	if len(encodedState) > 1024 {
+	if len(encodedState) > 4096 {
 		return fmt.Errorf("%w: token too large", ErrInvalid)
 	}
 
@@ -219,10 +198,6 @@ func parseStateFields(state *State, fields [][]byte) error {
 	state.IPAddr = string(fields[8])
 	state.IPPort = string(fields[9])
 	state.SessionState = decodeSessionState(string(fields[10]))
-
-	if state.Issued, err = strconv.ParseInt(string(fields[11]), 10, 64); err != nil {
-		return fmt.Errorf("parse Issued: %w", err)
-	}
 
 	return nil
 }

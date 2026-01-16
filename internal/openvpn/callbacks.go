@@ -39,10 +39,20 @@ func (c *Client) acceptClientAuth(ctx context.Context, logger *slog.Logger, clie
 	logger.LogAttrs(ctx, slog.LevelInfo, "client authentication")
 
 	clientConfig, err := c.readClientConfig(clientConfigName)
-	if err != nil {
+	switch {
+	case err != nil:
 		logger.LogAttrs(ctx, slog.LevelDebug, "failed to read client config",
 			slog.String("config", clientConfigName),
 			slog.Any("error", err),
+		)
+	case len(clientConfig) > 0:
+		logger.LogAttrs(ctx, slog.LevelDebug, "applying client config from CCD",
+			slog.String("config", clientConfigName),
+			slog.Any("content", clientConfig),
+		)
+	default:
+		logger.LogAttrs(ctx, slog.LevelInfo, "no client config found in CCD",
+			slog.String("config", clientConfigName),
 		)
 	}
 

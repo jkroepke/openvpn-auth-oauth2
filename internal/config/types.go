@@ -68,9 +68,15 @@ type OpenVPNBypass struct {
 	CommonNames types.RegexpSlice `json:"common-names" yaml:"common-names"`
 }
 type OpenVPNConfig struct {
-	Path       types.FS `json:"path"        yaml:"path"`
-	TokenClaim string   `json:"token-claim" yaml:"token-claim"`
-	Enabled    bool     `json:"enabled"     yaml:"enabled"`
+	Path         types.FS                     `json:"path"          yaml:"path"`
+	TokenClaim   string                       `json:"token-claim"   yaml:"token-claim"`
+	UserSelector OpenVPNConfigProfileSelector `json:"user-selector" yaml:"user-selector"`
+	Enabled      bool                         `json:"enabled"       yaml:"enabled"`
+}
+
+type OpenVPNConfigProfileSelector struct {
+	StaticValues types.StringSlice `json:"static-values" yaml:"static-values"`
+	Enabled      bool              `json:"enabled"       yaml:"enabled"`
 }
 
 type OpenVPNCommonName struct {

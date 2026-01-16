@@ -44,6 +44,7 @@ func New(conf config.Config, oAuth2Client *oauth2.Client) *http.ServeMux {
 	mux.Handle(fmt.Sprintf("GET %s/assets/", basePath), http.StripPrefix(basePath+"/assets/", http.FileServerFS(conf.HTTP.AssetPath)))
 	mux.Handle(fmt.Sprintf("GET %s/oauth2/start", basePath), noCacheHeaders(oAuth2Client.OAuth2Start()))
 	mux.Handle(fmt.Sprintf("GET %s/oauth2/callback", basePath), noCacheHeaders(oAuth2Client.OAuth2Callback()))
+	mux.Handle(fmt.Sprintf("POST %s/oauth2/profile-submit", basePath), noCacheHeaders(oAuth2Client.OAuth2ProfileSubmit()))
 
 	return mux
 }
