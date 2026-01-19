@@ -1,12 +1,12 @@
 package generic
 
-import "github.com/google/cel-go/cel"
 import (
 	"context"
 	"fmt"
 	"slices"
 	"strings"
 
+	"github.com/google/cel-go/cel"
 	types2 "github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
@@ -138,11 +138,27 @@ func (p Provider) CheckIPAddress(session state.State, tokens idtoken.IDToken) er
 	return nil
 }
 
-func (p Provider) CheckCEL(session state.State, userInfo types.UserInfo, tokens idtoken.IDToken) error {
-	env, err := cel.NewEnv(
-		cel.Variable("name", cel.StringType),
-		cel.Variable("group", cel.StringType),
-	)
+func (p Provider) CheckCEL(session state.State, tokens idtoken.IDToken) error {
+
+	vars := map[string]interface{}{
+		"openvpnCommonName": session.Client.CommonName,
+		"openvpnIPAddr":     session.IPAddr,
+		"tokenClaims":       tokens.IDTokenClaims.Claims,
+	}
+
+	result, _, err := evalPrg.Eval(vars)
+	if err != nil {
+		return fmt.Errorf("failed to evaluate CEL expression: %w", err)
+	}
+
+	boolResult, ok := result.Value().(bool)
+	if !ok {
+		return fmt.Errorf("CEL expression did not return a boolean result")
+	}
+
+	if !boolResult {
+		return oauth2.ErrCELValidationFailed
+	}
 
 	return nil
 }
