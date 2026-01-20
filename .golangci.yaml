@@ -190,3 +190,5 @@ linters:
         text: "fieldalignment:"
       - path: lib/
         text: "missing cases in switch of type management.ClientAuth:"
+      - path: internal/
+        text: 'SA1019: "github.com/zitadel/logging" is deprecated'
