@@ -16,6 +16,16 @@
   <h1 id="title" data-i18n>{{ .title }}</h1>
   <section>
     <h2 id="message" data-i18n>{{ .message }}</h2>
+    {{- if .clientConfigProfiles }}
+      <div class="profile-buttons">
+        <form method="POST" action="./profile-submit" class="profile-form">
+          <input type="hidden" name="token" value="{{ .token }}">
+        {{- range .clientConfigProfiles }}
+          <input class="profile-button" type="submit" name="profile" value="{{ . }}">
+        {{- end }}
+        </form>
+    </div>
+    {{- end }}
   </section>
 </main>
 {{- if .errorID }}

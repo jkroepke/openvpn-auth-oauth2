@@ -42,6 +42,8 @@ Usage of openvpn-auth-oauth2:
     	listen addr for client listener (env: CONFIG_HTTP_LISTEN) (default ":9000")
   --http.secret value
     	Random generated secret for cookie encryption. Must be 16, 24 or 32 characters. If argument starts with file:// it reads the secret from a file. (env: CONFIG_HTTP_SECRET)
+  --http.short-url
+    	Enable short URL. The URL which is used for initial authentication will be reduced to /?s=... instead of /oauth2/start?state=... (env: CONFIG_HTTP_SHORT__URL)
   --http.template value
     	Path to a HTML file which is displayed at the end of the screen. See https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Layout-Customization for more information. (env: CONFIG_HTTP_TEMPLATE)
   --http.tls
@@ -76,12 +78,12 @@ Usage of openvpn-auth-oauth2:
     	oauth2 issuer (env: CONFIG_OAUTH2_ISSUER)
   --oauth2.nonce
     	If true, a nonce will be defined on the auth URL which is expected inside the token. (env: CONFIG_OAUTH2_NONCE) (default true)
-  --oauth2.refresh-nonce value
-    	Controls nonce behavior on refresh token requests. Options: auto (try with nonce, retry without on error), empty (always use empty nonce), equal (use same nonce as initial auth). (env: CONFIG_OAUTH2_REFRESH__NONCE) (default auto)
   --oauth2.pkce
     	If true, Proof Key for Code Exchange (PKCE) RFC 7636 is used for token exchange. (env: CONFIG_OAUTH2_PKCE) (default true)
   --oauth2.provider string
     	oauth2 provider (env: CONFIG_OAUTH2_PROVIDER) (default "generic")
+  --oauth2.refresh-nonce value
+    	Controls nonce behavior on refresh token requests. Options: auto (try with nonce, retry without on error), empty (always use empty nonce), equal (use same nonce as initial auth). (env: CONFIG_OAUTH2_REFRESH__NONCE) (default auto)
   --oauth2.refresh.enabled
     	If true, openvpn-auth-oauth2 stores refresh tokens and will use it do an non-interaction reauth. (env: CONFIG_OAUTH2_REFRESH_ENABLED)
   --oauth2.refresh.expires duration
@@ -124,6 +126,10 @@ Usage of openvpn-auth-oauth2:
     	Path to the CCD directory. openvpn-auth-oauth2 will look for an file with an .conf suffix and returns the content back. (env: CONFIG_OPENVPN_CLIENT__CONFIG_PATH)
   --openvpn.client-config.token-claim string
     	If non-empty, the value of the token claim is used to lookup the configuration file in the CCD directory. If empty, the common name is used. (env: CONFIG_OPENVPN_CLIENT__CONFIG_TOKEN__CLAIM)
+  --openvpn.client-config.user-selector.enabled
+    	If true, openvpn-auth-oauth2 will display a profile selection UI after OAuth2 authentication, allowing users to choose their client configuration profile. Profile options are populated from openvpn.client-config.user-selector.static-values and openvpn.client-config.token-claim (if configured). After selection, the chosen profile name is used to lookup the configuration file in the CCD directory. (env: CONFIG_OPENVPN_CLIENT__CONFIG_USER__SELECTOR_ENABLED)
+  --openvpn.client-config.user-selector.static-values value
+    	Comma-separated list of static profile names that are always available in the profile selector UI. These profiles will be displayed as selectable options for all users. (env: CONFIG_OPENVPN_CLIENT__CONFIG_USER__SELECTOR_STATIC__VALUES)
   --openvpn.common-name.environment-variable-name string
     	Name of the environment variable in the OpenVPN management interface which contains the common name. If username-as-common-name is enabled, this should be set to 'username' to use the username as common name. Other values like 'X509_0_emailAddress' are supported. See https://openvpn.net/community-resources/reference-manual-for-openvpn-2-6/#environmental-variables for more information. (env: CONFIG_OPENVPN_COMMON__NAME_ENVIRONMENT__VARIABLE__NAME) (default "common_name")
   --openvpn.common-name.mode value

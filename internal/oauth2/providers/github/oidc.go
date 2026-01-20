@@ -2,20 +2,20 @@ package github
 
 import (
 	"context"
-	"errors"
 	"log/slog"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
-	"golang.org/x/oauth2"
+	gooauth2 "golang.org/x/oauth2"
 )
 
 // GetRefreshToken returns the [oauth2.Token.AccessToken] of the user, since it does not expire.
 // OAuth2 App on GitHub doesn't provide a refresh token.
 func (p Provider) GetRefreshToken(tokens idtoken.IDToken) (string, error) {
 	if tokens == nil {
-		return "", errors.New("no tokens provided")
+		return "", oauth2.ErrMissingToken
 	}
 
 	return tokens.AccessToken, nil
@@ -25,7 +25,7 @@ func (p Provider) GetRefreshToken(tokens idtoken.IDToken) (string, error) {
 // inside the required groups.
 func (p Provider) Refresh(_ context.Context, _ *slog.Logger, _ rp.RelyingParty, refreshToken string) (idtoken.IDToken, error) {
 	return &oidc.Tokens[*idtoken.Claims]{
-		Token:         &oauth2.Token{AccessToken: refreshToken},
+		Token:         &gooauth2.Token{AccessToken: refreshToken},
 		IDTokenClaims: &idtoken.Claims{},
 	}, nil
 }

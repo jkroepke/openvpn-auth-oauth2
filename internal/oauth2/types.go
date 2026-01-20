@@ -33,3 +33,10 @@ type Provider interface {
 	Refresh(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, refreshToken string) (idtoken.IDToken, error)
 	RevokeRefreshToken(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, refreshToken string) error
 }
+
+// clientConfigToken is used to store additional information on the client side.
+type clientConfigToken struct {
+	Username string   `json:"username,omitempty"`
+	State    string   `json:"state,omitempty"`
+	Profiles []string `json:"profiles,omitempty"`
+}
