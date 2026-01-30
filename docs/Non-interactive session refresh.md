@@ -70,7 +70,7 @@ Understanding the interaction between `reneg-sec` and `auth-gen-token` is crucia
 - **`reneg-sec`**: Controls how often the OpenVPN client triggers a TLS renegotiation (soft reset). Default is 3600 seconds (1 hour).
 - **`auth-gen-token [lifetime] [renewal-time] external-auth`**: Generates authentication tokens that can be renewed during TLS renegotiations.
   - `lifetime`: Maximum duration the token remains valid (in seconds). Once expired, the user must re-authenticate.
-  - `renewal-time`: The token can be renewed if it hasn't been idle for more than `2 * renewal-time` seconds. Defaults to the value of `reneg-sec` if not specified.
+  - `renewal-time`: (Optional) The token expires if it remains idle (not renewed) for more than `2 * renewal-time` seconds. Defaults to the value of `reneg-sec` if not specified.
 
 ## Token Expiration Rules
 
@@ -99,7 +99,15 @@ For optimal configuration:
 ```
 # OpenVPN server configuration
 reneg-sec 3600                                    # Renegotiate every hour
-auth-gen-token 86400 external-auth                # 24-hour lifetime, renewal-time defaults to reneg-sec (3600)
+auth-gen-token 86400 external-auth                # 24-hour lifetime (renewal-time omitted, defaults to reneg-sec)
+auth-gen-token-secret /path/to/token.key          # Persist tokens across server restarts
+```
+
+Alternatively, explicitly specify renewal-time:
+```
+# OpenVPN server configuration  
+reneg-sec 3600                                    # Renegotiate every hour
+auth-gen-token 86400 3600 external-auth           # 24-hour lifetime, 1-hour renewal-time
 auth-gen-token-secret /path/to/token.key          # Persist tokens across server restarts
 ```
 
@@ -108,6 +116,8 @@ With this configuration:
 - The auth token is renewed during each renegotiation (non-interactive if refresh is enabled)
 - The token remains valid for up to 24 hours from initial authentication (`lifetime 86400`)
 - The token expires if not renewed for more than 2 hours (`2 * renewal-time` = `2 * 3600` = 7200 seconds)
+  - This provides a grace period allowing one missed renegotiation attempt before token expiration
+  - In practice: if the client is disconnected/unreachable for more than 2 hours, the token expires
 
 ## Important Notes
 
