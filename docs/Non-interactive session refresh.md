@@ -105,7 +105,7 @@ auth-gen-token-secret /path/to/token.key          # Persist tokens across server
 
 Alternatively, explicitly specify renewal-time:
 ```
-# OpenVPN server configuration  
+# OpenVPN server configuration
 reneg-sec 3600                                    # Renegotiate every hour
 auth-gen-token 86400 3600 external-auth           # 24-hour lifetime, 1-hour renewal-time
 auth-gen-token-secret /path/to/token.key          # Persist tokens across server restarts
