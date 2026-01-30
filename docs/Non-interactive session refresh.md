@@ -123,7 +123,7 @@ With this configuration:
 
 - If `oauth2.refresh.enabled=true` is configured in `openvpn-auth-oauth2`, token renewals during `reneg-sec` renegotiations will be non-interactive (no browser popup).
 - Without refresh enabled, users must log in interactively at each `reneg-sec` interval.
-- Setting `reneg-sec 0` on the client side disables TLS renegotiation, which may be useful for mobile devices but requires careful consideration of security implications.
+- Setting `reneg-sec 0` on the client-side disables TLS renegotiation, which may be useful for mobile devices but requires careful consideration of security implications.
 
 # Troubleshooting
 
