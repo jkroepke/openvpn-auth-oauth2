@@ -91,8 +91,8 @@ For optimal configuration:
    - Users only need to log in once per day (or per lifetime period)
 
 3. **Optional: Explicitly set `renewal-time`** if you need different renewal behavior
-   - If not specified, it defaults to `reneg-sec`
-   - Setting it to a higher value than `reneg-sec` can extend the idle timeout
+   - If not specified, it defaults to `reneg-sec`.
+   - Setting it to a higher value than `reneg-sec` can extend the idle timeout.
 
 ## Example Configuration
 
