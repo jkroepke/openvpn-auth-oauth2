@@ -67,7 +67,7 @@ Understanding the interaction between `reneg-sec` and `auth-gen-token` is crucia
 
 ## How They Work Together
 
-- **`reneg-sec`**: Controls how often the OpenVPN client triggers a TLS renegotiation (soft reset). Default is 3600 seconds (1 hour).
+- **`reneg-sec`**: Controls the TLS renegotiation (soft reset) interval. Can be set on both client and server; the lower value determines when renegotiation occurs. Default is 3600 seconds (1 hour).
 - **`auth-gen-token [lifetime] [renewal-time] external-auth`**: Generates authentication tokens that can be renewed during TLS renegotiations.
   - `lifetime`: Maximum duration the token remains valid (in seconds). Once expired, the user must re-authenticate.
   - `renewal-time`: (Optional) The token expires if it remains idle (not renewed) for more than `2 * renewal-time` seconds. Defaults to the value of `reneg-sec` if not specified.
@@ -112,7 +112,7 @@ auth-gen-token-secret /path/to/token.key          # Persist tokens across server
 ```
 
 With this configuration:
-- Clients renegotiate TLS every hour (`reneg-sec 3600`)
+- TLS renegotiation occurs every hour (server's `reneg-sec 3600` setting)
 - The auth token is renewed during each renegotiation (non-interactive if refresh is enabled)
 - The token remains valid for up to 24 hours from initial authentication (`lifetime 86400`)
 - The token expires if not renewed for more than 2 hours (`2 * renewal-time` = `2 * 3600` = 7200 seconds)
