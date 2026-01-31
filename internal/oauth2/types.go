@@ -18,10 +18,10 @@ type Client struct {
 	openvpn         openvpnManagementClient
 	storage         tokenstorage.Storage
 	provider        Provider
+	celEvalPrg      cel.Program
 	logger          *slog.Logger
 	authorizeParams []rp.URLParamOpt
 	conf            types2.Config
-	celEvalPrg      cel.Program
 }
 
 type Provider interface {

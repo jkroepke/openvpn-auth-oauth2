@@ -69,25 +69,25 @@ func New(ctx context.Context, logger *slog.Logger, conf config.Config, httpClien
 		}
 	}
 
-	env, err := cel.NewEnv(
-		cel.Variable("openvpnCommonName", cel.StringType),
-		cel.Variable("openvpnIPAddr", cel.StringType),
-		cel.Variable("tokenClaims", cel.AnyType),
-	)
+	if conf.OAuth2.Validate.ValidationScript != "" {
+		env, err := cel.NewEnv(
+			cel.Variable("openvpnCommonName", cel.StringType),
+			cel.Variable("openvpnIPAddr", cel.StringType),
+			cel.Variable("tokenClaims", cel.AnyType),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create CEL environment: %w", err)
+		}
 
-	if err != nil {
-		return nil, fmt.Errorf("failed to create CEL environment: %w", err)
-	}
+		prg, issues := env.Compile(conf.OAuth2.Validate.ValidationScript)
+		if issues.Err() != nil {
+			return nil, fmt.Errorf("failed to compile CEL expression: %w", issues.Err())
+		}
 
-	prg, issues := env.Compile(conf.OAuth2.Validate.ValidationScript)
-
-	if issues.Err() != nil {
-		return nil, fmt.Errorf("failed to compile CEL expression: %w", issues.Err())
-	}
-
-	client.celEvalPrg, err = env.Program(prg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create CEL program: %w", err)
+		client.celEvalPrg, err = env.Program(prg)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create CEL program: %w", err)
+		}
 	}
 
 	return client, nil

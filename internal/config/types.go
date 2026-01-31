@@ -116,13 +116,13 @@ type OAuth2Endpoints struct {
 
 type OAuth2Validate struct {
 	CommonName              string            `json:"common-name"                yaml:"common-name"`
+	ValidationScript        string            `json:"validation-script"          yaml:"validation-script"`
 	Acr                     types.StringSlice `json:"acr"                        yaml:"acr"`
 	Groups                  types.StringSlice `json:"groups"                     yaml:"groups"`
 	Roles                   types.StringSlice `json:"roles"                      yaml:"roles"`
 	IPAddr                  bool              `json:"ipaddr"                     yaml:"ipaddr"`
 	Issuer                  bool              `json:"issuer"                     yaml:"issuer"`
 	CommonNameCaseSensitive bool              `json:"common-name-case-sensitive" yaml:"common-name-case-sensitive"`
-	ValidationScript        string            `json:"validation-script"          yaml:"validation-script"`
 }
 
 type OAuth2Refresh struct {

@@ -9,6 +9,10 @@ import (
 )
 
 func (c Client) checkTokenCEL(session state.State, tokens idtoken.IDToken) error {
+	if c.celEvalPrg == nil {
+		return nil
+	}
+
 	vars := map[string]any{
 		"openvpnCommonName": session.Client.CommonName,
 		"openvpnIPAddr":     session.IPAddr,
