@@ -16,7 +16,7 @@ See the [example configuration file](https://github.com/jkroepke/openvpn-auth-oa
 
 <!-- BEGIN USAGE -->
 ```
-Documentation available at https://github.com/jkroepke/openvpn-auth-oauth2/wiki
+Documentation available at https://github.com/jkroepke/openvpn-auth-oauth2/tree/main/docs
 
 Usage of openvpn-auth-oauth2:
 
@@ -45,7 +45,7 @@ Usage of openvpn-auth-oauth2:
   --http.short-url
     	Enable short URL. The URL which is used for initial authentication will be reduced to /?s=... instead of /oauth2/start?state=... (env: CONFIG_HTTP_SHORT__URL)
   --http.template value
-    	Path to a HTML file which is displayed at the end of the screen. See https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Layout-Customization for more information. (env: CONFIG_HTTP_TEMPLATE)
+    	Path to a HTML file which is displayed at the end of the screen. See https://github.com/jkroepke/openvpn-auth-oauth2/blob/main/docs/Layout%20Customization.md for more information. (env: CONFIG_HTTP_TEMPLATE)
   --http.tls
     	enable TLS listener (env: CONFIG_HTTP_TLS)
   --log.format string

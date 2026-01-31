@@ -68,7 +68,7 @@ func (c *Config) ReadFromFlagAndEnvironment(args []string, writer io.Writer) err
 	flagSet := flag.NewFlagSet("openvpn-auth-oauth2", flag.ContinueOnError)
 	flagSet.SetOutput(writer)
 	flagSet.Usage = func() {
-		_, _ = fmt.Fprint(flagSet.Output(), "Documentation available at https://github.com/jkroepke/openvpn-auth-oauth2/wiki\r\n\r\n")
+		_, _ = fmt.Fprint(flagSet.Output(), "Documentation available at https://github.com/jkroepke/openvpn-auth-oauth2/tree/main/docs\r\n\r\n")
 		_, _ = fmt.Fprint(flagSet.Output(), "Usage of openvpn-auth-oauth2:\r\n\r\n")
 		// --help should display options with double dash
 		flagSet.VisitAll(func(flag *flag.Flag) {

@@ -87,7 +87,7 @@ oauth2:
 </td></tr></tbody>
 </table>
 
-For reference, you can read more about these properties in the wiki at this [link](https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Configuration#non-interactive-session-refresh)
+For reference, you can read more about these properties in the [Non-interactive session refresh](Non-interactive%20session%20refresh.md) documentation.
 
 
 ## Mobile clients: OpenVPN connect won't be reconnecting after unless App is opened
@@ -127,4 +127,4 @@ oauth2:
 </td></tr></tbody>
 </table>
 
-For reference, you can read more about these properties in the wiki at this [link](https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Configuration#non-interactive-session-refresh)
+For reference, you can read more about these properties in the [Non-interactive session refresh](Non-interactive%20session%20refresh.md) documentation.

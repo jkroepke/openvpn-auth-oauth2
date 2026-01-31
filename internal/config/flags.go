@@ -86,7 +86,7 @@ func (c *Config) flagSetHTTP(flagSet *flag.FlagSet) {
 		"http.template",
 		lookupEnvOrDefault("http.template", c.HTTP.Template),
 		"Path to a HTML file which is displayed at the end of the screen. "+
-			"See https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Layout-Customization for more information.",
+			"See https://github.com/jkroepke/openvpn-auth-oauth2/blob/main/docs/Layout%20Customization.md for more information.",
 	)
 	flagSet.BoolVar(
 		&c.HTTP.Check.IPAddr,

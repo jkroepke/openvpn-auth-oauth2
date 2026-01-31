@@ -36,11 +36,11 @@ To set up the `openvpn-auth-oauth2` plugin with your Identity Provider (IdP), yo
 
 2. **Register Your Application with the IdP**: Next, you need to register your application with your IdP. This process involves providing some basic information about your application, such as its name and the URLs it will use for redirection after authentication. The IdP will provide you with a client ID and a client secret, which you will need in the next step.
 
-3. **Configure the `openvpn-auth-oauth2` Plugin with your IdP**: Now, you need to configure the `openvpn-auth-oauth2` plugin with the details of your IdP and the client ID and client secret you received in the previous step. The configuration process is detailed in the [GitHub repository's wiki](https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Providers). This page provides specific instructions for various IdPs such as Google, Microsoft, and others.
+3. **Configure the `openvpn-auth-oauth2` Plugin with your IdP**: Now, you need to configure the `openvpn-auth-oauth2` plugin with the details of your IdP and the client ID and client secret you received in the previous step. The configuration process is detailed in the [Providers](Providers.md) documentation. This page provides specific instructions for various IdPs such as Google, Microsoft, and others.
 
 4. **Test the Setup**: Finally, you should test the setup to ensure everything is working correctly. You can do this by attempting to access a resource on your OpenVPN Community Server. If the setup is correct, you should be redirected to your IdP for authentication.
 
-Remember, the exact steps may vary depending on your specific IdP and the configuration of your OpenVPN Community Server. Always refer to the documentation provided by your IdP and the `openvpn-auth-oauth2` [GitHub repository's wiki](https://github.com/jkroepke/openvpn-auth-oauth2/wiki) for the most accurate and up-to-date information.
+Remember, the exact steps may vary depending on your specific IdP and the configuration of your OpenVPN Community Server. Always refer to the documentation provided by your IdP and the `openvpn-auth-oauth2` [documentation](Home.md) for the most accurate and up-to-date information.
 
 # Restricting Access for Specific Users and Groups with OpenVPN and OIDC
 
