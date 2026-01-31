@@ -285,6 +285,13 @@ func (c Client) postCodeExchangeHandler(
 			return
 		}
 
+		if err = c.checkTokenCEL(session, tokens); err != nil {
+			c.openvpn.DenyClient(ctx, logger, session.Client, "client rejected")
+			c.writeHTTPError(ctx, w, logger, http.StatusForbidden, "user validation", err.Error())
+
+			return
+		}
+
 		logger.LogAttrs(ctx, slog.LevelInfo, "successful authorization via oauth2")
 
 		username := user.PreferredUsername

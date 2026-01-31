@@ -11,5 +11,7 @@ var (
 	ErrAuthAndTokenEndpointRequired = errors.New("both oauth2.endpoints.tokenUrl and oauth2.endpoints.authUrl are required")
 	ErrNoRefreshToken               = errors.New("no refresh token received from provider")
 
+	ErrCELValidationFailed = errors.New("CEL validation failed")
+
 	ErrClientRejected = errors.New("client rejected")
 )

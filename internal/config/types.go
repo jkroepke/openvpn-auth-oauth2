@@ -122,6 +122,7 @@ type OAuth2Validate struct {
 	IPAddr                  bool              `json:"ipaddr"                     yaml:"ipaddr"`
 	Issuer                  bool              `json:"issuer"                     yaml:"issuer"`
 	CommonNameCaseSensitive bool              `json:"common-name-case-sensitive" yaml:"common-name-case-sensitive"`
+	ValidationScript        string            `json:"validation-script"          yaml:"validation-script"`
 }
 
 type OAuth2Refresh struct {
