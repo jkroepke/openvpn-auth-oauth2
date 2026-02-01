@@ -23,6 +23,12 @@ If a command fails because of missing dependencies or network restrictions, note
 
 Summarise your changes and cite relevant lines in the repository. Mention the output of the programmatic checks.
 
+## Documentation
+
+If you write documentation, please respect the [textlint-rule-terminology](https://github.com/sapegin/textlint-rule-terminology) rule.
+
+Here are the ruleset: https://github.com/sapegin/textlint-rule-terminology/blob/master/terms.jsonc
+
 ## Program overview
 
 `openvpn-auth-oauth2` is written in Go and acts as a management client for an
