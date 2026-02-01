@@ -340,6 +340,32 @@ func TestHandler(t *testing.T) {
 			true,
 		},
 		{
+			"with cel validation result false",
+			func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Check.IPAddr = true
+				conf.HTTP.EnableProxyHeaders = true
+				conf.OAuth2.Provider = generic.Name
+				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
+				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
+				conf.OAuth2.Validate.Groups = make([]string, 0)
+				conf.OAuth2.Validate.Roles = make([]string, 0)
+				conf.OAuth2.Validate.Issuer = true
+				conf.OAuth2.Validate.IPAddr = false
+				conf.OAuth2.Validate.CEL = "false"
+				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
+				conf.OpenVPN.AuthTokenUser = true
+
+				return conf
+			}(),
+			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.2", "12345", ""),
+			false,
+			"127.0.0.2, 8.8.8.8",
+			true,
+			false,
+		},
+		{
 			"with client config found",
 			func() config.Config {
 				conf := config.Defaults
