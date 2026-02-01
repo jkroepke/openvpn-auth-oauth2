@@ -407,13 +407,13 @@ func (c *Config) flagSetOAuth2(flagSet *flag.FlagSet) {
 		&c.OAuth2.Validate.IPAddr,
 		"oauth2.validate.ipaddr",
 		lookupEnvOrDefault("oauth2.validate.ipaddr", c.OAuth2.Validate.IPAddr),
-		"validate client ipaddr between VPN and oidc token",
+		"validate client ipaddr between VPN and OIDC token",
 	)
 	flagSet.BoolVar(
 		&c.OAuth2.Validate.Issuer,
 		"oauth2.validate.issuer",
 		lookupEnvOrDefault("oauth2.validate.issuer", c.OAuth2.Validate.Issuer),
-		"validate issuer from oidc discovery",
+		"validate issuer from OIDC discovery",
 	)
 	flagSet.StringVar(
 		&c.OAuth2.Validate.CommonName,
@@ -433,8 +433,7 @@ func (c *Config) flagSetOAuth2(flagSet *flag.FlagSet) {
 		lookupEnvOrDefault("oauth2.validate.cel", c.OAuth2.Validate.CEL),
 		"CEL expression for custom token validation. "+
 			"The expression must evaluate to a boolean value. "+
-			"Available variables: openvpnUserCommonName (string), openvpnUserIPAddr (string), oauth2TokenClaims (map). "+
-			"Example: openvpnUserCommonName == oauth2TokenClaims.preferred_username",
+			"Example: openVPNUserCommonName == oauth2TokenClaims.preferred_username",
 	)
 	flagSet.TextVar(
 		&c.OAuth2.Scopes,

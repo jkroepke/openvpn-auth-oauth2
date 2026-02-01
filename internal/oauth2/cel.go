@@ -7,8 +7,15 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 )
 
+type CELAuthMode string
+
+const (
+	CELAuthModeInteractive    CELAuthMode = "interactive"
+	CELAuthModeNonInteractive CELAuthMode = "non-interactive"
+)
+
 // CheckTokenCEL checks the provided ID token claims against the configured CEL expression.
-func (c *Client) CheckTokenCEL(session state.State, tokens idtoken.IDToken) error {
+func (c *Client) CheckTokenCEL(authMode CELAuthMode, session state.State, tokens idtoken.IDToken) error {
 	if c.celEvalPrg == nil {
 		return nil
 	}
@@ -18,8 +25,10 @@ func (c *Client) CheckTokenCEL(session state.State, tokens idtoken.IDToken) erro
 	}
 
 	vars := map[string]any{
-		"openvpnUserCommonName": session.Client.CommonName,
-		"openvpnUserIPAddr":     session.IPAddr,
+		"authMode":              string(authMode),
+		"openVPNSessionState":   session.SessionState,
+		"openVPNUserCommonName": session.Client.CommonName,
+		"openVPNUserIPAddr":     session.IPAddr,
 		"oauth2TokenClaims":     tokens.IDTokenClaims.Claims,
 	}
 

@@ -310,6 +310,23 @@ func TestRefreshReAuth(t *testing.T) {
 				return res.Result(), nil
 			}),
 		},
+		{
+			name:                     "refresh with CEL denying non-interactive auth",
+			clientCommonName:         "test",
+			nonInteractiveShouldWork: false,
+			conf: func() config.Config {
+				conf := config.Defaults
+				conf.OpenVPN.AuthTokenUser = false
+				conf.OAuth2.Provider = generic.Name
+				conf.OAuth2.Refresh.Enabled = true
+				conf.OAuth2.Refresh.ValidateUser = true
+				conf.OAuth2.Refresh.UseSessionID = false
+				conf.OAuth2.Validate.CEL = "authMode == 'interactive'"
+
+				return conf
+			}(),
+			rt: http.DefaultTransport,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

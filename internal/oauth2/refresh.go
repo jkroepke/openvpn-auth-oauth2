@@ -78,6 +78,10 @@ func (c *Client) RefreshClientAuth(ctx context.Context, logger *slog.Logger, cli
 		return false, fmt.Errorf("error check user data: %w", err)
 	}
 
+	if err = c.CheckTokenCEL(CELAuthModeNonInteractive, session, tokens); err != nil {
+		return false, fmt.Errorf("error cel validation: %w", err)
+	}
+
 	logger.LogAttrs(ctx, slog.LevelInfo, "successful authenticate via refresh token")
 
 	refreshToken, err = c.provider.GetRefreshToken(tokens)
