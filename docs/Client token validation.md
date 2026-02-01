@@ -4,7 +4,12 @@ openvpn-auth-oauth2 supports advanced token validation using the [Common Express
 
 ## Overview
 
-CEL validation provides a flexible way to enforce security policies by allowing you to write custom expressions that evaluate to `true` or `false`. This validation happens after the OAuth2 authentication flow completes but before the OpenVPN connection is established.
+CEL validation provides a flexible way to enforce security policies by allowing you to write custom expressions that evaluate to `true` or `false`. This validation happens:
+
+1. **During interactive authentication** - After the OAuth2 authentication flow completes but before the OpenVPN connection is established
+2. **During token refresh** - When an existing OpenVPN session is refreshed using a refresh token (non-interactive authentication)
+
+This ensures that access policies are continuously enforced throughout the lifecycle of the VPN connection, not just during initial authentication.
 
 ## Configuration
 
@@ -24,12 +29,17 @@ oauth2:
 CONFIG_OAUTH2_VALIDATE_VALIDATION__CEL='openVPNUserCommonName == oauth2TokenClaims.preferred_username'
 ```
 
+> [!IMPORTANT]
+> CEL validation is performed **both during initial OAuth2 authentication and during token refresh**. This means your validation rules will be continuously enforced throughout the entire lifecycle of a VPN session. Make sure your expressions account for both scenarios using the `authMode` variable if needed.
+
 ## Available Variables
 
 The following variables are available in your CEL expressions:
 
 | Variable | Type | Description |
 |----------|------|-------------|
+| `authMode` | `string` | The authentication mode: `"interactive"` (initial OAuth2 login) or `"non-interactive"` (token refresh) |
+| `openVPNSessionState` | `string` | The OpenVPN session state (e.g., `""`, `"Empty"`, `"Initial"`, `"Authenticated"`, `"Expired"`, `"Invalid"`, `"AuthenticatedEmptyUser"`, `"ExpiredEmptyUser"`) |
 | `openVPNUserCommonName` | `string` | The common name (CN) of the OpenVPN client certificate |
 | `openVPNUserIPAddr` | `string` | The IP address of the OpenVPN client |
 | `oauth2TokenClaims` | `map<string, dynamic>` | All claims from the OAuth2 ID token |
@@ -53,7 +63,8 @@ oauth2:
       oauth2TokenClaims.department == 'engineering'
 ```
 
-**Important:** If you try to access a claim that doesn't exist without using `has()`, the expression evaluation will fail and the user will be denied access.
+> [!IMPORTANT]
+> If you try to access a claim that doesn't exist without using `has()`, the expression evaluation will fail, and the user will be denied access.
 
 ## Examples
 
@@ -196,6 +207,42 @@ oauth2:
         (string(oauth2TokenClaims.email).endsWith('@company.com') &&
          openVPNUserIPAddr.startsWith('192.168.'))
       )
+```
+
+### Authentication Mode Based Validation
+
+Apply different validation rules based on whether this is an initial login or a token refresh:
+
+```yaml
+oauth2:
+  validate:
+    cel: |
+      authMode == 'interactive' ||
+      (authMode == 'non-interactive' && has(oauth2TokenClaims.refresh_allowed) && oauth2TokenClaims.refresh_allowed == true)
+```
+
+### Session State Validation
+
+Validate based on the current OpenVPN session state:
+
+```yaml
+oauth2:
+  validate:
+    cel: |
+      openVPNSessionState in ['Initial', 'Authenticated', 'AuthenticatedEmptyUser'] &&
+      openVPNUserCommonName == oauth2TokenClaims.preferred_username
+```
+
+### Combined Mode and State Validation
+
+Combine authentication mode and session state for fine-grained control:
+
+```yaml
+oauth2:
+  validate:
+    cel: |
+      (authMode == 'interactive' && openVPNSessionState == 'Initial') ||
+      (authMode == 'non-interactive' && openVPNSessionState == 'Authenticated')
 ```
 
 ## CEL Language Features
