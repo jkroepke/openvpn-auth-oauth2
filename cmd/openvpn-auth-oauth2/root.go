@@ -239,7 +239,36 @@ func initializeConfigAndLogger(args []string, stdout io.Writer) (config.Config, 
 		return config.Config{}, nil, ReturnCodeError
 	}
 
+	logWarnings(logger, conf)
+
 	return conf, logger, ReturnCodeNoError
+}
+
+func logWarnings(logger *slog.Logger, conf config.Config) {
+	if conf.OAuth2.Validate.CEL != "" {
+		logger.Warn("Using CEL validation is experimental and may not be suitable for production use.")
+	}
+	/*
+		if conf.OAuth2.Validate.CommonName != "" {
+			logger.Info("using Common Name validation is deprecated and removed in 2.0. Consider using CEL validation instead.")
+		}
+
+		if conf.OAuth2.Validate.IPAddr {
+			logger.Info("using IP Address validation is deprecated and removed in 2.0. Consider using CEL validation instead.")
+		}
+
+		if len(conf.OAuth2.Validate.Acr) > 0 {
+			logger.Info("using ACR validation is deprecated and removed in 2.0. Consider using CEL validation instead.")
+		}
+
+		if len(conf.OAuth2.Validate.Groups) > 0 {
+			logger.Info("using Groups validation is deprecated and removed in 2.0. Consider using CEL validation instead.")
+		}
+
+		if len(conf.OAuth2.Validate.Roles) > 0 {
+			logger.Info("using Roles validation is deprecated and removed in 2.0. Consider using CEL validation instead.")
+		}
+	*/
 }
 
 // startServices starts all the background services (HTTP server, OpenVPN client, debug listener).
