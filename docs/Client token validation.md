@@ -149,7 +149,7 @@ CEL supports many standard operations:
 - `startsWith()` - Check if string starts with prefix
 - `endsWith()` - Check if string ends with suffix
 - `contains()` - Check if string contains substring
-- `matches()` - Check if string matches a regex pattern
+- `matches()` - Check if string matches a regular expression pattern
 
 ### List Functions
 - `in` - Check if element is in list
