@@ -325,51 +325,7 @@ func TestRefreshReAuth(t *testing.T) {
 
 				return conf
 			}(),
-			rt: testutils.NewRoundTripperFunc(http.DefaultTransport, func(rt http.RoundTripper, req *http.Request) (*http.Response, error) {
-				if req.URL.Path != "/oauth/token" {
-					return rt.RoundTrip(req)
-				}
-
-				requestBody, err := io.ReadAll(req.Body)
-				if err != nil {
-					return nil, err
-				}
-
-				if refreshToken == "" {
-					req.Body = io.NopCloser(bytes.NewReader(requestBody))
-					res, err := rt.RoundTrip(req)
-
-					var tokenResponse oidc.AccessTokenResponse
-					if err := json.NewDecoder(res.Body).Decode(&tokenResponse); err != nil {
-						return nil, err
-					}
-
-					refreshToken = tokenResponse.RefreshToken
-
-					var buf bytes.Buffer
-
-					if err := json.NewEncoder(&buf).Encode(tokenResponse); err != nil {
-						return nil, err
-					}
-
-					res.Body = io.NopCloser(&buf)
-
-					return res, err
-				}
-
-				res := httptest.NewRecorder()
-				if !strings.Contains(string(requestBody), refreshToken) {
-					res.WriteHeader(http.StatusUnauthorized)
-				} else {
-					res.WriteHeader(http.StatusOK)
-				}
-
-				if _, err := res.WriteString(`{}`); err != nil {
-					return nil, err
-				}
-
-				return res.Result(), nil
-			}),
+			rt: http.DefaultTransport,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
