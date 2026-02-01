@@ -116,6 +116,7 @@ type OAuth2Endpoints struct {
 
 type OAuth2Validate struct {
 	CommonName              string            `json:"common-name"                yaml:"common-name"`
+	CEL                     string            `json:"cel"                        yaml:"cel"`
 	Acr                     types.StringSlice `json:"acr"                        yaml:"acr"`
 	Groups                  types.StringSlice `json:"groups"                     yaml:"groups"`
 	Roles                   types.StringSlice `json:"roles"                      yaml:"roles"`

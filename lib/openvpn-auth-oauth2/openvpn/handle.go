@@ -1,3 +1,5 @@
+//go:build linux && cgo
+
 package openvpn
 
 /*
@@ -157,6 +159,7 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 
 			return c.OpenVPNPluginFuncError
 		}
+
 		logger.InfoContext(p.ctx, "authentication pending")
 
 		go func() {

@@ -8,7 +8,8 @@ Welcome to the openvpn-auth-oauth2 wiki!
 2. [Installation](Installation)
 3. [Configuration](Configuration)
 4. [Providers](Providers)
-5. [FAQ](FAQ)
+5. [Client token validation](Client%20token%20validation)
+6. [FAQ](FAQ)
 
 You can find a demo of the plugin in action [here](Demo)
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/google/cel-go/cel"
 	types2 "github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
@@ -17,6 +18,7 @@ type Client struct {
 	openvpn         openvpnManagementClient
 	storage         tokenstorage.Storage
 	provider        Provider
+	celEvalPrg      cel.Program
 	logger          *slog.Logger
 	authorizeParams []rp.URLParamOpt
 	conf            types2.Config

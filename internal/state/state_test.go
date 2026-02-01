@@ -233,6 +233,7 @@ func TestStateInvalid(t *testing.T) {
 			name: "invalid issued",
 			encodedToken: func() (string, error) {
 				token := "A 1 1 C D E 1 G H I J K"
+
 				encrypted, err := crypto.EncryptBytesAES([]byte(token), testutils.Secret)
 				if err != nil {
 					return "", err

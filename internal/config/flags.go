@@ -427,6 +427,15 @@ func (c *Config) flagSetOAuth2(flagSet *flag.FlagSet) {
 		lookupEnvOrDefault("oauth2.validate.common-name-case-sensitive", c.OAuth2.Validate.CommonNameCaseSensitive),
 		"If true, openvpn-auth-oauth2 will validate the common case in sensitive mode",
 	)
+	flagSet.StringVar(
+		&c.OAuth2.Validate.CEL,
+		"oauth2.validate.cel",
+		lookupEnvOrDefault("oauth2.validate.cel", c.OAuth2.Validate.CEL),
+		"CEL expression for custom token validation. "+
+			"The expression must evaluate to a boolean value. "+
+			"Available variables: openvpnUserCommonName (string), openvpnUserIPAddr (string), oauth2TokenClaims (map). "+
+			"Example: openvpnUserCommonName == oauth2TokenClaims.preferred_username",
+	)
 	flagSet.TextVar(
 		&c.OAuth2.Scopes,
 		"oauth2.scopes",

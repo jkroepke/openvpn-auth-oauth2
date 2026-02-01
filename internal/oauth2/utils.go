@@ -60,7 +60,7 @@ func getAuthorizeParams(authorizeParams string) ([]rp.URLParamOpt, error) {
 }
 
 // getNonce returns oAuth2 nonce for the given client ID.
-func (c Client) getNonce(id string) string {
+func (c *Client) getNonce(id string) string {
 	nonce := sha256.New()
 	nonce.Write([]byte(id))
 	nonce.Write([]byte(c.conf.HTTP.Secret.String()))
@@ -71,6 +71,6 @@ func (c Client) getNonce(id string) string {
 // OAuthConfig returns the underlying [oauth2.Config] used by the relying party.
 // It is primarily exposed for tests that need direct access to the client
 // configuration.
-func (c Client) OAuthConfig() *oauth2.Config {
+func (c *Client) OAuthConfig() *oauth2.Config {
 	return c.relyingParty.OAuthConfig()
 }
