@@ -15,13 +15,13 @@ To enable CEL validation, configure the `oauth2.validate.cel` property in your c
 ```yaml
 oauth2:
   validate:
-    cel: 'openvpnUserCommonName == oauth2TokenClaims.preferred_username'
+    cel: 'openVPNUserCommonName == oauth2TokenClaims.preferred_username'
 ```
 
 ### Environment Variable
 
 ```bash
-CONFIG_OAUTH2_VALIDATE_VALIDATION__CEL='openvpnUserCommonName == oauth2TokenClaims.preferred_username'
+CONFIG_OAUTH2_VALIDATE_VALIDATION__CEL='openVPNUserCommonName == oauth2TokenClaims.preferred_username'
 ```
 
 ## Available Variables
@@ -30,8 +30,8 @@ The following variables are available in your CEL expressions:
 
 | Variable | Type | Description |
 |----------|------|-------------|
-| `openvpnUserCommonName` | `string` | The common name (CN) of the OpenVPN client certificate |
-| `openvpnUserIPAddr` | `string` | The IP address of the OpenVPN client |
+| `openVPNUserCommonName` | `string` | The common name (CN) of the OpenVPN client certificate |
+| `openVPNUserIPAddr` | `string` | The IP address of the OpenVPN client |
 | `oauth2TokenClaims` | `map<string, dynamic>` | All claims from the OAuth2 ID token |
 
 ## Expression Requirements
@@ -64,7 +64,7 @@ Ensure the OpenVPN common name matches the OAuth2 username claim:
 ```yaml
 oauth2:
   validate:
-    cel: 'openvpnUserCommonName == oauth2TokenClaims.preferred_username'
+    cel: 'openVPNUserCommonName == oauth2TokenClaims.preferred_username'
 ```
 
 ### Email Domain Validation
@@ -87,7 +87,7 @@ Combine multiple conditions with logical operators:
 oauth2:
   validate:
     cel: |
-      openvpnUserCommonName == oauth2TokenClaims.preferred_username &&
+      openVPNUserCommonName == oauth2TokenClaims.preferred_username &&
       has(oauth2TokenClaims.email_verified) &&
       oauth2TokenClaims.email_verified == true
 ```
@@ -111,7 +111,7 @@ Validate that the VPN client IP is in an expected range:
 ```yaml
 oauth2:
   validate:
-    cel: 'openvpnUserIPAddr.startsWith("10.0.") || openvpnUserIPAddr.startsWith("192.168.")'
+    cel: 'openVPNUserIPAddr.startsWith("10.0.") || openVPNUserIPAddr.startsWith("192.168.")'
 ```
 
 ### Case-Insensitive Username Validation
@@ -122,7 +122,7 @@ Compare usernames in a case-insensitive manner using the `lowerAscii()` function
 oauth2:
   validate:
     cel: |
-      has(oauth2TokenClaims.preferred_username) && openvpnUserCommonName.lowerAscii() == string(oauth2TokenClaims.preferred_username).lowerAscii()
+      has(oauth2TokenClaims.preferred_username) && openVPNUserCommonName.lowerAscii() == string(oauth2TokenClaims.preferred_username).lowerAscii()
 ```
 
 > [!IMPORTANT]
@@ -136,7 +136,7 @@ Combine multiple conditions for sophisticated validation rules:
 oauth2:
   validate:
     cel: |
-      openvpnUserCommonName == oauth2TokenClaims.sub &&
+      openVPNUserCommonName == oauth2TokenClaims.sub &&
       (
         (has(oauth2TokenClaims.role) && oauth2TokenClaims.role == 'admin') ||
         (has(oauth2TokenClaims.vpn_access) && oauth2TokenClaims.vpn_access == true)
@@ -153,7 +153,7 @@ oauth2:
   validate:
     cel: |
       has(oauth2TokenClaims.email) &&
-      string(oauth2TokenClaims.email).split('@')[0] == openvpnUserCommonName
+      string(oauth2TokenClaims.email).split('@')[0] == openVPNUserCommonName
 ```
 
 ### Username Format Validation
@@ -176,7 +176,7 @@ Ensure usernames meet minimum length requirements:
 oauth2:
   validate:
     cel: |
-      openvpnUserCommonName.size() >= 3 &&
+      openVPNUserCommonName.size() >= 3 &&
       has(oauth2TokenClaims.preferred_username) &&
       string(oauth2TokenClaims.preferred_username).size() >= 3
 ```
@@ -192,9 +192,9 @@ oauth2:
       has(oauth2TokenClaims.email) &&
       (
         (string(oauth2TokenClaims.email).endsWith('@internal.company.com') &&
-         openvpnUserIPAddr.startsWith('10.0.')) ||
+         openVPNUserIPAddr.startsWith('10.0.')) ||
         (string(oauth2TokenClaims.email).endsWith('@company.com') &&
-         openvpnUserIPAddr.startsWith('192.168.'))
+         openVPNUserIPAddr.startsWith('192.168.'))
       )
 ```
 
@@ -310,10 +310,10 @@ The expression must evaluate to a boolean. If it evaluates to another type (stri
 
 ```yaml
 # ❌ Bad - evaluates to a string, not a boolean
-cel: 'openvpnUserCommonName'
+cel: 'openVPNUserCommonName'
 ---
 # ✅ Good - evaluates to a boolean
-cel: 'openvpnUserCommonName != ""'
+cel: 'openVPNUserCommonName != ""'
 ```
 
 ## Relationship with Other Validation Options

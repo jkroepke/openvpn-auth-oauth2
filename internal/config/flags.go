@@ -433,8 +433,7 @@ func (c *Config) flagSetOAuth2(flagSet *flag.FlagSet) {
 		lookupEnvOrDefault("oauth2.validate.cel", c.OAuth2.Validate.CEL),
 		"CEL expression for custom token validation. "+
 			"The expression must evaluate to a boolean value. "+
-			"Available variables: openvpnUserCommonName (string), openvpnUserIPAddr (string), oauth2TokenClaims (map). "+
-			"Example: openvpnUserCommonName == oauth2TokenClaims.preferred_username",
+			"Example: openVPNUserCommonName == oauth2TokenClaims.preferred_username",
 	)
 	flagSet.TextVar(
 		&c.OAuth2.Scopes,

@@ -141,7 +141,7 @@ func TestCheckTokenCEL(t *testing.T) {
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
-				conf.OAuth2.Validate.CEL = "openvpnUserCommonName == oauth2TokenClaims.preferred_username"
+				conf.OAuth2.Validate.CEL = "openVPNUserCommonName == oauth2TokenClaims.preferred_username"
 
 				return conf
 			}(),
@@ -167,7 +167,7 @@ func TestCheckTokenCEL(t *testing.T) {
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
-				conf.OAuth2.Validate.CEL = "openvpnUserCommonName != oauth2TokenClaims.preferred_username"
+				conf.OAuth2.Validate.CEL = "openVPNUserCommonName != oauth2TokenClaims.preferred_username"
 
 				return conf
 			}(),
@@ -194,7 +194,7 @@ func TestCheckTokenCEL(t *testing.T) {
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
-				conf.OAuth2.Validate.CEL = "openvpnUserCommonName"
+				conf.OAuth2.Validate.CEL = "openVPNUserCommonName"
 
 				return conf
 			}(),
@@ -221,7 +221,7 @@ func TestCheckTokenCEL(t *testing.T) {
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
-				conf.OAuth2.Validate.CEL = "openvpnUserCommonName.lowerAscii() == string(oauth2TokenClaims.preferred_username).lowerAscii()"
+				conf.OAuth2.Validate.CEL = "openVPNUserCommonName.lowerAscii() == string(oauth2TokenClaims.preferred_username).lowerAscii()"
 
 				return conf
 			}(),
@@ -255,7 +255,7 @@ func TestCheckTokenCEL(t *testing.T) {
 
 			require.NoError(t, err)
 
-			err = oAuth2Client.CheckTokenCEL(tc.state, tc.token)
+			err = oAuth2Client.CheckTokenCEL(oauth2.CELAuthModeInteractive, tc.state, tc.token)
 			if tc.err != "" {
 				require.Error(t, err)
 				require.ErrorContains(t, err, tc.err)

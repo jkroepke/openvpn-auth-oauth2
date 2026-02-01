@@ -285,7 +285,7 @@ func (c *Client) postCodeExchangeHandler(
 			return
 		}
 
-		if err = c.CheckTokenCEL(session, tokens); err != nil {
+		if err = c.CheckTokenCEL(CELAuthModeInteractive, session, tokens); err != nil {
 			c.openvpn.DenyClient(ctx, logger, session.Client, "client rejected")
 			c.writeHTTPError(ctx, w, logger, http.StatusForbidden, "user validation", err.Error())
 

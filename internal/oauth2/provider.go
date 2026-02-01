@@ -84,8 +84,11 @@ func (c *Client) initializeCELValidation() error {
 	}
 
 	env, err := cel.NewEnv(
-		cel.VariableWithDoc("openvpnUserCommonName", cel.StringType, "The common name of the OpenVPN user"),
-		cel.VariableWithDoc("openvpnUserIPAddr", cel.StringType, "The IP address of the OpenVPN user"),
+		cel.VariableWithDoc("authMode", cel.StringType, "The authentication mode used (e.g., 'interactive', 'non-interactive')"),
+		cel.VariableWithDoc("openVPNSessionState", cel.StringType, "The OpenVPN session state "+
+			"(e.g., '', 'Empty', 'Initial', 'Authenticated', 'Expired', 'Invalid', 'AuthenticatedEmptyUser', 'ExpiredEmptyUser')"),
+		cel.VariableWithDoc("openVPNUserCommonName", cel.StringType, "The common name of the OpenVPN user"),
+		cel.VariableWithDoc("openVPNUserIPAddr", cel.StringType, "The IP address of the OpenVPN user"),
 		cel.VariableWithDoc("oauth2TokenClaims", cel.MapType(cel.StringType, cel.DynType), "The claims of the OAuth2 ID token"),
 		ext.Strings(ext.StringsVersion(4)),
 	)
