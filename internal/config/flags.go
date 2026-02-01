@@ -428,9 +428,9 @@ func (c *Config) flagSetOAuth2(flagSet *flag.FlagSet) {
 		"If true, openvpn-auth-oauth2 will validate the common case in sensitive mode",
 	)
 	flagSet.StringVar(
-		&c.OAuth2.Validate.ValidationCEL,
-		"oauth2.validate.validation-cel",
-		lookupEnvOrDefault("oauth2.validate.validation-cel", c.OAuth2.Validate.ValidationCEL),
+		&c.OAuth2.Validate.CEL,
+		"oauth2.validate.cel",
+		lookupEnvOrDefault("oauth2.validate.cel", c.OAuth2.Validate.CEL),
 		"CEL expression for custom token validation. "+
 			"The expression must evaluate to a boolean value. "+
 			"Available variables: openvpnUserCommonName (string), openvpnUserIPAddr (string), oauth2TokenClaims (map). "+

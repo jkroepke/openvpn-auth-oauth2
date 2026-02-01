@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/cel-go/cel"
+	"github.com/google/cel-go/ext"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
@@ -78,25 +79,28 @@ func New(ctx context.Context, logger *slog.Logger, conf config.Config, httpClien
 }
 
 func (c *Client) initializeCELValidation() error {
-	if c.conf.OAuth2.Validate.ValidationCEL != "" {
-		env, err := cel.NewEnv(
-			cel.VariableWithDoc("openvpnUserCommonName", cel.StringType, "The common name of the OpenVPN user"),
-			cel.VariableWithDoc("openvpnUserIPAddr", cel.StringType, "The IP address of the OpenVPN user"),
-			cel.VariableWithDoc("oauth2TokenClaims", cel.MapType(cel.StringType, cel.DynType), "The claims of the OAuth2 ID token"),
-		)
-		if err != nil {
-			return fmt.Errorf("failed to create CEL environment: %w", err)
-		}
+	if c.conf.OAuth2.Validate.CEL == "" {
+		return nil
+	}
 
-		prg, issues := env.Compile(c.conf.OAuth2.Validate.ValidationCEL)
-		if issues.Err() != nil {
-			return fmt.Errorf("failed to compile CEL expression: %w", issues.Err())
-		}
+	env, err := cel.NewEnv(
+		cel.VariableWithDoc("openvpnUserCommonName", cel.StringType, "The common name of the OpenVPN user"),
+		cel.VariableWithDoc("openvpnUserIPAddr", cel.StringType, "The IP address of the OpenVPN user"),
+		cel.VariableWithDoc("oauth2TokenClaims", cel.MapType(cel.StringType, cel.DynType), "The claims of the OAuth2 ID token"),
+		ext.Strings(ext.StringsVersion(4)),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create CEL environment: %w", err)
+	}
 
-		c.celEvalPrg, err = env.Program(prg)
-		if err != nil {
-			return fmt.Errorf("failed to create CEL program: %w", err)
-		}
+	prg, issues := env.Compile(c.conf.OAuth2.Validate.CEL)
+	if issues.Err() != nil {
+		return fmt.Errorf("failed to compile CEL expression: %w", issues.Err())
+	}
+
+	c.celEvalPrg, err = env.Program(prg)
+	if err != nil {
+		return fmt.Errorf("failed to create CEL program: %w", err)
 	}
 
 	return nil

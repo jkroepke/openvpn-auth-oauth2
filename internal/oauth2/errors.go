@@ -11,9 +11,9 @@ var (
 	ErrAuthAndTokenEndpointRequired = errors.New("both oauth2.endpoints.tokenUrl and oauth2.endpoints.authUrl are required")
 	ErrNoRefreshToken               = errors.New("no refresh token received from provider")
 
-	ErrCELValidationFailed = errors.New("CEL validation failed")
-	ErrCELNoBooleanResult  = errors.New("CEL expression did not evaluate to a boolean value")
-	ErrNoIDTokenAvailable  = errors.New("no ID token claims available for CEL validation")
+	ErrCELValidationFailed = errors.New("cel validation failed")
+	ErrCELNoBooleanResult  = errors.New("cel expression did not evaluate to a boolean value")
+	ErrNoIDTokenAvailable  = errors.New("no ID token claims available for cel validation")
 
 	ErrClientRejected = errors.New("client rejected")
 )

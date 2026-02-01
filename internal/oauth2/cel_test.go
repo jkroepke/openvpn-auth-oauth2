@@ -47,7 +47,7 @@ func TestCheckTokenCEL(t *testing.T) {
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
-				conf.OAuth2.Validate.ValidationCEL = ""
+				conf.OAuth2.Validate.CEL = ""
 
 				return conf
 			}(),
@@ -60,7 +60,7 @@ func TestCheckTokenCEL(t *testing.T) {
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
-				conf.OAuth2.Validate.ValidationCEL = "-"
+				conf.OAuth2.Validate.CEL = "-"
 
 				return conf
 			}(),
@@ -73,7 +73,7 @@ func TestCheckTokenCEL(t *testing.T) {
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
-				conf.OAuth2.Validate.ValidationCEL = "true"
+				conf.OAuth2.Validate.CEL = "true"
 
 				return conf
 			}(),
@@ -87,7 +87,7 @@ func TestCheckTokenCEL(t *testing.T) {
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
-				conf.OAuth2.Validate.ValidationCEL = "oauth2TokenClaims.unknown == 'test-user'"
+				conf.OAuth2.Validate.CEL = "oauth2TokenClaims.unknown == 'test-user'"
 
 				return conf
 			}(),
@@ -114,7 +114,7 @@ func TestCheckTokenCEL(t *testing.T) {
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
-				conf.OAuth2.Validate.ValidationCEL = "has(oauth2TokenClaims.unknown) && oauth2TokenClaims.unknown == 'test-user'"
+				conf.OAuth2.Validate.CEL = "has(oauth2TokenClaims.unknown) && oauth2TokenClaims.unknown == 'test-user'"
 
 				return conf
 			}(),
@@ -131,7 +131,7 @@ func TestCheckTokenCEL(t *testing.T) {
 					},
 				},
 			},
-			err: "CEL validation failed",
+			err: "cel validation failed",
 		},
 		{
 			name: "CEL expression evaluates to true",
@@ -141,7 +141,7 @@ func TestCheckTokenCEL(t *testing.T) {
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
-				conf.OAuth2.Validate.ValidationCEL = "openvpnUserCommonName == oauth2TokenClaims.preferred_username"
+				conf.OAuth2.Validate.CEL = "openvpnUserCommonName == oauth2TokenClaims.preferred_username"
 
 				return conf
 			}(),
@@ -167,7 +167,7 @@ func TestCheckTokenCEL(t *testing.T) {
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
-				conf.OAuth2.Validate.ValidationCEL = "openvpnUserCommonName != oauth2TokenClaims.preferred_username"
+				conf.OAuth2.Validate.CEL = "openvpnUserCommonName != oauth2TokenClaims.preferred_username"
 
 				return conf
 			}(),
@@ -194,7 +194,7 @@ func TestCheckTokenCEL(t *testing.T) {
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
-				conf.OAuth2.Validate.ValidationCEL = "openvpnUserCommonName"
+				conf.OAuth2.Validate.CEL = "openvpnUserCommonName"
 
 				return conf
 			}(),
@@ -211,15 +211,43 @@ func TestCheckTokenCEL(t *testing.T) {
 					},
 				},
 			},
-			err: "CEL expression did not evaluate to a boolean value",
+			err: "cel expression did not evaluate to a boolean value",
+		},
+		{
+			name: "CEL expression with lowerAscii",
+			conf: func() config.Config {
+				conf := config.Defaults
+				conf.OAuth2.Issuer = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
+				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
+				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
+				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
+				conf.OAuth2.Validate.CEL = "openvpnUserCommonName.lowerAscii() == string(oauth2TokenClaims.preferred_username).lowerAscii()"
+
+				return conf
+			}(),
+			state: state.State{
+				Client: state.ClientIdentifier{
+					CommonName: "Test-Client",
+				},
+				IPAddr: "127.0.0.1",
+			},
+			token: &oidc.Tokens[*idtoken.Claims]{
+				IDTokenClaims: &idtoken.Claims{
+					Claims: map[string]any{
+						"preferred_username": "test-client",
+					},
+				},
+			},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			provider, err := generic.NewProvider(t.Context(), tc.conf, http.DefaultClient)
 			require.NoError(t, err)
 
 			oAuth2Client, err := oauth2.New(t.Context(), slog.New(slog.DiscardHandler), tc.conf, http.DefaultClient, testutils.NewFakeStorage(), provider, testutils.NewFakeOpenVPNClient())
-			if tc.conf.OAuth2.Validate.ValidationCEL == "-" {
+			if tc.conf.OAuth2.Validate.CEL == "-" {
 				require.ErrorContains(t, err, "failed to compile CEL expression:")
 
 				return

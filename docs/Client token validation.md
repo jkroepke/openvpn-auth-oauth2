@@ -8,14 +8,14 @@ CEL validation provides a flexible way to enforce security policies by allowing 
 
 ## Configuration
 
-To enable CEL validation, configure the `oauth2.validate.validation-cel` property in your configuration file:
+To enable CEL validation, configure the `oauth2.validate.cel` property in your configuration file:
 
 ### YAML Configuration
 
 ```yaml
 oauth2:
   validate:
-    validation-cel: 'openvpnUserCommonName == oauth2TokenClaims.preferred_username'
+    cel: 'openvpnUserCommonName == oauth2TokenClaims.preferred_username'
 ```
 
 ### Environment Variable
@@ -48,7 +48,7 @@ Use the `has()` function to safely check for claim existence before accessing it
 ```yaml
 oauth2:
   validate:
-    validation-cel: |
+    cel: |
       has(oauth2TokenClaims.department) &&
       oauth2TokenClaims.department == 'engineering'
 ```
@@ -64,7 +64,7 @@ Ensure the OpenVPN common name matches the OAuth2 username claim:
 ```yaml
 oauth2:
   validate:
-    validation-cel: 'openvpnUserCommonName == oauth2TokenClaims.preferred_username'
+    cel: 'openvpnUserCommonName == oauth2TokenClaims.preferred_username'
 ```
 
 ### Email Domain Validation
@@ -74,7 +74,7 @@ Only allow users with email addresses from specific domains:
 ```yaml
 oauth2:
   validate:
-    validation-cel: |
+    cel: |
       has(oauth2TokenClaims.email) &&
       oauth2TokenClaims.email.endsWith('@example.com')
 ```
@@ -86,7 +86,7 @@ Combine multiple conditions with logical operators:
 ```yaml
 oauth2:
   validate:
-    validation-cel: |
+    cel: |
       openvpnUserCommonName == oauth2TokenClaims.preferred_username &&
       has(oauth2TokenClaims.email_verified) &&
       oauth2TokenClaims.email_verified == true
@@ -99,7 +99,7 @@ Allow access only if the user belongs to specific groups:
 ```yaml
 oauth2:
   validate:
-    validation-cel: |
+    cel: |
       has(oauth2TokenClaims.groups) &&
       ('vpn-users' in oauth2TokenClaims.groups || 'administrators' in oauth2TokenClaims.groups)
 ```
@@ -111,9 +111,22 @@ Validate that the VPN client IP is in an expected range:
 ```yaml
 oauth2:
   validate:
-    validation-cel: 'openvpnUserIPAddr.startsWith("10.0.") || openvpnUserIPAddr.startsWith("192.168.")'
+    cel: 'openvpnUserIPAddr.startsWith("10.0.") || openvpnUserIPAddr.startsWith("192.168.")'
 ```
 
+### Case-Insensitive Username Validation
+
+Compare usernames in a case-insensitive manner using the `lowerAscii()` function:
+
+```yaml
+oauth2:
+  validate:
+    cel: |
+      has(oauth2TokenClaims.preferred_username) && openvpnUserCommonName.lowerAscii() == string(oauth2TokenClaims.preferred_username).lowerAscii()
+```
+
+> [!IMPORTANT]
+> When accessing claims from `oauth2TokenClaims` that you want to use with string functions, you may need to cast them to string using `string()` since claims are stored as dynamic types.
 
 ### Complex Custom Logic
 
@@ -122,13 +135,67 @@ Combine multiple conditions for sophisticated validation rules:
 ```yaml
 oauth2:
   validate:
-    validation-cel: |
+    cel: |
       openvpnUserCommonName == oauth2TokenClaims.sub &&
       (
         (has(oauth2TokenClaims.role) && oauth2TokenClaims.role == 'admin') ||
         (has(oauth2TokenClaims.vpn_access) && oauth2TokenClaims.vpn_access == true)
       ) &&
       (!has(oauth2TokenClaims.account_locked) || oauth2TokenClaims.account_locked == false)
+```
+
+### Email Prefix Validation
+
+Extract and validate the prefix of an email address:
+
+```yaml
+oauth2:
+  validate:
+    cel: |
+      has(oauth2TokenClaims.email) &&
+      string(oauth2TokenClaims.email).split('@')[0] == openvpnUserCommonName
+```
+
+### Username Format Validation
+
+Validate that a username contains only allowed characters using regex:
+
+```yaml
+oauth2:
+  validate:
+    cel: |
+      has(oauth2TokenClaims.preferred_username) &&
+      string(oauth2TokenClaims.preferred_username).matches('^[a-zA-Z0-9._-]+$')
+```
+
+### String Length Validation
+
+Ensure usernames meet minimum length requirements:
+
+```yaml
+oauth2:
+  validate:
+    cel: |
+      openvpnUserCommonName.size() >= 3 &&
+      has(oauth2TokenClaims.preferred_username) &&
+      string(oauth2TokenClaims.preferred_username).size() >= 3
+```
+
+### Domain-Based Routing
+
+Allow different IP ranges based on email domain:
+
+```yaml
+oauth2:
+  validate:
+    cel: |
+      has(oauth2TokenClaims.email) &&
+      (
+        (string(oauth2TokenClaims.email).endsWith('@internal.company.com') &&
+         openvpnUserIPAddr.startsWith('10.0.')) ||
+        (string(oauth2TokenClaims.email).endsWith('@company.com') &&
+         openvpnUserIPAddr.startsWith('192.168.'))
+      )
 ```
 
 ## CEL Language Features
@@ -146,10 +213,62 @@ CEL supports many standard operations:
 - `!` (NOT)
 
 ### String Functions
-- `startsWith()` - Check if string starts with prefix
-- `endsWith()` - Check if string ends with suffix
-- `contains()` - Check if string contains substring
-- `matches()` - Check if string matches a regular expression pattern
+
+The following string functions are available through the [CEL strings extension](https://pkg.go.dev/github.com/google/cel-go/ext#Strings):
+
+#### Basic String Operations
+- `startsWith(<string>)` - Check if string starts with prefix
+- `endsWith(<string>)` - Check if string ends with suffix
+- `contains(<string>)` - Check if string contains substring
+- `matches(<string>)` - Check if string matches a regular expression pattern
+
+#### Case Conversion
+- `lowerAscii()` - Convert ASCII characters to lowercase
+  - Example: `'TacoCat'.lowerAscii()` returns `'tacocat'`
+- `upperAscii()` - Convert ASCII characters to uppercase
+  - Example: `'TacoCat'.upperAscii()` returns `'TACOCAT'`
+
+#### String Searching
+- `indexOf(<string>)` - Returns the index of the first occurrence of a substring (or -1 if not found)
+  - Example: `'hello mellow'.indexOf('ello')` returns `1`
+- `indexOf(<string>, <int>)` - Search starting from a specific position
+  - Example: `'hello mellow'.indexOf('ello', 2)` returns `7`
+- `lastIndexOf(<string>)` - Returns the index of the last occurrence of a substring
+  - Example: `'hello mellow'.lastIndexOf('ello')` returns `7`
+- `lastIndexOf(<string>, <int>)` - Search up to a specific position
+
+#### String Manipulation
+- `substring(<int>)` - Extract substring from position to end
+  - Example: `'tacocat'.substring(4)` returns `'cat'`
+- `substring(<int>, <int>)` - Extract substring from start (inclusive) to end (exclusive)
+  - Example: `'tacocat'.substring(0, 4)` returns `'taco'`
+- `trim()` - Remove leading and trailing whitespace
+  - Example: `'  \ttrim\n    '.trim()` returns `'trim'`
+- `replace(<string>, <string>)` - Replace all occurrences of a substring
+  - Example: `'hello hello'.replace('he', 'we')` returns `'wello wello'`
+- `replace(<string>, <string>, <int>)` - Replace with a limit on number of replacements
+  - Example: `'hello hello'.replace('he', 'we', 1)` returns `'wello hello'`
+- `reverse()` - Reverse the string
+  - Example: `'gums'.reverse()` returns `'smug'`
+
+#### String Splitting and Joining
+- `split(<string>)` - Split string by separator into a list
+  - Example: `'hello hello hello'.split(' ')` returns `['hello', 'hello', 'hello']`
+- `split(<string>, <int>)` - Split with a limit on number of substrings
+  - Example: `'hello hello hello'.split(' ', 2)` returns `['hello', 'hello hello']`
+- `join()` - Join list of strings (on a list, not a string)
+  - Example: `['hello', 'mellow'].join()` returns `'hellomellow'`
+- `join(<string>)` - Join list of strings with separator
+  - Example: `['hello', 'mellow'].join(' ')` returns `'hello mellow'`
+
+#### String Formatting
+- `format(<list>)` - Format string with printf-style substitutions
+  - Supports: `%s` (string), `%d` (integer), `%f` (float), `%e` (scientific), `%b` (binary), `%x`/`%X` (hex), `%o` (octal)
+  - Example: `"Hello %s, you have %d messages".format(['Alice', 5])` returns `'Hello Alice, you have 5 messages'`
+
+#### String Utilities
+- `strings.quote(<string>)` - Make string safe to print by escaping special characters
+  - Example: `strings.quote('single-quote with "double quote"')` returns `'"single-quote with \"double quote\""'`
 
 ### List Functions
 - `in` - Check if element is in list
@@ -158,7 +277,13 @@ CEL supports many standard operations:
 ### Map/Object Functions
 - `has()` - Check if a key exists in a map
 
-For more details, see the [CEL specification](https://github.com/google/cel-spec/blob/master/doc/langdef.md).
+### Type Conversion
+- `string()` - Convert value to string (useful for casting claim values)
+
+For more details, see:
+- [CEL Specification](https://github.com/google/cel-spec/blob/master/doc/langdef.md)
+- [CEL Strings Extension](https://github.com/google/cel-spec/blob/master/doc/extensions/strings.md)
+- [cel-go Strings Documentation](https://pkg.go.dev/github.com/google/cel-go/ext#Strings)
 
 ## Error Handling
 
@@ -169,10 +294,10 @@ If you try to access a claim that doesn't exist in the ID token without checking
 ```yaml
 ---
 # ❌ Bad - will fail if 'department' claim doesn't exist
-validation-cel: 'oauth2TokenClaims.department == "engineering"'
+cel: 'oauth2TokenClaims.department == "engineering"'
 ---
 # ✅ Good - safely checks for claim existence first
-validation-cel: 'has(oauth2TokenClaims.department) && oauth2TokenClaims.department == "engineering"'
+cel: 'has(oauth2TokenClaims.department) && oauth2TokenClaims.department == "engineering"'
 ```
 
 ### Invalid Expressions
@@ -185,10 +310,10 @@ The expression must evaluate to a boolean. If it evaluates to another type (stri
 
 ```yaml
 # ❌ Bad - evaluates to a string, not a boolean
-validation-cel: 'openvpnUserCommonName'
+cel: 'openvpnUserCommonName'
 ---
 # ✅ Good - evaluates to a boolean
-validation-cel: 'openvpnUserCommonName != ""'
+cel: 'openvpnUserCommonName != ""'
 ```
 
 ## Relationship with Other Validation Options
@@ -207,7 +332,7 @@ If any validation step fails, the user is denied access.
 2. **Keep expressions simple and readable** - complex logic can be hard to debug
 3. **Test your CEL expressions** with different token scenarios during development
 4. **Log validation failures** to help troubleshoot issues
-5. **Document your validation rules** in comments or documentation for team members
+5. **Document your validation rules** in comments or documentation for team members.
 
 ## Security Considerations
 

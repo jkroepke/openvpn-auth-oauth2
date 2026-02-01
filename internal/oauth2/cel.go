@@ -33,7 +33,7 @@ func (c *Client) CheckTokenCEL(session state.State, tokens idtoken.IDToken) erro
 		return ErrCELNoBooleanResult
 	}
 
-	if resultValue != true {
+	if !resultValue {
 		return ErrCELValidationFailed
 	}
 

@@ -106,8 +106,8 @@ Usage of openvpn-auth-oauth2:
     	If true, openvpn-auth-oauth2 will validate the common case in sensitive mode (env: CONFIG_OAUTH2_VALIDATE_COMMON__NAME__CASE__SENSITIVE)
   --oauth2.validate.groups value
     	oauth2 required user groups. If multiple groups are configured, the user needs to be least in one group. Comma separated list. Example: group1,group2,group3 (env: CONFIG_OAUTH2_VALIDATE_GROUPS)
-  --oauth2.validate.validation-cel string
-    	CEL expression for custom token validation. The expression must evaluate to a boolean value. Available variables: openvpnUserCommonName (string), openvpnUserIPAddr (string), oauth2TokenClaims (map). Example: openvpnUserCommonName == oauth2TokenClaims.preferred_username (env: CONFIG_OAUTH2_VALIDATE_VALIDATION__CEL)
+  --oauth2.validate.cel string
+    	CEL expression for custom token validation. The expression must evaluate to a boolean value. Available variables: openvpnUserCommonName (string), openvpnUserIPAddr (string), oauth2TokenClaims (map). Example: openvpnUserCommonName == oauth2TokenClaims.preferred_username (env: CONFIG_OAUTH2_VALIDATE_CEL)
   --oauth2.validate.ipaddr
     	validate client ipaddr between VPN and oidc token (env: CONFIG_OAUTH2_VALIDATE_IPADDR)
   --oauth2.validate.issuer
