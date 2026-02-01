@@ -3,20 +3,24 @@ package oauth2
 import (
 	"fmt"
 
-	"github.com/google/cel-go/common/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 )
 
-func (c Client) checkTokenCEL(session state.State, tokens idtoken.IDToken) error {
+// CheckTokenCEL checks the provided ID token claims against the configured CEL expression.
+func (c *Client) CheckTokenCEL(session state.State, tokens idtoken.IDToken) error {
 	if c.celEvalPrg == nil {
 		return nil
 	}
 
+	if tokens == nil || tokens.IDTokenClaims == nil {
+		return ErrNoIDTokenAvailable
+	}
+
 	vars := map[string]any{
-		"openvpnCommonName": session.Client.CommonName,
-		"openvpnIPAddr":     session.IPAddr,
-		"tokenClaims":       tokens.IDTokenClaims.Claims,
+		"openvpnUserCommonName": session.Client.CommonName,
+		"openvpnUserIPAddr":     session.IPAddr,
+		"oauth2TokenClaims":     tokens.IDTokenClaims.Claims,
 	}
 
 	result, _, err := c.celEvalPrg.Eval(vars)
@@ -24,7 +28,12 @@ func (c Client) checkTokenCEL(session state.State, tokens idtoken.IDToken) error
 		return fmt.Errorf("failed to evaluate CEL expression: %w", err)
 	}
 
-	if result.Equal(types.True) == types.True {
+	resultValue, ok := result.Value().(bool)
+	if !ok {
+		return ErrCELNoBooleanResult
+	}
+
+	if resultValue != true {
 		return ErrCELValidationFailed
 	}
 

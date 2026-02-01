@@ -69,28 +69,37 @@ func New(ctx context.Context, logger *slog.Logger, conf config.Config, httpClien
 		}
 	}
 
-	if conf.OAuth2.Validate.ValidationScript != "" {
-		env, err := cel.NewEnv(
-			cel.Variable("openvpnCommonName", cel.StringType),
-			cel.Variable("openvpnIPAddr", cel.StringType),
-			cel.Variable("tokenClaims", cel.AnyType),
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create CEL environment: %w", err)
-		}
-
-		prg, issues := env.Compile(conf.OAuth2.Validate.ValidationScript)
-		if issues.Err() != nil {
-			return nil, fmt.Errorf("failed to compile CEL expression: %w", issues.Err())
-		}
-
-		client.celEvalPrg, err = env.Program(prg)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create CEL program: %w", err)
-		}
+	err = client.initializeCELValidation()
+	if err != nil {
+		return nil, err
 	}
 
 	return client, nil
+}
+
+func (c *Client) initializeCELValidation() error {
+	if c.conf.OAuth2.Validate.ValidationCEL != "" {
+		env, err := cel.NewEnv(
+			cel.VariableWithDoc("openvpnUserCommonName", cel.StringType, "The common name of the OpenVPN user"),
+			cel.VariableWithDoc("openvpnUserIPAddr", cel.StringType, "The IP address of the OpenVPN user"),
+			cel.VariableWithDoc("oauth2TokenClaims", cel.MapType(cel.StringType, cel.DynType), "The claims of the OAuth2 ID token"),
+		)
+		if err != nil {
+			return fmt.Errorf("failed to create CEL environment: %w", err)
+		}
+
+		prg, issues := env.Compile(c.conf.OAuth2.Validate.ValidationCEL)
+		if issues.Err() != nil {
+			return fmt.Errorf("failed to compile CEL expression: %w", issues.Err())
+		}
+
+		c.celEvalPrg, err = env.Program(prg)
+		if err != nil {
+			return fmt.Errorf("failed to create CEL program: %w", err)
+		}
+	}
+
+	return nil
 }
 
 // newOIDCRelyingParty creates a new [rp.NewRelyingPartyOIDC]. This is used for providers that support OIDC.
@@ -154,7 +163,7 @@ func newOAuthRelyingParty(
 	return replyingParty, nil
 }
 
-func (c Client) getRelyingPartyOptions(httpClient *http.Client) []rp.Option {
+func (c *Client) getRelyingPartyOptions(httpClient *http.Client) []rp.Option {
 	basePath := c.conf.HTTP.BaseURL.JoinPath("/oauth2/")
 	cookieKey := []byte(c.conf.HTTP.Secret)
 	cookieOpt := []httphelper.CookieHandlerOpt{

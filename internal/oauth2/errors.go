@@ -12,6 +12,8 @@ var (
 	ErrNoRefreshToken               = errors.New("no refresh token received from provider")
 
 	ErrCELValidationFailed = errors.New("CEL validation failed")
+	ErrCELNoBooleanResult  = errors.New("CEL expression did not evaluate to a boolean value")
+	ErrNoIDTokenAvailable  = errors.New("no ID token claims available for CEL validation")
 
 	ErrClientRejected = errors.New("client rejected")
 )

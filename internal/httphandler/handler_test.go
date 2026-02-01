@@ -22,9 +22,9 @@ func TestAssets(t *testing.T) {
 
 	conf := config.Defaults
 	conf.OAuth2.Issuer = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
-	conf.OAuth2.Endpoints.Discovery = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
-	conf.OAuth2.Endpoints.Auth = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
-	conf.OAuth2.Endpoints.Token = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
+	conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
+	conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
+	conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
 
 	provider, err := generic.NewProvider(t.Context(), conf, http.DefaultClient)
 	require.NoError(t, err)
@@ -45,9 +45,9 @@ func TestCustomAssets(t *testing.T) {
 
 	conf := config.Defaults
 	conf.OAuth2.Issuer = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
-	conf.OAuth2.Endpoints.Discovery = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
-	conf.OAuth2.Endpoints.Auth = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
-	conf.OAuth2.Endpoints.Token = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
+	conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
+	conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
+	conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
 
 	provider, err := generic.NewProvider(t.Context(), conf, http.DefaultClient)
 	require.NoError(t, err)

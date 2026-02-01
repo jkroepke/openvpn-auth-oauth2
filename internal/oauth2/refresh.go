@@ -17,7 +17,7 @@ import (
 // RefreshClientAuth initiate a non-interactive authentication against the sso provider.
 //
 //nolint:cyclop
-func (c Client) RefreshClientAuth(ctx context.Context, logger *slog.Logger, client connection.Client) (bool, error) {
+func (c *Client) RefreshClientAuth(ctx context.Context, logger *slog.Logger, client connection.Client) (bool, error) {
 	clientID := strconv.FormatUint(client.CID, 10)
 	if c.conf.OAuth2.Refresh.UseSessionID && client.SessionID != "" {
 		clientID = client.SessionID
@@ -107,7 +107,7 @@ func (c Client) RefreshClientAuth(ctx context.Context, logger *slog.Logger, clie
 }
 
 // ClientDisconnect purges the refresh token from the [tokenstorage.Storage].
-func (c Client) ClientDisconnect(ctx context.Context, logger *slog.Logger, client connection.Client) {
+func (c *Client) ClientDisconnect(ctx context.Context, logger *slog.Logger, client connection.Client) {
 	if c.conf.OAuth2.Refresh.UseSessionID {
 		return
 	}
