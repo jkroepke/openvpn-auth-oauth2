@@ -158,7 +158,7 @@ oauth2:
 
 ### Username Format Validation
 
-Validate that a username contains only allowed characters using regex:
+Validate that a username contains only allowed characters using regular expression:
 
 ```yaml
 oauth2:
