@@ -517,3 +517,15 @@ oauth2:
 </table>
 
 </details>
+
+## Okta
+
+Contributions for Okta are welcome. Please open an issue, or a pull request if you want to add documentation for Okta.
+
+## Ping Identity
+
+Contributions for Ping Identity are welcome. Please open an issue, or a pull request if you want to add documentation for Ping Identity.
+
+## OneLogin
+
+Contributions for OneLogin are welcome. Please open an issue, or a pull request if you want to add documentation for OneLogin.

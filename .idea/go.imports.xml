@@ -4,6 +4,7 @@
     <option name="excludedPackages">
       <array>
         <option value="github.com/go-jose/go-jose/v4/testutils/require" />
+        <option value="golang.org/x/exp/slog" />
         <option value="golang.org/x/net/context" />
         <option value="google.golang.org/grpc/balancer/grpclb/state" />
       </array>

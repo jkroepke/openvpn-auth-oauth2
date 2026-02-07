@@ -4,12 +4,11 @@ import (
 	"golang.org/x/oauth2"
 )
 
-//nolint:tagliatelle
 type UserInfo struct {
-	Subject           string   `json:"sub,omitempty"`
-	Email             string   `json:"email,omitempty"`
-	PreferredUsername string   `json:"preferred_username,omitempty"`
-	Groups            []string `json:"groups,omitempty"`
+	Subject  string
+	Email    string
+	Username string
+	Groups   []string
 }
 
 func (u UserInfo) GetSubject() string {

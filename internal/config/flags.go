@@ -244,6 +244,20 @@ func (c *Config) flagSetOpenVPN(flagSet *flag.FlagSet) {
 		lookupEnvOrDefault("openvpn.reauthentication", c.OpenVPN.ReAuthentication),
 		"If set to false, openvpn-auth-oauth2 rejects all re-authentication requests.",
 	)
+	flagSet.StringVar(
+		&c.OpenVPN.UsernameClaim,
+		"openvpn.username-claim",
+		lookupEnvOrDefault("openvpn.username-claim", c.OpenVPN.UsernameClaim),
+		"The claim name in the ID Token which should be used as username in OpenVPN. If empty, the common name is used.",
+	)
+	flagSet.StringVar(
+		&c.OpenVPN.UsernameCEL,
+		"openvpn.username-cel",
+		lookupEnvOrDefault("openvpn.username-cel", c.OpenVPN.UsernameCEL),
+		"CEL expression to extract the username from the token. The expression must evaluate to a string value."+
+			"Example: token.claims[\"preferred_username\"]"+
+			"Note: If openvpn.username-claim is set, it takes precedence over openvpn.username-cel.",
+	)
 }
 
 //goland:noinspection GoMixedReceiverTypes

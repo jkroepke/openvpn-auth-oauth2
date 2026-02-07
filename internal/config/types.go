@@ -52,16 +52,18 @@ type Log struct {
 
 type OpenVPN struct {
 	Addr               types.URL          `json:"addr"                 yaml:"addr"`
+	UsernameClaim      string             `json:"username-claim"       yaml:"username-claim"`
 	Password           types.Secret       `json:"password"             yaml:"password"`
+	UsernameCEL        string             `json:"username-cel"         yaml:"username-cel"`
 	Bypass             OpenVPNBypass      `json:"bypass"               yaml:"bypass"`
 	CommonName         OpenVPNCommonName  `json:"common-name"          yaml:"common-name"`
 	Passthrough        OpenVPNPassthrough `json:"pass-through"         yaml:"pass-through"`
 	ClientConfig       OpenVPNConfig      `json:"client-config"        yaml:"client-config"`
 	AuthPendingTimeout time.Duration      `json:"auth-pending-timeout" yaml:"auth-pending-timeout"`
 	CommandTimeout     time.Duration      `json:"command-timeout"      yaml:"command-timeout"`
-	AuthTokenUser      bool               `json:"auth-token-user"      yaml:"auth-token-user"`
 	OverrideUsername   bool               `json:"override-username"    yaml:"override-username"`
 	ReAuthentication   bool               `json:"reauthentication"     yaml:"reauthentication"`
+	AuthTokenUser      bool               `json:"auth-token-user"      yaml:"auth-token-user"`
 }
 
 type OpenVPNBypass struct {

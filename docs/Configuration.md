@@ -100,18 +100,18 @@ Usage of openvpn-auth-oauth2:
     	If true, openvpn-auth-oauth2 uses the OIDC UserInfo endpoint to fetch additional information about the user (e.g. groups). (env: CONFIG_OAUTH2_USER__INFO)
   --oauth2.validate.acr value
     	oauth2 required acr values. Comma separated list. Example: phr,phrh (env: CONFIG_OAUTH2_VALIDATE_ACR)
+  --oauth2.validate.cel string
+    	CEL expression for custom token validation. The expression must evaluate to a boolean value. Example: openVPNUserCommonName == oauth2TokenClaims.preferred_username (env: CONFIG_OAUTH2_VALIDATE_CEL)
   --oauth2.validate.common-name string
     	validate common_name from OpenVPN with ID Token claim. For example: preferred_username or sub (env: CONFIG_OAUTH2_VALIDATE_COMMON__NAME)
   --oauth2.validate.common-name-case-sensitive
     	If true, openvpn-auth-oauth2 will validate the common case in sensitive mode (env: CONFIG_OAUTH2_VALIDATE_COMMON__NAME__CASE__SENSITIVE)
   --oauth2.validate.groups value
     	oauth2 required user groups. If multiple groups are configured, the user needs to be least in one group. Comma separated list. Example: group1,group2,group3 (env: CONFIG_OAUTH2_VALIDATE_GROUPS)
-  --oauth2.validate.cel string
-    	CEL expression for custom token validation. The expression must evaluate to a boolean value.
   --oauth2.validate.ipaddr
-    	validate client ipaddr between VPN and oidc token (env: CONFIG_OAUTH2_VALIDATE_IPADDR)
+    	validate client ipaddr between VPN and OIDC token (env: CONFIG_OAUTH2_VALIDATE_IPADDR)
   --oauth2.validate.issuer
-    	validate issuer from oidc discovery (env: CONFIG_OAUTH2_VALIDATE_ISSUER) (default true)
+    	validate issuer from OIDC discovery (env: CONFIG_OAUTH2_VALIDATE_ISSUER) (default true)
   --oauth2.validate.roles value
     	oauth2 required user roles. If multiple role are configured, the user needs to be least in one role. Comma separated list. Example: role1,role2,role3 (env: CONFIG_OAUTH2_VALIDATE_ROLES)
   --openvpn.addr value
@@ -152,6 +152,10 @@ Usage of openvpn-auth-oauth2:
     	openvpn management interface password. If argument starts with file:// it reads the secret from a file. (env: CONFIG_OPENVPN_PASSWORD)
   --openvpn.reauthentication
     	If set to false, openvpn-auth-oauth2 rejects all re-authentication requests. (env: CONFIG_OPENVPN_REAUTHENTICATION) (default true)
+  --openvpn.username-cel string
+    	CEL expression to extract the username from the token. The expression must evaluate to a string value.Example: token.claims["preferred_username"]Note: If openvpn.username-claim is set, it takes precedence over openvpn.username-cel. (env: CONFIG_OPENVPN_USERNAME__CEL)
+  --openvpn.username-claim string
+    	The claim name in the ID Token which should be used as username in OpenVPN. If empty, the common name is used. (env: CONFIG_OPENVPN_USERNAME__CLAIM) (default "preferred_username")
   --version
     	show version
 ```
@@ -271,3 +275,7 @@ See [Non-interactive session refresh](Non-interactive%20session%20refresh) for m
 ## Client specific configuration
 
 See [Client specific configuration](Client%20specific%20configuration) for more information.
+
+## OpenVPN username handling
+
+See [OpenVPN Username](OpenVPN%20Username) for more information.

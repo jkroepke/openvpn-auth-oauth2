@@ -133,6 +133,8 @@ openvpn:
         socket-group: "group"
         socket-mode: 0666
     reauthentication: false
+    username-claim: "sub"
+    username-cel: "{{ index . 0 }}"
 http:
     listen: ":9001"
     secret: "1jd93h5b6s82lf03jh5b2hf9"
@@ -222,6 +224,8 @@ http:
 					},
 					CommandTimeout:   10 * time.Second,
 					ReAuthentication: false,
+					UsernameClaim:    "sub",
+					UsernameCEL:      "{{ index . 0 }}",
 				},
 				OAuth2: config.OAuth2{
 					Issuer: types.URL{URL: &url.URL{

@@ -32,8 +32,8 @@ func (p Provider) GetUser(ctx context.Context, _ *slog.Logger, tokens idtoken.ID
 	}
 
 	return types.UserInfo{
-		PreferredUsername: user.Login,
-		Email:             user.Email,
-		Subject:           strconv.Itoa(user.ID),
+		Username: user.Login,
+		Email:    user.Email,
+		Subject:  strconv.Itoa(user.ID),
 	}, nil
 }

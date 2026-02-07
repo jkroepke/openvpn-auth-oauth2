@@ -76,6 +76,7 @@ var Defaults = Config{
 		},
 		CommandTimeout:   10 * time.Second,
 		ReAuthentication: true,
+		UsernameClaim:    "preferred_username",
 	},
 	OAuth2: OAuth2{
 		AuthStyle: OAuth2AuthStyle(oauth2.AuthStyleInParams),

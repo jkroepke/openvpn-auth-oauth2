@@ -275,7 +275,7 @@ func (c *Client) postCodeExchangeHandler(
 
 		logger = logger.With(
 			slog.String("user_subject", user.Subject),
-			slog.String("user_preferred_username", user.PreferredUsername),
+			slog.String("user_preferred_username", user.Username),
 		)
 
 		if err = c.provider.CheckUser(ctx, session, user, tokens); err != nil {
@@ -294,7 +294,7 @@ func (c *Client) postCodeExchangeHandler(
 
 		logger.LogAttrs(ctx, slog.LevelInfo, "successful authorization via oauth2")
 
-		username := user.PreferredUsername
+		username := user.Username
 		if username == "" {
 			username = session.Client.CommonName
 		}
