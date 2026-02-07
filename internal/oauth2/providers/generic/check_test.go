@@ -17,7 +17,7 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
-func TestGetUser(t *testing.T) {
+func TestCheckUser(t *testing.T) {
 	t.Parallel()
 
 	for _, tc := range []struct {
@@ -33,6 +33,9 @@ func TestGetUser(t *testing.T) {
 			config.Defaults,
 			&oidc.Tokens[*idtoken.Claims]{
 				IDTokenClaims: &idtoken.Claims{
+					Claims: map[string]any{
+						"preferred_username": "username",
+					},
 					TokenClaims: oidc.TokenClaims{
 						Subject: "subject",
 					},
@@ -41,252 +44,19 @@ func TestGetUser(t *testing.T) {
 			},
 			nil,
 			types.UserInfo{
-				Subject:           "subject",
-				PreferredUsername: "username",
-			},
-			nil,
-		},
-		{
-			"default token with groups claim",
-			func() config.Config {
-				conf := config.Defaults
-				conf.OAuth2.Validate.Groups = []string{"group"}
-
-				return conf
-			}(),
-			&oidc.Tokens[*idtoken.Claims]{
-				IDTokenClaims: &idtoken.Claims{
-					TokenClaims: oidc.TokenClaims{
-						Subject: "subject",
-					},
-					Claims: map[string]any{
-						"groups": []string{"group1", "group2"},
-					},
-					PreferredUsername: "username",
-				},
-			},
-			nil,
-			types.UserInfo{
-				Subject:           "subject",
-				PreferredUsername: "username",
-				Groups:            []string{"group1", "group2"},
-			},
-			nil,
-		},
-		{
-			"default token with groups claim type any",
-			func() config.Config {
-				conf := config.Defaults
-				conf.OAuth2.Validate.Groups = []string{"group"}
-
-				return conf
-			}(),
-			&oidc.Tokens[*idtoken.Claims]{
-				IDTokenClaims: &idtoken.Claims{
-					TokenClaims: oidc.TokenClaims{
-						Subject: "subject",
-					},
-					Claims: map[string]any{
-						"groups": []any{any("group1"), any("group2")},
-					},
-					PreferredUsername: "username",
-				},
-			},
-			nil,
-			types.UserInfo{
-				Subject:           "subject",
-				PreferredUsername: "username",
-				Groups:            []string{"group1", "group2"},
-			},
-			nil,
-		},
-		{
-			"default token with invalid groups claim type any",
-			func() config.Config {
-				conf := config.Defaults
-				conf.OAuth2.Validate.Groups = []string{"group"}
-
-				return conf
-			}(),
-			&oidc.Tokens[*idtoken.Claims]{
-				IDTokenClaims: &idtoken.Claims{
-					TokenClaims: oidc.TokenClaims{
-						Subject: "subject",
-					},
-					Claims: map[string]any{
-						"groups": []any{any("group1"), any(0)},
-					},
-					PreferredUsername: "username",
-				},
-			},
-			nil,
-			types.UserInfo{},
-			types.ErrInvalidClaimType,
-		},
-		{
-			"default token with custom groups claim",
-			func() config.Config {
-				conf := config.Defaults
-				conf.OAuth2.Validate.Groups = []string{"group"}
-
-				return conf
-			}(),
-			&oidc.Tokens[*idtoken.Claims]{
-				IDTokenClaims: &idtoken.Claims{
-					TokenClaims: oidc.TokenClaims{
-						Subject: "subject",
-					},
-					Claims: map[string]any{
-						"groups_direct": []string{"group1", "group2"},
-					},
-					PreferredUsername: "username",
-				},
-			},
-			nil,
-			types.UserInfo{
-				Subject:           "subject",
-				PreferredUsername: "username",
-			},
-			nil,
-		},
-		{
-			"default token with configured custom groups claim",
-			func() config.Config {
-				conf := config.Defaults
-				conf.OAuth2.Validate.Groups = []string{"group"}
-				conf.OAuth2.GroupsClaim = "groups_direct"
-
-				return conf
-			}(),
-			&oidc.Tokens[*idtoken.Claims]{
-				IDTokenClaims: &idtoken.Claims{
-					TokenClaims: oidc.TokenClaims{
-						Subject: "subject",
-					},
-					Claims: map[string]any{
-						"groups_direct": []string{"group1", "group2"},
-					},
-					PreferredUsername: "username",
-				},
-			},
-			nil,
-			types.UserInfo{
-				Subject:           "subject",
-				PreferredUsername: "username",
-				Groups:            []string{"group1", "group2"},
-			},
-			nil,
-		},
-		{
-			"default token with invalid groups claim",
-			func() config.Config {
-				conf := config.Defaults
-				conf.OAuth2.Validate.Groups = []string{"group"}
-
-				return conf
-			}(),
-			&oidc.Tokens[*idtoken.Claims]{
-				IDTokenClaims: &idtoken.Claims{
-					TokenClaims: oidc.TokenClaims{
-						Subject: "subject",
-					},
-					Claims: map[string]any{
-						"groups": "group1",
-					},
-					PreferredUsername: "username",
-				},
-			},
-			nil,
-			types.UserInfo{},
-			types.ErrInvalidClaimType,
-		},
-		{
-			"default token with nil groups claim",
-			func() config.Config {
-				conf := config.Defaults
-				conf.OAuth2.Validate.Groups = []string{"group"}
-
-				return conf
-			}(),
-			&oidc.Tokens[*idtoken.Claims]{
-				IDTokenClaims: &idtoken.Claims{
-					TokenClaims: oidc.TokenClaims{
-						Subject: "subject",
-					},
-					Claims: map[string]any{
-						"groups": nil,
-					},
-					PreferredUsername: "username",
-				},
-			},
-			nil,
-			types.UserInfo{
-				Subject:           "subject",
-				PreferredUsername: "username",
-			},
-			nil,
-		},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			provider, err := generic.NewProvider(t.Context(), tc.conf, http.DefaultClient)
-			require.NoError(t, err)
-
-			userData, err := provider.GetUser(t.Context(), slog.New(slog.DiscardHandler), tc.token, tc.userInfo)
-			if tc.err == nil {
-				require.NoError(t, err)
-				require.Equal(t, tc.userData, userData)
-			} else {
-				require.Error(t, err)
-				require.ErrorIs(t, err, tc.err)
-			}
-		})
-	}
-}
-
-func TestCheckUser(t *testing.T) {
-	t.Parallel()
-
-	for _, tc := range []struct {
-		name     string
-		conf     config.Config
-		token    idtoken.IDToken
-		userInfo *types.UserInfo
-		userData types.UserInfo
-		err      error
-	}{
-		{
-			"default token",
-			config.Config{
-				OAuth2: config.OAuth2{
-					Validate: config.OAuth2Validate{},
-				},
-			},
-			&oidc.Tokens[*idtoken.Claims]{
-				IDTokenClaims: &idtoken.Claims{
-					TokenClaims: oidc.TokenClaims{
-						Subject: "subject",
-					},
-					PreferredUsername: "username",
-				},
-			},
-			nil,
-			types.UserInfo{
-				Subject:           "subject",
-				PreferredUsername: "username",
+				Subject:  "subject",
+				Username: "username",
 			},
 			nil,
 		},
 		{
 			"default token with user info",
-			config.Config{
-				OAuth2: config.OAuth2{
-					Validate: config.OAuth2Validate{},
-				},
-			},
+			config.Defaults,
 			&oidc.Tokens[*idtoken.Claims]{
 				IDTokenClaims: &idtoken.Claims{
+					Claims: map[string]any{
+						"preferred_username": "username",
+					},
 					TokenClaims: oidc.TokenClaims{
 						Subject: "subject",
 					},
@@ -294,12 +64,12 @@ func TestCheckUser(t *testing.T) {
 				},
 			},
 			&types.UserInfo{
-				Subject:           "subject",
-				PreferredUsername: "username2",
+				Subject:  "subject",
+				Username: "username2",
 			},
 			types.UserInfo{
-				Subject:           "subject",
-				PreferredUsername: "username2",
+				Subject:  "subject",
+				Username: "username2",
 			},
 			nil,
 		},

@@ -105,6 +105,8 @@ oauth2:
         secret: "1jd93h5b6s82lf03jh5b2hf9"
         use-session-id: true
         validate-user: true
+    openvpn-username-claim: "sub"
+    openvpn-username-cel: "{{ index . 0 }}"
 openvpn:
     addr: "unix:///run/openvpn/server2.sock"
     auth-token-user: true
@@ -240,12 +242,14 @@ http:
 						Secret:       "test",
 						PrivateKeyID: "openvpn-auth-oauth2",
 					},
-					Nonce:       true,
-					PKCE:        false,
-					UserInfo:    true,
-					GroupsClaim: "groups_direct",
-					Scopes:      []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile},
-					AuthStyle:   config.OAuth2AuthStyle(oauth2.AuthStyleInHeader),
+					Nonce:                true,
+					PKCE:                 false,
+					UserInfo:             true,
+					GroupsClaim:          "groups_direct",
+					Scopes:               []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile},
+					AuthStyle:            config.OAuth2AuthStyle(oauth2.AuthStyleInHeader),
+					OpenVPNUsernameClaim: "sub",
+					OpenVPNUsernameCEL:   "{{ index . 0 }}",
 					Refresh: config.OAuth2Refresh{
 						Enabled:      true,
 						Expires:      10 * time.Hour,

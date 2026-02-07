@@ -105,6 +105,7 @@ func TestPlugin(t *testing.T) {
 	conf.OAuth2.Client.ID = clientCredentials.ID
 	conf.OAuth2.Client.Secret = clientCredentials.Secret
 	conf.OAuth2.Refresh.Expires = time.Hour
+	conf.OAuth2.OpenVPNUsernameClaim = "sub"
 
 	tokenStorage := tokenstorage.NewInMemory(testutils.Secret, time.Hour)
 	oAuth2Client, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(t.Context(), t, conf, logger.Logger, http.DefaultClient, tokenStorage)
@@ -224,7 +225,7 @@ func TestPlugin(t *testing.T) {
 	require.Equal(t, c.OpenVPNPluginFuncSuccess, status)
 
 	require.Equal(t, "config", c.GoString(returnList.Name))
-	require.Equal(t, "push \"auth-token-user dXNlckBleGFtcGxlLmNvbQ==\"", c.GoString(returnList.Value))
+	require.Equal(t, "push \"auth-token-user aWQx\"", c.GoString(returnList.Value))
 
 	// PluginFuncV3 - OpenVPNPluginClientDisconnect
 	args.Type = c.OpenVPNPluginClientDisconnect

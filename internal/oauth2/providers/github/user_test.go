@@ -30,9 +30,9 @@ func TestGetUser(t *testing.T) {
 			"user",
 			`{"login": "login","email": "email","id": 10}`,
 			types.UserInfo{
-				PreferredUsername: "login",
-				Email:             "email",
-				Subject:           "10",
+				Username: "login",
+				Email:    "email",
+				Subject:  "10",
 			},
 			"",
 		},

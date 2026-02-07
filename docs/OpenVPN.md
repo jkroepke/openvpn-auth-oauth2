@@ -12,6 +12,7 @@
 #### Working
 
 - OpenVPN 2.6.6 on Linux
+- OpenVPN 2.7.0 on Linux
 
 #### Non-Working
 
@@ -35,3 +36,7 @@
 
 - [network-manager-openvpn-gnome](https://gitlab.gnome.org/GNOME/NetworkManager-openvpn) -
   See https://gitlab.gnome.org/GNOME/NetworkManager-openvpn/-/issues/124
+
+## OpenVPN username handling
+
+See [OpenVPN Username](OpenVPN%20Username) for more information.

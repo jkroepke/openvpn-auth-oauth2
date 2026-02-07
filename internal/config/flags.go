@@ -442,4 +442,19 @@ func (c *Config) flagSetOAuth2(flagSet *flag.FlagSet) {
 		"oauth2 token scopes. Defaults depends on oauth2.provider. Comma separated list. "+
 			"Example: openid,profile,email",
 	)
+
+	flagSet.StringVar(
+		&c.OAuth2.OpenVPNUsernameClaim,
+		"oauth2.openvpn-username-claim",
+		lookupEnvOrDefault("oauth2.openvpn-username-claim", c.OAuth2.OpenVPNUsernameClaim),
+		"The claim name in the ID Token which should be used as username in OpenVPN. If empty, the common name is used.",
+	)
+	flagSet.StringVar(
+		&c.OAuth2.OpenVPNUsernameCEL,
+		"oauth2.openvpn-username-cel",
+		lookupEnvOrDefault("oauth2.openvpn-username-cel", c.OAuth2.OpenVPNUsernameCEL),
+		"CEL expression to extract the username from the token. The expression must evaluate to a string value. "+
+			"Example: oauth2TokenClaims.sub "+
+			"Note: oauth2.openvpn-username-claim and oauth2.openvpn-username-cel cannot be set at the same time.",
+	)
 }

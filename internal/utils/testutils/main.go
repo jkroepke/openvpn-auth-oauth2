@@ -36,11 +36,6 @@ import (
 	"golang.org/x/text/language"
 )
 
-const (
-	Password = "password"
-	Secret   = "0123456789101112"
-)
-
 //nolint:gochecknoglobals
 var (
 	HashSecret         = sha256.Sum256([]byte(Secret))

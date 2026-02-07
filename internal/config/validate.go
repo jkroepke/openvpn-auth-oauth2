@@ -15,6 +15,10 @@ func Validate(mode int, conf Config) error {
 		return err
 	}
 
+	if err := validateOpenVPNConfig(conf); err != nil {
+		return err
+	}
+
 	if err := validateHTTPConfig(conf); err != nil {
 		return err
 	}
@@ -60,6 +64,15 @@ func validateHTTPConfig(conf Config) error {
 		"errorID": "",
 	}); err != nil {
 		return fmt.Errorf("invalid rendering http.template: %w", err)
+	}
+
+	return nil
+}
+
+// validateOpenVPNConfig validates the OpenVPN configuration.
+func validateOpenVPNConfig(conf Config) error {
+	if conf.OAuth2.OpenVPNUsernameCEL != "" && conf.OAuth2.OpenVPNUsernameClaim != "" {
+		return errors.New("only one of oauth2.openvpn-username-cel or oauth2.openvpn-username-claim is allowed")
 	}
 
 	return nil

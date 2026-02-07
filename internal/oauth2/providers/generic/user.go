@@ -44,12 +44,50 @@ func (p Provider) GetUser(ctx context.Context, logger *slog.Logger, tokens idtok
 		}
 	}
 
+	username, err := p.extractUsernameFromToken(tokens)
+	if err != nil {
+		return types.UserInfo{}, err
+	}
+
 	return types.UserInfo{
-		PreferredUsername: tokens.IDTokenClaims.PreferredUsername,
-		Subject:           tokens.IDTokenClaims.Subject,
-		Email:             tokens.IDTokenClaims.EMail,
-		Groups:            groups,
+		Username: username,
+		Subject:  tokens.IDTokenClaims.Subject,
+		Email:    tokens.IDTokenClaims.EMail,
+		Groups:   groups,
 	}, nil
+}
+
+func (p Provider) extractUsernameFromToken(tokens idtoken.IDToken) (string, error) {
+	switch {
+	case p.Conf.OAuth2.OpenVPNUsernameCEL != "":
+		out, _, err := p.celEvalPrg.Eval(map[string]any{
+			"oauth2TokenClaims": tokens.IDTokenClaims.Claims,
+		})
+		if err != nil {
+			return "", fmt.Errorf("failed to evaluate CEL expression for username: %w", err)
+		}
+
+		username, ok := out.Value().(string)
+		if !ok {
+			return "", fmt.Errorf("%w: CEL expression for username did not evaluate to a string: %T", types.ErrInvalidClaimType, out.Value())
+		}
+
+		return username, nil
+	case p.Conf.OAuth2.OpenVPNUsernameClaim != "":
+		usernameClaim, ok := tokens.IDTokenClaims.Claims[p.Conf.OAuth2.OpenVPNUsernameClaim]
+		if !ok {
+			return "", fmt.Errorf("username %w: %s", types.ErrNonExistsClaim, p.Conf.OAuth2.OpenVPNUsernameClaim)
+		}
+
+		username, ok := usernameClaim.(string)
+		if !ok {
+			return "", fmt.Errorf("%w: username claim did not evaluate to a string: %T", types.ErrInvalidClaimType, usernameClaim)
+		}
+
+		return username, nil
+	default:
+		return "", nil
+	}
 }
 
 func (p Provider) extractGroups(ctx context.Context, logger *slog.Logger, tokens idtoken.IDToken) ([]string, error) {

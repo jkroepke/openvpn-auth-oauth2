@@ -39,7 +39,7 @@ const (
 var clientIDCounter uint64
 
 func PluginOpenV3(v3structver c.Int, args *c.OpenVPNPluginArgsOpenIn, ret *c.OpenVPNPluginArgsOpenReturn) c.Int {
-	if v3structver < PluginStructVerMin {
+	if v3structver < PluginStructVerMin || args == nil || ret == nil {
 		return c.OpenVPNPluginFuncError
 	}
 
@@ -93,7 +93,7 @@ func PluginOpenV3(v3structver c.Int, args *c.OpenVPNPluginArgsOpenIn, ret *c.Ope
 }
 
 func PluginFuncV3(v3structver c.Int, args *c.OpenVPNPluginArgsFuncIn, ret *c.OpenVPNPluginArgsFuncReturn) c.OpenVPNPluginFuncStatus {
-	if v3structver < PluginStructVerMin {
+	if v3structver < PluginStructVerMin || args == nil || ret == nil {
 		return c.OpenVPNPluginFuncError
 	}
 

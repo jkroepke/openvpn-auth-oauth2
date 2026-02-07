@@ -222,6 +222,32 @@ func TestValidate(t *testing.T) {
 						Enabled: true,
 						Secret:  testutils.Secret,
 					},
+					Endpoints: config.OAuth2Endpoints{
+						Discovery: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
+					},
+					OpenVPNUsernameClaim: "sub",
+					OpenVPNUsernameCEL:   "{{ index . 0 }}",
+				},
+				OpenVPN: config.OpenVPN{
+					Addr: types.URL{URL: &url.URL{Scheme: "tcp", Host: "127.0.0.1:9000"}},
+				},
+			},
+			"only one of oauth2.openvpn-username-cel or oauth2.openvpn-username-claim is allowed",
+		},
+		{
+			config.Config{
+				HTTP: config.HTTP{
+					BaseURL:  types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
+					Secret:   testutils.Secret,
+					Template: config.Defaults.HTTP.Template,
+				},
+				OAuth2: config.OAuth2{
+					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
+					Issuer: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
+					Refresh: config.OAuth2Refresh{
+						Enabled: true,
+						Secret:  testutils.Secret,
+					},
 					UserInfo: true,
 					Endpoints: config.OAuth2Endpoints{
 						Discovery: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},

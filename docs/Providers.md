@@ -126,6 +126,7 @@ CONFIG_OAUTH2_PROVIDER=google
 CONFIG_OAUTH2_ISSUER=https://accounts.google.com
 CONFIG_OAUTH2_CLIENT_ID=162738495-xxxxx.apps.googleusercontent.com
 CONFIG_OAUTH2_CLIENT_SECRET=GOCSPX-xxxxxxxx
+CONFIG_OAUTH2_OPENVPN_USERNAME_CLAIM=email
 
 # The scopes openid profile email are required, but configured by default.
 # https://www.googleapis.com/auth/cloud-identity.groups.readonly is mandatory for group validation.
@@ -144,6 +145,7 @@ oauth2:
   client:
     id: "162738495-xxxxx.apps.googleusercontent.com"
     secret: "GOCSPX-xxxxxxxx"
+  openvpn-username-claim: "email"
   # The scopes openid profile email are required, but configured by default.
   # https://www.googleapis.com/auth/cloud-identity.groups.readonly is mandatory for group validation.
   # Enabled by default, if scopes aren't set in the config.
@@ -517,3 +519,15 @@ oauth2:
 </table>
 
 </details>
+
+## Okta
+
+Contributions for Okta are welcome. Please open an issue, or a pull request if you want to add documentation for Okta.
+
+## Ping Identity
+
+Contributions for Ping Identity are welcome. Please open an issue, or a pull request if you want to add documentation for Ping Identity.
+
+## OneLogin
+
+Contributions for OneLogin are welcome. Please open an issue, or a pull request if you want to add documentation for OneLogin.
