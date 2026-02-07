@@ -275,7 +275,7 @@ func (c *Client) postCodeExchangeHandler(
 
 		logger = logger.With(
 			slog.String("user_subject", user.Subject),
-			slog.String("user_preferred_username", user.Username),
+			slog.String("user_username", user.Username),
 		)
 
 		if err = c.provider.CheckUser(ctx, session, user, tokens); err != nil {
