@@ -229,7 +229,7 @@ func TestGetUser(t *testing.T) {
 			"custom username claim",
 			func() config.Config {
 				conf := config.Defaults
-				conf.OpenVPN.UsernameClaim = "sub"
+				conf.OAuth2.OpenVPNUsernameClaim = "sub"
 
 				return conf
 			}(),
@@ -255,7 +255,7 @@ func TestGetUser(t *testing.T) {
 			"custom username claim with invalid claim type",
 			func() config.Config {
 				conf := config.Defaults
-				conf.OpenVPN.UsernameClaim = "invalid"
+				conf.OAuth2.OpenVPNUsernameClaim = "invalid"
 
 				return conf
 			}(),
@@ -281,7 +281,7 @@ func TestGetUser(t *testing.T) {
 			"custom username claim",
 			func() config.Config {
 				conf := config.Defaults
-				conf.OpenVPN.UsernameClaim = "groups"
+				conf.OAuth2.OpenVPNUsernameClaim = "groups"
 
 				return conf
 			}(),
@@ -307,8 +307,34 @@ func TestGetUser(t *testing.T) {
 			"custom username CEL expression",
 			func() config.Config {
 				conf := config.Defaults
-				conf.OpenVPN.UsernameClaim = ""
-				conf.OpenVPN.UsernameCEL = "string(oauth2TokenClaims.groups[0])"
+				conf.OAuth2.OpenVPNUsernameClaim = ""
+				conf.OAuth2.OpenVPNUsernameCEL = "oauth2TokenClaims.sub"
+
+				return conf
+			}(),
+			&oidc.Tokens[*idtoken.Claims]{
+				IDTokenClaims: &idtoken.Claims{
+					TokenClaims: oidc.TokenClaims{
+						Subject: "subject",
+					},
+					Claims: map[string]any{
+						"sub": "username",
+					},
+				},
+			},
+			nil,
+			types.UserInfo{
+				Subject:  "subject",
+				Username: "username",
+			},
+			nil,
+		},
+		{
+			"custom username CEL expression with string",
+			func() config.Config {
+				conf := config.Defaults
+				conf.OAuth2.OpenVPNUsernameClaim = ""
+				conf.OAuth2.OpenVPNUsernameCEL = "string(oauth2TokenClaims.groups[0])"
 
 				return conf
 			}(),
@@ -334,8 +360,8 @@ func TestGetUser(t *testing.T) {
 			"invalid CEL expression",
 			func() config.Config {
 				conf := config.Defaults
-				conf.OpenVPN.UsernameClaim = ""
-				conf.OpenVPN.UsernameCEL = "string(oauth2TokenClaims.groups[0]"
+				conf.OAuth2.OpenVPNUsernameClaim = ""
+				conf.OAuth2.OpenVPNUsernameCEL = "string(oauth2TokenClaims.groups[0]"
 
 				return conf
 			}(),
@@ -356,6 +382,25 @@ func TestGetUser(t *testing.T) {
 				Username: "group1",
 			},
 			errors.New("failed to compile CEL expression"),
+		},
+		{
+			"empty CEL expression and claim ",
+			func() config.Config {
+				conf := config.Defaults
+				conf.OAuth2.OpenVPNUsernameClaim = ""
+				conf.OAuth2.OpenVPNUsernameCEL = ""
+
+				return conf
+			}(),
+			&oidc.Tokens[*idtoken.Claims]{
+				IDTokenClaims: &idtoken.Claims{
+					TokenClaims: oidc.TokenClaims{},
+					Claims:      nil,
+				},
+			},
+			nil,
+			types.UserInfo{},
+			nil,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

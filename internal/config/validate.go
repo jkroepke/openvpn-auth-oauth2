@@ -71,8 +71,8 @@ func validateHTTPConfig(conf Config) error {
 
 // validateOpenVPNConfig validates the OpenVPN configuration.
 func validateOpenVPNConfig(conf Config) error {
-	if conf.OpenVPN.UsernameCEL != "" && conf.OpenVPN.UsernameClaim != "" {
-		return errors.New("only one of openvpn.username-cel or openvpn.username-claim is allowed")
+	if conf.OAuth2.OpenVPNUsernameCEL != "" && conf.OAuth2.OpenVPNUsernameClaim != "" {
+		return errors.New("only one of oauth2.openvpn-username-cel or oauth2.openvpn-username-claim is allowed")
 	}
 
 	return nil

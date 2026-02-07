@@ -244,20 +244,6 @@ func (c *Config) flagSetOpenVPN(flagSet *flag.FlagSet) {
 		lookupEnvOrDefault("openvpn.reauthentication", c.OpenVPN.ReAuthentication),
 		"If set to false, openvpn-auth-oauth2 rejects all re-authentication requests.",
 	)
-	flagSet.StringVar(
-		&c.OpenVPN.UsernameClaim,
-		"openvpn.username-claim",
-		lookupEnvOrDefault("openvpn.username-claim", c.OpenVPN.UsernameClaim),
-		"The claim name in the ID Token which should be used as username in OpenVPN. If empty, the common name is used.",
-	)
-	flagSet.StringVar(
-		&c.OpenVPN.UsernameCEL,
-		"openvpn.username-cel",
-		lookupEnvOrDefault("openvpn.username-cel", c.OpenVPN.UsernameCEL),
-		"CEL expression to extract the username from the token. The expression must evaluate to a string value. "+
-			"Example: oauth2TokenClaims[\"preferred_username\"] "+
-			"Note: openvpn.username-claim and openvpn.username-cel cannot be set at the same time.",
-	)
 }
 
 //goland:noinspection GoMixedReceiverTypes
@@ -455,5 +441,20 @@ func (c *Config) flagSetOAuth2(flagSet *flag.FlagSet) {
 		lookupEnvOrDefault("oauth2.scopes", c.OAuth2.Scopes),
 		"oauth2 token scopes. Defaults depends on oauth2.provider. Comma separated list. "+
 			"Example: openid,profile,email",
+	)
+
+	flagSet.StringVar(
+		&c.OAuth2.OpenVPNUsernameClaim,
+		"oauth2.openvpn-username-claim",
+		lookupEnvOrDefault("oauth2.openvpn-username-claim", c.OAuth2.OpenVPNUsernameClaim),
+		"The claim name in the ID Token which should be used as username in OpenVPN. If empty, the common name is used.",
+	)
+	flagSet.StringVar(
+		&c.OAuth2.OpenVPNUsernameCEL,
+		"oauth2.openvpn-username-cel",
+		lookupEnvOrDefault("oauth2.openvpn-username-cel", c.OAuth2.OpenVPNUsernameCEL),
+		"CEL expression to extract the username from the token. The expression must evaluate to a string value. "+
+			"Example: oauth2TokenClaims.sub "+
+			"Note: oauth2.openvpn-username-claim and oauth2.openvpn-username-cel cannot be set at the same time.",
 	)
 }

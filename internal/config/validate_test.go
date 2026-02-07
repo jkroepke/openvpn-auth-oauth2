@@ -225,14 +225,14 @@ func TestValidate(t *testing.T) {
 					Endpoints: config.OAuth2Endpoints{
 						Discovery: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
 					},
+					OpenVPNUsernameClaim: "sub",
+					OpenVPNUsernameCEL:   "{{ index . 0 }}",
 				},
 				OpenVPN: config.OpenVPN{
-					Addr:          types.URL{URL: &url.URL{Scheme: "tcp", Host: "127.0.0.1:9000"}},
-					UsernameClaim: "sub",
-					UsernameCEL:   "{{ index . 0 }}",
+					Addr: types.URL{URL: &url.URL{Scheme: "tcp", Host: "127.0.0.1:9000"}},
 				},
 			},
-			"only one of openvpn.username-cel or openvpn.username-claim is allowed",
+			"only one of oauth2.openvpn-username-cel or oauth2.openvpn-username-claim is allowed",
 		},
 		{
 			config.Config{

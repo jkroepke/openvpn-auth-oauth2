@@ -7,7 +7,7 @@ import (
 type UserInfo struct {
 	Subject  string   `json:"sub"`
 	Email    string   `json:"email"`
-	Username string   `json:"preferred_username"`
+	Username string   `json:"preferred_username"` //nolint:tagliatelle // preferred_username is the standard claim for the username.
 	Groups   []string `json:"groups"`
 }
 

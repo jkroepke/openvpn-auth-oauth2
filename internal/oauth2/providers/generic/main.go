@@ -41,7 +41,7 @@ func (p Provider) GetName() string {
 }
 
 func (p Provider) setupCEL() (cel.Program, error) {
-	if p.Conf.OpenVPN.UsernameCEL == "" {
+	if p.Conf.OAuth2.OpenVPNUsernameCEL == "" {
 		return nil, nil //nolint:nilnil // No CEL expression configured, so we don't need to set up a program.
 	}
 
@@ -53,7 +53,7 @@ func (p Provider) setupCEL() (cel.Program, error) {
 		return nil, fmt.Errorf("failed to create CEL environment: %w", err)
 	}
 
-	prg, issues := env.Compile(p.Conf.OpenVPN.UsernameCEL)
+	prg, issues := env.Compile(p.Conf.OAuth2.OpenVPNUsernameCEL)
 	if issues.Err() != nil {
 		return nil, fmt.Errorf("failed to compile CEL expression: %w", issues.Err())
 	}

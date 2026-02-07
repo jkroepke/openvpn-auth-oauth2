@@ -30,13 +30,12 @@ func TestCheckUser(t *testing.T) {
 	}{
 		{
 			"default token",
-			config.Config{
-				OAuth2: config.OAuth2{
-					Validate: config.OAuth2Validate{},
-				},
-			},
+			config.Defaults,
 			&oidc.Tokens[*idtoken.Claims]{
 				IDTokenClaims: &idtoken.Claims{
+					Claims: map[string]any{
+						"preferred_username": "username",
+					},
 					TokenClaims: oidc.TokenClaims{
 						Subject: "subject",
 					},
@@ -52,13 +51,12 @@ func TestCheckUser(t *testing.T) {
 		},
 		{
 			"default token with user info",
-			config.Config{
-				OAuth2: config.OAuth2{
-					Validate: config.OAuth2Validate{},
-				},
-			},
+			config.Defaults,
 			&oidc.Tokens[*idtoken.Claims]{
 				IDTokenClaims: &idtoken.Claims{
+					Claims: map[string]any{
+						"preferred_username": "username",
+					},
 					TokenClaims: oidc.TokenClaims{
 						Subject: "subject",
 					},
