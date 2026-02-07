@@ -76,7 +76,7 @@ func (p Provider) extractUsernameFromToken(tokens idtoken.IDToken) (string, erro
 	case p.Conf.OAuth2.OpenVPNUsernameClaim != "":
 		usernameClaim, ok := tokens.IDTokenClaims.Claims[p.Conf.OAuth2.OpenVPNUsernameClaim]
 		if !ok {
-			return "", fmt.Errorf("%w: %s", types.ErrNonExistsClaim, p.Conf.OAuth2.OpenVPNUsernameClaim)
+			return "", fmt.Errorf("username %w: %s", types.ErrNonExistsClaim, p.Conf.OAuth2.OpenVPNUsernameClaim)
 		}
 
 		username, ok := usernameClaim.(string)
