@@ -5,10 +5,10 @@ import (
 )
 
 type UserInfo struct {
-	Subject  string
-	Email    string
-	Username string
-	Groups   []string
+	Subject  string   `json:"sub"`
+	Email    string   `json:"email"`
+	Username string   `json:"preferred_username"`
+	Groups   []string `json:"groups"`
 }
 
 func (u UserInfo) GetSubject() string {
