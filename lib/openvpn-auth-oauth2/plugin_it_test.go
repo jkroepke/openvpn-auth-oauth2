@@ -228,6 +228,7 @@ func TestIT(t *testing.T) {
 	conf.OAuth2.Client.ID = clientCredentials.ID
 	conf.OAuth2.Client.Secret = clientCredentials.Secret
 	conf.OAuth2.Refresh.Expires = time.Hour
+	conf.OAuth2.OpenVPNUsernameClaim = "sub"
 	conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: clientListener.Addr().String()}}
 	conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: "tcp", Host: strings.TrimPrefix(pluginManagementEndpoint, "tcp://")}}
 	conf.OpenVPN.Password = testutils.Password
