@@ -367,6 +367,7 @@ func TestGetUser(t *testing.T) {
 
 				return
 			}
+
 			require.NoError(t, err)
 
 			userData, err := provider.GetUser(t.Context(), slog.New(slog.DiscardHandler), tc.token, tc.userInfo)
