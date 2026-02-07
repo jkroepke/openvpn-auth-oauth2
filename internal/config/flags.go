@@ -254,9 +254,9 @@ func (c *Config) flagSetOpenVPN(flagSet *flag.FlagSet) {
 		&c.OpenVPN.UsernameCEL,
 		"openvpn.username-cel",
 		lookupEnvOrDefault("openvpn.username-cel", c.OpenVPN.UsernameCEL),
-		"CEL expression to extract the username from the token. The expression must evaluate to a string value."+
-			"Example: token.claims[\"preferred_username\"]"+
-			"Note: If openvpn.username-claim is set, it takes precedence over openvpn.username-cel.",
+		"CEL expression to extract the username from the token. The expression must evaluate to a string value. "+
+			"Example: oauth2TokenClaims[\"preferred_username\"] "+
+			"Note: openvpn.username-claim and openvpn.username-cel cannot be set at the same time.",
 	)
 }
 
