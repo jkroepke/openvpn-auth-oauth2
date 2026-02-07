@@ -126,6 +126,7 @@ CONFIG_OAUTH2_PROVIDER=google
 CONFIG_OAUTH2_ISSUER=https://accounts.google.com
 CONFIG_OAUTH2_CLIENT_ID=162738495-xxxxx.apps.googleusercontent.com
 CONFIG_OAUTH2_CLIENT_SECRET=GOCSPX-xxxxxxxx
+CONFIG_OAUTH2_OPENVPN_USERNAME_CLAIM=email
 
 # The scopes openid profile email are required, but configured by default.
 # https://www.googleapis.com/auth/cloud-identity.groups.readonly is mandatory for group validation.
@@ -144,6 +145,7 @@ oauth2:
   client:
     id: "162738495-xxxxx.apps.googleusercontent.com"
     secret: "GOCSPX-xxxxxxxx"
+  openvpn-username-claim: "email"
   # The scopes openid profile email are required, but configured by default.
   # https://www.googleapis.com/auth/cloud-identity.groups.readonly is mandatory for group validation.
   # Enabled by default, if scopes aren't set in the config.
