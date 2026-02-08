@@ -79,62 +79,112 @@ func validateOpenVPNConfig(conf Config) error {
 }
 
 // validateOAuth2Config validates the OAuth2 configuration.
-//
-//nolint:cyclop
 func validateOAuth2Config(conf Config) error {
-	if conf.OAuth2.Issuer.IsEmpty() {
+	if err := validateOAuth2Issuer(conf.OAuth2); err != nil {
+		return err
+	}
+
+	if err := validateOAuth2Client(conf.OAuth2.Client); err != nil {
+		return err
+	}
+
+	if err := validateOAuth2Endpoints(conf.OAuth2.Endpoints); err != nil {
+		return err
+	}
+
+	if err := validateOAuth2Refresh(conf.OAuth2.Refresh); err != nil {
+		return err
+	}
+
+	if err := validateOAuth2ClientConfig(conf); err != nil {
+		return err
+	}
+
+	return validateOAuth2UserInfo(conf.OAuth2)
+}
+
+// validateOAuth2Issuer validates the OAuth2 issuer configuration.
+func validateOAuth2Issuer(oauth2Conf OAuth2) error {
+	if oauth2Conf.Issuer.IsEmpty() {
 		return fmt.Errorf("oauth2.issuer is %w", ErrRequired)
 	}
 
-	if err := validateURL(conf.OAuth2.Issuer); err != nil {
+	if err := validateURL(oauth2Conf.Issuer); err != nil {
 		return fmt.Errorf("oauth2.issuer: %w", err)
 	}
 
-	if conf.OAuth2.Client.ID == "" {
+	return nil
+}
+
+// validateOAuth2Client validates the OAuth2 client configuration.
+func validateOAuth2Client(client OAuth2Client) error {
+	if client.ID == "" {
 		return fmt.Errorf("oauth2.client.id is %w", ErrRequired)
 	}
 
-	if conf.OAuth2.Client.Secret.String() == "" && conf.OAuth2.Client.PrivateKey.String() == "" {
+	if client.Secret.String() == "" && client.PrivateKey.String() == "" {
 		return fmt.Errorf("one of oauth2.client.private-key or oauth2.client.secret is %w", ErrRequired)
 	}
 
-	if conf.OAuth2.Client.Secret.String() != "" && conf.OAuth2.Client.PrivateKey.String() != "" {
+	if client.Secret.String() != "" && client.PrivateKey.String() != "" {
 		return errors.New("only one of oauth2.client.private-key or oauth2.client.secret is allowed")
 	}
 
-	if err := validateURL(conf.OAuth2.Endpoints.Discovery); err != nil {
+	return nil
+}
+
+// validateOAuth2Endpoints validates the OAuth2 endpoints configuration.
+func validateOAuth2Endpoints(endpoints OAuth2Endpoints) error {
+	if err := validateURL(endpoints.Discovery); err != nil {
 		return fmt.Errorf("oauth2.endpoint.discovery: %w", err)
 	}
 
-	if err := validateURL(conf.OAuth2.Endpoints.Token); err != nil {
+	if err := validateURL(endpoints.Token); err != nil {
 		return fmt.Errorf("oauth2.endpoint.token: %w", err)
 	}
 
-	if err := validateURL(conf.OAuth2.Endpoints.Auth); err != nil {
+	if err := validateURL(endpoints.Auth); err != nil {
 		return fmt.Errorf("oauth2.endpoint.auth: %w", err)
 	}
 
-	if conf.OAuth2.Refresh.Enabled {
-		if err := validateEncryptionSecret(conf.OAuth2.Refresh.Secret); err != nil {
+	return nil
+}
+
+// validateOAuth2Refresh validates the OAuth2 refresh token configuration.
+func validateOAuth2Refresh(refresh OAuth2Refresh) error {
+	if refresh.Enabled {
+		if err := validateEncryptionSecret(refresh.Secret); err != nil {
 			return fmt.Errorf("oauth2.refresh.secret %w", err)
 		}
 	}
 
-	if conf.OpenVPN.ClientConfig.Enabled {
-		if conf.OpenVPN.CommonName.Mode == CommonNameModeOmit {
-			return errors.New("openvpn.common-name.mode: omit is not supported with openvpn.client-config.enabled")
-		}
+	return nil
+}
 
-		file, err := conf.OpenVPN.ClientConfig.Path.Open(".")
-		if err != nil {
-			return fmt.Errorf("openvpn.client-config.path: %w", err)
-		}
-
-		_ = file.Close()
+// validateOAuth2ClientConfig validates the client config directory settings.
+func validateOAuth2ClientConfig(conf Config) error {
+	if !conf.OpenVPN.ClientConfig.Enabled {
+		return nil
 	}
 
-	if !conf.OAuth2.Endpoints.Auth.IsEmpty() && !conf.OAuth2.Endpoints.Token.IsEmpty() {
-		if conf.OAuth2.UserInfo {
+	if conf.OpenVPN.CommonName.Mode == CommonNameModeOmit {
+		return errors.New("openvpn.common-name.mode: omit is not supported with openvpn.client-config.enabled")
+	}
+
+	file, err := conf.OpenVPN.ClientConfig.Path.Open(".")
+	if err != nil {
+		return fmt.Errorf("openvpn.client-config.path: %w", err)
+	}
+
+	_ = file.Close()
+
+	return nil
+}
+
+// validateOAuth2UserInfo validates the user info configuration.
+func validateOAuth2UserInfo(oauth2Conf OAuth2) error {
+	if !oauth2Conf.Endpoints.Auth.IsEmpty() && !oauth2Conf.Endpoints.Token.IsEmpty() {
+		if oauth2Conf.UserInfo {
 			return errors.New("oauth2.userinfo: cannot be used if oauth2.endpoint.auth and oauth2.endpoint.token is set")
 		}
 	}

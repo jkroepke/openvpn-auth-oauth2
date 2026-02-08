@@ -78,7 +78,7 @@ var Defaults = Config{
 		ReAuthentication: true,
 	},
 	OAuth2: OAuth2{
-		AuthStyle: OAuth2AuthStyle(oauth2.AuthStyleInParams),
+		AuthStyle: types.OAuth2AuthStyle(oauth2.AuthStyleInParams),
 		Client:    OAuth2Client{},
 		Endpoints: OAuth2Endpoints{
 			Auth:      types.URL{URL: &url.URL{Scheme: "", Host: ""}},
