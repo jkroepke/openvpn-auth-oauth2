@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/httpserver"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/madflojo/testcerts"
@@ -39,7 +38,7 @@ func TestNewHTTPServer(t *testing.T) {
 			"http listener",
 			config.Config{
 				HTTP: config.HTTP{
-					BaseURL: types.URL{URL: &url.URL{Scheme: "http", Host: "127.0.0.1"}},
+					BaseURL: &url.URL{Scheme: "http", Host: "127.0.0.1"},
 					Listen:  "127.0.0.1:0",
 				},
 			},
@@ -49,7 +48,7 @@ func TestNewHTTPServer(t *testing.T) {
 			"https listener invalid",
 			config.Config{
 				HTTP: config.HTTP{
-					BaseURL: types.URL{URL: &url.URL{Scheme: "http", Host: "127.0.0.1"}},
+					BaseURL: &url.URL{Scheme: "http", Host: "127.0.0.1"},
 					Listen:  "127.0.0.1:0",
 					TLS:     true,
 				},
@@ -60,7 +59,7 @@ func TestNewHTTPServer(t *testing.T) {
 			"https listener",
 			config.Config{
 				HTTP: config.HTTP{
-					BaseURL:  types.URL{URL: &url.URL{Scheme: "http", Host: "127.0.0.1"}},
+					BaseURL:  &url.URL{Scheme: "http", Host: "127.0.0.1"},
 					Listen:   "127.0.0.1:0",
 					TLS:      true,
 					KeyFile:  key,

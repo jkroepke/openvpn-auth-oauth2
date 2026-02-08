@@ -7,7 +7,6 @@ import (
 	"testing/fstest"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/httphandler"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
@@ -21,7 +20,7 @@ func TestAssets(t *testing.T) {
 	logger := testutils.NewTestLogger()
 
 	conf := config.Defaults
-	conf.OAuth2.Issuer = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
+	conf.OAuth2.Issuer = &url.URL{Scheme: "http", Host: "localhost"}
 	conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 	conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 	conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
@@ -44,7 +43,7 @@ func TestCustomAssets(t *testing.T) {
 	logger := testutils.NewTestLogger()
 
 	conf := config.Defaults
-	conf.OAuth2.Issuer = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
+	conf.OAuth2.Issuer = &url.URL{Scheme: "http", Host: "localhost"}
 	conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 	conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 	conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
@@ -55,11 +54,9 @@ func TestCustomAssets(t *testing.T) {
 	oAuth2Client, err := oauth2.New(t.Context(), logger.Logger, conf, http.DefaultClient, testutils.NewFakeStorage(), provider, testutils.NewFakeOpenVPNClient())
 	require.NoError(t, err)
 
-	conf.HTTP.AssetPath = types.FS{
-		FS: fstest.MapFS{
-			"index.txt": &fstest.MapFile{
-				Data: []byte("index"),
-			},
+	conf.HTTP.AssetPath = fstest.MapFS{
+		"index.txt": &fstest.MapFile{
+			Data: []byte("index"),
 		},
 	}
 

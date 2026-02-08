@@ -10,11 +10,14 @@ import (
 func (p Provider) GetProviderConfig() (types.ProviderConfig, error) {
 	scopes := []string{types.ScopeOpenID, types.ScopeProfile, types.ScopeOfflineAccess}
 
-	if p.Conf.OAuth2.Endpoints.Token.IsEmpty() && p.Conf.OAuth2.Endpoints.Auth.IsEmpty() {
+	tokenEmpty := p.Conf.OAuth2.Endpoints.Token == nil || (p.Conf.OAuth2.Endpoints.Token.Scheme == "" && p.Conf.OAuth2.Endpoints.Token.Host == "")
+	authEmpty := p.Conf.OAuth2.Endpoints.Auth == nil || (p.Conf.OAuth2.Endpoints.Auth.Scheme == "" && p.Conf.OAuth2.Endpoints.Auth.Host == "")
+
+	if tokenEmpty && authEmpty {
 		return types.ProviderConfig{Scopes: scopes}, nil
 	}
 
-	if p.Conf.OAuth2.Endpoints.Auth.IsEmpty() || p.Conf.OAuth2.Endpoints.Token.IsEmpty() {
+	if authEmpty || tokenEmpty {
 		return types.ProviderConfig{}, oauth3.ErrAuthAndTokenEndpointRequired
 	}
 

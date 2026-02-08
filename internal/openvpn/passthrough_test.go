@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
@@ -188,16 +187,16 @@ func TestPassThroughFull(t *testing.T) {
 				require.NoError(t, managementInterface.Close())
 			})
 
-			tc.conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
+			tc.conf.OpenVPN.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
 			switch tc.scheme {
 			case openvpn.SchemeTCP:
-				tc.conf.OpenVPN.Passthrough.Address = types.URL{URL: &url.URL{Scheme: tc.scheme, Host: "127.0.0.1:0"}}
+				tc.conf.OpenVPN.Passthrough.Address = &url.URL{Scheme: tc.scheme, Host: "127.0.0.1:0"}
 			case openvpn.SchemeUnix:
 				temp, err := nettest.LocalPath()
 				require.NoError(t, err)
 
-				tc.conf.OpenVPN.Passthrough.Address = types.URL{URL: &url.URL{Scheme: tc.scheme, Path: temp}}
+				tc.conf.OpenVPN.Passthrough.Address = &url.URL{Scheme: tc.scheme, Path: temp}
 			}
 
 			tokenStorage := tokenstorage.NewInMemory(testutils.Secret, time.Hour)

@@ -106,7 +106,7 @@ func (c *Client) DenyClient(ctx context.Context, logger *slog.Logger, client sta
 }
 
 func (c *Client) readClientConfig(username string) ([]string, error) {
-	if !c.conf.OpenVPN.ClientConfig.Enabled || c.conf.OpenVPN.ClientConfig.Path.IsEmpty() || len(username) == 0 {
+	if !c.conf.OpenVPN.ClientConfig.Enabled || c.conf.OpenVPN.ClientConfig.Path == nil || len(username) == 0 {
 		return make([]string, 0), nil
 	}
 

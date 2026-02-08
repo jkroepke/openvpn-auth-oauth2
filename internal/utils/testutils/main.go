@@ -14,13 +14,13 @@ import (
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"net/url"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
 	"unicode"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/httphandler"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
@@ -133,7 +133,7 @@ func ReadLine(tb testing.TB, conn net.Conn, reader *bufio.Reader) string {
 
 // SetupResourceServer starts a minimal OIDC server used for integration tests.
 func SetupResourceServer(tb testing.TB, clientListener net.Listener, logger *slog.Logger, opConfig *op.Config) (
-	*httptest.Server, types.URL, config.OAuth2Client, error,
+	*httptest.Server, *url.URL, config.OAuth2Client, error,
 ) {
 	tb.Helper()
 
@@ -175,7 +175,7 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener, logger *slo
 
 	opProvider, err := op.NewProvider(opConfig, opStorage, op.IssuerFromHost(""), opOpts...)
 	if err != nil {
-		return nil, types.URL{}, config.OAuth2Client{}, err //nolint:wrapcheck
+		return nil, nil, config.OAuth2Client{}, err //nolint:wrapcheck
 	}
 
 	httpHandler := http.NewServeMux()
@@ -231,12 +231,12 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener, logger *slo
 		resourceServer.Close()
 	})
 
-	resourceServerURL, err := types.NewURL(resourceServer.URL)
+	resourceServerURL, err := url.Parse(resourceServer.URL)
 	if err != nil {
-		return nil, types.URL{}, config.OAuth2Client{}, err //nolint:wrapcheck
+		return nil, nil, config.OAuth2Client{}, err //nolint:wrapcheck
 	}
 
-	return resourceServer, resourceServerURL, config.OAuth2Client{ID: client.GetID(), Secret: types.Secret(clientSecret)}, nil
+	return resourceServer, resourceServerURL, config.OAuth2Client{ID: client.GetID(), Secret: config.Secret(clientSecret)}, nil
 }
 
 // SetupMockEnvironment sets up an OpenVPN management interface and a mock OIDC
@@ -263,28 +263,28 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 	_, resourceServerURL, clientCredentials, err := SetupResourceServer(tb, clientListener, logger.Logger, opConf)
 	require.NoError(tb, err)
 
-	conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: clientListener.Addr().String()}}
+	conf.HTTP.BaseURL = &url.URL{Scheme: "http", Host: clientListener.Addr().String()}
 
 	if conf.HTTP.Secret == "" {
 		conf.HTTP.Secret = Secret
 	}
 
-	if conf.HTTP.AssetPath.IsEmpty() {
+	if conf.HTTP.AssetPath == nil {
 		conf.HTTP.AssetPath = config.Defaults.HTTP.AssetPath
 	}
 
-	if conf.HTTP.Template.IsEmpty() {
+	if conf.HTTP.Template == nil {
 		conf.HTTP.Template = config.Defaults.HTTP.Template
 	}
 
-	if conf.OpenVPN.ClientConfig.Path.IsEmpty() {
+	if conf.OpenVPN.ClientConfig.Path == nil {
 		conf.OpenVPN.ClientConfig.Path = config.Defaults.OpenVPN.ClientConfig.Path
 	}
 
-	conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
+	conf.OpenVPN.Addr = &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}
 
 	if conf.OpenVPN.Bypass.CommonNames == nil {
-		conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
+		conf.OpenVPN.Bypass.CommonNames = make([]*regexp.Regexp, 0)
 	}
 
 	conf.OAuth2.Issuer = resourceServerURL
@@ -343,10 +343,10 @@ func SetupOpenVPNOAuth2Clients(
 		conf.OAuth2.Provider = generic.Name
 	}
 
-	if conf.OAuth2.Issuer.IsEmpty() {
-		conf.OAuth2.Issuer = types.URL{URL: &url.URL{Scheme: "http", Host: "example.com"}}
-		conf.OAuth2.Endpoints.Auth = types.URL{URL: &url.URL{Scheme: "http", Host: "example.com", Path: "/auth"}}
-		conf.OAuth2.Endpoints.Token = types.URL{URL: &url.URL{Scheme: "http", Host: "example.com", Path: "/token"}}
+	if conf.OAuth2.Issuer == nil || (conf.OAuth2.Issuer.Scheme == "" && conf.OAuth2.Issuer.Host == "") {
+		conf.OAuth2.Issuer = &url.URL{Scheme: "http", Host: "example.com"}
+		conf.OAuth2.Endpoints.Auth = &url.URL{Scheme: "http", Host: "example.com", Path: "/auth"}
+		conf.OAuth2.Endpoints.Token = &url.URL{Scheme: "http", Host: "example.com", Path: "/token"}
 	}
 
 	switch conf.OAuth2.Provider {

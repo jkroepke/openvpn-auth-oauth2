@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
@@ -31,7 +30,7 @@ func TestCheckTokenCEL(t *testing.T) {
 			name: "no CEL expression configured",
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.Issuer = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
+				conf.OAuth2.Issuer = &url.URL{Scheme: "http", Host: "localhost"}
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
@@ -43,7 +42,7 @@ func TestCheckTokenCEL(t *testing.T) {
 			name: "empty CEL expression configured",
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.Issuer = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
+				conf.OAuth2.Issuer = &url.URL{Scheme: "http", Host: "localhost"}
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
@@ -56,7 +55,7 @@ func TestCheckTokenCEL(t *testing.T) {
 			name: "invalid CEL expression configured",
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.Issuer = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
+				conf.OAuth2.Issuer = &url.URL{Scheme: "http", Host: "localhost"}
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
@@ -69,7 +68,7 @@ func TestCheckTokenCEL(t *testing.T) {
 			name: "missing ID token claims",
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.Issuer = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
+				conf.OAuth2.Issuer = &url.URL{Scheme: "http", Host: "localhost"}
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
@@ -83,7 +82,7 @@ func TestCheckTokenCEL(t *testing.T) {
 			name: "try access known key",
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.Issuer = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
+				conf.OAuth2.Issuer = &url.URL{Scheme: "http", Host: "localhost"}
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
@@ -110,7 +109,7 @@ func TestCheckTokenCEL(t *testing.T) {
 			name: "try safe access known key",
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.Issuer = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
+				conf.OAuth2.Issuer = &url.URL{Scheme: "http", Host: "localhost"}
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
@@ -137,7 +136,7 @@ func TestCheckTokenCEL(t *testing.T) {
 			name: "CEL expression evaluates to true",
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.Issuer = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
+				conf.OAuth2.Issuer = &url.URL{Scheme: "http", Host: "localhost"}
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
@@ -163,7 +162,7 @@ func TestCheckTokenCEL(t *testing.T) {
 			name: "CEL expression evaluates to false",
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.Issuer = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
+				conf.OAuth2.Issuer = &url.URL{Scheme: "http", Host: "localhost"}
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
@@ -190,7 +189,7 @@ func TestCheckTokenCEL(t *testing.T) {
 			name: "CEL expression evaluates to string",
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.Issuer = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
+				conf.OAuth2.Issuer = &url.URL{Scheme: "http", Host: "localhost"}
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
@@ -217,7 +216,7 @@ func TestCheckTokenCEL(t *testing.T) {
 			name: "CEL expression with lowerAscii",
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.Issuer = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
+				conf.OAuth2.Issuer = &url.URL{Scheme: "http", Host: "localhost"}
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer

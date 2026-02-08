@@ -126,7 +126,7 @@ func setupConfiguration(args []string, logWriter io.Writer) (config.Config, erro
 		return config.Config{}, fmt.Errorf("configuration error: %w", err)
 	}
 
-	if err = config.Validate(config.ManagementClient, conf); err != nil {
+	if err = config.Validate(conf); err != nil {
 		return config.Config{}, fmt.Errorf("configuration validation error: %w", err)
 	}
 

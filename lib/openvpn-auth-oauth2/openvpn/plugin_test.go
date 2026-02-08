@@ -17,7 +17,6 @@ import (
 	"unsafe"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/httphandler"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
@@ -92,12 +91,12 @@ func TestPlugin(t *testing.T) {
 	require.NoError(t, err)
 
 	conf := config.Defaults
-	conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: "unix", Path: unixSocket}}
+	conf.OpenVPN.Addr = &url.URL{Scheme: "unix", Path: unixSocket}
 	conf.OpenVPN.Password = "password"
 	conf.OAuth2.Refresh.Enabled = true
 	conf.OAuth2.Refresh.Secret = testutils.Secret
 	conf.OAuth2.Refresh.UseSessionID = true
-	conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: clientListener.Addr().String()}}
+	conf.HTTP.BaseURL = &url.URL{Scheme: "http", Host: clientListener.Addr().String()}
 	conf.HTTP.Secret = testutils.Secret
 	conf.OAuth2.Issuer = resourceServerURL
 	conf.OAuth2.Nonce = true                                  // enable nonce for mock testing

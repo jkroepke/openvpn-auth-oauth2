@@ -4,13 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"slices"
-
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 )
 
 // Validate validates the config.
-func Validate(mode int, conf Config) error {
+func Validate(conf Config) error {
 	if err := validateOAuth2Config(conf); err != nil {
 		return err
 	}
@@ -23,18 +22,16 @@ func Validate(mode int, conf Config) error {
 		return err
 	}
 
-	if mode == ManagementClient {
-		for key, value := range map[string]types.URL{
-			"openvpn.addr": conf.OpenVPN.Addr,
-		} {
-			if value.IsEmpty() {
-				return fmt.Errorf("%s is %w", key, ErrRequired)
-			}
+	for key, value := range map[string]*url.URL{
+		"openvpn.addr": conf.OpenVPN.Addr,
+	} {
+		if value == nil || (value.Scheme == "" && value.Host == "") {
+			return fmt.Errorf("%s is %w", key, ErrRequired)
 		}
+	}
 
-		if !slices.Contains([]string{"tcp", "unix"}, conf.OpenVPN.Addr.Scheme) {
-			return errors.New("openvpn.addr: invalid URL. only tcp://addr or unix://addr scheme supported")
-		}
+	if !slices.Contains([]string{"tcp", "unix"}, conf.OpenVPN.Addr.Scheme) {
+		return errors.New("openvpn.addr: invalid URL. only tcp://addr or unix://addr scheme supported")
 	}
 
 	return nil
@@ -50,7 +47,7 @@ func validateHTTPConfig(conf Config) error {
 		return fmt.Errorf("http.secret %w", err)
 	}
 
-	if conf.HTTP.BaseURL.IsEmpty() {
+	if conf.HTTP.BaseURL == nil || (conf.HTTP.BaseURL.Scheme == "" && conf.HTTP.BaseURL.Host == "") {
 		return fmt.Errorf("http.baseurl is %w", ErrRequired)
 	}
 
@@ -82,16 +79,12 @@ func validateOpenVPNConfig(conf Config) error {
 //
 //nolint:cyclop
 func validateOAuth2Config(conf Config) error {
-	if conf.OAuth2.Issuer.IsEmpty() {
+	if conf.OAuth2.Issuer == nil || (conf.OAuth2.Issuer.Scheme == "" && conf.OAuth2.Issuer.Host == "") {
 		return fmt.Errorf("oauth2.issuer is %w", ErrRequired)
 	}
 
 	if err := validateURL(conf.OAuth2.Issuer); err != nil {
 		return fmt.Errorf("oauth2.issuer: %w", err)
-	}
-
-	if conf.OAuth2.Client.ID == "" {
-		return fmt.Errorf("oauth2.client.id is %w", ErrRequired)
 	}
 
 	if conf.OAuth2.Client.Secret.String() == "" && conf.OAuth2.Client.PrivateKey.String() == "" {
@@ -133,7 +126,7 @@ func validateOAuth2Config(conf Config) error {
 		_ = file.Close()
 	}
 
-	if !conf.OAuth2.Endpoints.Auth.IsEmpty() && !conf.OAuth2.Endpoints.Token.IsEmpty() {
+	if isURLNotEmpty(conf.OAuth2.Endpoints.Auth) && isURLNotEmpty(conf.OAuth2.Endpoints.Token) {
 		if conf.OAuth2.UserInfo {
 			return errors.New("oauth2.userinfo: cannot be used if oauth2.endpoint.auth and oauth2.endpoint.token is set")
 		}
@@ -142,8 +135,13 @@ func validateOAuth2Config(conf Config) error {
 	return nil
 }
 
-func validateURL(uri types.URL) error {
-	if uri.IsEmpty() {
+// isURLNotEmpty checks if a URL is not nil and has at least scheme or host set.
+func isURLNotEmpty(uri *url.URL) bool {
+	return uri != nil && (uri.Scheme != "" || uri.Host != "")
+}
+
+func validateURL(uri *url.URL) error {
+	if !isURLNotEmpty(uri) {
 		return nil
 	}
 
@@ -154,7 +152,7 @@ func validateURL(uri types.URL) error {
 	return nil
 }
 
-func validateEncryptionSecret(secret types.Secret) error {
+func validateEncryptionSecret(secret Secret) error {
 	if !slices.Contains([]int{16, 24, 32}, len(secret.String())) {
 		return errors.New("requires a length of 16, 24 or 32")
 	}

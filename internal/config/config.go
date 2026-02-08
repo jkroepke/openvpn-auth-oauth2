@@ -1,17 +1,16 @@
 package config
 
 import (
-	"encoding"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
-	"os"
+	"io/fs"
 	"reflect"
-	"strconv"
+	"regexp"
 	"strings"
-	"time"
+	"text/template"
 
+	"github.com/alecthomas/kong"
 	"go.yaml.in/yaml/v3"
 )
 
@@ -23,213 +22,111 @@ var ErrVersion = errors.New("flag: version requested")
 func New(args []string, writer io.Writer) (Config, error) {
 	config := Defaults
 
-	if configFilePath := lookupConfigArgument(args); configFilePath != "" {
-		if err := config.ReadFromConfigFile(configFilePath); err != nil && !errors.Is(err, io.EOF) {
-			return Config{}, err
-		}
+	// Get config file path early
+	configFilePath := lookupConfigArgument(args)
+
+	// Build Kong options
+	options := buildKongOptions(writer, configFilePath)
+
+	app, err := kong.New(&config, options...)
+	if err != nil {
+		return Config{}, fmt.Errorf("error creating parser: %w", err)
 	}
 
-	if err := config.ReadFromFlagAndEnvironment(args, writer); err != nil {
-		return Config{}, err
+	// Parse command line arguments
+	_, err = app.Parse(args[1:])
+	if err != nil {
+		return Config{}, fmt.Errorf("error parsing command line arguments: %w", err)
 	}
 
 	return config, nil
 }
 
-// ReadFromConfigFile reads the configuration from a configuration file and command line arguments.
-//
-//goland:noinspection GoMixedReceiverTypes
-func (c *Config) ReadFromConfigFile(configFilePath string) error {
-	configFile, err := os.Open(configFilePath)
-	if err != nil {
-		return fmt.Errorf("error opening config file %s: %w", configFilePath, err)
+// buildKongOptions creates the Kong parser options.
+func buildKongOptions(writer io.Writer, configFilePath string) []kong.Option {
+	options := []kong.Option{
+		kong.Name("openvpn-auth-oauth2"),
+		kong.Description("Documentation available at https://github.com/jkroepke/openvpn-auth-oauth2/wiki"),
+		kong.Writers(writer, writer),
+		kong.UsageOnError(),
+		kong.Exit(func(int) {}), // Don't exit, just return error
+		kong.ConfigureHelp(kong.HelpOptions{
+			NoAppSummary: false,
+			Compact:      false,
+			Tree:         true,
+		}),
+		kong.TypeMapper(reflect.TypeFor[*template.Template](), templateMapper()),
+		kong.TypeMapper(reflect.TypeFor[fs.FS](), fsInterfaceMapper()),
+		kong.TypeMapper(reflect.TypeFor[[]*regexp.Regexp](), regexpSliceMapper()),
 	}
 
-	defer func() {
-		_ = configFile.Close()
-	}()
-
-	decoder := yaml.NewDecoder(configFile)
-	decoder.KnownFields(true)
-
-	// Load the config file
-	if err = decoder.Decode(c); err != nil {
-		return fmt.Errorf("error decoding config file %s: %w", configFilePath, err)
+	// Add YAML config file support if specified
+	if configFilePath != "" {
+		options = append(options, kong.Configuration(yamlConfigLoader, configFilePath))
 	}
 
-	return nil
+	return options
 }
 
-// ReadFromFlagAndEnvironment reads the configuration from command line arguments and environment variables.
-//
-//goland:noinspection GoMixedReceiverTypes
-func (c *Config) ReadFromFlagAndEnvironment(args []string, writer io.Writer) error {
-	// Load the c from command line arguments
-	flagSet := flag.NewFlagSet("openvpn-auth-oauth2", flag.ContinueOnError)
-	flagSet.SetOutput(writer)
-	flagSet.Usage = func() {
-		_, _ = fmt.Fprint(flagSet.Output(), "Documentation available at https://github.com/jkroepke/openvpn-auth-oauth2/wiki\r\n\r\n")
-		_, _ = fmt.Fprint(flagSet.Output(), "Usage of openvpn-auth-oauth2:\r\n\r\n")
-		// --help should display options with double dash
-		flagSet.VisitAll(func(flag *flag.Flag) {
-			flag.Name = "-" + flag.Name
-		})
-		flagSet.PrintDefaults()
-	}
-
-	flagSet.String(
-		"config",
-		"",
-		"path to one .yaml config file",
-	)
-
-	flagSet.Bool(
-		"version",
-		false,
-		"show version",
-	)
-
-	c.flagSetDebug(flagSet)
-	c.flagSetLog(flagSet)
-	c.flagSetHTTP(flagSet)
-	c.flagSetOpenVPN(flagSet)
-	c.flagSetOAuth2(flagSet)
-
-	flagSet.VisitAll(func(flag *flag.Flag) {
-		if flag.Name == "version" {
-			return
-		}
-
-		flag.Usage += fmt.Sprintf(" (env: %s)", getEnvironmentVariableByFlagName(flag.Name))
-	})
-
-	if err := flagSet.Parse(args[1:]); err != nil {
-		return fmt.Errorf("error parsing command line arguments: %w", err)
-	}
-
-	if flagSet.Lookup("version").Value.String() == "true" {
-		return ErrVersion
-	}
-
-	return nil
-}
-
+// lookupConfigArgument looks for --config flag in arguments to load YAML file early.
 func lookupConfigArgument(args []string) string {
-	var (
-		configFile string
-		ok         bool
-	)
-
 	for i, arg := range args {
-		if !strings.HasPrefix(arg, "--config") {
-			continue
-		}
-
-		configFile, ok = strings.CutPrefix(arg, "--config=")
-		if ok {
-			break
-		}
-
-		// check if the argument is --config without value and look for the next argument
-		if len(args) > i+1 {
-			configFile = args[i+1]
-
-			break
-		}
-	}
-
-	return configFile
-}
-
-// lookupEnvOrDefault looks up the environment variable by the flag name and returns the value.
-// If the environment variable is not set, it returns the default value.
-// It supports the following types: string, bool, int, uint, time.Duration and types implementing [encoding.TextUnmarshaler].
-// If the type is not supported, it panics.
-//
-//nolint:cyclop
-func lookupEnvOrDefault[T any](key string, defaultValue T) T {
-	envValue, ok := os.LookupEnv(getEnvironmentVariableByFlagName(key))
-	if !ok {
-		return defaultValue
-	}
-
-	ok = false
-
-	var value T
-
-	switch any(defaultValue).(type) {
-	case string:
-		value, ok = any(envValue).(T)
-	case bool:
-		boolVal, err := strconv.ParseBool(envValue)
-		if err != nil {
-			return defaultValue
-		}
-
-		value, ok = any(boolVal).(T)
-	case int:
-		intValue, err := strconv.Atoi(envValue)
-		if err != nil {
-			return defaultValue
-		}
-
-		value, ok = any(intValue).(T)
-	case uint:
-		intValue, err := strconv.ParseUint(envValue, 10, 0)
-		if err != nil {
-			return defaultValue
-		}
-
-		value, ok = any(uint(intValue)).(T)
-	case float64:
-		floatValue, err := strconv.ParseFloat(envValue, 64)
-		if err != nil {
-			return defaultValue
-		}
-
-		value, ok = any(floatValue).(T)
-	case time.Duration:
-		durationValue, err := time.ParseDuration(envValue)
-		if err != nil {
-			return defaultValue
-		}
-
-		value, ok = any(durationValue).(T)
-	default:
-		// Handle types implementing encoding.TextUnmarshaler via reflection
-		t := reflect.TypeOf(defaultValue)
-
-		var valPtr reflect.Value
-
-		if t.Kind() == reflect.Pointer {
-			valPtr = reflect.New(t.Elem())
-		} else {
-			valPtr = reflect.New(t)
-		}
-
-		if unmarshaler, okUnmarshal := valPtr.Interface().(encoding.TextUnmarshaler); okUnmarshal {
-			if err := unmarshaler.UnmarshalText([]byte(envValue)); err != nil {
-				return defaultValue
-			}
-
-			if t.Kind() == reflect.Pointer {
-				value, ok = valPtr.Convert(t).Interface().(T)
-			} else {
-				value, ok = valPtr.Elem().Interface().(T)
+		if arg == "--config" || arg == "--config-file" {
+			if i+1 < len(args) {
+				return args[i+1]
 			}
 		}
+
+		if len(arg) > 14 && arg[:14] == "--config-file=" {
+			return arg[14:]
+		}
 	}
 
-	if !ok {
-		panic(fmt.Sprintf("failed to convert environment variable %s to type %T", key, defaultValue))
-	}
-
-	return value
+	return ""
 }
 
-// getEnvironmentVariableByFlagName converts a flag name to an environment variable name.
-// It replaces all dots with underscores and all dashes with double underscores.
-// It also converts the flag name to uppercase.
-func getEnvironmentVariableByFlagName(flagName string) string {
-	return "CONFIG_" + strings.ReplaceAll(strings.ReplaceAll(strings.ToUpper(flagName), ".", "_"), "-", "__")
+// yamlConfigLoader is a Kong ConfigurationLoader that reads YAML files.
+func yamlConfigLoader(r io.Reader) (kong.Resolver, error) {
+	var config map[string]any
+
+	decoder := yaml.NewDecoder(r)
+	decoder.KnownFields(true)
+	if err := decoder.Decode(&config); err != nil {
+		// Empty files are OK - just return an empty resolver
+		if !errors.Is(err, io.EOF) {
+			return nil, fmt.Errorf("error decoding YAML config: %w", err)
+		}
+
+		config = make(map[string]any)
+	}
+
+	return kong.ResolverFunc(func(_ *kong.Context, _ *kong.Path, flag *kong.Flag) (any, error) {
+		if flag == nil {
+			return nil, nil //nolint:nilnil
+		}
+
+		// Look up value in config map using the flag name
+		value, ok := lookupConfigValue(config, flag.Name)
+		if !ok {
+			return nil, nil //nolint:nilnil
+		}
+
+		return value, nil
+	}), nil
+}
+
+// lookupConfigValue searches for a configuration value in the nested map structure.
+func lookupConfigValue(config map[string]any, key string) (any, bool) {
+	// Try direct lookup
+	if val, ok := config[key]; ok {
+		return val, true
+	}
+
+	// Try with underscores replaced with hyphens
+	key = strings.ReplaceAll(key, "_", "-")
+	if val, ok := config[key]; ok {
+		return val, true
+	}
+
+	return nil, false
 }

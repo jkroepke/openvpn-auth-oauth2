@@ -13,6 +13,7 @@ permissions: {}
 jobs:
   create:
     runs-on: ubuntu-24.04
+    environment: Create Tag
     name: Create Tag
     if: startsWith(inputs.tag, 'v')
     steps:

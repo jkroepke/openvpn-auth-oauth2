@@ -7,13 +7,14 @@ import (
 	"log/slog"
 	"net/url"
 	"os"
+	"path"
 	"regexp"
 	"slices"
 	"testing"
+	"text/template"
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 	oauth2types "github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -51,10 +52,10 @@ http:
 			func() config.Config {
 				conf := config.Defaults
 				conf.HTTP.Secret = "1jd93h5b6s82lf03jh5b2hf9"
-				conf.OAuth2.Issuer = types.URL{URL: &url.URL{
+				conf.OAuth2.Issuer = &url.URL{
 					Scheme: "https",
 					Host:   "company.zitadel.cloud",
-				}}
+				}
 				conf.OAuth2.Client.ID = "test"
 				conf.OAuth2.Client.Secret = "test"
 
@@ -156,16 +157,11 @@ http:
 					VPNClientIP: false,
 				},
 				HTTP: config.HTTP{
-					AssetPath: func() types.FS {
-						dirFS, err := types.NewFS(".")
-						require.NoError(t, err)
-
-						return dirFS
-					}(),
-					BaseURL: types.URL{URL: &url.URL{
+					AssetPath: os.DirFS("."),
+					BaseURL: &url.URL{
 						Scheme: "http",
 						Host:   "localhost:9000",
-					}},
+					},
 					Check: config.HTTPCheck{
 						IPAddr: true,
 					},
@@ -173,31 +169,27 @@ http:
 					ShortURL:           false,
 					Listen:             ":9001",
 					Secret:             "1jd93h5b6s82lf03jh5b2hf9",
-					Template: func() types.Template {
-						tmpl, err := types.NewTemplate("../../README.md")
+					Template: func() *template.Template {
+						filePath := "../../README.md"
+						tmpl, err := template.New(path.Base(filePath)).ParseFiles(filePath)
 						require.NoError(t, err)
 
 						return tmpl
 					}(),
 				},
 				OpenVPN: config.OpenVPN{
-					Addr: types.URL{URL: &url.URL{
+					Addr: &url.URL{
 						Scheme:   "unix",
 						Path:     "/run/openvpn/server2.sock",
 						OmitHost: false,
-					}},
+					},
 					Bypass: config.OpenVPNBypass{
-						CommonNames: types.RegexpSlice{regexp.MustCompile(`^(?:test)$`), regexp.MustCompile(`^(?:test2)$`)},
+						CommonNames: []*regexp.Regexp{regexp.MustCompile(`^(?:test)$`), regexp.MustCompile(`^(?:test2)$`)},
 					},
 					ClientConfig: config.OpenVPNConfig{
 						Enabled:    true,
 						TokenClaim: "sub",
-						Path: func() types.FS {
-							dirFS, err := types.NewFS(".")
-							require.NoError(t, err)
-
-							return dirFS
-						}(),
+						Path:       os.DirFS("."),
 						UserSelector: config.OpenVPNConfigProfileSelector{
 							Enabled:      true,
 							StaticValues: []string{"default"},
@@ -213,11 +205,11 @@ http:
 					},
 					Passthrough: config.OpenVPNPassthrough{
 						Enabled: true,
-						Address: types.URL{URL: &url.URL{
+						Address: &url.URL{
 							Scheme:   "unix",
 							Path:     "/run/openvpn/pass-through.sock",
 							OmitHost: false,
-						}},
+						},
 						SocketGroup: "group",
 						SocketMode:  0o666,
 						Password:    "password",
@@ -226,16 +218,16 @@ http:
 					ReAuthentication: false,
 				},
 				OAuth2: config.OAuth2{
-					Issuer: types.URL{URL: &url.URL{
+					Issuer: &url.URL{
 						Scheme: "https",
 						Host:   "company.zitadel.cloud",
-					}},
+					},
 					Provider:        "generic",
 					AuthorizeParams: "a=c",
 					Endpoints: config.OAuth2Endpoints{
-						Auth:      types.URL{URL: &url.URL{}},
-						Token:     types.URL{URL: &url.URL{}},
-						Discovery: types.URL{URL: &url.URL{}},
+						Auth:      &url.URL{},
+						Token:     &url.URL{},
+						Discovery: &url.URL{},
 					},
 					Client: config.OAuth2Client{
 						ID:           "test",
@@ -339,7 +331,7 @@ func TestConfigFlagSet(t *testing.T) {
 			func() config.Config {
 				conf := config.Defaults
 				//goland:noinspection RegExpUnnecessaryNonCapturingGroup
-				conf.OpenVPN.Bypass.CommonNames = types.RegexpSlice{regexp.MustCompile("^(?:a)$"), regexp.MustCompile("^(?:b)$")}
+				conf.OpenVPN.Bypass.CommonNames = []*regexp.Regexp{regexp.MustCompile("^(?:a)$"), regexp.MustCompile("^(?:b)$")}
 
 				return conf
 			}(),
@@ -368,11 +360,8 @@ func TestConfigFlagSet(t *testing.T) {
 			"--http.assets-path",
 			[]string{"--http.assets-path=."},
 			func() config.Config {
-				dirFS, err := types.NewFS(".")
-				require.NoError(t, err)
-
 				conf := config.Defaults
-				conf.HTTP.AssetPath = dirFS
+				conf.HTTP.AssetPath = os.DirFS(".")
 
 				return conf
 			}(),
