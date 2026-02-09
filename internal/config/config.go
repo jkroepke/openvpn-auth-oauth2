@@ -114,6 +114,8 @@ func (c *Config) ReadFromFlagAndEnvironment(args []string, writer io.Writer) err
 	return nil
 }
 
+// lookupConfigArgument looks for the --config argument in the command line arguments
+// and returns its value.
 func lookupConfigArgument(args []string) string {
 	var (
 		configFile string
@@ -143,19 +145,67 @@ func lookupConfigArgument(args []string) string {
 
 // lookupEnvOrDefault looks up the environment variable by the flag name and returns the value.
 // If the environment variable is not set, it returns the default value.
-// It supports the following types: string, bool, int, uint, time.Duration and types implementing [encoding.TextUnmarshaler].
+// It supports types implementing [encoding.TextUnmarshaler], as well as primitive types
+// (string, bool, int, uint, float64, time.Duration).
 // If the type is not supported, it panics.
-//
-//nolint:cyclop
 func lookupEnvOrDefault[T any](key string, defaultValue T) T {
 	envValue, ok := os.LookupEnv(getEnvironmentVariableByFlagName(key))
 	if !ok {
 		return defaultValue
 	}
 
-	ok = false
+	// Try TextUnmarshaler first - this handles most custom types
+	if result, ok := tryTextUnmarshal(envValue, defaultValue); ok {
+		return result
+	}
 
-	var value T
+	// Fall back to primitive type handling
+	return parsePrimitiveType(envValue, defaultValue)
+}
+
+// tryTextUnmarshal attempts to unmarshal the environment value using TextUnmarshaler interface.
+// Returns the unmarshalled value and true if successful, or zero value and false otherwise.
+func tryTextUnmarshal[T any](envValue string, defaultValue T) (T, bool) {
+	t := reflect.TypeOf(defaultValue)
+
+	var valPtr reflect.Value
+
+	if t.Kind() == reflect.Pointer {
+		valPtr = reflect.New(t.Elem())
+	} else {
+		valPtr = reflect.New(t)
+	}
+
+	unmarshaler, ok := valPtr.Interface().(encoding.TextUnmarshaler)
+	if !ok {
+		var zero T
+
+		return zero, false
+	}
+
+	if err := unmarshaler.UnmarshalText([]byte(envValue)); err != nil {
+		return defaultValue, true // Return default on parse error, but signal we handled it
+	}
+
+	if t.Kind() == reflect.Pointer {
+		result, ok := valPtr.Convert(t).Interface().(T)
+
+		return result, ok
+	}
+
+	result, ok := valPtr.Elem().Interface().(T)
+
+	return result, ok
+}
+
+// parsePrimitiveType handles parsing of built-in primitive types.
+//
+//nolint:cyclop
+func parsePrimitiveType[T any](envValue string, defaultValue T) T {
+	var (
+		value T
+		ok    bool
+	)
 
 	switch any(defaultValue).(type) {
 	case string:
@@ -196,32 +246,11 @@ func lookupEnvOrDefault[T any](key string, defaultValue T) T {
 
 		value, ok = any(durationValue).(T)
 	default:
-		// Handle types implementing encoding.TextUnmarshaler via reflection
-		t := reflect.TypeOf(defaultValue)
-
-		var valPtr reflect.Value
-
-		if t.Kind() == reflect.Pointer {
-			valPtr = reflect.New(t.Elem())
-		} else {
-			valPtr = reflect.New(t)
-		}
-
-		if unmarshaler, okUnmarshal := valPtr.Interface().(encoding.TextUnmarshaler); okUnmarshal {
-			if err := unmarshaler.UnmarshalText([]byte(envValue)); err != nil {
-				return defaultValue
-			}
-
-			if t.Kind() == reflect.Pointer {
-				value, ok = valPtr.Convert(t).Interface().(T)
-			} else {
-				value, ok = valPtr.Elem().Interface().(T)
-			}
-		}
+		panic(fmt.Sprintf("unsupported type %T for environment variable lookup", defaultValue))
 	}
 
 	if !ok {
-		panic(fmt.Sprintf("failed to convert environment variable %s to type %T", key, defaultValue))
+		panic(fmt.Sprintf("failed to convert environment variable to type %T", defaultValue))
 	}
 
 	return value
