@@ -134,6 +134,15 @@ linters:
         - msg
         - source
       args-on-sep-lines: true
+    tagalign:
+      align: true
+      sort: true
+      order:
+        - flag
+        - json
+        - yaml
+        - usage
+      strict: false
     tagliatelle:
       case:
         rules:
@@ -192,3 +201,6 @@ linters:
         text: "missing cases in switch of type management.ClientAuth:"
       - path: internal/
         text: 'SA1019: "github.com/zitadel/logging" is deprecated'
+      - path: internal/config/types\.go
+        linters:
+          - tagalign

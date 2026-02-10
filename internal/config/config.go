@@ -89,11 +89,8 @@ func (c *Config) ReadFromFlagAndEnvironment(args []string, writer io.Writer) err
 		"show version",
 	)
 
-	c.flagSetDebug(flagSet)
-	c.flagSetLog(flagSet)
-	c.flagSetHTTP(flagSet)
-	c.flagSetOpenVPN(flagSet)
-	c.flagSetOAuth2(flagSet)
+	// Register all flags from struct tags using reflection
+	c.registerFlagsFromStruct(flagSet)
 
 	flagSet.VisitAll(func(flag *flag.Flag) {
 		if flag.Name == "version" {
