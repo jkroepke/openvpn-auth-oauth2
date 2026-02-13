@@ -1,0 +1,9 @@
+{
+  "Access denied": "アクセスは拒否されました",
+  "Access granted": "アクセスは許可されました",
+  "Error ID": "エラーID",
+  "Please contact your administrator.": "管理者に連絡してください。",
+  "You can close this window now.": "このウィンドウを閉じても構いません。",
+  "Select Profile": "プロファイルを選択",
+  "Please select your client configuration profile.": "クライアント構成プロファイルを選択してください。"
+}
