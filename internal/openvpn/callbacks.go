@@ -74,8 +74,7 @@ func (c *Client) acceptClientAuth(ctx context.Context, logger *slog.Logger, clie
 		_, err = c.SendCommandf(ctx, `client-auth-nt %d %d`, client.CID, client.KID)
 	} else {
 		sb := strings.Builder{}
-
-		sb.WriteString(fmt.Sprintf("client-auth %d %d\r\n", client.CID, client.KID))
+		_, _ = fmt.Fprintf(&sb, "client-auth %d %d\r\n", client.CID, client.KID)
 
 		for _, line := range clientConfig {
 			sb.WriteString(strings.TrimSpace(line))
