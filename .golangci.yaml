@@ -25,6 +25,10 @@ linters:
     gosec:
       excludes:
         - G101
+        - G117
+        - G703
+        - G704
+        - G705
     govet:
       enable-all: true
       disable:

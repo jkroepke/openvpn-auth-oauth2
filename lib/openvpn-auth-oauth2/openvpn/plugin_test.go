@@ -224,6 +224,7 @@ func TestPlugin(t *testing.T) {
 	status = PluginFuncV3(PluginStructVerMin, args, ret)
 	require.Equal(t, c.OpenVPNPluginFuncSuccess, status)
 
+	require.NotNil(t, returnList)
 	require.Equal(t, "config", c.GoString(returnList.Name))
 	require.Equal(t, "push \"auth-token-user aWQx\"", c.GoString(returnList.Value))
 
