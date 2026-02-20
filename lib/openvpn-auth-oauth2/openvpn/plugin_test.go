@@ -126,6 +126,7 @@ func TestPlugin(t *testing.T) {
 
 			tc.conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: "unix", Path: unixSocket}}
 			tc.conf.OpenVPN.Password = "password"
+			tc.conf.OAuth2.OpenVPNUsernameClaim = "sub"
 			tc.conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: clientListener.Addr().String()}}
 			tc.conf.HTTP.Secret = testutils.Secret
 			tc.conf.OAuth2.Issuer = resourceServerURL
