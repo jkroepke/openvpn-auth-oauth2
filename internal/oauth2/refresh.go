@@ -24,7 +24,7 @@ func (c *Client) RefreshClientAuth(ctx context.Context, logger *slog.Logger, cli
 		clientID = client.SessionID
 	}
 
-	refreshToken, err := c.storage.Get(clientID)
+	refreshToken, err := c.storage.Get(ctx, clientID)
 	if err != nil {
 		if errors.Is(err, tokenstorage.ErrNotExists) {
 			logger.LogAttrs(ctx, slog.LevelDebug, "no refresh token found for client "+clientID)
@@ -105,7 +105,7 @@ func (c *Client) RefreshClientAuth(ctx context.Context, logger *slog.Logger, cli
 
 	if refreshToken == "" {
 		logger.LogAttrs(ctx, slog.LevelWarn, "refresh token is empty")
-	} else if err = c.storage.Set(clientID, refreshToken); err != nil {
+	} else if err = c.storage.Set(ctx, clientID, refreshToken); err != nil {
 		logger.LogAttrs(ctx, slog.LevelWarn, "unable to store refresh token",
 			slog.Any("err", err),
 		)
@@ -125,7 +125,7 @@ func (c *Client) ClientDisconnect(ctx context.Context, logger *slog.Logger, clie
 		clientID = client.SessionID
 	}
 
-	refreshToken, err := c.storage.Get(clientID)
+	refreshToken, err := c.storage.Get(ctx, clientID)
 	if err != nil {
 		logLevel := slog.LevelWarn
 		if errors.Is(err, tokenstorage.ErrNotExists) {
@@ -137,7 +137,7 @@ func (c *Client) ClientDisconnect(ctx context.Context, logger *slog.Logger, clie
 		return
 	}
 
-	if err = c.storage.Delete(clientID); err != nil {
+	if err = c.storage.Delete(ctx, clientID); err != nil {
 		logger.LogAttrs(ctx, slog.LevelWarn, fmt.Errorf("error delete refresh token from storage: %w", err).Error())
 
 		return
