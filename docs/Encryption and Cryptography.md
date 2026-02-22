@@ -18,12 +18,12 @@ Since OpenVPN clients have a strict limit of 245 ASCII characters for data trans
 
 ### Compared to Alternatives
 
-| Algorithm | Nonce | Auth | Overhead | Plaintext Capacity |
-|-----------|-------|------|----------|-------------------|
-| **Salsa20 + HMAC-SHA256** | 8 bytes | ✅ Yes | **24 bytes** | **~221 characters** |
-| AES-GCM | 12 bytes | ✅ Yes | 28 bytes | ~217 characters |
-| ChaCha20-Poly1305 | 12 bytes | ✅ Yes | 28 bytes | ~217 characters |
-| AES-CFB (deprecated) | 16 bytes | ❌ No | 16 bytes | ~229 characters |
+| Algorithm                 | Nonce    | Auth  | Overhead     | Plaintext Capacity  |
+|---------------------------|----------|-------|--------------|---------------------|
+| **Salsa20 + HMAC-SHA256** | 8 bytes  | ✅ Yes | **24 bytes** | **~221 characters** |
+| AES-GCM                   | 12 bytes | ✅ Yes | 28 bytes     | ~217 characters     |
+| ChaCha20-Poly1305         | 12 bytes | ✅ Yes | 28 bytes     | ~217 characters     |
+| AES-CFB (deprecated)      | 16 bytes | ❌ No  | 16 bytes     | ~229 characters     |
 
 ## Data Structure
 
@@ -181,11 +181,11 @@ The migration from AES-CFB to Salsa20+HMAC is **transparent** to users:
 
 With a typical 111-byte payload (JWT token):
 
-| Algorithm | Encrypted Size | Base64 Size | Available Space (245 limit) |
-|-----------|----------------|-------------|---------------------------|
-| Salsa20 + HMAC | 135 bytes | 180 chars | **65 characters** |
-| AES-GCM | 139 bytes | 188 chars | 57 characters |
-| AES-CFB | 127 bytes | 172 chars | 73 characters |
+| Algorithm      | Encrypted Size | Base64 Size | Available Space (245 limit) |
+|----------------|----------------|-------------|-----------------------------|
+| Salsa20 + HMAC | 135 bytes      | 180 chars   | **65 characters**           |
+| AES-GCM        | 139 bytes      | 188 chars   | 57 characters               |
+| AES-CFB        | 127 bytes      | 172 chars   | 73 characters               |
 
 **Result**: Salsa20 + HMAC provides nearly the same capacity as AES-CFB while adding essential authentication.
 
