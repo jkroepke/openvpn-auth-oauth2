@@ -7,12 +7,21 @@
 [![codecov](https://codecov.io/gh/jkroepke/openvpn-auth-oauth2/graph/badge.svg?token=66VT000UYO)](https://codecov.io/gh/jkroepke/openvpn-auth-oauth2)
 
 <p align="center">
-<img aligin="center" src="https://github.com/jkroepke/openvpn-auth-oauth2/blob/main/docs/img/logo.svg?raw=true" alt="openvpn-auth-oauth2 logo"  style="height: 100px" />
-</<p>
+<img align="center" src="https://github.com/jkroepke/openvpn-auth-oauth2/blob/main/docs/img/logo.svg?raw=true" alt="openvpn-auth-oauth2 logo"  style="height: 100px" />
+</p>
 
 # openvpn-auth-oauth2
 
 ⭐ Don't forget to star this repository! ⭐
+
+## 🔐 Security Update: Salsa20 Encryption
+
+This version uses **Salsa20 + HMAC-SHA256** for encrypting sensitive data instead of the deprecated AES-CFB. This provides:
+- ✅ **Authenticated encryption** (detects tampering)
+- ✅ **Minimal overhead** (24 bytes vs 16 bytes for CFB)
+- ✅ **Better security** (Encrypt-then-MAC pattern)
+
+For details, see [Encryption and Cryptography documentation](https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Encryption-and-Cryptography).
 
 ## About
 
