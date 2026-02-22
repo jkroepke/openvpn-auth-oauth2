@@ -1,13 +1,16 @@
-package crypto
+package crypto_test
 
 import (
 	"bytes"
 	"testing"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/crypto"
 	"github.com/stretchr/testify/require"
 )
 
 func TestDeriveKey(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		key  string
@@ -30,40 +33,53 @@ func TestDeriveKey(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			derivedKey := DeriveKey(tt.key)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			derivedKey := crypto.DeriveKey(tc.key)
 
 			// Check that the result is a 32-byte array
-			require.Equal(t, 32, len(derivedKey), "expected key length 32")
+			require.Len(t, derivedKey, 32, "expected key length 32")
 
 			// Check that the same key produces the same result
-			derivedKey2 := DeriveKey(tt.key)
+			derivedKey2 := crypto.DeriveKey(tc.key)
 			require.True(t, bytes.Equal(derivedKey[:], derivedKey2[:]), "DeriveKey is not deterministic")
 		})
 	}
 }
 
 func TestDeriveKeyDifferentInputs(t *testing.T) {
-	key1 := DeriveKey("key1")
-	key2 := DeriveKey("key2")
+	t.Parallel()
+
+	key1 := crypto.DeriveKey("key1")
+	key2 := crypto.DeriveKey("key2")
 
 	// Different inputs should produce different keys
 	require.False(t, bytes.Equal(key1[:], key2[:]), "different keys should produce different derived keys")
 }
 
 func TestNewCipher(t *testing.T) {
+	t.Parallel()
+
 	encryptionKey := "test-key"
-	cipher := New(encryptionKey)
+	cipher := crypto.New(encryptionKey)
 
 	require.NotNil(t, cipher, "expected cipher to be non-nil")
-	require.Equal(t, encryptionKey, cipher.encryptionKey, "expected encryptionKey to match")
-	require.NotNil(t, cipher.derivedKey, "expected derivedKey to be non-nil")
-	require.Equal(t, 32, len(cipher.derivedKey), "expected derivedKey length 32")
+
+	plainText := []byte("ping")
+	encrypted, err := cipher.EncryptBytes(plainText)
+	require.NoError(t, err, "EncryptBytes failed")
+
+	decrypted, err := cipher.DecryptBytesBase64(encrypted)
+	require.NoError(t, err, "DecryptBytesBase64 failed")
+	require.Equal(t, plainText, decrypted, "round trip failed")
 }
 
 func TestEncryptBytesBasic(t *testing.T) {
-	cipher := New("test-key")
+	t.Parallel()
+
+	cipher := crypto.New("test-key")
 	plainText := []byte("hello world")
 
 	encrypted, err := cipher.EncryptBytes(plainText)
@@ -73,24 +89,28 @@ func TestEncryptBytesBasic(t *testing.T) {
 	require.Greater(t, len(encrypted), len(plainText), "encrypted data should be longer than plaintext")
 
 	// Minimum size: nonce (8) + ciphertext (at least 1) + HMAC tag (16)
-	expectedMinSize := salsa20NonceSize + 1 + hmacTagSize
+	expectedMinSize := 8 + 1 + 16
 	require.GreaterOrEqual(t, len(encrypted), expectedMinSize, "encrypted data is too short")
 }
 
 func TestEncryptBytesEmpty(t *testing.T) {
-	cipher := New("test-key")
+	t.Parallel()
+
+	cipher := crypto.New("test-key")
 	plainText := []byte("")
 
 	encrypted, err := cipher.EncryptBytes(plainText)
 	require.NoError(t, err, "EncryptBytes failed")
 
 	// Empty plaintext produces: nonce (8 bytes) + empty ciphertext (0 bytes) + HMAC tag (16 bytes) = 24 bytes
-	expectedSize := salsa20NonceSize + hmacTagSize
-	require.Equal(t, expectedSize, len(encrypted))
+	expectedSize := 8 + 16
+	require.Len(t, encrypted, expectedSize)
 }
 
 func TestEncryptBytesRandomNonce(t *testing.T) {
-	cipher := New("test-key")
+	t.Parallel()
+
+	cipher := crypto.New("test-key")
 	plainText := []byte("same plaintext")
 
 	encrypted1, err1 := cipher.EncryptBytes(plainText)
@@ -104,7 +124,9 @@ func TestEncryptBytesRandomNonce(t *testing.T) {
 }
 
 func TestDecryptBytesBasic(t *testing.T) {
-	cipher := New("test-key")
+	t.Parallel()
+
+	cipher := crypto.New("test-key")
 	plainText := []byte("hello world")
 
 	encrypted, err := cipher.EncryptBytes(plainText)
@@ -116,7 +138,9 @@ func TestDecryptBytesBasic(t *testing.T) {
 }
 
 func TestDecryptBytesEmpty(t *testing.T) {
-	cipher := New("test-key")
+	t.Parallel()
+
+	cipher := crypto.New("test-key")
 	plainText := []byte("")
 
 	encrypted, err := cipher.EncryptBytes(plainText)
@@ -126,28 +150,32 @@ func TestDecryptBytesEmpty(t *testing.T) {
 	// because we require at least nonce (8) + ciphertext (1) + tag (16) = 25 bytes
 	// but empty plaintext only produces nonce (8) + tag (16) = 24 bytes
 	_, err = cipher.DecryptBytesBase64(encrypted)
-	require.Equal(t, ErrCipherTextBlockSize, err, "expected ErrCipherTextBlockSize for empty plaintext")
+	require.Equal(t, crypto.ErrCipherTextBlockSize, err, "expected ErrCipherTextBlockSize for empty plaintext")
 }
 
 func TestDecryptBytesTampered(t *testing.T) {
-	cipher := New("test-key")
+	t.Parallel()
+
+	cipher := crypto.New("test-key")
 	plainText := []byte("hello world")
 
 	encrypted, err := cipher.EncryptBytes(plainText)
 	require.NoError(t, err, "EncryptBytes failed")
 
 	// Tamper with the encrypted data (modify one byte in the middle)
-	if len(encrypted) > salsa20NonceSize+1 {
-		encrypted[salsa20NonceSize] ^= 0xFF
+	if len(encrypted) > 8+1 {
+		encrypted[8] ^= 0xFF
 	}
 
 	_, err = cipher.DecryptBytesBase64(encrypted)
-	require.Equal(t, ErrHMACVerificationFailed, err, "expected ErrHMACVerificationFailed for tampered data")
+	require.Equal(t, crypto.ErrHMACVerificationFailed, err, "expected ErrHMACVerificationFailed for tampered data")
 }
 
 func TestDecryptBytesWrongKey(t *testing.T) {
-	cipher1 := New("key1")
-	cipher2 := New("key2")
+	t.Parallel()
+
+	cipher1 := crypto.New("key1")
+	cipher2 := crypto.New("key2")
 
 	plainText := []byte("secret message")
 
@@ -156,11 +184,13 @@ func TestDecryptBytesWrongKey(t *testing.T) {
 
 	// Try to decrypt with different key
 	_, err = cipher2.DecryptBytesBase64(encrypted)
-	require.Equal(t, ErrHMACVerificationFailed, err, "expected ErrHMACVerificationFailed when decrypting with wrong key")
+	require.Equal(t, crypto.ErrHMACVerificationFailed, err, "expected ErrHMACVerificationFailed when decrypting with wrong key")
 }
 
 func TestDecryptBytesShortData(t *testing.T) {
-	cipher := New("test-key")
+	t.Parallel()
+
+	cipher := crypto.New("test-key")
 
 	tests := []struct {
 		name string
@@ -168,21 +198,25 @@ func TestDecryptBytesShortData(t *testing.T) {
 	}{
 		{"empty", []byte("")},
 		{"too short", []byte("short")},
-		{"just nonce size", make([]byte, salsa20NonceSize)},
-		{"nonce + 1 byte", make([]byte, salsa20NonceSize+1)},
-		{"nonce + tag - 1 byte", make([]byte, salsa20NonceSize+hmacTagSize-1)},
+		{"just nonce size", make([]byte, 8)},
+		{"nonce + 1 byte", make([]byte, 8+1)},
+		{"nonce + tag - 1 byte", make([]byte, 8+16-1)},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			_, err := cipher.DecryptBytesBase64(tt.data)
-			require.Equal(t, ErrCipherTextBlockSize, err, "expected ErrCipherTextBlockSize")
+			require.Equal(t, crypto.ErrCipherTextBlockSize, err, "expected ErrCipherTextBlockSize")
 		})
 	}
 }
 
 func TestRoundTrip(t *testing.T) {
-	cipher := New("my-secret-key")
+	t.Parallel()
+
+	cipher := crypto.New("my-secret-key")
 
 	testCases := []struct {
 		name      string
@@ -198,6 +232,8 @@ func TestRoundTrip(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			encrypted, err := cipher.EncryptBytes(tc.plainText)
 			require.NoError(t, err, "EncryptBytes failed")
 
@@ -209,10 +245,12 @@ func TestRoundTrip(t *testing.T) {
 }
 
 func TestCipherConsistency(t *testing.T) {
+	t.Parallel()
+
 	// Two ciphers with the same key should decrypt each other's output
 	key := "consistent-key"
-	cipher1 := New(key)
-	cipher2 := New(key)
+	cipher1 := crypto.New(key)
+	cipher2 := crypto.New(key)
 
 	plainText := []byte("consistency test")
 
@@ -225,7 +263,9 @@ func TestCipherConsistency(t *testing.T) {
 }
 
 func TestMultipleEncryptionRounds(t *testing.T) {
-	cipher := New("test-key")
+	t.Parallel()
+
+	cipher := crypto.New("test-key")
 	plainTexts := [][]byte{
 		[]byte("first message"),
 		[]byte("second message"),
@@ -244,46 +284,54 @@ func TestMultipleEncryptionRounds(t *testing.T) {
 
 func BenchmarkDeriveKey(b *testing.B) {
 	key := "benchmark-key"
+
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		DeriveKey(key)
+
+	for b.Loop() {
+		crypto.DeriveKey(key)
 	}
 }
 
 func BenchmarkNewCipher(b *testing.B) {
 	key := "benchmark-key"
+
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		New(key)
+
+	for b.Loop() {
+		crypto.New(key)
 	}
 }
 
 func BenchmarkEncryptBytes(b *testing.B) {
-	cipher := New("benchmark-key")
+	cipher := crypto.New("benchmark-key")
 	plainText := []byte("benchmark plaintext")
+
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+
+	for b.Loop() {
 		_, _ = cipher.EncryptBytes(plainText)
 	}
 }
 
 func BenchmarkDecryptBytes(b *testing.B) {
-	cipher := New("benchmark-key")
+	cipher := crypto.New("benchmark-key")
 	plainText := []byte("benchmark plaintext")
 	encrypted, _ := cipher.EncryptBytes(plainText)
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+
+	for b.Loop() {
 		_, _ = cipher.DecryptBytesBase64(encrypted)
 	}
 }
 
 func BenchmarkRoundTrip(b *testing.B) {
-	cipher := New("benchmark-key")
+	cipher := crypto.New("benchmark-key")
 	plainText := []byte("benchmark plaintext")
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+
+	for b.Loop() {
 		encrypted, _ := cipher.EncryptBytes(plainText)
 		_, _ = cipher.DecryptBytesBase64(encrypted)
 	}

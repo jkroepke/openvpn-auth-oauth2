@@ -21,15 +21,13 @@ const (
 // It stores encrypted tokens associated with clients, supports expiration,
 // automatic garbage collection, and is safe for concurrent use.
 type InMemory struct {
-	data    DataMap        // holds the actual token data mapped by client identifier.
-	cipher  *crypto.Cipher // handles encryption and decryption operations.
-	mu      sync.RWMutex   // read-write mutex to ensure safe concurrent access.
-	expires time.Duration
-
-	// GC control
-	gcInterval time.Duration
+	data       DataMap
+	cipher     *crypto.Cipher
 	gcStop     chan struct{}
 	gcWg       sync.WaitGroup
+	expires    time.Duration
+	gcInterval time.Duration
+	mu         sync.RWMutex
 }
 
 // NewInMemory creates a new in-memory token storage with the given encryption key and expiration duration.
