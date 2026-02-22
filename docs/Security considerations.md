@@ -1,5 +1,20 @@
 # Security Considerations
 
+## Encryption of Sensitive Data
+
+openvpn-auth-oauth2 uses **Salsa20 stream cipher with HMAC-SHA256 authentication** to encrypt:
+- OAuth2 refresh tokens (when enabled)
+- State parameters in authentication flows
+- User session information
+
+This approach provides:
+- ✅ **Confidentiality**: Strong encryption with stream cipher
+- ✅ **Integrity**: HMAC-SHA256 detects any tampering
+- ✅ **Authentication**: Verifies data wasn't modified by attackers
+- ✅ **Minimal overhead**: Only 24 bytes extra per encrypted message
+
+For technical details, see the [Encryption and Cryptography documentation](./Encryption%20and%20Cryptography.md).
+
 ## Potential Risks Caused by State Reuse
 
 There is a potential risk that an attacker could forge state parameters and hijack an OpenVPN session through phishing attacks. To do this, the attacker would need to know both the state encryption key, and the OpenVPN session ID. While the encryption key is a static value, the session ID is a randomly generated incrementing number that changes with each new session.

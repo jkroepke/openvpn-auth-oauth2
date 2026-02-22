@@ -11,6 +11,7 @@ require (
 	github.com/zitadel/logging v0.7.0
 	github.com/zitadel/oidc/v3 v3.45.4
 	go.yaml.in/yaml/v3 v3.0.4
+	golang.org/x/crypto v0.48.0
 	golang.org/x/net v0.50.0
 	golang.org/x/oauth2 v0.35.0
 	golang.org/x/text v0.34.0
@@ -75,7 +76,6 @@ require (
 	go.opentelemetry.io/otel/metric v1.40.0 // indirect
 	go.opentelemetry.io/otel/trace v1.40.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.9.0 // indirect
-	golang.org/x/crypto v0.48.0 // indirect
 	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa // indirect
 	golang.org/x/sys v0.41.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260217215200-42d3e9bedb6d // indirect

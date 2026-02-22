@@ -177,14 +177,14 @@ func (c *Client) OAuth2ProfileSubmit() http.Handler {
 		stateHash := sha256.Sum256([]byte(encryptedToken))
 		storageKey := fmt.Sprintf("%s-token-%x", clientID, stateHash[:8])
 
-		encryptedStoredToken, err := c.storage.Get(storageKey)
+		encryptedStoredToken, err := c.storage.Get(ctx, storageKey)
 		if err != nil {
 			c.writeHTTPError(ctx, w, logger, http.StatusBadRequest, "unable to retrieve refresh token from storage", err.Error())
 
 			return
 		}
 
-		_ = c.storage.Delete(storageKey)
+		_ = c.storage.Delete(ctx, storageKey)
 
 		if encryptedStoredToken != encryptedToken {
 			c.writeHTTPError(ctx, w, logger, http.StatusBadRequest, "Bad Request", "token mismatch from profile selector")
@@ -323,7 +323,7 @@ func (c *Client) postCodeExchangeHandler(
 					return
 				}
 
-				err = c.storeProfileSelectorToken(clientConfigSelectorToken, clientID)
+				err = c.storeProfileSelectorToken(ctx, clientConfigSelectorToken, clientID)
 				if err != nil {
 					c.openvpn.DenyClient(ctx, logger, session.Client, "unable to store profile selector token")
 					c.writeHTTPError(ctx, w, logger, http.StatusInternalServerError, "store profile selector token", err.Error())
@@ -380,7 +380,7 @@ func (c *Client) postCodeExchangeHandlerStoreRefreshToken(
 	}
 
 	if !c.conf.OAuth2.Refresh.ValidateUser {
-		if err := c.storage.Set(clientID, types.EmptyToken); err != nil {
+		if err := c.storage.Set(ctx, clientID, types.EmptyToken); err != nil {
 			logger.LogAttrs(ctx, slog.LevelWarn, err.Error())
 		} else {
 			logger.LogAttrs(ctx, slog.LevelDebug, "empty token for non-interactive re-authentication stored")
@@ -404,7 +404,7 @@ func (c *Client) postCodeExchangeHandlerStoreRefreshToken(
 
 	if refreshToken == "" {
 		logger.LogAttrs(ctx, slog.LevelWarn, "refresh token is empty")
-	} else if err = c.storage.Set(clientID, refreshToken); err != nil {
+	} else if err = c.storage.Set(ctx, clientID, refreshToken); err != nil {
 		logger.LogAttrs(ctx, slog.LevelWarn, "unable to store refresh token",
 			slog.Any("err", err),
 		)
@@ -443,11 +443,11 @@ func (c *Client) extractConfigProfilesFromIDToken(tokens idtoken.IDToken) []stri
 	return profiles
 }
 
-func (c *Client) storeProfileSelectorToken(encryptedToken, clientID string) error {
+func (c *Client) storeProfileSelectorToken(ctx context.Context, encryptedToken, clientID string) error {
 	stateHash := sha256.Sum256([]byte(encryptedToken))
 	storageKey := fmt.Sprintf("%s-token-%x", clientID, stateHash[:8])
 
-	err := c.storage.Set(storageKey, encryptedToken)
+	err := c.storage.Set(ctx, storageKey, encryptedToken)
 	if err != nil {
 		return fmt.Errorf("unable to store profile selector token: %w", err)
 	}
