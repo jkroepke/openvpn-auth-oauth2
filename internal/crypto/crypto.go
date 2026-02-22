@@ -5,21 +5,24 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"errors"
+	"fmt"
 	"io"
 
 	"golang.org/x/crypto/salsa20"
 )
 
-const salsa20NonceSize = 8
-const hmacTagSize = 16
+const (
+	salsa20NonceSize = 8
+	hmacTagSize      = 16
+)
 
-// ErrCipherTextBlockSize is returned when the ciphertext block size is too short
+// ErrCipherTextBlockSize is returned when the ciphertext block size is too short.
 var ErrCipherTextBlockSize = errors.New("ciphertext block size is too short")
 
-// ErrHMACVerificationFailed is returned when HMAC verification fails
-var ErrHMACVerificationFailed = errors.New("HMAC verification failed")
+// ErrHMACVerificationFailed is returned when HMAC verification fails.
+var ErrHMACVerificationFailed = errors.New("hmac verification failed")
 
-// Cipher provides encryption and decryption operations using Salsa20 + HMAC-SHA256
+// Cipher provides encryption and decryption operations using Salsa20 + HMAC-SHA256.
 type Cipher struct {
 	derivedKey    *[32]byte
 	encryptionKey string
@@ -38,6 +41,7 @@ func New(encryptionKey string) *Cipher {
 // This ensures consistent key length for Salsa20 regardless of input.
 func DeriveKey(key string) *[32]byte {
 	hash := sha256.Sum256([]byte(key))
+
 	return &hash
 }
 
@@ -48,7 +52,7 @@ func (c *Cipher) EncryptBytes(plainText []byte) ([]byte, error) {
 	// Generate random nonce
 	nonce := make([]byte, salsa20NonceSize)
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to generate nonce: %w", err)
 	}
 
 	// Encrypt using Salsa20
