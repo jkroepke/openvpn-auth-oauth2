@@ -1,5 +1,9 @@
 package tokenstorage
 
-import "errors"
+import (
+	"errors"
+)
 
-var ErrNotExists = errors.New("value does not exist")
+var (
+	ErrNotExists = errors.New("value does not exist")
+)

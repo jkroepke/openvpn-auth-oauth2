@@ -2,8 +2,6 @@ package testutils
 
 import (
 	"context"
-
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
 )
 
 // FakeStorage is a no-op implementation of the token storage interface used in
@@ -33,9 +31,4 @@ func (FakeStorage) Delete(_ context.Context, _ string) error {
 // Set is a no-op for FakeStorage.
 func (FakeStorage) Set(_ context.Context, _, _ string) error {
 	return nil
-}
-
-// Stats returns empty storage statistics.
-func (FakeStorage) Stats() tokenstorage.StorageStats {
-	return tokenstorage.StorageStats{}
 }

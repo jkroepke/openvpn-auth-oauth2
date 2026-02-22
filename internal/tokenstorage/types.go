@@ -20,23 +20,6 @@ type Storage interface {
 
 	// Close releases any resources held by the storage.
 	Close() error
-
-	// Stats returns current storage statistics.
-	Stats() StorageStats
-}
-
-// StorageStats contains metrics about the storage.
-type StorageStats struct {
-	// Size is the current number of stored tokens.
-	Size int
-	// Hits is the number of successful Get operations.
-	Hits uint64
-	// Misses is the number of Get operations that returned ErrNotExists.
-	Misses uint64
-	// Expirations is the number of tokens that were removed due to expiration.
-	Expirations uint64
-	// EncryptionErrors is the number of encryption/decryption failures.
-	EncryptionErrors uint64
 }
 
 type item struct {

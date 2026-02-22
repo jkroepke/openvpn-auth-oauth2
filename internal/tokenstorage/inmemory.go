@@ -5,10 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"sync/atomic"
 	"time"
 
-	"github.com/zitadel/oidc/v3/pkg/crypto"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/crypto"
 )
 
 var ErrNilData = errors.New("data map cannot be nil")
@@ -22,16 +21,10 @@ const (
 // It stores encrypted tokens associated with clients, supports expiration,
 // automatic garbage collection, and is safe for concurrent use.
 type InMemory struct {
-	data          DataMap      // holds the actual token data mapped by client identifier.
-	encryptionKey string       // used to encrypt and decrypt token data.
-	mu            sync.RWMutex // read-write mutex to ensure safe concurrent access.
-	expires       time.Duration
-
-	// Metrics
-	hits             atomic.Uint64
-	misses           atomic.Uint64
-	expirations      atomic.Uint64
-	encryptionErrors atomic.Uint64
+	data    DataMap        // holds the actual token data mapped by client identifier.
+	cipher  *crypto.Cipher // handles encryption and decryption operations.
+	mu      sync.RWMutex   // read-write mutex to ensure safe concurrent access.
+	expires time.Duration
 
 	// GC control
 	gcInterval time.Duration
@@ -49,11 +42,11 @@ func NewInMemory(encryptionKey string, expires time.Duration) *InMemory {
 // If gcInterval is 0 or negative, garbage collection is disabled.
 func NewInMemoryWithGC(encryptionKey string, expires, gcInterval time.Duration) *InMemory {
 	storage := &InMemory{
-		data:          DataMap{},
-		encryptionKey: encryptionKey,
-		expires:       expires,
-		gcInterval:    gcInterval,
-		gcStop:        make(chan struct{}),
+		data:       DataMap{},
+		cipher:     crypto.New(encryptionKey),
+		expires:    expires,
+		gcInterval: gcInterval,
+		gcStop:     make(chan struct{}),
 	}
 
 	if gcInterval > 0 {
@@ -79,12 +72,10 @@ func (s *InMemory) SetStorage(data DataMap) error {
 }
 
 // Set stores an encrypted token for a given client, with an expiration time.
-// The token is encrypted using AES before storage.
+// The token is encrypted using Salsa20 before storage.
 func (s *InMemory) Set(_ context.Context, client, token string) error {
-	encryptedBytes, err := crypto.EncryptBytesAES([]byte(token), s.encryptionKey)
+	encryptedBytes, err := s.cipher.EncryptBytes([]byte(token))
 	if err != nil {
-		s.encryptionErrors.Add(1)
-
 		return fmt.Errorf("encrypt error: %w", err)
 	}
 
@@ -102,20 +93,20 @@ func (s *InMemory) Set(_ context.Context, client, token string) error {
 // Get retrieves and decrypts the token for a given client.
 // If the token is expired or does not exist, ErrNotExists is returned.
 func (s *InMemory) Get(_ context.Context, client string) (string, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	now := time.Now()
 
+	s.mu.RLock()
 	data, ok := s.data[client]
-	if !ok {
-		s.misses.Add(1)
+	s.mu.RUnlock()
 
+	if !ok {
 		return "", ErrNotExists
 	}
 
-	if data.Expires.Before(time.Now()) {
+	if data.Expires.Before(now) {
+		s.mu.Lock()
 		delete(s.data, client)
-		s.expirations.Add(1)
-		s.misses.Add(1)
+		s.mu.Unlock()
 
 		return "", ErrNotExists
 	}
@@ -124,14 +115,10 @@ func (s *InMemory) Get(_ context.Context, client string) (string, error) {
 	encryptedBytes := make([]byte, len(data.Data))
 	copy(encryptedBytes, data.Data)
 
-	token, err := crypto.DecryptBytesAES(encryptedBytes, s.encryptionKey)
+	token, err := s.cipher.DecryptBytesBase64(encryptedBytes)
 	if err != nil {
-		s.encryptionErrors.Add(1)
-
 		return "", fmt.Errorf("decrypt error: %w", err)
 	}
-
-	s.hits.Add(1)
 
 	return string(token), nil
 }
@@ -152,21 +139,6 @@ func (s *InMemory) Close() error {
 	s.gcWg.Wait()
 
 	return nil
-}
-
-// Stats returns current storage statistics.
-func (s *InMemory) Stats() StorageStats {
-	s.mu.RLock()
-	size := len(s.data)
-	s.mu.RUnlock()
-
-	return StorageStats{
-		Size:             size,
-		Hits:             s.hits.Load(),
-		Misses:           s.misses.Load(),
-		Expirations:      s.expirations.Load(),
-		EncryptionErrors: s.encryptionErrors.Load(),
-	}
 }
 
 // startGC starts the background garbage collection goroutine.
@@ -195,7 +167,6 @@ func (s *InMemory) collectExpired() {
 	for client, item := range s.data {
 		if item.Expires.Before(now) {
 			delete(s.data, client)
-			s.expirations.Add(1)
 		}
 	}
 }
