@@ -10,6 +10,8 @@ import (
 	"sync/atomic"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
 )
 
@@ -21,6 +23,7 @@ const (
 type Client struct {
 	oauth2               oauth2Client
 	conn                 net.Conn
+	ctxCancel            context.CancelFunc
 	commandsCh           chan string
 	logger               *slog.Logger
 	scanner              *bufio.Scanner
@@ -36,6 +39,6 @@ type Client struct {
 }
 
 type oauth2Client interface {
-	RefreshClientAuth(ctx context.Context, logger *slog.Logger, client connection.Client) (bool, error)
+	RefreshClientAuth(ctx context.Context, logger *slog.Logger, client connection.Client) (types.UserInfo, idtoken.IDToken, bool, error)
 	ClientDisconnect(ctx context.Context, logger *slog.Logger, client connection.Client)
 }

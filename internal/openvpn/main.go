@@ -64,6 +64,8 @@ func (c *Client) Connect(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	c.ctxCancel = cancel
+
 	c.logger.LogAttrs(ctx, slog.LevelInfo, "connect to openvpn management interface "+c.conf.OpenVPN.Addr.String())
 
 	if err = c.setupConnection(ctx); err != nil {

@@ -23,7 +23,7 @@ import (
 )
 
 type openvpnManagementClient interface {
-	AcceptClient(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, reAuth bool, username string, clientConfigName string)
+	AcceptClient(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, username string, clientConfigName string)
 	DenyClient(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, reason string)
 }
 
@@ -210,7 +210,7 @@ func (c *Client) OAuth2ProfileSubmit() http.Handler {
 
 		logger.LogAttrs(ctx, slog.LevelInfo, "successful authorization via oauth2 with profile selection")
 
-		c.openvpn.AcceptClient(ctx, logger, session.Client, false, username, clientConfigName)
+		c.openvpn.AcceptClient(ctx, logger, session.Client, username, clientConfigName)
 		c.writeHTTPSuccess(ctx, w, logger)
 	})
 }
@@ -304,7 +304,7 @@ func (c *Client) postCodeExchangeHandler(
 
 			// If there's exactly one profile, use it directly
 			if len(clientConfigProfiles) == 1 {
-				c.openvpn.AcceptClient(ctx, logger, session.Client, false, username, clientConfigProfiles[0])
+				c.openvpn.AcceptClient(ctx, logger, session.Client, username, clientConfigProfiles[0])
 				c.postCodeExchangeHandlerStoreRefreshToken(ctx, logger, session, clientID, tokens)
 				c.writeHTTPSuccess(ctx, w, logger)
 
@@ -353,7 +353,7 @@ func (c *Client) postCodeExchangeHandler(
 				return
 			}
 
-			// If no profiles, fall through to default behavior
+			// If no profiles, fall through to the default behavior
 		}
 
 		clientConfigName := username
@@ -366,7 +366,7 @@ func (c *Client) postCodeExchangeHandler(
 			}
 		}
 
-		c.openvpn.AcceptClient(ctx, logger, session.Client, false, username, clientConfigName)
+		c.openvpn.AcceptClient(ctx, logger, session.Client, username, clientConfigName)
 		c.postCodeExchangeHandlerStoreRefreshToken(ctx, logger, session, clientID, tokens)
 		c.writeHTTPSuccess(ctx, w, logger)
 	}

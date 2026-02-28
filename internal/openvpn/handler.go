@@ -135,7 +135,6 @@ func (c *Client) handleMessage(ctx context.Context, message string) error {
 	// SUCCESS: hold release succeeded
 	case len(message) >= 13 && message[9:13] == "hold":
 		c.logger.LogAttrs(ctx, slog.LevelInfo, "hold release succeeded")
-
 	default:
 		select {
 		case c.commandResponseCh <- message:

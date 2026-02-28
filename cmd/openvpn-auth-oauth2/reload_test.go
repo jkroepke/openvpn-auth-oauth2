@@ -231,7 +231,6 @@ func TestReload(t *testing.T) {
 	testutils.SendMessagef(t, managementInterfaceConn, msg+"\r\n")
 
 	response := testutils.ReadLine(t, managementInterfaceConn, reader)
+	require.Equal(t, "client-auth 0 2", response, buf.String())
 	testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-pending-auth command succeeded")
-
-	require.Equal(t, "client-auth-nt 0 2", response, buf.String())
 }

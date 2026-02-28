@@ -8,7 +8,7 @@
 
 <p align="center">
 <img aligin="center" src="https://github.com/jkroepke/openvpn-auth-oauth2/blob/main/docs/img/logo.svg?raw=true" alt="openvpn-auth-oauth2 logo"  style="height: 100px" />
-</<p>
+</p>
 
 # openvpn-auth-oauth2
 

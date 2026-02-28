@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"strconv"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
@@ -17,7 +18,7 @@ import (
 // RefreshClientAuth initiate a non-interactive authentication against the sso provider.
 //
 //nolint:cyclop
-func (c *Client) RefreshClientAuth(ctx context.Context, logger *slog.Logger, client connection.Client) (bool, error) {
+func (c *Client) RefreshClientAuth(ctx context.Context, logger *slog.Logger, client connection.Client) (types.UserInfo, idtoken.IDToken, bool, error) {
 	clientID := strconv.FormatUint(client.CID, 10)
 	if c.conf.OAuth2.Refresh.UseSessionID && client.SessionID != "" {
 		clientID = client.SessionID
@@ -28,20 +29,20 @@ func (c *Client) RefreshClientAuth(ctx context.Context, logger *slog.Logger, cli
 		if errors.Is(err, tokenstorage.ErrNotExists) {
 			logger.LogAttrs(ctx, slog.LevelDebug, "no refresh token found for client "+clientID)
 
-			return false, nil
+			return types.UserInfo{}, nil, false, nil
 		}
 
-		return false, fmt.Errorf("error from token store: %w", err)
+		return types.UserInfo{}, nil, false, fmt.Errorf("error from token store: %w", err)
 	} else if refreshToken == "" {
 		logger.LogAttrs(ctx, slog.LevelWarn, "stored refresh token is empty. This should not happen. Please report this issue.")
 
-		return false, nil
+		return types.UserInfo{}, nil, false, nil
 	}
 
 	if !c.conf.OAuth2.Refresh.ValidateUser {
 		logger.LogAttrs(ctx, slog.LevelInfo, "successful non-interactive authentication via internal token")
 
-		return true, nil
+		return types.UserInfo{}, nil, true, nil
 	}
 
 	if c.conf.OAuth2.Nonce {
@@ -52,7 +53,7 @@ func (c *Client) RefreshClientAuth(ctx context.Context, logger *slog.Logger, cli
 
 	tokens, err := c.provider.Refresh(ctx, logger, c.relyingParty, refreshToken)
 	if err != nil {
-		return false, fmt.Errorf("error from non-interactive authentication via refresh token: %w", err)
+		return types.UserInfo{}, nil, false, fmt.Errorf("error from non-interactive authentication via refresh token: %w", err)
 	}
 
 	session := state.New(
@@ -65,21 +66,24 @@ func (c *Client) RefreshClientAuth(ctx context.Context, logger *slog.Logger, cli
 	if c.conf.OAuth2.UserInfo {
 		userInfo, err = rp.Userinfo[*types.UserInfo](ctx, tokens.AccessToken, tokens.TokenType, tokens.IDTokenClaims.GetSubject(), c.relyingParty)
 		if err != nil {
-			return false, fmt.Errorf("error during UserInfo request (subject: %s, token type: %s): %w", tokens.IDTokenClaims.GetSubject(), tokens.TokenType, err)
+			return types.UserInfo{},
+				nil,
+				false,
+				fmt.Errorf("error during UserInfo request (subject: %s, token type: %s): %w", tokens.IDTokenClaims.GetSubject(), tokens.TokenType, err)
 		}
 	}
 
 	user, err := c.provider.GetUser(ctx, logger, tokens, userInfo)
 	if err != nil {
-		return false, fmt.Errorf("error fetch user data: %w", err)
+		return types.UserInfo{}, nil, false, fmt.Errorf("error fetch user data: %w", err)
 	}
 
 	if err := c.provider.CheckUser(ctx, session, user, tokens); err != nil {
-		return false, fmt.Errorf("error check user data: %w", err)
+		return types.UserInfo{}, nil, false, fmt.Errorf("error check user data: %w", err)
 	}
 
 	if err = c.CheckTokenCEL(CELAuthModeNonInteractive, session, tokens); err != nil {
-		return false, fmt.Errorf("error cel validation: %w", err)
+		return types.UserInfo{}, nil, false, fmt.Errorf("error cel validation: %w", err)
 	}
 
 	logger.LogAttrs(ctx, slog.LevelInfo, "successful authenticate via refresh token")
@@ -96,7 +100,7 @@ func (c *Client) RefreshClientAuth(ctx context.Context, logger *slog.Logger, cli
 
 		logger.LogAttrs(ctx, logLevel, fmt.Errorf("oauth2.refresh is enabled, but %w", err).Error())
 
-		return true, nil
+		return user, tokens, true, nil
 	}
 
 	if refreshToken == "" {
@@ -107,7 +111,7 @@ func (c *Client) RefreshClientAuth(ctx context.Context, logger *slog.Logger, cli
 		)
 	}
 
-	return true, nil
+	return user, tokens, true, nil
 }
 
 // ClientDisconnect purges the refresh token from the [tokenstorage.Storage].
