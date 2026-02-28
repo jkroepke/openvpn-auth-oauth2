@@ -80,6 +80,7 @@ func (c *Client) sendPassword(ctx context.Context) error {
 // handleMessages handles all incoming messages and route messages to different channels.
 func (c *Client) handleMessages(ctx context.Context, errCh chan<- error) {
 	defer close(c.commandResponseCh)
+	defer close(c.clientsCh)
 
 	var (
 		err error
@@ -160,8 +161,6 @@ func (c *Client) handleClientMessage(ctx context.Context, message string) error 
 
 // handlePassword receive a new message from clientsCh and process them.
 func (c *Client) handleClients(ctx context.Context, errCh chan<- error) {
-	defer close(c.clientsCh)
-
 	var (
 		client connection.Client
 		ok     bool
