@@ -28,11 +28,11 @@ func BenchmarkFull(b *testing.B) {
 		authURL = testsuite.GetAuthURLFromMessage(suite.ReadLine(b))
 		suite.SendMessagef(b, "SUCCESS: client-pending-auth command succeeded")
 
-		suite.ReadLine(b)
-		suite.SendMessagef(b, "SUCCESS: client-auth command succeeded")
-
 		_, closer = suite.CallAuthURL(b, authURL)
 		closer()
+
+		suite.ExpectMessage(b, "client-auth-nt 0 1")
+		suite.SendMessagef(b, "SUCCESS: client-auth command succeeded")
 	}
 
 	b.StopTimer()

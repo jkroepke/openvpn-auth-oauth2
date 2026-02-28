@@ -23,6 +23,7 @@ const (
 type Client struct {
 	oauth2               oauth2Client
 	conn                 net.Conn
+	ctxCancel            context.CancelFunc
 	commandsCh           chan string
 	logger               *slog.Logger
 	scanner              *bufio.Scanner

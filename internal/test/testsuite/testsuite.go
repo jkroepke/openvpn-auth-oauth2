@@ -264,6 +264,10 @@ func (s *Suite) SetupOpenVPNOAuth2Clients(ctx context.Context, tb testing.TB, to
 		s.conf.OAuth2.Endpoints.Token = types.URL{URL: &url.URL{Scheme: "http", Host: "example.com", Path: "/token"}}
 	}
 
+	if s.conf.OpenVPN.CommandTimeout == 0 {
+		s.conf.OpenVPN.CommandTimeout = time.Millisecond * 300
+	}
+
 	switch s.conf.OAuth2.Provider {
 	case generic.Name:
 		provider, err = generic.NewProvider(ctx, s.conf, s.httpClient)
@@ -440,7 +444,7 @@ func (s *Suite) Close(tb testing.TB) {
 	select {
 	case err := <-s.errOpenVPNClientCh:
 		require.NoError(tb, err, "error shutting down OpenVPN client: %s", s.logger.String())
-	case <-time.After(1 * time.Second):
+	case <-time.After(3 * time.Second):
 		tb.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", s.logger.String())
 	}
 }
