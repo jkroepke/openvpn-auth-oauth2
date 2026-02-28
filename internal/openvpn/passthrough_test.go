@@ -257,18 +257,12 @@ func TestPassThroughFull(t *testing.T) {
 				require.Equal(t, "ENTER PASSWORD:", string(buf))
 
 				if strings.Contains(tc.name, "invalid") {
-					testutils.SendAndExpectMessage(t, passThroughConn, passThroughReader,
-						"invalid",
-						"ERROR: bad password",
-					)
+					testutils.SendAndExpectMessage(t, passThroughConn, passThroughReader, "invalid", "ERROR: bad password")
 
 					return
 				}
 
-				testutils.SendAndExpectMessage(t, passThroughConn, passThroughReader,
-					tc.conf.OpenVPN.Passthrough.Password.String(),
-					"SUCCESS: password is correct",
-				)
+				testutils.SendAndExpectMessage(t, passThroughConn, passThroughReader, tc.conf.OpenVPN.Passthrough.Password.String(), "SUCCESS: password is correct")
 			}
 
 			testutils.ExpectMessage(t, passThroughConn, passThroughReader, openvpn.WelcomeBanner)
@@ -278,10 +272,7 @@ func TestPassThroughFull(t *testing.T) {
 				testutils.SendMessagef(t, passThroughConn, "\n")
 				testutils.SendMessagef(t, passThroughConn, "\r\n")
 
-				testutils.SendAndExpectMessage(t, passThroughConn, passThroughReader,
-					"hold",
-					"SUCCESS: hold release succeeded",
-				)
+				testutils.SendAndExpectMessage(t, passThroughConn, passThroughReader, "hold", "SUCCESS: hold release succeeded")
 
 				// PID
 				testutils.SendMessagef(t, passThroughConn, "pid")
@@ -302,10 +293,7 @@ func TestPassThroughFull(t *testing.T) {
 				testutils.ExpectMessage(t, passThroughConn, passThroughReader, "ERROR: common name '1' not found")
 
 				// client-auth-nt 1
-				testutils.SendAndExpectMessage(t, passThroughConn, passThroughReader,
-					"client-auth-nt 1",
-					"ERROR: command not allowed",
-				)
+				testutils.SendAndExpectMessage(t, passThroughConn, passThroughReader, "client-auth-nt 1", "ERROR: command not allowed")
 
 				// client-kill 1
 				testutils.SendMessagef(t, passThroughConn, "client-kill 1")

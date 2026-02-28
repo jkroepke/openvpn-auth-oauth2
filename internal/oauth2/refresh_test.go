@@ -395,6 +395,8 @@ func TestRefreshReAuth(t *testing.T) {
 			})
 
 			switch {
+			case !tc.conf.OAuth2.Refresh.ValidateUser:
+				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth-nt 1 2")
 			case tc.conf.OpenVPN.OverrideUsername:
 				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 1 2")
 
@@ -413,7 +415,7 @@ func TestRefreshReAuth(t *testing.T) {
 
 				switch {
 				case tc.clientCommonName == "":
-					testutils.ExpectMessage(t, managementInterfaceConn, reader, `push "auth-token-user dXNlcm5hbWUK"`)
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, `push "auth-token-user dXNlcm5hbWU="`)
 				case tc.conf.OAuth2.UserInfo:
 					testutils.ExpectMessage(t, managementInterfaceConn, reader, `push "auth-token-user dGVzdC11c2VyQGxvY2FsaG9zdA=="`)
 				default:
@@ -463,7 +465,39 @@ func TestRefreshReAuth(t *testing.T) {
 				return
 			}
 
-			testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth-nt 1 3")
+			switch {
+			case !tc.conf.OAuth2.Refresh.ValidateUser:
+				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth-nt 1 3")
+			case tc.conf.OpenVPN.OverrideUsername:
+				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 1 3")
+
+				switch {
+				case tc.clientCommonName == "":
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, `override-username "username"`)
+				case tc.conf.OAuth2.UserInfo:
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, `override-username "test-user@localhost"`)
+				default:
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, `override-username "id1"`)
+				}
+
+				testutils.ExpectMessage(t, managementInterfaceConn, reader, "END")
+			case tc.conf.OpenVPN.AuthTokenUser:
+				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 1 3")
+
+				switch {
+				case tc.clientCommonName == "":
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, `push "auth-token-user dXNlcm5hbWU="`)
+				case tc.conf.OAuth2.UserInfo:
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, `push "auth-token-user dGVzdC11c2VyQGxvY2FsaG9zdA=="`)
+				default:
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, `push "auth-token-user aWQx"`)
+				}
+
+				testutils.ExpectMessage(t, managementInterfaceConn, reader, "END")
+			default:
+				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth-nt 1 3")
+			}
+
 			testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
 
 			// Testing ReAuth
@@ -472,7 +506,39 @@ func TestRefreshReAuth(t *testing.T) {
 				tc.clientCommonName,
 			)
 
-			testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth-nt 1 4")
+			switch {
+			case !tc.conf.OAuth2.Refresh.ValidateUser:
+				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth-nt 1 4")
+			case tc.conf.OpenVPN.OverrideUsername:
+				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 1 4")
+
+				switch {
+				case tc.clientCommonName == "":
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, `override-username "username"`)
+				case tc.conf.OAuth2.UserInfo:
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, `override-username "test-user@localhost"`)
+				default:
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, `override-username "id1"`)
+				}
+
+				testutils.ExpectMessage(t, managementInterfaceConn, reader, "END")
+			case tc.conf.OpenVPN.AuthTokenUser:
+				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 1 4")
+
+				switch {
+				case tc.clientCommonName == "":
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, `push "auth-token-user dXNlcm5hbWU="`)
+				case tc.conf.OAuth2.UserInfo:
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, `push "auth-token-user dGVzdC11c2VyQGxvY2FsaG9zdA=="`)
+				default:
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, `push "auth-token-user aWQx"`)
+				}
+
+				testutils.ExpectMessage(t, managementInterfaceConn, reader, "END")
+			default:
+				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth-nt 1 4")
+			}
+
 			testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
 
 			// Test Disconnect
@@ -481,11 +547,24 @@ func TestRefreshReAuth(t *testing.T) {
 			// Test ReAuth after DC
 			testutils.SendMessagef(t, managementInterfaceConn, ">CLIENT:REAUTH,1,4\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,session_state=AuthenticatedEmptyUser\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END")
 
-			auth = testutils.ReadLine(t, managementInterfaceConn, reader)
+			switch {
+			case conf.OAuth2.Refresh.UseSessionID:
+				if !tc.conf.OAuth2.Refresh.ValidateUser || !tc.conf.OpenVPN.AuthTokenUser {
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth-nt 1 4")
+				} else {
+					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 1 4")
 
-			if conf.OAuth2.Refresh.UseSessionID {
-				require.Contains(t, auth, "client-auth-nt 1 4")
-			} else {
+					switch {
+					case tc.clientCommonName == "":
+						testutils.ExpectMessage(t, managementInterfaceConn, reader, `push "auth-token-user dXNlcm5hbWU="`)
+					case tc.conf.OAuth2.UserInfo:
+						testutils.ExpectMessage(t, managementInterfaceConn, reader, `push "auth-token-user dGVzdC11c2VyQGxvY2FsaG9zdA=="`)
+					default:
+						testutils.ExpectMessage(t, managementInterfaceConn, reader, `push "auth-token-user aWQx"`)
+					}
+				}
+			default:
+				auth = testutils.ReadLine(t, managementInterfaceConn, reader)
 				require.Contains(t, auth, "client-pending-auth 1 4 \"WEB_AUTH::")
 			}
 
