@@ -360,7 +360,7 @@ func TestClientInvalidPassword(t *testing.T) {
 	conf := config.Defaults
 	conf.OpenVPN.Password = "invalid"
 
-	suite := testsuite.New(conf, nil)
+	suite := testsuite.New(conf)
 	errOpenVPNClientCh := suite.SetupMockEnvironment(ctx, t, nil)
 	suite.SendMessagef(t, "ENTER PASSWORD:")
 	suite.ExpectMessage(t, conf.OpenVPN.Password.String())
@@ -404,7 +404,7 @@ func TestClientInvalidVersion(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
 
-			suite := testsuite.New(config.Defaults, nil)
+			suite := testsuite.New(config.Defaults)
 			errOpenVPNClientCh := suite.SetupMockEnvironment(ctx, t, nil)
 			suite.SendMessagef(t, openvpn.WelcomeBanner)
 			suite.ExpectMessage(t, "version")

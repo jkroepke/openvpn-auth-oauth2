@@ -44,22 +44,32 @@ var (
 type Suite struct {
 	managementInterface           net.Listener
 	managementInterfaceConn       net.Conn
+	rt                            http.RoundTripper
 	logger                        *Logger
 	httpClient                    *http.Client
 	managementInterfaceConnReader *bufio.Reader
+	openVPNClient                 *openvpn.Client
+	oAuth2Client                  *oauth2.Client
+	errOpenVPNClientCh            chan error
 	conf                          config.Config
 }
 
-func New(conf config.Config, rt http.RoundTripper) *Suite {
-	if rt == nil {
-		rt = http.DefaultTransport
+func New(conf config.Config, opts ...Options) *Suite {
+	suite := &Suite{
+		conf:   conf,
+		logger: NewTestLogger(),
+		rt:     http.DefaultTransport,
 	}
 
-	return &Suite{
-		conf:       conf,
-		logger:     NewTestLogger(),
-		httpClient: &http.Client{Transport: NewMockRoundTripper(utils.NewUserAgentTransport(rt))},
+	for _, opt := range opts {
+		if opt != nil {
+			opt(suite)
+		}
 	}
+
+	suite.httpClient = &http.Client{Transport: NewMockRoundTripper(utils.NewUserAgentTransport(suite.rt))}
+
+	return suite
 }
 
 // SetupMockEnvironment sets up an OpenVPN management interface and a mock OIDC
@@ -122,9 +132,9 @@ func (s *Suite) SetupMockEnvironment(ctx context.Context, tb testing.TB, opConf 
 
 	tokenStorage := tokenstorage.NewInMemory(Secret, s.conf.OAuth2.Refresh.Expires)
 
-	oAuth2Client, openVPNClient := s.SetupOpenVPNOAuth2Clients(ctx, tb, tokenStorage)
+	s.oAuth2Client, s.openVPNClient = s.SetupOpenVPNOAuth2Clients(ctx, tb, tokenStorage)
 
-	httpHandler := httphandler.New(s.conf, oAuth2Client)
+	httpHandler := httphandler.New(s.conf, s.oAuth2Client)
 	httpClientListener := httptest.NewUnstartedServer(httpHandler)
 	require.NoError(tb, httpClientListener.Listener.Close())
 
@@ -142,10 +152,9 @@ func (s *Suite) SetupMockEnvironment(ctx context.Context, tb testing.TB, opConf 
 
 	s.httpClient = httpClientListenerClient
 
-	errOpenVPNClientCh := s.ConnectToManagementInterface(tb, openVPNClient)
-	require.NoError(tb, err)
+	s.ConnectToManagementInterface(ctx, tb)
 
-	return errOpenVPNClientCh
+	return s.errOpenVPNClientCh
 }
 
 // SetupOIDCServer starts a minimal OIDC server used for integration tests.
@@ -284,10 +293,10 @@ func (s *Suite) SetupOpenVPNOAuth2Clients(ctx context.Context, tb testing.TB, to
 // ConnectToManagementInterface establishes a connection to the given management
 // interface and returns the accepted net.Conn and an error channel for the
 // OpenVPN client.
-func (s *Suite) ConnectToManagementInterface(tb testing.TB, openVPNClient *openvpn.Client) <-chan error {
+func (s *Suite) ConnectToManagementInterface(ctx context.Context, tb testing.TB) {
 	tb.Helper()
 
-	errOpenVPNClientCh := make(chan error, 1)
+	s.errOpenVPNClientCh = make(chan error, 1)
 	errTCPAcceptCh := make(chan error, 1)
 
 	var err error
@@ -299,15 +308,15 @@ func (s *Suite) ConnectToManagementInterface(tb testing.TB, openVPNClient *openv
 	}(errTCPAcceptCh)
 
 	go func(errCh chan<- error) {
-		errCh <- openVPNClient.Connect(tb.Context())
-	}(errOpenVPNClientCh)
+		errCh <- s.openVPNClient.Connect(ctx)
+	}(s.errOpenVPNClientCh)
 
 	if err := <-errTCPAcceptCh; err != nil {
 		require.NoError(tb, err, "error accepting connection to management interface: %s", s.logger.String())
 	}
 
 	select {
-	case err := <-errOpenVPNClientCh:
+	case err := <-s.errOpenVPNClientCh:
 		require.NoError(tb, err, "error connecting OpenVPN client: %s", s.logger.String())
 	default:
 	}
@@ -315,8 +324,6 @@ func (s *Suite) ConnectToManagementInterface(tb testing.TB, openVPNClient *openv
 	require.NotNil(tb, s.managementInterfaceConn, "expected a connection to the management interface, but got nil. Logs: %s", s.logger.String())
 
 	s.managementInterfaceConnReader = bufio.NewReader(s.managementInterfaceConn)
-
-	return errOpenVPNClientCh
 }
 
 // SendAndExpectMessage sends a message and immediately validates the response.
@@ -331,7 +338,7 @@ func (s *Suite) SendAndExpectMessage(tb testing.TB, sendMessage, expectMessage s
 func (s *Suite) SendMessagef(tb testing.TB, sendMessage string, args ...any) {
 	tb.Helper()
 
-	require.NotNil(tb, s.managementInterfaceConn, "connection is nil")
+	require.NotNil(tb, s.managementInterfaceConn, "connection is nil\n\nLogs: %s", s.logger.String())
 	require.NoError(tb, s.managementInterfaceConn.SetWriteDeadline(time.Now().Add(time.Second*5)))
 
 	if sendMessage != "ENTER PASSWORD:" {
@@ -339,7 +346,7 @@ func (s *Suite) SendMessagef(tb testing.TB, sendMessage string, args ...any) {
 	}
 
 	_, err := fmt.Fprintf(s.managementInterfaceConn, sendMessage, args...)
-	require.NoError(tb, err, "error sending message to management interface: %s", s.logger.String())
+	require.NoError(tb, err, "error sending message to management interface\n\nLogs: %s", s.logger.String())
 }
 
 // ExpectMessage reads from the connection and compares the output with the
@@ -361,5 +368,79 @@ func (s *Suite) ExpectMessage(tb testing.TB, expectMessage string) {
 		}
 
 		require.Equal(tb, strings.TrimRightFunc(expected, unicode.IsSpace), strings.TrimRightFunc(line, unicode.IsSpace), s.logger.String())
+	}
+}
+
+// ExpectVersionAndReleaseHold performs the initial handshake with the mocked
+// management interface. It checks for a version query and hold release.
+func (s *Suite) ExpectVersionAndReleaseHold(tb testing.TB) {
+	tb.Helper()
+
+	s.SendMessagef(tb, openvpn.WelcomeBanner)
+	s.SendMessagef(tb, ">HOLD:Waiting for hold release:0")
+
+	var expectedCommand int
+
+	for range 2 {
+		line := s.ReadLine(tb)
+		switch line {
+		case "hold release":
+			s.SendMessagef(tb, "SUCCESS: hold release succeeded")
+
+			expectedCommand++
+		case "version":
+			s.SendMessagef(tb, "OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 5\r\nEND")
+
+			expectedCommand++
+		default:
+			require.Contains(tb, []string{"version", "hold release"}, line)
+		}
+	}
+
+	require.Equal(tb, 2, expectedCommand)
+}
+
+// ReadLine reads a single line from the connection with a timeout.
+func (s *Suite) ReadLine(tb testing.TB) string {
+	tb.Helper()
+
+	err := s.managementInterfaceConn.SetReadDeadline(time.Now().Add(time.Second * 50))
+	require.NoError(tb, err)
+
+	line, err := s.managementInterfaceConnReader.ReadString('\n')
+	if err != nil && !errors.Is(err, io.EOF) {
+		require.NoError(tb, err)
+	}
+
+	return strings.TrimRightFunc(line, unicode.IsSpace)
+}
+
+func (s *Suite) CallAuthURL(tb testing.TB, authURL string) (*http.Response, func()) {
+	tb.Helper()
+
+	request, err := http.NewRequestWithContext(tb.Context(), http.MethodGet, authURL, nil)
+	require.NoError(tb, err)
+
+	resp, err := s.httpClient.Do(request)
+	require.NoError(tb, err)
+
+	return resp, func() {
+		_, _ = io.Copy(io.Discard, resp.Body)
+
+		err = resp.Body.Close()
+		require.NoError(tb, err)
+	}
+}
+
+func (s *Suite) Close(tb testing.TB) {
+	tb.Helper()
+
+	s.openVPNClient.Shutdown(tb.Context())
+
+	select {
+	case err := <-s.errOpenVPNClientCh:
+		require.NoError(tb, err, "error shutting down OpenVPN client: %s", s.logger.String())
+	case <-time.After(1 * time.Second):
+		tb.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", s.logger.String())
 	}
 }
