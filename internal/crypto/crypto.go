@@ -77,8 +77,8 @@ func (c *Cipher) EncryptBytes(plainText []byte) ([]byte, error) {
 // DecryptBytesBase64 decrypts data encrypted with EncryptBytes.
 // Verifies HMAC-SHA256 tag before decryption to ensure data integrity (Encrypt-then-MAC).
 func (c *Cipher) DecryptBytesBase64(encryptedData []byte) ([]byte, error) {
-	// Minimum size: nonce (8) + ciphertext (at least 1) + HMAC tag (16)
-	if len(encryptedData) < salsa20NonceSize+1+hmacTagSize {
+	// Minimum size: nonce (8) + HMAC tag (16); ciphertext may be empty
+	if len(encryptedData) < salsa20NonceSize+hmacTagSize {
 		return nil, ErrCipherTextBlockSize
 	}
 
