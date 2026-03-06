@@ -146,11 +146,9 @@ func TestDecryptBytesEmpty(t *testing.T) {
 	encrypted, err := cipher.EncryptBytes(plainText)
 	require.NoError(t, err, "EncryptBytes failed")
 
-	// However, decryption of empty plaintext may fail due to minimum size check
-	// because we require at least nonce (8) + ciphertext (1) + tag (16) = 25 bytes
-	// but empty plaintext only produces nonce (8) + tag (16) = 24 bytes
-	_, err = cipher.DecryptBytesBase64(encrypted)
-	require.Equal(t, crypto.ErrCipherTextBlockSize, err, "expected ErrCipherTextBlockSize for empty plaintext")
+	decrypted, err := cipher.DecryptBytesBase64(encrypted)
+	require.NoError(t, err, "DecryptBytesBase64 failed")
+	require.Equal(t, plainText, decrypted, "decrypted text does not match original")
 }
 
 func TestDecryptBytesTampered(t *testing.T) {
