@@ -133,6 +133,10 @@ func (s *InMemory) Delete(_ context.Context, client string) error {
 
 // Close stops the garbage collection goroutine and releases resources.
 func (s *InMemory) Close() error {
+	defer func() {
+		// Make Close idempotent: ignore panic if the channel is already closed.
+		_ = recover()
+	}()
 	close(s.gcStop)
 	s.gcWg.Wait()
 
