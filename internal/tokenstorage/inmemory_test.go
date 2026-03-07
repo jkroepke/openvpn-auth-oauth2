@@ -119,6 +119,13 @@ func TestStorageInMemory_GarbageCollection(t *testing.T) {
 
 	// Wait for tokens to expire and GC to run
 	time.Sleep(200 * time.Millisecond)
+
+	// After expiration and GC, tokens should not be retrievable
+	_, err := tokenStorage.Get(ctx, "0")
+	require.ErrorIs(t, err, tokenstorage.ErrNotExists)
+
+	_, err = tokenStorage.Get(ctx, "1")
+	require.ErrorIs(t, err, tokenstorage.ErrNotExists)
 }
 
 func TestStorageInMemory_NoGC(t *testing.T) {
