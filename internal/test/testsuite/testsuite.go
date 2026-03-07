@@ -164,7 +164,7 @@ func (s *Suite) SetupOIDCServer(tb testing.TB, clientListener net.Listener, opCo
 	clientSecret := Secret
 
 	client := oidcstorage.WebClient(
-		clientListener.Addr().String(),
+		"clientID",
 		clientSecret,
 		fmt.Sprintf("http://%s/oauth2/callback", clientListener.Addr().String()),
 		fmt.Sprintf("https://%s/oauth2/callback", clientListener.Addr().String()),

@@ -140,7 +140,7 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener, logger *slo
 	clientSecret := Secret
 
 	client := oidcstorage.WebClient(
-		clientListener.Addr().String(),
+		"clientID",
 		clientSecret,
 		fmt.Sprintf("http://%s/oauth2/callback", clientListener.Addr().String()),
 		fmt.Sprintf("https://%s/oauth2/callback", clientListener.Addr().String()),
