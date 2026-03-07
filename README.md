@@ -7,7 +7,7 @@
 [![codecov](https://codecov.io/gh/jkroepke/openvpn-auth-oauth2/graph/badge.svg?token=66VT000UYO)](https://codecov.io/gh/jkroepke/openvpn-auth-oauth2)
 
 <p align="center">
-<img aligin="center" src="https://github.com/jkroepke/openvpn-auth-oauth2/blob/main/docs/img/logo.svg?raw=true" alt="openvpn-auth-oauth2 logo"  style="height: 100px" />
+<img align="center" src="https://github.com/jkroepke/openvpn-auth-oauth2/blob/main/docs/img/logo.svg?raw=true" alt="openvpn-auth-oauth2 logo"  style="height: 100px" />
 </p>
 
 # openvpn-auth-oauth2
