@@ -40,7 +40,7 @@ func TestDeriveKey(t *testing.T) {
 			derivedKey := crypto.DeriveKey(tc.key)
 
 			// Check that the result is a 32-byte array
-			require.Len(t, derivedKey, 32, "expected key length 32")
+			require.Len(t, derivedKey[:], 32, "expected key length 32")
 
 			// Check that the same key produces the same result
 			derivedKey2 := crypto.DeriveKey(tc.key)
