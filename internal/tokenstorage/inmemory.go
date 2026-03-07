@@ -137,6 +137,7 @@ func (s *InMemory) Close() error {
 		// Make Close idempotent: ignore panic if the channel is already closed.
 		_ = recover()
 	}()
+
 	close(s.gcStop)
 	s.gcWg.Wait()
 
