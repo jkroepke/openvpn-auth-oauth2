@@ -113,7 +113,7 @@ func (s *InMemory) Get(_ context.Context, client string) (string, error) {
 	encryptedBytes := make([]byte, len(data.Data))
 	copy(encryptedBytes, data.Data)
 
-	token, err := s.cipher.DecryptBytesBase64(encryptedBytes)
+	token, err := s.cipher.DecryptBytes(encryptedBytes)
 	if err != nil {
 		return "", fmt.Errorf("decrypt error: %w", err)
 	}

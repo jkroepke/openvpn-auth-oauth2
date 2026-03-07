@@ -71,8 +71,8 @@ func TestNewCipher(t *testing.T) {
 	encrypted, err := cipher.EncryptBytes(plainText)
 	require.NoError(t, err, "EncryptBytes failed")
 
-	decrypted, err := cipher.DecryptBytesBase64(encrypted)
-	require.NoError(t, err, "DecryptBytesBase64 failed")
+	decrypted, err := cipher.DecryptBytes(encrypted)
+	require.NoError(t, err, "DecryptBytes failed")
 	require.Equal(t, plainText, decrypted, "round trip failed")
 }
 
@@ -132,8 +132,8 @@ func TestDecryptBytesBasic(t *testing.T) {
 	encrypted, err := cipher.EncryptBytes(plainText)
 	require.NoError(t, err, "EncryptBytes failed")
 
-	decrypted, err := cipher.DecryptBytesBase64(encrypted)
-	require.NoError(t, err, "DecryptBytesBase64 failed")
+	decrypted, err := cipher.DecryptBytes(encrypted)
+	require.NoError(t, err, "DecryptBytes failed")
 	require.Equal(t, plainText, decrypted, "decrypted text does not match original")
 }
 
@@ -149,7 +149,7 @@ func TestDecryptBytesEmpty(t *testing.T) {
 	// Decryption of empty plaintext must fail: the minimum required size is
 	// nonce (8) + ciphertext (1) + HMAC tag (16) = 25 bytes, but empty
 	// plaintext produces only nonce (8) + tag (16) = 24 bytes.
-	_, err = cipher.DecryptBytesBase64(encrypted)
+	_, err = cipher.DecryptBytes(encrypted)
 	require.Equal(t, crypto.ErrCipherTextBlockSize, err, "expected ErrCipherTextBlockSize for empty plaintext")
 }
 
@@ -167,7 +167,7 @@ func TestDecryptBytesTampered(t *testing.T) {
 		encrypted[8] ^= 0xFF
 	}
 
-	_, err = cipher.DecryptBytesBase64(encrypted)
+	_, err = cipher.DecryptBytes(encrypted)
 	require.Equal(t, crypto.ErrHMACVerificationFailed, err, "expected ErrHMACVerificationFailed for tampered data")
 }
 
@@ -183,7 +183,7 @@ func TestDecryptBytesWrongKey(t *testing.T) {
 	require.NoError(t, err, "EncryptBytes failed")
 
 	// Try to decrypt with different key
-	_, err = cipher2.DecryptBytesBase64(encrypted)
+	_, err = cipher2.DecryptBytes(encrypted)
 	require.Equal(t, crypto.ErrHMACVerificationFailed, err, "expected ErrHMACVerificationFailed when decrypting with wrong key")
 }
 
@@ -207,7 +207,7 @@ func TestDecryptBytesShortData(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			_, err := cipher.DecryptBytesBase64(tt.data)
+			_, err := cipher.DecryptBytes(tt.data)
 			require.Equal(t, crypto.ErrCipherTextBlockSize, err, "expected ErrCipherTextBlockSize")
 		})
 	}
@@ -237,8 +237,8 @@ func TestRoundTrip(t *testing.T) {
 			encrypted, err := cipher.EncryptBytes(tc.plainText)
 			require.NoError(t, err, "EncryptBytes failed")
 
-			decrypted, err := cipher.DecryptBytesBase64(encrypted)
-			require.NoError(t, err, "DecryptBytesBase64 failed")
+			decrypted, err := cipher.DecryptBytes(encrypted)
+			require.NoError(t, err, "DecryptBytes failed")
 			require.Equal(t, tc.plainText, decrypted, "round trip failed")
 		})
 	}
@@ -257,8 +257,8 @@ func TestCipherConsistency(t *testing.T) {
 	encrypted1, err := cipher1.EncryptBytes(plainText)
 	require.NoError(t, err, "cipher1 EncryptBytes failed")
 
-	decrypted2, err := cipher2.DecryptBytesBase64(encrypted1)
-	require.NoError(t, err, "cipher2 DecryptBytesBase64 failed")
+	decrypted2, err := cipher2.DecryptBytes(encrypted1)
+	require.NoError(t, err, "cipher2 DecryptBytes failed")
 	require.Equal(t, plainText, decrypted2, "ciphers with same key should be compatible")
 }
 
@@ -276,8 +276,8 @@ func TestMultipleEncryptionRounds(t *testing.T) {
 		encrypted, err := cipher.EncryptBytes(plainText)
 		require.NoError(t, err, "round %d EncryptBytes failed", i+1)
 
-		decrypted, err := cipher.DecryptBytesBase64(encrypted)
-		require.NoError(t, err, "round %d DecryptBytesBase64 failed", i+1)
+		decrypted, err := cipher.DecryptBytes(encrypted)
+		require.NoError(t, err, "round %d DecryptBytes failed", i+1)
 		require.Equal(t, plainText, decrypted, "round %d failed", i+1)
 	}
 }
@@ -321,7 +321,7 @@ func BenchmarkDecryptBytes(b *testing.B) {
 	b.ResetTimer()
 
 	for b.Loop() {
-		_, _ = cipher.DecryptBytesBase64(encrypted)
+		_, _ = cipher.DecryptBytes(encrypted)
 	}
 }
 
@@ -333,6 +333,6 @@ func BenchmarkRoundTrip(b *testing.B) {
 
 	for b.Loop() {
 		encrypted, _ := cipher.EncryptBytes(plainText)
-		_, _ = cipher.DecryptBytesBase64(encrypted)
+		_, _ = cipher.DecryptBytes(encrypted)
 	}
 }
