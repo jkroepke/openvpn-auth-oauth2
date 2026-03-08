@@ -10,6 +10,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
 	"github.com/stretchr/testify/require"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
@@ -229,7 +230,7 @@ func TestGetUser(t *testing.T) {
 			"custom username claim",
 			func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsernameClaim = "sub"
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 
 				return conf
 			}(),
@@ -239,15 +240,15 @@ func TestGetUser(t *testing.T) {
 						Subject: "subject",
 					},
 					Claims: map[string]any{
-						"sub":                "sub",
-						"preferred_username": "username",
+						testsuite.SubjectClaim: testsuite.SubjectClaim,
+						"preferred_username":   "username",
 					},
 				},
 			},
 			nil,
 			types.UserInfo{
 				Subject:  "subject",
-				Username: "sub",
+				Username: testsuite.SubjectClaim,
 			},
 			nil,
 		},
@@ -265,15 +266,15 @@ func TestGetUser(t *testing.T) {
 						Subject: "subject",
 					},
 					Claims: map[string]any{
-						"sub":                "sub",
-						"preferred_username": "username",
+						testsuite.SubjectClaim: testsuite.SubjectClaim,
+						"preferred_username":   "username",
 					},
 				},
 			},
 			nil,
 			types.UserInfo{
 				Subject:  "subject",
-				Username: "sub",
+				Username: testsuite.SubjectClaim,
 			},
 			types.ErrNonExistsClaim,
 		},
@@ -299,7 +300,7 @@ func TestGetUser(t *testing.T) {
 			nil,
 			types.UserInfo{
 				Subject:  "subject",
-				Username: "sub",
+				Username: testsuite.SubjectClaim,
 			},
 			types.ErrInvalidClaimType,
 		},
@@ -318,7 +319,7 @@ func TestGetUser(t *testing.T) {
 						Subject: "subject",
 					},
 					Claims: map[string]any{
-						"sub": "username",
+						testsuite.SubjectClaim: "username",
 					},
 				},
 			},

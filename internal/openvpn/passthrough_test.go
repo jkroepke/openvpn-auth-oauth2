@@ -17,6 +17,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/stretchr/testify/assert"
@@ -119,7 +120,7 @@ func TestPassThroughFull(t *testing.T) {
 			scheme: openvpn.SchemeTCP,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.Log.Level = slog.LevelDebug
 				conf.OpenVPN.Passthrough.Enabled = true
 
@@ -131,7 +132,7 @@ func TestPassThroughFull(t *testing.T) {
 			scheme: openvpn.SchemeUnix,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.Log.Level = slog.LevelDebug
 				conf.OpenVPN.Passthrough.Enabled = true
 				conf.OpenVPN.Passthrough.SocketMode = 0o0600
@@ -145,10 +146,10 @@ func TestPassThroughFull(t *testing.T) {
 			scheme: openvpn.SchemeTCP,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.Log.Level = slog.LevelDebug
 				conf.OpenVPN.Passthrough.Enabled = true
-				conf.OpenVPN.Passthrough.Password = testutils.Secret
+				conf.OpenVPN.Passthrough.Password = testsuite.Secret
 
 				return conf
 			}(),
@@ -158,10 +159,10 @@ func TestPassThroughFull(t *testing.T) {
 			scheme: openvpn.SchemeTCP,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.Log.Level = slog.LevelDebug
 				conf.OpenVPN.Passthrough.Enabled = true
-				conf.OpenVPN.Passthrough.Password = testutils.Secret
+				conf.OpenVPN.Passthrough.Password = testsuite.Secret
 
 				return conf
 			}(),
@@ -200,7 +201,7 @@ func TestPassThroughFull(t *testing.T) {
 				tc.conf.OpenVPN.Passthrough.Address = types.URL{URL: &url.URL{Scheme: tc.scheme, Path: temp}}
 			}
 
-			tokenStorage := tokenstorage.NewInMemory(testutils.Secret, time.Hour)
+			tokenStorage := tokenstorage.NewInMemory(testsuite.Secret, time.Hour)
 			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, tc.conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 			managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)

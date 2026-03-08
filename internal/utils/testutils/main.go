@@ -21,6 +21,7 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/crypto"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/httphandler"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
@@ -181,9 +182,6 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener, logger *slo
 	httpHandler := http.NewServeMux()
 	httpHandler.Handle("/", opProvider)
 	httpHandler.Handle("/login/username", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// G120: Parsing form data without limiting request body size can allow memory exhaustion
-		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
-
 		_ = opStorage.CheckUsernamePassword("test-user@localhost", "verysecure", r.FormValue("authRequestID"))
 		http.Redirect(w, r, op.AuthCallbackURL(opProvider)(r.Context(), r.FormValue("authRequestID")), http.StatusFound)
 	}))
@@ -366,7 +364,7 @@ func SetupOpenVPNOAuth2Clients(
 	require.NoError(tb, err)
 
 	openVPNClient := openvpn.New(logger, conf)
-	oAuth2Client, err := oauth2.New(ctx, logger, conf, httpClient, tokenStorage, provider, openVPNClient)
+	oAuth2Client, err := oauth2.New(ctx, logger, conf, httpClient, tokenStorage, crypto.New(conf.HTTP.Secret.String()), provider, openVPNClient)
 	require.NoError(tb, err)
 
 	openVPNClient.SetOAuth2Client(oAuth2Client)

@@ -15,6 +15,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 	oauth2types "github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/oauth2"
@@ -191,7 +192,7 @@ http:
 					},
 					ClientConfig: config.OpenVPNConfig{
 						Enabled:    true,
-						TokenClaim: "sub",
+						TokenClaim: testsuite.SubjectClaim,
 						Path: func() types.FS {
 							dirFS, err := types.NewFS(".")
 							require.NoError(t, err)
@@ -248,7 +249,7 @@ http:
 					GroupsClaim:          "groups_direct",
 					Scopes:               []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile},
 					AuthStyle:            config.OAuth2AuthStyle(oauth2.AuthStyleInHeader),
-					OpenVPNUsernameClaim: "sub",
+					OpenVPNUsernameClaim: testsuite.SubjectClaim,
 					OpenVPNUsernameCEL:   "{{ index . 0 }}",
 					Refresh: config.OAuth2Refresh{
 						Enabled:      true,

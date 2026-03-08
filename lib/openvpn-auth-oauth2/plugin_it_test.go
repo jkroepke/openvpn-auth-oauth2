@@ -21,6 +21,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/httphandler"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/stretchr/testify/require"
@@ -208,7 +209,7 @@ func TestIT(t *testing.T) {
 	require.NoError(t, err, containerClientLogs)
 
 	conf := config.Defaults
-	conf.HTTP.Secret = testutils.Secret
+	conf.HTTP.Secret = testsuite.Secret
 
 	logger := testutils.NewTestLogger()
 
@@ -228,12 +229,12 @@ func TestIT(t *testing.T) {
 	conf.OAuth2.Client.ID = clientCredentials.ID
 	conf.OAuth2.Client.Secret = clientCredentials.Secret
 	conf.OAuth2.Refresh.Expires = time.Hour
-	conf.OAuth2.OpenVPNUsernameClaim = "sub"
+	conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 	conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: clientListener.Addr().String()}}
 	conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: "tcp", Host: strings.TrimPrefix(pluginManagementEndpoint, "tcp://")}}
-	conf.OpenVPN.Password = testutils.Password
+	conf.OpenVPN.Password = testsuite.Password
 
-	tokenStorage := tokenstorage.NewInMemory(testutils.Secret, conf.OAuth2.Refresh.Expires)
+	tokenStorage := tokenstorage.NewInMemory(testsuite.Secret, conf.OAuth2.Refresh.Expires)
 	oAuth2Client, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(t.Context(), t, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 	errOpenVPNClientCh := make(chan error, 1)

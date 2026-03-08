@@ -136,9 +136,12 @@ func (c *Client) startClientAuth(ctx context.Context, logger *slog.Logger, clien
 		ipPort = client.IPPort
 	}
 
-	session := state.New(clientIdentifier, ipAddr, ipPort, client.SessionState)
-
-	encodedSession, err := session.Encode(c.conf.HTTP.Secret.String())
+	encryptedOIDCState, err := c.oauth2.EncryptState(state.State{
+		Client:       clientIdentifier,
+		IPAddr:       ipAddr,
+		IPPort:       ipPort,
+		SessionState: client.SessionState,
+	})
 	if err != nil {
 		return fmt.Errorf("error encoding state: %w", err)
 	}
@@ -148,7 +151,7 @@ func (c *Client) startClientAuth(ctx context.Context, logger *slog.Logger, clien
 		urlPath = "/oauth2/start?state="
 	}
 
-	startURL := fmt.Sprintf("%s%s%s", strings.TrimSuffix(c.conf.HTTP.BaseURL.String(), "/"), urlPath, encodedSession)
+	startURL := fmt.Sprintf("%s%s%s", strings.TrimSuffix(c.conf.HTTP.BaseURL.String(), "/"), urlPath, encryptedOIDCState)
 
 	if len(startURL) >= 245 {
 		return fmt.Errorf("url %s (%d chars) too long! OpenVPN support up to 245 chars. "+

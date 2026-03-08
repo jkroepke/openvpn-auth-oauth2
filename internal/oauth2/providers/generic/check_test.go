@@ -12,6 +12,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
@@ -144,7 +145,7 @@ func TestInvalidToken(t *testing.T) {
 			config.Config{
 				OAuth2: config.OAuth2{
 					Validate: config.OAuth2Validate{
-						CommonName: "sub",
+						CommonName: testsuite.SubjectClaim,
 					},
 				},
 			},
@@ -286,7 +287,7 @@ func TestValidateCommonName(t *testing.T) {
 				},
 				OAuth2: config.OAuth2{
 					Validate: config.OAuth2Validate{
-						CommonName: "sub",
+						CommonName: testsuite.SubjectClaim,
 					},
 				},
 			},
@@ -304,7 +305,7 @@ func TestValidateCommonName(t *testing.T) {
 				},
 				OAuth2: config.OAuth2{
 					Validate: config.OAuth2Validate{
-						CommonName: "sub",
+						CommonName: testsuite.SubjectClaim,
 					},
 				},
 			},
@@ -322,7 +323,7 @@ func TestValidateCommonName(t *testing.T) {
 				},
 				OAuth2: config.OAuth2{
 					Validate: config.OAuth2Validate{
-						CommonName:              "sub",
+						CommonName:              testsuite.SubjectClaim,
 						CommonNameCaseSensitive: false,
 					},
 				},
@@ -341,7 +342,7 @@ func TestValidateCommonName(t *testing.T) {
 				},
 				OAuth2: config.OAuth2{
 					Validate: config.OAuth2Validate{
-						CommonName:              "sub",
+						CommonName:              testsuite.SubjectClaim,
 						CommonNameCaseSensitive: true,
 					},
 				},
@@ -360,7 +361,7 @@ func TestValidateCommonName(t *testing.T) {
 				},
 				OAuth2: config.OAuth2{
 					Validate: config.OAuth2Validate{
-						CommonName: "sub",
+						CommonName: testsuite.SubjectClaim,
 					},
 				},
 			},
@@ -396,7 +397,7 @@ func TestValidateCommonName(t *testing.T) {
 				},
 				OAuth2: config.OAuth2{
 					Validate: config.OAuth2Validate{
-						CommonName: "sub",
+						CommonName: testsuite.SubjectClaim,
 					},
 				},
 			},
@@ -409,7 +410,7 @@ func TestValidateCommonName(t *testing.T) {
 			token := &oidc.Tokens[*idtoken.Claims]{
 				IDTokenClaims: &idtoken.Claims{
 					Claims: map[string]any{
-						"sub": tc.tokenCommonName,
+						testsuite.SubjectClaim: tc.tokenCommonName,
 					},
 				},
 			}

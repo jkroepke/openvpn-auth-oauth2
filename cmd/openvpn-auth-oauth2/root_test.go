@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -58,7 +59,7 @@ func TestExecuteConfigInvalid(t *testing.T) {
 		{
 			"invalid log format",
 			[]string{
-				"", "--config=../../config.example.yaml", "--log.format=invalid", "--log.level=warn", "--http.secret=" + testutils.Secret,
+				"", "--config=../../config.example.yaml", "--log.format=invalid", "--log.level=warn", "--http.secret=" + testsuite.Secret,
 				"--http.listen=127.0.0.1:0",
 			},
 			"error setupConfiguration logging: unknown log format: invalid",
@@ -66,7 +67,7 @@ func TestExecuteConfigInvalid(t *testing.T) {
 		{
 			"invalid log level",
 			[]string{
-				"", "--config=../../config.example.yaml", "--log.format=console", "--log.level=invalid", "--http.secret=" + testutils.Secret,
+				"", "--config=../../config.example.yaml", "--log.format=console", "--log.level=invalid", "--http.secret=" + testsuite.Secret,
 				"--http.listen=127.0.0.1:0",
 			},
 			`invalid value "invalid" for flag -log.level: slog: level string "invalid": unknown name`,
@@ -74,20 +75,20 @@ func TestExecuteConfigInvalid(t *testing.T) {
 		{
 			"error oidc provider",
 			[]string{
-				"", "--config=../../config.example.yaml", "--log.format=console", "--log.level=info", "--http.secret=" + testutils.Secret,
+				"", "--config=../../config.example.yaml", "--log.format=console", "--log.level=info", "--http.secret=" + testsuite.Secret,
 				"--http.listen=127.0.0.1:0",
 			},
 			`error oidc provider`,
 		},
 		{
 			"error oidc invalid provider",
-			[]string{"", "--config=../../config.example.yaml", "--log.format=console", "--log.level=info", "--http.secret=" + testutils.Secret, "--http.listen=127.0.0.1:0", "--oauth2.provider=invalid"},
+			[]string{"", "--config=../../config.example.yaml", "--log.format=console", "--log.level=info", "--http.secret=" + testsuite.Secret, "--http.listen=127.0.0.1:0", "--oauth2.provider=invalid"},
 			`unknown oauth2 provider: invalid`,
 		},
 		{
 			"error http listener",
 			[]string{
-				"", "--config=../../config.example.yaml", "--log.format=console", "--log.level=info", "--http.secret=" + testutils.Secret,
+				"", "--config=../../config.example.yaml", "--log.format=console", "--log.level=info", "--http.secret=" + testsuite.Secret,
 				"--http.listen=127.0.0.1:100000", "--oauth2.endpoint.token=http://127.0.0.1:10000/token", "--oauth2.endpoint.auth=http://127.0.0.1:10000/auth",
 			},
 			`error http listener: error http server listening: net.Listen: listen tcp: address 100000: invalid port`,
@@ -95,7 +96,7 @@ func TestExecuteConfigInvalid(t *testing.T) {
 		{
 			"error http debug listener",
 			[]string{
-				"", "--config=../../config.example.yaml", "--log.format=console", "--log.level=info", "--http.secret=" + testutils.Secret,
+				"", "--config=../../config.example.yaml", "--log.format=console", "--log.level=info", "--http.secret=" + testsuite.Secret,
 				"--debug.pprof=true", "--debug.listen=127.0.0.1:100000", "--oauth2.endpoint.token=http://127.0.0.1:10000/token",
 				"--oauth2.endpoint.auth=http://127.0.0.1:10000/auth", "--http.listen=127.0.0.1:0",
 			},

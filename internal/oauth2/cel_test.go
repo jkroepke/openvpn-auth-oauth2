@@ -12,6 +12,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/stretchr/testify/require"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
@@ -246,7 +247,7 @@ func TestCheckTokenCEL(t *testing.T) {
 			provider, err := generic.NewProvider(t.Context(), tc.conf, http.DefaultClient)
 			require.NoError(t, err)
 
-			oAuth2Client, err := oauth2.New(t.Context(), slog.New(slog.DiscardHandler), tc.conf, http.DefaultClient, testutils.NewFakeStorage(), provider, testutils.NewFakeOpenVPNClient())
+			oAuth2Client, err := oauth2.New(t.Context(), slog.New(slog.DiscardHandler), tc.conf, http.DefaultClient, testutils.NewFakeStorage(), testsuite.Cipher, provider, testutils.NewFakeOpenVPNClient())
 			if tc.conf.OAuth2.Validate.CEL == "-" {
 				require.ErrorContains(t, err, "failed to compile CEL expression:")
 

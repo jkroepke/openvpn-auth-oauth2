@@ -11,6 +11,7 @@ import (
 	"github.com/google/cel-go/cel"
 	"github.com/google/cel-go/ext"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/crypto"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
 	"github.com/zitadel/logging"
@@ -21,7 +22,11 @@ import (
 )
 
 // New returns a [Client] instance.
-func New(ctx context.Context, logger *slog.Logger, conf config.Config, httpClient *http.Client, tokenStorage tokenstorage.Storage,
+//
+//nolint:revive
+func New(
+	ctx context.Context, logger *slog.Logger, conf config.Config,
+	httpClient *http.Client, tokenStorage tokenstorage.Storage, stateCrypto *crypto.Cipher,
 	provider Provider, openvpn openvpnManagementClient,
 ) (*Client, error) {
 	providerConfig, err := provider.GetProviderConfig()
@@ -35,6 +40,7 @@ func New(ctx context.Context, logger *slog.Logger, conf config.Config, httpClien
 		conf:            conf,
 		logger:          logger,
 		provider:        provider,
+		stateCrypto:     stateCrypto,
 		authorizeParams: make([]rp.URLParamOpt, 0, len(conf.OAuth2.AuthorizeParams)+len(providerConfig.AuthCodeOptions)+1), // +1 for nonce
 	}
 

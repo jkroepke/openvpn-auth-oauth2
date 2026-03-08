@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/version"
 	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/management"
@@ -126,7 +127,7 @@ func TestServer_Listen_Password_Correct(t *testing.T) {
 	err = managementInterface.Close()
 	require.NoError(t, err)
 
-	managementServer := management.NewServer(slog.New(slog.DiscardHandler), testutils.Password)
+	managementServer := management.NewServer(slog.New(slog.DiscardHandler), testsuite.Password)
 	err = managementServer.Listen(t.Context(), fmt.Sprintf("%s://%s", managementInterface.Addr().Network(), managementInterface.Addr().String()))
 	require.NoError(t, err)
 
@@ -147,7 +148,7 @@ func TestServer_Listen_Password_Correct(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "ENTER PASSWORD:", resp)
 
-	testutils.SendMessagef(t, client, testutils.Password)
+	testutils.SendMessagef(t, client, testsuite.Password)
 	testutils.ExpectMessage(t, client, clientReader, "SUCCESS: password is correct")
 	testutils.ExpectMessage(t, client, clientReader, openvpn.WelcomeBanner)
 	testutils.SendMessagef(t, client, "quit")
@@ -162,7 +163,7 @@ func TestServer_Listen_Password_Incorrect(t *testing.T) {
 	err = managementInterface.Close()
 	require.NoError(t, err)
 
-	managementServer := management.NewServer(slog.New(slog.DiscardHandler), testutils.Secret)
+	managementServer := management.NewServer(slog.New(slog.DiscardHandler), testsuite.Secret)
 	err = managementServer.Listen(t.Context(), fmt.Sprintf("%s://%s", managementInterface.Addr().Network(), managementInterface.Addr().String()))
 	require.NoError(t, err)
 
@@ -183,7 +184,7 @@ func TestServer_Listen_Password_Incorrect(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "ENTER PASSWORD:", resp)
 
-	testutils.SendMessagef(t, client, testutils.Password)
+	testutils.SendMessagef(t, client, testsuite.Password)
 	testutils.ExpectMessage(t, client, clientReader, "ERROR: bad password")
 	testutils.SendMessagef(t, client, "quit")
 }

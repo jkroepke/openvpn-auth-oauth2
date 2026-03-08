@@ -20,6 +20,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/google"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -46,7 +47,7 @@ func TestRefreshReAuth(t *testing.T) {
 			nonInteractiveShouldWork: true,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsernameClaim = testutils.SubjectClaim
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 				conf.OAuth2.Refresh.Enabled = true
 				conf.OAuth2.Refresh.ValidateUser = true
 				conf.OAuth2.Refresh.UseSessionID = false
@@ -61,7 +62,7 @@ func TestRefreshReAuth(t *testing.T) {
 			nonInteractiveShouldWork: true,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsernameClaim = testutils.SubjectClaim
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 				conf.OpenVPN.ReAuthentication = false
 
 				return conf
@@ -90,7 +91,7 @@ func TestRefreshReAuth(t *testing.T) {
 			nonInteractiveShouldWork: true,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsernameClaim = testutils.SubjectClaim
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 				conf.OpenVPN.AuthTokenUser = true
 				conf.OpenVPN.OverrideUsername = true
 				conf.OAuth2.Refresh.Enabled = true
@@ -107,7 +108,7 @@ func TestRefreshReAuth(t *testing.T) {
 			nonInteractiveShouldWork: true,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsernameClaim = testutils.SubjectClaim
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 				conf.OAuth2.Refresh.Enabled = true
 				conf.OAuth2.Refresh.ValidateUser = false
 				conf.OAuth2.Refresh.UseSessionID = false
@@ -122,7 +123,7 @@ func TestRefreshReAuth(t *testing.T) {
 			nonInteractiveShouldWork: true,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsernameClaim = testutils.SubjectClaim
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 				conf.OAuth2.Validate.Groups = []string{"group1"}
 				conf.OAuth2.UserInfo = true
 				conf.OAuth2.Refresh.Enabled = true
@@ -137,7 +138,7 @@ func TestRefreshReAuth(t *testing.T) {
 			nonInteractiveShouldWork: true,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsernameClaim = testutils.SubjectClaim
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 				conf.OpenVPN.AuthTokenUser = false
 				conf.OAuth2.Refresh.Enabled = true
 				conf.OAuth2.Refresh.ValidateUser = false
@@ -153,7 +154,7 @@ func TestRefreshReAuth(t *testing.T) {
 			nonInteractiveShouldWork: true,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsernameClaim = testutils.SubjectClaim
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 				conf.OpenVPN.AuthTokenUser = false
 				conf.OAuth2.Refresh.Enabled = true
 				conf.OAuth2.Refresh.ValidateUser = true
@@ -169,7 +170,7 @@ func TestRefreshReAuth(t *testing.T) {
 			nonInteractiveShouldWork: true,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsernameClaim = testutils.SubjectClaim
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 				conf.OpenVPN.AuthTokenUser = false
 				conf.OAuth2.Provider = google.Name
 				conf.OAuth2.Scopes = []string{types.ScopeEmail, types.ScopeProfile, types.ScopeOpenID, types.ScopeOfflineAccess}
@@ -187,7 +188,7 @@ func TestRefreshReAuth(t *testing.T) {
 			nonInteractiveShouldWork: true,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsernameClaim = testutils.SubjectClaim
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 				conf.OpenVPN.AuthTokenUser = false
 				conf.OAuth2.Provider = github.Name
 				conf.OAuth2.Refresh.Enabled = true
@@ -204,7 +205,7 @@ func TestRefreshReAuth(t *testing.T) {
 			nonInteractiveShouldWork: false,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsernameClaim = testutils.SubjectClaim
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 				conf.OAuth2.Refresh.Enabled = true
 				conf.OAuth2.Refresh.ValidateUser = true
 				conf.OAuth2.Refresh.UseSessionID = false
@@ -213,7 +214,7 @@ func TestRefreshReAuth(t *testing.T) {
 			}(),
 			rt: http.DefaultTransport,
 			opConf: &op.Config{
-				CryptoKey:                testutils.HashSecret,
+				CryptoKey:                testsuite.HashSecret,
 				DefaultLogoutRedirectURI: "/",
 				CodeMethodS256:           true,
 				AuthMethodPost:           true,
@@ -230,7 +231,7 @@ func TestRefreshReAuth(t *testing.T) {
 			nonInteractiveShouldWork: false,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsernameClaim = testutils.SubjectClaim
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 				conf.OpenVPN.AuthTokenUser = false
 				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Refresh.Enabled = true
@@ -268,7 +269,7 @@ func TestRefreshReAuth(t *testing.T) {
 			nonInteractiveShouldWork: true,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsernameClaim = testutils.SubjectClaim
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 				conf.OpenVPN.AuthTokenUser = false
 				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Refresh.Enabled = true
@@ -329,7 +330,7 @@ func TestRefreshReAuth(t *testing.T) {
 			nonInteractiveShouldWork: false,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsernameClaim = testutils.SubjectClaim
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 				conf.OpenVPN.AuthTokenUser = false
 				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Refresh.Enabled = true

@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/cel-go/cel"
 	types2 "github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/crypto"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
@@ -20,6 +21,7 @@ type Client struct {
 	provider        Provider
 	celEvalPrg      cel.Program
 	logger          *slog.Logger
+	stateCrypto     *crypto.Cipher
 	authorizeParams []rp.URLParamOpt
 	conf            types2.Config
 }
@@ -38,7 +40,7 @@ type Provider interface {
 
 // clientConfigToken is used to store additional information on the client side.
 type clientConfigToken struct {
-	Username string   `json:"username,omitempty"`
-	State    string   `json:"state,omitempty"`
-	Profiles []string `json:"profiles,omitempty"`
+	Username             string               `json:"username,omitempty"`
+	EncryptedOAuth2State state.EncryptedState `json:"state,omitempty"`
+	Profiles             []string             `json:"profiles,omitempty"`
 }
