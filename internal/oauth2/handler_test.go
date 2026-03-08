@@ -1079,7 +1079,7 @@ func TestOAuth2ProfileSubmit(t *testing.T) {
 
 				return req
 			},
-			"base64 decode -",
+			"illegal base64 data at input",
 		},
 		{
 			"invalid token content",
@@ -1123,7 +1123,7 @@ func TestOAuth2ProfileSubmit(t *testing.T) {
 
 				return req
 			},
-			"Invalid State: decrypt aes",
+			"Invalid State: decrypt state: ciphertext block size is too short",
 		},
 		{
 			"no refresh token in storage",

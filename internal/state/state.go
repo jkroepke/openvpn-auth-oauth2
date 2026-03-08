@@ -9,7 +9,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/crypto"
 )
 
-const numFields = 11
+const numFields = 8
 
 // State represents the context and security information associated with an OAuth2 login flow.
 //
@@ -42,7 +42,7 @@ type ClientIdentifier struct {
 // Encrypt serializes the state into a space-separated, Salsa20-encrypted, base64-URL-safe string.
 // Fields are encoded in fixed order:
 //
-//	CID KID SessionID UsernameIsDefined CommonName IPAddr IPPort SessionState Issued
+//	CID KID SessionID UsernameIsDefined CommonName IPAddr IPPort SessionState
 //
 // Empty strings are encoded as \x00, and spaces as \x00.
 // The result is safe for use in URL parameters and has a ~1-second resolution timestamp.
@@ -88,7 +88,7 @@ func Encrypt(cipher *crypto.Cipher, state State) (EncryptedState, error) {
 }
 
 func Decrypt(cipher *crypto.Cipher, encryptedState EncryptedState) (State, error) {
-	data, err := cipher.DecryptBytes([]byte(encryptedState))
+	data, err := cipher.DecryptBytesWithTime([]byte(encryptedState))
 	if err != nil {
 		return State{}, fmt.Errorf("decrypt state: %w", err)
 	}
@@ -113,17 +113,17 @@ func splitStateFields(data []byte) ([][]byte, error) {
 
 // Helper to parse all fields into the State struct.
 func parseStateFields(fields [][]byte) (State, error) {
-	cid, err := strconv.ParseUint(string(fields[1]), 10, 64)
+	cid, err := strconv.ParseUint(string(fields[0]), 10, 64)
 	if err != nil {
 		return State{}, fmt.Errorf("parse CID: %w", err)
 	}
 
-	kid, err := strconv.ParseUint(string(fields[2]), 10, 64)
+	kid, err := strconv.ParseUint(string(fields[1]), 10, 64)
 	if err != nil {
 		return State{}, fmt.Errorf("parse KID: %w", err)
 	}
 
-	usernameIsDefined, err := strconv.Atoi(string(fields[4]))
+	usernameIsDefined, err := strconv.Atoi(string(fields[3]))
 	if err != nil {
 		return State{}, fmt.Errorf("parse UsernameIsDefined: %w", err)
 	}
@@ -132,13 +132,13 @@ func parseStateFields(fields [][]byte) (State, error) {
 		Client: ClientIdentifier{
 			CID:               cid,
 			KID:               kid,
-			SessionID:         decodeStringBytes(fields[3]),
+			SessionID:         decodeStringBytes(fields[2]),
 			UsernameIsDefined: usernameIsDefined,
-			CommonName:        decodeStringBytes(fields[5]),
+			CommonName:        decodeStringBytes(fields[4]),
 		},
-		IPAddr:       string(fields[6]),
-		IPPort:       string(fields[7]),
-		SessionState: decodeSessionState(string(fields[8])),
+		IPAddr:       string(fields[5]),
+		IPPort:       string(fields[6]),
+		SessionState: decodeSessionState(string(fields[7])),
 	}
 
 	return state, nil

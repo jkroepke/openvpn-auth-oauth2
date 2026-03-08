@@ -158,12 +158,12 @@ func (c *Cipher) DecryptBytesWithTime(encryptedBase64 []byte) ([]byte, error) {
 
 	encrypted := make([]byte, base64.URLEncoding.DecodedLen(len(encryptedBase64)))
 
-	_, err := base64.URLEncoding.Decode(encryptedBase64, encrypted)
+	n, err := base64.URLEncoding.Decode(encrypted, encryptedBase64)
 	if err != nil {
 		return nil, fmt.Errorf("base64 decode %q: %w", encryptedBase64, err)
 	}
 
-	data, err := c.DecryptBytes(encrypted)
+	data, err := c.DecryptBytes(encrypted[:n])
 	if err != nil {
 		return nil, err
 	}

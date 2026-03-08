@@ -75,7 +75,7 @@ func TestStateInvalid(t *testing.T) {
 			encodedToken: func() (state.EncryptedState, error) {
 				return strings.Repeat("a", 10000), nil
 			},
-			expectedErr: "invalid state: token too large",
+			expectedErr: "invalid data: token too large",
 		},
 		{
 			name: "invalid CID",
@@ -85,7 +85,7 @@ func TestStateInvalid(t *testing.T) {
 					return "", err
 				}
 
-				return base64.URLEncoding.EncodeToString(encrypted), nil
+				return string(encrypted), nil
 			},
 			expectedErr: "parse CID: strconv.ParseUint",
 		},
@@ -97,7 +97,7 @@ func TestStateInvalid(t *testing.T) {
 					return "", err
 				}
 
-				return base64.URLEncoding.EncodeToString(encrypted), nil
+				return string(encrypted), nil
 			},
 			expectedErr: "parse KID: strconv.ParseUint",
 		},
@@ -109,7 +109,7 @@ func TestStateInvalid(t *testing.T) {
 					return "", err
 				}
 
-				return base64.URLEncoding.EncodeToString(encrypted), nil
+				return string(encrypted), nil
 			},
 			expectedErr: "parse UsernameIsDefined: strconv.Atoi",
 		},
