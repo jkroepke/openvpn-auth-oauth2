@@ -18,7 +18,7 @@ const numFields = 8
 // thus preventing CSRF (Cross-Site Request Forgery) attacks. The `State` value is returned
 // by the OAuth2 Identity Provider (IDP) in the redirect URL.
 //
-// To prevent tampering, the `State` is protected using Salsa20 encryption.
+// To prevent tampering, the `State` is protected using Salsa20 + HMAC encryption.
 type State struct {
 	IPAddr       string
 	IPPort       string
@@ -88,6 +88,10 @@ func Encrypt(cipher *crypto.Cipher, state State) (EncryptedState, error) {
 }
 
 func Decrypt(cipher *crypto.Cipher, encryptedState EncryptedState) (State, error) {
+	if cipher == nil {
+		return State{}, errors.New("cipher is required")
+	}
+
 	data, err := cipher.DecryptBytesWithTime([]byte(encryptedState))
 	if err != nil {
 		return State{}, fmt.Errorf("decrypt state: %w", err)

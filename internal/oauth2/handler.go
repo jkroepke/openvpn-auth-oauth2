@@ -142,6 +142,9 @@ func (c *Client) OAuth2ProfileSubmit() http.Handler {
 		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 		defer cancel()
 
+		// G120: Parsing form data without limiting request body size can allow memory exhaustion
+		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+
 		encryptedToken := r.FormValue("token")
 		if encryptedToken == "" {
 			c.writeHTTPError(ctx, w, c.logger, http.StatusBadRequest, "Bad Request", "token is empty")

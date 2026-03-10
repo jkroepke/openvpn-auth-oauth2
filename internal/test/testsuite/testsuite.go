@@ -191,6 +191,9 @@ func (s *Suite) SetupOIDCServer(tb testing.TB, clientListener net.Listener, opCo
 	httpHandler := http.NewServeMux()
 	httpHandler.Handle("/", opProvider)
 	httpHandler.Handle("/login/username", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// G120: Parsing form data without limiting request body size can allow memory exhaustion
+		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+
 		_ = opStorage.CheckUsernamePassword("test-user@localhost", "verysecure", r.FormValue("authRequestID"))
 		http.Redirect(w, r, op.AuthCallbackURL(opProvider)(r.Context(), r.FormValue("authRequestID")), http.StatusFound)
 	}))
