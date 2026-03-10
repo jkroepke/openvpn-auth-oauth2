@@ -35,7 +35,7 @@ func TestClientInvalidServer(t *testing.T) {
 	conf := config.Config{
 		HTTP: config.HTTP{
 			BaseURL: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
-			Secret:  testutils.Secret,
+			Secret:  testsuite.Secret,
 		},
 		OpenVPN: config.OpenVPN{
 			Addr:   types.URL{URL: &url.URL{Scheme: "tcp", Host: "127.0.0.1:1"}},
@@ -43,7 +43,7 @@ func TestClientInvalidServer(t *testing.T) {
 		},
 	}
 
-	tokenStorage := tokenstorage.NewInMemory(testutils.Secret, time.Hour)
+	tokenStorage := tokenstorage.NewInMemory(testsuite.Secret, time.Hour)
 	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 	err := openVPNClient.Connect(t.Context())
@@ -66,7 +66,7 @@ func TestClientFull(t *testing.T) {
 			conf: func() config.Config {
 				conf := config.Defaults
 				conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.OpenVPN.CommonName.EnvironmentVariableName = config.CommonName
 				conf.OpenVPN.Bypass = config.OpenVPNBypass{CommonNames: make(types.RegexpSlice, 0)}
 				conf.OAuth2.Validate.IPAddr = true
@@ -81,10 +81,10 @@ func TestClientFull(t *testing.T) {
 			func() config.Config {
 				conf := config.Defaults
 				conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.OpenVPN.CommonName.EnvironmentVariableName = config.CommonName
 				conf.OpenVPN.Bypass = config.OpenVPNBypass{CommonNames: make(types.RegexpSlice, 0)}
-				conf.OpenVPN.Password = testutils.Password
+				conf.OpenVPN.Password = testsuite.Password
 				conf.OAuth2.Validate.IPAddr = true
 
 				return conf
@@ -98,7 +98,7 @@ func TestClientFull(t *testing.T) {
 			conf: func() config.Config {
 				conf := config.Defaults
 				conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.OpenVPN.CommonName.EnvironmentVariableName = "username"
 				conf.OpenVPN.Bypass = config.OpenVPNBypass{CommonNames: make(types.RegexpSlice, 0)}
 				conf.OAuth2.Validate.IPAddr = true
@@ -116,7 +116,7 @@ func TestClientFull(t *testing.T) {
 				conf.HTTP.Secret = "012345678910111"
 				conf.OpenVPN.CommonName.EnvironmentVariableName = config.CommonName
 				conf.OpenVPN.Bypass = config.OpenVPNBypass{CommonNames: make(types.RegexpSlice, 0)}
-				conf.OpenVPN.Password = testutils.Password
+				conf.OpenVPN.Password = testsuite.Password
 
 				return conf
 			}(),
@@ -129,10 +129,10 @@ func TestClientFull(t *testing.T) {
 			conf: func() config.Config {
 				conf := config.Defaults
 				conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.OpenVPN.CommonName.EnvironmentVariableName = config.CommonName
 				conf.OpenVPN.Bypass = config.OpenVPNBypass{CommonNames: make(types.RegexpSlice, 0)}
-				conf.OpenVPN.Password = testutils.Password
+				conf.OpenVPN.Password = testsuite.Password
 
 				return conf
 			}(),
@@ -145,10 +145,10 @@ func TestClientFull(t *testing.T) {
 			func() config.Config {
 				conf := config.Defaults
 				conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost", Path: strings.Repeat("a", 255)}}
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.OpenVPN.CommonName.EnvironmentVariableName = config.CommonName
 				conf.OpenVPN.Bypass = config.OpenVPNBypass{CommonNames: make(types.RegexpSlice, 0)}
-				conf.OpenVPN.Password = testutils.Password
+				conf.OpenVPN.Password = testsuite.Password
 
 				return conf
 			}(),
@@ -161,10 +161,10 @@ func TestClientFull(t *testing.T) {
 			func() config.Config {
 				conf := config.Defaults
 				conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.OpenVPN.CommonName.EnvironmentVariableName = config.CommonName
 				conf.OpenVPN.Bypass = config.OpenVPNBypass{CommonNames: types.RegexpSlice{regexp.MustCompile(`^bypass$`)}}
-				conf.OpenVPN.Password = testutils.Password
+				conf.OpenVPN.Password = testsuite.Password
 				conf.OpenVPN.AuthTokenUser = false
 
 				return conf
@@ -178,10 +178,10 @@ func TestClientFull(t *testing.T) {
 			conf: func() config.Config {
 				conf := config.Defaults
 				conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.OpenVPN.CommonName.EnvironmentVariableName = config.CommonName
 				conf.OpenVPN.Bypass = config.OpenVPNBypass{CommonNames: types.RegexpSlice{regexp.MustCompile(`^bypass$`)}}
-				conf.OpenVPN.Password = testutils.Password
+				conf.OpenVPN.Password = testsuite.Password
 				conf.OpenVPN.AuthTokenUser = false
 
 				return conf
@@ -194,10 +194,10 @@ func TestClientFull(t *testing.T) {
 			func() config.Config {
 				conf := config.Defaults
 				conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.OpenVPN.CommonName.EnvironmentVariableName = config.CommonName
 				conf.OpenVPN.Bypass = config.OpenVPNBypass{CommonNames: types.RegexpSlice{regexp.MustCompile(`^bypass$`)}}
-				conf.OpenVPN.Password = testutils.Password
+				conf.OpenVPN.Password = testsuite.Password
 
 				return conf
 			}(),
@@ -210,10 +210,10 @@ func TestClientFull(t *testing.T) {
 			func() config.Config {
 				conf := config.Defaults
 				conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.OpenVPN.CommonName.EnvironmentVariableName = config.CommonName
 				conf.OpenVPN.Bypass = config.OpenVPNBypass{CommonNames: types.RegexpSlice{regexp.MustCompile(`^bypass$`)}}
-				conf.OpenVPN.Password = testutils.Password
+				conf.OpenVPN.Password = testsuite.Password
 
 				return conf
 			}(),
@@ -226,10 +226,10 @@ func TestClientFull(t *testing.T) {
 			func() config.Config {
 				conf := config.Defaults
 				conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.OpenVPN.CommonName.EnvironmentVariableName = config.CommonName
 				conf.OpenVPN.Bypass = config.OpenVPNBypass{CommonNames: types.RegexpSlice{regexp.MustCompile(`^bypass$`)}}
-				conf.OpenVPN.Password = testutils.Password
+				conf.OpenVPN.Password = testsuite.Password
 
 				return conf
 			}(),
@@ -243,10 +243,10 @@ func TestClientFull(t *testing.T) {
 			func() config.Config {
 				conf := config.Defaults
 				conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.OpenVPN.CommonName.EnvironmentVariableName = config.CommonName
 				conf.OpenVPN.Bypass = config.OpenVPNBypass{CommonNames: types.RegexpSlice{regexp.MustCompile(`^bypass$`)}}
-				conf.OpenVPN.Password = testutils.Password
+				conf.OpenVPN.Password = testsuite.Password
 
 				return conf
 			}(),
@@ -272,7 +272,7 @@ func TestClientFull(t *testing.T) {
 
 			tc.conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
 
-			tokenStorage := tokenstorage.NewInMemory(testutils.Secret, time.Hour)
+			tokenStorage := tokenstorage.NewInMemory(testsuite.Secret, time.Hour)
 			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, tc.conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 			managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
@@ -332,7 +332,7 @@ func TestClientFull(t *testing.T) {
 				matches := regexp.MustCompile(`state=(.+)"`).FindStringSubmatch(auth)
 				require.Len(t, matches, 2)
 
-				sessionState, err := state.NewWithEncodedToken(matches[1], tc.conf.HTTP.Secret.String())
+				sessionState, err := state.Decrypt(testsuite.Cipher, matches[1])
 				require.NoError(t, err)
 
 				require.Equal(t, uint64(1), sessionState.Client.CID)
@@ -431,7 +431,7 @@ func TestHoldRelease(t *testing.T) {
 	conf := config.Config{
 		HTTP: config.HTTP{
 			BaseURL: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
-			Secret:  testutils.Secret,
+			Secret:  testsuite.Secret,
 		},
 		OpenVPN: config.OpenVPN{
 			Bypass: config.OpenVPNBypass{CommonNames: make(types.RegexpSlice, 0)},
@@ -447,7 +447,7 @@ func TestHoldRelease(t *testing.T) {
 
 	conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
 
-	tokenStorage := tokenstorage.NewInMemory(testutils.Secret, time.Hour)
+	tokenStorage := tokenstorage.NewInMemory(testsuite.Secret, time.Hour)
 	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 	managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
@@ -482,7 +482,7 @@ func TestCommandTimeout(t *testing.T) {
 	conf := config.Config{
 		HTTP: config.HTTP{
 			BaseURL: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
-			Secret:  testutils.Secret,
+			Secret:  testsuite.Secret,
 		},
 		OpenVPN: config.OpenVPN{
 			Bypass:         config.OpenVPNBypass{CommonNames: make(types.RegexpSlice, 0)},
@@ -499,7 +499,7 @@ func TestCommandTimeout(t *testing.T) {
 
 	conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
 
-	tokenStorage := tokenstorage.NewInMemory(testutils.Secret, time.Hour)
+	tokenStorage := tokenstorage.NewInMemory(testsuite.Secret, time.Hour)
 	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 	managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
@@ -555,7 +555,7 @@ func TestDeadLocks(t *testing.T) {
 
 			conf := config.Defaults
 			conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
-			conf.HTTP.Secret = testutils.Secret
+			conf.HTTP.Secret = testsuite.Secret
 			conf.OpenVPN.Bypass = config.OpenVPNBypass{CommonNames: make(types.RegexpSlice, 0)}
 
 			managementInterface, err := nettest.NewLocalListener("tcp")
@@ -567,7 +567,7 @@ func TestDeadLocks(t *testing.T) {
 
 			conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
 
-			tokenStorage := tokenstorage.NewInMemory(testutils.Secret, time.Hour)
+			tokenStorage := tokenstorage.NewInMemory(testsuite.Secret, time.Hour)
 			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 			managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
@@ -619,7 +619,7 @@ func TestInvalidCommandResponses(t *testing.T) {
 			conf := config.Config{
 				HTTP: config.HTTP{
 					BaseURL: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
-					Secret:  testutils.Secret,
+					Secret:  testsuite.Secret,
 				},
 				OpenVPN: config.OpenVPN{
 					Bypass: config.OpenVPNBypass{CommonNames: make(types.RegexpSlice, 0)},
@@ -635,7 +635,7 @@ func TestInvalidCommandResponses(t *testing.T) {
 
 			conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
 
-			tokenStorage := tokenstorage.NewInMemory(testutils.Secret, time.Hour)
+			tokenStorage := tokenstorage.NewInMemory(testsuite.Secret, time.Hour)
 			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 			managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)

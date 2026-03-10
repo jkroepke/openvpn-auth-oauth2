@@ -13,6 +13,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/github"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/google"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -156,7 +157,7 @@ func TestNewProvider(t *testing.T) {
 
 			require.NoError(t, err)
 
-			oAuth2Client, err := oauth2.New(ctx, logger.Logger, tc.conf, http.DefaultClient, testutils.NewFakeStorage(), provider, testutils.NewFakeOpenVPNClient())
+			oAuth2Client, err := oauth2.New(ctx, logger.Logger, tc.conf, http.DefaultClient, testutils.NewFakeStorage(), testsuite.Cipher, provider, testutils.NewFakeOpenVPNClient())
 			if tc.err != "" {
 				require.Error(t, err)
 				assert.Equal(t, tc.err, strings.TrimSpace(err.Error()))

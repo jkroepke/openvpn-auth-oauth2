@@ -19,6 +19,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/httphandler"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/c"
@@ -43,7 +44,7 @@ func TestPlugin(t *testing.T) {
 			conf: func() config.Config {
 				conf := config.Defaults
 				conf.OAuth2.Refresh.Enabled = true
-				conf.OAuth2.Refresh.Secret = testutils.Secret
+				conf.OAuth2.Refresh.Secret = testsuite.Secret
 				conf.OAuth2.Refresh.UseSessionID = true
 
 				return conf
@@ -125,16 +126,16 @@ func TestPlugin(t *testing.T) {
 
 			tc.conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: "unix", Path: unixSocket}}
 			tc.conf.OpenVPN.Password = "password"
-			tc.conf.OAuth2.OpenVPNUsernameClaim = "sub"
+			tc.conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 			tc.conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: clientListener.Addr().String()}}
-			tc.conf.HTTP.Secret = testutils.Secret
+			tc.conf.HTTP.Secret = testsuite.Secret
 			tc.conf.OAuth2.Issuer = resourceServerURL
 			tc.conf.OAuth2.Nonce = true                                  // enable nonce for mock testing
 			tc.conf.OAuth2.RefreshNonce = config.OAuth2RefreshNonceEmpty // use empty nonce for the token refresh to avoid mock issues.
 			tc.conf.OAuth2.Client.ID = clientCredentials.ID
 			tc.conf.OAuth2.Client.Secret = clientCredentials.Secret
 
-			tokenStorage := tokenstorage.NewInMemory(testutils.Secret, time.Hour)
+			tokenStorage := tokenstorage.NewInMemory(testsuite.Secret, time.Hour)
 			oAuth2Client, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(t.Context(), t, tc.conf, logger.Logger, http.DefaultClient, tokenStorage)
 
 			httpHandler := httphandler.New(tc.conf, oAuth2Client)

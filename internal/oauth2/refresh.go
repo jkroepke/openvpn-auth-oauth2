@@ -24,7 +24,7 @@ func (c *Client) RefreshClientAuth(ctx context.Context, logger *slog.Logger, cli
 		clientID = client.SessionID
 	}
 
-	refreshToken, err := c.storage.Get(clientID)
+	refreshToken, err := c.storage.Get(ctx, clientID)
 	if err != nil {
 		if errors.Is(err, tokenstorage.ErrNotExists) {
 			logger.LogAttrs(ctx, slog.LevelDebug, "no refresh token found for client "+clientID)
@@ -56,11 +56,6 @@ func (c *Client) RefreshClientAuth(ctx context.Context, logger *slog.Logger, cli
 		return types.UserInfo{}, nil, false, fmt.Errorf("error from non-interactive authentication via refresh token: %w", err)
 	}
 
-	session := state.New(
-		state.ClientIdentifier{CID: client.CID, KID: client.KID, SessionID: client.SessionID, CommonName: client.CommonName},
-		client.IPAddr, client.IPPort, client.SessionState,
-	)
-
 	var userInfo *types.UserInfo
 
 	if c.conf.OAuth2.UserInfo {
@@ -78,11 +73,18 @@ func (c *Client) RefreshClientAuth(ctx context.Context, logger *slog.Logger, cli
 		return types.UserInfo{}, nil, false, fmt.Errorf("error fetch user data: %w", err)
 	}
 
-	if err := c.provider.CheckUser(ctx, session, user, tokens); err != nil {
+	oAuth2State := state.State{
+		Client:       state.ClientIdentifier{CID: client.CID, KID: client.KID, SessionID: client.SessionID, CommonName: client.CommonName},
+		IPAddr:       client.IPAddr,
+		IPPort:       client.IPPort,
+		SessionState: client.SessionState,
+	}
+
+	if err := c.provider.CheckUser(ctx, oAuth2State, user, tokens); err != nil {
 		return types.UserInfo{}, nil, false, fmt.Errorf("error check user data: %w", err)
 	}
 
-	if err = c.CheckTokenCEL(CELAuthModeNonInteractive, session, tokens); err != nil {
+	if err = c.CheckTokenCEL(CELAuthModeNonInteractive, oAuth2State, tokens); err != nil {
 		return types.UserInfo{}, nil, false, fmt.Errorf("error cel validation: %w", err)
 	}
 
@@ -93,7 +95,7 @@ func (c *Client) RefreshClientAuth(ctx context.Context, logger *slog.Logger, cli
 		logLevel := slog.LevelWarn
 
 		if errors.Is(err, ErrNoRefreshToken) {
-			if session.SessionState == "AuthenticatedEmptyUser" || session.SessionState == "Authenticated" {
+			if oAuth2State.SessionState == "AuthenticatedEmptyUser" || oAuth2State.SessionState == "Authenticated" {
 				logLevel = slog.LevelDebug
 			}
 		}
@@ -105,7 +107,7 @@ func (c *Client) RefreshClientAuth(ctx context.Context, logger *slog.Logger, cli
 
 	if refreshToken == "" {
 		logger.LogAttrs(ctx, slog.LevelWarn, "refresh token is empty")
-	} else if err = c.storage.Set(clientID, refreshToken); err != nil {
+	} else if err = c.storage.Set(ctx, clientID, refreshToken); err != nil {
 		logger.LogAttrs(ctx, slog.LevelWarn, "unable to store refresh token",
 			slog.Any("err", err),
 		)
@@ -125,7 +127,7 @@ func (c *Client) ClientDisconnect(ctx context.Context, logger *slog.Logger, clie
 		clientID = client.SessionID
 	}
 
-	refreshToken, err := c.storage.Get(clientID)
+	refreshToken, err := c.storage.Get(ctx, clientID)
 	if err != nil {
 		logLevel := slog.LevelWarn
 		if errors.Is(err, tokenstorage.ErrNotExists) {
@@ -137,7 +139,7 @@ func (c *Client) ClientDisconnect(ctx context.Context, logger *slog.Logger, clie
 		return
 	}
 
-	if err = c.storage.Delete(clientID); err != nil {
+	if err = c.storage.Delete(ctx, clientID); err != nil {
 		logger.LogAttrs(ctx, slog.LevelWarn, fmt.Errorf("error delete refresh token from storage: %w", err).Error())
 
 		return

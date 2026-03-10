@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/madflojo/testcerts"
@@ -96,11 +97,11 @@ func TestFull(t *testing.T) {
 					"--debug.pprof",
 					"--debug.listen=127.0.0.1:0",
 					fmt.Sprintf("--http.baseurl=%s://%s", protocol, httpListener.Addr().String()),
-					"--http.secret=" + testutils.Secret,
+					"--http.secret=" + testsuite.Secret,
 					"--http.listen=" + httpListener.Addr().String(),
 					"--http.assets-path=../../internal/ui/assets",
 					"--openvpn.addr=tcp://" + managementInterface.Addr().String(),
-					"--oauth2.openvpn-username-claim", "sub",
+					"--oauth2.openvpn-username-claim", testsuite.SubjectClaim,
 					"--oauth2.issuer", resourceServer.URL,
 					"--oauth2.client.id", clientCredentials.ID,
 					"--oauth2.client.secret", clientCredentials.Secret.String(),

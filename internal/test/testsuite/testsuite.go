@@ -3,7 +3,6 @@ package testsuite
 import (
 	"bufio"
 	"context"
-	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -32,13 +31,6 @@ import (
 	oidcstorage "github.com/zitadel/oidc/v3/example/server/storage"
 	"github.com/zitadel/oidc/v3/pkg/op"
 	"golang.org/x/net/nettest"
-	"golang.org/x/text/language"
-)
-
-//nolint:gochecknoglobals
-var (
-	HashSecret         = sha256.Sum256([]byte(Secret))
-	SupportedUILocales = []language.Tag{language.English}
 )
 
 type Suite struct {
@@ -186,7 +178,6 @@ func (s *Suite) SetupOIDCServer(tb testing.TB, clientListener net.Listener, opCo
 			GrantTypeRefreshToken:    true,
 			RequestObjectSupported:   true,
 			SupportedUILocales:       SupportedUILocales,
-			// SupportedScopes:          []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile, oauth2types.ScopeOfflineAccess},
 		}
 	}
 
@@ -285,7 +276,7 @@ func (s *Suite) SetupOpenVPNOAuth2Clients(ctx context.Context, tb testing.TB, to
 	require.NoError(tb, err)
 
 	openVPNClient := openvpn.New(s.logger.Logger, s.conf)
-	oAuth2Client, err := oauth2.New(ctx, s.logger.Logger, s.conf, s.httpClient, tokenStorage, provider, openVPNClient)
+	oAuth2Client, err := oauth2.New(ctx, s.logger.Logger, s.conf, s.httpClient, tokenStorage, Cipher, provider, openVPNClient)
 	require.NoError(tb, err)
 
 	openVPNClient.SetOAuth2Client(oAuth2Client)

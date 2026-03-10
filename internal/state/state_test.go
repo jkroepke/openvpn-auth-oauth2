@@ -2,104 +2,48 @@ package state_test
 
 import (
 	"encoding/base64"
-	"fmt"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
-	"github.com/stretchr/testify/assert"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
 	"github.com/stretchr/testify/require"
-	"github.com/zitadel/oidc/v3/pkg/crypto"
 )
 
 func TestState(t *testing.T) {
 	t.Parallel()
 
-	encryptionKey := testutils.Secret
-
-	for i := 1; i < 50; i++ {
-		token := state.New(state.ClientIdentifier{CID: 9223372036854775807, KID: 2, CommonName: "test"}, "127.0.0.1", "12345", "")
-		encodedTokenString, err := token.Encode(encryptionKey)
-		require.NoError(t, err)
-
-		encodedToken, err := state.NewWithEncodedToken(encodedTokenString, encryptionKey)
-		require.NoError(t, err)
-
-		assert.Equal(t, token.Client.CID, encodedToken.Client.CID)
-		assert.Equal(t, token.Client.KID, encodedToken.Client.KID)
-		assert.Equal(t, token.Client.CommonName, encodedToken.Client.CommonName)
-		assert.Equal(t, token.IPAddr, encodedToken.IPAddr)
-	}
-}
-
-func TestStateWithEmptyValues(t *testing.T) {
-	t.Parallel()
-
-	encryptionKey := testutils.Secret
-
-	token := state.New(state.ClientIdentifier{CID: 1, KID: 2, CommonName: ""}, "127.0.0.1", "12345", "")
-	encodedTokenString, err := token.Encode(encryptionKey)
-	require.NoError(t, err)
-
-	encodedToken, err := state.NewWithEncodedToken(encodedTokenString, encryptionKey)
-	require.NoError(t, err)
-
-	assert.Equal(t, token.Client.CID, encodedToken.Client.CID)
-	assert.Equal(t, token.Client.KID, encodedToken.Client.KID)
-	assert.Equal(t, token.Client.CommonName, encodedToken.Client.CommonName)
-}
-
-func TestStateInvalid_Key(t *testing.T) {
-	t.Parallel()
-
-	encryptionKey := "01234567891011"
-
-	token := state.New(state.ClientIdentifier{CID: 1, KID: 2, CommonName: "test"}, "127.0.0.1", "12345", "")
-	_, err := token.Encode(encryptionKey)
-
-	require.Error(t, err, "crypto/aes: invalid key size 14")
-}
-
-func TestState_WithSpace(t *testing.T) {
-	t.Parallel()
-
-	encryptionKey := testutils.Secret
-
-	token := state.New(state.ClientIdentifier{CID: 1, KID: 2, CommonName: "t e s t"}, "127.0.0.1", "12345", "")
-
-	encodedTokenString, err := token.Encode(encryptionKey)
-
-	require.NoError(t, err)
-
-	encodedToken, err := state.NewWithEncodedToken(encodedTokenString, encryptionKey)
-	require.NoError(t, err)
-
-	assert.Equal(t, token.Client.CID, encodedToken.Client.CID)
-	assert.Equal(t, token.Client.KID, encodedToken.Client.KID)
-	assert.Equal(t, token.Client.CommonName, encodedToken.Client.CommonName)
-}
-
-func TestState_WithState(t *testing.T) {
-	t.Parallel()
-
-	encryptionKey := testutils.Secret
-
-	for _, sessionState := range []string{"", "Empty", "Initial", "Authenticated", "Expired", "Invalid", "AuthenticatedEmptyUser", "ExpiredEmptyUser"} {
-		t.Run(sessionState, func(t *testing.T) {
+	for _, tc := range []struct {
+		name         string
+		commonName   string
+		sessionState string
+	}{
+		{name: "empty session state", commonName: "foobar", sessionState: ""},
+		{name: "non-empty session state", commonName: "", sessionState: "Authenticated"},
+		{name: "with special characters", commonName: "foo bar/baz@qux", sessionState: "AuthenticatedEmptyUser"},
+		{name: "with unicode characters", commonName: "foo bar/baz@qux 你好", sessionState: "ExpiredEmptyUser"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			token := state.New(state.ClientIdentifier{CID: 1, KID: 2, CommonName: "test"}, "127.0.0.1", "12345", sessionState)
+			sessionState := state.State{
+				Client: state.ClientIdentifier{
+					CID:        9223372036854775807,
+					KID:        2,
+					CommonName: tc.commonName,
+				},
+				IPAddr:       "127.0.0.1",
+				IPPort:       "12345",
+				SessionState: tc.sessionState,
+			}
 
-			encodedTokenString, err := token.Encode(encryptionKey)
-
+			encryptedToken, err := state.Encrypt(testsuite.Cipher, sessionState)
 			require.NoError(t, err)
 
-			encodedToken, err := state.NewWithEncodedToken(encodedTokenString, encryptionKey)
+			token, err := state.Decrypt(testsuite.Cipher, encryptedToken)
 			require.NoError(t, err)
 
-			assert.Equal(t, sessionState, encodedToken.SessionState)
+			require.Equal(t, token, sessionState)
 		})
 	}
 }
@@ -109,139 +53,65 @@ func TestStateInvalid(t *testing.T) {
 
 	for _, tc := range []struct {
 		name         string
-		encodedToken func() (string, error)
+		encodedToken func() (state.EncryptedState, error)
 		expectedErr  string
 	}{
 		{
-			name: "too old",
-			encodedToken: func() (string, error) {
-				token := fmt.Sprintf("%d %s A B C D E F G H I J", time.Now().Add(-1*time.Hour).Unix(), testutils.Secret[:2])
-
-				encrypted, err := crypto.EncryptBytesAES([]byte(token), testutils.Secret)
-				if err != nil {
-					return "", err
-				}
-
-				return base64.URLEncoding.EncodeToString(encrypted), nil
-			},
-			expectedErr: "invalid state: expired after 2 minutes, issued at:",
-		},
-		{
-			name: "future",
-			encodedToken: func() (string, error) {
-				token := fmt.Sprintf("%d %s A B C D E F G H I J", time.Now().Add(time.Hour).Unix(), testutils.Secret[:2])
-
-				encrypted, err := crypto.EncryptBytesAES([]byte(token), testutils.Secret)
-				if err != nil {
-					return "", err
-				}
-
-				return base64.URLEncoding.EncodeToString(encrypted), nil
-			},
-			expectedErr: "invalid state: issued in future, issued at:",
-		},
-		{
 			name: "invalid base64",
-			encodedToken: func() (string, error) {
-				return "aaaaaa", nil
+			encodedToken: func() (state.EncryptedState, error) {
+				return "invalid", nil
 			},
 			expectedErr: "illegal base64 data at input",
 		},
 		{
 			name: "invalid ciphertext",
-			encodedToken: func() (string, error) {
+			encodedToken: func() (state.EncryptedState, error) {
 				return base64.URLEncoding.EncodeToString([]byte("a")), nil
 			},
 			expectedErr: "ciphertext block size is too short",
 		},
 		{
 			name: "invalid state too long",
-			encodedToken: func() (string, error) {
+			encodedToken: func() (state.EncryptedState, error) {
 				return strings.Repeat("a", 10000), nil
 			},
-			expectedErr: "invalid state: token too large",
-		},
-		{
-			name: "invalid AES key",
-			encodedToken: func() (string, error) {
-				encrypted, err := crypto.EncryptBytesAES([]byte("____"), testutils.Secret+testutils.Secret)
-				if err != nil {
-					return "", err
-				}
-
-				return base64.URLEncoding.EncodeToString(encrypted), nil
-			},
-			expectedErr: "invalid data format: no timestamp found",
+			expectedErr: "invalid data: token too large",
 		},
 		{
 			name: "invalid CID",
-			encodedToken: func() (string, error) {
-				token := fmt.Sprintf("%d %s A B C D E F G H I J", time.Now().Unix(), testutils.Secret[:2])
-
-				encrypted, err := crypto.EncryptBytesAES([]byte(token), testutils.Secret)
+			encodedToken: func() (state.EncryptedState, error) {
+				encrypted, err := testsuite.Cipher.EncryptBytesWithTime([]byte("A B C D E F G H"))
 				if err != nil {
 					return "", err
 				}
 
-				return base64.URLEncoding.EncodeToString(encrypted), nil
+				return string(encrypted), nil
 			},
 			expectedErr: "parse CID: strconv.ParseUint",
 		},
 		{
-			name: "invalid prefix",
-			encodedToken: func() (string, error) {
-				token := fmt.Sprintf("%d %s A B C D E F G H I J", time.Now().Unix(), "00")
-
-				encrypted, err := crypto.EncryptBytesAES([]byte(token), testutils.Secret)
-				if err != nil {
-					return "", err
-				}
-
-				return base64.URLEncoding.EncodeToString(encrypted), nil
-			},
-			expectedErr: "expected secret key prefix",
-		},
-		{
 			name: "invalid KID",
-			encodedToken: func() (string, error) {
-				token := fmt.Sprintf("%d %s 1 B C D E F G H I J", time.Now().Unix(), testutils.Secret[:2])
-
-				encrypted, err := crypto.EncryptBytesAES([]byte(token), testutils.Secret)
+			encodedToken: func() (state.EncryptedState, error) {
+				encrypted, err := testsuite.Cipher.EncryptBytesWithTime([]byte("1 B C D E F G H"))
 				if err != nil {
 					return "", err
 				}
 
-				return base64.URLEncoding.EncodeToString(encrypted), nil
+				return string(encrypted), nil
 			},
 			expectedErr: "parse KID: strconv.ParseUint",
 		},
 		{
 			name: "invalid UsernameIsDefined",
-			encodedToken: func() (string, error) {
-				token := fmt.Sprintf("%d %s 1 1 C D E F G H I J", time.Now().Unix(), testutils.Secret[:2])
-
-				encrypted, err := crypto.EncryptBytesAES([]byte(token), testutils.Secret)
+			encodedToken: func() (state.EncryptedState, error) {
+				encrypted, err := testsuite.Cipher.EncryptBytesWithTime([]byte("1 1 C D E F G H"))
 				if err != nil {
 					return "", err
 				}
 
-				return base64.URLEncoding.EncodeToString(encrypted), nil
+				return string(encrypted), nil
 			},
 			expectedErr: "parse UsernameIsDefined: strconv.Atoi",
-		},
-		{
-			name: "invalid issued",
-			encodedToken: func() (string, error) {
-				token := "A 1 1 C D E 1 G H I J K"
-
-				encrypted, err := crypto.EncryptBytesAES([]byte(token), testutils.Secret)
-				if err != nil {
-					return "", err
-				}
-
-				return base64.URLEncoding.EncodeToString(encrypted), nil
-			},
-			expectedErr: "parse issued timestamp: strconv.ParseInt",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -250,16 +120,9 @@ func TestStateInvalid(t *testing.T) {
 			encodedTokenString, err := tc.encodedToken()
 			require.NoError(t, err)
 
-			_, err = state.NewWithEncodedToken(encodedTokenString, testutils.Secret)
+			_, err = state.Decrypt(testsuite.Cipher, encodedTokenString)
 
 			require.ErrorContains(t, err, tc.expectedErr)
 		})
 	}
-}
-
-func TestStateInvalid_Encoded(t *testing.T) {
-	t.Parallel()
-
-	_, err := state.NewWithEncodedToken("test", testutils.Secret)
-	require.Error(t, err)
 }

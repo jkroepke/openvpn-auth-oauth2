@@ -74,3 +74,12 @@ func (c *Client) getNonce(id string) string {
 func (c *Client) OAuthConfig() *oauth2.Config {
 	return c.relyingParty.OAuthConfig()
 }
+
+func (c *Client) EncryptState(oidcState state.State) (state.EncryptedState, error) {
+	encryptedState, err := state.Encrypt(c.stateCrypto, oidcState)
+	if err != nil {
+		return "", fmt.Errorf("encrypt state: %w", err)
+	}
+
+	return encryptedState, nil
+}

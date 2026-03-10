@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/stretchr/testify/require"
@@ -53,7 +54,7 @@ func TestReload(t *testing.T) {
 			"--debug.pprof",
 			"--debug.listen=127.0.0.1:0",
 			fmt.Sprintf("--http.baseurl=%s://%s", protocol, httpListener.Addr().String()),
-			"--http.secret=" + testutils.Secret,
+			"--http.secret=" + testsuite.Secret,
 			"--http.listen=" + httpListener.Addr().String(),
 			"--http.assets-path=../../internal/ui/assets",
 			"--openvpn.addr=tcp://" + managementInterface.Addr().String(),
@@ -62,7 +63,7 @@ func TestReload(t *testing.T) {
 			"--oauth2.client.id", clientCredentials.ID,
 			"--oauth2.client.secret", clientCredentials.Secret.String(),
 			"--oauth2.refresh.enabled=true",
-			"--oauth2.refresh.secret=" + testutils.Secret,
+			"--oauth2.refresh.secret=" + testsuite.Secret,
 			"--oauth2.nonce=false",
 		}
 

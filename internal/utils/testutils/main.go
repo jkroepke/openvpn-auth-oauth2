@@ -21,6 +21,7 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/crypto"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/httphandler"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
@@ -366,7 +367,7 @@ func SetupOpenVPNOAuth2Clients(
 	require.NoError(tb, err)
 
 	openVPNClient := openvpn.New(logger, conf)
-	oAuth2Client, err := oauth2.New(ctx, logger, conf, httpClient, tokenStorage, provider, openVPNClient)
+	oAuth2Client, err := oauth2.New(ctx, logger, conf, httpClient, tokenStorage, crypto.New(conf.HTTP.Secret.String()), provider, openVPNClient)
 	require.NoError(tb, err)
 
 	openVPNClient.SetOAuth2Client(oAuth2Client)

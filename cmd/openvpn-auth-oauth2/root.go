@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/crypto"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/httphandler"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/httpserver"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
@@ -201,7 +202,7 @@ func setupOpenVPNClient(
 
 	openvpnClient := openvpn.New(logger, conf)
 
-	oAuth2Client, err := oauth2.New(ctx, logger, conf, httpClient, tokenStorage, provider, openvpnClient)
+	oAuth2Client, err := oauth2.New(ctx, logger, conf, httpClient, tokenStorage, crypto.New(conf.HTTP.Secret.String()), provider, openvpnClient)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error creating oauth2 client: %w", err)
 	}

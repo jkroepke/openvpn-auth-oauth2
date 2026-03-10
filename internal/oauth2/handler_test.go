@@ -19,9 +19,9 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
 	oauth2types "github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/stretchr/testify/require"
-	"github.com/zitadel/oidc/v3/pkg/crypto"
 )
 
 const invalid = "invalid"
@@ -42,7 +42,7 @@ func TestHandler(t *testing.T) {
 			"default",
 			func() config.Config {
 				conf := config.Defaults
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = false
 				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
@@ -53,11 +53,11 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testutils.SubjectClaim
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 
 				return conf
 			}(),
-			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.1", "12345", ""),
+			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, IPAddr: "127.0.0.1", IPPort: "12345"},
 			false,
 			"",
 			true,
@@ -67,7 +67,7 @@ func TestHandler(t *testing.T) {
 			"with username defined",
 			func() config.Config {
 				conf := config.Defaults
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = false
 				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
@@ -78,11 +78,11 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testutils.SubjectClaim
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 
 				return conf
 			}(),
-			state.New(state.ClientIdentifier{CID: 0, KID: 1, UsernameIsDefined: 1, CommonName: "name"}, "127.0.0.1", "12345", ""),
+			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, UsernameIsDefined: 1, CommonName: "name"}, IPAddr: "127.0.0.1", IPPort: "12345"},
 			false,
 			"",
 			true,
@@ -92,7 +92,7 @@ func TestHandler(t *testing.T) {
 			"with acr values",
 			func() config.Config {
 				conf := config.Defaults
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = false
 				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
@@ -106,11 +106,11 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.PKCE = true
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testutils.SubjectClaim
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 
 				return conf
 			}(),
-			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.1", "12345", ""),
+			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, IPAddr: "127.0.0.1", IPPort: "12345"},
 			false,
 			"",
 			true,
@@ -123,7 +123,7 @@ func TestHandler(t *testing.T) {
 				require.NoError(t, err)
 
 				conf := config.Defaults
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = false
 				conf.HTTP.Template = tmpl
 				conf.OAuth2.Provider = generic.Name
@@ -135,11 +135,11 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testutils.SubjectClaim
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 
 				return conf
 			}(),
-			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.1", "12345", ""),
+			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, IPAddr: "127.0.0.1", IPPort: "12345"},
 			false,
 			"",
 			true,
@@ -149,7 +149,7 @@ func TestHandler(t *testing.T) {
 			"with userinfo enabled",
 			func() config.Config {
 				conf := config.Defaults
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = false
 				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
@@ -161,11 +161,11 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.UserInfo = true
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testutils.SubjectClaim
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 
 				return conf
 			}(),
-			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.1", "12345", ""),
+			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, IPAddr: "127.0.0.1", IPPort: "12345"},
 			false,
 			"",
 			true,
@@ -175,7 +175,7 @@ func TestHandler(t *testing.T) {
 			"with userinfo enabled + validate groups",
 			func() config.Config {
 				conf := config.Defaults
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = false
 				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
@@ -187,11 +187,11 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.UserInfo = true
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testutils.SubjectClaim
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 
 				return conf
 			}(),
-			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.1", "12345", ""),
+			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, IPAddr: "127.0.0.1", IPPort: "12345"},
 			false,
 			"",
 			true,
@@ -201,7 +201,7 @@ func TestHandler(t *testing.T) {
 			"with userinfo enabled + missing validate groups",
 			func() config.Config {
 				conf := config.Defaults
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = false
 				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
@@ -213,11 +213,11 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.UserInfo = true
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testutils.SubjectClaim
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 
 				return conf
 			}(),
-			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.1", "12345", ""),
+			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, IPAddr: "127.0.0.1", IPPort: "12345"},
 			false,
 			"",
 			true,
@@ -227,7 +227,7 @@ func TestHandler(t *testing.T) {
 			"with ipaddr",
 			func() config.Config {
 				conf := config.Defaults
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
@@ -238,11 +238,11 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testutils.SubjectClaim
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 
 				return conf
 			}(),
-			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.1", "12345", ""),
+			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, IPAddr: "127.0.0.1", IPPort: "12345"},
 			false,
 			"",
 			true,
@@ -252,7 +252,7 @@ func TestHandler(t *testing.T) {
 			"with short-url",
 			func() config.Config {
 				conf := config.Defaults
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.ShortURL = true
 				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
@@ -263,11 +263,11 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testutils.SubjectClaim
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 
 				return conf
 			}(),
-			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.1", "12345", ""),
+			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, IPAddr: "127.0.0.1", IPPort: "12345"},
 			false,
 			"",
 			true,
@@ -277,7 +277,7 @@ func TestHandler(t *testing.T) {
 			"with ipaddr + forwarded-for",
 			func() config.Config {
 				conf := config.Defaults
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
 				conf.OAuth2.Provider = generic.Name
@@ -289,11 +289,11 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testutils.SubjectClaim
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 
 				return conf
 			}(),
-			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.2", "12345", ""),
+			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, IPAddr: "127.0.0.2", IPPort: "12345"},
 			false,
 			"127.0.0.2",
 			true,
@@ -303,7 +303,7 @@ func TestHandler(t *testing.T) {
 			"with ipaddr + disabled forwarded-for",
 			func() config.Config {
 				conf := config.Defaults
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = false
 				conf.OAuth2.Provider = generic.Name
@@ -315,11 +315,11 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testutils.SubjectClaim
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 
 				return conf
 			}(),
-			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.2", "12345", ""),
+			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, IPAddr: "127.0.0.2", IPPort: "12345"},
 			false,
 			"127.0.0.2",
 			false,
@@ -329,7 +329,7 @@ func TestHandler(t *testing.T) {
 			"with ipaddr + multiple forwarded-for",
 			func() config.Config {
 				conf := config.Defaults
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
 				conf.OAuth2.Provider = generic.Name
@@ -341,11 +341,11 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testutils.SubjectClaim
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 
 				return conf
 			}(),
-			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.2", "12345", ""),
+			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, IPAddr: "127.0.0.2", IPPort: "12345"},
 			false,
 			"127.0.0.2, 8.8.8.8",
 			true,
@@ -355,7 +355,7 @@ func TestHandler(t *testing.T) {
 			"with cel validation result false",
 			func() config.Config {
 				conf := config.Defaults
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
 				conf.OAuth2.Provider = generic.Name
@@ -368,11 +368,11 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.CEL = "false"
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testutils.SubjectClaim
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 
 				return conf
 			}(),
-			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.2", "12345", ""),
+			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, IPAddr: "127.0.0.2", IPPort: "12345"},
 			false,
 			"127.0.0.2, 8.8.8.8",
 			true,
@@ -382,7 +382,7 @@ func TestHandler(t *testing.T) {
 			"with client config found",
 			func() config.Config {
 				conf := config.Defaults
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
 				conf.OAuth2.Provider = generic.Name
@@ -394,7 +394,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testutils.SubjectClaim
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 				conf.OpenVPN.ClientConfig.Enabled = true
 				conf.OpenVPN.ClientConfig.Path = types.FS{
 					FS: fstest.MapFS{
@@ -406,7 +406,7 @@ func TestHandler(t *testing.T) {
 
 				return conf
 			}(),
-			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.2", "12345", ""),
+			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, IPAddr: "127.0.0.2", IPPort: "12345"},
 			false,
 			"127.0.0.2, 8.8.8.8",
 			true,
@@ -416,7 +416,7 @@ func TestHandler(t *testing.T) {
 			"with client config and custom claim",
 			func() config.Config {
 				conf := config.Defaults
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
 				conf.OAuth2.Provider = generic.Name
@@ -428,9 +428,9 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testutils.SubjectClaim
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 				conf.OpenVPN.ClientConfig.Enabled = true
-				conf.OpenVPN.ClientConfig.TokenClaim = testutils.SubjectClaim
+				conf.OpenVPN.ClientConfig.TokenClaim = testsuite.SubjectClaim
 				conf.OpenVPN.ClientConfig.Path = types.FS{
 					FS: fstest.MapFS{
 						"id1.conf": &fstest.MapFile{
@@ -441,7 +441,7 @@ func TestHandler(t *testing.T) {
 
 				return conf
 			}(),
-			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.2", "12345", ""),
+			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, IPAddr: "127.0.0.2", IPPort: "12345"},
 			false,
 			"127.0.0.2, 8.8.8.8",
 			true,
@@ -451,7 +451,7 @@ func TestHandler(t *testing.T) {
 			"with client config not found",
 			func() config.Config {
 				conf := config.Defaults
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
 				conf.OAuth2.Provider = generic.Name
@@ -471,7 +471,7 @@ func TestHandler(t *testing.T) {
 
 				return conf
 			}(),
-			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "client"}, "127.0.0.2", "12345", ""),
+			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "client"}, IPAddr: "127.0.0.2", IPPort: "12345"},
 			false,
 			"127.0.0.2, 8.8.8.8",
 			true,
@@ -481,7 +481,7 @@ func TestHandler(t *testing.T) {
 			"with client config selector + static values",
 			func() config.Config {
 				conf := config.Defaults
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
 				conf.OAuth2.Provider = generic.Name
@@ -493,7 +493,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testutils.SubjectClaim
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 				conf.OpenVPN.ClientConfig.Enabled = true
 				conf.OpenVPN.ClientConfig.UserSelector.Enabled = true
 				conf.OpenVPN.ClientConfig.UserSelector.StaticValues = []string{"static"}
@@ -507,7 +507,7 @@ func TestHandler(t *testing.T) {
 
 				return conf
 			}(),
-			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.2", "12345", ""),
+			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, IPAddr: "127.0.0.2", IPPort: "12345"},
 			false,
 			"127.0.0.2, 8.8.8.8",
 			true,
@@ -517,7 +517,7 @@ func TestHandler(t *testing.T) {
 			"with client config selector + static values + claim string",
 			func() config.Config {
 				conf := config.Defaults
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
 				conf.OAuth2.Provider = generic.Name
@@ -529,11 +529,11 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testutils.SubjectClaim
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 				conf.OpenVPN.ClientConfig.Enabled = true
 				conf.OpenVPN.ClientConfig.UserSelector.Enabled = true
 				conf.OpenVPN.ClientConfig.UserSelector.StaticValues = []string{"static"}
-				conf.OpenVPN.ClientConfig.TokenClaim = testutils.SubjectClaim
+				conf.OpenVPN.ClientConfig.TokenClaim = testsuite.SubjectClaim
 				conf.OpenVPN.ClientConfig.Path = types.FS{
 					FS: fstest.MapFS{
 						"id1.conf": &fstest.MapFile{
@@ -544,7 +544,7 @@ func TestHandler(t *testing.T) {
 
 				return conf
 			}(),
-			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.2", "12345", ""),
+			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, IPAddr: "127.0.0.2", IPPort: "12345"},
 			false,
 			"127.0.0.2, 8.8.8.8",
 			true,
@@ -554,7 +554,7 @@ func TestHandler(t *testing.T) {
 			"with client config selector + static values + claim array",
 			func() config.Config {
 				conf := config.Defaults
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
 				conf.OAuth2.Provider = generic.Name
@@ -566,7 +566,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testutils.SubjectClaim
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 				conf.OpenVPN.ClientConfig.Enabled = true
 				conf.OpenVPN.ClientConfig.UserSelector.Enabled = true
 				conf.OpenVPN.ClientConfig.UserSelector.StaticValues = []string{"aaa"}
@@ -581,7 +581,7 @@ func TestHandler(t *testing.T) {
 
 				return conf
 			}(),
-			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.2", "12345", ""),
+			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, IPAddr: "127.0.0.2", IPPort: "12345"},
 			false,
 			"127.0.0.2, 8.8.8.8",
 			true,
@@ -591,7 +591,7 @@ func TestHandler(t *testing.T) {
 			"with client config selector + static values + claim invalid",
 			func() config.Config {
 				conf := config.Defaults
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
 				conf.OAuth2.Provider = generic.Name
@@ -603,7 +603,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testutils.SubjectClaim
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 				conf.OpenVPN.ClientConfig.Enabled = true
 				conf.OpenVPN.ClientConfig.UserSelector.Enabled = true
 				conf.OpenVPN.ClientConfig.UserSelector.StaticValues = []string{"static"}
@@ -618,7 +618,7 @@ func TestHandler(t *testing.T) {
 
 				return conf
 			}(),
-			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.2", "12345", ""),
+			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, IPAddr: "127.0.0.2", IPPort: "12345"},
 			false,
 			"127.0.0.2, 8.8.8.8",
 			true,
@@ -628,7 +628,7 @@ func TestHandler(t *testing.T) {
 			"with client config selector + static values + not found",
 			func() config.Config {
 				conf := config.Defaults
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
 				conf.OAuth2.Provider = generic.Name
@@ -654,7 +654,7 @@ func TestHandler(t *testing.T) {
 
 				return conf
 			}(),
-			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "client"}, "127.0.0.2", "12345", ""),
+			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "client"}, IPAddr: "127.0.0.2", IPPort: "12345"},
 			false,
 			"127.0.0.2, 8.8.8.8",
 			true,
@@ -664,7 +664,7 @@ func TestHandler(t *testing.T) {
 			"with client config selector + multiple static values",
 			func() config.Config {
 				conf := config.Defaults
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
 				conf.OAuth2.Provider = generic.Name
@@ -676,7 +676,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testutils.SubjectClaim
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 				conf.OpenVPN.ClientConfig.Enabled = true
 				conf.OpenVPN.ClientConfig.UserSelector.Enabled = true
 				conf.OpenVPN.ClientConfig.UserSelector.StaticValues = []string{"group1", "group2"}
@@ -690,7 +690,7 @@ func TestHandler(t *testing.T) {
 
 				return conf
 			}(),
-			state.New(state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, "127.0.0.2", "12345", ""),
+			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, IPAddr: "127.0.0.2", IPPort: "12345"},
 			false,
 			"127.0.0.2, 8.8.8.8",
 			true,
@@ -700,7 +700,7 @@ func TestHandler(t *testing.T) {
 			"with empty state",
 			func() config.Config {
 				conf := config.Defaults
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
 				conf.OAuth2.Provider = generic.Name
@@ -712,7 +712,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testutils.SubjectClaim
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 
 				return conf
 			}(),
@@ -726,7 +726,7 @@ func TestHandler(t *testing.T) {
 			"with invalid state",
 			func() config.Config {
 				conf := config.Defaults
-				conf.HTTP.Secret = testutils.Secret
+				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
 				conf.OAuth2.Provider = generic.Name
@@ -738,7 +738,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testutils.SubjectClaim
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
 
 				return conf
 			}(),
@@ -809,7 +809,7 @@ func TestHandler(t *testing.T) {
 			case tc.state == (state.State{}):
 				session = ""
 			default:
-				session, err = tc.state.Encode(conf.HTTP.Secret.String())
+				session, err = state.Encrypt(testsuite.Cipher, tc.state)
 				require.NoError(t, err)
 			}
 
@@ -1079,7 +1079,7 @@ func TestOAuth2ProfileSubmit(t *testing.T) {
 
 				return req
 			},
-			"base64 decode -",
+			"illegal base64 data at input",
 		},
 		{
 			"invalid token content",
@@ -1090,7 +1090,7 @@ func TestOAuth2ProfileSubmit(t *testing.T) {
 
 				token := fmt.Sprintf("%d -", time.Now().Unix())
 
-				encryptedToken, err := crypto.EncryptBytesAES([]byte(token), testutils.Secret)
+				encryptedToken, err := testsuite.Cipher.EncryptBytes([]byte(token))
 				require.NoError(t, err)
 
 				req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth2/profile-submit",
@@ -1111,7 +1111,7 @@ func TestOAuth2ProfileSubmit(t *testing.T) {
 
 				token := fmt.Sprintf(`%d {}`, time.Now().Unix())
 
-				encryptedToken, err := crypto.EncryptBytesAES([]byte(token), testutils.Secret)
+				encryptedToken, err := testsuite.Cipher.EncryptBytes([]byte(token))
 				require.NoError(t, err)
 
 				req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth2/profile-submit",
@@ -1123,7 +1123,7 @@ func TestOAuth2ProfileSubmit(t *testing.T) {
 
 				return req
 			},
-			"Invalid State: decrypt aes",
+			"Invalid State: decrypt state: ciphertext block size is too short",
 		},
 		{
 			"no refresh token in storage",
@@ -1131,14 +1131,14 @@ func TestOAuth2ProfileSubmit(t *testing.T) {
 			func(t *testing.T) *http.Request {
 				t.Helper()
 
-				sessionState := state.New(state.ClientIdentifier{CID: 1, KID: 2}, "127.0.0.1", "12345", "")
+				sessionState := state.State{Client: state.ClientIdentifier{CID: 1, KID: 2}, IPAddr: "127.0.0.1", IPPort: "12345"}
 
-				encryptedState, err := sessionState.Encode(testutils.Secret)
+				encryptedState, err := state.Encrypt(testsuite.Cipher, sessionState)
 				require.NoError(t, err)
 
 				token := fmt.Sprintf(`%d {"state": %q}`, time.Now().Unix(), encryptedState)
 
-				encryptedToken, err := crypto.EncryptBytesAES([]byte(token), testutils.Secret)
+				encryptedToken, err := testsuite.Cipher.EncryptBytes([]byte(token))
 				require.NoError(t, err)
 
 				req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth2/profile-submit",

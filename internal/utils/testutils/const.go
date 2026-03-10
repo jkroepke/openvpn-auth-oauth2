@@ -1,7 +1,3 @@
 package testutils
 
-const (
-	Password     = "password"
-	Secret       = "0123456789101112"
-	SubjectClaim = "sub"
-)
+const Secret = "0123456789101112"

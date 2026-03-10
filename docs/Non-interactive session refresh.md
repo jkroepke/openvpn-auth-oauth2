@@ -13,7 +13,7 @@ When `oauth2.refresh.validate-user=true` is set, `openvpn-auth-oauth2`
 requests a [refresh token](https://auth0.com/blog/refresh-tokens-what-are-they-and-when-to-use-them/)
 during the initial connection and stores it.
 
-The refresh tokens are stored in an in-memory key-value store and encrypted using AES.
+The refresh tokens are stored in an in-memory key-value store and [encrypted](Encryption%20and%20Cryptography).
 Each token is tied to either the OpenVPN client ID or OpenVPN session ID.
 
 If a non-interactive login attempt with the refresh token fails against the OIDC provider,
@@ -85,7 +85,7 @@ For optimal configuration:
 1. **Set `reneg-sec` to a reasonably low value** (e.g., 3600 seconds = 1 hour)
    - This ensures regular token renewal attempts
    - Prevents tokens from becoming idle for too long
-   
+
 2. **Set `lifetime` to a reasonably high value** (e.g., 86400 seconds = 24 hours)
    - Allows long-lived sessions without re-authentication
    - Users only need to log in once per day (or per lifetime period)

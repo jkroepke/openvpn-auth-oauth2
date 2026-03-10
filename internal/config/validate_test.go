@@ -7,7 +7,7 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -34,7 +34,7 @@ func TestValidate(t *testing.T) {
 		{
 			config.Config{
 				OAuth2: config.OAuth2{
-					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
+					Client: config.OAuth2Client{ID: "ID", Secret: testsuite.Secret},
 					Issuer: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
 				},
 			},
@@ -44,7 +44,7 @@ func TestValidate(t *testing.T) {
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL:  types.URL{},
-					Secret:   testutils.Secret,
+					Secret:   testsuite.Secret,
 					Template: config.Defaults.HTTP.Template,
 				},
 				OAuth2: config.OAuth2{
@@ -58,11 +58,11 @@ func TestValidate(t *testing.T) {
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL:  types.URL{},
-					Secret:   testutils.Secret,
+					Secret:   testsuite.Secret,
 					Template: config.Defaults.HTTP.Template,
 				},
 				OAuth2: config.OAuth2{
-					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
+					Client: config.OAuth2Client{ID: "ID", Secret: testsuite.Secret},
 					Issuer: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
 				},
 			},
@@ -72,11 +72,11 @@ func TestValidate(t *testing.T) {
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL:  types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
-					Secret:   testutils.Secret,
+					Secret:   testsuite.Secret,
 					Template: types.Template{Template: template.Must(template.New("index.gohtml").Parse("{{ slice .invalid.error 1 2 }}"))},
 				},
 				OAuth2: config.OAuth2{
-					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
+					Client: config.OAuth2Client{ID: "ID", Secret: testsuite.Secret},
 					Issuer: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
 				},
 				OpenVPN: config.OpenVPN{
@@ -89,11 +89,11 @@ func TestValidate(t *testing.T) {
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL:  types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
-					Secret:   testutils.Secret,
+					Secret:   testsuite.Secret,
 					Template: config.Defaults.HTTP.Template,
 				},
 				OAuth2: config.OAuth2{
-					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
+					Client: config.OAuth2Client{ID: "ID", Secret: testsuite.Secret},
 					Issuer: types.URL{},
 				},
 			},
@@ -103,11 +103,11 @@ func TestValidate(t *testing.T) {
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL:  types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
-					Secret:   testutils.Secret,
+					Secret:   testsuite.Secret,
 					Template: config.Defaults.HTTP.Template,
 				},
 				OAuth2: config.OAuth2{
-					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
+					Client: config.OAuth2Client{ID: "ID", Secret: testsuite.Secret},
 					Issuer: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
 				},
 			},
@@ -121,7 +121,7 @@ func TestValidate(t *testing.T) {
 					Template: config.Defaults.HTTP.Template,
 				},
 				OAuth2: config.OAuth2{
-					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
+					Client: config.OAuth2Client{ID: "ID", Secret: testsuite.Secret},
 					Issuer: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
 				},
 				OpenVPN: config.OpenVPN{
@@ -134,11 +134,11 @@ func TestValidate(t *testing.T) {
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL:  types.URL{URL: &url.URL{Scheme: "invalid", Host: "localhost"}},
-					Secret:   testutils.Secret,
+					Secret:   testsuite.Secret,
 					Template: config.Defaults.HTTP.Template,
 				},
 				OAuth2: config.OAuth2{
-					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
+					Client: config.OAuth2Client{ID: "ID", Secret: testsuite.Secret},
 					Issuer: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
 				},
 				OpenVPN: config.OpenVPN{
@@ -151,11 +151,11 @@ func TestValidate(t *testing.T) {
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL:  types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
-					Secret:   testutils.Secret,
+					Secret:   testsuite.Secret,
 					Template: config.Defaults.HTTP.Template,
 				},
 				OAuth2: config.OAuth2{
-					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
+					Client: config.OAuth2Client{ID: "ID", Secret: testsuite.Secret},
 					Issuer: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
 				},
 				OpenVPN: config.OpenVPN{
@@ -168,11 +168,11 @@ func TestValidate(t *testing.T) {
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL:  types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
-					Secret:   testutils.Secret,
+					Secret:   testsuite.Secret,
 					Template: config.Defaults.HTTP.Template,
 				},
 				OAuth2: config.OAuth2{
-					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
+					Client: config.OAuth2Client{ID: "ID", Secret: testsuite.Secret},
 					Issuer: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
 					Refresh: config.OAuth2Refresh{
 						Enabled: true,
@@ -188,15 +188,15 @@ func TestValidate(t *testing.T) {
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL:  types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
-					Secret:   testutils.Secret,
+					Secret:   testsuite.Secret,
 					Template: config.Defaults.HTTP.Template,
 				},
 				OAuth2: config.OAuth2{
-					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
+					Client: config.OAuth2Client{ID: "ID", Secret: testsuite.Secret},
 					Issuer: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
 					Refresh: config.OAuth2Refresh{
 						Enabled: true,
-						Secret:  testutils.Secret,
+						Secret:  testsuite.Secret,
 					},
 					Endpoints: config.OAuth2Endpoints{
 						Discovery: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
@@ -212,20 +212,20 @@ func TestValidate(t *testing.T) {
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL:  types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
-					Secret:   testutils.Secret,
+					Secret:   testsuite.Secret,
 					Template: config.Defaults.HTTP.Template,
 				},
 				OAuth2: config.OAuth2{
-					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
+					Client: config.OAuth2Client{ID: "ID", Secret: testsuite.Secret},
 					Issuer: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
 					Refresh: config.OAuth2Refresh{
 						Enabled: true,
-						Secret:  testutils.Secret,
+						Secret:  testsuite.Secret,
 					},
 					Endpoints: config.OAuth2Endpoints{
 						Discovery: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
 					},
-					OpenVPNUsernameClaim: "sub",
+					OpenVPNUsernameClaim: testsuite.SubjectClaim,
 					OpenVPNUsernameCEL:   "{{ index . 0 }}",
 				},
 				OpenVPN: config.OpenVPN{
@@ -238,15 +238,15 @@ func TestValidate(t *testing.T) {
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL:  types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
-					Secret:   testutils.Secret,
+					Secret:   testsuite.Secret,
 					Template: config.Defaults.HTTP.Template,
 				},
 				OAuth2: config.OAuth2{
-					Client: config.OAuth2Client{ID: "ID", Secret: testutils.Secret},
+					Client: config.OAuth2Client{ID: "ID", Secret: testsuite.Secret},
 					Issuer: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
 					Refresh: config.OAuth2Refresh{
 						Enabled: true,
-						Secret:  testutils.Secret,
+						Secret:  testsuite.Secret,
 					},
 					UserInfo: true,
 					Endpoints: config.OAuth2Endpoints{

@@ -165,7 +165,7 @@ func TestEncodeDecodeRoundTrip(t *testing.T) {
 		{name: "simple string", input: "hello"},
 		{name: "string with spaces", input: "hello world"},
 		{name: "multiple spaces", input: "one two three four"},
-		{name: "unicode", input: "héllo wörld 日本語"}, //nolint:gosmopolitan
+		{name: "unicode", input: "héllo wörld 日本語"},
 		{name: "common name", input: "John Doe"},
 		{name: "IP address", input: "192.168.1.1"},
 		{name: "path with spaces", input: "/path/to/some file.txt"},

@@ -36,15 +36,15 @@ func (c *Client) OAuth2Start() http.Handler {
 		ctx := r.Context()
 
 		// check if request has a state GET parameter generated state.New.
-		sessionState := r.URL.Query().Get("state")
-		if sessionState == "" {
+		encryptedOIDCState := r.URL.Query().Get("state")
+		if encryptedOIDCState == "" {
 			w.WriteHeader(http.StatusBadRequest)
 
 			return
 		}
 
 		// decode the state GET parameter
-		session, err := state.NewWithEncodedToken(sessionState, c.conf.HTTP.Secret.String())
+		session, err := state.Decrypt(c.stateCrypto, encryptedOIDCState)
 		if err != nil {
 			c.logger.LogAttrs(ctx, slog.LevelWarn, "invalid state: "+err.Error())
 			w.WriteHeader(http.StatusBadRequest)
@@ -81,7 +81,7 @@ func (c *Client) OAuth2Start() http.Handler {
 		}
 
 		rp.AuthURLHandler(func() string {
-			return sessionState
+			return encryptedOIDCState
 		}, c.relyingParty, authorizeParams...).ServeHTTP(w, r)
 	})
 }
@@ -92,25 +92,25 @@ func (c *Client) OAuth2Callback() http.Handler {
 		ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 		defer cancel()
 
-		encryptedState := r.URL.Query().Get("state")
-		if encryptedState == "" {
+		encryptedOAuth2State := r.URL.Query().Get("state")
+		if encryptedOAuth2State == "" {
 			c.writeHTTPError(ctx, w, c.logger, http.StatusBadRequest, "Bad Request", "state is empty")
 
 			return
 		}
 
-		session, err := state.NewWithEncodedToken(encryptedState, c.conf.HTTP.Secret.String())
+		oAuth2State, err := state.Decrypt(c.stateCrypto, encryptedOAuth2State)
 		if err != nil {
 			c.writeHTTPError(ctx, w, c.logger, http.StatusBadRequest, "Invalid State", err.Error())
 
 			return
 		}
 
-		logger := c.createSessionLoggerWithState(session)
+		logger := c.createSessionLoggerWithState(oAuth2State)
 
 		ctx = logging.ToContext(ctx, logger)
 
-		clientID := c.getClientID(session)
+		clientID := c.getClientID(oAuth2State)
 
 		if c.conf.OAuth2.Nonce {
 			ctx = context.WithValue(ctx, types.CtxNonce{}, c.getNonce(clientID))
@@ -120,13 +120,13 @@ func (c *Client) OAuth2Callback() http.Handler {
 		var codeExchangeHandler rp.CodeExchangeCallback[*idtoken.Claims]
 
 		if c.conf.OAuth2.UserInfo {
-			codeExchangeHandler = rp.UserinfoCallback(c.postCodeExchangeHandler(logger, encryptedState, session, clientID))
+			codeExchangeHandler = rp.UserinfoCallback(c.postCodeExchangeHandler(logger, encryptedOAuth2State, oAuth2State, clientID))
 		} else {
 			codeExchangeHandler = func(
 				w http.ResponseWriter, r *http.Request,
-				tokens idtoken.IDToken, state string, provider rp.RelyingParty,
+				tokens idtoken.IDToken, encryptedOAuth2State state.EncryptedState, provider rp.RelyingParty,
 			) {
-				c.postCodeExchangeHandler(logger, encryptedState, session, clientID)(w, r, tokens, state, provider, nil)
+				c.postCodeExchangeHandler(logger, encryptedOAuth2State, oAuth2State, clientID)(w, r, tokens, encryptedOAuth2State, provider, nil)
 			}
 		}
 
@@ -152,7 +152,7 @@ func (c *Client) OAuth2ProfileSubmit() http.Handler {
 			return
 		}
 
-		tokenBytes, err := state.Decrypt(encryptedToken, c.conf.HTTP.Secret.String())
+		tokenBytes, err := c.stateCrypto.DecryptBytesWithTime([]byte(encryptedToken))
 		if err != nil {
 			c.writeHTTPError(ctx, w, c.logger, http.StatusBadRequest, "Invalid token", err.Error())
 
@@ -167,27 +167,27 @@ func (c *Client) OAuth2ProfileSubmit() http.Handler {
 			return
 		}
 
-		session, err := state.NewWithEncodedToken(token.State, c.conf.HTTP.Secret.String())
+		oAuth2State, err := state.Decrypt(c.stateCrypto, token.EncryptedOAuth2State)
 		if err != nil {
 			c.writeHTTPError(ctx, w, c.logger, http.StatusBadRequest, "Invalid State", err.Error())
 
 			return
 		}
 
-		logger := c.createSessionLoggerWithState(session)
+		logger := c.createSessionLoggerWithState(oAuth2State)
 
-		clientID := c.getClientID(session)
+		clientID := c.getClientID(oAuth2State)
 		stateHash := sha256.Sum256([]byte(encryptedToken))
 		storageKey := fmt.Sprintf("%s-token-%x", clientID, stateHash[:8])
 
-		encryptedStoredToken, err := c.storage.Get(storageKey)
+		encryptedStoredToken, err := c.storage.Get(ctx, storageKey)
 		if err != nil {
 			c.writeHTTPError(ctx, w, logger, http.StatusBadRequest, "unable to retrieve refresh token from storage", err.Error())
 
 			return
 		}
 
-		_ = c.storage.Delete(storageKey)
+		_ = c.storage.Delete(ctx, storageKey)
 
 		if encryptedStoredToken != encryptedToken {
 			c.writeHTTPError(ctx, w, logger, http.StatusBadRequest, "Bad Request", "token mismatch from profile selector")
@@ -205,7 +205,7 @@ func (c *Client) OAuth2ProfileSubmit() http.Handler {
 
 		// Validate that the selected profile is in the allowed list
 		if !slices.Contains(token.Profiles, clientConfigName) {
-			c.openvpn.DenyClient(ctx, logger, session.Client, "invalid profile selection")
+			c.openvpn.DenyClient(ctx, logger, oAuth2State.Client, "invalid profile selection")
 			c.writeHTTPError(ctx, w, logger, http.StatusForbidden, "Invalid Profile", "The selected profile is not allowed")
 
 			return
@@ -213,7 +213,7 @@ func (c *Client) OAuth2ProfileSubmit() http.Handler {
 
 		logger.LogAttrs(ctx, slog.LevelInfo, "successful authorization via oauth2 with profile selection")
 
-		c.openvpn.AcceptClient(ctx, logger, session.Client, username, clientConfigName)
+		c.openvpn.AcceptClient(ctx, logger, oAuth2State.Client, username, clientConfigName)
 		c.writeHTTPSuccess(ctx, w, logger)
 	})
 }
@@ -250,7 +250,7 @@ func (c *Client) createSessionLoggerWithState(session state.State) *slog.Logger 
 
 //nolint:cyclop,gocognit,nestif
 func (c *Client) postCodeExchangeHandler(
-	logger *slog.Logger, encryptedState string, session state.State, clientID string,
+	logger *slog.Logger, encryptedState state.EncryptedState, session state.State, clientID string,
 ) rp.CodeExchangeUserinfoCallback[*idtoken.Claims, *types.UserInfo] {
 	return func(
 		w http.ResponseWriter, r *http.Request, tokens idtoken.IDToken, _ string,
@@ -326,7 +326,7 @@ func (c *Client) postCodeExchangeHandler(
 					return
 				}
 
-				err = c.storeProfileSelectorToken(clientConfigSelectorToken, clientID)
+				err = c.storeProfileSelectorToken(ctx, clientConfigSelectorToken, clientID)
 				if err != nil {
 					c.openvpn.DenyClient(ctx, logger, session.Client, "unable to store profile selector token")
 					c.writeHTTPError(ctx, w, logger, http.StatusInternalServerError, "store profile selector token", err.Error())
@@ -383,7 +383,7 @@ func (c *Client) postCodeExchangeHandlerStoreRefreshToken(
 	}
 
 	if !c.conf.OAuth2.Refresh.ValidateUser {
-		if err := c.storage.Set(clientID, types.EmptyToken); err != nil {
+		if err := c.storage.Set(ctx, clientID, types.EmptyToken); err != nil {
 			logger.LogAttrs(ctx, slog.LevelWarn, err.Error())
 		} else {
 			logger.LogAttrs(ctx, slog.LevelDebug, "empty token for non-interactive re-authentication stored")
@@ -407,7 +407,7 @@ func (c *Client) postCodeExchangeHandlerStoreRefreshToken(
 
 	if refreshToken == "" {
 		logger.LogAttrs(ctx, slog.LevelWarn, "refresh token is empty")
-	} else if err = c.storage.Set(clientID, refreshToken); err != nil {
+	} else if err = c.storage.Set(ctx, clientID, refreshToken); err != nil {
 		logger.LogAttrs(ctx, slog.LevelWarn, "unable to store refresh token",
 			slog.Any("err", err),
 		)
@@ -446,11 +446,11 @@ func (c *Client) extractConfigProfilesFromIDToken(tokens idtoken.IDToken) []stri
 	return profiles
 }
 
-func (c *Client) storeProfileSelectorToken(encryptedToken, clientID string) error {
+func (c *Client) storeProfileSelectorToken(ctx context.Context, encryptedToken, clientID string) error {
 	stateHash := sha256.Sum256([]byte(encryptedToken))
 	storageKey := fmt.Sprintf("%s-token-%x", clientID, stateHash[:8])
 
-	err := c.storage.Set(storageKey, encryptedToken)
+	err := c.storage.Set(ctx, storageKey, encryptedToken)
 	if err != nil {
 		return fmt.Errorf("unable to store profile selector token: %w", err)
 	}
@@ -458,15 +458,15 @@ func (c *Client) storeProfileSelectorToken(encryptedToken, clientID string) erro
 	return nil
 }
 
-func (c *Client) createProfileSelectorToken(encryptedState, username string, profiles []string) (string, error) {
+func (c *Client) createProfileSelectorToken(encryptedState state.EncryptedState, username string, profiles []string) (string, error) {
 	if username == "" {
 		username = config.CommonNameModeOmitValue
 	}
 
 	tokenContent := clientConfigToken{
-		Username: username,
-		Profiles: profiles,
-		State:    encryptedState,
+		Username:             username,
+		Profiles:             profiles,
+		EncryptedOAuth2State: encryptedState,
 	}
 
 	tokenBytes, err := json.Marshal(tokenContent)
@@ -474,18 +474,18 @@ func (c *Client) createProfileSelectorToken(encryptedState, username string, pro
 		return "", fmt.Errorf("unable to marshal profile selector token: %w", err)
 	}
 
-	encryptedToken, err := state.Encrypt(tokenBytes, c.conf.HTTP.Secret.String())
+	encryptedToken, err := c.stateCrypto.EncryptBytesWithTime(tokenBytes)
 	if err != nil {
 		return "", fmt.Errorf("unable to encrypt profile selector token: %w", err)
 	}
 
-	return encryptedToken, nil
+	return string(encryptedToken), nil
 }
 
 func (c *Client) httpErrorHandler(ctx context.Context, w http.ResponseWriter, httpStatus int, errorType, errorDesc, encryptedSession string) {
 	logger := c.logger
 
-	session, err := state.NewWithEncodedToken(encryptedSession, c.conf.HTTP.Secret.String())
+	session, err := state.Decrypt(c.stateCrypto, encryptedSession)
 	if err == nil {
 		logger = c.createSessionLogger(session)
 

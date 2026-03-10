@@ -8,6 +8,7 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/crypto"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/httphandler"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
@@ -29,7 +30,7 @@ func TestAssets(t *testing.T) {
 	provider, err := generic.NewProvider(t.Context(), conf, http.DefaultClient)
 	require.NoError(t, err)
 
-	oAuth2Client, err := oauth2.New(t.Context(), logger.Logger, conf, http.DefaultClient, testutils.NewFakeStorage(), provider, testutils.NewFakeOpenVPNClient())
+	oAuth2Client, err := oauth2.New(t.Context(), logger.Logger, conf, http.DefaultClient, testutils.NewFakeStorage(), crypto.New(conf.HTTP.Secret.String()), provider, testutils.NewFakeOpenVPNClient())
 	require.NoError(t, err)
 
 	handler := httphandler.New(conf, oAuth2Client)
@@ -52,7 +53,7 @@ func TestCustomAssets(t *testing.T) {
 	provider, err := generic.NewProvider(t.Context(), conf, http.DefaultClient)
 	require.NoError(t, err)
 
-	oAuth2Client, err := oauth2.New(t.Context(), logger.Logger, conf, http.DefaultClient, testutils.NewFakeStorage(), provider, testutils.NewFakeOpenVPNClient())
+	oAuth2Client, err := oauth2.New(t.Context(), logger.Logger, conf, http.DefaultClient, testutils.NewFakeStorage(), crypto.New(conf.HTTP.Secret.String()), provider, testutils.NewFakeOpenVPNClient())
 	require.NoError(t, err)
 
 	conf.HTTP.AssetPath = types.FS{
