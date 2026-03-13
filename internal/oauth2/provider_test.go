@@ -137,7 +137,7 @@ func TestNewProvider(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
 
-			logger := testutils.NewTestLogger()
+			logger := testsuite.NewTestLogger()
 
 			var (
 				err      error
@@ -157,7 +157,7 @@ func TestNewProvider(t *testing.T) {
 
 			require.NoError(t, err)
 
-			oAuth2Client, err := oauth2.New(ctx, logger.Logger, tc.conf, http.DefaultClient, testutils.NewFakeStorage(), testsuite.Cipher, provider, testutils.NewFakeOpenVPNClient())
+			oAuth2Client, err := oauth2.New(ctx, logger.Logger, tc.conf, http.DefaultClient, testsuite.NewFakeStorage(), testsuite.Cipher, provider, testsuite.NewFakeOpenVPNClient())
 			if tc.err != "" {
 				require.Error(t, err)
 				assert.Equal(t, tc.err, strings.TrimSpace(err.Error()))

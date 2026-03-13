@@ -176,7 +176,7 @@ func TestPassThroughFull(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
 
-			logger := testutils.NewTestLogger()
+			logger := testsuite.NewTestLogger()
 
 			if tc.scheme == openvpn.SchemeUnix && runtime.GOOS == "windows" {
 				t.Skip("skipping test on windows")
@@ -244,7 +244,7 @@ func TestPassThroughFull(t *testing.T) {
 
 			require.Len(t, passThroughAddr, 2, "unexpected log output: %s", logger.String())
 
-			passThroughConn, err := testutils.WaitUntilListening(t, tc.scheme, passThroughAddr[1])
+			passThroughConn, err := testsuite.WaitUntilListening(t, tc.scheme, passThroughAddr[1])
 			require.NoError(t, err)
 
 			passThroughReader := bufio.NewReader(passThroughConn)
@@ -339,12 +339,12 @@ func TestPassThroughFull(t *testing.T) {
 				testutils.SendMessagef(t, passThroughConn, " exit ")
 				require.NoError(t, passThroughConn.Close())
 
-				gid, err := testutils.GetGIDOfFile(tc.conf.OpenVPN.Passthrough.Address.Path)
+				gid, err := testsuite.GetGIDOfFile(tc.conf.OpenVPN.Passthrough.Address.Path)
 				require.NoError(t, err)
 
 				assert.Equal(t, tc.conf.OpenVPN.Passthrough.SocketGroup, strconv.Itoa(gid))
 
-				permission, err := testutils.GetPermissionsOfFile(tc.conf.OpenVPN.Passthrough.Address.Path)
+				permission, err := testsuite.GetPermissionsOfFile(tc.conf.OpenVPN.Passthrough.Address.Path)
 				require.NoError(t, err)
 
 				//nolint:gosec

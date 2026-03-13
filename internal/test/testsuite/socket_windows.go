@@ -1,6 +1,6 @@
 //go:build windows
 
-package testutils
+package testsuite
 
 // GetGIDOfFile returns 0 on Windows as the concept of GID is not used.
 func GetGIDOfFile(_ string) (int, error) {

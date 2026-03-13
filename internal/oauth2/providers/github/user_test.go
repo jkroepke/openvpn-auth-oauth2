@@ -10,7 +10,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/github"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
@@ -79,7 +79,7 @@ func TestGetUser(t *testing.T) {
 			}
 
 			httpClient := &http.Client{
-				Transport: testutils.NewRoundTripperFunc(nil, func(_ http.RoundTripper, _ *http.Request) (*http.Response, error) {
+				Transport: testsuite.NewRoundTripperFunc(nil, func(_ http.RoundTripper, _ *http.Request) (*http.Response, error) {
 					resp := httptest.NewRecorder()
 					if strings.Contains(tc.user, "error") {
 						resp.WriteHeader(http.StatusInternalServerError)

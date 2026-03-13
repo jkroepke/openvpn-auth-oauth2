@@ -211,7 +211,7 @@ func TestIT(t *testing.T) {
 	conf := config.Defaults
 	conf.HTTP.Secret = testsuite.Secret
 
-	logger := testutils.NewTestLogger()
+	logger := testsuite.NewTestLogger()
 
 	// clientListener must not be closed, because it is used by the httpClientListener.
 	clientListener, err := nettest.NewLocalListener("tcp")

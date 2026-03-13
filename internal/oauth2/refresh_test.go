@@ -240,7 +240,7 @@ func TestRefreshReAuth(t *testing.T) {
 
 				return conf
 			}(),
-			rt: testutils.NewRoundTripperFunc(http.DefaultTransport, func(rt http.RoundTripper, req *http.Request) (*http.Response, error) {
+			rt: testsuite.NewRoundTripperFunc(http.DefaultTransport, func(rt http.RoundTripper, req *http.Request) (*http.Response, error) {
 				if req.URL.Path != "/oauth/token" {
 					return rt.RoundTrip(req)
 				}
@@ -278,7 +278,7 @@ func TestRefreshReAuth(t *testing.T) {
 
 				return conf
 			}(),
-			rt: testutils.NewRoundTripperFunc(http.DefaultTransport, func(rt http.RoundTripper, req *http.Request) (*http.Response, error) {
+			rt: testsuite.NewRoundTripperFunc(http.DefaultTransport, func(rt http.RoundTripper, req *http.Request) (*http.Response, error) {
 				if req.URL.Path != "/oauth/token" {
 					return rt.RoundTrip(req)
 				}
