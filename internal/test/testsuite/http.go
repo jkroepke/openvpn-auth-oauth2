@@ -1,6 +1,7 @@
 package testsuite
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -113,7 +114,7 @@ func (f *MockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) 
 
 // WaitUntilListening tries to connect to a network address until it is
 // available. It returns the connection or an error after several retries.
-func WaitUntilListening(tb testing.TB, network, address string) (net.Conn, error) {
+func WaitUntilListening(ctx context.Context, tb testing.TB, network, address string) (net.Conn, error) {
 	tb.Helper()
 
 	var (
@@ -124,7 +125,7 @@ func WaitUntilListening(tb testing.TB, network, address string) (net.Conn, error
 	dialer := &net.Dialer{Timeout: 100 * time.Millisecond}
 
 	for range 10 {
-		conn, err = dialer.DialContext(tb.Context(), network, address)
+		conn, err = dialer.DialContext(ctx, network, address)
 		if err == nil {
 			return conn, nil
 		}

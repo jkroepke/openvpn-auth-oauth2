@@ -31,7 +31,7 @@ func TestClientInvalidServer(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	t.Cleanup(cancel)
 
-	logger := testutils.NewTestLogger()
+	logger := testsuite.NewTestLogger()
 	conf := config.Config{
 		HTTP: config.HTTP{
 			BaseURL: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
@@ -261,7 +261,7 @@ func TestClientFull(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
 
-			logger := testutils.NewTestLogger()
+			logger := testsuite.NewTestLogger()
 
 			managementInterface, err := nettest.NewLocalListener("tcp")
 			require.NoError(t, err)
@@ -426,7 +426,7 @@ func TestHoldRelease(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	t.Cleanup(cancel)
 
-	logger := testutils.NewTestLogger()
+	logger := testsuite.NewTestLogger()
 
 	conf := config.Config{
 		HTTP: config.HTTP{
@@ -477,7 +477,7 @@ func TestCommandTimeout(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	t.Cleanup(cancel)
 
-	logger := testutils.NewTestLogger()
+	logger := testsuite.NewTestLogger()
 
 	conf := config.Config{
 		HTTP: config.HTTP{
@@ -551,7 +551,7 @@ func TestDeadLocks(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
 
-			logger := testutils.NewTestLogger()
+			logger := testsuite.NewTestLogger()
 
 			conf := config.Defaults
 			conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
@@ -614,7 +614,7 @@ func TestInvalidCommandResponses(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
 
-			logger := testutils.NewTestLogger()
+			logger := testsuite.NewTestLogger()
 
 			conf := config.Config{
 				HTTP: config.HTTP{

@@ -12,7 +12,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/httpserver"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
 	"github.com/madflojo/testcerts"
 	"github.com/stretchr/testify/require"
 )
@@ -20,7 +20,7 @@ import (
 func TestNewHTTPServer(t *testing.T) {
 	t.Parallel()
 
-	logger := testutils.NewTestLogger()
+	logger := testsuite.NewTestLogger()
 
 	cert, key, err := testcerts.GenerateCertsToTempFile(os.TempDir())
 	require.NoError(t, err)

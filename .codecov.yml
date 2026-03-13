@@ -7,6 +7,7 @@ coverage:
 ignore:
   - "docs/**/*"
   - "tests/**/*"
+  - "internal/test/**"
   - "internal/utils/testutils/*"
   - "lib/openvpn-auth-oauth2/*.go"
   - "lib/openvpn-auth-oauth2/c/*"

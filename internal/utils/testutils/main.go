@@ -28,6 +28,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/github"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/google"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 	"github.com/stretchr/testify/require"
@@ -39,7 +40,7 @@ import (
 
 //nolint:gochecknoglobals
 var (
-	HashSecret         = sha256.Sum256([]byte(Secret))
+	HashSecret         = sha256.Sum256([]byte(testsuite.Secret))
 	SupportedUILocales = []language.Tag{language.English}
 )
 
@@ -138,7 +139,7 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener, logger *slo
 ) {
 	tb.Helper()
 
-	clientSecret := Secret
+	clientSecret := testsuite.Secret
 
 	client := oidcstorage.WebClient(
 		"clientID",
@@ -247,11 +248,11 @@ func SetupResourceServer(tb testing.TB, clientListener net.Listener, logger *slo
 // provider. It returns the adjusted configuration and helper instances used in
 // tests.
 func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config, rt http.RoundTripper, opConf *op.Config) (
-	config.Config, *openvpn.Client, net.Listener, *oauth2.Client, *httptest.Server, *http.Client, *Logger,
+	config.Config, *openvpn.Client, net.Listener, *oauth2.Client, *httptest.Server, *http.Client, *testsuite.Logger,
 ) {
 	tb.Helper()
 
-	logger := NewTestLogger()
+	logger := testsuite.NewTestLogger()
 
 	managementInterface, err := nettest.NewLocalListener("tcp")
 	require.NoError(tb, err)
@@ -270,7 +271,7 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 	conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: clientListener.Addr().String()}}
 
 	if conf.HTTP.Secret == "" {
-		conf.HTTP.Secret = Secret
+		conf.HTTP.Secret = testsuite.Secret
 	}
 
 	if conf.HTTP.AssetPath.IsEmpty() {
@@ -307,8 +308,8 @@ func SetupMockEnvironment(ctx context.Context, tb testing.TB, conf config.Config
 		conf.OAuth2.Refresh.Expires = time.Hour
 	}
 
-	httpClient := &http.Client{Transport: NewMockRoundTripper(utils.NewUserAgentTransport(rt))}
-	tokenStorage := tokenstorage.NewInMemory(Secret, conf.OAuth2.Refresh.Expires)
+	httpClient := &http.Client{Transport: testsuite.NewMockRoundTripper(utils.NewUserAgentTransport(rt))}
+	tokenStorage := tokenstorage.NewInMemory(testsuite.Secret, conf.OAuth2.Refresh.Expires)
 
 	oAuth2Client, openvpnClient := SetupOpenVPNOAuth2Clients(ctx, tb, conf, logger.Logger, httpClient, tokenStorage)
 

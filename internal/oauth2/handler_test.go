@@ -1,7 +1,6 @@
 package oauth2_test
 
 import (
-	"bufio"
 	"context"
 	"encoding/base64"
 	"fmt"
@@ -16,11 +15,9 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
 	oauth2types "github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/stretchr/testify/require"
 )
 
@@ -44,11 +41,8 @@ func TestHandler(t *testing.T) {
 				conf := config.Defaults
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = false
-				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
-				conf.OAuth2.Validate.Groups = make([]string, 0)
-				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
@@ -69,11 +63,8 @@ func TestHandler(t *testing.T) {
 				conf := config.Defaults
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = false
-				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
-				conf.OAuth2.Validate.Groups = make([]string, 0)
-				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
@@ -94,12 +85,9 @@ func TestHandler(t *testing.T) {
 				conf := config.Defaults
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = false
-				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OAuth2.Validate.Acr = []string{"phr"}
-				conf.OAuth2.Validate.Groups = make([]string, 0)
-				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OAuth2.Nonce = true
@@ -126,11 +114,8 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = false
 				conf.HTTP.Template = tmpl
-				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
-				conf.OAuth2.Validate.Groups = make([]string, 0)
-				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
@@ -151,7 +136,6 @@ func TestHandler(t *testing.T) {
 				conf := config.Defaults
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = false
-				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OAuth2.Validate.Groups = []string{"group1"}
@@ -177,7 +161,6 @@ func TestHandler(t *testing.T) {
 				conf := config.Defaults
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = false
-				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OAuth2.Validate.Groups = []string{"group0", "group1"}
@@ -203,7 +186,6 @@ func TestHandler(t *testing.T) {
 				conf := config.Defaults
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = false
-				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OAuth2.Validate.Groups = []string{"group0"}
@@ -229,11 +211,8 @@ func TestHandler(t *testing.T) {
 				conf := config.Defaults
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
-				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
-				conf.OAuth2.Validate.Groups = make([]string, 0)
-				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
@@ -254,11 +233,8 @@ func TestHandler(t *testing.T) {
 				conf := config.Defaults
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.ShortURL = true
-				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
-				conf.OAuth2.Validate.Groups = make([]string, 0)
-				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
@@ -280,11 +256,8 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
-				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
-				conf.OAuth2.Validate.Groups = make([]string, 0)
-				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
@@ -306,11 +279,8 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = false
-				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
-				conf.OAuth2.Validate.Groups = make([]string, 0)
-				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
@@ -332,11 +302,8 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
-				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
-				conf.OAuth2.Validate.Groups = make([]string, 0)
-				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
@@ -358,11 +325,8 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
-				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
-				conf.OAuth2.Validate.Groups = make([]string, 0)
-				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OAuth2.Validate.CEL = "false"
@@ -385,11 +349,8 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
-				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
-				conf.OAuth2.Validate.Groups = make([]string, 0)
-				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
@@ -419,11 +380,8 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
-				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
-				conf.OAuth2.Validate.Groups = make([]string, 0)
-				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
@@ -454,11 +412,8 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
-				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
-				conf.OAuth2.Validate.Groups = make([]string, 0)
-				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
@@ -484,11 +439,8 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
-				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
-				conf.OAuth2.Validate.Groups = make([]string, 0)
-				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
@@ -520,11 +472,8 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
-				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
-				conf.OAuth2.Validate.Groups = make([]string, 0)
-				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
@@ -557,11 +506,8 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
-				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
-				conf.OAuth2.Validate.Groups = make([]string, 0)
-				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
@@ -594,11 +540,8 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
-				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
-				conf.OAuth2.Validate.Groups = make([]string, 0)
-				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
@@ -631,11 +574,8 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
-				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
-				conf.OAuth2.Validate.Groups = make([]string, 0)
-				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
@@ -667,11 +607,8 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
-				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
-				conf.OAuth2.Validate.Groups = make([]string, 0)
-				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
@@ -703,11 +640,8 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
-				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
-				conf.OAuth2.Validate.Groups = make([]string, 0)
-				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
@@ -729,11 +663,8 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
-				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
-				conf.OAuth2.Validate.Groups = make([]string, 0)
-				conf.OAuth2.Validate.Roles = make([]string, 0)
 				conf.OAuth2.Validate.Issuer = true
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
@@ -755,51 +686,18 @@ func TestHandler(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
 
-			conf, openVPNClient, managementInterface, _, httpClientListener, httpClient, logger := testutils.SetupMockEnvironment(ctx, t, tc.conf, nil, nil)
+			suite := testsuite.New(tc.conf)
+			suite.SetupMockEnvironment(ctx, t, nil)
+			suite.ExpectVersionAndReleaseHold(t)
 
+			httpClient := suite.GetHTTPClient()
 			httpClient.CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
 				return http.ErrUseLastResponse
 			}
 
-			managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
+			resp, _, err := suite.DoHTTPRequest(ctx, http.MethodGet, "/ready", nil, http.NoBody) //nolint:bodyclose
 			require.NoError(t, err)
-
-			t.Cleanup(func() {
-				managementInterfaceConn.Close()
-				openVPNClient.Shutdown(t.Context())
-
-				select {
-				case err := <-errOpenVPNClientCh:
-					require.NoError(t, err)
-				case <-time.After(1 * time.Second):
-					t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", logger.String())
-				}
-			})
-
-			reader := bufio.NewReader(managementInterfaceConn)
-
-			testutils.ExpectVersionAndReleaseHold(t, managementInterfaceConn, reader)
-
-			listen, err := testutils.WaitUntilListening(t, httpClientListener.Listener.Addr().Network(), httpClientListener.Listener.Addr().String())
-			if err != nil {
-				return
-			}
-
-			require.NoError(t, listen.Close())
-
-			request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, httpClientListener.URL+"/ready", nil)
-			require.NoError(t, err)
-
-			resp, err := httpClient.Do(request) //nolint:bodyclose
-			require.NoError(t, err)
-
 			require.Equal(t, http.StatusOK, resp.StatusCode)
-
-			_, err = io.Copy(io.Discard, resp.Body)
-			require.NoError(t, err)
-
-			err = resp.Body.Close()
-			require.NoError(t, err)
 
 			var session string
 
@@ -813,40 +711,21 @@ func TestHandler(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			urlPath := "/oauth2/start?state="
-			if conf.HTTP.ShortURL {
-				urlPath = "/?s="
-			}
+			urlPath := "/oauth2/start?state=" + session
 
-			request, err = http.NewRequestWithContext(t.Context(), http.MethodGet,
-				fmt.Sprintf("%s%s%s", httpClientListener.URL, urlPath, session),
-				nil,
-			)
-
-			require.NoError(t, err)
-
-			if conf.HTTP.ShortURL {
-				resp, err = httpClient.Do(request) //nolint:bodyclose
-				require.NoError(t, err)
-
-				_, err = io.Copy(io.Discard, resp.Body)
-				require.NoError(t, err)
-
-				err = resp.Body.Close()
+			if tc.conf.HTTP.ShortURL {
+				resp, _, err = suite.DoHTTPRequest(ctx, http.MethodGet, "/?s="+session, nil, http.NoBody) //nolint:bodyclose
 				require.NoError(t, err)
 
 				require.Equal(t, http.StatusFound, resp.StatusCode)
-				require.NotEmpty(t, resp.Header.Get("Location"))
 
-				request, err = http.NewRequestWithContext(t.Context(), http.MethodGet,
-					httpClientListener.URL+resp.Header.Get("Location"),
-					nil,
-				)
-				require.NoError(t, err)
+				urlPath = resp.Header.Get("Location")
 			}
 
+			header := make(http.Header)
+
 			if tc.xForwardedFor != "" {
-				request.Header.Set("X-Forwarded-For", tc.xForwardedFor)
+				header.Set("X-Forwarded-For", tc.xForwardedFor)
 			}
 
 			reqErrCh := make(chan error, 1)
@@ -854,116 +733,104 @@ func TestHandler(t *testing.T) {
 			go func() {
 				var err error
 
-				resp, err = httpClient.Do(request) //nolint:bodyclose
+				resp, _, err = suite.DoHTTPRequest(ctx, http.MethodGet, urlPath, header, http.NoBody) //nolint:bodyclose
+
 				reqErrCh <- err
 			}()
 
 			if !tc.preAllow {
-				testutils.ExpectMessage(t, managementInterfaceConn, reader, `client-deny 0 1 "client rejected: http client ip 127.0.0.1 and vpn ip 127.0.0.2 is different"`)
-				testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-deny command succeeded")
+				suite.ExpectMessage(t, `client-deny 0 1 "client rejected: http client ip 127.0.0.1 and vpn ip 127.0.0.2 is different"`)
+				suite.SendMessagef(t, `SUCCESS: client-deny command succeeded`)
 			}
 
 			select {
 			case err := <-reqErrCh:
 				require.NoError(t, err)
 			case <-time.After(1 * time.Second):
-				t.Fatalf("timeout waiting for request to finish. Logs:\n\n%s", logger.String())
+				t.Fatalf("timeout waiting for request to finish. Logs:\n\n%s", suite.Logs())
 			}
 
-			_, err = io.Copy(io.Discard, resp.Body)
-			require.NoError(t, err)
-
-			err = resp.Body.Close()
-			require.NoError(t, err)
-
 			if tc.state == (state.State{}) {
-				require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+				require.Equal(t, http.StatusBadRequest, resp.StatusCode, suite.Logs())
 
 				return
 			}
 
 			if !tc.preAllow {
-				require.Equal(t, http.StatusForbidden, resp.StatusCode)
+				require.Equal(t, http.StatusForbidden, resp.StatusCode, suite.Logs())
 
 				return
 			}
 
-			require.Equal(t, http.StatusFound, resp.StatusCode, logger.String())
-			require.NotEmpty(t, resp.Header.Get("Set-Cookie"))
+			require.Equal(t, http.StatusFound, resp.StatusCode, suite.Logs())
+			require.NotEmpty(t, resp.Header.Get("Location"), "Location header is empty")
+			require.NotEmpty(t, resp.Header.Get("Set-Cookie"), "Set-Cookie header is empty")
 			require.Contains(t, resp.Header.Get("Set-Cookie"), "state=")
 			require.Contains(t, resp.Header.Get("Set-Cookie"), "Path=/oauth2/")
 			require.Contains(t, resp.Header.Get("Set-Cookie"), "HttpOnly")
 			require.Contains(t, resp.Header.Get("Set-Cookie"), "Max-Age=185")
-			require.NotEmpty(t, resp.Header.Get("Location"))
 
 			httpClient.CheckRedirect = nil
 
-			request, err = http.NewRequestWithContext(t.Context(), http.MethodGet, resp.Header.Get("Location"), nil)
-			require.NoError(t, err)
+			var body []byte
 
 			go func() {
 				var err error
 
-				resp, err = httpClient.Do(request) //nolint:bodyclose
+				resp, body, err = suite.DoHTTPRequest(ctx, http.MethodGet, resp.Header.Get("Location"), header, http.NoBody) //nolint:bodyclose
 				reqErrCh <- err
 			}()
 
-			clientConfigSelectorActive := conf.OpenVPN.ClientConfig.Enabled && conf.OpenVPN.ClientConfig.TokenClaim != invalid &&
+			clientConfigSelectorActive := tc.conf.OpenVPN.ClientConfig.Enabled && tc.conf.OpenVPN.ClientConfig.TokenClaim != invalid &&
 				(len(tc.conf.OpenVPN.ClientConfig.UserSelector.StaticValues) > 1 ||
-					(len(tc.conf.OpenVPN.ClientConfig.UserSelector.StaticValues) >= 1 && conf.OpenVPN.ClientConfig.TokenClaim != ""))
+					(len(tc.conf.OpenVPN.ClientConfig.UserSelector.StaticValues) >= 1 && tc.conf.OpenVPN.ClientConfig.TokenClaim != ""))
 
 			switch {
 			case !tc.postAllow:
-				testutils.ExpectMessage(t, managementInterfaceConn, reader, `client-deny 0 1 "client rejected"`)
-				testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-deny command succeeded")
+				suite.ExpectMessage(t, `client-deny 0 1 "client rejected"`)
+				suite.SendMessagef(t, "SUCCESS: client-deny command succeeded")
 			case tc.state.Client.UsernameIsDefined == 1:
-				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth-nt 0 1")
-				testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
+				suite.ExpectMessage(t, "client-auth-nt 0 1")
+				suite.SendMessagef(t, "SUCCESS: client-auth command succeeded")
 			case clientConfigSelectorActive:
 				// Expect profile selection
-			case conf.OpenVPN.ClientConfig.Enabled:
+			case tc.conf.OpenVPN.ClientConfig.Enabled:
 				if tc.state.Client.CommonName == "name" {
-					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 0 1\r\n"+
+					suite.ExpectMessage(t, "client-auth 0 1\r\n"+
 						"push \"ping 60\"\r\n"+
 						"push \"ping-restart 180\"\r\n"+
 						"push \"ping-timer-rem\" 0\r\n"+
 						"push \"auth-token-user aWQx\"\r\n"+
 						"END")
-					testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
+					suite.SendMessagef(t, "SUCCESS: client-auth command succeeded")
 				} else {
-					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 0 1\r\npush \"auth-token-user Y2xpZW50\"\r\nEND")
-					testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
+					suite.ExpectMessage(t, "client-auth 0 1\r\npush \"auth-token-user Y2xpZW50\"\r\nEND")
+					suite.SendMessagef(t, "SUCCESS: client-auth command succeeded")
 				}
 			default:
-				if conf.OAuth2.UserInfo {
-					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 0 1\r\npush \"auth-token-user dGVzdC11c2VyQGxvY2FsaG9zdA==\"\r\nEND")
+				if tc.conf.OAuth2.UserInfo {
+					suite.ExpectMessage(t, "client-auth 0 1\r\npush \"auth-token-user dGVzdC11c2VyQGxvY2FsaG9zdA==\"\r\nEND")
 				} else {
-					testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 0 1\r\npush \"auth-token-user aWQx\"\r\nEND")
+					suite.ExpectMessage(t, "client-auth 0 1\r\npush \"auth-token-user aWQx\"\r\nEND")
 				}
 
-				testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
+				suite.SendMessagef(t, "SUCCESS: client-auth command succeeded")
 			}
 
 			select {
 			case err := <-reqErrCh:
 				require.NoError(t, err)
 			case <-time.After(1 * time.Second):
-				t.Fatalf("timeout waiting for request to finish. Logs:\n\n%s", logger.String())
+				t.Fatalf("timeout waiting for request to finish. Logs:\n\n%s", suite.Logs())
 			}
 
-			body, err := io.ReadAll(resp.Body)
-			require.NoError(t, err)
-
-			err = resp.Body.Close()
-			require.NoError(t, err)
-
 			if !tc.postAllow {
-				require.Equal(t, http.StatusForbidden, resp.StatusCode, logger.GetLogs(), string(body))
+				require.Equal(t, http.StatusForbidden, resp.StatusCode, suite.Logs(), string(body))
 
 				return
 			}
 
-			require.Equal(t, http.StatusOK, resp.StatusCode, logger.GetLogs(), string(body))
+			require.Equal(t, http.StatusOK, resp.StatusCode, suite.Logs(), string(body))
 
 			require.NotEmpty(t, resp.Header.Get("Set-Cookie"))
 			require.Contains(t, resp.Header.Get("Set-Cookie"), "state=")
@@ -990,49 +857,44 @@ func TestHandler(t *testing.T) {
 
 				require.Contains(t, fields, "token")
 
-				request, err = http.NewRequestWithContext(t.Context(), http.MethodPost,
-					httpClientListener.URL+"/oauth2/profile-submit",
-					strings.NewReader(fmt.Sprintf("token=%s&profile=%s",
-						url.QueryEscape(fields["token"]),
-						url.QueryEscape(fields["profile"]),
-					)),
-				)
+				header := make(http.Header)
+				header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-				require.NoError(t, err)
-
-				request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+				var body []byte
 
 				go func() {
 					var err error
 
-					resp, err = httpClient.Do(request) //nolint:bodyclose
+					//nolint:bodyclose
+					resp, body, err = suite.DoHTTPRequest(ctx, http.MethodPost,
+						"/oauth2/profile-submit",
+						header,
+						strings.NewReader(fmt.Sprintf("token=%s&profile=%s",
+							url.QueryEscape(fields["token"]),
+							url.QueryEscape(fields["profile"]),
+						)))
+
 					reqErrCh <- err
 				}()
 
-				testutils.ExpectMessage(t, managementInterfaceConn, reader, "client-auth 0 1\r\n"+
+				suite.ExpectMessage(t, "client-auth 0 1\r\n"+
 					"push \"ping 60\"\r\n"+
 					"push \"ping-restart 180\"\r\n"+
 					"push \"ping-timer-rem\" 0\r\n"+
 					"push \"auth-token-user aWQx\"\r\n"+
 					"END")
-				testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
+				suite.SendMessagef(t, "SUCCESS: client-auth command succeeded")
 
 				select {
 				case err := <-reqErrCh:
 					require.NoError(t, err)
 				case <-time.After(1 * time.Second):
-					t.Fatalf("timeout waiting for request to finish. Logs:\n\n%s", logger.String())
+					t.Fatalf("timeout waiting for request to finish. Logs:\n\n%s", suite.Logs())
 				}
 
-				body, err = io.ReadAll(resp.Body)
-				require.NoError(t, err)
-
-				err = resp.Body.Close()
-				require.NoError(t, err)
-
-				require.Equal(t, http.StatusOK, resp.StatusCode, logger.GetLogs())
+				require.Equal(t, http.StatusOK, resp.StatusCode, suite.Logs())
 				require.Contains(t, string(body), "Access granted")
-			case conf.HTTP.Template != config.Defaults.HTTP.Template:
+			case tc.conf.HTTP.Template != config.Defaults.HTTP.Template:
 				require.Contains(t, string(body), "Permission is hereby granted")
 			default:
 				require.Contains(t, string(body), "Access granted")
@@ -1157,43 +1019,21 @@ func TestOAuth2ProfileSubmit(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
 
-			_, openVPNClient, managementInterface, _, httpClientListener, httpClient, logger := testutils.SetupMockEnvironment(ctx, t, tc.conf, nil, nil)
+			suite := testsuite.New(tc.conf)
+			suite.SetupMockEnvironment(ctx, t, nil)
+			suite.ExpectVersionAndReleaseHold(t)
 
-			managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
-			require.NoError(t, err)
-
-			t.Cleanup(func() {
-				managementInterfaceConn.Close()
-				openVPNClient.Shutdown(t.Context())
-
-				select {
-				case err := <-errOpenVPNClientCh:
-					require.NoError(t, err)
-				case <-time.After(1 * time.Second):
-					t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", logger.String())
-				}
-			})
-
-			reader := bufio.NewReader(managementInterfaceConn)
-
-			testutils.ExpectVersionAndReleaseHold(t, managementInterfaceConn, reader)
-
-			listen, err := testutils.WaitUntilListening(t, httpClientListener.Listener.Addr().Network(), httpClientListener.Listener.Addr().String())
-			if err != nil {
-				return
-			}
-
-			require.NoError(t, listen.Close())
+			httpClient := suite.GetHTTPClient()
 
 			request := tc.req(t)
-			request.URL.Host = strings.Replace(httpClientListener.URL, "http://", "", 1)
+			request.URL.Host = strings.Replace(suite.GetHTTPServerURL(), "http://", "", 1)
 			request.URL.Scheme = "http"
 
 			resp, err := httpClient.Do(request)
 			require.NoError(t, err)
 
 			require.Equal(t, http.StatusBadRequest, resp.StatusCode)
-			require.Contains(t, logger.String(), tc.expectedError)
+			require.Contains(t, suite.Logs(), tc.expectedError)
 
 			_, err = io.Copy(io.Discard, resp.Body)
 			require.NoError(t, err)

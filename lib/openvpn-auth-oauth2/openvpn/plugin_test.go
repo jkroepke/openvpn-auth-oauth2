@@ -115,7 +115,7 @@ func TestPlugin(t *testing.T) {
 			status = PluginFuncV3(PluginStructVerMin, args, ret)
 			require.Equal(t, c.OpenVPNPluginFuncSuccess, status)
 
-			logger := testutils.NewTestLogger()
+			logger := testsuite.NewTestLogger()
 
 			// clientListener must not be closed, because it is used by the httpClientListener.
 			clientListener, err := nettest.NewLocalListener("tcp")

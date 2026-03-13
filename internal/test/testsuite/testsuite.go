@@ -39,6 +39,7 @@ type Suite struct {
 	rt                            http.RoundTripper
 	logger                        *Logger
 	httpClient                    *http.Client
+	httpClientListener            *httptest.Server
 	managementInterfaceConnReader *bufio.Reader
 	openVPNClient                 *openvpn.Client
 	oAuth2Client                  *oauth2.Client
@@ -127,14 +128,14 @@ func (s *Suite) SetupMockEnvironment(ctx context.Context, tb testing.TB, opConf 
 	s.oAuth2Client, s.openVPNClient = s.SetupOpenVPNOAuth2Clients(ctx, tb, tokenStorage)
 
 	httpHandler := httphandler.New(s.conf, s.oAuth2Client)
-	httpClientListener := httptest.NewUnstartedServer(httpHandler)
-	require.NoError(tb, httpClientListener.Listener.Close())
+	s.httpClientListener = httptest.NewUnstartedServer(httpHandler)
+	require.NoError(tb, s.httpClientListener.Listener.Close())
 
-	httpClientListener.Listener = clientListener
-	httpClientListener.Start()
-	tb.Cleanup(httpClientListener.Close)
+	s.httpClientListener.Listener = clientListener
+	s.httpClientListener.Start()
+	tb.Cleanup(s.httpClientListener.Close)
 
-	httpClientListenerClient := httpClientListener.Client()
+	httpClientListenerClient := s.httpClientListener.Client()
 	httpClientListenerClient.Transport = s.httpClient.Transport
 
 	jar, err := cookiejar.New(nil)
@@ -145,6 +146,10 @@ func (s *Suite) SetupMockEnvironment(ctx context.Context, tb testing.TB, opConf 
 	s.httpClient = httpClientListenerClient
 
 	s.ConnectToManagementInterface(ctx, tb)
+
+	listen, err := WaitUntilListening(ctx, tb, s.httpClientListener.Listener.Addr().Network(), s.httpClientListener.Listener.Addr().String())
+	require.NoError(tb, err)
+	require.NoError(tb, listen.Close())
 
 	return s.errOpenVPNClientCh
 }
@@ -186,7 +191,7 @@ func (s *Suite) SetupOIDCServer(tb testing.TB, clientListener net.Listener, opCo
 	opOpts = append(opOpts, op.WithLogger(s.logger.Logger))
 
 	opProvider, err := op.NewProvider(opConfig, opStorage, op.IssuerFromHost(""), opOpts...)
-	require.NoError(tb, err, s.logger.String())
+	require.NoError(tb, err, s.Logs())
 
 	httpHandler := http.NewServeMux()
 	httpHandler.Handle("/", opProvider)
@@ -233,7 +238,7 @@ func (s *Suite) SetupOIDCServer(tb testing.TB, clientListener net.Listener, opCo
 	resourceServer := s.CreateHTTPTestServer(tb, httpHandler)
 
 	resourceServerURL, err := types.NewURL(resourceServer.URL)
-	require.NoError(tb, err, s.logger.String())
+	require.NoError(tb, err, s.Logs())
 
 	return resourceServer, resourceServerURL, config.OAuth2Client{ID: client.GetID(), Secret: types.Secret(clientSecret)}
 }
@@ -310,16 +315,16 @@ func (s *Suite) ConnectToManagementInterface(ctx context.Context, tb testing.TB)
 	}(s.errOpenVPNClientCh)
 
 	if err := <-errTCPAcceptCh; err != nil {
-		require.NoError(tb, err, "error accepting connection to management interface: %s", s.logger.String())
+		require.NoError(tb, err, "error accepting connection to management interface: %s", s.Logs())
 	}
 
 	select {
 	case err := <-s.errOpenVPNClientCh:
-		require.NoError(tb, err, "error connecting OpenVPN client: %s", s.logger.String())
+		require.NoError(tb, err, "error connecting OpenVPN client: %s", s.Logs())
 	default:
 	}
 
-	require.NotNil(tb, s.managementInterfaceConn, "expected a connection to the management interface, but got nil. Logs: %s", s.logger.String())
+	require.NotNil(tb, s.managementInterfaceConn, "expected a connection to the management interface, but got nil. Logs: %s", s.Logs())
 
 	s.managementInterfaceConnReader = bufio.NewReader(s.managementInterfaceConn)
 }
@@ -336,7 +341,7 @@ func (s *Suite) SendAndExpectMessage(tb testing.TB, sendMessage, expectMessage s
 func (s *Suite) SendMessagef(tb testing.TB, sendMessage string, args ...any) {
 	tb.Helper()
 
-	require.NotNil(tb, s.managementInterfaceConn, "connection is nil\n\nLogs: %s", s.logger.String())
+	require.NotNil(tb, s.managementInterfaceConn, "connection is nil\n\nLogs: %s", s.Logs())
 	require.NoError(tb, s.managementInterfaceConn.SetWriteDeadline(time.Now().Add(time.Second*5)))
 
 	if sendMessage != "ENTER PASSWORD:" {
@@ -344,7 +349,7 @@ func (s *Suite) SendMessagef(tb testing.TB, sendMessage string, args ...any) {
 	}
 
 	_, err := fmt.Fprintf(s.managementInterfaceConn, sendMessage, args...)
-	require.NoError(tb, err, "error sending message to management interface\n\nLogs: %s", s.logger.String())
+	require.NoError(tb, err, "error sending message to management interface\n\nLogs: %s", s.Logs())
 }
 
 // ExpectMessage reads from the connection and compares the output with the
@@ -358,14 +363,14 @@ func (s *Suite) ExpectMessage(tb testing.TB, expectMessage string) {
 	)
 	for expected := range strings.SplitSeq(strings.TrimSpace(expectMessage), "\n") {
 		err = s.managementInterfaceConn.SetReadDeadline(time.Now().Add(time.Second * 5))
-		require.NoError(tb, err, "expected line: %s\nexpected message:\n%s\n\n%s", expected, expectMessage, s.logger.String())
+		require.NoError(tb, err, "expected line: %s\nexpected message:\n%s\n\n%s", expected, expectMessage, s.Logs())
 
 		line, err = s.managementInterfaceConnReader.ReadString('\n')
 		if err != nil && !errors.Is(err, io.EOF) {
-			require.NoError(tb, err, "expected line: %s\nexpected message:\n%s\n\n%s", expected, expectMessage, s.logger.String())
+			require.NoError(tb, err, "expected line: %s\nexpected message:\n%s\n\n%s", expected, expectMessage, s.Logs())
 		}
 
-		require.Equal(tb, strings.TrimRightFunc(expected, unicode.IsSpace), strings.TrimRightFunc(line, unicode.IsSpace), s.logger.String())
+		require.Equal(tb, strings.TrimRightFunc(expected, unicode.IsSpace), strings.TrimRightFunc(line, unicode.IsSpace), s.Logs())
 	}
 }
 
@@ -437,8 +442,47 @@ func (s *Suite) Close(tb testing.TB) {
 
 	select {
 	case err := <-s.errOpenVPNClientCh:
-		require.NoError(tb, err, "error shutting down OpenVPN client: %s", s.logger.String())
+		require.NoError(tb, err, "error shutting down OpenVPN client: %s", s.Logs())
 	case <-time.After(3 * time.Second):
-		tb.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", s.logger.String())
+		tb.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", s.Logs())
 	}
+}
+
+func (s *Suite) GetHTTPClient() *http.Client {
+	return s.httpClient
+}
+
+func (s *Suite) GetHTTPServerURL() string {
+	return s.httpClientListener.URL
+}
+
+func (s *Suite) DoHTTPRequest(ctx context.Context, method, requestURL string, header http.Header, body io.Reader) (*http.Response, []byte, error) {
+	if !strings.Contains(requestURL, "://") {
+		requestURL = s.httpClientListener.URL + requestURL
+	}
+
+	request, err := http.NewRequestWithContext(ctx, method, requestURL, body)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error creating HTTP request: %w", err)
+	}
+
+	if header != nil {
+		request.Header = header
+	}
+
+	resp, err := s.httpClient.Do(request)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error performing HTTP request: %w", err)
+	}
+
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error reading HTTP response body: %w", err)
+	}
+
+	return resp, respBody, nil
 }
