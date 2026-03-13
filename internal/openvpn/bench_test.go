@@ -139,7 +139,7 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 
 	require.Len(b, passThroughAddr, 2, "unexpected log output: %s", logger.String())
 
-	passThroughConn, err := testsuite.WaitUntilListening(b, "tcp", passThroughAddr[1])
+	passThroughConn, err := testsuite.WaitUntilListening(b.Context(), b, "tcp", passThroughAddr[1])
 	require.NoError(b, err)
 
 	passThroughReader := bufio.NewReader(passThroughConn)

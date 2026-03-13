@@ -56,7 +56,7 @@ func TestFull(t *testing.T) {
 			resourceServer, _, clientCredentials, err := testutils.SetupResourceServer(t, httpListener, nil, nil)
 			require.NoError(t, err)
 
-			buf := new(testutils.SyncBuffer)
+			buf := new(testsuite.SyncBuffer)
 
 			jar, err := cookiejar.New(nil)
 			require.NoError(t, err)
@@ -131,7 +131,7 @@ func TestFull(t *testing.T) {
 
 			testutils.ExpectVersionAndReleaseHold(t, managementInterfaceConn, reader)
 
-			_, err = testutils.WaitUntilListening(t, httpListener.Addr().Network(), httpListener.Addr().String())
+			_, err = testsuite.WaitUntilListening(t.Context(), t, httpListener.Addr().Network(), httpListener.Addr().String())
 			require.NoError(t, err, buf.String())
 
 			msg := strings.Join([]string{

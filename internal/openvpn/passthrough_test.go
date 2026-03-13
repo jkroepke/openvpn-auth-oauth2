@@ -244,7 +244,7 @@ func TestPassThroughFull(t *testing.T) {
 
 			require.Len(t, passThroughAddr, 2, "unexpected log output: %s", logger.String())
 
-			passThroughConn, err := testsuite.WaitUntilListening(t, tc.scheme, passThroughAddr[1])
+			passThroughConn, err := testsuite.WaitUntilListening(ctx, t, tc.scheme, passThroughAddr[1])
 			require.NoError(t, err)
 
 			passThroughReader := bufio.NewReader(passThroughConn)
