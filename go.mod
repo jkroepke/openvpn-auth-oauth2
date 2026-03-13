@@ -7,7 +7,7 @@ require (
 	github.com/google/cel-go v0.27.0
 	github.com/madflojo/testcerts v1.5.0
 	github.com/stretchr/testify v1.11.1
-	github.com/testcontainers/testcontainers-go v0.40.0
+	github.com/testcontainers/testcontainers-go v0.41.0
 	github.com/zitadel/logging v0.7.0
 	github.com/zitadel/oidc/v3 v3.45.5
 	go.yaml.in/yaml/v3 v3.0.4
@@ -25,6 +25,7 @@ require (
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/bmatcuk/doublestar/v4 v4.10.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
+	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/containerd/errdefs v1.0.0 // indirect
 	github.com/containerd/errdefs/pkg v0.3.0 // indirect
