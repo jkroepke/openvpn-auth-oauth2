@@ -1,4 +1,4 @@
-//go:build linux && cgo
+//go:build (linux || openbsd || freebsd) && cgo
 
 //nolint:testpackage
 package openvpn
