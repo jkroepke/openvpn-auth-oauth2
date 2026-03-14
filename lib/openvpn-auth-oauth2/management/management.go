@@ -74,24 +74,30 @@ func NewServer(logger *slog.Logger, password string) *Server {
 	}
 }
 
-func (s *Server) AuthPendingPoller(clientID uint64, timeout time.Duration) (*Response, error) {
+func (s *Server) registerResponseChannel(clientID uint64) (chan *Response, error) {
 	s.respChMu.Lock()
+	defer s.respChMu.Unlock()
 
 	if _, exists := s.respChs[clientID]; exists {
-		s.respChMu.Unlock()
-
 		return nil, fmt.Errorf("poller for client ID %d already exists", clientID)
 	}
 
 	respCh := make(chan *Response, 1)
 	s.respChs[clientID] = respCh
-	s.respChMu.Unlock()
 
+	return respCh, nil
+}
+
+func (s *Server) unregisterResponseChannel(clientID uint64) {
+	s.respChMu.Lock()
+	delete(s.respChs, clientID)
+	s.respChMu.Unlock()
+}
+
+func (s *Server) waitForResponse(clientID uint64, timeout time.Duration, respCh <-chan *Response) (*Response, error) {
 	select {
 	case <-time.After(timeout):
-		s.respChMu.Lock()
-		delete(s.respChs, clientID)
-		s.respChMu.Unlock()
+		s.unregisterResponseChannel(clientID)
 
 		return nil, errors.New("timeout waiting for client response")
 	case resp := <-respCh:
@@ -99,11 +105,38 @@ func (s *Server) AuthPendingPoller(clientID uint64, timeout time.Duration) (*Res
 	}
 }
 
+func (s *Server) AuthPendingPoller(clientID uint64, timeout time.Duration) (*Response, error) {
+	respCh, err := s.registerResponseChannel(clientID)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.waitForResponse(clientID, timeout, respCh)
+}
+
+func (s *Server) RegisterPendingPoller(clientID uint64) (chan *Response, error) {
+	return s.registerResponseChannel(clientID)
+}
+
+func (s *Server) WaitPendingPoller(clientID uint64, timeout time.Duration, respCh <-chan *Response) (*Response, error) {
+	return s.waitForResponse(clientID, timeout, respCh)
+}
+
+func (s *Server) CancelPendingPoller(clientID uint64) {
+	s.unregisterResponseChannel(clientID)
+}
+
 func (s *Server) ClientAuth(clientID uint64, message string) (*Response, error) {
+	respCh, err := s.registerResponseChannel(clientID)
+	if err != nil {
+		return nil, err
+	}
+
 	s.connectionMu.Lock()
 
 	if s.connection == nil {
 		s.connectionMu.Unlock()
+		s.unregisterResponseChannel(clientID)
 
 		return nil, errors.New("no client connected")
 	}
@@ -111,10 +144,12 @@ func (s *Server) ClientAuth(clientID uint64, message string) (*Response, error) 
 	s.connectionMu.Unlock()
 
 	if err := s.writeToClient(message); err != nil {
+		s.unregisterResponseChannel(clientID)
+
 		return nil, err
 	}
 
-	return s.AuthPendingPoller(clientID, 5*time.Second)
+	return s.waitForResponse(clientID, 5*time.Second, respCh)
 }
 
 func (s *Server) ClientDisconnect(message string) error {
@@ -163,7 +198,7 @@ func (s *Server) Listen(ctx context.Context, addr string) error {
 			listenSocket := s.listenSocket
 			s.connectionMu.Unlock()
 
-			if s.listenSocket == nil {
+			if listenSocket == nil {
 				return
 			}
 

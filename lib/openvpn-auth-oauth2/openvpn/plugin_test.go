@@ -92,7 +92,7 @@ func TestPlugin(t *testing.T) {
 			})
 
 			require.Equal(t, PluginTypeMask, int(openRet.TypeMask))
-			require.NotNil(t, openRet.Handle)
+			require.NotZero(t, openRet.Handle)
 			require.NotNil(t, openRet.Handle.Value())
 
 			handle, ok := openRet.Handle.Value().(*PluginHandle)

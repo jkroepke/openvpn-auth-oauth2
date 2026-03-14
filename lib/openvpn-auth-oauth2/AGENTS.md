@@ -87,7 +87,7 @@ Tells OpenVPN when to initialize the plugin:
 - **`OPENVPN_PLUGIN_INIT_POST_UID_CHANGE`** - After dropping privileges (we use this)
 - `OPENVPN_PLUGIN_INIT_POST_DAEMON` - After daemonization
 
-We use `POST_UID_CHANGE` because we need to create sockets after OpenVPN has dropped privileges.
+We use `PRE_DAEMON` because we need to create sockets that require root privileges, and we want to ensure the plugin is initialized before OpenVPN drops privileges.
 
 #### 3. `openvpn_plugin_open_v3()`
 Called when OpenVPN loads the plugin. Our implementation:
