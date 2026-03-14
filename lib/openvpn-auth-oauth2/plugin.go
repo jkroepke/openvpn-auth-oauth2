@@ -94,7 +94,7 @@ func openvpn_plugin_func_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_
 //nolint:unsed
 //goland:noinspection GoSnakeCaseUsage,GoUnusedFunction
 func openvpn_plugin_close_v1(handlePtr C.openvpn_plugin_handle_t) {
-	openvpn.PluginCloseV1(c.OpenVPNPluginHandle(handlePtr))
+	openvpn.PluginCloseV1(c.OpenVPNPluginHandleFromPointer(unsafe.Pointer(handlePtr)))
 }
 
 // openvpn_plugin_client_constructor_v1 is called by OpenVPN when a new client connects.
@@ -114,7 +114,7 @@ func openvpn_plugin_close_v1(handlePtr C.openvpn_plugin_handle_t) {
 //nolint:unsed
 //goland:noinspection GoSnakeCaseUsage,GoUnusedFunction
 func openvpn_plugin_client_constructor_v1(handlePtr C.openvpn_plugin_handle_t) unsafe.Pointer {
-	return unsafe.Pointer(openvpn.PluginClientConstructorV1(c.OpenVPNPluginHandle(handlePtr)))
+	return unsafe.Pointer(openvpn.PluginClientConstructorV1(c.OpenVPNPluginHandleFromPointer(unsafe.Pointer(handlePtr))))
 }
 
 // openvpn_plugin_client_destructor_v1 is called by OpenVPN when a client disconnects.
@@ -130,7 +130,7 @@ func openvpn_plugin_client_constructor_v1(handlePtr C.openvpn_plugin_handle_t) u
 //goland:noinspection GoSnakeCaseUsage,GoUnusedFunction
 func openvpn_plugin_client_destructor_v1(handlePtr C.openvpn_plugin_handle_t, perClientContext unsafe.Pointer) {
 	openvpn.PluginClientDestructorV1(
-		c.OpenVPNPluginHandle(handlePtr),
+		c.OpenVPNPluginHandleFromPointer(unsafe.Pointer(handlePtr)),
 		(*openvpn.ClientContext)(perClientContext),
 	)
 }
@@ -146,5 +146,5 @@ func openvpn_plugin_client_destructor_v1(handlePtr C.openvpn_plugin_handle_t, pe
 //nolint:unsed
 //goland:noinspection GoSnakeCaseUsage,GoUnusedFunction
 func openvpn_plugin_abort_v1(handlePtr C.openvpn_plugin_handle_t) {
-	openvpn.PluginAbortV1(c.OpenVPNPluginHandle(handlePtr))
+	openvpn.PluginAbortV1(c.OpenVPNPluginHandleFromPointer(unsafe.Pointer(handlePtr)))
 }

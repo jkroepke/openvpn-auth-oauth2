@@ -86,6 +86,10 @@ func NewOpenVPNPluginHandle(value any) OpenVPNPluginHandle {
 	return OpenVPNPluginHandle(handle)
 }
 
+func OpenVPNPluginHandleFromPointer(pointer unsafe.Pointer) OpenVPNPluginHandle {
+	return OpenVPNPluginHandle(Uintptr(uintptr(pointer)))
+}
+
 func (h OpenVPNPluginHandle) IsNil() bool {
 	return h == 0
 }
