@@ -19,5 +19,5 @@ func TestMinVersionRequired(t *testing.T) {
 func TestSelectInitializationPoint(t *testing.T) {
 	t.Parallel()
 
-	require.Equal(t, c.OpenVPNPluginInitPostUIDChange, int(openvpn_plugin_select_initialization_point_v1()))
+	require.Equal(t, c.OpenVPNPluginInitPreDaemon, int(openvpn_plugin_select_initialization_point_v1()))
 }
