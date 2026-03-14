@@ -11,7 +11,6 @@ import "C"
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"os"
 	"strings"
@@ -37,6 +36,12 @@ const (
 //
 //nolint:gochecknoglobals
 var clientIDCounter uint64
+
+var (
+	errMissingPluginHandle     = errors.New("missing plugin handle")
+	errInvalidPluginHandle     = errors.New("invalid plugin handle")
+	errInvalidPluginHandleType = errors.New("invalid plugin handle type")
+)
 
 func PluginOpenV3(v3structver c.Int, args *c.OpenVPNPluginArgsOpenIn, ret *c.OpenVPNPluginArgsOpenReturn) c.Int {
 	if v3structver < PluginStructVerMin || args == nil || ret == nil {
@@ -125,21 +130,19 @@ func PluginFuncV3(v3structver c.Int, args *c.OpenVPNPluginArgsFuncIn, ret *c.Ope
 	// per_client_context: the per-client context pointer, which was returned by
 	//        openvpn_plugin_client_constructor_v1, if defined.
 
-	if args.Type == c.OpenVPNPluginUp {
-		return handle.handlePluginUp()
-	}
-
-	perClientContext := (*ClientContext)(args.PerClientContext)
-
 	switch args.Type {
+	case c.OpenVPNPluginUp:
+		return handle.handlePluginUp()
 	case c.OpenVPNPluginAuthUserPassVerify:
-		return handle.handleAuthUserPassVerify(args.Envp, perClientContext)
+		return handle.handleAuthUserPassVerify(args.Envp, (*ClientContext)(args.PerClientContext))
 	case c.OpenVPNPluginClientConnectV2:
-		return handle.handleClientConnect(perClientContext, ret)
+		return handle.handleClientConnect((*ClientContext)(args.PerClientContext), ret)
 	case c.OpenVPNPluginClientDisconnect:
-		return handle.handleClientDisconnect(args.Envp, perClientContext)
+		return handle.handleClientDisconnect(args.Envp, (*ClientContext)(args.PerClientContext))
 	default:
-		handle.logger.ErrorContext(handle.ctx, fmt.Sprintf("unhandled OPENVPN_PLUGIN event: %v", args.Type))
+		handle.logger.ErrorContext(handle.ctx, "unhandled OPENVPN_PLUGIN event",
+			slog.Int("event_type", int(args.Type)),
+		)
 
 		return c.OpenVPNPluginFuncError
 	}
@@ -202,32 +205,23 @@ func PluginAbortV1(handlePtr c.OpenVPNPluginHandle) {
 	handlePtr.Delete()
 }
 
-func pluginHandleFromPtr(handlePtr c.OpenVPNPluginHandle) (*PluginHandle, error) {
+func pluginHandleFromPtr(handlePtr c.OpenVPNPluginHandle) (handle *PluginHandle, err error) {
 	if handlePtr.IsNil() {
-		return nil, errors.New("missing plugin handle")
+		return nil, errMissingPluginHandle
 	}
 
-	var (
-		handleValue any
-		recovered   any
-	)
-
-	func() {
-		defer func() {
-			recovered = recover()
-		}()
-
-		handleValue = handlePtr.Value()
+	defer func() {
+		if recover() != nil {
+			handle = nil
+			err = errInvalidPluginHandle
+		}
 	}()
 
-	if recovered != nil {
-		return nil, errors.New("invalid plugin handle")
-	}
-
-	handle, ok := handleValue.(*PluginHandle)
+	handleValue := handlePtr.Value()
+	h, ok := handleValue.(*PluginHandle)
 	if !ok {
-		return nil, errors.New("invalid plugin handle type")
+		return nil, errInvalidPluginHandleType
 	}
 
-	return handle, nil
+	return h, nil
 }
