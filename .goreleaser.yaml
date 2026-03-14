@@ -38,6 +38,7 @@ builds:
     env:
       - CGO_ENABLED=1
       - >-
+        {{- if eq .Os "freebsd"}}CC=x86_64-linux-gnu-gcc{{- end }}
         {{- if eq .Arch "amd64"}}CC=x86_64-linux-gnu-gcc{{- end }}
         {{- if eq .Arch "arm64"}}CC=aarch64-linux-gnu-gcc{{- end }}
       - >-

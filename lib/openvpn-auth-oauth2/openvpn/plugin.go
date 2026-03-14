@@ -205,19 +205,30 @@ func PluginAbortV1(handlePtr c.OpenVPNPluginHandle) {
 	handlePtr.Delete()
 }
 
-func pluginHandleFromPtr(handlePtr c.OpenVPNPluginHandle) (handle *PluginHandle, err error) {
+func pluginHandleFromPtr(handlePtr c.OpenVPNPluginHandle) (*PluginHandle, error) {
 	if handlePtr.IsNil() {
 		return nil, errMissingPluginHandle
 	}
 
-	defer func() {
-		if recover() != nil {
-			handle = nil
-			err = errInvalidPluginHandle
-		}
+	var (
+		handleValue any
+		recovered   bool
+	)
+
+	func() {
+		defer func() {
+			if recover() != nil {
+				recovered = true
+			}
+		}()
+
+		handleValue = handlePtr.Value()
 	}()
 
-	handleValue := handlePtr.Value()
+	if recovered {
+		return nil, errInvalidPluginHandle
+	}
+
 	h, ok := handleValue.(*PluginHandle)
 	if !ok {
 		return nil, errInvalidPluginHandleType
