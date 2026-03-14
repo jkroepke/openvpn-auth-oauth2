@@ -74,37 +74,6 @@ func NewServer(logger *slog.Logger, password string) *Server {
 	}
 }
 
-func (s *Server) registerResponseChannel(clientID uint64) (chan *Response, error) {
-	s.respChMu.Lock()
-	defer s.respChMu.Unlock()
-
-	if _, exists := s.respChs[clientID]; exists {
-		return nil, fmt.Errorf("poller for client ID %d already exists", clientID)
-	}
-
-	respCh := make(chan *Response, 1)
-	s.respChs[clientID] = respCh
-
-	return respCh, nil
-}
-
-func (s *Server) unregisterResponseChannel(clientID uint64) {
-	s.respChMu.Lock()
-	delete(s.respChs, clientID)
-	s.respChMu.Unlock()
-}
-
-func (s *Server) waitForResponse(clientID uint64, timeout time.Duration, respCh <-chan *Response) (*Response, error) {
-	select {
-	case <-time.After(timeout):
-		s.unregisterResponseChannel(clientID)
-
-		return nil, errors.New("timeout waiting for client response")
-	case resp := <-respCh:
-		return resp, nil
-	}
-}
-
 func (s *Server) AuthPendingPoller(clientID uint64, timeout time.Duration) (*Response, error) {
 	respCh, err := s.registerResponseChannel(clientID)
 	if err != nil {
@@ -252,6 +221,37 @@ func (s *Server) Close() {
 		}
 
 		s.listenSocket = nil
+	}
+}
+
+func (s *Server) registerResponseChannel(clientID uint64) (chan *Response, error) {
+	s.respChMu.Lock()
+	defer s.respChMu.Unlock()
+
+	if _, exists := s.respChs[clientID]; exists {
+		return nil, fmt.Errorf("poller for client ID %d already exists", clientID)
+	}
+
+	respCh := make(chan *Response, 1)
+	s.respChs[clientID] = respCh
+
+	return respCh, nil
+}
+
+func (s *Server) unregisterResponseChannel(clientID uint64) {
+	s.respChMu.Lock()
+	delete(s.respChs, clientID)
+	s.respChMu.Unlock()
+}
+
+func (s *Server) waitForResponse(clientID uint64, timeout time.Duration, respCh <-chan *Response) (*Response, error) {
+	select {
+	case <-time.After(timeout):
+		s.unregisterResponseChannel(clientID)
+
+		return nil, errors.New("timeout waiting for client response")
+	case resp := <-respCh:
+		return resp, nil
 	}
 }
 

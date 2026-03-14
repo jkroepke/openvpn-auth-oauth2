@@ -99,8 +99,6 @@ func PluginFuncV3(v3structver c.Int, args *c.OpenVPNPluginArgsFuncIn, ret *c.Ope
 
 	handle, err := pluginHandleFromPtr(args.Handle)
 	if err != nil {
-		slog.Error("openvpn plugin callback: invalid handle", slog.Any("err", err))
-
 		return c.OpenVPNPluginFuncError
 	}
 
@@ -150,8 +148,6 @@ func PluginFuncV3(v3structver c.Int, args *c.OpenVPNPluginArgsFuncIn, ret *c.Ope
 func PluginCloseV1(handlePtr c.OpenVPNPluginHandle) {
 	handle, err := pluginHandleFromPtr(handlePtr)
 	if err != nil {
-		slog.Error("openvpn plugin close: invalid handle", slog.Any("err", err))
-
 		return
 	}
 
@@ -165,8 +161,6 @@ func PluginCloseV1(handlePtr c.OpenVPNPluginHandle) {
 func PluginClientConstructorV1(handlePtr c.OpenVPNPluginHandle) *ClientContext {
 	handle, err := pluginHandleFromPtr(handlePtr)
 	if err != nil {
-		slog.Error("openvpn plugin client constructor: invalid handle", slog.Any("err", err))
-
 		return nil
 	}
 
@@ -182,8 +176,6 @@ func PluginClientConstructorV1(handlePtr c.OpenVPNPluginHandle) *ClientContext {
 func PluginClientDestructorV1(handlePtr c.OpenVPNPluginHandle, perClientContext *ClientContext) {
 	handle, err := pluginHandleFromPtr(handlePtr)
 	if err != nil {
-		slog.Error("openvpn plugin client destructor: invalid handle", slog.Any("err", err))
-
 		return
 	}
 
@@ -199,8 +191,6 @@ func PluginAbortV1(handlePtr c.OpenVPNPluginHandle) {
 
 	handle, err := pluginHandleFromPtr(handlePtr)
 	if err != nil {
-		slog.Error("openvpn plugin abort: invalid handle", slog.Any("err", err))
-
 		return
 	}
 
@@ -212,21 +202,32 @@ func PluginAbortV1(handlePtr c.OpenVPNPluginHandle) {
 	handlePtr.Delete()
 }
 
-func pluginHandleFromPtr(handlePtr c.OpenVPNPluginHandle) (pluginHandle *PluginHandle, err error) {
+func pluginHandleFromPtr(handlePtr c.OpenVPNPluginHandle) (*PluginHandle, error) {
 	if handlePtr.IsNil() {
 		return nil, errors.New("missing plugin handle")
 	}
 
-	defer func() {
-		if recovered := recover(); recovered != nil {
-			err = errors.New("invalid plugin handle")
-		}
+	var (
+		handleValue any
+		recovered   any
+	)
+
+	func() {
+		defer func() {
+			recovered = recover()
+		}()
+
+		handleValue = handlePtr.Value()
 	}()
 
-	handle, ok := handlePtr.Value().(*PluginHandle)
+	if recovered != nil {
+		return nil, errors.New("invalid plugin handle")
+	}
+
+	handle, ok := handleValue.(*PluginHandle)
 	if !ok {
 		return nil, errors.New("invalid plugin handle type")
 	}
 
-	return handle, err
+	return handle, nil
 }
