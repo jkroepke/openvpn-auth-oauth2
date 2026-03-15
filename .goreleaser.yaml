@@ -45,6 +45,7 @@ builds:
         {{- if eq .Arch "arm64"}}CXX=aarch64-linux-gnu-g++{{- end }}
     goos:
       - linux
+    #  - freebsd
     goarch:
       - amd64
     #  - arm64

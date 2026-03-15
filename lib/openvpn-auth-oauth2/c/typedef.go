@@ -1,4 +1,4 @@
-//go:build linux && cgo
+//go:build (linux || openbsd || freebsd) && cgo
 
 package c
 
@@ -78,9 +78,29 @@ type OpenVPNPluginStringList struct {
 	Value *C.char
 }
 
-type (
-	OpenVPNPluginHandle = *cgo.Handle
-)
+type OpenVPNPluginHandle Uintptr
+
+func NewOpenVPNPluginHandle(value any) OpenVPNPluginHandle {
+	handle := cgo.NewHandle(value)
+
+	return OpenVPNPluginHandle(handle)
+}
+
+func OpenVPNPluginHandleFromPointer(pointer unsafe.Pointer) OpenVPNPluginHandle {
+	return OpenVPNPluginHandle(Uintptr(uintptr(pointer)))
+}
+
+func (h OpenVPNPluginHandle) IsNil() bool {
+	return h == 0
+}
+
+func (h OpenVPNPluginHandle) Value() any {
+	return cgo.Handle(h).Value()
+}
+
+func (h OpenVPNPluginHandle) Delete() {
+	cgo.Handle(h).Delete()
+}
 
 type PLogLevel = Int
 

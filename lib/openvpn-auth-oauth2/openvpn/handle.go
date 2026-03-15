@@ -1,4 +1,4 @@
-//go:build linux && cgo
+//go:build (linux || openbsd || freebsd) && cgo
 
 package openvpn
 
@@ -64,6 +64,12 @@ func (p *PluginHandle) handlePluginUp() c.OpenVPNPluginFuncStatus {
 //
 //nolint:cyclop,gocognit
 func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClientContext *ClientContext) c.OpenVPNPluginFuncStatus {
+	if perClientContext == nil {
+		p.logger.ErrorContext(p.ctx, "AUTH_USER_PASS_VERIFY: missing perClientContext")
+
+		return c.OpenVPNPluginFuncError
+	}
+
 	envArray, err := util.NewEnvList(clientEnvList)
 	if err != nil {
 		p.logger.ErrorContext(p.ctx, "parse env vars",
@@ -151,8 +157,18 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 
 		return c.OpenVPNPluginFuncSuccess
 	case management.ClientAuthPending:
+		pendingRespCh, err := p.managementClient.RegisterPendingPoller(currentClientID)
+		if err != nil {
+			logger.ErrorContext(p.ctx, "register deferred auth poller",
+				slog.Any("err", err),
+			)
+
+			return c.OpenVPNPluginFuncError
+		}
+
 		// Write "2" to auth control file to indicate deferred auth
 		if err := openVPNClient.WriteAuthPending(resp); err != nil {
+			p.managementClient.CancelPendingPoller(currentClientID)
 			logger.ErrorContext(p.ctx, "write to auth file",
 				slog.Any("err", err),
 			)
@@ -162,8 +178,8 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 
 		logger.InfoContext(p.ctx, "authentication pending")
 
-		go func() {
-			resp, err := p.managementClient.AuthPendingPoller(currentClientID, 5*time.Minute)
+		go func(respCh <-chan *management.Response) {
+			resp, err := p.managementClient.WaitPendingPoller(currentClientID, 5*time.Minute, respCh)
 			if err != nil {
 				logger.ErrorContext(p.ctx, "poll deferred auth state",
 					slog.Any("err", err),
@@ -207,7 +223,7 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 			default:
 				logger.ErrorContext(p.ctx, "unknown auth state")
 			}
-		}()
+		}(pendingRespCh)
 
 		return c.OpenVPNPluginFuncDeferred
 	default:
@@ -272,6 +288,12 @@ func (p *PluginHandle) handleClientConnect(perClientContext *ClientContext, ret 
 }
 
 func (p *PluginHandle) handleClientDisconnect(clientEnvList **c.Char, perClientContext *ClientContext) c.OpenVPNPluginFuncStatus {
+	if perClientContext == nil {
+		p.logger.ErrorContext(p.ctx, "CLIENT_DISCONNECT: missing perClientContext")
+
+		return c.OpenVPNPluginFuncError
+	}
+
 	perClientContext.mu.Lock()
 	defer perClientContext.mu.Unlock()
 

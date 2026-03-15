@@ -1,4 +1,4 @@
-//go:build linux && cgo
+//go:build (linux || openbsd || freebsd) && cgo
 
 //nolint:testpackage
 package openvpn
@@ -92,7 +92,7 @@ func TestPlugin(t *testing.T) {
 			})
 
 			require.Equal(t, PluginTypeMask, int(openRet.TypeMask))
-			require.NotNil(t, openRet.Handle)
+			require.NotZero(t, openRet.Handle)
 			require.NotNil(t, openRet.Handle.Value())
 
 			handle, ok := openRet.Handle.Value().(*PluginHandle)
@@ -284,4 +284,39 @@ func TestPluginFuncV3_InvalidArgs(t *testing.T) {
 
 	status := PluginFuncV3(0, nil, nil)
 	require.Equal(t, c.OpenVPNPluginFuncError, status)
+}
+
+func TestPluginHandleFromPtr_ZeroHandle(t *testing.T) {
+	t.Parallel()
+
+	var (
+		handle *PluginHandle
+		err    error
+	)
+
+	require.NotPanics(t, func() {
+		handle, err = pluginHandleFromPtr(c.OpenVPNPluginHandle(0))
+	})
+
+	require.Nil(t, handle)
+	require.ErrorIs(t, err, errMissingPluginHandle)
+}
+
+func TestPluginHandleFromPtr_DeletedHandle(t *testing.T) {
+	t.Parallel()
+
+	pluginHandle := c.NewOpenVPNPluginHandle(&PluginHandle{})
+	pluginHandle.Delete()
+
+	var (
+		handle *PluginHandle
+		err    error
+	)
+
+	require.NotPanics(t, func() {
+		handle, err = pluginHandleFromPtr(pluginHandle)
+	})
+
+	require.Nil(t, handle)
+	require.ErrorIs(t, err, errInvalidPluginHandle)
 }

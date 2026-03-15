@@ -1,4 +1,4 @@
-//go:build linux && cgo
+//go:build (linux || openbsd || freebsd) && cgo
 
 package openvpn
 
@@ -10,10 +10,9 @@ import "C"
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"log/slog"
 	"os"
-	"runtime/cgo"
 	"strings"
 	"unsafe"
 
@@ -37,6 +36,12 @@ const (
 //
 //nolint:gochecknoglobals
 var clientIDCounter uint64
+
+var (
+	errMissingPluginHandle     = errors.New("missing plugin handle")
+	errInvalidPluginHandle     = errors.New("invalid plugin handle")
+	errInvalidPluginHandleType = errors.New("invalid plugin handle type")
+)
 
 func PluginOpenV3(v3structver c.Int, args *c.OpenVPNPluginArgsOpenIn, ret *c.OpenVPNPluginArgsOpenReturn) c.Int {
 	if v3structver < PluginStructVerMin || args == nil || ret == nil {
@@ -74,14 +79,14 @@ func PluginOpenV3(v3structver c.Int, args *c.OpenVPNPluginArgsOpenIn, ret *c.Ope
 
 	ctx := context.Background()
 
-	handle := cgo.NewHandle(&PluginHandle{
+	handle := c.NewOpenVPNPluginHandle(&PluginHandle{
 		logger:           logger,
 		managementClient: management.NewServer(logger, listenSocketPassword),
 		ctx:              ctx,
 		listenSocketAddr: listenSocketAddr,
 	})
 
-	ret.Handle = &handle
+	ret.Handle = handle
 
 	logger.InfoContext(ctx, "plugin loaded",
 		slog.String("version", version.Version),
@@ -94,6 +99,11 @@ func PluginOpenV3(v3structver c.Int, args *c.OpenVPNPluginArgsOpenIn, ret *c.Ope
 
 func PluginFuncV3(v3structver c.Int, args *c.OpenVPNPluginArgsFuncIn, ret *c.OpenVPNPluginArgsFuncReturn) c.OpenVPNPluginFuncStatus {
 	if v3structver < PluginStructVerMin || args == nil || ret == nil {
+		return c.OpenVPNPluginFuncError
+	}
+
+	handle, err := pluginHandleFromPtr(args.Handle)
+	if err != nil {
 		return c.OpenVPNPluginFuncError
 	}
 
@@ -120,35 +130,28 @@ func PluginFuncV3(v3structver c.Int, args *c.OpenVPNPluginArgsFuncIn, ret *c.Ope
 	// per_client_context: the per-client context pointer, which was returned by
 	//        openvpn_plugin_client_constructor_v1, if defined.
 
-	handle, ok := args.Handle.Value().(*PluginHandle)
-	if !ok {
-		panic("getPluginHandleFromPtr: invalid plugin handle type")
-	}
-
-	if args.Type == c.OpenVPNPluginUp {
-		return handle.handlePluginUp()
-	}
-
-	perClientContext := (*ClientContext)(args.PerClientContext)
-
 	switch args.Type {
+	case c.OpenVPNPluginUp:
+		return handle.handlePluginUp()
 	case c.OpenVPNPluginAuthUserPassVerify:
-		return handle.handleAuthUserPassVerify(args.Envp, perClientContext)
+		return handle.handleAuthUserPassVerify(args.Envp, (*ClientContext)(args.PerClientContext))
 	case c.OpenVPNPluginClientConnectV2:
-		return handle.handleClientConnect(perClientContext, ret)
+		return handle.handleClientConnect((*ClientContext)(args.PerClientContext), ret)
 	case c.OpenVPNPluginClientDisconnect:
-		return handle.handleClientDisconnect(args.Envp, perClientContext)
+		return handle.handleClientDisconnect(args.Envp, (*ClientContext)(args.PerClientContext))
 	default:
-		handle.logger.ErrorContext(handle.ctx, fmt.Sprintf("unhandled OPENVPN_PLUGIN event: %v", args.Type))
+		handle.logger.ErrorContext(handle.ctx, "unhandled OPENVPN_PLUGIN event",
+			slog.Int("event_type", int(args.Type)),
+		)
 
 		return c.OpenVPNPluginFuncError
 	}
 }
 
 func PluginCloseV1(handlePtr c.OpenVPNPluginHandle) {
-	handle, ok := handlePtr.Value().(*PluginHandle)
-	if !ok {
-		panic("getPluginHandleFromPtr: invalid plugin handle type")
+	handle, err := pluginHandleFromPtr(handlePtr)
+	if err != nil {
+		return
 	}
 
 	handle.managementClient.Close()
@@ -159,9 +162,9 @@ func PluginCloseV1(handlePtr c.OpenVPNPluginHandle) {
 }
 
 func PluginClientConstructorV1(handlePtr c.OpenVPNPluginHandle) *ClientContext {
-	handle, ok := handlePtr.Value().(*PluginHandle)
-	if !ok {
-		panic("getPluginHandleFromPtr: invalid plugin handle type")
+	handle, err := pluginHandleFromPtr(handlePtr)
+	if err != nil {
+		return nil
 	}
 
 	handle.logger.DebugContext(handle.ctx, "openvpn_plugin_client_constructor_v1: called")
@@ -174,9 +177,9 @@ func PluginClientConstructorV1(handlePtr c.OpenVPNPluginHandle) *ClientContext {
 }
 
 func PluginClientDestructorV1(handlePtr c.OpenVPNPluginHandle, perClientContext *ClientContext) {
-	handle, ok := handlePtr.Value().(*PluginHandle)
-	if !ok {
-		panic("getPluginHandleFromPtr: invalid plugin handle type")
+	handle, err := pluginHandleFromPtr(handlePtr)
+	if err != nil {
+		return
 	}
 
 	handle.logger.DebugContext(handle.ctx, "openvpn_plugin_client_destructor_v1: called")
@@ -185,13 +188,13 @@ func PluginClientDestructorV1(handlePtr c.OpenVPNPluginHandle, perClientContext 
 }
 
 func PluginAbortV1(handlePtr c.OpenVPNPluginHandle) {
-	if handlePtr == nil {
+	if handlePtr.IsNil() {
 		return
 	}
 
-	handle, ok := handlePtr.Value().(*PluginHandle)
-	if !ok {
-		panic("getPluginHandleFromPtr: invalid plugin handle type")
+	handle, err := pluginHandleFromPtr(handlePtr)
+	if err != nil {
+		return
 	}
 
 	handle.managementClient.Close()
@@ -200,4 +203,36 @@ func PluginAbortV1(handlePtr c.OpenVPNPluginHandle) {
 
 	// frees the handle, allows GC to collect Go object
 	handlePtr.Delete()
+}
+
+func pluginHandleFromPtr(handlePtr c.OpenVPNPluginHandle) (*PluginHandle, error) {
+	if handlePtr.IsNil() {
+		return nil, errMissingPluginHandle
+	}
+
+	var (
+		handleValue any
+		recovered   bool
+	)
+
+	func() {
+		defer func() {
+			if recover() != nil {
+				recovered = true
+			}
+		}()
+
+		handleValue = handlePtr.Value()
+	}()
+
+	if recovered {
+		return nil, errInvalidPluginHandle
+	}
+
+	h, ok := handleValue.(*PluginHandle)
+	if !ok {
+		return nil, errInvalidPluginHandleType
+	}
+
+	return h, nil
 }

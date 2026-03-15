@@ -1,4 +1,4 @@
-//go:build linux && cgo
+//go:build (linux || openbsd || freebsd) && cgo
 
 package main
 
@@ -94,7 +94,7 @@ func openvpn_plugin_func_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_
 //nolint:unsed
 //goland:noinspection GoSnakeCaseUsage,GoUnusedFunction
 func openvpn_plugin_close_v1(handlePtr C.openvpn_plugin_handle_t) {
-	openvpn.PluginCloseV1(c.OpenVPNPluginHandle(handlePtr))
+	openvpn.PluginCloseV1(c.OpenVPNPluginHandleFromPointer(unsafe.Pointer(handlePtr)))
 }
 
 // openvpn_plugin_client_constructor_v1 is called by OpenVPN when a new client connects.
@@ -108,29 +108,34 @@ func openvpn_plugin_close_v1(handlePtr C.openvpn_plugin_handle_t) {
 //   - handlePtr: Pointer to the global plugin context handle
 //
 // Returns:
-//   - unsafe.Pointer containing a cgo.Handle to the new clientContext
+//   - unsafe.Pointer to a *openvpn.ClientContext* allocated via C.calloc.
+//     The pointed-to context remains valid for the lifetime of the client connection
+//     and must eventually be released by openvpn_plugin_client_destructor_v1.
 //
 //export openvpn_plugin_client_constructor_v1
 //nolint:unsed
 //goland:noinspection GoSnakeCaseUsage,GoUnusedFunction
 func openvpn_plugin_client_constructor_v1(handlePtr C.openvpn_plugin_handle_t) unsafe.Pointer {
-	return unsafe.Pointer(openvpn.PluginClientConstructorV1(c.OpenVPNPluginHandle(handlePtr)))
+	return unsafe.Pointer(openvpn.PluginClientConstructorV1(c.OpenVPNPluginHandleFromPointer(unsafe.Pointer(handlePtr))))
 }
 
 // openvpn_plugin_client_destructor_v1 is called by OpenVPN when a client disconnects.
-// It performs cleanup operations for the per-client context, freeing the cgo.Handle
-// and allowing the Go garbage collector to reclaim the clientContext memory.
+// It performs cleanup operations for the per-client context, releasing any resources
+// associated with the *openvpn.ClientContext* previously returned from
+// openvpn_plugin_client_constructor_v1.
 //
 // Parameters:
 //   - handlePtr: Pointer to the global plugin context handle
-//   - perClientContext: The per-client context handle to be destroyed
+//   - perClientContext: unsafe.Pointer to the per-client *openvpn.ClientContext*
+//     that should be destroyed. This must be a value previously returned from
+//     openvpn_plugin_client_constructor_v1.
 //
 //export openvpn_plugin_client_destructor_v1
 //nolint:unsed
 //goland:noinspection GoSnakeCaseUsage,GoUnusedFunction
 func openvpn_plugin_client_destructor_v1(handlePtr C.openvpn_plugin_handle_t, perClientContext unsafe.Pointer) {
 	openvpn.PluginClientDestructorV1(
-		c.OpenVPNPluginHandle(handlePtr),
+		c.OpenVPNPluginHandleFromPointer(unsafe.Pointer(handlePtr)),
 		(*openvpn.ClientContext)(perClientContext),
 	)
 }
@@ -146,5 +151,5 @@ func openvpn_plugin_client_destructor_v1(handlePtr C.openvpn_plugin_handle_t, pe
 //nolint:unsed
 //goland:noinspection GoSnakeCaseUsage,GoUnusedFunction
 func openvpn_plugin_abort_v1(handlePtr C.openvpn_plugin_handle_t) {
-	openvpn.PluginAbortV1(c.OpenVPNPluginHandle(handlePtr))
+	openvpn.PluginAbortV1(c.OpenVPNPluginHandleFromPointer(unsafe.Pointer(handlePtr)))
 }
