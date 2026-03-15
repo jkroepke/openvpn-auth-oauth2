@@ -46,8 +46,8 @@ func TestPluginInvalidHandle(t *testing.T) {
 			"openvpn_plugin_func_v3_go_ret_nil",
 			func() {
 				openvpn_plugin_func_v3_go(5,
-					unsafe.Pointer(&c.OpenVPNPluginArgsFuncIn{
-						Handle: nil,
+					any(&c.OpenVPNPluginArgsFuncIn{
+						Handle: 0,
 					}),
 					nil)
 			},
@@ -55,9 +55,9 @@ func TestPluginInvalidHandle(t *testing.T) {
 		{
 			"openvpn_plugin_func_v3_go_handle_nil",
 			func() {
-				openvpn_plugin_func_v3_go(openvpn.PluginStructVerMin,
+				openvpn_plugin_func_v3_go(5,
 					unsafe.Pointer(&c.OpenVPNPluginArgsFuncIn{
-						Handle: nil,
+						Handle: 0,
 					}),
 					unsafe.Pointer(&c.OpenVPNPluginArgsFuncReturn{}),
 				)
