@@ -83,8 +83,8 @@ Returns the minimum plugin API version (we require v3).
 Tells OpenVPN when to initialize the plugin:
 - `OPENVPN_PLUGIN_INIT_PRE_CONFIG_PARSE` - Before config parsing
 - `OPENVPN_PLUGIN_INIT_POST_CONFIG_PARSE` - After config parsing
-- `OPENVPN_PLUGIN_INIT_PRE_DAEMON` - Before daemonization (default)
-- **`OPENVPN_PLUGIN_INIT_POST_UID_CHANGE`** - After dropping privileges (we use this)
+- **`OPENVPN_PLUGIN_INIT_PRE_DAEMON`** - Before daemonization (default, we use this)
+- `OPENVPN_PLUGIN_INIT_POST_UID_CHANGE` - After dropping privileges
 - `OPENVPN_PLUGIN_INIT_POST_DAEMON` - After daemonization
 
 We use `PRE_DAEMON` because we need to create sockets that require root privileges, and we want to ensure the plugin is initialized before OpenVPN drops privileges.
