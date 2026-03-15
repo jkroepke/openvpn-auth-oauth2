@@ -67,6 +67,7 @@ func TestPluginInvalidHandle(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+	        t.Parallel()
 			require.NotPanics(t, func() {
 				tc.fn()
 			})
