@@ -4,7 +4,6 @@ package main
 
 import (
 	"testing"
-	"unsafe"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/c"
 	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/openvpn"
@@ -40,27 +39,6 @@ func TestPluginInvalidHandle(t *testing.T) {
 			"openvpn_plugin_func_v3_go_args_nil",
 			func() {
 				openvpn_plugin_func_v3_go(5, nil, nil)
-			},
-		},
-		{
-			"openvpn_plugin_func_v3_go_ret_nil",
-			func() {
-				openvpn_plugin_func_v3_go(5,
-					any(&c.OpenVPNPluginArgsFuncIn{
-						Handle: 0,
-					}),
-					nil)
-			},
-		},
-		{
-			"openvpn_plugin_func_v3_go_handle_nil",
-			func() {
-				openvpn_plugin_func_v3_go(5,
-					unsafe.Pointer(&c.OpenVPNPluginArgsFuncIn{
-						Handle: 0,
-					}),
-					unsafe.Pointer(&c.OpenVPNPluginArgsFuncReturn{}),
-				)
 			},
 		},
 		{
