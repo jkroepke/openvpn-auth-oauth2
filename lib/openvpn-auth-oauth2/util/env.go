@@ -109,12 +109,12 @@ func parseEnvVar(envVar string) (string, string, error) {
 		return "", "", nil // Skip empty strings
 	}
 
-	parts := strings.SplitN(envVar, "=", 2)
-	if len(parts) != 2 {
+	key, value, found := strings.Cut(envVar, "=")
+	if !found {
 		return "", "", fmt.Errorf("%w: %q (missing '=')", ErrMalformedEnvVar, envVar)
 	}
 
-	key, value := strings.TrimSpace(parts[0]), parts[1]
+	key = strings.TrimSpace(key)
 	if key == "" {
 		return "", "", fmt.Errorf("%w: %q (empty key)", ErrMalformedEnvVar, envVar)
 	}

@@ -305,8 +305,8 @@ func TestPluginHandleFromPtr_ZeroHandle(t *testing.T) {
 func TestPluginHandleFromPtr_DeletedHandle(t *testing.T) {
 	t.Parallel()
 
-	h := c.NewOpenVPNPluginHandle(&PluginHandle{})
-	h.Delete()
+	pluginHandle := c.NewOpenVPNPluginHandle(&PluginHandle{})
+	pluginHandle.Delete()
 
 	var (
 		handle *PluginHandle
@@ -314,7 +314,7 @@ func TestPluginHandleFromPtr_DeletedHandle(t *testing.T) {
 	)
 
 	require.NotPanics(t, func() {
-		handle, err = pluginHandleFromPtr(h)
+		handle, err = pluginHandleFromPtr(pluginHandle)
 	})
 
 	require.Nil(t, handle)
