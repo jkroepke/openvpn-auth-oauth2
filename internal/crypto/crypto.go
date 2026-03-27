@@ -193,20 +193,20 @@ func checkTokenSize(encodedState []byte) error {
 // The timestamp is stored as a string followed by a space at the beginning of the data.
 func extractIssued(data []byte) (int64, []byte, error) {
 	// Find the space separator
-	spaceIdx := bytes.IndexByte(data, ' ') //nolint:modernize
+	before, after, ok := bytes.Cut(data, []byte{' '}) //nolint:modernize
 
-	if spaceIdx == -1 {
+	if !ok {
 		return 0, nil, errors.New("invalid data format: no timestamp found")
 	}
 
 	// Parse the timestamp
-	issued, err := strconv.ParseInt(string(data[:spaceIdx]), 10, 64)
+	issued, err := strconv.ParseInt(string(before), 10, 64)
 	if err != nil {
 		return 0, nil, fmt.Errorf("parse issued timestamp: %w", err)
 	}
 
 	// Return the timestamp and the remaining data (after the space)
-	return issued, data[spaceIdx+1:], nil
+	return issued, after, nil
 }
 
 // validateIssued the issued timestamp.

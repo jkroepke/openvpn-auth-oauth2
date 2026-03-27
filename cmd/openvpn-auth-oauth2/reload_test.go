@@ -167,7 +167,7 @@ func TestReload(t *testing.T) {
 
 	termCh <- syscall.SIGHUP
 
-	termCh <- syscall.SIGUSR1
+	termCh <- SIGUSR1
 
 	managementInterfaceConn, err = managementInterface.Accept()
 	require.NoError(t, err)
