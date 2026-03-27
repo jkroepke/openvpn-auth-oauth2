@@ -14,6 +14,7 @@ import (
 	"log/slog"
 	"os"
 	"strings"
+	"sync/atomic"
 	"unsafe"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/version"
@@ -35,7 +36,7 @@ const (
 // clientIDCounter is a global counter for client IDs, incremented atomically.
 //
 //nolint:gochecknoglobals
-var clientIDCounter uint64
+var clientIDCounter atomic.Uint64
 
 var (
 	errMissingPluginHandle     = errors.New("missing plugin handle")

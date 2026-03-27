@@ -52,7 +52,7 @@ var ErrReload = errors.New("reload")
 
 func main() {
 	termCh := make(chan os.Signal, 1)
-	signal.Notify(termCh, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGUSR1)
+	signal.Notify(termCh, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, SIGUSR1)
 
 	os.Exit(execute(os.Args, os.Stdout, termCh)) //nolint:forbidigo // entry point
 }
@@ -378,7 +378,7 @@ func handleSignal(
 		if err := server.Reload(ctx); err != nil {
 			cancel(fmt.Errorf("error reloading http server: %w", err))
 		}
-	case syscall.SIGUSR1:
+	case SIGUSR1:
 		logger.LogAttrs(ctx, slog.LevelInfo, "reloading configuration")
 		cancel(ErrReload)
 	default:
