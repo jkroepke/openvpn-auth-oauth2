@@ -10,7 +10,6 @@ import "C"
 import (
 	"fmt"
 	"log/slog"
-	"sync/atomic"
 	"time"
 	"unsafe"
 
@@ -86,7 +85,7 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 		return c.OpenVPNPluginFuncError
 	}
 
-	currentClientID := atomic.AddUint64(&clientIDCounter, 1)
+	currentClientID := clientIDCounter.Add(1)
 
 	logger := p.logger.With(
 		slog.Uint64("client_id", currentClientID),
