@@ -7,8 +7,6 @@ import (
 	"io"
 	"net/http"
 	"regexp"
-
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
 // Pagination URL patterns
@@ -24,7 +22,7 @@ func get[T any](ctx context.Context, httpClient *http.Client, accessToken, apiUR
 		return "", fmt.Errorf("error creating request context with URL %s: %w", apiURL, err)
 	}
 
-	req.Header.Add("Authorization", utils.StringConcat("Bearer ", accessToken))
+	req.Header.Add("Authorization", "Bearer "+accessToken)
 	req.Header.Add("Accept", "application/json")
 
 	resp, err := httpClient.Do(req)
@@ -32,12 +30,12 @@ func get[T any](ctx context.Context, httpClient *http.Client, accessToken, apiUR
 		return "", fmt.Errorf("error calling GitHub API %s: %w", apiURL, err)
 	}
 
+	defer resp.Body.Close()
+
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("unable to read body from GitHub API %s: http status code: %d; error: %w", apiURL, resp.StatusCode, err)
 	}
-
-	_ = resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("error from GitHub API %s: http status code: %d; message: %s", apiURL, resp.StatusCode, respBody)

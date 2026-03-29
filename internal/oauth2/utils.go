@@ -11,7 +11,6 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
 	"golang.org/x/oauth2"
 )
@@ -23,7 +22,7 @@ func checkClientIPAddr(r *http.Request, conf config.Config, session state.State)
 	}
 
 	if strings.HasPrefix(r.RemoteAddr, "[") {
-		clientIP = utils.StringConcat("[", clientIP, "]")
+		clientIP = fmt.Sprintf("[%s]", clientIP)
 	}
 
 	if conf.HTTP.EnableProxyHeaders {

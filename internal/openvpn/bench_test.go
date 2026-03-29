@@ -71,10 +71,10 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 	b.ResetTimer()
 	b.StartTimer()
 
-	for _, tt := range tests {
-		b.Run(tt.name, func(b *testing.B) {
+	for _, tc := range tests {
+		b.Run(tc.name, func(b *testing.B) {
 			for b.Loop() {
-				testutils.SendMessagef(b, managementInterfaceConn, tt.client)
+				testutils.SendMessagef(b, managementInterfaceConn, tc.client)
 				assert.Contains(b, testutils.ReadLine(b, managementInterfaceConn, reader), "client-pending-auth 0 1 \"WEB_AUTH::")
 				testutils.SendMessagef(b, managementInterfaceConn, "SUCCESS: client-pending-auth command succeeded")
 			}
@@ -182,14 +182,17 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 	b.ResetTimer()
 	b.StartTimer()
 
-	for _, tt := range tests {
-		b.Run(tt.command, func(b *testing.B) {
-			testutils.SendMessagef(b, passThroughConn, tt.command)
-			testutils.ExpectMessage(b, managementInterfaceConn, reader, tt.command)
-			testutils.SendMessagef(b, managementInterfaceConn, tt.response)
-			testutils.ExpectMessage(b, passThroughConn, passThroughReader, tt.response)
-
+	for _, tc := range tests {
+		b.Run(tc.command, func(b *testing.B) {
 			b.ReportAllocs()
+			b.ResetTimer()
+
+			for b.Loop() {
+				testutils.SendMessagef(b, passThroughConn, tc.command)
+				testutils.ExpectMessage(b, managementInterfaceConn, reader, tc.command)
+				testutils.SendMessagef(b, managementInterfaceConn, tc.response)
+				testutils.ExpectMessage(b, passThroughConn, passThroughReader, tc.response)
+			}
 		})
 	}
 

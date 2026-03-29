@@ -15,6 +15,7 @@
         <method importPath="strings" receiver="*Builder" name="WriteString" />
         <method importPath="bytes" receiver="*Buffer" name="WriteRune" />
         <method importPath="net" receiver="Conn" name="Close" />
+        <method importPath="io" receiver="ReadCloser" name="Close" />
       </methods>
     </inspection_tool>
     <inspection_tool class="MarkdownUnresolvedFileReference" enabled="false" level="WARNING" enabled_by_default="false" />

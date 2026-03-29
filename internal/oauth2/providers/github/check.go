@@ -8,7 +8,6 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
 type orgType struct {
@@ -69,7 +68,7 @@ func (p Provider) getTeams(ctx context.Context, tokens idtoken.IDToken) ([]strin
 		}
 
 		for _, team := range teams {
-			roles = append(roles, utils.StringConcat(team.Org.Login, ":", team.Slug))
+			roles = append(roles, fmt.Sprintf("%s:%s", team.Org.Login, team.Slug))
 		}
 
 		if apiURL == "" {
