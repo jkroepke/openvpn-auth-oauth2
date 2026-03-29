@@ -8,10 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func BenchmarkState(b *testing.B) {
-	b.StopTimer()
-
-	sessionState := state.State{
+func benchmarkSessionState() state.State {
+	return state.State{
 		Client: state.ClientIdentifier{
 			CID:        9223372036854775807,
 			KID:        2,
@@ -21,31 +19,45 @@ func BenchmarkState(b *testing.B) {
 		IPPort:       "12345",
 		SessionState: "",
 	}
+}
 
-	b.StartTimer()
+func BenchmarkStateEncrypt(b *testing.B) {
+	sessionState := benchmarkSessionState()
 
-	b.Run("encode", func(b *testing.B) {
-		for b.Loop() {
-			_, _ = state.Encrypt(testsuite.Cipher, sessionState)
+	var encryptedState state.EncryptedState
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for b.Loop() {
+		var err error
+
+		encryptedState, err = state.Encrypt(testsuite.Cipher, sessionState)
+		if err != nil {
+			b.Fatal(err)
 		}
+	}
 
-		b.ReportAllocs()
-	})
+	_ = encryptedState
+}
 
-	b.StopTimer()
-
-	encodedTokenString, err := state.Encrypt(testsuite.Cipher, sessionState)
+func BenchmarkStateDecrypt(b *testing.B) {
+	encodedTokenString, err := state.Encrypt(testsuite.Cipher, benchmarkSessionState())
 	require.NoError(b, err)
 
-	b.StartTimer()
+	var decryptedState state.State
 
-	b.Run("decode", func(b *testing.B) {
-		for b.Loop() {
-			_, _ = state.Decrypt(testsuite.Cipher, encodedTokenString)
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for b.Loop() {
+		var decryptErr error
+
+		decryptedState, decryptErr = state.Decrypt(testsuite.Cipher, encodedTokenString)
+		if decryptErr != nil {
+			b.Fatal(decryptErr)
 		}
+	}
 
-		b.ReportAllocs()
-	})
-
-	b.StopTimer()
+	_ = decryptedState
 }
