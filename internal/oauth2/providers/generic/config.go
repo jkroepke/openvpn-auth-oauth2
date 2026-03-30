@@ -1,25 +1,26 @@
 package generic
 
 import (
-	oauth3 "github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
-	"golang.org/x/oauth2"
+	gooauth2 "golang.org/x/oauth2"
 )
 
 // GetProviderConfig implements the [github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2.Provider] interface.
 func (p Provider) GetProviderConfig() (types.ProviderConfig, error) {
 	scopes := []string{types.ScopeOpenID, types.ScopeProfile, types.ScopeOfflineAccess}
 
-	if p.Conf.OAuth2.Endpoints.Token.IsEmpty() && p.Conf.OAuth2.Endpoints.Auth.IsEmpty() {
+	if (p.Conf.OAuth2.Endpoints.Token == nil || p.Conf.OAuth2.Endpoints.Token.String() == "") &&
+		(p.Conf.OAuth2.Endpoints.Auth == nil || p.Conf.OAuth2.Endpoints.Auth.String() == "") {
 		return types.ProviderConfig{Scopes: scopes}, nil
 	}
-
-	if p.Conf.OAuth2.Endpoints.Auth.IsEmpty() || p.Conf.OAuth2.Endpoints.Token.IsEmpty() {
-		return types.ProviderConfig{}, oauth3.ErrAuthAndTokenEndpointRequired
+	if (p.Conf.OAuth2.Endpoints.Token == nil || p.Conf.OAuth2.Endpoints.Token.String() == "") ||
+		(p.Conf.OAuth2.Endpoints.Auth == nil || p.Conf.OAuth2.Endpoints.Auth.String() == "") {
+		return types.ProviderConfig{}, oauth2.ErrAuthAndTokenEndpointRequired
 	}
 
 	return types.ProviderConfig{
-		Endpoint: oauth2.Endpoint{
+		Endpoint: gooauth2.Endpoint{
 			AuthURL:  p.Conf.OAuth2.Endpoints.Auth.String(),
 			TokenURL: p.Conf.OAuth2.Endpoints.Token.String(),
 		},

@@ -183,6 +183,14 @@ linters:
           - wrapcheck
           - gosmopolitan
         path: _test\.go
+      - linters:
+          - forbidigo
+          - gochecknoinits
+          - gochecknoglobals
+          - wrapcheck
+        path: cmd/
+      - text: "G115: integer overflow conversion"
+        path: cmd/
       - path: _test\.go
         text: "fieldalignment:"
       - path: lib/

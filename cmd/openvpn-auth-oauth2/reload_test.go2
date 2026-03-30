@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/cmd"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
@@ -167,7 +168,7 @@ func TestReload(t *testing.T) {
 
 	termCh <- syscall.SIGHUP
 
-	termCh <- SIGUSR1
+	termCh <- cmd.SIGUSR1
 
 	managementInterfaceConn, err = managementInterface.Accept()
 	require.NoError(t, err)

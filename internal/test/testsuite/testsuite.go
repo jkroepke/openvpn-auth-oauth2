@@ -83,7 +83,7 @@ func (s *Suite) SetupMockEnvironment(ctx context.Context, tb testing.TB, opConf 
 
 	_, resourceServerURL, clientCredentials := s.SetupOIDCServer(tb, clientListener, opConf)
 
-	s.conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: clientListener.Addr().String()}}
+	s.conf.HTTP.BaseURL = &url.URL{Scheme: "http", Host: clientListener.Addr().String()}
 
 	if s.conf.HTTP.Secret == "" {
 		s.conf.HTTP.Secret = Secret
@@ -101,7 +101,7 @@ func (s *Suite) SetupMockEnvironment(ctx context.Context, tb testing.TB, opConf 
 		s.conf.OpenVPN.ClientConfig.Path = config.Defaults.OpenVPN.ClientConfig.Path
 	}
 
-	s.conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: s.managementInterface.Addr().Network(), Host: s.managementInterface.Addr().String()}}
+	s.conf.OpenVPN.Addr = &url.URL{Scheme: s.managementInterface.Addr().Network(), Host: s.managementInterface.Addr().String()}
 
 	if s.conf.OpenVPN.Bypass.CommonNames == nil {
 		s.conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
@@ -155,7 +155,7 @@ func (s *Suite) SetupMockEnvironment(ctx context.Context, tb testing.TB, opConf 
 }
 
 // SetupOIDCServer starts a minimal OIDC server used for integration tests.
-func (s *Suite) SetupOIDCServer(tb testing.TB, clientListener net.Listener, opConfig *op.Config) (*httptest.Server, types.URL, config.OAuth2Client) {
+func (s *Suite) SetupOIDCServer(tb testing.TB, clientListener net.Listener, opConfig *op.Config) (*httptest.Server, *url.URL, config.OAuth2Client) {
 	tb.Helper()
 
 	clientSecret := Secret
@@ -237,7 +237,7 @@ func (s *Suite) SetupOIDCServer(tb testing.TB, clientListener net.Listener, opCo
 
 	resourceServer := s.CreateHTTPTestServer(tb, httpHandler)
 
-	resourceServerURL, err := types.NewURL(resourceServer.URL)
+	resourceServerURL, err := url.Parse(resourceServer.URL)
 	require.NoError(tb, err, s.Logs())
 
 	return resourceServer, resourceServerURL, config.OAuth2Client{ID: client.GetID(), Secret: types.Secret(clientSecret)}
@@ -257,10 +257,10 @@ func (s *Suite) SetupOpenVPNOAuth2Clients(ctx context.Context, tb testing.TB, to
 		s.conf.OAuth2.Provider = generic.Name
 	}
 
-	if s.conf.OAuth2.Issuer.IsEmpty() {
-		s.conf.OAuth2.Issuer = types.URL{URL: &url.URL{Scheme: "http", Host: "example.com"}}
-		s.conf.OAuth2.Endpoints.Auth = types.URL{URL: &url.URL{Scheme: "http", Host: "example.com", Path: "/auth"}}
-		s.conf.OAuth2.Endpoints.Token = types.URL{URL: &url.URL{Scheme: "http", Host: "example.com", Path: "/token"}}
+	if s.conf.OAuth2.Issuer == nil || s.conf.OAuth2.Issuer.String() == "" {
+		s.conf.OAuth2.Issuer = &url.URL{Scheme: "http", Host: "example.com"}
+		s.conf.OAuth2.Endpoints.Auth = &url.URL{Scheme: "http", Host: "example.com", Path: "/auth"}
+		s.conf.OAuth2.Endpoints.Token = &url.URL{Scheme: "http", Host: "example.com", Path: "/token"}
 	}
 
 	if s.conf.OpenVPN.CommandTimeout == 0 {

@@ -4,13 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"slices"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 )
 
 // Validate validates the config.
-func Validate(mode int, conf Config) error {
+func Validate(conf Config) error {
 	if err := validateOAuth2Config(conf); err != nil {
 		return err
 	}
@@ -23,18 +24,16 @@ func Validate(mode int, conf Config) error {
 		return err
 	}
 
-	if mode == ManagementClient {
-		for key, value := range map[string]types.URL{
-			"openvpn.addr": conf.OpenVPN.Addr,
-		} {
-			if value.IsEmpty() {
-				return fmt.Errorf("%s is %w", key, ErrRequired)
-			}
+	for key, value := range map[string]*url.URL{
+		"openvpn.addr": conf.OpenVPN.Addr,
+	} {
+		if value == nil || value.String() == "" {
+			return fmt.Errorf("%s is %w", key, ErrRequired)
 		}
+	}
 
-		if !slices.Contains([]string{"tcp", "unix"}, conf.OpenVPN.Addr.Scheme) {
-			return errors.New("openvpn.addr: invalid URL. only tcp://addr or unix://addr scheme supported")
-		}
+	if !slices.Contains([]string{"tcp", "unix"}, conf.OpenVPN.Addr.Scheme) {
+		return errors.New("openvpn.addr: invalid URL. only tcp://addr or unix://addr scheme supported")
 	}
 
 	return nil
@@ -50,7 +49,7 @@ func validateHTTPConfig(conf Config) error {
 		return fmt.Errorf("http.secret %w", err)
 	}
 
-	if conf.HTTP.BaseURL.IsEmpty() {
+	if conf.HTTP.BaseURL == nil || conf.HTTP.BaseURL.String() == "" {
 		return fmt.Errorf("http.baseurl is %w", ErrRequired)
 	}
 
@@ -82,7 +81,7 @@ func validateOpenVPNConfig(conf Config) error {
 //
 //nolint:cyclop
 func validateOAuth2Config(conf Config) error {
-	if conf.OAuth2.Issuer.IsEmpty() {
+	if conf.OAuth2.Issuer == nil || conf.OAuth2.Issuer.String() == "" {
 		return fmt.Errorf("oauth2.issuer is %w", ErrRequired)
 	}
 
@@ -133,17 +132,17 @@ func validateOAuth2Config(conf Config) error {
 		_ = file.Close()
 	}
 
-	if !conf.OAuth2.Endpoints.Auth.IsEmpty() && !conf.OAuth2.Endpoints.Token.IsEmpty() {
-		if conf.OAuth2.UserInfo {
-			return errors.New("oauth2.userinfo: cannot be used if oauth2.endpoint.auth and oauth2.endpoint.token is set")
-		}
+	if !(conf.OAuth2.Endpoints.Auth == nil || conf.OAuth2.Endpoints.Auth.String() == "") &&
+		!(conf.OAuth2.Endpoints.Token == nil || conf.OAuth2.Endpoints.Token.String() == "") &&
+		conf.OAuth2.UserInfo {
+		return errors.New("oauth2.userinfo: cannot be used if oauth2.endpoint.auth and oauth2.endpoint.token is set")
 	}
 
 	return nil
 }
 
-func validateURL(uri types.URL) error {
-	if uri.IsEmpty() {
+func validateURL(uri *url.URL) error {
+	if uri == nil || uri.String() == "" {
 		return nil
 	}
 

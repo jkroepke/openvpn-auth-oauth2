@@ -23,37 +23,6 @@ func BenchmarkURLUnmarshalText(b *testing.B) {
 	_ = parsedURL
 }
 
-func BenchmarkStringSliceUnmarshalText(b *testing.B) {
-	for _, tc := range []struct {
-		name  string
-		input []byte
-	}{
-		{
-			name:  "short",
-			input: []byte("openid,profile,email"),
-		},
-		{
-			name:  "long",
-			input: []byte("alpha,beta,gamma,delta,epsilon,zeta,eta,theta,iota,kappa,lambda,mu"),
-		},
-	} {
-		b.Run(tc.name, func(b *testing.B) {
-			var stringSlice types.StringSlice
-
-			b.ReportAllocs()
-			b.ResetTimer()
-
-			for b.Loop() {
-				if err := stringSlice.UnmarshalText(tc.input); err != nil {
-					b.Fatal(err)
-				}
-			}
-
-			_ = stringSlice
-		})
-	}
-}
-
 func BenchmarkRegexpSliceUnmarshalText(b *testing.B) {
 	for _, tc := range []struct {
 		name  string

@@ -29,10 +29,10 @@ var Defaults = Config{
 	},
 	HTTP: HTTP{
 		AssetPath: types.FS{FS: assets.FS},
-		BaseURL: types.URL{URL: &url.URL{
+		BaseURL: &url.URL{
 			Scheme: "http",
 			Host:   "localhost:9000",
-		}},
+		},
 		Listen: ":9000",
 		TLS:    false,
 		Check: HTTPCheck{
@@ -41,11 +41,11 @@ var Defaults = Config{
 		Template: types.Template{Template: template.Must(template.New("index.gohtml").ParseFS(ui.Template, "index.gohtml"))},
 	},
 	OpenVPN: OpenVPN{
-		Addr: types.URL{URL: &url.URL{
+		Addr: &url.URL{
 			Scheme:   "unix",
 			Path:     "/run/openvpn/server.sock",
 			OmitHost: true,
-		}},
+		},
 		AuthTokenUser:      true,
 		AuthPendingTimeout: 3 * time.Minute,
 		ClientConfig: OpenVPNConfig{
@@ -53,7 +53,7 @@ var Defaults = Config{
 			Path:    types.FS{FS: os.DirFS("/etc/openvpn-auth-oauth2/client-config-dir/")},
 			UserSelector: OpenVPNConfigProfileSelector{
 				Enabled:      false,
-				StaticValues: make(types.StringSlice, 0),
+				StaticValues: make([]string, 0),
 			},
 		},
 		CommonName: OpenVPNCommonName{
@@ -66,11 +66,11 @@ var Defaults = Config{
 		},
 		Passthrough: OpenVPNPassthrough{
 			Enabled: false,
-			Address: types.URL{URL: &url.URL{
+			Address: &url.URL{
 				Scheme:   "unix",
 				Path:     "/run/openvpn-auth-oauth2/server.sock",
 				OmitHost: true,
-			}},
+			},
 			SocketMode:  660,
 			SocketGroup: "",
 		},
@@ -81,11 +81,11 @@ var Defaults = Config{
 		AuthStyle: OAuth2AuthStyle(oauth2.AuthStyleInParams),
 		Client:    OAuth2Client{},
 		Endpoints: OAuth2Endpoints{
-			Auth:      types.URL{URL: &url.URL{Scheme: "", Host: ""}},
-			Discovery: types.URL{URL: &url.URL{Scheme: "", Host: ""}},
-			Token:     types.URL{URL: &url.URL{Scheme: "", Host: ""}},
+			Auth:      nil,
+			Discovery: nil,
+			Token:     nil,
 		},
-		Issuer:               types.URL{URL: &url.URL{Scheme: "", Host: ""}},
+		Issuer:               nil,
 		Nonce:                true,
 		RefreshNonce:         OAuth2RefreshNonceAuto,
 		PKCE:                 true,

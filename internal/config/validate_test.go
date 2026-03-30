@@ -265,7 +265,7 @@ func TestValidate(t *testing.T) {
 		t.Run(tc.err, func(t *testing.T) {
 			t.Parallel()
 
-			err := config.Validate(config.ManagementClient, tc.conf)
+			err := config.Validate(tc.conf)
 			if tc.err == "" {
 				require.NoError(t, err)
 			} else {

@@ -1,13 +1,8 @@
-// Explicitly disable httpmuxgo121, because Debian build system disables it.
-// ref: https://github.com/jkroepke/openvpn-auth-oauth2/issues/680#issuecomment-3686988447
-//go:debug httpmuxgo121=0
-
-package main
+package cmd
 
 import (
 	"context"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"log/slog"
@@ -15,12 +10,11 @@ import (
 	"net/http/pprof"
 	"os"
 	"os/signal"
-	"runtime"
-	"runtime/debug"
 	"sync"
 	"syscall"
 	"time"
 
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/crypto"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/httphandler"
@@ -32,7 +26,8 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/version"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 type ReturnCode = int
@@ -50,21 +45,19 @@ const (
 
 var ErrReload = errors.New("reload")
 
-func main() {
+// execute is the main entry point for the openvpn-auth-oauth2 daemon.
+func runLoop(cmd *cobra.Command, _ []string) error {
 	termCh := make(chan os.Signal, 1)
 	signal.Notify(termCh, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, SIGUSR1)
 
-	os.Exit(execute(os.Args, os.Stdout, termCh)) //nolint:forbidigo // entry point
-}
-
-// execute is the main entry point for the openvpn-auth-oauth2 daemon.
-func execute(args []string, stdout io.Writer, termCh <-chan os.Signal) int {
 	tokenDataStorage := tokenstorage.DataMap{}
-	ctx := context.Background()
+
+	var err error
 
 	for {
-		if returnCode := run(ctx, args, stdout, tokenDataStorage, termCh); returnCode != ReturnCodeReload {
-			return returnCode
+		err = run(cmd.Context(), tokenDataStorage, termCh)
+		if !errors.Is(err, ErrReload) {
+			return err
 		}
 
 		time.Sleep(300 * time.Millisecond) // Wait before reloading configuration
@@ -72,10 +65,10 @@ func execute(args []string, stdout io.Writer, termCh <-chan os.Signal) int {
 }
 
 // run runs the main program logic of openvpn-auth-oauth2.
-func run(ctx context.Context, args []string, stdout io.Writer, tokenDataStorage tokenstorage.DataMap, termCh <-chan os.Signal) ReturnCode {
-	conf, logger, rc := initializeConfigAndLogger(args, stdout)
-	if rc != ReturnCodeNoError {
-		return rc
+func run(ctx context.Context, tokenDataStorage tokenstorage.DataMap, termCh <-chan os.Signal) error {
+	conf, logger, err := initializeConfigAndLogger()
+	if err != nil {
+		return err
 	}
 
 	// initialize the root context with a cancel function
@@ -88,11 +81,7 @@ func run(ctx context.Context, args []string, stdout io.Writer, tokenDataStorage 
 
 	openvpnClient, httpHandler, err := setupOpenVPNClient(ctx, logger, conf, tokenDataStorage)
 	if err != nil {
-		logger.LogAttrs(ctx, slog.LevelError, "error setting up openvpn client",
-			slog.Any("err", err),
-		)
-
-		return ReturnCodeError
+		return fmt.Errorf("error setting up openvpn client: %w", err)
 	}
 
 	wg := &sync.WaitGroup{}
@@ -105,33 +94,6 @@ func run(ctx context.Context, args []string, stdout io.Writer, tokenDataStorage 
 	)
 
 	return handleSignalsAndShutdown(ctx, cancel, termCh, logger, server)
-}
-
-func printVersion(writer io.Writer) {
-	//goland:noinspection GoBoolExpressions
-	if version.Version == "dev" {
-		if buildInfo, ok := debug.ReadBuildInfo(); ok {
-			_, _ = fmt.Fprintf(writer, "version: %s\ngo: %s\n", buildInfo.Main.Version, buildInfo.GoVersion)
-
-			return
-		}
-	}
-
-	_, _ = fmt.Fprintf(writer, "version: %s\ncommit: %s\ndate: %s\ngo: %s\n", version.Version, version.Commit, version.Date, runtime.Version())
-}
-
-// setupConfiguration parses the command line arguments and loads the configuration.
-func setupConfiguration(args []string, logWriter io.Writer) (config.Config, error) {
-	conf, err := config.New(args, logWriter)
-	if err != nil {
-		return config.Config{}, fmt.Errorf("configuration error: %w", err)
-	}
-
-	if err = config.Validate(config.ManagementClient, conf); err != nil {
-		return config.Config{}, fmt.Errorf("configuration validation error: %w", err)
-	}
-
-	return conf, nil
 }
 
 // setupLogger initializes the logger based on the configuration.
@@ -215,34 +177,36 @@ func setupOpenVPNClient(
 }
 
 // initializeConfigAndLogger handles configuration parsing and logger setup.
-func initializeConfigAndLogger(args []string, stdout io.Writer) (config.Config, *slog.Logger, ReturnCode) {
-	conf, err := setupConfiguration(args, stdout)
+func initializeConfigAndLogger() (config.Config, *slog.Logger, error) {
+	conf := config.Defaults
+
+	err := viper.Unmarshal(&conf, viper.DecodeHook(
+		mapstructure.ComposeDecodeHookFunc(
+			mapstructure.StringToURLHookFunc(),
+			mapstructure.StringToTimeDurationHookFunc(),
+			mapstructure.TextUnmarshallerHookFunc(),
+			mapstructure.StringToSliceHookFunc(","),
+			mapstructure.StringToBasicTypeHookFunc(),
+		)),
+	)
+
 	if err != nil {
-		if errors.Is(err, flag.ErrHelp) {
-			return config.Config{}, nil, ReturnCodeOK
-		}
-
-		if errors.Is(err, config.ErrVersion) {
-			printVersion(stdout)
-
-			return config.Config{}, nil, ReturnCodeOK
-		}
-
-		_, _ = fmt.Fprintln(stdout, err.Error())
-
-		return config.Config{}, nil, ReturnCodeError
+		return config.Config{}, nil, fmt.Errorf("configuration loading error: %w", err)
 	}
 
-	logger, err := setupLogger(conf, stdout)
+	err = config.Validate(conf)
 	if err != nil {
-		_, _ = fmt.Fprintln(stdout, fmt.Errorf("error setupConfiguration logging: %w", err).Error())
+		return config.Config{}, nil, fmt.Errorf("configuration validation error: %w", err)
+	}
 
-		return config.Config{}, nil, ReturnCodeError
+	logger, err := setupLogger(conf, os.Stdout)
+	if err != nil {
+		return config.Config{}, nil, fmt.Errorf("setup logging error: %w", err)
 	}
 
 	logWarnings(logger, conf)
 
-	return conf, logger, ReturnCodeNoError
+	return conf, logger, nil
 }
 
 func logWarnings(logger *slog.Logger, conf config.Config) {
@@ -332,11 +296,11 @@ func handleSignalsAndShutdown(
 	termCh <-chan os.Signal,
 	logger *slog.Logger,
 	server *httpserver.Server,
-) ReturnCode {
+) error {
 	for {
 		select {
 		case <-ctx.Done():
-			return handleContextDone(ctx, logger)
+			return handleContextDone(ctx)
 		case sig := <-termCh:
 			handleSignal(ctx, cancel, sig, logger, server)
 		}
@@ -344,23 +308,17 @@ func handleSignalsAndShutdown(
 }
 
 // handleContextDone processes context cancellation and returns appropriate return code.
-func handleContextDone(ctx context.Context, logger *slog.Logger) ReturnCode {
+func handleContextDone(ctx context.Context) error {
 	err := context.Cause(ctx)
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
-			return ReturnCodeOK
+			return nil
 		}
 
-		if errors.Is(err, ErrReload) {
-			return ReturnCodeReload
-		}
-
-		logger.ErrorContext(ctx, err.Error())
-
-		return ReturnCodeError
+		return err
 	}
 
-	return ReturnCodeOK
+	return nil
 }
 
 // handleSignal processes incoming OS signals.

@@ -119,7 +119,7 @@ func (c *Client) initializeCELValidation() error {
 func newOIDCRelyingParty(
 	ctx context.Context, logger *slog.Logger, conf config.Config, provider Provider, scopes []string, options []rp.Option,
 ) (rp.RelyingParty, error) {
-	if !conf.OAuth2.Endpoints.Discovery.IsEmpty() {
+	if !(conf.OAuth2.Endpoints.Discovery == nil || conf.OAuth2.Endpoints.Discovery.String() == "") {
 		logger.LogAttrs(ctx, slog.LevelInfo, fmt.Sprintf(
 			"discover oidc auto configuration with provider %s for issuer %s with custom discovery url %s",
 			provider.GetName(), conf.OAuth2.Issuer.String(), conf.OAuth2.Endpoints.Discovery.String(),
