@@ -168,41 +168,41 @@ func PluginCloseV1(handlePtr c.OpenVPNPluginHandle) {
 // PluginClientConstructorV1 allocates a new per-client context using cgo.Handle
 // so the ClientContext remains fully GC-managed. A small C-heap slot holds the
 // handle value, giving OpenVPN a real pointer that satisfies Go's checkptr.
-func PluginClientConstructorV1(handlePtr c.OpenVPNPluginHandle) unsafe.Pointer {
-	handle, err := pluginHandleFromPtr(handlePtr)
+func PluginClientConstructorV1(pluginHandlePtr c.OpenVPNPluginHandle) unsafe.Pointer {
+	pluginHandle, err := pluginHandleFromPtr(pluginHandlePtr)
 	if err != nil {
 		return nil
 	}
 
-	handle.logger.DebugContext(handle.ctx, "openvpn_plugin_client_constructor_v1: called")
+	pluginHandle.logger.DebugContext(pluginHandle.ctx, "openvpn_plugin_client_constructor_v1: called")
 
 	ctx := &ClientContext{}
-	h := cgo.NewHandle(ctx)
+	clientContextHandle := cgo.NewHandle(ctx)
 
 	// Allocate a C-heap slot to hold the cgo.Handle integer value.
 	// This produces a real C pointer that satisfies Go's checkptr,
 	// while the ClientContext itself stays on the Go heap (GC-managed).
-	slot := (*cgo.Handle)(C.malloc(C.size_t(unsafe.Sizeof(h))))
+	slot := (*cgo.Handle)(C.malloc(C.size_t(unsafe.Sizeof(clientContextHandle))))
 	if slot == nil {
-		h.Delete()
+		clientContextHandle.Delete()
 
 		return nil
 	}
 
-	*slot = h
+	*slot = clientContextHandle
 
 	return unsafe.Pointer(slot)
 }
 
 // PluginClientDestructorV1 frees the per-client cgo.Handle previously returned
 // by PluginClientConstructorV1.
-func PluginClientDestructorV1(handlePtr c.OpenVPNPluginHandle, perClientContext unsafe.Pointer) {
-	handle, err := pluginHandleFromPtr(handlePtr)
+func PluginClientDestructorV1(pluginHandlePtr c.OpenVPNPluginHandle, perClientContext unsafe.Pointer) {
+	pluginHandle, err := pluginHandleFromPtr(pluginHandlePtr)
 	if err != nil {
 		return
 	}
 
-	handle.logger.DebugContext(handle.ctx, "openvpn_plugin_client_destructor_v1: called")
+	pluginHandle.logger.DebugContext(pluginHandle.ctx, "openvpn_plugin_client_destructor_v1: called")
 
 	if perClientContext == nil {
 		return
@@ -213,23 +213,23 @@ func PluginClientDestructorV1(handlePtr c.OpenVPNPluginHandle, perClientContext 
 	C.free(perClientContext)
 }
 
-func PluginAbortV1(handlePtr c.OpenVPNPluginHandle) {
-	if handlePtr.IsNil() {
+func PluginAbortV1(pluginHandlePtr c.OpenVPNPluginHandle) {
+	if pluginHandlePtr.IsNil() {
 		return
 	}
 
-	handle, err := pluginHandleFromPtr(handlePtr)
+	pluginHandle, err := pluginHandleFromPtr(pluginHandlePtr)
 	if err != nil {
 		return
 	}
 
-	handle.cancel()
-	handle.managementClient.Close()
+	pluginHandle.cancel()
+	pluginHandle.managementClient.Close()
 
-	handle.logger.WarnContext(handle.ctx, "plugin abort")
+	pluginHandle.logger.WarnContext(pluginHandle.ctx, "plugin abort")
 
 	// frees the handle, allows GC to collect Go object
-	handlePtr.Delete()
+	pluginHandlePtr.Delete()
 }
 
 // clientContextFromPointer recovers a *ClientContext from an opaque unsafe.Pointer
@@ -250,8 +250,8 @@ func clientContextFromPointer(ptr unsafe.Pointer) *ClientContext {
 	return ctx
 }
 
-func pluginHandleFromPtr(handlePtr c.OpenVPNPluginHandle) (*PluginHandle, error) {
-	if handlePtr.IsNil() {
+func pluginHandleFromPtr(pluginHandlePtr c.OpenVPNPluginHandle) (*PluginHandle, error) {
+	if pluginHandlePtr.IsNil() {
 		return nil, errMissingPluginHandle
 	}
 
@@ -267,17 +267,17 @@ func pluginHandleFromPtr(handlePtr c.OpenVPNPluginHandle) (*PluginHandle, error)
 			}
 		}()
 
-		handleValue = handlePtr.Value()
+		handleValue = pluginHandlePtr.Value()
 	}()
 
 	if recovered {
 		return nil, errInvalidPluginHandle
 	}
 
-	h, ok := handleValue.(*PluginHandle)
+	pluginHandle, ok := handleValue.(*PluginHandle)
 	if !ok {
 		return nil, errInvalidPluginHandleType
 	}
 
-	return h, nil
+	return pluginHandle, nil
 }

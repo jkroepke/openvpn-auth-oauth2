@@ -573,7 +573,9 @@ creates a use-after-free scenario:
    mutex and passes it to `c.CString()`, reading freed memory.
 
 This is a latent use-after-free bug that is difficult to reproduce but
-theoretically sound.
+theoretically sound. **This does not affect the current implementation**
+(Approach 3), which keeps `ClientContext` on the Go heap where all pointers are
+GC-visible.
 
 #### Approach 3 (chosen): C-heap slot holding only the `cgo.Handle` value
 
