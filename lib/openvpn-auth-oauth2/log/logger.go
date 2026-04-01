@@ -26,7 +26,7 @@ type PluginHandler struct {
 	cb           *c.OpenVPNPluginCallbacks
 	opts         Options
 	preformatted []byte
-	bufPool      sync.Pool
+	bufPool      *sync.Pool
 }
 
 // Options configures the behavior of the PluginHandler.
@@ -51,7 +51,7 @@ func NewOpenVPNPluginLogger(cb *c.OpenVPNPluginCallbacks) *PluginHandler {
 	handler.opts.Level = slog.LevelDebug
 
 	// bufPool reuses byte slices for log formatting to reduce allocations.
-	handler.bufPool = sync.Pool{
+	handler.bufPool = &sync.Pool{
 		New: func() any {
 			return new(make([]byte, 0, 1024))
 		},
