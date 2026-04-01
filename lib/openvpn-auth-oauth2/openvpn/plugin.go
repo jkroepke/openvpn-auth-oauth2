@@ -79,7 +79,7 @@ func PluginOpenV3(v3structver c.Int, args *c.OpenVPNPluginArgsOpenIn, ret *c.Ope
 		listenSocketPassword = strings.TrimSpace(string(password))
 	}
 
-	ctx, cancel := context.WithCancel(context.Background()) //nolint:gosec // context cancellation is used for plugin shutdown, not for request handling
+	ctx, cancel := context.WithCancel(context.Background())
 
 	handle := c.NewOpenVPNPluginHandle(&PluginHandle{
 		logger:           logger,

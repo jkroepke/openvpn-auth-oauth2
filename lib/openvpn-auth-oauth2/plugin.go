@@ -97,14 +97,16 @@ func openvpn_plugin_close_v1(handlePtr C.openvpn_plugin_handle_t) {
 // callbacks for this specific client.
 //
 // The per-client context stores authentication state and client-specific configuration
-// that persists throughout the client's connection lifecycle. The returned pointer
-// encodes a cgo.Handle and is opaque to OpenVPN.
+// that persists throughout the client's connection lifecycle. The returned pointer is
+// a C-heap-allocated slot (via C.malloc) that holds a cgo.Handle value; the
+// ClientContext itself lives on the Go heap so the GC can trace its fields.
+// See AGENTS.md § "Per-Client Context" for the full rationale.
 //
 // Parameters:
 //   - handlePtr: Pointer to the global plugin context handle
 //
 // Returns:
-//   - unsafe.Pointer encoding a cgo.Handle to the per-client context.
+//   - unsafe.Pointer to a C-heap slot encoding a cgo.Handle to the per-client context.
 //     The handle must eventually be released by openvpn_plugin_client_destructor_v1.
 //
 //export openvpn_plugin_client_constructor_v1
@@ -114,13 +116,14 @@ func openvpn_plugin_client_constructor_v1(handlePtr C.openvpn_plugin_handle_t) u
 }
 
 // openvpn_plugin_client_destructor_v1 is called by OpenVPN when a client disconnects.
-// It performs cleanup operations for the per-client context, releasing the cgo.Handle
-// previously returned from openvpn_plugin_client_constructor_v1.
+// It performs cleanup operations for the per-client context: dereferences the C-heap
+// slot to recover the cgo.Handle, calls h.Delete() to release it (allowing GC of the
+// ClientContext), and then C.free()s the slot itself.
 //
 // Parameters:
 //   - handlePtr: Pointer to the global plugin context handle
-//   - perClientContext: unsafe.Pointer encoding the per-client cgo.Handle
-//     that should be destroyed. This must be a value previously returned from
+//   - perClientContext: unsafe.Pointer to the C-heap slot holding the per-client
+//     cgo.Handle. This must be a value previously returned from
 //     openvpn_plugin_client_constructor_v1.
 //
 //export openvpn_plugin_client_destructor_v1
