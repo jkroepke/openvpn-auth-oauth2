@@ -3,6 +3,7 @@
   "force-tag-creation": true,
   "skip-github-release": true,
   "skip-changelog": true,
+  "extra-label": "chore",
   "packages": {
     ".": {}
   }
