@@ -87,7 +87,11 @@ func (h *PluginHandler) Enabled(_ context.Context, level slog.Level) bool {
 }
 
 func (h *PluginHandler) Handle(_ context.Context, record slog.Record) error {
-	bufPtr := bufPool.Get().(*[]byte)
+	bufPtr, ok := bufPool.Get().(*[]byte)
+	if !ok {
+		bufPtr = new(make([]byte, 0, 1024))
+	}
+
 	buf := (*bufPtr)[:0]
 
 	buf = fmt.Appendf(buf, "%s: %s", record.Level, record.Message)

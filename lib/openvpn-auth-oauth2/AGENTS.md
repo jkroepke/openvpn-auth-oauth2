@@ -225,16 +225,20 @@ The plugin writes to files that OpenVPN monitors:
 4. OpenVPN **monitors file changes** and completes auth when file is updated
 
 #### Method 2: Plugin Polling (CLIENT_CONNECT_DEFER_V2)
-OpenVPN repeatedly calls the plugin to check status:
+OpenVPN repeatedly calls the plugin to check if **client-connect config** is ready:
 
 **Flow:**
-1. Plugin returns DEFERRED from AUTH_USER_PASS_VERIFY
+1. Plugin returns DEFERRED from CLIENT_CONNECT_V2
 2. OpenVPN calls `CLIENT_CONNECT_DEFER_V2` **repeatedly** (polling)
-3. Plugin checks if auth is complete:
+3. Plugin checks if config is ready:
    - Return DEFERRED if still pending
-   - Return SUCCESS if completed successfully
+   - Return SUCCESS + config if completed
    - Return ERROR if failed
 4. Process repeats until non-DEFERRED status returned
+
+**Note:** This mechanism is for deferred **client-connect configuration**, not
+for deferred authentication. Authentication deferral uses `auth_control_file`
+(Method 1).
 
 ### Our Implementation Choice
 
@@ -244,40 +248,25 @@ We primarily use **Method 1 (File-based)** because:
 - Simpler state management
 - Better integration with existing code
 
-However, we **must still handle** `CLIENT_CONNECT_DEFER_V2` because:
-- OpenVPN may call it even with file-based deferred auth
-- Different OpenVPN versions behave differently
-- The callback is mandatory once registered in type_mask
+### Why We Do NOT Implement `CLIENT_CONNECT_DEFER_V2`
 
-### Critical Issue Found
+`OPENVPN_PLUGIN_CLIENT_CONNECT_DEFER_V2` is a **polling callback** that OpenVPN
+invokes only when a plugin returns `DEFERRED` from `CLIENT_CONNECT_V2`. It exists
+for plugins that need to **asynchronously compute client-connect configuration**
+(push routes, IP assignments, etc.).
 
-After analyzing `sample-client-connect.c`, we found that our `CLIENT_CONNECT_DEFER_V2` implementation was incomplete:
+This plugin does **not** need it because:
 
-**Problems:**
-1. ❌ No per-client context tracking
-2. ❌ Just returns SUCCESS immediately (doesn't actually poll)
-3. ❌ Doesn't check if authentication completed
+1. **The only deferred operation is authentication** (`AUTH_USER_PASS_VERIFY`),
+   not client-connect. By the time OpenVPN calls `CLIENT_CONNECT_V2`, the
+   OAuth2 flow has already completed and `clientConfig` is populated.
+2. **`CLIENT_CONNECT_V2` always returns `SUCCESS` synchronously** — it never
+   returns `DEFERRED`, so OpenVPN never calls `DEFER_V2`.
+3. **OpenVPN only calls `DEFER_V2` if** it is registered in `type_mask` **and**
+   `CLIENT_CONNECT_V2` returned `DEFERRED`. Neither condition is met.
 
-**The sample shows:**
-```c
-int openvpn_plugin_client_connect_defer_v2(
-    struct plugin_context *context,
-    struct plugin_per_client_context *pcc,  // <-- Per-client state!
-    struct openvpn_plugin_string_list **return_list)
-{
-    time_t time_left = pcc->sleep_until - time(NULL);
-
-    /* not yet due? */
-    if (time_left > 0)
-    {
-        return OPENVPN_PLUGIN_FUNC_DEFERRED;  // <-- Keep polling
-    }
-
-    // Check status and return SUCCESS or ERROR
-}
-```
-
-**Key insight**: OpenVPN provides a `per_client_context` pointer that **persists across multiple calls** for the same client. This is how you track state between polling calls.
+Adding it would introduce a new event handler, polling state management, and
+a `type_mask` entry for zero functional benefit.
 
 ### Current Implementation Status
 

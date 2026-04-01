@@ -61,30 +61,6 @@ func NewClient(clientID uint64, envArray util.List) (*Client, error) {
 	return client, nil
 }
 
-// buildMessage constructs a management-protocol message with the given header
-// and appends all non-internal environment variables as CLIENT:ENV lines.
-func (c *Client) buildMessage(header string) string {
-	sb := strings.Builder{}
-	sb.Grow(len(header) + c.estimatedSize)
-
-	sb.WriteString(header)
-
-	for key, value := range c.env {
-		if key == AuthControlFileEnvKey || key == AuthPendingFileEnvKey || key == AuthFailedReasonFileEnvKey {
-			continue
-		}
-
-		sb.WriteString("\r\n>CLIENT:ENV,")
-		sb.WriteString(key)
-		sb.WriteString("=")
-		sb.WriteString(value)
-	}
-
-	sb.WriteString("\r\n>CLIENT:ENV,END")
-
-	return sb.String()
-}
-
 func (c *Client) GetConnectMessage() string {
 	clientID := strconv.FormatUint(c.ClientID, 10)
 	connectionID := strconv.FormatInt(time.Now().Unix(), 10)
@@ -128,4 +104,28 @@ func (c *Client) WriteAuthPending(resp *management.Response) error {
 	}
 
 	return nil
+}
+
+// buildMessage constructs a management-protocol message with the given header
+// and appends all non-internal environment variables as CLIENT:ENV lines.
+func (c *Client) buildMessage(header string) string {
+	sb := strings.Builder{}
+	sb.Grow(len(header) + c.estimatedSize)
+
+	sb.WriteString(header)
+
+	for key, value := range c.env {
+		if key == AuthControlFileEnvKey || key == AuthPendingFileEnvKey || key == AuthFailedReasonFileEnvKey {
+			continue
+		}
+
+		sb.WriteString("\r\n>CLIENT:ENV,")
+		sb.WriteString(key)
+		sb.WriteString("=")
+		sb.WriteString(value)
+	}
+
+	sb.WriteString("\r\n>CLIENT:ENV,END")
+
+	return sb.String()
 }
