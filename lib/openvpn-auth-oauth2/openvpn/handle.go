@@ -104,7 +104,7 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 		return c.OpenVPNPluginFuncError
 	}
 
-	resp, err := p.managementClient.ClientAuth(currentClientID, openVPNClient.GetConnectMessage())
+	resp, err := p.managementClient.ClientAuth(p.ctx, currentClientID, openVPNClient.GetConnectMessage())
 	if err != nil {
 		logger.ErrorContext(p.ctx, "send client to management interface",
 			slog.Any("err", err),
@@ -177,8 +177,11 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 
 		logger.InfoContext(p.ctx, "authentication pending")
 
+		// The goroutine waits for the final auth decision from openvpn-auth-oauth2
+		// and writes the result to the auth control file. It observes p.ctx so that
+		// it terminates promptly on plugin shutdown instead of lingering until timeout.
 		go func(respCh <-chan *management.Response) {
-			resp, err := p.managementClient.WaitPendingPoller(currentClientID, 5*time.Minute, respCh)
+			resp, err := p.managementClient.WaitPendingPoller(p.ctx, currentClientID, 5*time.Minute, respCh)
 			if err != nil {
 				logger.ErrorContext(p.ctx, "poll deferred auth state",
 					slog.Any("err", err),

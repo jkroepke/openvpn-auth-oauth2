@@ -111,7 +111,7 @@ Called for each plugin event. We handle:
 - `OPENVPN_PLUGIN_UP` - Server is ready
 - **`OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY`** - Main authentication event
 - `OPENVPN_PLUGIN_CLIENT_CONNECT_V2` - Client connecting (post-auth config)
-- `OPENVPN_PLUGIN_CLIENT_CONNECT_DEFER_V2` - Polling for deferred auth completion
+- `OPENVPN_PLUGIN_CLIENT_DISCONNECT` - Client disconnecting
 
 #### 5. `openvpn_plugin_close_v1()`
 Called when plugin is unloaded (server shutdown).
@@ -127,7 +127,7 @@ Events are set via `type_mask` bitmask in `openvpn_plugin_open_v3()`:
 ret.type_mask = 1<<C.OPENVPN_PLUGIN_UP |
     1<<C.OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY |
     1<<C.OPENVPN_PLUGIN_CLIENT_CONNECT_V2 |
-    1<<C.OPENVPN_PLUGIN_CLIENT_CONNECT_DEFER_V2
+    1<<C.OPENVPN_PLUGIN_CLIENT_DISCONNECT
 ```
 
 ### Return Values
@@ -283,19 +283,14 @@ int openvpn_plugin_client_connect_defer_v2(
 
 Our current implementation:
 - ✅ Properly handles file-based deferred auth
-- ✅ Stores deferred client state in `deferredClients` sync.Map
-- ⚠️ `CLIENT_CONNECT_DEFER_V2` returns SUCCESS immediately
-- ⚠️ Doesn't use OpenVPN's per_client_context pointer
+- ✅ Uses OpenVPN's `per_client_context` via `cgo.Handle` for per-client state
+- ✅ Cancellable context propagated to pending-auth goroutines for clean shutdown
+- ✅ `CLIENT_CONNECT_V2` returns client config via `openvpn_plugin_string_list`
 
 **This works because:**
 - openvpn-auth-oauth2 updates auth_control_file directly
 - OpenVPN detects file changes via monitoring
-- Plugin polling may not be needed in this flow
-
-**But should be improved to:**
-- Properly utilize per_client_context if OpenVPN provides it
-- Check auth completion status when polled
-- Return DEFERRED/SUCCESS/ERROR appropriately
+- Per-client context tracks `clientConfig` and `clientID` across callbacks
 
 ---
 
@@ -388,31 +383,22 @@ Plugin context structures and state management.
 
 **Structures:**
 ```go
-type pluginHandle struct {
+type PluginHandle struct {
     ctx              context.Context
     cancel           context.CancelFunc
     logger           *slog.Logger
     managementClient *management.Server
-    cache            *cache.Cache
-    deferredClients  sync.Map  // Deferred auth state
+    listenSocketAddr string
 }
 
-type deferredClientState struct {
+type ClientContext struct {
+    clientConfig string
     clientID     uint64
-    client       *client.Client
-    authResponse *management.Response
-    completedAt  time.Time
+    mu           sync.Mutex
 }
 ```
 
-#### `callbacks.go`
-Auth file writing logic.
-
-**Functions:**
-- `writeToAuthFile()` - Writes final auth result
-- `writeAuthPending()` - Writes deferred auth info
-
-#### `logger.go`
+#### `log/logger.go`
 OpenVPN logging integration via callbacks.
 
 #### `management/management.go`
@@ -432,8 +418,6 @@ OpenVPN client environment parsing.
 C array of strings → Go Client struct
 ```
 
-#### `cache/cache.go`
-Client state cache with automatic cleanup.
 
 ---
 
@@ -545,65 +529,16 @@ addr: "unix:///var/run/openvpn-oauth2.sock"
 4. **Return values** - Some structs must be allocated and freed properly
 
 **Current approach:**
-- Plugin handle is a Go struct, passed as opaque pointer to C
-- We don't currently use OpenVPN's per_client_context
+- Plugin handle is a Go struct, passed as opaque `cgo.Handle` pointer to C
+- Per-client context uses `cgo.Handle` so `ClientContext` is fully GC-managed
 - All C strings are immediately converted to Go strings
-- No manual memory allocation for return values (yet)
+- `CLIENT_CONNECT_V2` return list allocated via `C.calloc` (freed by OpenVPN)
 
 ---
 
 ## Known Limitations
 
-### 1. Incomplete CLIENT_CONNECT_DEFER_V2 Implementation
-
-**Issue:** Current implementation doesn't properly handle repeated polling.
-
-**Impact:**
-- May not work correctly if OpenVPN uses plugin polling instead of file monitoring
-- Different OpenVPN versions may behave differently
-
-**Workaround:**
-- File-based deferred auth works correctly
-- openvpn-auth-oauth2 updates auth files directly
-
-**Fix needed:**
-- Implement proper per-client context tracking
-- Check auth completion status when polled
-- Return appropriate status codes
-
-### 2. No Per-Client Context Usage
-
-**Issue:** OpenVPN provides `per_client_context` pointer, we don't use it.
-
-**Impact:**
-- Can't track client state across plugin calls using OpenVPN's mechanism
-- Must rely on our own `deferredClients` map
-
-**Workaround:**
-- Our sync.Map works fine for now
-- Matches clients by ID
-
-**Fix needed:**
-- Utilize OpenVPN's per_client_context for proper integration
-- Store deferredClientState pointer in per_client_context
-
-### 3. No CLIENT_CONNECT_V2 Config Return
-
-**Issue:** We don't populate `openvpn_plugin_string_list` return value.
-
-**Impact:**
-- Can't return client configuration from CLIENT_CONNECT_V2 event
-- All config must come through openvpn-auth-oauth2
-
-**Workaround:**
-- openvpn-auth-oauth2 sends config via management protocol
-- Plugin writes to auth files
-
-**Fix needed:**
-- Implement return list population if needed
-- May not be necessary for our use case
-
-### 4. Limited Management Protocol
+### 1. Limited Management Protocol
 
 **Issue:** Only implements auth-related commands.
 
@@ -615,7 +550,7 @@ addr: "unix:///var/run/openvpn-oauth2.sock"
 - Use OpenVPN's real management interface for non-auth operations
 - That's the whole point of this plugin!
 
-### 5. Experimental Status
+### 2. Experimental Status
 
 **Issue:** Plugin is marked as experimental/WIP.
 
@@ -788,48 +723,36 @@ watch -n 1 'ps aux | grep openvpn'
 
 ### High Priority
 
-1. **Complete CLIENT_CONNECT_DEFER_V2 Implementation**
-   - Use OpenVPN's per_client_context
-   - Properly handle polling
-   - Check auth completion status
-   - Return correct status codes
-
-2. **Better Error Handling**
+1. **Better Error Handling**
    - More detailed error messages
    - Error codes for debugging
    - Retry logic for transient failures
 
-3. **Testing**
-   - Unit tests for all components
-   - Integration tests with real OpenVPN
+2. **Testing**
    - Load testing
-   - Edge case testing
+   - Additional edge case testing (e.g., concurrent auth storms)
 
 ### Medium Priority
 
-4. **Configuration Validation**
+3. **Configuration Validation**
    - Validate socket addresses at startup
    - Check file permissions early
    - Warn about misconfigurations
 
-5. **Metrics and Monitoring**
+4. **Metrics and Monitoring**
    - Prometheus metrics
    - Auth success/failure rates
    - Connection counts
    - Latency tracking
 
-6. **Documentation**
+5. **Documentation**
    - More examples
    - Video tutorials
    - Common deployment scenarios
 
 ### Low Priority
 
-7. **CLIENT_CONNECT_V2 Return List**
-   - Implement config return if needed
-   - May not be necessary
-
-8. **Additional Management Commands**
+6. **Additional Management Commands**
    - More compatibility commands
    - Status queries
    - Statistics
@@ -846,7 +769,7 @@ watch -n 1 'ps aux | grep openvpn'
 ### Building
 
 ```bash
-cd lib/openvpn-plugin
+cd lib/openvpn-auth-oauth2
 make build
 ```
 
@@ -898,7 +821,7 @@ dlv exec /usr/sbin/openvpn -- --config server.conf
 
 - `sample-client-connect.c` - Official OpenVPN plugin example
 - OpenVPN source: `sample/sample-plugins/` directory
-- This implementation: All files in `lib/openvpn-plugin/`
+- This implementation: All files in `lib/openvpn-auth-oauth2/`
 
 ### Related Projects
 

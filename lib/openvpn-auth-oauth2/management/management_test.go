@@ -4,6 +4,7 @@ package management_test
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"log/slog"
 	"net"
@@ -305,8 +306,10 @@ func TestServer_AuthPendingPoller(t *testing.T) {
 				clientID, err = strconv.ParseUint(strings.Split(tc.command, " ")[1], 10, 64)
 				require.NoError(t, err)
 
+				ctx := t.Context()
+
 				go func() {
-					response, err := managementServer.AuthPendingPoller(clientID, time.Second*5)
+					response, err := managementServer.AuthPendingPoller(ctx, clientID, time.Second*5)
 
 					errCh <- err
 
@@ -365,13 +368,15 @@ func TestServer_AuthPendingPoller_Twice(t *testing.T) {
 
 	errCh := make(chan error, 1)
 
+	ctx := t.Context()
+
 	go func() {
-		_, err := managementServer.AuthPendingPoller(0, time.Millisecond*10)
+		_, err := managementServer.AuthPendingPoller(ctx, 0, time.Millisecond*10)
 		errCh <- err
 	}()
 
 	go func() {
-		_, err := managementServer.AuthPendingPoller(0, time.Millisecond*10)
+		_, err := managementServer.AuthPendingPoller(ctx, 0, time.Millisecond*10)
 		errCh <- err
 	}()
 
@@ -386,4 +391,136 @@ func TestClientAuth_String(t *testing.T) {
 	require.Equal(t, "DENY", management.ClientAuthDeny.String())
 	require.Equal(t, "PENDING", management.ClientAuthPending.String())
 	require.Equal(t, "UNKNOWN", management.ClientAuth(4).String())
+}
+
+func TestServer_ReconnectDuringPendingAuth(t *testing.T) {
+	t.Parallel()
+
+	managementInterface, err := nettest.NewLocalListener("tcp")
+	require.NoError(t, err)
+
+	err = managementInterface.Close()
+	require.NoError(t, err)
+
+	managementServer := management.NewServer(slog.New(slog.DiscardHandler), "")
+	err = managementServer.Listen(t.Context(), fmt.Sprintf("%s://%s", managementInterface.Addr().Network(), managementInterface.Addr().String()))
+	require.NoError(t, err)
+
+	t.Cleanup(managementServer.Close)
+
+	ctx := t.Context()
+	errCh := make(chan error, 1)
+
+	// Register a pending poller that will wait for a response
+	go func() {
+		_, err := managementServer.AuthPendingPoller(ctx, 99, time.Second*3)
+		errCh <- err
+	}()
+
+	// Connect first client, then disconnect without sending a response
+	var dialer net.Dialer
+
+	client1, err := dialer.DialContext(t.Context(), "tcp", managementInterface.Addr().String())
+	require.NoError(t, err)
+
+	clientReader := bufio.NewReader(client1)
+	testutils.ExpectMessage(t, client1, clientReader, openvpn.WelcomeBanner)
+
+	// Close the first client without responding
+	require.NoError(t, client1.Close())
+
+	// Give the server time to notice the disconnect
+	time.Sleep(100 * time.Millisecond)
+
+	// Connect a second client and send the response
+	client2, err := dialer.DialContext(t.Context(), "tcp", managementInterface.Addr().String())
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		_ = client2.Close()
+	})
+
+	clientReader = bufio.NewReader(client2)
+	testutils.ExpectMessage(t, client2, clientReader, openvpn.WelcomeBanner)
+	testutils.SendMessagef(t, client2, "client-auth-nt 99 0")
+	testutils.ExpectMessage(t, client2, clientReader, "SUCCESS: client-auth command succeeded")
+
+	require.NoError(t, <-errCh)
+}
+
+func TestServer_PartialMultilineClientAuth(t *testing.T) {
+	t.Parallel()
+
+	managementInterface, err := nettest.NewLocalListener("tcp")
+	require.NoError(t, err)
+
+	err = managementInterface.Close()
+	require.NoError(t, err)
+
+	managementServer := management.NewServer(slog.New(slog.DiscardHandler), "")
+	err = managementServer.Listen(t.Context(), fmt.Sprintf("%s://%s", managementInterface.Addr().Network(), managementInterface.Addr().String()))
+	require.NoError(t, err)
+
+	t.Cleanup(managementServer.Close)
+
+	var dialer net.Dialer
+
+	// Connect and send a partial multiline client-auth, then disconnect
+	client, err := dialer.DialContext(t.Context(), "tcp", managementInterface.Addr().String())
+	require.NoError(t, err)
+
+	clientReader := bufio.NewReader(client)
+	testutils.ExpectMessage(t, client, clientReader, openvpn.WelcomeBanner)
+
+	// Send client-auth without the END terminator, then close
+	testutils.SendMessagef(t, client, "client-auth 1 0")
+	testutils.SendMessagef(t, client, "push \"route 10.0.0.0 255.255.255.0\"")
+
+	// Close without sending END — the server should handle this gracefully
+	require.NoError(t, client.Close())
+
+	// Give the server time to process
+	time.Sleep(100 * time.Millisecond)
+
+	// The server should still be able to accept new connections
+	client2, err := dialer.DialContext(t.Context(), "tcp", managementInterface.Addr().String())
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		_ = client2.Close()
+	})
+
+	clientReader = bufio.NewReader(client2)
+	testutils.ExpectMessage(t, client2, clientReader, openvpn.WelcomeBanner)
+	testutils.SendAndExpectMessage(t, client2, clientReader, "help", "SUCCESS: help")
+}
+
+func TestServer_ContextCancellation(t *testing.T) {
+	t.Parallel()
+
+	managementInterface, err := nettest.NewLocalListener("tcp")
+	require.NoError(t, err)
+
+	err = managementInterface.Close()
+	require.NoError(t, err)
+
+	managementServer := management.NewServer(slog.New(slog.DiscardHandler), "")
+	err = managementServer.Listen(t.Context(), fmt.Sprintf("%s://%s", managementInterface.Addr().Network(), managementInterface.Addr().String()))
+	require.NoError(t, err)
+
+	t.Cleanup(managementServer.Close)
+
+	ctx, cancel := context.WithCancel(t.Context())
+	errCh := make(chan error, 1)
+
+	go func() {
+		_, err := managementServer.AuthPendingPoller(ctx, 42, time.Minute)
+		errCh <- err
+	}()
+
+	// Cancel the context — the poller should return immediately
+	cancel()
+
+	err = <-errCh
+	require.ErrorIs(t, err, context.Canceled)
 }

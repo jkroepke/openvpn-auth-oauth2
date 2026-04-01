@@ -18,6 +18,17 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/c"
 )
 
+// bufPool reuses byte slices for log formatting to reduce allocations.
+//
+//nolint:gochecknoglobals
+var bufPool = sync.Pool{
+	New: func() any {
+		buf := make([]byte, 0, 1024)
+
+		return &buf
+	},
+}
+
 // PluginHandler implements slog.Handler to integrate Go's structured logging with
 // OpenVPN's plugin logging system. It forwards log messages to OpenVPN using the
 // plugin_log callback function.
@@ -76,7 +87,9 @@ func (h *PluginHandler) Enabled(_ context.Context, level slog.Level) bool {
 }
 
 func (h *PluginHandler) Handle(_ context.Context, record slog.Record) error {
-	buf := make([]byte, 0, 1024)
+	bufPtr := bufPool.Get().(*[]byte)
+	buf := (*bufPtr)[:0]
+
 	buf = fmt.Appendf(buf, "%s: %s", record.Level, record.Message)
 
 	// Insert preformatted attributes just after built-in ones.
@@ -97,6 +110,9 @@ func (h *PluginHandler) Handle(_ context.Context, record slog.Record) error {
 	C.free(unsafe.Pointer(msg))
 
 	h.mu.Unlock()
+
+	*bufPtr = buf
+	bufPool.Put(bufPtr)
 
 	return nil
 }

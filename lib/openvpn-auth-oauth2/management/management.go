@@ -33,7 +33,6 @@ type Server struct {
 	password     string
 	connected    atomic.Int64
 	respChMu     sync.Mutex
-	listenMu     sync.Mutex
 	connectionMu sync.Mutex
 }
 
@@ -74,28 +73,28 @@ func NewServer(logger *slog.Logger, password string) *Server {
 	}
 }
 
-func (s *Server) AuthPendingPoller(clientID uint64, timeout time.Duration) (*Response, error) {
+func (s *Server) AuthPendingPoller(ctx context.Context, clientID uint64, timeout time.Duration) (*Response, error) {
 	respCh, err := s.registerResponseChannel(clientID)
 	if err != nil {
 		return nil, err
 	}
 
-	return s.waitForResponse(clientID, timeout, respCh)
+	return s.waitForResponse(ctx, clientID, timeout, respCh)
 }
 
 func (s *Server) RegisterPendingPoller(clientID uint64) (chan *Response, error) {
 	return s.registerResponseChannel(clientID)
 }
 
-func (s *Server) WaitPendingPoller(clientID uint64, timeout time.Duration, respCh <-chan *Response) (*Response, error) {
-	return s.waitForResponse(clientID, timeout, respCh)
+func (s *Server) WaitPendingPoller(ctx context.Context, clientID uint64, timeout time.Duration, respCh <-chan *Response) (*Response, error) {
+	return s.waitForResponse(ctx, clientID, timeout, respCh)
 }
 
 func (s *Server) CancelPendingPoller(clientID uint64) {
 	s.unregisterResponseChannel(clientID)
 }
 
-func (s *Server) ClientAuth(clientID uint64, message string) (*Response, error) {
+func (s *Server) ClientAuth(ctx context.Context, clientID uint64, message string) (*Response, error) {
 	respCh, err := s.registerResponseChannel(clientID)
 	if err != nil {
 		return nil, err
@@ -118,7 +117,7 @@ func (s *Server) ClientAuth(clientID uint64, message string) (*Response, error) 
 		return nil, err
 	}
 
-	return s.waitForResponse(clientID, 5*time.Second, respCh)
+	return s.waitForResponse(ctx, clientID, 5*time.Second, respCh)
 }
 
 func (s *Server) ClientDisconnect(message string) error {
@@ -212,9 +211,6 @@ func (s *Server) Close() {
 		s.connection = nil
 	}
 
-	s.listenMu.Lock()
-	defer s.listenMu.Unlock()
-
 	if s.listenSocket != nil {
 		if err := s.listenSocket.Close(); err != nil {
 			s.logger.Error(fmt.Errorf("unable to close listen socket: %w", err).Error())
@@ -244,9 +240,16 @@ func (s *Server) unregisterResponseChannel(clientID uint64) {
 	s.respChMu.Unlock()
 }
 
-func (s *Server) waitForResponse(clientID uint64, timeout time.Duration, respCh <-chan *Response) (*Response, error) {
+func (s *Server) waitForResponse(ctx context.Context, clientID uint64, timeout time.Duration, respCh <-chan *Response) (*Response, error) {
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+
 	select {
-	case <-time.After(timeout):
+	case <-ctx.Done():
+		s.unregisterResponseChannel(clientID)
+
+		return nil, ctx.Err() //nolint:wrapcheck
+	case <-timer.C:
 		s.unregisterResponseChannel(clientID)
 
 		return nil, errors.New("timeout waiting for client response")
@@ -265,6 +268,8 @@ func (s *Server) handleManagementClient(ctx context.Context, conn net.Conn) erro
 	s.connected.Store(1)
 
 	defer func() {
+		_ = conn.Close()
+
 		s.connectionMu.Lock()
 		s.connection = nil
 		s.connectionMu.Unlock()
@@ -317,12 +322,20 @@ scan:
 		case strings.HasPrefix(line, "client-deny"):
 			cmd = "client-deny"
 		case strings.HasPrefix(line, "client-auth"):
+			complete := false
+
 			for scanner.Scan() {
 				line += newline + strings.TrimSpace(scanner.Text())
 
 				if strings.HasSuffix(line, "END") {
+					complete = true
+
 					break
 				}
+			}
+
+			if !complete {
+				break scan // client disconnected mid-multiline command
 			}
 
 			cmd = "client-auth"
@@ -366,8 +379,6 @@ scan:
 
 		return err //nolint:wrapcheck
 	}
-
-	_ = conn.Close()
 
 	return nil
 }

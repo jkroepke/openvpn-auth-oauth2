@@ -14,7 +14,6 @@ import (
 	"sync"
 	"testing"
 	"time"
-	"unsafe"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
@@ -160,8 +159,8 @@ func TestPlugin(t *testing.T) {
 
 			time.Sleep(50 * time.Millisecond)
 
-			clientContext := PluginClientConstructorV1(openRet.Handle)
-			require.NotNil(t, clientContext)
+			clientContextPtr := PluginClientConstructorV1(openRet.Handle)
+			require.NotNil(t, clientContextPtr)
 
 			authControlFile, err := os.CreateTemp(t.TempDir(), "auth_control_file")
 			require.NoError(t, err)
@@ -199,7 +198,7 @@ func TestPlugin(t *testing.T) {
 				Argv:             argv,
 				Envp:             envp,
 				Type:             c.OpenVPNPluginAuthUserPassVerify,
-				PerClientContext: unsafe.Pointer(clientContext),
+				PerClientContext: clientContextPtr,
 			}
 			ret = &c.OpenVPNPluginArgsFuncReturn{}
 
@@ -267,7 +266,7 @@ func TestPlugin(t *testing.T) {
 			require.Equal(t, c.OpenVPNPluginFuncSuccess, status)
 
 			// PluginClientDestructorV1
-			PluginClientDestructorV1(args.Handle, clientContext)
+			PluginClientDestructorV1(args.Handle, clientContextPtr)
 		})
 	}
 }
