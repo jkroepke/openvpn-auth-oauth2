@@ -1,0 +1,9 @@
+{
+  "release-type": "go",
+  "force-tag-creation": true,
+  "skip-github-release": true,
+  "skip-changelog": true,
+  "packages": {
+    ".": {}
+  }
+}
