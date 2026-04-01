@@ -3,8 +3,8 @@
 package openvpn
 
 /*
-#include <stdint.h>
 #include <stdlib.h>
+#include <stdint.h>
 */
 import "C"
 
@@ -13,6 +13,7 @@ import (
 	"errors"
 	"log/slog"
 	"os"
+	"runtime/cgo"
 	"strings"
 	"sync/atomic"
 	"unsafe"
@@ -78,12 +79,13 @@ func PluginOpenV3(v3structver c.Int, args *c.OpenVPNPluginArgsOpenIn, ret *c.Ope
 		listenSocketPassword = strings.TrimSpace(string(password))
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
 
 	handle := c.NewOpenVPNPluginHandle(&PluginHandle{
 		logger:           logger,
 		managementClient: management.NewServer(logger, listenSocketPassword),
 		ctx:              ctx,
+		cancel:           cancel,
 		listenSocketAddr: listenSocketAddr,
 	})
 
@@ -117,7 +119,7 @@ func PluginFuncV3(v3structver c.Int, args *c.OpenVPNPluginArgsFuncIn, ret *c.Ope
 	//
 	// type: one of the PLUGIN_x types.
 	//
-	// argv: a NULL-terminated array of “command line” options which
+	// argv: a NULL-terminated array of "command line" options which
 	//        would normally be passed to the script.  argv[0] is the dynamic
 	//        library pathname.
 	//
@@ -135,11 +137,11 @@ func PluginFuncV3(v3structver c.Int, args *c.OpenVPNPluginArgsFuncIn, ret *c.Ope
 	case c.OpenVPNPluginUp:
 		return handle.handlePluginUp()
 	case c.OpenVPNPluginAuthUserPassVerify:
-		return handle.handleAuthUserPassVerify(args.Envp, (*ClientContext)(args.PerClientContext))
+		return handle.handleAuthUserPassVerify(args.Envp, clientContextFromPointer(args.PerClientContext))
 	case c.OpenVPNPluginClientConnectV2:
-		return handle.handleClientConnect((*ClientContext)(args.PerClientContext), ret)
+		return handle.handleClientConnect(clientContextFromPointer(args.PerClientContext), ret)
 	case c.OpenVPNPluginClientDisconnect:
-		return handle.handleClientDisconnect(args.Envp, (*ClientContext)(args.PerClientContext))
+		return handle.handleClientDisconnect(args.Envp, clientContextFromPointer(args.PerClientContext))
 	default:
 		handle.logger.ErrorContext(handle.ctx, "unhandled OPENVPN_PLUGIN event",
 			slog.Int("event_type", int(args.Type)),
@@ -155,6 +157,7 @@ func PluginCloseV1(handlePtr c.OpenVPNPluginHandle) {
 		return
 	}
 
+	handle.cancel()
 	handle.managementClient.Close()
 
 	handle.logger.InfoContext(handle.ctx, "plugin closed")
@@ -162,52 +165,93 @@ func PluginCloseV1(handlePtr c.OpenVPNPluginHandle) {
 	handlePtr.Delete() // frees handle, allows GC to collect Go object
 }
 
-func PluginClientConstructorV1(handlePtr c.OpenVPNPluginHandle) *ClientContext {
-	handle, err := pluginHandleFromPtr(handlePtr)
+// PluginClientConstructorV1 allocates a new per-client context using cgo.Handle
+// so the ClientContext remains fully GC-managed. A small C-heap slot holds the
+// handle value, giving OpenVPN a real pointer that satisfies Go's checkptr.
+func PluginClientConstructorV1(pluginHandlePtr c.OpenVPNPluginHandle) unsafe.Pointer {
+	pluginHandle, err := pluginHandleFromPtr(pluginHandlePtr)
 	if err != nil {
 		return nil
 	}
 
-	handle.logger.DebugContext(handle.ctx, "openvpn_plugin_client_constructor_v1: called")
+	pluginHandle.logger.DebugContext(pluginHandle.ctx, "openvpn_plugin_client_constructor_v1: called")
 
-	perClientContext := (*ClientContext)(
-		C.calloc(1, C.size_t(unsafe.Sizeof(ClientContext{}))),
-	)
+	ctx := &ClientContext{}
+	clientContextHandle := cgo.NewHandle(ctx)
 
-	return perClientContext
+	// Allocate a C-heap slot to hold the cgo.Handle integer value.
+	// This produces a real C pointer that satisfies Go's checkptr,
+	// while the ClientContext itself stays on the Go heap (GC-managed).
+	slot := (*cgo.Handle)(C.malloc(C.size_t(unsafe.Sizeof(clientContextHandle))))
+	if slot == nil {
+		clientContextHandle.Delete()
+
+		return nil
+	}
+
+	*slot = clientContextHandle
+
+	return unsafe.Pointer(slot)
 }
 
-func PluginClientDestructorV1(handlePtr c.OpenVPNPluginHandle, perClientContext *ClientContext) {
-	handle, err := pluginHandleFromPtr(handlePtr)
+// PluginClientDestructorV1 frees the per-client cgo.Handle previously returned
+// by PluginClientConstructorV1.
+func PluginClientDestructorV1(pluginHandlePtr c.OpenVPNPluginHandle, perClientContext unsafe.Pointer) {
+	pluginHandle, err := pluginHandleFromPtr(pluginHandlePtr)
 	if err != nil {
 		return
 	}
 
-	handle.logger.DebugContext(handle.ctx, "openvpn_plugin_client_destructor_v1: called")
+	pluginHandle.logger.DebugContext(pluginHandle.ctx, "openvpn_plugin_client_destructor_v1: called")
 
-	C.free(unsafe.Pointer(perClientContext)) // frees handle, allows GC to collect Go object
-}
-
-func PluginAbortV1(handlePtr c.OpenVPNPluginHandle) {
-	if handlePtr.IsNil() {
+	if perClientContext == nil {
 		return
 	}
 
-	handle, err := pluginHandleFromPtr(handlePtr)
+	h := *(*cgo.Handle)(perClientContext)
+	h.Delete()
+	C.free(perClientContext)
+}
+
+func PluginAbortV1(pluginHandlePtr c.OpenVPNPluginHandle) {
+	if pluginHandlePtr.IsNil() {
+		return
+	}
+
+	pluginHandle, err := pluginHandleFromPtr(pluginHandlePtr)
 	if err != nil {
 		return
 	}
 
-	handle.managementClient.Close()
+	pluginHandle.cancel()
+	pluginHandle.managementClient.Close()
 
-	handle.logger.WarnContext(handle.ctx, "plugin abort")
+	pluginHandle.logger.WarnContext(pluginHandle.ctx, "plugin abort")
 
 	// frees the handle, allows GC to collect Go object
-	handlePtr.Delete()
+	pluginHandlePtr.Delete()
 }
 
-func pluginHandleFromPtr(handlePtr c.OpenVPNPluginHandle) (*PluginHandle, error) {
-	if handlePtr.IsNil() {
+// clientContextFromPointer recovers a *ClientContext from an opaque unsafe.Pointer
+// that points to a C-heap slot holding a cgo.Handle value
+// (as returned by PluginClientConstructorV1).
+func clientContextFromPointer(ptr unsafe.Pointer) *ClientContext {
+	if ptr == nil {
+		return nil
+	}
+
+	h := *(*cgo.Handle)(ptr)
+
+	ctx, ok := h.Value().(*ClientContext)
+	if !ok {
+		return nil
+	}
+
+	return ctx
+}
+
+func pluginHandleFromPtr(pluginHandlePtr c.OpenVPNPluginHandle) (*PluginHandle, error) {
+	if pluginHandlePtr.IsNil() {
 		return nil, errMissingPluginHandle
 	}
 
@@ -223,17 +267,17 @@ func pluginHandleFromPtr(handlePtr c.OpenVPNPluginHandle) (*PluginHandle, error)
 			}
 		}()
 
-		handleValue = handlePtr.Value()
+		handleValue = pluginHandlePtr.Value()
 	}()
 
 	if recovered {
 		return nil, errInvalidPluginHandle
 	}
 
-	h, ok := handleValue.(*PluginHandle)
+	pluginHandle, ok := handleValue.(*PluginHandle)
 	if !ok {
 		return nil, errInvalidPluginHandleType
 	}
 
-	return h, nil
+	return pluginHandle, nil
 }

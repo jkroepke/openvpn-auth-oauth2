@@ -12,6 +12,7 @@ import (
 
 type PluginHandle struct {
 	ctx              context.Context //nolint:containedctx
+	cancel           context.CancelFunc
 	logger           *slog.Logger
 	managementClient *management.Server
 	listenSocketAddr string

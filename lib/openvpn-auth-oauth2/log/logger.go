@@ -26,6 +26,7 @@ type PluginHandler struct {
 	cb           *c.OpenVPNPluginCallbacks
 	opts         Options
 	preformatted []byte
+	bufPool      *sync.Pool
 }
 
 // Options configures the behavior of the PluginHandler.
@@ -48,6 +49,13 @@ type Options struct {
 func NewOpenVPNPluginLogger(cb *c.OpenVPNPluginCallbacks) *PluginHandler {
 	handler := &PluginHandler{cb: cb, mu: &sync.Mutex{}}
 	handler.opts.Level = slog.LevelDebug
+
+	// bufPool reuses byte slices for log formatting to reduce allocations.
+	handler.bufPool = &sync.Pool{
+		New: func() any {
+			return new(make([]byte, 0, 1024))
+		},
+	}
 
 	return handler
 }
@@ -76,7 +84,13 @@ func (h *PluginHandler) Enabled(_ context.Context, level slog.Level) bool {
 }
 
 func (h *PluginHandler) Handle(_ context.Context, record slog.Record) error {
-	buf := make([]byte, 0, 1024)
+	bufPtr, ok := h.bufPool.Get().(*[]byte)
+	if !ok {
+		bufPtr = new(make([]byte, 0, 1024))
+	}
+
+	buf := (*bufPtr)[:0]
+
 	buf = fmt.Appendf(buf, "%s: %s", record.Level, record.Message)
 
 	// Insert preformatted attributes just after built-in ones.
@@ -97,6 +111,9 @@ func (h *PluginHandler) Handle(_ context.Context, record slog.Record) error {
 	C.free(unsafe.Pointer(msg))
 
 	h.mu.Unlock()
+
+	*bufPtr = buf
+	h.bufPool.Put(bufPtr)
 
 	return nil
 }

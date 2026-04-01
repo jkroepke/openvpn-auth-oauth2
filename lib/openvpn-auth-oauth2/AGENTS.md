@@ -2,6 +2,8 @@
 
 This document contains comprehensive technical knowledge about the OpenVPN plugin shim implementation for openvpn-auth-oauth2.
 
+> **Note:** The findings and implementation details in this document have been reviewed and are **acknowledged across prompts**. AI agents should treat the architectural decisions, known limitations, and implementation patterns described here as authoritative context that does not need to be re-derived in each session.
+
 ## Table of Contents
 
 1. [Architecture Overview](#architecture-overview)
@@ -111,7 +113,7 @@ Called for each plugin event. We handle:
 - `OPENVPN_PLUGIN_UP` - Server is ready
 - **`OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY`** - Main authentication event
 - `OPENVPN_PLUGIN_CLIENT_CONNECT_V2` - Client connecting (post-auth config)
-- `OPENVPN_PLUGIN_CLIENT_CONNECT_DEFER_V2` - Polling for deferred auth completion
+- `OPENVPN_PLUGIN_CLIENT_DISCONNECT` - Client disconnecting
 
 #### 5. `openvpn_plugin_close_v1()`
 Called when plugin is unloaded (server shutdown).
@@ -127,7 +129,7 @@ Events are set via `type_mask` bitmask in `openvpn_plugin_open_v3()`:
 ret.type_mask = 1<<C.OPENVPN_PLUGIN_UP |
     1<<C.OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY |
     1<<C.OPENVPN_PLUGIN_CLIENT_CONNECT_V2 |
-    1<<C.OPENVPN_PLUGIN_CLIENT_CONNECT_DEFER_V2
+    1<<C.OPENVPN_PLUGIN_CLIENT_DISCONNECT
 ```
 
 ### Return Values
@@ -225,16 +227,20 @@ The plugin writes to files that OpenVPN monitors:
 4. OpenVPN **monitors file changes** and completes auth when file is updated
 
 #### Method 2: Plugin Polling (CLIENT_CONNECT_DEFER_V2)
-OpenVPN repeatedly calls the plugin to check status:
+OpenVPN repeatedly calls the plugin to check if **client-connect config** is ready:
 
 **Flow:**
-1. Plugin returns DEFERRED from AUTH_USER_PASS_VERIFY
+1. Plugin returns DEFERRED from CLIENT_CONNECT_V2
 2. OpenVPN calls `CLIENT_CONNECT_DEFER_V2` **repeatedly** (polling)
-3. Plugin checks if auth is complete:
+3. Plugin checks if config is ready:
    - Return DEFERRED if still pending
-   - Return SUCCESS if completed successfully
+   - Return SUCCESS + config if completed
    - Return ERROR if failed
 4. Process repeats until non-DEFERRED status returned
+
+**Note:** This mechanism is for deferred **client-connect configuration**, not
+for deferred authentication. Authentication deferral uses `auth_control_file`
+(Method 1).
 
 ### Our Implementation Choice
 
@@ -244,58 +250,38 @@ We primarily use **Method 1 (File-based)** because:
 - Simpler state management
 - Better integration with existing code
 
-However, we **must still handle** `CLIENT_CONNECT_DEFER_V2` because:
-- OpenVPN may call it even with file-based deferred auth
-- Different OpenVPN versions behave differently
-- The callback is mandatory once registered in type_mask
+### Why We Do NOT Implement `CLIENT_CONNECT_DEFER_V2`
 
-### Critical Issue Found
+`OPENVPN_PLUGIN_CLIENT_CONNECT_DEFER_V2` is a **polling callback** that OpenVPN
+invokes only when a plugin returns `DEFERRED` from `CLIENT_CONNECT_V2`. It exists
+for plugins that need to **asynchronously compute client-connect configuration**
+(push routes, IP assignments, etc.).
 
-After analyzing `sample-client-connect.c`, we found that our `CLIENT_CONNECT_DEFER_V2` implementation was incomplete:
+This plugin does **not** need it because:
 
-**Problems:**
-1. ❌ No per-client context tracking
-2. ❌ Just returns SUCCESS immediately (doesn't actually poll)
-3. ❌ Doesn't check if authentication completed
+1. **The only deferred operation is authentication** (`AUTH_USER_PASS_VERIFY`),
+   not client-connect. By the time OpenVPN calls `CLIENT_CONNECT_V2`, the
+   OAuth2 flow has already completed and `clientConfig` is populated.
+2. **`CLIENT_CONNECT_V2` always returns `SUCCESS` synchronously** — it never
+   returns `DEFERRED`, so OpenVPN never calls `DEFER_V2`.
+3. **OpenVPN only calls `DEFER_V2` if** it is registered in `type_mask` **and**
+   `CLIENT_CONNECT_V2` returned `DEFERRED`. Neither condition is met.
 
-**The sample shows:**
-```c
-int openvpn_plugin_client_connect_defer_v2(
-    struct plugin_context *context,
-    struct plugin_per_client_context *pcc,  // <-- Per-client state!
-    struct openvpn_plugin_string_list **return_list)
-{
-    time_t time_left = pcc->sleep_until - time(NULL);
-
-    /* not yet due? */
-    if (time_left > 0)
-    {
-        return OPENVPN_PLUGIN_FUNC_DEFERRED;  // <-- Keep polling
-    }
-
-    // Check status and return SUCCESS or ERROR
-}
-```
-
-**Key insight**: OpenVPN provides a `per_client_context` pointer that **persists across multiple calls** for the same client. This is how you track state between polling calls.
+Adding it would introduce a new event handler, polling state management, and
+a `type_mask` entry for zero functional benefit.
 
 ### Current Implementation Status
 
 Our current implementation:
 - ✅ Properly handles file-based deferred auth
-- ✅ Stores deferred client state in `deferredClients` sync.Map
-- ⚠️ `CLIENT_CONNECT_DEFER_V2` returns SUCCESS immediately
-- ⚠️ Doesn't use OpenVPN's per_client_context pointer
+- ✅ Uses OpenVPN's `per_client_context` via `cgo.Handle` for per-client state
+- ✅ Cancellable context propagated to pending-auth goroutines for clean shutdown
+- ✅ `CLIENT_CONNECT_V2` returns client config via `openvpn_plugin_string_list`
 
 **This works because:**
 - openvpn-auth-oauth2 updates auth_control_file directly
 - OpenVPN detects file changes via monitoring
-- Plugin polling may not be needed in this flow
-
-**But should be improved to:**
-- Properly utilize per_client_context if OpenVPN provides it
-- Check auth completion status when polled
-- Return DEFERRED/SUCCESS/ERROR appropriately
+- Per-client context tracks `clientConfig` and `clientID` across callbacks
 
 ---
 
@@ -388,31 +374,22 @@ Plugin context structures and state management.
 
 **Structures:**
 ```go
-type pluginHandle struct {
+type PluginHandle struct {
     ctx              context.Context
     cancel           context.CancelFunc
     logger           *slog.Logger
     managementClient *management.Server
-    cache            *cache.Cache
-    deferredClients  sync.Map  // Deferred auth state
+    listenSocketAddr string
 }
 
-type deferredClientState struct {
+type ClientContext struct {
+    clientConfig string
     clientID     uint64
-    client       *client.Client
-    authResponse *management.Response
-    completedAt  time.Time
+    mu           sync.Mutex
 }
 ```
 
-#### `callbacks.go`
-Auth file writing logic.
-
-**Functions:**
-- `writeToAuthFile()` - Writes final auth result
-- `writeAuthPending()` - Writes deferred auth info
-
-#### `logger.go`
+#### `log/logger.go`
 OpenVPN logging integration via callbacks.
 
 #### `management/management.go`
@@ -432,8 +409,6 @@ OpenVPN client environment parsing.
 C array of strings → Go Client struct
 ```
 
-#### `cache/cache.go`
-Client state cache with automatic cleanup.
 
 ---
 
@@ -545,65 +520,96 @@ addr: "unix:///var/run/openvpn-oauth2.sock"
 4. **Return values** - Some structs must be allocated and freed properly
 
 **Current approach:**
-- Plugin handle is a Go struct, passed as opaque pointer to C
-- We don't currently use OpenVPN's per_client_context
+- Plugin handle is a Go struct, passed as opaque `cgo.Handle` (typed as `C.uintptr_t`) to C
+- Per-client context: a tiny C-heap slot holds a `cgo.Handle` value; the `ClientContext` itself lives on the Go heap (see below)
 - All C strings are immediately converted to Go strings
-- No manual memory allocation for return values (yet)
+- `CLIENT_CONNECT_V2` return list allocated via `C.calloc` (freed by OpenVPN)
+
+### Per-Client Context: Why a C-Heap Slot Holds the cgo.Handle
+
+OpenVPN's `per_client_context` is `void*` in C, which maps to `unsafe.Pointer`
+in Go. We need to store a per-client `ClientContext` so that it round-trips
+through this opaque pointer across plugin callbacks. Three approaches were
+evaluated:
+
+#### Approach 1 (rejected): Direct `unsafe.Pointer(uintptr(h))` cast
+
+```go
+h := cgo.NewHandle(ctx)
+return unsafe.Pointer(uintptr(h)) // ← checkptr violation
+```
+
+`cgo.Handle` is a `uintptr` value — an integer handle into Go's internal handle
+table, **not** a real memory address. Converting it to `unsafe.Pointer` via
+`unsafe.Pointer(uintptr(h))` triggers Go's **checkptr** instrumentation (enabled
+by `-race` or `-gcflags=all=-d=checkptr`) because the resulting pointer doesn't
+point at any Go-allocated or C-allocated object. This is a hard failure under
+the race detector.
+
+#### Approach 2 (rejected): `C.calloc` for the entire `ClientContext`
+
+```go
+ctx := (*ClientContext)(C.calloc(1, C.size_t(unsafe.Sizeof(ClientContext{}))))
+```
+
+This places the whole `ClientContext` struct in C-allocated memory. The
+`sync.Mutex` zero-value concern (raised in review) is actually a non-issue —
+the zero value has been safe and documented since Go 1.0.
+
+The **real** problem is the `string` field `clientConfig`. A Go `string` is
+internally `struct { ptr *byte; len int }`. When the struct lives on the C heap,
+the GC **cannot see** the pointer to the string's backing byte array. This
+creates a use-after-free scenario:
+
+1. `handleAuthUserPassVerify` stores `resp.ClientConfig` into
+   `perClientContext.clientConfig` (a Go string with a Go-heap-backed byte
+   array).
+2. The goroutine that computed the response finishes; the `Response` and any
+   stack references to the string become unreachable.
+3. The GC may collect the string's backing `[]byte` because no **GC-visible**
+   reference points to it — the only remaining reference is inside C memory
+   that the GC doesn't scan.
+4. Later, `handleClientConnect` reads `perClientContext.clientConfig` under the
+   mutex and passes it to `c.CString()`, reading freed memory.
+
+This is a latent use-after-free bug that is difficult to reproduce but
+theoretically sound. **This does not affect the current implementation**
+(Approach 3), which keeps `ClientContext` on the Go heap where all pointers are
+GC-visible.
+
+#### Approach 3 (chosen): C-heap slot holding only the `cgo.Handle` value
+
+```go
+h := cgo.NewHandle(ctx)                                     // integer handle
+slot := (*cgo.Handle)(C.malloc(C.size_t(unsafe.Sizeof(h)))) // real C pointer
+*slot = h
+return unsafe.Pointer(slot)
+```
+
+This is the current implementation. It works because:
+
+- **`checkptr` satisfied**: `unsafe.Pointer(slot)` points at a real `C.malloc`
+  allocation, so the pointer checker accepts it.
+- **GC safety**: The `ClientContext` (including its `string` fields) lives on
+  the Go heap. The `cgo.Handle` prevents the GC from collecting it, and the GC
+  can trace all Go pointers inside the struct normally.
+- **Minimal C allocation**: Only `sizeof(uintptr)` bytes are allocated on the C
+  heap — just enough to hold the handle integer.
+- **Clean lifecycle**: The destructor dereferences the slot to recover the
+  handle, calls `h.Delete()` (releases the handle, allows GC), then `C.free()`
+  (releases the tiny C-heap slot).
+
+**Recovery path** (used by `clientContextFromPointer`):
+```go
+h := *(*cgo.Handle)(ptr)       // read handle integer from C-heap slot
+ctx := h.Value().(*ClientContext) // recover Go object from handle table
+```
 
 ---
 
 ## Known Limitations
 
-### 1. Incomplete CLIENT_CONNECT_DEFER_V2 Implementation
-
-**Issue:** Current implementation doesn't properly handle repeated polling.
-
-**Impact:**
-- May not work correctly if OpenVPN uses plugin polling instead of file monitoring
-- Different OpenVPN versions may behave differently
-
-**Workaround:**
-- File-based deferred auth works correctly
-- openvpn-auth-oauth2 updates auth files directly
-
-**Fix needed:**
-- Implement proper per-client context tracking
-- Check auth completion status when polled
-- Return appropriate status codes
-
-### 2. No Per-Client Context Usage
-
-**Issue:** OpenVPN provides `per_client_context` pointer, we don't use it.
-
-**Impact:**
-- Can't track client state across plugin calls using OpenVPN's mechanism
-- Must rely on our own `deferredClients` map
-
-**Workaround:**
-- Our sync.Map works fine for now
-- Matches clients by ID
-
-**Fix needed:**
-- Utilize OpenVPN's per_client_context for proper integration
-- Store deferredClientState pointer in per_client_context
-
-### 3. No CLIENT_CONNECT_V2 Config Return
-
-**Issue:** We don't populate `openvpn_plugin_string_list` return value.
-
-**Impact:**
-- Can't return client configuration from CLIENT_CONNECT_V2 event
-- All config must come through openvpn-auth-oauth2
-
-**Workaround:**
-- openvpn-auth-oauth2 sends config via management protocol
-- Plugin writes to auth files
-
-**Fix needed:**
-- Implement return list population if needed
-- May not be necessary for our use case
-
-### 4. Limited Management Protocol
+### 1. Limited Management Protocol
 
 **Issue:** Only implements auth-related commands.
 
@@ -615,7 +621,7 @@ addr: "unix:///var/run/openvpn-oauth2.sock"
 - Use OpenVPN's real management interface for non-auth operations
 - That's the whole point of this plugin!
 
-### 5. Experimental Status
+### 2. Experimental Status
 
 **Issue:** Plugin is marked as experimental/WIP.
 
@@ -788,48 +794,36 @@ watch -n 1 'ps aux | grep openvpn'
 
 ### High Priority
 
-1. **Complete CLIENT_CONNECT_DEFER_V2 Implementation**
-   - Use OpenVPN's per_client_context
-   - Properly handle polling
-   - Check auth completion status
-   - Return correct status codes
-
-2. **Better Error Handling**
+1. **Better Error Handling**
    - More detailed error messages
    - Error codes for debugging
    - Retry logic for transient failures
 
-3. **Testing**
-   - Unit tests for all components
-   - Integration tests with real OpenVPN
+2. **Testing**
    - Load testing
-   - Edge case testing
+   - Additional edge case testing (e.g., concurrent auth storms)
 
 ### Medium Priority
 
-4. **Configuration Validation**
+3. **Configuration Validation**
    - Validate socket addresses at startup
    - Check file permissions early
    - Warn about misconfigurations
 
-5. **Metrics and Monitoring**
+4. **Metrics and Monitoring**
    - Prometheus metrics
    - Auth success/failure rates
    - Connection counts
    - Latency tracking
 
-6. **Documentation**
+5. **Documentation**
    - More examples
    - Video tutorials
    - Common deployment scenarios
 
 ### Low Priority
 
-7. **CLIENT_CONNECT_V2 Return List**
-   - Implement config return if needed
-   - May not be necessary
-
-8. **Additional Management Commands**
+6. **Additional Management Commands**
    - More compatibility commands
    - Status queries
    - Statistics
@@ -846,7 +840,7 @@ watch -n 1 'ps aux | grep openvpn'
 ### Building
 
 ```bash
-cd lib/openvpn-plugin
+cd lib/openvpn-auth-oauth2
 make build
 ```
 
@@ -898,7 +892,7 @@ dlv exec /usr/sbin/openvpn -- --config server.conf
 
 - `sample-client-connect.c` - Official OpenVPN plugin example
 - OpenVPN source: `sample/sample-plugins/` directory
-- This implementation: All files in `lib/openvpn-plugin/`
+- This implementation: All files in `lib/openvpn-auth-oauth2/`
 
 ### Related Projects
 
