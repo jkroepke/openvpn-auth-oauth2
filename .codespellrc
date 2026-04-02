@@ -1,2 +1,2 @@
 [codespell]
-skip = .gitignore,internal/ui/assets/i18n/*.json
+skip = .gitignore,*.json
