@@ -1,4 +1,4 @@
-//go:build (linux || openbsd || freebsd) && cgo
+//go:build (darwin || linux || openbsd || freebsd) && cgo
 
 package management_test
 
