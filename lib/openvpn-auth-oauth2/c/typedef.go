@@ -1,4 +1,4 @@
-//go:build (linux || openbsd || freebsd) && cgo
+//go:build (darwin || linux || openbsd || freebsd) && cgo
 
 package c
 
@@ -6,10 +6,12 @@ package c
 #cgo CFLAGS: -I../include
 #include <openvpn-plugin.h>
 #include <stdint.h>
+#include <stdlib.h>
 */
 import "C"
 
 import (
+	"errors"
 	"runtime/cgo"
 	"unsafe"
 )
@@ -76,6 +78,18 @@ type OpenVPNPluginStringList struct {
 	Next  *OpenVPNPluginStringList
 	Name  *C.char
 	Value *C.char
+}
+
+func NewOpenVPNPluginStringList() (*OpenVPNPluginStringList, error) {
+	returnList := (*OpenVPNPluginStringList)(
+		C.calloc(1, C.size_t(unsafe.Sizeof(C.struct_openvpn_plugin_string_list{}))),
+	)
+
+	if returnList == nil {
+		return nil, errors.New("malloc failed")
+	}
+
+	return returnList, nil
 }
 
 type OpenVPNPluginHandle Uintptr

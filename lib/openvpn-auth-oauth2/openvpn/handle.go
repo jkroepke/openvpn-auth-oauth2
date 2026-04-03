@@ -1,17 +1,11 @@
-//go:build (linux || openbsd || freebsd) && cgo
+//go:build (darwin || linux || openbsd || freebsd) && cgo
 
 package openvpn
-
-/*
-#include <stdlib.h>
-*/
-import "C"
 
 import (
 	"fmt"
 	"log/slog"
 	"time"
-	"unsafe"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/c"
 	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/client"
@@ -271,12 +265,11 @@ func (p *PluginHandle) handleClientConnect(perClientContext *ClientContext, ret 
 		return c.OpenVPNPluginFuncError
 	}
 
-	returnList := (*c.OpenVPNPluginStringList)(
-		C.calloc(1, C.size_t(unsafe.Sizeof(C.struct_openvpn_plugin_string_list{}))),
-	)
-
-	if returnList == nil {
-		p.logger.ErrorContext(p.ctx, "malloc(return_list) failed")
+	returnList, err := c.NewOpenVPNPluginStringList()
+	if err != nil {
+		p.logger.ErrorContext(p.ctx, "create return list",
+			slog.Any("err", err),
+		)
 
 		return c.OpenVPNPluginFuncError
 	}
