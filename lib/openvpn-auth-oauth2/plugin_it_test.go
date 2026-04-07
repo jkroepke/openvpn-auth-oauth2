@@ -16,7 +16,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/docker/api/types/container"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/httphandler"
@@ -24,6 +23,8 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/client"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -266,15 +267,15 @@ func TestIT(t *testing.T) {
 
 	var dial net.Dialer
 
-	client, err := dial.DialContext(t.Context(), "tcp", strings.TrimPrefix(clientManagementEndpoint, "tcp://"))
+	tcpClient, err := dial.DialContext(t.Context(), "tcp", strings.TrimPrefix(clientManagementEndpoint, "tcp://"))
 	require.NoError(t, err)
 
-	clientReader := bufio.NewReader(client)
-	testutils.ExpectMessage(t, client, clientReader, openvpn.WelcomeBanner)
-	testutils.ExpectMessage(t, client, clientReader, ">HOLD:Waiting for hold release:0")
-	testutils.SendAndExpectMessage(t, client, clientReader, "hold release", "SUCCESS: hold release succeeded")
+	clientReader := bufio.NewReader(tcpClient)
+	testutils.ExpectMessage(t, tcpClient, clientReader, openvpn.WelcomeBanner)
+	testutils.ExpectMessage(t, tcpClient, clientReader, ">HOLD:Waiting for hold release:0")
+	testutils.SendAndExpectMessage(t, tcpClient, clientReader, "hold release", "SUCCESS: hold release succeeded")
 
-	err = client.SetReadDeadline(time.Now().Add(time.Second * 4))
+	err = tcpClient.SetReadDeadline(time.Now().Add(time.Second * 4))
 	require.NoError(t, err)
 
 	line, err := clientReader.ReadString('\n')
@@ -284,7 +285,7 @@ func TestIT(t *testing.T) {
 	containerClientLogs, _ = getContainerLogs(t, containerClient)
 	require.Contains(t, line, ">INFOMSG:WEB_AUTH", "server logs:\n%s\nclient logs:\n%s", containerServerLogs, containerClientLogs)
 
-	webauthURL := strings.TrimSpace(strings.TrimPrefix(line, ">INFOMSG:WEB_AUTH::"))
+	webAuthURL := strings.TrimSpace(strings.TrimPrefix(line, ">INFOMSG:WEB_AUTH::"))
 
 	jar, err := cookiejar.New(nil)
 	require.NoError(t, err)
@@ -292,7 +293,7 @@ func TestIT(t *testing.T) {
 	httpClientListenerClient := httpClientListener.Client()
 	httpClientListenerClient.Jar = jar
 
-	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, webauthURL, nil)
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, webAuthURL, nil)
 	require.NoError(t, err)
 
 	resp, err := httpClientListenerClient.Do(req)
@@ -304,7 +305,7 @@ func TestIT(t *testing.T) {
 
 	time.Sleep(2 * time.Second)
 
-	err = client.SetReadDeadline(time.Now().Add(time.Second * 4))
+	err = tcpClient.SetReadDeadline(time.Now().Add(time.Second * 4))
 	require.NoError(t, err)
 
 	line, err = clientReader.ReadString('\n')
@@ -323,7 +324,7 @@ func getContainerLogs(t *testing.T, ctr testcontainers.Container) (string, error
 		return "", fmt.Errorf("failed to create Docker client: %w", err)
 	}
 
-	logReader, err := cli.ContainerLogs(t.Context(), ctr.GetContainerID(), container.LogsOptions{
+	logReader, err := cli.ContainerLogs(t.Context(), ctr.GetContainerID(), client.ContainerLogsOptions{
 		ShowStderr: true,
 		ShowStdout: true,
 	})
