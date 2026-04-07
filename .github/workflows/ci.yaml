@@ -42,7 +42,7 @@ jobs:
         run: go test ./... -short  -timeout 20s -race -covermode=atomic -coverprofile=coverage.out -coverpkg=./...
 
       - name: go test -bench
-        run: go test ./... -timeout 20s -run='^$' -bench=. -benchmem -count 3
+        run: go test ./... -timeout 20s -run='^$' -bench=. -benchmem
 
       - name: go test (Plugin Integration Tests)
         run: go test ./lib/openvpn-auth-oauth2 -run '^TestIT$'
