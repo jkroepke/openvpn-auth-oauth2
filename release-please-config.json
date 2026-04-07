@@ -5,6 +5,12 @@
   "skip-changelog": true,
   "extra-label": "chore",
   "packages": {
-    ".": {}
+    ".": {
+      "release-type": "go",
+      "force-tag-creation": true,
+      "skip-github-release": true,
+      "skip-changelog": true,
+      "extra-label": "chore"
+    }
   }
 }
