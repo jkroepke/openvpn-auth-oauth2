@@ -1,6 +1,6 @@
 module github.com/jkroepke/openvpn-auth-oauth2
 
-go 1.26.1
+go 1.26.2
 
 require (
 	github.com/google/cel-go v0.27.0
