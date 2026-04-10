@@ -8,7 +8,7 @@ require (
 	github.com/moby/moby/api v1.54.1
 	github.com/moby/moby/client v0.4.0
 	github.com/stretchr/testify v1.11.1
-	github.com/testcontainers/testcontainers-go v0.41.1-0.20260403163240-359d0dec648b
+	github.com/testcontainers/testcontainers-go v0.42.0
 	github.com/zitadel/logging v0.7.0
 	github.com/zitadel/oidc/v3 v3.46.0
 	go.yaml.in/yaml/v3 v3.0.4
