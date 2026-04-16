@@ -55,7 +55,7 @@ func (p *PluginHandle) handlePluginUp() c.OpenVPNPluginFuncStatus {
 //   - c.OpenVPNPluginFuncError if authentication fails or an error occurs
 //   - C.OPENVPN_PLUGIN_FUNC_DEFERRED if authentication is pending (OAuth2 flow in progress)
 //
-//nolint:cyclop,gocognit
+//nolint:cyclop
 func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClientContext *ClientContext) c.OpenVPNPluginFuncStatus {
 	if perClientContext == nil {
 		p.logger.ErrorContext(p.ctx, "AUTH_USER_PASS_VERIFY: missing perClientContext")

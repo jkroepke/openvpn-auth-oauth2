@@ -26,6 +26,7 @@ func TestAssets(t *testing.T) {
 	conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 	conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 	conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
+	conf.HTTP.ShortURL = false
 
 	provider, err := generic.NewProvider(t.Context(), conf, http.DefaultClient)
 	require.NoError(t, err)
