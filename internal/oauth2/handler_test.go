@@ -1043,3 +1043,87 @@ func TestOAuth2ProfileSubmit(t *testing.T) {
 		})
 	}
 }
+
+func TestOAuth2Callback(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		name           string
+		conf           config.Config
+		req            func(t *testing.T) *http.Request
+		expectedStatus int
+		expectedError  string
+	}{
+		{
+			"empty state",
+			config.Defaults,
+			func(t *testing.T) *http.Request {
+				t.Helper()
+
+				req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/oauth2/callback", nil)
+				require.NoError(t, err)
+
+				return req
+			},
+			http.StatusBadRequest,
+			"state is empty",
+		},
+		{
+			"invalid state",
+			config.Defaults,
+			func(t *testing.T) *http.Request {
+				t.Helper()
+
+				req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/oauth2/callback?state=invalid", nil)
+				require.NoError(t, err)
+
+				return req
+			},
+			http.StatusBadRequest,
+			"illegal base64 data",
+		},
+		{
+			"invalid state",
+			config.Defaults,
+			func(t *testing.T) *http.Request {
+				t.Helper()
+
+				req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/oauth2/callback?state="+base64.URLEncoding.EncodeToString([]byte("invalid")), nil)
+				require.NoError(t, err)
+
+				return req
+			},
+			http.StatusBadRequest,
+			"ciphertext block size is too short",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithCancel(t.Context())
+			t.Cleanup(cancel)
+
+			suite := testsuite.New(tc.conf)
+			suite.SetupMockEnvironment(ctx, t, nil)
+			suite.ExpectVersionAndReleaseHold(t)
+
+			httpClient := suite.GetHTTPClient()
+
+			request := tc.req(t)
+			request.URL.Host = strings.Replace(suite.GetHTTPServerURL(), "http://", "", 1)
+			request.URL.Scheme = "http"
+
+			resp, err := httpClient.Do(request)
+			require.NoError(t, err)
+
+			require.Equal(t, tc.expectedStatus, resp.StatusCode)
+			require.Contains(t, suite.Logs(), tc.expectedError)
+
+			_, err = io.Copy(io.Discard, resp.Body)
+			require.NoError(t, err)
+
+			err = resp.Body.Close()
+			require.NoError(t, err)
+		})
+	}
+}

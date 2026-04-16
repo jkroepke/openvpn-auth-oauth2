@@ -115,14 +115,6 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 
 	switch resp.ClientAuth {
 	case management.ClientAuthAccept:
-		if err := openVPNClient.WriteToAuthFile("1"); err != nil {
-			logger.ErrorContext(p.ctx, "write to auth file",
-				slog.Any("err", err),
-			)
-
-			return c.OpenVPNPluginFuncError
-		}
-
 		logger.InfoContext(p.ctx, "authentication accepted")
 
 		perClientContext.mu.Lock()
@@ -139,12 +131,6 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 		logger.InfoContext(p.ctx, "authentication denied",
 			slog.String("reason", reason),
 		)
-
-		if err := openVPNClient.WriteToAuthFile("0"); err != nil {
-			logger.ErrorContext(p.ctx, "write to auth file",
-				slog.Any("err", err),
-			)
-		}
 
 		return c.OpenVPNPluginFuncError
 	case management.ClientAuthPending:
