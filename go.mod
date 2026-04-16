@@ -10,7 +10,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/testcontainers/testcontainers-go v0.42.0
 	github.com/zitadel/logging v0.7.0
-	github.com/zitadel/oidc/v3 v3.47.2
+	github.com/zitadel/oidc/v3 v3.47.3
 	go.yaml.in/yaml/v3 v3.0.4
 	golang.org/x/crypto v0.50.0
 	golang.org/x/net v0.53.0
