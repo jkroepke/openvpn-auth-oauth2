@@ -55,7 +55,7 @@ func (p *PluginHandle) handlePluginUp() c.OpenVPNPluginFuncStatus {
 //   - c.OpenVPNPluginFuncError if authentication fails or an error occurs
 //   - C.OPENVPN_PLUGIN_FUNC_DEFERRED if authentication is pending (OAuth2 flow in progress)
 //
-//nolint:cyclop,gocognit
+//nolint:cyclop
 func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClientContext *ClientContext) c.OpenVPNPluginFuncStatus {
 	if perClientContext == nil {
 		p.logger.ErrorContext(p.ctx, "AUTH_USER_PASS_VERIFY: missing perClientContext")
@@ -115,14 +115,6 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 
 	switch resp.ClientAuth {
 	case management.ClientAuthAccept:
-		if err := openVPNClient.WriteToAuthFile("1"); err != nil {
-			logger.ErrorContext(p.ctx, "write to auth file",
-				slog.Any("err", err),
-			)
-
-			return c.OpenVPNPluginFuncError
-		}
-
 		logger.InfoContext(p.ctx, "authentication accepted")
 
 		perClientContext.mu.Lock()
@@ -139,12 +131,6 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 		logger.InfoContext(p.ctx, "authentication denied",
 			slog.String("reason", reason),
 		)
-
-		if err := openVPNClient.WriteToAuthFile("0"); err != nil {
-			logger.ErrorContext(p.ctx, "write to auth file",
-				slog.Any("err", err),
-			)
-		}
 
 		return c.OpenVPNPluginFuncError
 	case management.ClientAuthPending:

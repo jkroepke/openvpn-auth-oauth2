@@ -26,6 +26,7 @@ func TestAssets(t *testing.T) {
 	conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 	conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 	conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
+	conf.HTTP.ShortURL = false
 
 	provider, err := generic.NewProvider(t.Context(), conf, http.DefaultClient)
 	require.NoError(t, err)
@@ -35,6 +36,7 @@ func TestAssets(t *testing.T) {
 
 	handler := httphandler.New(conf, oAuth2Client)
 
+	require.HTTPStatusCode(t, handler.ServeHTTP, http.MethodGet, "/", nil, http.StatusNotFound)
 	require.HTTPSuccess(t, handler.ServeHTTP, http.MethodGet, "/assets/favicon.svg", nil)
 	require.HTTPSuccess(t, handler.ServeHTTP, http.MethodGet, "/assets/i18n/de.json", nil)
 }
@@ -49,6 +51,7 @@ func TestCustomAssets(t *testing.T) {
 	conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 	conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 	conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
+	conf.HTTP.BaseURL.Path = "/custom"
 
 	provider, err := generic.NewProvider(t.Context(), conf, http.DefaultClient)
 	require.NoError(t, err)
@@ -66,5 +69,5 @@ func TestCustomAssets(t *testing.T) {
 
 	handler := httphandler.New(conf, oAuth2Client)
 
-	require.HTTPBodyContains(t, handler.ServeHTTP, http.MethodGet, "/assets/index.txt", nil, "index")
+	require.HTTPBodyContains(t, handler.ServeHTTP, http.MethodGet, "/custom/assets/index.txt", nil, "index")
 }
