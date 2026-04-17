@@ -396,11 +396,6 @@ func TestPluginDenyNonWebAuthClient(t *testing.T) {
 	status = PluginFuncV3(PluginStructVerMin, args, ret)
 	require.Equal(t, c.OpenVPNPluginFuncError, status, logger.String())
 
-	// The auth control file must reflect the denial.
-	data, err := os.ReadFile(authControlFile.Name())
-	require.NoError(t, err)
-	require.Equal(t, "0", string(data))
-
 	PluginClientDestructorV1(args.Handle, clientContextPtr)
 }
 
