@@ -76,10 +76,10 @@ jobs:
           GPG_KEY: ${{ secrets.GPG_KEY }}
 
       - name: go build (with goreleaser)
-        uses: goreleaser/goreleaser-action@ec59f474b9834571250b370d4735c50f8e2d1e29 # v7.0.0
+        uses: goreleaser/goreleaser-action@e24998b8b67b290c2fa8b7c14fcfa7de2c5c9b8c # v7.1.0
         with:
           # renovate: github=goreleaser/goreleaser
-          version: v2.15.3
+          version: v2.15.4
           args: release --snapshot
         env:
           GITHUB_TOKEN: ""
@@ -203,10 +203,10 @@ jobs:
           GPG_KEY_PATH: "${{ secrets.GPG_KEY_PATH }}"
 
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@ec59f474b9834571250b370d4735c50f8e2d1e29 # v7.0.0
+        uses: goreleaser/goreleaser-action@e24998b8b67b290c2fa8b7c14fcfa7de2c5c9b8c # v7.1.0
         with:
           # renovate: github=goreleaser/goreleaser
-          version: v2.15.3
+          version: v2.15.4
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
