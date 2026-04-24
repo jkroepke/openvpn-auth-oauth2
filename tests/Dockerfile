@@ -12,7 +12,7 @@ RUN go build -buildvcs=false -o /plugin/openvpn-auth-oauth2.so -buildmode=c-shar
 RUN ls -lah /plugin/openvpn-auth-oauth2.so
 
 # renovate: docker=ubuntu
-FROM ubuntu:24.04 AS openvpn
+FROM ubuntu:26.04 AS openvpn
 
 ARG DEBIAN_FRONTEND=noninteractive
 
