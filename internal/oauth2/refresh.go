@@ -108,7 +108,8 @@ func (c *Client) RefreshClientAuth(ctx context.Context, logger *slog.Logger, cli
 	if refreshToken == "" {
 		logger.LogAttrs(ctx, slog.LevelWarn, "refresh token is empty")
 	} else if err = c.storage.Set(ctx, clientID, refreshToken); err != nil {
-		logger.LogAttrs(ctx, slog.LevelWarn, "unable to store refresh token",
+		logger.LogAttrs(
+			ctx, slog.LevelWarn, "unable to store refresh token",
 			slog.Any("err", err),
 		)
 	}

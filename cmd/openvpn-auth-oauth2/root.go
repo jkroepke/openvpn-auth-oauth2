@@ -82,13 +82,15 @@ func run(ctx context.Context, args []string, stdout io.Writer, tokenDataStorage 
 	ctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(nil)
 
-	logger.LogAttrs(ctx, slog.LevelDebug, "config",
+	logger.LogAttrs(
+		ctx, slog.LevelDebug, "config",
 		slog.String("config", conf.String()),
 	)
 
 	openvpnClient, httpHandler, err := setupOpenVPNClient(ctx, logger, conf, tokenDataStorage)
 	if err != nil {
-		logger.LogAttrs(ctx, slog.LevelError, "error setting up openvpn client",
+		logger.LogAttrs(
+			ctx, slog.LevelError, "error setting up openvpn client",
 			slog.Any("err", err),
 		)
 
@@ -100,7 +102,8 @@ func run(ctx context.Context, args []string, stdout io.Writer, tokenDataStorage 
 
 	server := startServices(ctx, cancel, wg, logger, conf, openvpnClient, httpHandler)
 
-	logger.LogAttrs(ctx, slog.LevelInfo,
+	logger.LogAttrs(
+		ctx, slog.LevelInfo,
 		"openvpn-auth-oauth2 started with base url "+conf.HTTP.BaseURL.String(),
 	)
 

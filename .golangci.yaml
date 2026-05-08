@@ -6,6 +6,7 @@ linters:
     - err113
     - exhaustruct
     - funlen
+    - gomodguard
     - ireturn
     - mnd
     - noinlineerr
@@ -180,6 +181,7 @@ linters:
           - gocyclo
           - lll
           - maintidx
+          - goconst
           - wrapcheck
           - gosmopolitan
         path: _test\.go

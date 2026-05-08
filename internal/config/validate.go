@@ -32,7 +32,7 @@ func Validate(mode int, conf Config) error {
 			}
 		}
 
-		if !slices.Contains([]string{"tcp", "unix"}, conf.OpenVPN.Addr.Scheme) {
+		if !slices.Contains([]string{SchemeTCP, SchemeUNIX}, conf.OpenVPN.Addr.Scheme) {
 			return errors.New("openvpn.addr: invalid URL. only tcp://addr or unix://addr scheme supported")
 		}
 	}
@@ -147,7 +147,7 @@ func validateURL(uri types.URL) error {
 		return nil
 	}
 
-	if !slices.Contains([]string{"http", "https"}, uri.Scheme) {
+	if !slices.Contains([]string{SchemeHTTP, SchemeHTTPS}, uri.Scheme) {
 		return errors.New("invalid URL. only http:// or https:// scheme supported")
 	}
 

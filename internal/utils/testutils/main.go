@@ -349,9 +349,9 @@ func SetupOpenVPNOAuth2Clients(
 	}
 
 	if conf.OAuth2.Issuer.IsEmpty() {
-		conf.OAuth2.Issuer = types.URL{URL: &url.URL{Scheme: "http", Host: "example.com"}}
-		conf.OAuth2.Endpoints.Auth = types.URL{URL: &url.URL{Scheme: "http", Host: "example.com", Path: "/auth"}}
-		conf.OAuth2.Endpoints.Token = types.URL{URL: &url.URL{Scheme: "http", Host: "example.com", Path: "/token"}}
+		conf.OAuth2.Issuer = types.URL{URL: &url.URL{Scheme: config.SchemeHTTP, Host: testsuite.TestDomain}}
+		conf.OAuth2.Endpoints.Auth = types.URL{URL: &url.URL{Scheme: config.SchemeHTTP, Host: testsuite.TestDomain, Path: "/auth"}}
+		conf.OAuth2.Endpoints.Token = types.URL{URL: &url.URL{Scheme: config.SchemeHTTP, Host: testsuite.TestDomain, Path: "/token"}}
 	}
 
 	switch conf.OAuth2.Provider {

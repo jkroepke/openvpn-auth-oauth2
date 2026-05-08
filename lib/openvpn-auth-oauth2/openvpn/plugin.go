@@ -69,7 +69,8 @@ func PluginOpenV3(v3structver c.Int, args *c.OpenVPNPluginArgsOpenIn, ret *c.Ope
 	if len(pluginArgs) == 3 {
 		password, err := os.ReadFile(pluginArgs[2])
 		if err != nil {
-			logger.Error("Failed to read password file",
+			logger.Error(
+				"Failed to read password file",
 				slog.Any("err", err),
 			)
 
@@ -91,7 +92,8 @@ func PluginOpenV3(v3structver c.Int, args *c.OpenVPNPluginArgsOpenIn, ret *c.Ope
 
 	ret.Handle = handle
 
-	logger.InfoContext(ctx, "plugin loaded",
+	logger.InfoContext(
+		ctx, "plugin loaded",
 		slog.String("version", version.Version),
 	)
 
@@ -143,7 +145,8 @@ func PluginFuncV3(v3structver c.Int, args *c.OpenVPNPluginArgsFuncIn, ret *c.Ope
 	case c.OpenVPNPluginClientDisconnect:
 		return handle.handleClientDisconnect(args.Envp, clientContextFromPointer(args.PerClientContext))
 	default:
-		handle.logger.ErrorContext(handle.ctx, "unhandled OPENVPN_PLUGIN event",
+		handle.logger.ErrorContext(
+			handle.ctx, "unhandled OPENVPN_PLUGIN event",
 			slog.Int("event_type", int(args.Type)),
 		)
 

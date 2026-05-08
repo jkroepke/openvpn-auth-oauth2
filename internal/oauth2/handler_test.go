@@ -869,7 +869,8 @@ func TestHandler(t *testing.T) {
 					resp, body, err = suite.DoHTTPRequest(ctx, http.MethodPost,
 						"/oauth2/profile-submit",
 						header,
-						strings.NewReader(fmt.Sprintf("token=%s&profile=%s",
+						strings.NewReader(fmt.Sprintf(
+							"token=%s&profile=%s",
 							url.QueryEscape(fields["token"]),
 							url.QueryEscape(fields["profile"]),
 						)))

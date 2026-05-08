@@ -83,7 +83,7 @@ func (s *Suite) SetupMockEnvironment(ctx context.Context, tb testing.TB, opConf 
 
 	_, resourceServerURL, clientCredentials := s.SetupOIDCServer(tb, clientListener, opConf)
 
-	s.conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: clientListener.Addr().String()}}
+	s.conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: config.SchemeHTTP, Host: clientListener.Addr().String()}}
 
 	if s.conf.HTTP.Secret == "" {
 		s.conf.HTTP.Secret = Secret
@@ -258,9 +258,9 @@ func (s *Suite) SetupOpenVPNOAuth2Clients(ctx context.Context, tb testing.TB, to
 	}
 
 	if s.conf.OAuth2.Issuer.IsEmpty() {
-		s.conf.OAuth2.Issuer = types.URL{URL: &url.URL{Scheme: "http", Host: "example.com"}}
-		s.conf.OAuth2.Endpoints.Auth = types.URL{URL: &url.URL{Scheme: "http", Host: "example.com", Path: "/auth"}}
-		s.conf.OAuth2.Endpoints.Token = types.URL{URL: &url.URL{Scheme: "http", Host: "example.com", Path: "/token"}}
+		s.conf.OAuth2.Issuer = types.URL{URL: &url.URL{Scheme: config.SchemeHTTP, Host: TestDomain}}
+		s.conf.OAuth2.Endpoints.Auth = types.URL{URL: &url.URL{Scheme: config.SchemeHTTP, Host: TestDomain, Path: "/auth"}}
+		s.conf.OAuth2.Endpoints.Token = types.URL{URL: &url.URL{Scheme: config.SchemeHTTP, Host: TestDomain, Path: "/token"}}
 	}
 
 	if s.conf.OpenVPN.CommandTimeout == 0 {

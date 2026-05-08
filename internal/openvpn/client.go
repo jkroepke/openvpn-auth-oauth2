@@ -82,7 +82,8 @@ func (c *Client) handleClientAuthentication(ctx context.Context, logger *slog.Lo
 	if err != nil {
 		c.DenyClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, ReasonStateExpiredOrInvalid)
 
-		logger.LogAttrs(ctx, slog.LevelError, "error refreshing client auth",
+		logger.LogAttrs(
+			ctx, slog.LevelError, "error refreshing client auth",
 			slog.Any("err", err),
 		)
 
@@ -106,7 +107,8 @@ func (c *Client) handleClientAuthentication(ctx context.Context, logger *slog.Lo
 	// Start the authentication process for the client.
 	if err := c.startClientAuth(ctx, logger, client); err != nil {
 		// Deny the client if an error occurred during the authentication process.
-		logger.LogAttrs(ctx, slog.LevelError, "error starting client auth",
+		logger.LogAttrs(
+			ctx, slog.LevelError, "error starting client auth",
 			slog.Any("err", err),
 		)
 
@@ -213,7 +215,8 @@ func (c *Client) silentReAuthentication(ctx context.Context, logger *slog.Logger
 }
 
 func (c *Client) clientEstablished(ctx context.Context, logger *slog.Logger, client connection.Client) {
-	logger.LogAttrs(ctx, slog.LevelInfo, "client established",
+	logger.LogAttrs(
+		ctx, slog.LevelInfo, "client established",
 		slog.String("vpn_ip", client.VPNAddress),
 	)
 }

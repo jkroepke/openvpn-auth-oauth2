@@ -62,12 +62,12 @@ func TestNewClientConnection(t *testing.T) {
 		},
 		{
 			"client CONNECT username-as-common-name",
-			(func() config.Config {
+			func() config.Config {
 				conf := config.Defaults
 				conf.OpenVPN.CommonName.EnvironmentVariableName = "username"
 
 				return conf
-			})(),
+			}(),
 			[]string{
 				">CLIENT:CONNECT,0,1",
 				">CLIENT:ENV,common_name=common_name",

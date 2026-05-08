@@ -20,7 +20,8 @@ func (c *Client) AcceptClient(ctx context.Context, logger *slog.Logger, client s
 
 	err := c.sendClientAuth(ctx, client, clientConfig)
 	if err != nil {
-		logger.LogAttrs(ctx, slog.LevelWarn, "failed to accept client",
+		logger.LogAttrs(
+			ctx, slog.LevelWarn, "failed to accept client",
 			slog.Any("error", err),
 		)
 	}
@@ -32,17 +33,20 @@ func (c *Client) loadClientConfig(ctx context.Context, logger *slog.Logger, clie
 
 	switch {
 	case err != nil:
-		logger.LogAttrs(ctx, slog.LevelDebug, "failed to read client config",
+		logger.LogAttrs(
+			ctx, slog.LevelDebug, "failed to read client config",
 			slog.String("config", clientConfigName),
 			slog.Any("error", err),
 		)
 	case len(clientConfig) > 0:
-		logger.LogAttrs(ctx, slog.LevelDebug, "applying client config from CCD",
+		logger.LogAttrs(
+			ctx, slog.LevelDebug, "applying client config from CCD",
 			slog.String("config", clientConfigName),
 			slog.Any("content", clientConfig),
 		)
 	default:
-		logger.LogAttrs(ctx, slog.LevelInfo, "no client config found in CCD",
+		logger.LogAttrs(
+			ctx, slog.LevelInfo, "no client config found in CCD",
 			slog.String("config", clientConfigName),
 		)
 	}
@@ -92,7 +96,8 @@ func (c *Client) DenyClient(ctx context.Context, logger *slog.Logger, client sta
 
 	_, err := c.SendCommandf(ctx, `client-deny %d %d "%s"`, client.CID, client.KID, reason)
 	if err != nil {
-		logger.LogAttrs(ctx, slog.LevelWarn, "failed to deny client",
+		logger.LogAttrs(
+			ctx, slog.LevelWarn, "failed to deny client",
 			slog.Any("error", err),
 		)
 	}

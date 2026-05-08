@@ -14,7 +14,11 @@ import (
 )
 
 const (
-	CommonName = "common_name"
+	CommonName  = "common_name"
+	SchemeHTTP  = "http"
+	SchemeHTTPS = "https"
+	SchemeTCP   = "tcp"
+	SchemeUNIX  = "unix"
 )
 
 //nolint:gochecknoglobals
@@ -30,7 +34,7 @@ var Defaults = Config{
 	HTTP: HTTP{
 		AssetPath: types.FS{FS: assets.FS},
 		BaseURL: types.URL{URL: &url.URL{
-			Scheme: "http",
+			Scheme: SchemeHTTP,
 			Host:   "localhost:9000",
 		}},
 		Listen: ":9000",
@@ -42,7 +46,7 @@ var Defaults = Config{
 	},
 	OpenVPN: OpenVPN{
 		Addr: types.URL{URL: &url.URL{
-			Scheme:   "unix",
+			Scheme:   SchemeUNIX,
 			Path:     "/run/openvpn/server.sock",
 			OmitHost: true,
 		}},
@@ -67,7 +71,7 @@ var Defaults = Config{
 		Passthrough: OpenVPNPassthrough{
 			Enabled: false,
 			Address: types.URL{URL: &url.URL{
-				Scheme:   "unix",
+				Scheme:   SchemeUNIX,
 				Path:     "/run/openvpn-auth-oauth2/server.sock",
 				OmitHost: true,
 			}},
