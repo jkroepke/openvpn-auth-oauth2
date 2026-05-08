@@ -192,7 +192,8 @@ func (c *Client) getRelyingPartyOptions(httpClient *http.Client) []rp.Option {
 	cookieHandler := httphelper.NewCookieHandler(cookieKey, cookieKey, cookieOpt...)
 
 	verifierOpts := make([]rp.VerifierOption, 0, 4)
-	verifierOpts = append(verifierOpts,
+	verifierOpts = append(
+		verifierOpts,
 		rp.WithIssuedAtMaxAge(30*time.Minute),
 		rp.WithIssuedAtOffset(5*time.Second),
 	)
@@ -212,7 +213,8 @@ func (c *Client) getRelyingPartyOptions(httpClient *http.Client) []rp.Option {
 	}
 
 	options := make([]rp.Option, 0, 10)
-	options = append(options,
+	options = append(
+		options,
 		rp.WithAuthStyle(c.conf.OAuth2.AuthStyle.AuthStyle()),
 		rp.WithSigningAlgsFromDiscovery(),
 		rp.WithLogger(c.logger),

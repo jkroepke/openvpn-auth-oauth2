@@ -22,6 +22,11 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
 )
 
+const (
+	title   = "title"
+	message = "message"
+)
+
 type openvpnManagementClient interface {
 	AcceptClient(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, username string, clientConfigName string)
 	DenyClient(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, reason string)
@@ -335,8 +340,8 @@ func (c *Client) postCodeExchangeHandler(
 				}
 
 				err = c.conf.HTTP.Template.Execute(w, map[string]any{
-					"title":                "Select Profile",
-					"message":              "Please select your client configuration profile.",
+					title:                  "Select Profile",
+					message:                "Please select your client configuration profile.",
 					"token":                clientConfigSelectorToken,
 					"clientConfigProfiles": clientConfigProfiles,
 				})
@@ -349,7 +354,8 @@ func (c *Client) postCodeExchangeHandler(
 					return
 				}
 
-				logger.LogAttrs(ctx, slog.LevelInfo, "presented client configuration profile selector",
+				logger.LogAttrs(
+					ctx, slog.LevelInfo, "presented client configuration profile selector",
 					slog.String("profiles", strings.Join(clientConfigProfiles, ", ")),
 				)
 
@@ -408,7 +414,8 @@ func (c *Client) postCodeExchangeHandlerStoreRefreshToken(
 	if refreshToken == "" {
 		logger.LogAttrs(ctx, slog.LevelWarn, "refresh token is empty")
 	} else if err = c.storage.Set(ctx, clientID, refreshToken); err != nil {
-		logger.LogAttrs(ctx, slog.LevelWarn, "unable to store refresh token",
+		logger.LogAttrs(
+			ctx, slog.LevelWarn, "unable to store refresh token",
 			slog.Any("err", err),
 		)
 	} else {
@@ -511,8 +518,8 @@ func (c *Client) writeHTTPError(ctx context.Context, w http.ResponseWriter, logg
 	w.WriteHeader(httpCode)
 
 	err := c.conf.HTTP.Template.Execute(w, map[string]string{
-		"title":   "Access denied",
-		"message": "Please contact your administrator.",
+		title:     "Access denied",
+		message:   "Please contact your administrator.",
 		"errorID": errorID,
 	})
 	if err != nil {
@@ -523,8 +530,8 @@ func (c *Client) writeHTTPError(ctx context.Context, w http.ResponseWriter, logg
 
 func (c *Client) writeHTTPSuccess(ctx context.Context, w http.ResponseWriter, logger *slog.Logger) {
 	err := c.conf.HTTP.Template.Execute(w, map[string]string{
-		"title":   "Access granted",
-		"message": "You can close this window now.",
+		title:   "Access granted",
+		message: "You can close this window now.",
 	})
 	if err != nil {
 		logger.LogAttrs(ctx, slog.LevelError, "template error", slog.Any(

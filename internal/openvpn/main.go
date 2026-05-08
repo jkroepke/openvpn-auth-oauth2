@@ -255,7 +255,8 @@ func (c *Client) SendCommand(ctx context.Context, cmd string, passthrough bool) 
 
 		if strings.HasPrefix(resp, "ERROR:") {
 			cmdFirstLine := strings.SplitN(cmd, "\r\n", 2)[0]
-			c.logger.LogAttrs(ctx, slog.LevelWarn, "command error",
+			c.logger.LogAttrs(
+				ctx, slog.LevelWarn, "command error",
 				slog.String("command", cmdFirstLine),
 				slog.String("response", resp),
 			)

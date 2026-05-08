@@ -360,7 +360,8 @@ func TestRefreshReAuth(t *testing.T) {
 
 			time.Sleep(time.Millisecond * 100)
 
-			testutils.SendMessagef(t, managementInterfaceConn,
+			testutils.SendMessagef(
+				t, managementInterfaceConn,
 				">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=%s\r\n>CLIENT:ENV,session_state=Initial\r\n>CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END",
 				tc.clientCommonName,
 			)
@@ -441,12 +442,14 @@ func TestRefreshReAuth(t *testing.T) {
 			_ = resp.Body.Close()
 
 			// Testing ReAuth
-			testutils.SendMessagef(t, managementInterfaceConn,
+			testutils.SendMessagef(
+				t, managementInterfaceConn,
 				">CLIENT:ESTABLISHED,0\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END\r\n",
 			)
 
 			// Testing ReAuth
-			testutils.SendMessagef(t, managementInterfaceConn,
+			testutils.SendMessagef(
+				t, managementInterfaceConn,
 				">CLIENT:REAUTH,1,3\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=%s\r\n>CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,session_state=AuthenticatedEmptyUser\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END",
 				tc.clientCommonName,
 			)
@@ -502,7 +505,8 @@ func TestRefreshReAuth(t *testing.T) {
 			testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
 
 			// Testing ReAuth
-			testutils.SendMessagef(t, managementInterfaceConn,
+			testutils.SendMessagef(
+				t, managementInterfaceConn,
 				">CLIENT:REAUTH,1,4\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=%s\r\n>CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,session_state=AuthenticatedEmptyUser\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END",
 				tc.clientCommonName,
 			)

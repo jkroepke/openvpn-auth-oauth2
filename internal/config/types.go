@@ -327,6 +327,6 @@ func (h HTTP) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
 		Alias
 	}{
-		Alias: (Alias)(h),
+		Alias: Alias(h),
 	})
 }

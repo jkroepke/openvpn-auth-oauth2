@@ -22,10 +22,11 @@ func TestAssets(t *testing.T) {
 	logger := testsuite.NewTestLogger()
 
 	conf := config.Defaults
-	conf.OAuth2.Issuer = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
+	conf.OAuth2.Issuer = types.URL{URL: &url.URL{Scheme: config.SchemeHTTP, Host: "localhost"}}
 	conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 	conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 	conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
+	conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: config.SchemeHTTP, Host: "localhost:9000"}}
 	conf.HTTP.ShortURL = false
 
 	provider, err := generic.NewProvider(t.Context(), conf, http.DefaultClient)
@@ -47,10 +48,11 @@ func TestCustomAssets(t *testing.T) {
 	logger := testsuite.NewTestLogger()
 
 	conf := config.Defaults
-	conf.OAuth2.Issuer = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
+	conf.OAuth2.Issuer = types.URL{URL: &url.URL{Scheme: config.SchemeHTTP, Host: "localhost"}}
 	conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 	conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 	conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
+	conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: config.SchemeHTTP, Host: "localhost:9000"}}
 	conf.HTTP.BaseURL.Path = "/custom"
 
 	provider, err := generic.NewProvider(t.Context(), conf, http.DefaultClient)

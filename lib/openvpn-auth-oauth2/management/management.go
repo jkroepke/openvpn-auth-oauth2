@@ -173,7 +173,8 @@ func (s *Server) Listen(ctx context.Context, addr string) error {
 			connection, err := listenSocket.Accept()
 			if err != nil {
 				if !errors.Is(err, net.ErrClosed) {
-					s.logger.Warn("error accepting connection",
+					s.logger.WarnContext(
+						ctx, "error accepting connection",
 						slog.Any("error", err),
 					)
 				}
@@ -181,18 +182,21 @@ func (s *Server) Listen(ctx context.Context, addr string) error {
 				return
 			}
 
-			s.logger.InfoContext(ctx, "accepted new management client connection",
+			s.logger.InfoContext(
+				ctx, "accepted new management client connection",
 				slog.String("remote_addr", connection.RemoteAddr().String()),
 			)
 
 			if err := s.handleManagementClient(ctx, connection); err != nil {
-				s.logger.WarnContext(ctx, "error handling management client",
+				s.logger.WarnContext(
+					ctx, "error handling management client",
 					slog.Any("error", err),
 					slog.String("remote_addr", connection.RemoteAddr().String()),
 				)
 			}
 
-			s.logger.InfoContext(ctx, "management client disconnected",
+			s.logger.InfoContext(
+				ctx, "management client disconnected",
 				slog.String("remote_addr", connection.RemoteAddr().String()),
 			)
 		}
@@ -349,7 +353,8 @@ scan:
 
 		resp, err := s.parseResponse(line)
 		if err != nil {
-			s.logger.ErrorContext(ctx, "unable to parse client response",
+			s.logger.ErrorContext(
+				ctx, "unable to parse client response",
 				slog.Any("err", err),
 				slog.String("response", line),
 			)

@@ -53,7 +53,8 @@ func (c *Client) handlePassThrough(ctx context.Context, errCh chan<- error) {
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				c.logger.LogAttrs(ctx, slog.LevelError, "panic in handlePassThrough",
+				c.logger.LogAttrs(
+					ctx, slog.LevelError, "panic in handlePassThrough",
 					slog.Any("err", r),
 					slog.String("stack", string(debug.Stack())),
 				)

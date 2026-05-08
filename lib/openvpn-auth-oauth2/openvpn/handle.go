@@ -22,14 +22,16 @@ import (
 //   - c.OpenVPNPluginFuncError if the listener fails to start
 func (p *PluginHandle) handlePluginUp() c.OpenVPNPluginFuncStatus {
 	if err := p.managementClient.Listen(p.ctx, p.listenSocketAddr); err != nil {
-		p.logger.ErrorContext(p.ctx, "failed to start management client",
+		p.logger.ErrorContext(
+			p.ctx, "failed to start management client",
 			slog.Any("err", err),
 		)
 
 		return c.OpenVPNPluginFuncError
 	}
 
-	p.logger.InfoContext(p.ctx, "listener started",
+	p.logger.InfoContext(
+		p.ctx, "listener started",
 		slog.Any("addr", p.listenSocketAddr),
 	)
 
@@ -65,7 +67,8 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 
 	envArray, err := util.NewEnvList(clientEnvList)
 	if err != nil {
-		p.logger.ErrorContext(p.ctx, "parse env vars",
+		p.logger.ErrorContext(
+			p.ctx, "parse env vars",
 			slog.Any("err", err),
 		)
 
@@ -91,7 +94,8 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 
 	openVPNClient, err := client.NewClient(currentClientID, envArray)
 	if err != nil {
-		logger.ErrorContext(p.ctx, "create OpenVPN client from env vars",
+		logger.ErrorContext(
+			p.ctx, "create OpenVPN client from env vars",
 			slog.Any("err", err),
 		)
 
@@ -100,7 +104,8 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 
 	resp, err := p.managementClient.ClientAuth(p.ctx, currentClientID, openVPNClient.GetConnectMessage())
 	if err != nil {
-		logger.ErrorContext(p.ctx, "send client to management interface",
+		logger.ErrorContext(
+			p.ctx, "send client to management interface",
 			slog.Any("err", err),
 		)
 
@@ -128,7 +133,8 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 			reason = resp.Message
 		}
 
-		logger.InfoContext(p.ctx, "authentication denied",
+		logger.InfoContext(
+			p.ctx, "authentication denied",
 			slog.String("reason", reason),
 		)
 
@@ -136,7 +142,8 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 	case management.ClientAuthPending:
 		pendingRespCh, err := p.managementClient.RegisterPendingPoller(currentClientID)
 		if err != nil {
-			logger.ErrorContext(p.ctx, "register deferred auth poller",
+			logger.ErrorContext(
+				p.ctx, "register deferred auth poller",
 				slog.Any("err", err),
 			)
 
@@ -146,7 +153,8 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 		// Write "2" to auth control file to indicate deferred auth
 		if err := openVPNClient.WriteAuthPending(resp); err != nil {
 			p.managementClient.CancelPendingPoller(currentClientID)
-			logger.ErrorContext(p.ctx, "write to auth file",
+			logger.ErrorContext(
+				p.ctx, "write to auth file",
 				slog.Any("err", err),
 			)
 
@@ -161,7 +169,8 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 		go func(respCh <-chan *management.Response) {
 			resp, err := p.managementClient.WaitPendingPoller(p.ctx, currentClientID, 5*time.Minute, respCh)
 			if err != nil {
-				logger.ErrorContext(p.ctx, "poll deferred auth state",
+				logger.ErrorContext(
+					p.ctx, "poll deferred auth state",
 					slog.Any("err", err),
 				)
 
@@ -171,7 +180,8 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 			switch resp.ClientAuth {
 			case management.ClientAuthAccept:
 				if err := openVPNClient.WriteToAuthFile("1"); err != nil {
-					logger.ErrorContext(p.ctx, "write to auth file",
+					logger.ErrorContext(
+						p.ctx, "write to auth file",
 						slog.Any("err", err),
 					)
 
@@ -189,12 +199,14 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 					reason = resp.Message
 				}
 
-				logger.InfoContext(p.ctx, "authentication denied",
+				logger.InfoContext(
+					p.ctx, "authentication denied",
 					slog.String("reason", reason),
 				)
 
 				if err := openVPNClient.WriteToAuthFile("0"); err != nil {
-					logger.ErrorContext(p.ctx, "write to auth file",
+					logger.ErrorContext(
+						p.ctx, "write to auth file",
 						slog.Any("err", err),
 					)
 
@@ -251,7 +263,8 @@ func (p *PluginHandle) handleClientConnect(perClientContext *ClientContext, ret 
 
 	returnList, err := c.NewOpenVPNPluginStringList()
 	if err != nil {
-		p.logger.ErrorContext(p.ctx, "create return list",
+		p.logger.ErrorContext(
+			p.ctx, "create return list",
 			slog.Any("err", err),
 		)
 
@@ -278,7 +291,8 @@ func (p *PluginHandle) handleClientDisconnect(clientEnvList **c.Char, perClientC
 
 	envArray, err := util.NewEnvList(clientEnvList)
 	if err != nil {
-		p.logger.ErrorContext(p.ctx, "parse env vars",
+		p.logger.ErrorContext(
+			p.ctx, "parse env vars",
 			slog.Any("err", err),
 		)
 
@@ -287,7 +301,8 @@ func (p *PluginHandle) handleClientDisconnect(clientEnvList **c.Char, perClientC
 
 	openVPNClient, err := client.NewClient(perClientContext.clientID, envArray)
 	if err != nil {
-		p.logger.ErrorContext(p.ctx, "create OpenVPN client from env vars",
+		p.logger.ErrorContext(
+			p.ctx, "create OpenVPN client from env vars",
 			slog.Any("err", err),
 		)
 
@@ -296,7 +311,8 @@ func (p *PluginHandle) handleClientDisconnect(clientEnvList **c.Char, perClientC
 
 	err = p.managementClient.ClientDisconnect(openVPNClient.GetDisconnectMessage())
 	if err != nil {
-		p.logger.ErrorContext(p.ctx, "send client to management interface",
+		p.logger.ErrorContext(
+			p.ctx, "send client to management interface",
 			slog.Any("err", err),
 		)
 

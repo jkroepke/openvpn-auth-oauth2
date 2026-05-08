@@ -25,7 +25,8 @@ func (p Provider) GetUser(ctx context.Context, logger *slog.Logger, tokens idtok
 		} else {
 			logger.LogAttrs(ctx, slog.LevelWarn, "provider did return a id_token, but it was not parsed correctly. Validation of user data is not possible."+
 				" Enable DEBUG logs to see the raw token and report this to maintainer.")
-			logger.LogAttrs(ctx, slog.LevelDebug, "id_token",
+			logger.LogAttrs(
+				ctx, slog.LevelDebug, "id_token",
 				slog.String("id_token", tokens.IDToken),
 			)
 		}

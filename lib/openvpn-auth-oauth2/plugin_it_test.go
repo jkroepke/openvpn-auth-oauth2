@@ -128,7 +128,8 @@ func TestIT(t *testing.T) {
 
 	testcontainers.SkipIfProviderIsNotHealthy(t)
 
-	containerServer, err := testcontainers.Run(t.Context(), "",
+	containerServer, err := testcontainers.Run(
+		t.Context(), "",
 		testcontainers.WithName("openvpn-auth-oauth2-it-server"),
 		testcontainers.WithDockerfile(testcontainers.FromDockerfile{
 			Context:    `../../`,
@@ -172,7 +173,8 @@ func TestIT(t *testing.T) {
 	containerServerLogs, _ := getContainerLogs(t, containerServer)
 	require.NoError(t, err, containerServerLogs)
 
-	containerClient, err := testcontainers.Run(t.Context(), "",
+	containerClient, err := testcontainers.Run(
+		t.Context(), "",
 		testcontainers.WithName("openvpn-auth-oauth2-it-client"),
 		testcontainers.WithDockerfile(testcontainers.FromDockerfile{
 			Context:    `../../`,
