@@ -18,7 +18,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
-const writeTimeout = 20 * time.Millisecond
+const writeTimeout = 1 * time.Second
 
 // handlePassThrough starts a listener for the passthrough interface. This allows the management interface to be
 // accessed from a different network interface or even from a different machine.
