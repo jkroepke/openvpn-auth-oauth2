@@ -3,7 +3,7 @@ module github.com/jkroepke/openvpn-auth-oauth2
 go 1.26.3
 
 require (
-	github.com/google/cel-go v0.28.0
+	github.com/google/cel-go v0.28.1
 	github.com/madflojo/testcerts v1.5.0
 	github.com/moby/moby/api v1.54.2
 	github.com/moby/moby/client v0.4.1
