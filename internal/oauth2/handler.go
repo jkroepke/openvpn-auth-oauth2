@@ -91,7 +91,7 @@ func (c *Client) OAuth2Start() http.Handler {
 	})
 }
 
-// OAuth2Callback returns a http.Handler that handles the OAuth2 callback.
+// OAuth2Callback returns an http.Handler that handles the OAuth2 callback.
 func (c *Client) OAuth2Callback() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
@@ -142,6 +142,7 @@ func (c *Client) OAuth2Callback() http.Handler {
 	})
 }
 
+// OAuth2ProfileSubmit returns an http.Handler that handles the profile selection form submission.
 func (c *Client) OAuth2ProfileSubmit() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
