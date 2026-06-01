@@ -396,6 +396,14 @@ func (c *Config) flagSetOAuth2(flagSet *flag.FlagSet) {
 		"oauth2 required user groups. If multiple groups are configured, the user needs to be least in one group. "+
 			"Comma separated list. Example: group1,group2,group3",
 	)
+	flagSet.BoolVar(
+		&c.OAuth2.Validate.GroupsTransitive,
+		"oauth2.validate.groups-transitive",
+		lookupEnvOrDefault("oauth2.validate.groups-transitive", c.OAuth2.Validate.GroupsTransitive),
+		"If true, required group membership is matched transitively. "+
+			"Currently only the Google provider implements this: nested sub-groups of a configured group are accepted. "+
+			"Requires the cloud-identity.groups.readonly scope.",
+	)
 	flagSet.TextVar(
 		&c.OAuth2.Validate.Roles,
 		"oauth2.validate.roles",

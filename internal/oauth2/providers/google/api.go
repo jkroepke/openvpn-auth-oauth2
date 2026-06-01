@@ -22,6 +22,11 @@ type groupMembershipPage struct {
 	} `json:"memberships"`
 }
 
+//nolint:tagliatelle // hasMembership matches the Google Cloud Identity API response field name.
+type checkTransitiveMembershipResponse struct {
+	HasMembership bool `json:"hasMembership"`
+}
+
 type apiError struct {
 	Error struct {
 		Message string `json:"message"`
@@ -61,6 +66,34 @@ func (p Provider) checkGroupMembership(ctx context.Context, groupID string, user
 	}
 
 	return false, nil
+}
+
+// checkTransitiveGroupMembership uses the Cloud Identity API to determine whether the user is a
+// transitive (direct or nested) member of the given group.
+// https://cloud.google.com/identity/docs/reference/rest/v1/groups.memberships/checkTransitiveMembership
+func (p Provider) checkTransitiveGroupMembership(ctx context.Context, groupID string, userInfo types.UserInfo, tokens idtoken.IDToken) (bool, error) {
+	memberKey := userInfo.Email
+	if memberKey == "" {
+		memberKey = userInfo.Subject
+	}
+
+	query := url.Values{}
+	query.Set("query", fmt.Sprintf("member_key_id == '%s'", memberKey))
+
+	apiURL := &url.URL{
+		Scheme:   "https",
+		Host:     "cloudidentity.googleapis.com",
+		Path:     fmt.Sprintf("/v1/groups/%s/memberships:checkTransitiveMembership", groupID),
+		RawQuery: query.Encode(),
+	}
+
+	var result checkTransitiveMembershipResponse
+
+	if err := get[checkTransitiveMembershipResponse](ctx, p.httpClient, tokens.AccessToken, apiURL, &result); err != nil {
+		return false, err
+	}
+
+	return result.HasMembership, nil
 }
 
 // get calls the Google API and decodes the response into the data struct.

@@ -154,3 +154,109 @@ func TestValidateGroups(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateGroupsTransitive(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		name           string
+		response       string
+		statusCode     int
+		requiredGroups []string
+		err            string
+	}{
+		{
+			"transitive member",
+			`{"hasMembership": true}`,
+			http.StatusOK,
+			[]string{"000000000000000"},
+			"",
+		},
+		{
+			"not a transitive member",
+			`{"hasMembership": false}`,
+			http.StatusOK,
+			[]string{"000000000000000"},
+			oauth2.ErrMissingRequiredGroup.Error(),
+		},
+		{
+			"permission denied is not a member",
+			`{"error": {"message": "Error(4001): Permission denied for membership resource 'groups/000000000000000' (or it may not exist)."}}`,
+			http.StatusForbidden,
+			[]string{"000000000000000"},
+			oauth2.ErrMissingRequiredGroup.Error(),
+		},
+		{
+			"two groups, first matches transitively",
+			`{"hasMembership": true}`,
+			http.StatusOK,
+			[]string{"000000000000000", "000000000000001"},
+			"",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			token := &oidc.Tokens[*idtoken.Claims]{
+				Token: &gooauth2.Token{
+					AccessToken: "TOKEN",
+				},
+				IDTokenClaims: &idtoken.Claims{},
+			}
+
+			conf := config.Config{
+				OAuth2: config.OAuth2{
+					Validate: config.OAuth2Validate{
+						Groups:           tc.requiredGroups,
+						GroupsTransitive: true,
+					},
+				},
+			}
+
+			httpClient := &http.Client{
+				Transport: testsuite.NewRoundTripperFunc(nil, func(_ http.RoundTripper, req *http.Request) (*http.Response, error) {
+					resp := httptest.NewRecorder()
+
+					if !strings.HasSuffix(req.URL.Path, ":checkTransitiveMembership") {
+						resp.WriteHeader(http.StatusInternalServerError)
+						_, _ = resp.WriteString(`{"error": {"message": "unexpected endpoint"}}`)
+
+						return resp.Result(), nil
+					}
+
+					if !strings.Contains(req.URL.RawQuery, "member_key_id") {
+						resp.WriteHeader(http.StatusBadRequest)
+						_, _ = resp.WriteString(`{"error": {"message": "missing member_key_id"}}`)
+
+						return resp.Result(), nil
+					}
+
+					if tc.statusCode != 0 && tc.statusCode != http.StatusOK {
+						resp.WriteHeader(tc.statusCode)
+					}
+
+					_, _ = resp.WriteString(tc.response)
+
+					return resp.Result(), nil
+				}),
+			}
+
+			provider, err := google.NewProvider(t.Context(), conf, httpClient)
+			require.NoError(t, err)
+
+			err = provider.CheckUser(
+				t.Context(),
+				state.State{},
+				types.UserInfo{Subject: "123456789101112131415", Email: "user@example.com"},
+				token,
+			)
+
+			if tc.err == "" {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+				assert.EqualError(t, err, tc.err)
+			}
+		})
+	}
+}

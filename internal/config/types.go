@@ -122,6 +122,7 @@ type OAuth2Validate struct {
 	Acr                     types.StringSlice `json:"acr"                        yaml:"acr"`
 	Groups                  types.StringSlice `json:"groups"                     yaml:"groups"`
 	Roles                   types.StringSlice `json:"roles"                      yaml:"roles"`
+	GroupsTransitive        bool              `json:"groups-transitive"          yaml:"groups-transitive"`
 	IPAddr                  bool              `json:"ipaddr"                     yaml:"ipaddr"`
 	Issuer                  bool              `json:"issuer"                     yaml:"issuer"`
 	CommonNameCaseSensitive bool              `json:"common-name-case-sensitive" yaml:"common-name-case-sensitive"`
