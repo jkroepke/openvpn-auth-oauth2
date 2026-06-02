@@ -18,12 +18,29 @@ const (
 )
 
 type Config struct {
-	ConfigFile string  `json:"config"  yaml:"config"`
-	HTTP       HTTP    `json:"http"    yaml:"http"`
-	Debug      Debug   `json:"debug"   yaml:"debug"`
-	Log        Log     `json:"log"     yaml:"log"`
-	OAuth2     OAuth2  `json:"oauth2"  yaml:"oauth2"`
-	OpenVPN    OpenVPN `json:"openvpn" yaml:"openvpn"`
+	ConfigFile string   `json:"config"   yaml:"config"`
+	HTTP       HTTP     `json:"http"     yaml:"http"`
+	Debug      Debug    `json:"debug"    yaml:"debug"`
+	Log        Log      `json:"log"      yaml:"log"`
+	OAuth2     OAuth2   `json:"oauth2"   yaml:"oauth2"`
+	OpenVPN    OpenVPN  `json:"openvpn"  yaml:"openvpn"`
+	Provider   Provider `json:"provider" yaml:"provider"`
+}
+
+// Provider holds provider-specific configuration that is not shared across all
+// OAuth2 providers. The active provider is selected via OAuth2.Provider.
+type Provider struct {
+	Google ProviderGoogle `json:"google" yaml:"google"`
+}
+
+type ProviderGoogle struct {
+	Validate ProviderGoogleValidate `json:"validate" yaml:"validate"`
+}
+
+type ProviderGoogleValidate struct {
+	// GroupsTransitive enables transitive (direct or nested) group membership
+	// resolution via the Google Cloud Identity API instead of direct-only checks.
+	GroupsTransitive bool `json:"groups-transitive" yaml:"groups-transitive"`
 }
 
 type HTTP struct {
@@ -122,7 +139,6 @@ type OAuth2Validate struct {
 	Acr                     types.StringSlice `json:"acr"                        yaml:"acr"`
 	Groups                  types.StringSlice `json:"groups"                     yaml:"groups"`
 	Roles                   types.StringSlice `json:"roles"                      yaml:"roles"`
-	GroupsTransitive        bool              `json:"groups-transitive"          yaml:"groups-transitive"`
 	IPAddr                  bool              `json:"ipaddr"                     yaml:"ipaddr"`
 	Issuer                  bool              `json:"issuer"                     yaml:"issuer"`
 	CommonNameCaseSensitive bool              `json:"common-name-case-sensitive" yaml:"common-name-case-sensitive"`

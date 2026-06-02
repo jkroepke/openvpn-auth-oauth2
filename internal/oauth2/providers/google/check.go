@@ -50,7 +50,7 @@ func (p Provider) resolveGroupMemberships(ctx context.Context, userData *types.U
 
 // isGroupMember dispatches to the direct or transitive membership check based on configuration.
 func (p Provider) isGroupMember(ctx context.Context, group string, userData types.UserInfo, tokens idtoken.IDToken) (bool, error) {
-	if p.Conf.OAuth2.Validate.GroupsTransitive {
+	if p.Conf.Provider.Google.Validate.GroupsTransitive {
 		return p.checkTransitiveGroupMembership(ctx, group, userData, tokens)
 	}
 

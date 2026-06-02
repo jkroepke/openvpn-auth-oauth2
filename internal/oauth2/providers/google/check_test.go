@@ -160,38 +160,67 @@ func TestValidateGroupsTransitive(t *testing.T) {
 
 	for _, tc := range []struct {
 		name           string
+		email          string
 		response       string
 		statusCode     int
 		requiredGroups []string
 		err            string
+		errContains    string
 	}{
 		{
 			"transitive member",
+			"user@example.com",
 			`{"hasMembership": true}`,
 			http.StatusOK,
 			[]string{"000000000000000"},
+			"",
 			"",
 		},
 		{
 			"not a transitive member",
+			"user@example.com",
 			`{"hasMembership": false}`,
 			http.StatusOK,
 			[]string{"000000000000000"},
 			oauth2.ErrMissingRequiredGroup.Error(),
+			"",
 		},
 		{
 			"permission denied is not a member",
+			"user@example.com",
 			`{"error": {"message": "Error(4001): Permission denied for membership resource 'groups/000000000000000' (or it may not exist)."}}`,
 			http.StatusForbidden,
 			[]string{"000000000000000"},
 			oauth2.ErrMissingRequiredGroup.Error(),
+			"",
 		},
 		{
 			"two groups, first matches transitively",
+			"user@example.com",
 			`{"hasMembership": true}`,
 			http.StatusOK,
 			[]string{"000000000000000", "000000000000001"},
 			"",
+			"",
+		},
+		{
+			// Falls back to the subject as member_key_id when the email is empty.
+			"member by subject when email is empty",
+			"",
+			`{"hasMembership": true}`,
+			http.StatusOK,
+			[]string{"000000000000000"},
+			"",
+			"",
+		},
+		{
+			"api error is propagated",
+			"user@example.com",
+			`{"error": {"message": "internal error"}}`,
+			http.StatusInternalServerError,
+			[]string{"000000000000000"},
+			"",
+			"http status code: 500",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -207,8 +236,14 @@ func TestValidateGroupsTransitive(t *testing.T) {
 			conf := config.Config{
 				OAuth2: config.OAuth2{
 					Validate: config.OAuth2Validate{
-						Groups:           tc.requiredGroups,
-						GroupsTransitive: true,
+						Groups: tc.requiredGroups,
+					},
+				},
+				Provider: config.Provider{
+					Google: config.ProviderGoogle{
+						Validate: config.ProviderGoogleValidate{
+							GroupsTransitive: true,
+						},
 					},
 				},
 			}
@@ -247,15 +282,17 @@ func TestValidateGroupsTransitive(t *testing.T) {
 			err = provider.CheckUser(
 				t.Context(),
 				state.State{},
-				types.UserInfo{Subject: "123456789101112131415", Email: "user@example.com"},
+				types.UserInfo{Subject: "123456789101112131415", Email: tc.email},
 				token,
 			)
 
-			if tc.err == "" {
+			switch {
+			case tc.errContains != "":
+				require.ErrorContains(t, err, tc.errContains)
+			case tc.err != "":
+				require.EqualError(t, err, tc.err)
+			default:
 				require.NoError(t, err)
-			} else {
-				require.Error(t, err)
-				assert.EqualError(t, err, tc.err)
 			}
 		})
 	}
