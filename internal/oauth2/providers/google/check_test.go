@@ -154,3 +154,146 @@ func TestValidateGroups(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateGroupsTransitive(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		name           string
+		email          string
+		response       string
+		statusCode     int
+		requiredGroups []string
+		err            string
+		errContains    string
+	}{
+		{
+			"transitive member",
+			"user@example.com",
+			`{"hasMembership": true}`,
+			http.StatusOK,
+			[]string{"000000000000000"},
+			"",
+			"",
+		},
+		{
+			"not a transitive member",
+			"user@example.com",
+			`{"hasMembership": false}`,
+			http.StatusOK,
+			[]string{"000000000000000"},
+			oauth2.ErrMissingRequiredGroup.Error(),
+			"",
+		},
+		{
+			"permission denied is not a member",
+			"user@example.com",
+			`{"error": {"message": "Error(4001): Permission denied for membership resource 'groups/000000000000000' (or it may not exist)."}}`,
+			http.StatusForbidden,
+			[]string{"000000000000000"},
+			oauth2.ErrMissingRequiredGroup.Error(),
+			"",
+		},
+		{
+			"two groups, first matches transitively",
+			"user@example.com",
+			`{"hasMembership": true}`,
+			http.StatusOK,
+			[]string{"000000000000000", "000000000000001"},
+			"",
+			"",
+		},
+		{
+			// Falls back to the subject as member_key_id when the email is empty.
+			"member by subject when email is empty",
+			"",
+			`{"hasMembership": true}`,
+			http.StatusOK,
+			[]string{"000000000000000"},
+			"",
+			"",
+		},
+		{
+			"api error is propagated",
+			"user@example.com",
+			`{"error": {"message": "internal error"}}`,
+			http.StatusInternalServerError,
+			[]string{"000000000000000"},
+			"",
+			"http status code: 500",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			token := &oidc.Tokens[*idtoken.Claims]{
+				Token: &gooauth2.Token{
+					AccessToken: "TOKEN",
+				},
+				IDTokenClaims: &idtoken.Claims{},
+			}
+
+			conf := config.Config{
+				OAuth2: config.OAuth2{
+					Validate: config.OAuth2Validate{
+						Groups: tc.requiredGroups,
+					},
+				},
+				Provider: config.Provider{
+					Google: config.ProviderGoogle{
+						Validate: config.ProviderGoogleValidate{
+							GroupsTransitive: true,
+						},
+					},
+				},
+			}
+
+			httpClient := &http.Client{
+				Transport: testsuite.NewRoundTripperFunc(nil, func(_ http.RoundTripper, req *http.Request) (*http.Response, error) {
+					resp := httptest.NewRecorder()
+
+					if !strings.HasSuffix(req.URL.Path, ":checkTransitiveMembership") {
+						resp.WriteHeader(http.StatusInternalServerError)
+						_, _ = resp.WriteString(`{"error": {"message": "unexpected endpoint"}}`)
+
+						return resp.Result(), nil
+					}
+
+					if !strings.Contains(req.URL.RawQuery, "member_key_id") {
+						resp.WriteHeader(http.StatusBadRequest)
+						_, _ = resp.WriteString(`{"error": {"message": "missing member_key_id"}}`)
+
+						return resp.Result(), nil
+					}
+
+					if tc.statusCode != 0 && tc.statusCode != http.StatusOK {
+						resp.WriteHeader(tc.statusCode)
+					}
+
+					_, _ = resp.WriteString(tc.response)
+
+					return resp.Result(), nil
+				}),
+			}
+
+			provider, err := google.NewProvider(t.Context(), conf, httpClient)
+			require.NoError(t, err)
+
+			err = provider.CheckUser(
+				t.Context(),
+				state.State{},
+				types.UserInfo{Subject: "123456789101112131415", Email: tc.email},
+				token,
+			)
+
+			switch {
+			case tc.errContains != "":
+				require.ErrorContains(t, err, tc.errContains)
+			case tc.err != "":
+				require.EqualError(t, err, tc.err)
+			default:
+				require.NoError(t, err)
+			}
+		})
+	}
+}

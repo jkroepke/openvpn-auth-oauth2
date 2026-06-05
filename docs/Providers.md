@@ -161,6 +161,43 @@ oauth2:
 </td></tr></tbody>
 </table>
 
+### Transitive (nested) group membership (optional)
+
+By default, a user is only accepted when they are a **direct** member of one of the
+groups configured in `oauth2.validate.groups`. If your groups are nested (a group is
+a member of another group), enable transitive membership resolution so that members
+of nested sub-groups are accepted as well:
+
+<table>
+<thead><tr><td>env/sysconfig configuration</td></tr></thead>
+<tbody><tr><td>
+
+```ini
+CONFIG_PROVIDER_GOOGLE_VALIDATE_GROUPS__TRANSITIVE=true
+```
+</td></tr></tbody>
+<thead><tr><td>yaml configuration</td></tr></thead>
+<tbody><tr><td>
+
+```yaml
+provider:
+  google:
+    validate:
+      groups-transitive: true
+```
+</td></tr></tbody>
+</table>
+
+When enabled, membership is resolved through the Cloud Identity
+[`checkTransitiveMembership`](https://cloud.google.com/identity/docs/reference/rest/v1/groups.memberships/checkTransitiveMembership)
+API, which still requires the `https://www.googleapis.com/auth/cloud-identity.groups.readonly` scope.
+
+> **IMPORTANT**
+>
+> The `checkTransitiveMembership` API is only available for Google Workspace Enterprise
+> Standard, Enterprise Plus, and Enterprise for Education; and Cloud Identity Premium
+> accounts. On other plans the API returns an error and group validation fails.
+
 ### Google consent screen always asking for permission grant
 
 If `oauth2.refresh.enabled` is set to `true`, Google SSO will always ask for permission grant. On technical side,

@@ -109,4 +109,11 @@ var Defaults = Config{
 			Roles:  make([]string, 0),
 		},
 	},
+	Provider: Provider{
+		Google: ProviderGoogle{
+			Validate: ProviderGoogleValidate{
+				GroupsTransitive: false,
+			},
+		},
+	},
 }

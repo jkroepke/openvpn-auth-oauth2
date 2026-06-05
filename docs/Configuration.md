@@ -156,6 +156,8 @@ Usage of openvpn-auth-oauth2:
     	openvpn management interface password. If argument starts with file:// it reads the secret from a file. (env: CONFIG_OPENVPN_PASSWORD)
   --openvpn.reauthentication
     	If set to false, openvpn-auth-oauth2 rejects all re-authentication requests. (env: CONFIG_OPENVPN_REAUTHENTICATION) (default true)
+  --provider.google.validate.groups-transitive
+    	If true, required group membership for the Google provider is matched transitively: nested sub-groups of a configured group in oauth2.validate.groups are accepted. Requires the cloud-identity.groups.readonly scope and a Google Workspace/Cloud Identity plan that supports the Cloud Identity checkTransitiveMembership API. (env: CONFIG_PROVIDER_GOOGLE_VALIDATE_GROUPS__TRANSITIVE)
   --version
     	show version
 ```

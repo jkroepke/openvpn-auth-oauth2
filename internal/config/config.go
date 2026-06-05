@@ -94,6 +94,7 @@ func (c *Config) ReadFromFlagAndEnvironment(args []string, writer io.Writer) err
 	c.flagSetHTTP(flagSet)
 	c.flagSetOpenVPN(flagSet)
 	c.flagSetOAuth2(flagSet)
+	c.flagSetProvider(flagSet)
 
 	flagSet.VisitAll(func(flag *flag.Flag) {
 		if flag.Name == "version" {

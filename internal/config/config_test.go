@@ -378,6 +378,16 @@ func TestConfigFlagSet(t *testing.T) {
 				return conf
 			}(),
 		},
+		{
+			"--provider.google.validate.groups-transitive",
+			[]string{"--provider.google.validate.groups-transitive"},
+			func() config.Config {
+				conf := config.Defaults
+				conf.Provider.Google.Validate.GroupsTransitive = true
+
+				return conf
+			}(),
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

@@ -458,3 +458,15 @@ func (c *Config) flagSetOAuth2(flagSet *flag.FlagSet) {
 			"Note: oauth2.openvpn-username-claim and oauth2.openvpn-username-cel cannot be set at the same time.",
 	)
 }
+
+func (c *Config) flagSetProvider(flagSet *flag.FlagSet) {
+	flagSet.BoolVar(
+		&c.Provider.Google.Validate.GroupsTransitive,
+		"provider.google.validate.groups-transitive",
+		lookupEnvOrDefault("provider.google.validate.groups-transitive", c.Provider.Google.Validate.GroupsTransitive),
+		"If true, required group membership for the Google provider is matched transitively: "+
+			"nested sub-groups of a configured group in oauth2.validate.groups are accepted. "+
+			"Requires the cloud-identity.groups.readonly scope and a Google Workspace/Cloud Identity plan "+
+			"that supports the Cloud Identity checkTransitiveMembership API.",
+	)
+}
