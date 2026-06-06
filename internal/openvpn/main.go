@@ -32,7 +32,7 @@ func New(logger *slog.Logger, conf config.Config) *Client {
 		logger: logger,
 
 		connMu:    sync.Mutex{},
-		commandMu: sync.RWMutex{},
+		commandMu: sync.Mutex{},
 
 		commandsBuffer: bytes.Buffer{},
 
@@ -228,8 +228,8 @@ func (c *Client) Shutdown(ctx context.Context) {
 // response. When passthrough is true the raw response is returned without any
 // validation.
 func (c *Client) SendCommand(ctx context.Context, cmd string, passthrough bool) (string, error) {
-	c.commandMu.RLock()
-	defer c.commandMu.RUnlock()
+	c.commandMu.Lock()
+	defer c.commandMu.Unlock()
 
 	if cmd == "\x00" || c.closed.Load() == 1 {
 		return "", nil
