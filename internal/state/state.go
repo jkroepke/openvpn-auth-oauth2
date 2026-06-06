@@ -1,7 +1,6 @@
 package state
 
 import (
-	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -59,7 +58,7 @@ func Encrypt(cipher *crypto.Cipher, state State) (EncryptedState, error) {
 
 	data := encodeState(state)
 
-	encrypted, err := cipher.EncryptBytesWithTime(data.Bytes())
+	encrypted, err := cipher.EncryptBytesWithTime(data)
 	if err != nil {
 		return "", fmt.Errorf("encrypt state: %w", err)
 	}
@@ -85,45 +84,42 @@ func Decrypt(cipher *crypto.Cipher, encryptedState EncryptedState) (State, error
 	return state, nil
 }
 
-func encodeState(state State) bytes.Buffer {
-	var data bytes.Buffer
-	data.Grow(4 +
-		binary.MaxVarintLen64*2 +
-		len(state.Client.SessionID) +
-		len(state.Client.CommonName) +
-		len(state.IPAddr) +
+func encodeState(state State) []byte {
+	data := make([]byte, 0, 4+
+		binary.MaxVarintLen64*2+
+		len(state.Client.SessionID)+
+		len(state.Client.CommonName)+
+		len(state.IPAddr)+
 		len(state.IPPort))
 
 	flags, ipAddr := encodeStateFlags(state)
 
-	data.WriteByte(binaryStateVersion)
-	data.WriteByte(flags)
-	data.WriteByte(encodeSessionState(state.SessionState)[0])
+	data = append(data, binaryStateVersion, flags, encodeSessionState(state.SessionState)[0])
 
-	writeUvarintToBuffer(&data, state.Client.CID)
-	writeUvarintToBuffer(&data, state.Client.KID)
+	data = appendUvarint(data, state.Client.CID)
+	data = appendUvarint(data, state.Client.KID)
 
 	if flags&flagSessionID != 0 {
-		writeStringToBuffer(&data, state.Client.SessionID)
+		data = appendString(data, state.Client.SessionID)
 	}
 
 	if flags&flagCommonName != 0 {
-		writeStringToBuffer(&data, state.Client.CommonName)
+		data = appendString(data, state.Client.CommonName)
 	}
 
 	switch {
 	case flags&flagIPAddrV4 != 0:
 		ipBytes := ipAddr.As4()
-		data.Write(ipBytes[:])
+		data = append(data, ipBytes[:]...)
 	case flags&flagIPAddrV6 != 0:
 		ipBytes := ipAddr.As16()
-		data.Write(ipBytes[:])
+		data = append(data, ipBytes[:]...)
 	case flags&flagIPAddrText != 0:
-		writeStringToBuffer(&data, state.IPAddr)
+		data = appendString(data, state.IPAddr)
 	}
 
 	if flags&flagIPPort != 0 {
-		writeStringToBuffer(&data, state.IPPort)
+		data = appendString(data, state.IPPort)
 	}
 
 	return data
@@ -255,16 +251,18 @@ func readIPAddr(flags byte, data []byte) (string, []byte, error) {
 	}
 }
 
-func writeStringToBuffer(buf *bytes.Buffer, text string) {
-	writeUvarintToBuffer(buf, uint64(len(text)))
-	buf.WriteString(text)
+func appendString(data []byte, text string) []byte {
+	data = appendUvarint(data, uint64(len(text)))
+
+	return append(data, text...)
 }
 
-func writeUvarintToBuffer(buf *bytes.Buffer, value uint64) {
+func appendUvarint(data []byte, value uint64) []byte {
 	var scratch [binary.MaxVarintLen64]byte
 
 	n := binary.PutUvarint(scratch[:], value)
-	buf.Write(scratch[:n])
+
+	return append(data, scratch[:n]...)
 }
 
 func readString(data []byte) (string, []byte, error) {

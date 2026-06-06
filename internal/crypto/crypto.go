@@ -9,8 +9,10 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"hash"
 	"io"
 	"strconv"
+	"sync"
 	"time"
 
 	"golang.org/x/crypto/salsa20"
@@ -30,8 +32,9 @@ var ErrHMACVerificationFailed = errors.New("hmac verification failed")
 
 // Cipher provides encryption and decryption operations using Salsa20 + HMAC-SHA256.
 type Cipher struct {
-	encKey *[32]byte // HKDF-derived key for Salsa20 encryption
-	macKey []byte    // HKDF-derived key for HMAC-SHA256 authentication
+	macPool sync.Pool
+	encKey  *[32]byte
+	macKey  []byte
 }
 
 // New creates a new Cipher instance with the given encryption key.
@@ -48,10 +51,15 @@ func New(encryptionKey string) *Cipher {
 	var encKey [32]byte
 	copy(encKey[:], encKeyBytes)
 
-	return &Cipher{
+	cipher := &Cipher{
 		encKey: &encKey,
 		macKey: macKeyBytes,
 	}
+	cipher.macPool.New = func() any {
+		return hmac.New(sha256.New, cipher.macKey)
+	}
+
+	return cipher
 }
 
 // DeriveKey derives a 32-byte key from the input key string using HKDF-SHA256
@@ -80,27 +88,26 @@ func deriveHKDFKey(secret []byte, info string) []byte {
 // Salsa20 provides stream cipher encryption with minimal overhead (8-byte nonce),
 // and HMAC-SHA256 provides authentication and tamper detection.
 func (c *Cipher) EncryptBytes(plainText []byte) ([]byte, error) {
-	// Generate random nonce
-	nonce := make([]byte, salsa20NonceSize)
+	result := make([]byte, salsa20NonceSize+len(plainText)+hmacTagSize)
+	nonce := result[:salsa20NonceSize]
+
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		return nil, fmt.Errorf("failed to generate nonce: %w", err)
 	}
 
-	// Encrypt using Salsa20
-	cipherText := make([]byte, len(plainText))
+	cipherText := result[salsa20NonceSize : len(result)-hmacTagSize]
 	salsa20.XORKeyStream(cipherText, plainText, nonce, c.encKey)
 
-	// Calculate HMAC over nonce + ciphertext (Encrypt-then-MAC)
-	h := hmac.New(sha256.New, c.macKey)
-	h.Write(nonce)
-	h.Write(cipherText)
-	tag := h.Sum(nil)[:hmacTagSize] // Use first 16 bytes of HMAC for compact overhead
+	macHash := c.getMAC()
+	defer c.putMAC(macHash)
 
-	// Return: nonce + ciphertext + HMAC tag
-	result := make([]byte, 0, len(nonce)+len(cipherText)+len(tag))
-	result = append(result, nonce...)
-	result = append(result, cipherText...)
-	result = append(result, tag...)
+	macHash.Write(nonce)
+	macHash.Write(cipherText)
+
+	var tagScratch [sha256.Size]byte
+
+	tag := macHash.Sum(tagScratch[:0])
+	copy(result[len(result)-hmacTagSize:], tag[:hmacTagSize])
 
 	return result, nil
 }
@@ -119,12 +126,17 @@ func (c *Cipher) DecryptBytes(encryptedData []byte) ([]byte, error) {
 	tag := encryptedData[len(encryptedData)-hmacTagSize:]
 
 	// Verify HMAC before decryption (constant-time comparison)
-	h := hmac.New(sha256.New, c.macKey)
-	h.Write(nonce)
-	h.Write(cipherText)
-	expectedTag := h.Sum(nil)[:hmacTagSize]
+	macHash := c.getMAC()
+	defer c.putMAC(macHash)
 
-	if !hmac.Equal(tag, expectedTag) {
+	macHash.Write(nonce)
+	macHash.Write(cipherText)
+
+	var tagScratch [sha256.Size]byte
+
+	expectedTag := macHash.Sum(tagScratch[:0])
+
+	if !hmac.Equal(tag, expectedTag[:hmacTagSize]) {
 		return nil, ErrHMACVerificationFailed
 	}
 
@@ -137,9 +149,11 @@ func (c *Cipher) DecryptBytes(encryptedData []byte) ([]byte, error) {
 
 func (c *Cipher) EncryptBytesWithTime(plainText []byte) ([]byte, error) {
 	issued := time.Now().Round(time.Second).Unix()
-	plainText = append([]byte(strconv.FormatInt(issued, 10)+" "), plainText...)
+	timedPlainText := strconv.AppendInt(make([]byte, 0, len(plainText)+12), issued, 10)
+	timedPlainText = append(timedPlainText, ' ')
+	timedPlainText = append(timedPlainText, plainText...)
 
-	encrypted, err := c.EncryptBytes(plainText)
+	encrypted, err := c.EncryptBytes(timedPlainText)
 	if err != nil {
 		return nil, err
 	}
@@ -178,6 +192,20 @@ func (c *Cipher) DecryptBytesWithTime(encryptedBase64 []byte) ([]byte, error) {
 	}
 
 	return data, nil
+}
+
+func (c *Cipher) getMAC() hash.Hash {
+	macHash, ok := c.macPool.Get().(hash.Hash)
+	if !ok {
+		return hmac.New(sha256.New, c.macKey)
+	}
+
+	return macHash
+}
+
+func (c *Cipher) putMAC(macHash hash.Hash) {
+	macHash.Reset()
+	c.macPool.Put(macHash)
 }
 
 // Helper to check token size.
