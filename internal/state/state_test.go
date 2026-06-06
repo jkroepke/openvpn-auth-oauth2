@@ -16,12 +16,15 @@ func TestState(t *testing.T) {
 	for _, tc := range []struct {
 		name         string
 		commonName   string
+		ipAddr       string
+		ipPort       string
 		sessionState string
 	}{
-		{name: "empty session state", commonName: "foobar", sessionState: ""},
-		{name: "non-empty session state", commonName: "", sessionState: "Authenticated"},
-		{name: "with special characters", commonName: "foo bar/baz@qux", sessionState: "AuthenticatedEmptyUser"},
-		{name: "with unicode characters", commonName: "foo bar/baz@qux 你好", sessionState: "ExpiredEmptyUser"},
+		{name: "empty session state", commonName: "foobar", ipAddr: "127.0.0.1", ipPort: "12345", sessionState: ""},
+		{name: "non-empty session state", commonName: "", ipAddr: "127.0.0.1", ipPort: "12345", sessionState: "Authenticated"},
+		{name: "empty ip address and port", commonName: "foobar", ipAddr: "", ipPort: "", sessionState: "Authenticated"},
+		{name: "with special characters", commonName: "foo bar/baz@qux", ipAddr: "127.0.0.1", ipPort: "12345", sessionState: "AuthenticatedEmptyUser"},
+		{name: "with unicode characters", commonName: "foo bar/baz@qux 你好", ipAddr: "127.0.0.1", ipPort: "12345", sessionState: "ExpiredEmptyUser"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -32,8 +35,8 @@ func TestState(t *testing.T) {
 					KID:        2,
 					CommonName: tc.commonName,
 				},
-				IPAddr:       "127.0.0.1",
-				IPPort:       "12345",
+				IPAddr:       tc.ipAddr,
+				IPPort:       tc.ipPort,
 				SessionState: tc.sessionState,
 			}
 

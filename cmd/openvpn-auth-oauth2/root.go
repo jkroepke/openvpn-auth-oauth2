@@ -87,7 +87,23 @@ func run(ctx context.Context, args []string, stdout io.Writer, tokenDataStorage 
 		slog.String("config", conf.String()),
 	)
 
-	openvpnClient, httpHandler, err := setupOpenVPNClient(ctx, logger, conf, tokenDataStorage)
+	tokenStorage := tokenstorage.NewInMemory(conf.OAuth2.Refresh.Secret.String(), conf.OAuth2.Refresh.Expires)
+	defer func() {
+		if err := tokenStorage.Close(); err != nil {
+			logger.LogAttrs(ctx, slog.LevelError, "error closing token storage", slog.Any("err", err))
+		}
+	}()
+
+	if err := tokenStorage.SetStorage(tokenDataStorage); err != nil {
+		logger.LogAttrs(
+			ctx, slog.LevelError, "error setting token storage",
+			slog.Any("err", err),
+		)
+
+		return ReturnCodeError
+	}
+
+	openvpnClient, httpHandler, err := setupOpenVPNClient(ctx, logger, conf, tokenStorage)
 	if err != nil {
 		logger.LogAttrs(
 			ctx, slog.LevelError, "error setting up openvpn client",
@@ -176,17 +192,14 @@ func setupDebugListener(ctx context.Context, logger *slog.Logger, conf config.Co
 
 // setupOpenVPNClient initializes the OpenVPN client with the provided configuration and OAuth2 provider.
 func setupOpenVPNClient(
-	ctx context.Context, logger *slog.Logger, conf config.Config, tokenDataStorage tokenstorage.DataMap,
+	ctx context.Context, logger *slog.Logger, conf config.Config, tokenStorage tokenstorage.Storage,
 ) (*openvpn.Client, *http.ServeMux, error) {
 	httpClient := &http.Client{Transport: utils.NewUserAgentTransport(http.DefaultTransport)}
-	tokenStorage := tokenstorage.NewInMemory(conf.OAuth2.Refresh.Secret.String(), conf.OAuth2.Refresh.Expires)
 
-	err := tokenStorage.SetStorage(tokenDataStorage)
-	if err != nil {
-		return nil, nil, fmt.Errorf("error setting token storage: %w", err)
-	}
-
-	var provider oauth2.Provider
+	var (
+		provider oauth2.Provider
+		err      error
+	)
 
 	switch conf.OAuth2.Provider {
 	case generic.Name:

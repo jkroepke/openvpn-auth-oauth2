@@ -25,7 +25,7 @@ func (c *Client) handlePassword(ctx context.Context) error {
 		return fmt.Errorf("set read deadline: %w", err)
 	}
 
-	_, err = c.conn.Read(buf)
+	_, err = io.ReadFull(c.conn, buf)
 	if err != nil {
 		return fmt.Errorf("error probe password: %w", err)
 	}
@@ -63,7 +63,7 @@ func (c *Client) sendPassword(ctx context.Context) error {
 	}
 
 	buf := make([]byte, 15)
-	if _, err := c.conn.Read(buf); err != nil {
+	if _, err := io.ReadFull(c.conn, buf); err != nil {
 		return fmt.Errorf("unable to read answer after sending password: %w", err)
 	}
 

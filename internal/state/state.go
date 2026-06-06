@@ -140,8 +140,8 @@ func parseStateFields(fields [][]byte) (State, error) {
 			UsernameIsDefined: usernameIsDefined,
 			CommonName:        decodeStringBytes(fields[4]),
 		},
-		IPAddr:       string(fields[5]),
-		IPPort:       string(fields[6]),
+		IPAddr:       decodeStringBytes(fields[5]),
+		IPPort:       decodeStringBytes(fields[6]),
 		SessionState: decodeSessionState(string(fields[7])),
 	}
 
