@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -267,6 +268,30 @@ func TestPlugin(t *testing.T) {
 
 			// PluginClientDestructorV1
 			PluginClientDestructorV1(args.Handle, clientContextPtr)
+		})
+	}
+}
+
+func TestParsePendingPollerTimeout(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		name     string
+		timeout  string
+		expected time.Duration
+	}{
+		{name: "valid", timeout: "600", expected: 10 * time.Minute},
+		{name: "zero", timeout: "0", expected: defaultPendingPollerTimeout},
+		{name: "negative", timeout: "-1", expected: defaultPendingPollerTimeout},
+		{name: "fraction", timeout: "1.5", expected: defaultPendingPollerTimeout},
+		{name: "invalid", timeout: "invalid", expected: defaultPendingPollerTimeout},
+		{name: "overflow", timeout: strconv.FormatUint(maxPendingPollerTimeoutSeconds+1, 10), expected: defaultPendingPollerTimeout},
+		{name: "max", timeout: strconv.FormatUint(maxPendingPollerTimeoutSeconds, 10), expected: time.Duration(maxPendingPollerTimeoutSeconds) * time.Second},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			require.Equal(t, tc.expected, parsePendingPollerTimeout(tc.timeout))
 		})
 	}
 }

@@ -5,12 +5,18 @@ package openvpn
 import (
 	"fmt"
 	"log/slog"
+	"strconv"
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/c"
 	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/client"
 	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/management"
 	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/util"
+)
+
+const (
+	defaultPendingPollerTimeout    = 5 * time.Minute
+	maxPendingPollerTimeoutSeconds = uint64(1<<63-1) / uint64(time.Second)
 )
 
 // handlePluginUp handles the OPENVPN_PLUGIN_UP event, which is triggered after
@@ -140,6 +146,8 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 
 		return c.OpenVPNPluginFuncError
 	case management.ClientAuthPending:
+		pendingTimeout := parsePendingPollerTimeout(resp.Timeout)
+
 		pendingRespCh, err := p.managementClient.RegisterPendingPoller(currentClientID)
 		if err != nil {
 			logger.ErrorContext(
@@ -167,7 +175,7 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 		// and writes the result to the auth control file. It observes p.ctx so that
 		// it terminates promptly on plugin shutdown instead of lingering until timeout.
 		go func(respCh <-chan *management.Response) {
-			resp, err := p.managementClient.WaitPendingPoller(p.ctx, currentClientID, 5*time.Minute, respCh)
+			resp, err := p.managementClient.WaitPendingPoller(p.ctx, currentClientID, pendingTimeout, respCh)
 			if err != nil {
 				logger.ErrorContext(
 					p.ctx, "poll deferred auth state",
@@ -223,6 +231,15 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 
 		return c.OpenVPNPluginFuncError
 	}
+}
+
+func parsePendingPollerTimeout(timeout string) time.Duration {
+	seconds, err := strconv.ParseUint(timeout, 10, 64)
+	if err != nil || seconds == 0 || seconds > maxPendingPollerTimeoutSeconds {
+		return defaultPendingPollerTimeout
+	}
+
+	return time.Duration(seconds) * time.Second
 }
 
 // handleClientConnect handles the OPENVPN_PLUGIN_CLIENT_CONNECT_V2 event,

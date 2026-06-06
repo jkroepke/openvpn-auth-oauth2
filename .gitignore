@@ -1,6 +1,7 @@
 *.iml
 *.out
 
+/.ai/
 /.idea/*
 !/.idea/inspectionProfiles/
 /.idea/inspectionProfiles/*
