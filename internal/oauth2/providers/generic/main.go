@@ -40,6 +40,7 @@ func (p Provider) GetName() string {
 	return Name
 }
 
+// setupCEL compiles the optional CEL expression used to derive the OpenVPN username.
 func (p Provider) setupCEL() (cel.Program, error) {
 	if p.Conf.OAuth2.OpenVPNUsernameCEL == "" {
 		return nil, nil //nolint:nilnil // No CEL expression configured, so we don't need to set up a program.

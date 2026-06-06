@@ -30,6 +30,7 @@ func (c *Claims) GetAccessTokenHash() string {
 
 type cAlias Claims
 
+// UnmarshalJSON decodes both typed ID token claims and the raw claims map.
 func (c *Claims) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, (*cAlias)(c)); err != nil {
 		return fmt.Errorf("claims: %w into %T", err, c)

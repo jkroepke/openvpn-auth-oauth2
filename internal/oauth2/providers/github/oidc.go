@@ -30,6 +30,7 @@ func (p Provider) Refresh(_ context.Context, _ *slog.Logger, _ rp.RelyingParty, 
 	}, nil
 }
 
+// RevokeRefreshToken is a no-op because GitHub OAuth apps do not support token revocation here.
 func (p Provider) RevokeRefreshToken(_ context.Context, _ *slog.Logger, _ rp.RelyingParty, _ string) error {
 	// GitHub doesn't support revoke token
 	return nil
