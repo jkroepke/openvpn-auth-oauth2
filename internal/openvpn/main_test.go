@@ -78,6 +78,23 @@ func TestClientFull(t *testing.T) {
 			expect: "client-pending-auth 1 2 \"WEB_AUTH::",
 		},
 		{
+			name: "with http ip check and privacy logging disabled",
+			conf: func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
+				conf.HTTP.Secret = testsuite.Secret
+				conf.HTTP.Check.IPAddr = true
+				conf.Log.VPNClientIP = false
+				conf.OpenVPN.CommonName.EnvironmentVariableName = config.CommonName
+				conf.OpenVPN.Bypass = config.OpenVPNBypass{CommonNames: make(types.RegexpSlice, 0)}
+				conf.OAuth2.Validate.IPAddr = false
+
+				return conf
+			}(),
+			client: ">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END\r\n",
+			expect: "client-pending-auth 1 2 \"WEB_AUTH::",
+		},
+		{
 			"with password",
 			func() config.Config {
 				conf := config.Defaults
