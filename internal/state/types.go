@@ -43,7 +43,6 @@ func decodeSessionState(s string) string {
 }
 
 // encodeSessionState returns the compact representation of the session state.
-
 func encodeSessionState(s string) string {
 	if v, ok := sessionStateMap[s]; ok {
 		return v

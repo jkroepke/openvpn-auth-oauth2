@@ -147,6 +147,7 @@ func (c *Cipher) DecryptBytes(encryptedData []byte) ([]byte, error) {
 	return plainText, nil
 }
 
+// EncryptBytesWithTime prefixes plaintext with the current Unix timestamp, encrypts it, and returns raw URL-base64 bytes.
 func (c *Cipher) EncryptBytesWithTime(plainText []byte) ([]byte, error) {
 	issued := time.Now().Round(time.Second).Unix()
 	timedPlainText := strconv.AppendInt(make([]byte, 0, len(plainText)+12), issued, 10)
@@ -165,6 +166,7 @@ func (c *Cipher) EncryptBytesWithTime(plainText []byte) ([]byte, error) {
 	return encryptedBase64, nil
 }
 
+// DecryptBytesWithTime decodes, authenticates, decrypts, and validates the timestamp on raw URL-base64 input.
 func (c *Cipher) DecryptBytesWithTime(encryptedBase64 []byte) ([]byte, error) {
 	if err := checkTokenSize(encryptedBase64); err != nil {
 		return nil, err
@@ -194,6 +196,7 @@ func (c *Cipher) DecryptBytesWithTime(encryptedBase64 []byte) ([]byte, error) {
 	return data, nil
 }
 
+// getMAC returns a reset HMAC-SHA256 instance from the cipher-local pool.
 func (c *Cipher) getMAC() hash.Hash {
 	macHash, ok := c.macPool.Get().(hash.Hash)
 	if !ok {
@@ -203,12 +206,13 @@ func (c *Cipher) getMAC() hash.Hash {
 	return macHash
 }
 
+// putMAC resets and returns an HMAC-SHA256 instance to the cipher-local pool.
 func (c *Cipher) putMAC(macHash hash.Hash) {
 	macHash.Reset()
 	c.macPool.Put(macHash)
 }
 
-// Helper to check token size.
+// checkTokenSize rejects unreasonably large encoded payloads before allocating decode buffers.
 func checkTokenSize(encodedState []byte) error {
 	if len(encodedState) > 4096 {
 		return fmt.Errorf("%w: token too large", ErrInvalid)
@@ -237,7 +241,7 @@ func extractIssued(data []byte) (int64, []byte, error) {
 	return issued, after, nil
 }
 
-// validateIssued the issued timestamp.
+// validateIssued checks that the issued timestamp is within the accepted clock window.
 func validateIssued(issued int64) error {
 	issuedSince := time.Since(time.Unix(issued, 0))
 

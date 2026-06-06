@@ -66,6 +66,7 @@ func Encrypt(cipher *crypto.Cipher, state State) (EncryptedState, error) {
 	return EncryptedState(encrypted), nil
 }
 
+// Decrypt authenticates, decrypts, and deserializes an encrypted OAuth2 state value.
 func Decrypt(cipher *crypto.Cipher, encryptedState EncryptedState) (State, error) {
 	if cipher == nil {
 		return State{}, errors.New("cipher is required")
@@ -84,6 +85,7 @@ func Decrypt(cipher *crypto.Cipher, encryptedState EncryptedState) (State, error
 	return state, nil
 }
 
+// encodeState serializes State into the compact binary payload protected by Encrypt.
 func encodeState(state State) []byte {
 	data := make([]byte, 0, 4+
 		binary.MaxVarintLen64*2+
@@ -125,6 +127,7 @@ func encodeState(state State) []byte {
 	return data
 }
 
+// encodeStateFlags derives the optional-field bitset and parsed IP address for binary state encoding.
 func encodeStateFlags(state State) (byte, netip.Addr) {
 	var (
 		flags  byte
@@ -167,6 +170,7 @@ func encodeStateFlags(state State) (byte, netip.Addr) {
 	return flags, addr
 }
 
+// decodeState parses a compact binary state payload after cryptographic verification.
 func decodeState(data []byte) (State, error) {
 	if len(data) < 3 {
 		return State{}, fmt.Errorf("state is too short: %d bytes", len(data))
@@ -202,6 +206,7 @@ func decodeState(data []byte) (State, error) {
 	return decodeStateFields(state, flags, data)
 }
 
+// decodeStateFields reads the optional fields controlled by the state flags.
 func decodeStateFields(state State, flags byte, data []byte) (State, error) {
 	var err error
 
@@ -238,6 +243,7 @@ func decodeStateFields(state State, flags byte, data []byte) (State, error) {
 	return state, nil
 }
 
+// readIPAddr reads the IP address field indicated by the state flags.
 func readIPAddr(flags byte, data []byte) (string, []byte, error) {
 	switch {
 	case flags&flagIPAddrV4 != 0:
@@ -251,12 +257,14 @@ func readIPAddr(flags byte, data []byte) (string, []byte, error) {
 	}
 }
 
+// appendString appends a length-prefixed string to the binary state payload.
 func appendString(data []byte, text string) []byte {
 	data = appendUvarint(data, uint64(len(text)))
 
 	return append(data, text...)
 }
 
+// appendUvarint appends a uint64 using Go's compact unsigned varint encoding.
 func appendUvarint(data []byte, value uint64) []byte {
 	var scratch [binary.MaxVarintLen64]byte
 
@@ -265,6 +273,7 @@ func appendUvarint(data []byte, value uint64) []byte {
 	return append(data, scratch[:n]...)
 }
 
+// readString reads a length-prefixed string from a binary state payload.
 func readString(data []byte) (string, []byte, error) {
 	length, data, err := readUvarint(data)
 	if err != nil {
@@ -278,6 +287,7 @@ func readString(data []byte) (string, []byte, error) {
 	return string(data[:length]), data[length:], nil
 }
 
+// readUvarint reads an unsigned varint and returns the remaining payload.
 func readUvarint(data []byte) (uint64, []byte, error) {
 	value, readLen := binary.Uvarint(data)
 	if readLen <= 0 {
@@ -287,6 +297,7 @@ func readUvarint(data []byte) (uint64, []byte, error) {
 	return value, data[readLen:], nil
 }
 
+// readIPAddrV4 reads a raw four-byte IPv4 address from a binary state payload.
 func readIPAddrV4(data []byte) (string, []byte, error) {
 	if len(data) < 4 {
 		return "", nil, fmt.Errorf("ipv4 length exceeds remaining data %d", len(data))
@@ -298,6 +309,7 @@ func readIPAddrV4(data []byte) (string, []byte, error) {
 	return netip.AddrFrom4(ipBytes).String(), data[4:], nil
 }
 
+// readIPAddrV6 reads a raw 16-byte IPv6 address from a binary state payload.
 func readIPAddrV6(data []byte) (string, []byte, error) {
 	if len(data) < 16 {
 		return "", nil, fmt.Errorf("ipv6 length exceeds remaining data %d", len(data))
@@ -309,6 +321,7 @@ func readIPAddrV6(data []byte) (string, []byte, error) {
 	return netip.AddrFrom16(ipBytes).String(), data[16:], nil
 }
 
+// boolToInt converts a boolean flag to the integer representation used by ClientIdentifier.
 func boolToInt(value bool) int {
 	if value {
 		return 1
