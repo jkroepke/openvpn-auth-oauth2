@@ -15,6 +15,7 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
+// GetRefreshToken returns the provider refresh token from the OAuth2 token response.
 func (p Provider) GetRefreshToken(tokens idtoken.IDToken) (string, error) {
 	if tokens == nil {
 		return "", oauth2.ErrMissingToken
@@ -64,6 +65,7 @@ func (p Provider) Refresh(ctx context.Context, logger *slog.Logger, relyingParty
 	return tokens, nil
 }
 
+// RevokeRefreshToken revokes a refresh token when the relying party supports token revocation.
 func (p Provider) RevokeRefreshToken(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, refreshToken string) error {
 	ctx = logging.ToContext(ctx, logger)
 

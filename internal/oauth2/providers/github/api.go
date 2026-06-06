@@ -16,6 +16,7 @@ var (
 	reLast = regexp.MustCompile("<([^>]+)>; rel=\"last\"")
 )
 
+// get performs an authenticated GitHub API request and decodes the JSON response.
 func get[T any](ctx context.Context, httpClient *http.Client, accessToken, apiURL string, data *T) (string, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
 	if err != nil {
@@ -48,6 +49,7 @@ func get[T any](ctx context.Context, httpClient *http.Client, accessToken, apiUR
 	return getPagination(apiURL, resp), nil
 }
 
+// getPagination returns the next GitHub pagination URL when more pages are available.
 func getPagination(apiURL string, resp *http.Response) string {
 	if resp == nil {
 		return ""

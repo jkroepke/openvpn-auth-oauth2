@@ -84,6 +84,7 @@ func New(
 	return client, nil
 }
 
+// initializeCELValidation compiles the configured CEL expression used for token validation.
 func (c *Client) initializeCELValidation() error {
 	if c.conf.OAuth2.Validate.CEL == "" {
 		return nil
@@ -176,6 +177,7 @@ func newOAuthRelyingParty(
 	return replyingParty, nil
 }
 
+// getRelyingPartyOptions builds the common relying party options for OAuth2 and OIDC clients.
 func (c *Client) getRelyingPartyOptions(httpClient *http.Client) []rp.Option {
 	basePath := c.conf.HTTP.BaseURL.JoinPath("/oauth2/")
 	cookieKey := []byte(c.conf.HTTP.Secret)

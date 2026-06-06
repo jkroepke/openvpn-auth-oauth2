@@ -9,6 +9,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 )
 
+// CheckUser resolves Google group membership when configured and then runs generic user validation.
 func (p Provider) CheckUser(
 	ctx context.Context,
 	session state.State,

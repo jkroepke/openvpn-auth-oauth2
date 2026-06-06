@@ -224,6 +224,7 @@ func (c *Client) OAuth2ProfileSubmit() http.Handler {
 	})
 }
 
+// getClientID returns the token storage key for a session based on the refresh-token configuration.
 func (c *Client) getClientID(session state.State) string {
 	if c.conf.OAuth2.Refresh.UseSessionID && session.Client.SessionID != "" {
 		return session.Client.SessionID
@@ -254,7 +255,7 @@ func (c *Client) createSessionLoggerWithState(session state.State) *slog.Logger 
 	)
 }
 
-//nolint:cyclop,gocognit,nestif
+// postCodeExchangeHandler returns the callback that validates exchanged tokens and accepts or denies the OpenVPN client.
 func (c *Client) postCodeExchangeHandler(
 	logger *slog.Logger, encryptedState state.EncryptedState, session state.State, clientID string,
 ) rp.CodeExchangeUserinfoCallback[*idtoken.Claims, *types.UserInfo] {
@@ -264,20 +265,12 @@ func (c *Client) postCodeExchangeHandler(
 	) {
 		ctx := r.Context()
 
-		if tokens.IDTokenClaims != nil {
-			logger = logger.With(
-				slog.String("idtoken_subject", tokens.IDTokenClaims.Subject),
-				slog.String("idtoken_email", tokens.IDTokenClaims.EMail),
-				slog.String("idtoken_preferred_username", tokens.IDTokenClaims.PreferredUsername),
-			)
+		logger = withIDTokenClaimsLogger(ctx, logger, tokens)
 
-			logger.LogAttrs(ctx, slog.LevelDebug, "claims", slog.Any("claims", tokens.IDTokenClaims.Claims))
-		}
-
-		user, err := c.provider.GetUser(ctx, logger, tokens, userInfo)
+		user, err := c.fetchUser(ctx, logger, tokens, userInfo)
 		if err != nil {
-			c.openvpn.DenyClient(ctx, logger, session.Client, "unable to fetch user data")
-			c.writeHTTPError(ctx, w, logger, http.StatusInternalServerError, "fetchUser", err.Error())
+			c.openvpn.DenyClient(ctx, logger, session.Client, err.openvpnReason)
+			c.writeHTTPError(ctx, w, logger, err.httpStatus, err.errorType, err.err.Error())
 
 			return
 		}
@@ -287,16 +280,9 @@ func (c *Client) postCodeExchangeHandler(
 			slog.String("user_username", user.Username),
 		)
 
-		if err = c.provider.CheckUser(ctx, session, user, tokens); err != nil {
-			c.openvpn.DenyClient(ctx, logger, session.Client, "client rejected")
-			c.writeHTTPError(ctx, w, logger, http.StatusForbidden, "user validation", err.Error())
-
-			return
-		}
-
-		if err = c.CheckTokenCEL(CELAuthModeInteractive, session, tokens); err != nil {
-			c.openvpn.DenyClient(ctx, logger, session.Client, "client rejected")
-			c.writeHTTPError(ctx, w, logger, http.StatusForbidden, "user validation", err.Error())
+		if err = c.validateInteractiveUser(ctx, session, user, tokens); err != nil {
+			c.openvpn.DenyClient(ctx, logger, session.Client, err.openvpnReason)
+			c.writeHTTPError(ctx, w, logger, err.httpStatus, err.errorType, err.err.Error())
 
 			return
 		}
@@ -308,80 +294,220 @@ func (c *Client) postCodeExchangeHandler(
 			username = session.Client.CommonName
 		}
 
-		if c.conf.OpenVPN.ClientConfig.UserSelector.Enabled {
-			clientConfigProfiles := c.extractConfigProfilesFromIDToken(tokens)
-
-			// If there's exactly one profile, use it directly
-			if len(clientConfigProfiles) == 1 {
-				c.openvpn.AcceptClient(ctx, logger, session.Client, username, clientConfigProfiles[0])
-				c.postCodeExchangeHandlerStoreRefreshToken(ctx, logger, session, clientID, tokens)
-				c.writeHTTPSuccess(ctx, w, logger)
-
-				return
-			}
-
-			// Only show profile selector if there's more than one profile to choose from
-			if len(clientConfigProfiles) > 1 {
-				c.postCodeExchangeHandlerStoreRefreshToken(ctx, logger, session, clientID, tokens)
-
-				clientConfigSelectorToken, err := c.createProfileSelectorToken(encryptedState, username, clientConfigProfiles)
-				if err != nil {
-					c.openvpn.DenyClient(ctx, logger, session.Client, "unable to create profile selector token")
-					c.writeHTTPError(ctx, w, logger, http.StatusInternalServerError, "profile selector token", err.Error())
-
-					return
-				}
-
-				err = c.storeProfileSelectorToken(ctx, clientConfigSelectorToken, clientID)
-				if err != nil {
-					c.openvpn.DenyClient(ctx, logger, session.Client, "unable to store profile selector token")
-					c.writeHTTPError(ctx, w, logger, http.StatusInternalServerError, "store profile selector token", err.Error())
-
-					return
-				}
-
-				err = c.conf.HTTP.Template.Execute(w, map[string]any{
-					title:                  "Select Profile",
-					message:                "Please select your client configuration profile.",
-					"token":                clientConfigSelectorToken,
-					"clientConfigProfiles": clientConfigProfiles,
-				})
-				if err != nil {
-					logger.LogAttrs(ctx, slog.LevelError, "template error", slog.Any(
-						"err", fmt.Errorf("executing template: %w", err),
-					))
-					w.WriteHeader(http.StatusInternalServerError)
-
-					return
-				}
-
-				logger.LogAttrs(
-					ctx, slog.LevelInfo, "presented client configuration profile selector",
-					slog.String("profiles", strings.Join(clientConfigProfiles, ", ")),
-				)
-
-				return
-			}
-
-			// If no profiles, fall through to the default behavior
+		codeExchange := codeExchangeRequest{
+			logger:         logger,
+			encryptedState: encryptedState,
+			session:        session,
+			clientID:       clientID,
+			tokens:         tokens,
+			username:       username,
 		}
 
-		clientConfigName := username
-
-		if clientConfigClaim := c.conf.OpenVPN.ClientConfig.TokenClaim; clientConfigClaim != "" && tokens.IDTokenClaims != nil {
-			if claimValue, ok := tokens.IDTokenClaims.Claims[clientConfigClaim]; ok {
-				if clientConfigTokenValue, ok := claimValue.(string); ok && clientConfigName != "" {
-					clientConfigName = clientConfigTokenValue
-				}
-			}
+		if c.handleUserSelectedClientConfig(ctx, w, codeExchange) {
+			return
 		}
 
-		c.openvpn.AcceptClient(ctx, logger, session.Client, username, clientConfigName)
-		c.postCodeExchangeHandlerStoreRefreshToken(ctx, logger, session, clientID, tokens)
-		c.writeHTTPSuccess(ctx, w, logger)
+		clientConfigName := c.clientConfigNameFromToken(tokens, username)
+
+		c.acceptOAuth2Client(ctx, w, codeExchange, clientConfigName)
 	}
 }
 
+// withIDTokenClaimsLogger enriches the logger with ID token claim fields when claims are available.
+func withIDTokenClaimsLogger(ctx context.Context, logger *slog.Logger, tokens idtoken.IDToken) *slog.Logger {
+	if tokens.IDTokenClaims == nil {
+		return logger
+	}
+
+	logger = logger.With(
+		slog.String("idtoken_subject", tokens.IDTokenClaims.Subject),
+		slog.String("idtoken_email", tokens.IDTokenClaims.EMail),
+		slog.String("idtoken_preferred_username", tokens.IDTokenClaims.PreferredUsername),
+	)
+
+	logger.LogAttrs(ctx, slog.LevelDebug, "claims", slog.Any("claims", tokens.IDTokenClaims.Claims))
+
+	return logger
+}
+
+type userValidationError struct {
+	err           error
+	errorType     string
+	openvpnReason string
+	httpStatus    int
+}
+
+// fetchUser resolves the authenticated user from token claims or UserInfo data.
+func (c *Client) fetchUser(
+	ctx context.Context,
+	logger *slog.Logger,
+	tokens idtoken.IDToken,
+	userInfo *types.UserInfo,
+) (types.UserInfo, *userValidationError) {
+	user, err := c.provider.GetUser(ctx, logger, tokens, userInfo)
+	if err != nil {
+		return types.UserInfo{}, &userValidationError{
+			err:           err,
+			httpStatus:    http.StatusInternalServerError,
+			errorType:     "fetchUser",
+			openvpnReason: "unable to fetch user data",
+		}
+	}
+
+	return user, nil
+}
+
+// validateInteractiveUser applies provider-specific and CEL checks for an interactive OAuth2 login.
+func (c *Client) validateInteractiveUser(
+	ctx context.Context,
+	session state.State,
+	user types.UserInfo,
+	tokens idtoken.IDToken,
+) *userValidationError {
+	if err := c.provider.CheckUser(ctx, session, user, tokens); err != nil {
+		return failedUserValidation(err)
+	}
+
+	if err := c.CheckTokenCEL(CELAuthModeInteractive, session, tokens); err != nil {
+		return failedUserValidation(err)
+	}
+
+	return nil
+}
+
+// failedUserValidation converts a validation error into the common denial response metadata.
+func failedUserValidation(err error) *userValidationError {
+	return &userValidationError{
+		err:           err,
+		httpStatus:    http.StatusForbidden,
+		errorType:     "user validation",
+		openvpnReason: "client rejected",
+	}
+}
+
+type codeExchangeRequest struct {
+	logger         *slog.Logger
+	tokens         idtoken.IDToken
+	encryptedState state.EncryptedState
+	clientID       string
+	username       string
+	session        state.State
+}
+
+// handleUserSelectedClientConfig handles client configuration profile selection when it is enabled.
+func (c *Client) handleUserSelectedClientConfig(ctx context.Context, w http.ResponseWriter, req codeExchangeRequest) bool {
+	if !c.conf.OpenVPN.ClientConfig.UserSelector.Enabled {
+		return false
+	}
+
+	clientConfigProfiles := c.extractConfigProfilesFromIDToken(req.tokens)
+
+	switch len(clientConfigProfiles) {
+	case 0:
+		return false
+	case 1:
+		c.acceptOAuth2Client(ctx, w, req, clientConfigProfiles[0])
+
+		return true
+	default:
+		c.postCodeExchangeHandlerStoreRefreshToken(ctx, req.logger, req.session, req.clientID, req.tokens)
+
+		if err := c.renderClientConfigProfileSelector(ctx, w, req, clientConfigProfiles); err != nil {
+			c.openvpn.DenyClient(ctx, req.logger, req.session.Client, err.openvpnReason)
+			c.writeHTTPError(ctx, w, req.logger, http.StatusInternalServerError, err.errorType, err.err.Error())
+		}
+
+		return true
+	}
+}
+
+type profileSelectorError struct {
+	err           error
+	errorType     string
+	openvpnReason string
+}
+
+// renderClientConfigProfileSelector stores a selector token and renders the profile selection page.
+func (c *Client) renderClientConfigProfileSelector(
+	ctx context.Context,
+	w http.ResponseWriter,
+	req codeExchangeRequest,
+	clientConfigProfiles []string,
+) *profileSelectorError {
+	clientConfigSelectorToken, err := c.createProfileSelectorToken(req.encryptedState, req.username, clientConfigProfiles)
+	if err != nil {
+		return &profileSelectorError{
+			err:           err,
+			errorType:     "profile selector token",
+			openvpnReason: "unable to create profile selector token",
+		}
+	}
+
+	err = c.storeProfileSelectorToken(ctx, clientConfigSelectorToken, req.clientID)
+	if err != nil {
+		return &profileSelectorError{
+			err:           err,
+			errorType:     "store profile selector token",
+			openvpnReason: "unable to store profile selector token",
+		}
+	}
+
+	err = c.conf.HTTP.Template.Execute(w, map[string]any{
+		title:                  "Select Profile",
+		message:                "Please select your client configuration profile.",
+		"token":                clientConfigSelectorToken,
+		"clientConfigProfiles": clientConfigProfiles,
+	})
+	if err != nil {
+		req.logger.LogAttrs(ctx, slog.LevelError, "template error", slog.Any(
+			"err", fmt.Errorf("executing template: %w", err),
+		))
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return nil
+	}
+
+	req.logger.LogAttrs(
+		ctx, slog.LevelInfo, "presented client configuration profile selector",
+		slog.String("profiles", strings.Join(clientConfigProfiles, ", ")),
+	)
+
+	return nil
+}
+
+// clientConfigNameFromToken returns the client configuration name from the configured token claim when present.
+func (c *Client) clientConfigNameFromToken(tokens idtoken.IDToken, defaultName string) string {
+	clientConfigClaim := c.conf.OpenVPN.ClientConfig.TokenClaim
+	if clientConfigClaim == "" || tokens.IDTokenClaims == nil || defaultName == "" {
+		return defaultName
+	}
+
+	claimValue, ok := tokens.IDTokenClaims.Claims[clientConfigClaim]
+	if !ok {
+		return defaultName
+	}
+
+	clientConfigName, ok := claimValue.(string)
+	if !ok {
+		return defaultName
+	}
+
+	return clientConfigName
+}
+
+// acceptOAuth2Client accepts the OpenVPN client, stores refresh state, and renders the success page.
+func (c *Client) acceptOAuth2Client(
+	ctx context.Context,
+	w http.ResponseWriter,
+	req codeExchangeRequest,
+	clientConfigName string,
+) {
+	c.openvpn.AcceptClient(ctx, req.logger, req.session.Client, req.username, clientConfigName)
+	c.postCodeExchangeHandlerStoreRefreshToken(ctx, req.logger, req.session, req.clientID, req.tokens)
+	c.writeHTTPSuccess(ctx, w, req.logger)
+}
+
+// postCodeExchangeHandlerStoreRefreshToken stores refresh data for future non-interactive authentication.
 func (c *Client) postCodeExchangeHandlerStoreRefreshToken(
 	ctx context.Context, logger *slog.Logger, session state.State, clientID string, tokens idtoken.IDToken,
 ) {
@@ -454,6 +580,7 @@ func (c *Client) extractConfigProfilesFromIDToken(tokens idtoken.IDToken) []stri
 	return profiles
 }
 
+// storeProfileSelectorToken stores an encrypted profile selector token under a short-lived lookup key.
 func (c *Client) storeProfileSelectorToken(ctx context.Context, encryptedToken, clientID string) error {
 	stateHash := sha256.Sum256([]byte(encryptedToken))
 	storageKey := fmt.Sprintf("%s-token-%x", clientID, stateHash[:8])
@@ -466,6 +593,7 @@ func (c *Client) storeProfileSelectorToken(ctx context.Context, encryptedToken, 
 	return nil
 }
 
+// createProfileSelectorToken creates an encrypted token containing the available client configuration profiles.
 func (c *Client) createProfileSelectorToken(encryptedState state.EncryptedState, username string, profiles []string) (string, error) {
 	if username == "" {
 		username = config.CommonNameModeOmitValue
@@ -490,6 +618,7 @@ func (c *Client) createProfileSelectorToken(encryptedState state.EncryptedState,
 	return string(encryptedToken), nil
 }
 
+// httpErrorHandler maps OAuth2 relying party errors to OpenVPN denial and an HTTP error page.
 func (c *Client) httpErrorHandler(ctx context.Context, w http.ResponseWriter, httpStatus int, errorType, errorDesc, encryptedSession string) {
 	logger := c.logger
 
@@ -505,6 +634,7 @@ func (c *Client) httpErrorHandler(ctx context.Context, w http.ResponseWriter, ht
 	c.writeHTTPError(ctx, w, logger, httpStatus, errorType, errorDesc)
 }
 
+// writeHTTPError writes the configured access-denied page and logs a generated error ID.
 func (c *Client) writeHTTPError(ctx context.Context, w http.ResponseWriter, logger *slog.Logger, httpCode int, errorType, errorDesc string) {
 	if httpCode == http.StatusUnauthorized {
 		httpCode = http.StatusForbidden
@@ -524,11 +654,14 @@ func (c *Client) writeHTTPError(ctx context.Context, w http.ResponseWriter, logg
 		"errorID": errorID,
 	})
 	if err != nil {
-		logger.LogAttrs(ctx, slog.LevelError, fmt.Errorf("executing template: %w", err).Error())
+		logger.LogAttrs(ctx, slog.LevelError, "template error", slog.Any(
+			"err", err,
+		))
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 }
 
+// writeHTTPSuccess writes the configured access-granted page.
 func (c *Client) writeHTTPSuccess(ctx context.Context, w http.ResponseWriter, logger *slog.Logger) {
 	err := c.conf.HTTP.Template.Execute(w, map[string]string{
 		title:   "Access granted",
@@ -536,7 +669,7 @@ func (c *Client) writeHTTPSuccess(ctx context.Context, w http.ResponseWriter, lo
 	})
 	if err != nil {
 		logger.LogAttrs(ctx, slog.LevelError, "template error", slog.Any(
-			"err", fmt.Errorf("executing template: %w", err),
+			"err", err,
 		))
 		w.WriteHeader(http.StatusInternalServerError)
 	}

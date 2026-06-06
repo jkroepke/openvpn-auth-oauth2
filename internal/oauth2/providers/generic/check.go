@@ -14,6 +14,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
+// CheckUser validates the resolved user and ID token against the configured generic provider rules.
 func (p Provider) CheckUser(
 	_ context.Context,
 	session state.State,
@@ -35,6 +36,7 @@ func (p Provider) CheckUser(
 	return p.CheckIPAddress(session, tokens)
 }
 
+// CheckGroups verifies that the user belongs to at least one required group.
 func (p Provider) CheckGroups(userInfo types.UserInfo) error {
 	if len(p.Conf.OAuth2.Validate.Groups) == 0 {
 		return nil
@@ -53,6 +55,7 @@ func (p Provider) CheckGroups(userInfo types.UserInfo) error {
 	return oauth2.ErrMissingRequiredGroup
 }
 
+// CheckRoles verifies that the ID token contains at least one required role.
 func (p Provider) CheckRoles(tokens idtoken.IDToken) error {
 	if len(p.Conf.OAuth2.Validate.Roles) == 0 {
 		return nil
@@ -75,6 +78,7 @@ func (p Provider) CheckRoles(tokens idtoken.IDToken) error {
 	return oauth2.ErrMissingRequiredRole
 }
 
+// CheckCommonName compares the OpenVPN common name with the configured ID token claim.
 func (p Provider) CheckCommonName(session state.State, tokens idtoken.IDToken) error {
 	if p.Conf.OAuth2.Validate.CommonName == "" {
 		return nil
@@ -112,6 +116,7 @@ func (p Provider) CheckCommonName(session state.State, tokens idtoken.IDToken) e
 	return nil
 }
 
+// CheckIPAddress compares the OpenVPN client IP address with the ID token IP address claim.
 func (p Provider) CheckIPAddress(session state.State, tokens idtoken.IDToken) error {
 	if !p.Conf.OAuth2.Validate.IPAddr {
 		return nil

@@ -11,6 +11,7 @@ type UserInfo struct {
 	Groups   []string `json:"groups"`
 }
 
+// GetSubject returns the subject identifier from the UserInfo response.
 func (u UserInfo) GetSubject() string {
 	return u.Subject
 }

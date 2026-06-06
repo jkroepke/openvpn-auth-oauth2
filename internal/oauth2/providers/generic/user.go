@@ -9,6 +9,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
 )
 
+// GetUser resolves user data from UserInfo when available, otherwise from ID token claims.
 func (p Provider) GetUser(ctx context.Context, logger *slog.Logger, tokens idtoken.IDToken, userinfo *types.UserInfo) (types.UserInfo, error) {
 	if userinfo != nil {
 		return *userinfo, nil
@@ -58,6 +59,7 @@ func (p Provider) GetUser(ctx context.Context, logger *slog.Logger, tokens idtok
 	}, nil
 }
 
+// extractUsernameFromToken resolves the OpenVPN username from CEL or the configured claim.
 func (p Provider) extractUsernameFromToken(tokens idtoken.IDToken) (string, error) {
 	switch {
 	case p.Conf.OAuth2.OpenVPNUsernameCEL != "":
@@ -91,6 +93,7 @@ func (p Provider) extractUsernameFromToken(tokens idtoken.IDToken) (string, erro
 	}
 }
 
+// extractGroups reads the configured groups claim from the ID token.
 func (p Provider) extractGroups(ctx context.Context, logger *slog.Logger, tokens idtoken.IDToken) ([]string, error) {
 	groupClaim, ok := tokens.IDTokenClaims.Claims[p.Conf.OAuth2.GroupsClaim]
 	if !ok {
