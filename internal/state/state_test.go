@@ -23,6 +23,7 @@ func TestState(t *testing.T) {
 		{name: "empty session state", commonName: "foobar", ipAddr: "127.0.0.1", ipPort: "12345", sessionState: ""},
 		{name: "non-empty session state", commonName: "", ipAddr: "127.0.0.1", ipPort: "12345", sessionState: "Authenticated"},
 		{name: "empty ip address and port", commonName: "foobar", ipAddr: "", ipPort: "", sessionState: "Authenticated"},
+		{name: "ipv6 address", commonName: "foobar", ipAddr: "2001:db8::1", ipPort: "12345", sessionState: "Authenticated"},
 		{name: "with special characters", commonName: "foo bar/baz@qux", ipAddr: "127.0.0.1", ipPort: "12345", sessionState: "AuthenticatedEmptyUser"},
 		{name: "with unicode characters", commonName: "foo bar/baz@qux 你好", ipAddr: "127.0.0.1", ipPort: "12345", sessionState: "ExpiredEmptyUser"},
 	} {
@@ -62,14 +63,14 @@ func TestStateInvalid(t *testing.T) {
 		{
 			name: "invalid base64",
 			encodedToken: func() (state.EncryptedState, error) {
-				return "invalid", nil
+				return "invalid*", nil
 			},
 			expectedErr: "illegal base64 data at input",
 		},
 		{
 			name: "invalid ciphertext",
 			encodedToken: func() (state.EncryptedState, error) {
-				return base64.URLEncoding.EncodeToString([]byte("a")), nil
+				return base64.RawURLEncoding.EncodeToString([]byte("a")), nil
 			},
 			expectedErr: "ciphertext block size is too short",
 		},
@@ -81,40 +82,76 @@ func TestStateInvalid(t *testing.T) {
 			expectedErr: "invalid data: token too large",
 		},
 		{
-			name: "invalid CID",
+			name: "state too short",
 			encodedToken: func() (state.EncryptedState, error) {
-				encrypted, err := testsuite.Cipher.EncryptBytesWithTime([]byte("A B C D E F G H"))
+				encrypted, err := testsuite.Cipher.EncryptBytesWithTime([]byte{2, 0})
 				if err != nil {
 					return "", err
 				}
 
 				return string(encrypted), nil
 			},
-			expectedErr: "parse CID: strconv.ParseUint",
+			expectedErr: "state is too short",
+		},
+		{
+			name: "unsupported state version",
+			encodedToken: func() (state.EncryptedState, error) {
+				encrypted, err := testsuite.Cipher.EncryptBytesWithTime([]byte{1, 0, '0', 1, 1})
+				if err != nil {
+					return "", err
+				}
+
+				return string(encrypted), nil
+			},
+			expectedErr: "unsupported state version",
+		},
+		{
+			name: "invalid CID",
+			encodedToken: func() (state.EncryptedState, error) {
+				encrypted, err := testsuite.Cipher.EncryptBytesWithTime([]byte{2, 0, '0'})
+				if err != nil {
+					return "", err
+				}
+
+				return string(encrypted), nil
+			},
+			expectedErr: "read CID: invalid uvarint",
 		},
 		{
 			name: "invalid KID",
 			encodedToken: func() (state.EncryptedState, error) {
-				encrypted, err := testsuite.Cipher.EncryptBytesWithTime([]byte("1 B C D E F G H"))
+				encrypted, err := testsuite.Cipher.EncryptBytesWithTime([]byte{2, 0, '0', 1})
 				if err != nil {
 					return "", err
 				}
 
 				return string(encrypted), nil
 			},
-			expectedErr: "parse KID: strconv.ParseUint",
+			expectedErr: "read KID: invalid uvarint",
 		},
 		{
-			name: "invalid UsernameIsDefined",
+			name: "truncated common name",
 			encodedToken: func() (state.EncryptedState, error) {
-				encrypted, err := testsuite.Cipher.EncryptBytesWithTime([]byte("1 1 C D E F G H"))
+				encrypted, err := testsuite.Cipher.EncryptBytesWithTime([]byte{2, 2, '0', 1, 1, 5, 'a'})
 				if err != nil {
 					return "", err
 				}
 
 				return string(encrypted), nil
 			},
-			expectedErr: "parse UsernameIsDefined: strconv.Atoi",
+			expectedErr: "read CommonName: string length 5 exceeds remaining data 1",
+		},
+		{
+			name: "trailing data",
+			encodedToken: func() (state.EncryptedState, error) {
+				encrypted, err := testsuite.Cipher.EncryptBytesWithTime([]byte{2, 0, '0', 1, 1, 'x'})
+				if err != nil {
+					return "", err
+				}
+
+				return string(encrypted), nil
+			},
+			expectedErr: "unexpected trailing state data",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

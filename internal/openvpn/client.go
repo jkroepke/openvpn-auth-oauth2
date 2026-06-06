@@ -124,8 +124,11 @@ func (c *Client) startClientAuth(ctx context.Context, logger *slog.Logger, clien
 	clientIdentifier := state.ClientIdentifier{
 		CID:        client.CID,
 		KID:        client.KID,
-		SessionID:  client.SessionID,
 		CommonName: commonName,
+	}
+
+	if c.conf.OAuth2.Refresh.UseSessionID {
+		clientIdentifier.SessionID = client.SessionID
 	}
 
 	var (
@@ -135,6 +138,9 @@ func (c *Client) startClientAuth(ctx context.Context, logger *slog.Logger, clien
 
 	if c.conf.Log.VPNClientIP || c.conf.HTTP.Check.IPAddr || c.conf.OAuth2.Validate.IPAddr {
 		ipAddr = client.IPAddr
+	}
+
+	if c.conf.Log.VPNClientIP {
 		ipPort = client.IPPort
 	}
 
