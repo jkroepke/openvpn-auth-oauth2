@@ -228,6 +228,21 @@ func TestRoundTrip(t *testing.T) {
 	}
 }
 
+func TestEncryptBytesWithTimeUsesRawURLBase64(t *testing.T) {
+	t.Parallel()
+
+	cipher := crypto.New("test-key")
+
+	encrypted, err := cipher.EncryptBytesWithTime([]byte("hello world"))
+	require.NoError(t, err)
+
+	require.NotContains(t, string(encrypted), "=")
+
+	decrypted, err := cipher.DecryptBytesWithTime(encrypted)
+	require.NoError(t, err)
+	require.Equal(t, []byte("hello world"), decrypted)
+}
+
 func TestCipherConsistency(t *testing.T) {
 	t.Parallel()
 

@@ -957,7 +957,7 @@ func TestOAuth2ProfileSubmit(t *testing.T) {
 				require.NoError(t, err)
 
 				req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth2/profile-submit",
-					strings.NewReader("token="+url.QueryEscape(base64.URLEncoding.EncodeToString(encryptedToken))))
+					strings.NewReader("token="+url.QueryEscape(base64.RawURLEncoding.EncodeToString(encryptedToken))))
 				require.NoError(t, err)
 
 				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -978,7 +978,7 @@ func TestOAuth2ProfileSubmit(t *testing.T) {
 				require.NoError(t, err)
 
 				req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth2/profile-submit",
-					strings.NewReader("token="+url.QueryEscape(base64.URLEncoding.EncodeToString(encryptedToken))))
+					strings.NewReader("token="+url.QueryEscape(base64.RawURLEncoding.EncodeToString(encryptedToken))))
 
 				require.NoError(t, err)
 
@@ -1005,7 +1005,7 @@ func TestOAuth2ProfileSubmit(t *testing.T) {
 				require.NoError(t, err)
 
 				req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth2/profile-submit",
-					strings.NewReader("token="+url.QueryEscape(base64.URLEncoding.EncodeToString(encryptedToken))))
+					strings.NewReader("token="+url.QueryEscape(base64.RawURLEncoding.EncodeToString(encryptedToken))))
 				require.NoError(t, err)
 				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
@@ -1075,7 +1075,7 @@ func TestOAuth2Callback(t *testing.T) {
 			func(t *testing.T) *http.Request {
 				t.Helper()
 
-				req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/oauth2/callback?state=invalid", nil)
+				req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/oauth2/callback?state=invalid*", nil)
 				require.NoError(t, err)
 
 				return req
@@ -1089,7 +1089,7 @@ func TestOAuth2Callback(t *testing.T) {
 			func(t *testing.T) *http.Request {
 				t.Helper()
 
-				req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/oauth2/callback?state="+base64.URLEncoding.EncodeToString([]byte("invalid")), nil)
+				req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/oauth2/callback?state="+base64.RawURLEncoding.EncodeToString([]byte("invalid")), nil)
 				require.NoError(t, err)
 
 				return req

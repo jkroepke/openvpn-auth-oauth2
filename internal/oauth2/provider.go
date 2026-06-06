@@ -23,7 +23,7 @@ import (
 
 // New returns a [Client] instance.
 //
-//nolint:revive
+//nolint:revive // New wires together package dependencies.
 func New(
 	ctx context.Context, logger *slog.Logger, conf config.Config,
 	httpClient *http.Client, tokenStorage tokenstorage.Storage, stateCrypto *crypto.Cipher,

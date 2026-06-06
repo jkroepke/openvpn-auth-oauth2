@@ -2,14 +2,25 @@ package state
 
 import (
 	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
-	"strconv"
+	"net/netip"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/crypto"
 )
 
-const numFields = 8
+const (
+	binaryStateVersion = 2
+
+	flagSessionID         = 1 << 0
+	flagCommonName        = 1 << 1
+	flagIPAddrV4          = 1 << 2
+	flagIPAddrV6          = 1 << 3
+	flagIPAddrText        = 1 << 4
+	flagIPPort            = 1 << 5
+	flagUsernameIsDefined = 1 << 6
+)
 
 // State represents the context and security information associated with an OAuth2 login flow.
 //
@@ -39,45 +50,14 @@ type ClientIdentifier struct {
 	UsernameIsDefined int    // 1 if username is defined, 0 otherwise
 }
 
-// Encrypt serializes the state into a space-separated, Salsa20-encrypted, base64-URL-safe string.
-// Fields are encoded in fixed order:
-//
-//	CID KID SessionID UsernameIsDefined CommonName IPAddr IPPort SessionState
-//
-// Empty strings are encoded as \x00, and spaces as \x00.
+// Encrypt serializes the state into a compact binary, Salsa20-encrypted, base64-URL-safe string.
 // The result is safe for use in URL parameters and has a ~1-second resolution timestamp.
 func Encrypt(cipher *crypto.Cipher, state State) (EncryptedState, error) {
 	if cipher == nil {
 		return "", errors.New("cipher is required")
 	}
 
-	var data bytes.Buffer
-	// Preallocate buffer space to minimize reallocations.
-	data.Grow(118 +
-		len(state.Client.SessionID) +
-		len(state.Client.CommonName) +
-		len(state.IPAddr) +
-		len(state.IPPort))
-
-	var scratch [20]byte // Scratch buffer for integer conversions
-
-	// write each field in order, separated by spaces.
-	data.Write(strconv.AppendUint(scratch[:0], state.Client.CID, 10))
-	data.WriteByte(' ')
-	data.Write(strconv.AppendUint(scratch[:0], state.Client.KID, 10))
-	data.WriteByte(' ')
-	encodeStringToBuffer(&data, state.Client.SessionID)
-	data.WriteByte(' ')
-	data.Write(strconv.AppendInt(scratch[:0], int64(state.Client.UsernameIsDefined), 10))
-	data.WriteByte(' ')
-	encodeStringToBuffer(&data, state.Client.CommonName)
-	data.WriteByte(' ')
-	encodeStringToBuffer(&data, state.IPAddr)
-	data.WriteByte(' ')
-	encodeStringToBuffer(&data, state.IPPort)
-	data.WriteByte(' ')
-	data.WriteString(encodeSessionState(state.SessionState))
-	data.WriteString("\n")
+	data := encodeState(state)
 
 	encrypted, err := cipher.EncryptBytesWithTime(data.Bytes())
 	if err != nil {
@@ -97,53 +77,244 @@ func Decrypt(cipher *crypto.Cipher, encryptedState EncryptedState) (State, error
 		return State{}, fmt.Errorf("decrypt state: %w", err)
 	}
 
-	fields, err := splitStateFields(data)
+	state, err := decodeState(data)
 	if err != nil {
-		return State{}, err
+		return State{}, fmt.Errorf("decode state: %w", err)
 	}
 
-	return parseStateFields(fields)
+	return state, nil
 }
 
-// Helper to split fields and check field count.
-func splitStateFields(data []byte) ([][]byte, error) {
-	fields := bytes.Fields(data)
-	if len(fields) != numFields {
-		return nil, fmt.Errorf("expected %d fields, got %d: %q", numFields, len(fields), data)
+func encodeState(state State) bytes.Buffer {
+	var data bytes.Buffer
+	data.Grow(4 +
+		binary.MaxVarintLen64*2 +
+		len(state.Client.SessionID) +
+		len(state.Client.CommonName) +
+		len(state.IPAddr) +
+		len(state.IPPort))
+
+	flags, ipAddr := encodeStateFlags(state)
+
+	data.WriteByte(binaryStateVersion)
+	data.WriteByte(flags)
+	data.WriteByte(encodeSessionState(state.SessionState)[0])
+
+	writeUvarintToBuffer(&data, state.Client.CID)
+	writeUvarintToBuffer(&data, state.Client.KID)
+
+	if flags&flagSessionID != 0 {
+		writeStringToBuffer(&data, state.Client.SessionID)
 	}
 
-	return fields, nil
+	if flags&flagCommonName != 0 {
+		writeStringToBuffer(&data, state.Client.CommonName)
+	}
+
+	switch {
+	case flags&flagIPAddrV4 != 0:
+		ipBytes := ipAddr.As4()
+		data.Write(ipBytes[:])
+	case flags&flagIPAddrV6 != 0:
+		ipBytes := ipAddr.As16()
+		data.Write(ipBytes[:])
+	case flags&flagIPAddrText != 0:
+		writeStringToBuffer(&data, state.IPAddr)
+	}
+
+	if flags&flagIPPort != 0 {
+		writeStringToBuffer(&data, state.IPPort)
+	}
+
+	return data
 }
 
-// Helper to parse all fields into the State struct.
-func parseStateFields(fields [][]byte) (State, error) {
-	cid, err := strconv.ParseUint(string(fields[0]), 10, 64)
-	if err != nil {
-		return State{}, fmt.Errorf("parse CID: %w", err)
+func encodeStateFlags(state State) (byte, netip.Addr) {
+	var (
+		flags  byte
+		ipAddr netip.Addr
+	)
+
+	if state.Client.SessionID != "" {
+		flags |= flagSessionID
 	}
 
-	kid, err := strconv.ParseUint(string(fields[1]), 10, 64)
-	if err != nil {
-		return State{}, fmt.Errorf("parse KID: %w", err)
+	if state.Client.CommonName != "" {
+		flags |= flagCommonName
 	}
 
-	usernameIsDefined, err := strconv.Atoi(string(fields[3]))
+	if state.Client.UsernameIsDefined != 0 {
+		flags |= flagUsernameIsDefined
+	}
+
+	if state.IPPort != "" {
+		flags |= flagIPPort
+	}
+
+	if state.IPAddr == "" {
+		return flags, ipAddr
+	}
+
+	addr, err := netip.ParseAddr(state.IPAddr)
+	if err != nil || addr.String() != state.IPAddr {
+		flags |= flagIPAddrText
+
+		return flags, ipAddr
+	}
+
+	if addr.Is4() {
+		flags |= flagIPAddrV4
+	} else {
+		flags |= flagIPAddrV6
+	}
+
+	return flags, addr
+}
+
+func decodeState(data []byte) (State, error) {
+	if len(data) < 3 {
+		return State{}, fmt.Errorf("state is too short: %d bytes", len(data))
+	}
+
+	if data[0] != binaryStateVersion {
+		return State{}, fmt.Errorf("unsupported state version: %d", data[0])
+	}
+
+	flags := data[1]
+	sessionState := decodeSessionState(string(data[2]))
+	data = data[3:]
+
+	cid, data, err := readUvarint(data)
 	if err != nil {
-		return State{}, fmt.Errorf("parse UsernameIsDefined: %w", err)
+		return State{}, fmt.Errorf("read CID: %w", err)
+	}
+
+	kid, data, err := readUvarint(data)
+	if err != nil {
+		return State{}, fmt.Errorf("read KID: %w", err)
 	}
 
 	state := State{
 		Client: ClientIdentifier{
 			CID:               cid,
 			KID:               kid,
-			SessionID:         decodeStringBytes(fields[2]),
-			UsernameIsDefined: usernameIsDefined,
-			CommonName:        decodeStringBytes(fields[4]),
+			UsernameIsDefined: boolToInt(flags&flagUsernameIsDefined != 0),
 		},
-		IPAddr:       decodeStringBytes(fields[5]),
-		IPPort:       decodeStringBytes(fields[6]),
-		SessionState: decodeSessionState(string(fields[7])),
+		SessionState: sessionState,
+	}
+
+	return decodeStateFields(state, flags, data)
+}
+
+func decodeStateFields(state State, flags byte, data []byte) (State, error) {
+	var err error
+
+	if flags&flagSessionID != 0 {
+		state.Client.SessionID, data, err = readString(data)
+		if err != nil {
+			return State{}, fmt.Errorf("read SessionID: %w", err)
+		}
+	}
+
+	if flags&flagCommonName != 0 {
+		state.Client.CommonName, data, err = readString(data)
+		if err != nil {
+			return State{}, fmt.Errorf("read CommonName: %w", err)
+		}
+	}
+
+	state.IPAddr, data, err = readIPAddr(flags, data)
+	if err != nil {
+		return State{}, fmt.Errorf("read IPAddr: %w", err)
+	}
+
+	if flags&flagIPPort != 0 {
+		state.IPPort, data, err = readString(data)
+		if err != nil {
+			return State{}, fmt.Errorf("read IPPort: %w", err)
+		}
+	}
+
+	if len(data) != 0 {
+		return State{}, fmt.Errorf("unexpected trailing state data: %d bytes", len(data))
 	}
 
 	return state, nil
+}
+
+func readIPAddr(flags byte, data []byte) (string, []byte, error) {
+	switch {
+	case flags&flagIPAddrV4 != 0:
+		return readIPAddrV4(data)
+	case flags&flagIPAddrV6 != 0:
+		return readIPAddrV6(data)
+	case flags&flagIPAddrText != 0:
+		return readString(data)
+	default:
+		return "", data, nil
+	}
+}
+
+func writeStringToBuffer(buf *bytes.Buffer, text string) {
+	writeUvarintToBuffer(buf, uint64(len(text)))
+	buf.WriteString(text)
+}
+
+func writeUvarintToBuffer(buf *bytes.Buffer, value uint64) {
+	var scratch [binary.MaxVarintLen64]byte
+
+	n := binary.PutUvarint(scratch[:], value)
+	buf.Write(scratch[:n])
+}
+
+func readString(data []byte) (string, []byte, error) {
+	length, data, err := readUvarint(data)
+	if err != nil {
+		return "", nil, err
+	}
+
+	if uint64(len(data)) < length {
+		return "", nil, fmt.Errorf("string length %d exceeds remaining data %d", length, len(data))
+	}
+
+	return string(data[:length]), data[length:], nil
+}
+
+func readUvarint(data []byte) (uint64, []byte, error) {
+	value, readLen := binary.Uvarint(data)
+	if readLen <= 0 {
+		return 0, nil, errors.New("invalid uvarint")
+	}
+
+	return value, data[readLen:], nil
+}
+
+func readIPAddrV4(data []byte) (string, []byte, error) {
+	if len(data) < 4 {
+		return "", nil, fmt.Errorf("ipv4 length exceeds remaining data %d", len(data))
+	}
+
+	var ipBytes [4]byte
+	copy(ipBytes[:], data[:4])
+
+	return netip.AddrFrom4(ipBytes).String(), data[4:], nil
+}
+
+func readIPAddrV6(data []byte) (string, []byte, error) {
+	if len(data) < 16 {
+		return "", nil, fmt.Errorf("ipv6 length exceeds remaining data %d", len(data))
+	}
+
+	var ipBytes [16]byte
+	copy(ipBytes[:], data[:16])
+
+	return netip.AddrFrom16(ipBytes).String(), data[16:], nil
+}
+
+func boolToInt(value bool) int {
+	if value {
+		return 1
+	}
+
+	return 0
 }
