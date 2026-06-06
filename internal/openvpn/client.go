@@ -133,7 +133,7 @@ func (c *Client) startClientAuth(ctx context.Context, logger *slog.Logger, clien
 		ipPort string
 	)
 
-	if c.conf.Log.VPNClientIP || c.conf.OAuth2.Validate.IPAddr {
+	if c.conf.Log.VPNClientIP || c.conf.HTTP.Check.IPAddr || c.conf.OAuth2.Validate.IPAddr {
 		ipAddr = client.IPAddr
 		ipPort = client.IPPort
 	}

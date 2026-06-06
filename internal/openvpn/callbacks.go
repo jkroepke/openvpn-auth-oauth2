@@ -112,6 +112,7 @@ func (c *Client) readClientConfig(username string) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to open client config file: %w", err)
 	}
+	defer clientConfigFile.Close()
 
 	clientConfigBytes, err := io.ReadAll(clientConfigFile)
 	if err != nil {
