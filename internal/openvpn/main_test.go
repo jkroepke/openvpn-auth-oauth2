@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -527,6 +528,95 @@ func TestCommandTimeout(t *testing.T) {
 
 	_, err = openVPNClient.SendCommandf(t.Context(), "help")
 	require.ErrorIs(t, err, openvpn.ErrTimeout)
+}
+
+func TestSendCommandSerializesConcurrentCallers(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	t.Cleanup(cancel)
+
+	logger := testsuite.NewTestLogger()
+
+	conf := config.Config{
+		HTTP: config.HTTP{
+			BaseURL: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
+			Secret:  testsuite.Secret,
+		},
+		OpenVPN: config.OpenVPN{
+			Bypass:         config.OpenVPNBypass{CommonNames: make(types.RegexpSlice, 0)},
+			CommandTimeout: time.Second,
+		},
+	}
+
+	managementInterface, err := nettest.NewLocalListener("tcp")
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		require.NoError(t, managementInterface.Close())
+	})
+
+	conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
+
+	tokenStorage := tokenstorage.NewInMemory(testsuite.Secret, time.Hour)
+	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
+
+	managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		openVPNClient.Shutdown(t.Context())
+
+		select {
+		case err := <-errOpenVPNClientCh:
+			require.NoError(t, err, logger.String())
+		case <-time.After(time.Second):
+			t.Fatal("timeout waiting for connection to close")
+		}
+	})
+
+	reader := bufio.NewReader(managementInterfaceConn)
+
+	testutils.ExpectVersionAndReleaseHold(t, managementInterfaceConn, reader)
+
+	firstErrCh := make(chan error, 1)
+	secondErrCh := make(chan error, 1)
+
+	go func() {
+		_, err := openVPNClient.SendCommandf(t.Context(), "first")
+		firstErrCh <- err
+	}()
+
+	testutils.ExpectMessage(t, managementInterfaceConn, reader, "first")
+
+	go func() {
+		_, err := openVPNClient.SendCommandf(t.Context(), "second")
+		secondErrCh <- err
+	}()
+
+	require.NoError(t, managementInterfaceConn.SetReadDeadline(time.Now().Add(100*time.Millisecond)))
+
+	_, err = reader.ReadString('\n')
+	require.ErrorIs(t, err, os.ErrDeadlineExceeded)
+
+	testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: first command succeeded")
+
+	select {
+	case err := <-firstErrCh:
+		require.NoError(t, err)
+	case <-time.After(time.Second):
+		t.Fatal("timeout waiting for first command")
+	}
+
+	testutils.ExpectMessage(t, managementInterfaceConn, reader, "second")
+	testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: second command succeeded")
+
+	select {
+	case err := <-secondErrCh:
+		require.NoError(t, err)
+	case <-time.After(time.Second):
+		t.Fatal("timeout waiting for second command")
+	}
 }
 
 func TestDeadLocks(t *testing.T) {
