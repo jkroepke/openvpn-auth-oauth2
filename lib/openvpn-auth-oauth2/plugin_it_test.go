@@ -3,7 +3,6 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"net"
@@ -21,8 +20,6 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/httphandler"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/client"
 	"github.com/stretchr/testify/require"
@@ -211,34 +208,23 @@ func TestIT(t *testing.T) {
 	containerClientLogs, _ := getContainerLogs(t, containerClient)
 	require.NoError(t, err, containerClientLogs)
 
-	conf := config.Defaults
-	conf.HTTP.Secret = testsuite.Secret
-
-	logger := testsuite.NewTestLogger()
-
 	// clientListener must not be closed, because it is used by the httpClientListener.
 	clientListener, err := nettest.NewLocalListener("tcp")
-	require.NoError(t, err)
-
-	_, resourceServerURL, clientCredentials, err := testutils.SetupResourceServer(t, clientListener, logger.Logger, nil)
 	require.NoError(t, err)
 
 	pluginManagementEndpoint, err := containerServer.PortEndpoint(t.Context(), "8081", "tcp")
 	require.NoError(t, err)
 
-	conf.OAuth2.Issuer = resourceServerURL
-	conf.OAuth2.Nonce = true                                  // enable nonce for mock testing
-	conf.OAuth2.RefreshNonce = config.OAuth2RefreshNonceEmpty // use empty nonce for refresh to avoid mock issues
-	conf.OAuth2.Client.ID = clientCredentials.ID
-	conf.OAuth2.Client.Secret = clientCredentials.Secret
-	conf.OAuth2.Refresh.Expires = time.Hour
+	conf := config.Defaults
 	conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
-	conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: clientListener.Addr().String()}}
 	conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: "tcp", Host: strings.TrimPrefix(pluginManagementEndpoint, "tcp://")}}
 	conf.OpenVPN.Password = testsuite.Password
 
-	tokenStorage := tokenstorage.NewInMemory(testsuite.Secret, conf.OAuth2.Refresh.Expires)
-	oAuth2Client, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(t.Context(), t, conf, logger.Logger, http.DefaultClient, tokenStorage)
+	suite := testsuite.New(conf)
+	suite.SetupOIDCServer(t, clientListener, nil)
+
+	conf = suite.GetConfig()
+	oAuth2Client, openVPNClient := suite.SetupOpenVPNOAuth2Clients(t.Context(), t, nil)
 
 	errOpenVPNClientCh := make(chan error, 1)
 
@@ -272,15 +258,15 @@ func TestIT(t *testing.T) {
 	tcpClient, err := dial.DialContext(t.Context(), "tcp", strings.TrimPrefix(clientManagementEndpoint, "tcp://"))
 	require.NoError(t, err)
 
-	clientReader := bufio.NewReader(tcpClient)
-	testutils.ExpectMessage(t, tcpClient, clientReader, openvpn.WelcomeBanner)
-	testutils.ExpectMessage(t, tcpClient, clientReader, ">HOLD:Waiting for hold release:0")
-	testutils.SendAndExpectMessage(t, tcpClient, clientReader, "hold release", "SUCCESS: hold release succeeded")
+	tcpClientConn := testsuite.NewConn(tcpClient)
+	tcpClientConn.ExpectMessage(t, openvpn.WelcomeBanner)
+	tcpClientConn.ExpectMessage(t, ">HOLD:Waiting for hold release:0")
+	tcpClientConn.SendAndExpectMessage(t, "hold release", "SUCCESS: hold release succeeded")
 
 	err = tcpClient.SetReadDeadline(time.Now().Add(time.Second * 4))
 	require.NoError(t, err)
 
-	line, err := clientReader.ReadString('\n')
+	line, err := tcpClientConn.Reader().ReadString('\n')
 	require.NoError(t, err)
 
 	containerServerLogs, _ = getContainerLogs(t, containerServer)
@@ -295,22 +281,16 @@ func TestIT(t *testing.T) {
 	httpClientListenerClient := httpClientListener.Client()
 	httpClientListenerClient.Jar = jar
 
-	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, webAuthURL, nil)
-	require.NoError(t, err)
-
-	resp, err := httpClientListenerClient.Do(req)
+	resp, _, err := testsuite.DoHTTPRequest(t, httpClientListenerClient, "", http.MethodGet, webAuthURL, nil, http.NoBody) //nolint:bodyclose
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
-
-	_, _ = io.Copy(io.Discard, resp.Body)
-	require.NoError(t, resp.Body.Close())
 
 	time.Sleep(2 * time.Second)
 
 	err = tcpClient.SetReadDeadline(time.Now().Add(time.Second * 4))
 	require.NoError(t, err)
 
-	line, err = clientReader.ReadString('\n')
+	line, err = tcpClientConn.Reader().ReadString('\n')
 	require.NoError(t, err)
 
 	containerServerLogs, _ = getContainerLogs(t, containerServer)

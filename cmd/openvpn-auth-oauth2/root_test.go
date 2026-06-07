@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testlogger"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -13,7 +14,7 @@ import (
 func TestExecuteVersion(t *testing.T) {
 	t.Parallel()
 
-	logger := testsuite.NewTestLogger()
+	logger := testlogger.New()
 	returnCode := execute([]string{"", "--version"}, logger, make(chan os.Signal, 1))
 	output := logger.String()
 
@@ -23,7 +24,7 @@ func TestExecuteVersion(t *testing.T) {
 func TestExecuteHelp(t *testing.T) {
 	t.Parallel()
 
-	logger := testsuite.NewTestLogger()
+	logger := testlogger.New()
 	returnCode := execute([]string{"openvpn-auth-oauth2", "--help"}, logger, make(chan os.Signal, 1))
 	output := logger.String()
 
@@ -114,7 +115,7 @@ func TestExecuteConfigInvalid(t *testing.T) {
 				assert.NoError(t, managementInterface.Close())
 			})
 
-			logger := testsuite.NewTestLogger()
+			logger := testlogger.New()
 			returnCode := execute(append(tc.args, "--openvpn.addr=tcp://"+managementInterface.Addr().String()), logger, make(chan os.Signal, 1))
 			output := logger.String()
 

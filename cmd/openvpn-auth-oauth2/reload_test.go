@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/cookiejar"
 	"os"
@@ -12,9 +10,10 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testlogger"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/nettest"
 )
@@ -29,10 +28,9 @@ func TestReload(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, httpListener.Close())
 
-	resourceServer, _, clientCredentials, err := testutils.SetupResourceServer(t, httpListener, nil, nil)
-	require.NoError(t, err)
+	resourceServer, _, clientCredentials := testsuite.New(config.Config{}).SetupOIDCServer(t, httpListener, nil)
 
-	buf := new(testsuite.SyncBuffer)
+	buf := testlogger.NewSyncBuffer()
 
 	jar, err := cookiejar.New(nil)
 	require.NoError(t, err)
@@ -79,9 +77,9 @@ func TestReload(t *testing.T) {
 	managementInterfaceConn, err := managementInterface.Accept()
 	require.NoError(t, err)
 
-	reader := bufio.NewReader(managementInterfaceConn)
+	managementConn := testsuite.NewConn(managementInterfaceConn)
 
-	testutils.ExpectVersionAndReleaseHold(t, managementInterfaceConn, reader)
+	managementConn.ExpectVersionAndReleaseHold(t)
 
 	_, err = testsuite.WaitUntilListening(t.Context(), t, httpListener.Addr().Network(), httpListener.Addr().String())
 	require.NoError(t, err)
@@ -136,31 +134,26 @@ func TestReload(t *testing.T) {
 		">CLIENT:ENV,END",
 	}, "\r\n")
 
-	testutils.SendMessagef(t, managementInterfaceConn, msg+"\r\n")
+	managementConn.SendMessagef(t, msg+"\r\n")
 
-	authURL := testutils.ReadLine(t, managementInterfaceConn, reader)
-	testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-pending-auth command succeeded")
+	authURL := managementConn.ReadLine(t)
+	managementConn.SendMessagef(t, "SUCCESS: client-pending-auth command succeeded")
 
 	_, authURL, _ = strings.Cut(authURL, `"`)
 	authURL, _, _ = strings.Cut(authURL, `"`)
 	authURL = strings.TrimPrefix(authURL, "WEB_AUTH::")
 
-	request, _ := http.NewRequestWithContext(t.Context(), http.MethodGet, authURL, nil)
-
 	var resp *http.Response
 
 	wg := sync.WaitGroup{}
 	wg.Go(func() {
-		resp, err = httpClient.Do(request) //nolint:bodyclose
+		resp, _, err = testsuite.DoHTTPRequest(t, httpClient, "", http.MethodGet, authURL, nil, http.NoBody) //nolint:bodyclose
 	})
 
-	testutils.ReadLine(t, managementInterfaceConn, reader)
-	testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
+	managementConn.ReadLine(t)
+	managementConn.SendMessagef(t, "SUCCESS: client-auth command succeeded")
 
 	wg.Wait()
-
-	_, _ = io.Copy(io.Discard, resp.Body)
-	_ = resp.Body.Close()
 
 	require.NoError(t, err, buf.String())
 	require.Equal(t, http.StatusOK, resp.StatusCode, buf.String())
@@ -172,9 +165,9 @@ func TestReload(t *testing.T) {
 	managementInterfaceConn, err = managementInterface.Accept()
 	require.NoError(t, err)
 
-	reader = bufio.NewReader(managementInterfaceConn)
+	managementConn = testsuite.NewConn(managementInterfaceConn)
 
-	testutils.ExpectVersionAndReleaseHold(t, managementInterfaceConn, reader)
+	managementConn.ExpectVersionAndReleaseHold(t)
 
 	_, err = testsuite.WaitUntilListening(t.Context(), t, httpListener.Addr().Network(), httpListener.Addr().String())
 	require.NoError(t, err, buf.String())
@@ -229,9 +222,9 @@ func TestReload(t *testing.T) {
 		">CLIENT:ENV,END",
 	}, "\r\n")
 
-	testutils.SendMessagef(t, managementInterfaceConn, msg+"\r\n")
+	managementConn.SendMessagef(t, msg+"\r\n")
 
-	response := testutils.ReadLine(t, managementInterfaceConn, reader)
+	response := managementConn.ReadLine(t)
 	require.Equal(t, "client-auth 0 2", response, buf.String())
-	testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-pending-auth command succeeded")
+	managementConn.SendMessagef(t, "SUCCESS: client-pending-auth command succeeded")
 }

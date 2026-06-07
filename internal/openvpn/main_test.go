@@ -1,11 +1,9 @@
 package openvpn_test
 
 import (
-	"bufio"
 	"context"
 	"errors"
 	"io"
-	"net/http"
 	"net/url"
 	"os"
 	"regexp"
@@ -20,10 +18,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/net/nettest"
 )
 
 func TestClientInvalidServer(t *testing.T) {
@@ -32,7 +27,6 @@ func TestClientInvalidServer(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	t.Cleanup(cancel)
 
-	logger := testsuite.NewTestLogger()
 	conf := config.Config{
 		HTTP: config.HTTP{
 			BaseURL: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
@@ -44,8 +38,8 @@ func TestClientInvalidServer(t *testing.T) {
 		},
 	}
 
-	tokenStorage := tokenstorage.NewInMemory(testsuite.Secret, time.Hour)
-	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
+	suite := testsuite.New(conf)
+	_, openVPNClient := suite.SetupOpenVPNOAuth2Clients(ctx, t, nil)
 
 	err := openVPNClient.Connect(t.Context())
 	require.Error(t, err)
@@ -279,24 +273,10 @@ func TestClientFull(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
 
-			logger := testsuite.NewTestLogger()
-
-			managementInterface, err := nettest.NewLocalListener("tcp")
-			require.NoError(t, err)
-
+			suite := testsuite.New(tc.conf)
+			errOpenVPNClientCh := suite.SetupManagementEnvironment(ctx, t, nil)
 			t.Cleanup(func() {
-				require.NoError(t, managementInterface.Close())
-			})
-
-			tc.conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
-
-			tokenStorage := tokenstorage.NewInMemory(testsuite.Secret, time.Hour)
-			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, tc.conf, logger.Logger, http.DefaultClient, tokenStorage)
-
-			managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
-			require.NoError(t, err)
-			t.Cleanup(func() {
-				require.NoError(t, managementInterfaceConn.Close())
+				require.NoError(t, suite.GetManagementInterfaceConn().Close())
 
 				select {
 				case err := <-errOpenVPNClientCh:
@@ -308,44 +288,42 @@ func TestClientFull(t *testing.T) {
 						}
 					}
 				case <-time.After(1 * time.Second):
-					t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", logger.String())
+					t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", suite.Logs())
 				}
 			})
 
-			reader := bufio.NewReader(managementInterfaceConn)
-
 			if tc.conf.OpenVPN.Password != "" {
-				testutils.SendAndExpectMessage(t, managementInterfaceConn, reader, "ENTER PASSWORD:", tc.conf.OpenVPN.Password.String())
-				testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: password is correct")
+				suite.SendAndExpectMessage(t, "ENTER PASSWORD:", tc.conf.OpenVPN.Password.String())
+				suite.SendMessagef(t, "SUCCESS: password is correct")
 			}
 
-			testutils.ExpectVersionAndReleaseHold(t, managementInterfaceConn, reader)
-			testutils.SendMessagef(t, managementInterfaceConn, tc.client)
+			suite.ExpectVersionAndReleaseHold(t)
+			suite.SendMessagef(t, tc.client)
 
 			if tc.err != nil {
-				_, _ = reader.ReadString('\n')
+				_, _ = suite.GetManagementInterfaceConnReader().ReadString('\n')
 
 				return
 			} else if tc.expect == "" {
 				return
 			}
 
-			auth := testutils.ReadLine(t, managementInterfaceConn, reader)
+			auth := suite.ReadLine(t)
 
 			if strings.Contains(tc.expect, "WEB_AUTH") {
 				require.Contains(t, auth, tc.expect)
 			} else {
-				require.Equal(t, tc.expect, auth, logger.String())
+				require.Equal(t, tc.expect, auth, suite.Logs())
 			}
 
 			if strings.Contains(tc.client, "CLIENT:ENV,password=") {
-				require.Contains(t, logger.String(), `CLIENT:ENV,password=***`, logger.String())
+				require.Contains(t, suite.Logs(), `CLIENT:ENV,password=***`, suite.Logs())
 			}
 
-			testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: %s command succeeded\r\n", strings.SplitN(auth, " ", 2)[0])
+			suite.SendMessagef(t, "SUCCESS: %s command succeeded\r\n", strings.SplitN(auth, " ", 2)[0])
 
 			if strings.Contains(auth, "client-deny") {
-				testutils.SendMessagef(t, managementInterfaceConn, ">CLIENT:DISCONNECT,0\r\n>CLIENT:ENV,END")
+				suite.SendMessagef(t, ">CLIENT:DISCONNECT,0\r\n>CLIENT:ENV,END")
 			} else if strings.Contains(auth, "WEB_AUTH::") {
 				matches := regexp.MustCompile(`state=(.+)"`).FindStringSubmatch(auth)
 				require.Len(t, matches, 2)
@@ -367,13 +345,6 @@ func TestClientInvalidPassword(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(t.Context())
 	t.Cleanup(cancel)
-
-	managementInterface, err := nettest.NewLocalListener("tcp")
-	require.NoError(t, err)
-
-	t.Cleanup(func() {
-		require.NoError(t, managementInterface.Close())
-	})
 
 	conf := config.Defaults
 	conf.OpenVPN.Password = "invalid"
@@ -444,8 +415,6 @@ func TestHoldRelease(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	t.Cleanup(cancel)
 
-	logger := testsuite.NewTestLogger()
-
 	conf := config.Config{
 		HTTP: config.HTTP{
 			BaseURL: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
@@ -456,30 +425,16 @@ func TestHoldRelease(t *testing.T) {
 		},
 	}
 
-	managementInterface, err := nettest.NewLocalListener("tcp")
-	require.NoError(t, err)
+	suite := testsuite.New(conf)
+	errOpenVPNClientCh := suite.SetupManagementEnvironment(ctx, t, nil)
 
-	t.Cleanup(func() {
-		require.NoError(t, managementInterface.Close())
-	})
-
-	conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
-
-	tokenStorage := tokenstorage.NewInMemory(testsuite.Secret, time.Hour)
-	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
-
-	managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
-	require.NoError(t, err)
-
-	reader := bufio.NewReader(managementInterfaceConn)
-
-	testutils.ExpectVersionAndReleaseHold(t, managementInterfaceConn, reader)
+	suite.ExpectVersionAndReleaseHold(t)
 
 	for range 10 {
-		testutils.SendAndExpectMessage(t, managementInterfaceConn, reader, ">HOLD:Waiting for hold release:0", "hold release")
+		suite.SendAndExpectMessage(t, ">HOLD:Waiting for hold release:0", "hold release")
 	}
 
-	require.NoError(t, managementInterfaceConn.Close())
+	require.NoError(t, suite.GetManagementInterfaceConn().Close())
 
 	select {
 	case err := <-errOpenVPNClientCh:
@@ -495,8 +450,6 @@ func TestCommandTimeout(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	t.Cleanup(cancel)
 
-	logger := testsuite.NewTestLogger()
-
 	conf := config.Config{
 		HTTP: config.HTTP{
 			BaseURL: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
@@ -508,42 +461,29 @@ func TestCommandTimeout(t *testing.T) {
 		},
 	}
 
-	managementInterface, err := nettest.NewLocalListener("tcp")
-	require.NoError(t, err)
-
-	t.Cleanup(func() {
-		require.NoError(t, managementInterface.Close())
-	})
-
-	conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
-
-	tokenStorage := tokenstorage.NewInMemory(testsuite.Secret, time.Hour)
-	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
-
-	managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
-	require.NoError(t, err)
+	suite := testsuite.New(conf)
+	errOpenVPNClientCh := suite.SetupManagementEnvironment(ctx, t, nil)
+	openVPNClient := suite.GetOpenVPNClient()
 
 	t.Cleanup(func() {
 		openVPNClient.Shutdown(t.Context())
 
 		select {
 		case err := <-errOpenVPNClientCh:
-			require.NoError(t, err, logger.String())
+			require.NoError(t, err, suite.Logs())
 		case <-time.After(1 * time.Second):
 			t.Fatal("timeout waiting for connection to close")
 		}
 	})
 
-	reader := bufio.NewReader(managementInterfaceConn)
-
-	testutils.ExpectVersionAndReleaseHold(t, managementInterfaceConn, reader)
+	suite.ExpectVersionAndReleaseHold(t)
 
 	defer func() {
-		testutils.ExpectMessage(t, managementInterfaceConn, reader, "help")
-		testutils.SendMessagef(t, managementInterfaceConn, "")
+		suite.ExpectMessage(t, "help")
+		suite.SendMessagef(t, "")
 	}()
 
-	_, err = openVPNClient.SendCommandf(t.Context(), "help")
+	_, err := openVPNClient.SendCommandf(t.Context(), "help")
 	require.ErrorIs(t, err, openvpn.ErrTimeout)
 }
 
@@ -552,8 +492,6 @@ func TestSendCommandSerializesConcurrentCallers(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(t.Context())
 	t.Cleanup(cancel)
-
-	logger := testsuite.NewTestLogger()
 
 	conf := config.Config{
 		HTTP: config.HTTP{
@@ -566,35 +504,24 @@ func TestSendCommandSerializesConcurrentCallers(t *testing.T) {
 		},
 	}
 
-	managementInterface, err := nettest.NewLocalListener("tcp")
-	require.NoError(t, err)
-
-	t.Cleanup(func() {
-		require.NoError(t, managementInterface.Close())
-	})
-
-	conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
-
-	tokenStorage := tokenstorage.NewInMemory(testsuite.Secret, time.Hour)
-	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
-
-	managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
-	require.NoError(t, err)
+	suite := testsuite.New(conf)
+	errOpenVPNClientCh := suite.SetupManagementEnvironment(ctx, t, nil)
+	openVPNClient := suite.GetOpenVPNClient()
+	managementInterfaceConn := suite.GetManagementInterfaceConn()
+	reader := suite.GetManagementInterfaceConnReader()
 
 	t.Cleanup(func() {
 		openVPNClient.Shutdown(t.Context())
 
 		select {
 		case err := <-errOpenVPNClientCh:
-			require.NoError(t, err, logger.String())
+			require.NoError(t, err, suite.Logs())
 		case <-time.After(time.Second):
 			t.Fatal("timeout waiting for connection to close")
 		}
 	})
 
-	reader := bufio.NewReader(managementInterfaceConn)
-
-	testutils.ExpectVersionAndReleaseHold(t, managementInterfaceConn, reader)
+	suite.ExpectVersionAndReleaseHold(t)
 
 	firstErrCh := make(chan error, 1)
 	secondErrCh := make(chan error, 1)
@@ -604,7 +531,7 @@ func TestSendCommandSerializesConcurrentCallers(t *testing.T) {
 		firstErrCh <- err
 	}()
 
-	testutils.ExpectMessage(t, managementInterfaceConn, reader, "first")
+	suite.ExpectMessage(t, "first")
 
 	go func() {
 		_, err := openVPNClient.SendCommandf(t.Context(), "second")
@@ -613,10 +540,10 @@ func TestSendCommandSerializesConcurrentCallers(t *testing.T) {
 
 	require.NoError(t, managementInterfaceConn.SetReadDeadline(time.Now().Add(100*time.Millisecond)))
 
-	_, err = reader.ReadString('\n')
+	_, err := reader.ReadString('\n')
 	require.ErrorIs(t, err, os.ErrDeadlineExceeded)
 
-	testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: first command succeeded")
+	suite.SendMessagef(t, "SUCCESS: first command succeeded")
 
 	select {
 	case err := <-firstErrCh:
@@ -625,8 +552,8 @@ func TestSendCommandSerializesConcurrentCallers(t *testing.T) {
 		t.Fatal("timeout waiting for first command")
 	}
 
-	testutils.ExpectMessage(t, managementInterfaceConn, reader, "second")
-	testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: second command succeeded")
+	suite.ExpectMessage(t, "second")
+	suite.SendMessagef(t, "SUCCESS: second command succeeded")
 
 	select {
 	case err := <-secondErrCh:
@@ -658,42 +585,27 @@ func TestDeadLocks(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
 
-			logger := testsuite.NewTestLogger()
-
 			conf := config.Defaults
 			conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
 			conf.HTTP.Secret = testsuite.Secret
 			conf.OpenVPN.Bypass = config.OpenVPNBypass{CommonNames: make(types.RegexpSlice, 0)}
 
-			managementInterface, err := nettest.NewLocalListener("tcp")
-			require.NoError(t, err)
+			suite := testsuite.New(conf)
+			errOpenVPNClientCh := suite.SetupManagementEnvironment(ctx, t, nil)
 
-			t.Cleanup(func() {
-				require.NoError(t, managementInterface.Close())
-			})
-
-			conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
-
-			tokenStorage := tokenstorage.NewInMemory(testsuite.Secret, time.Hour)
-			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
-
-			managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
-			require.NoError(t, err)
-
-			reader := bufio.NewReader(managementInterfaceConn)
-			testutils.ExpectVersionAndReleaseHold(t, managementInterfaceConn, reader)
+			suite.ExpectVersionAndReleaseHold(t)
 
 			for range 12 {
-				testutils.SendMessagef(t, managementInterfaceConn, tc.message)
+				suite.SendMessagef(t, tc.message)
 			}
 
-			require.NoError(t, managementInterfaceConn.Close())
+			require.NoError(t, suite.GetManagementInterfaceConn().Close())
 
 			select {
 			case err := <-errOpenVPNClientCh:
 				require.NoError(t, err)
 			case <-time.After(1 * time.Second):
-				t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", logger.String())
+				t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", suite.Logs())
 			}
 		})
 	}
@@ -721,8 +633,6 @@ func TestInvalidCommandResponses(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
 
-			logger := testsuite.NewTestLogger()
-
 			conf := config.Config{
 				HTTP: config.HTTP{
 					BaseURL: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
@@ -733,36 +643,22 @@ func TestInvalidCommandResponses(t *testing.T) {
 				},
 			}
 
-			managementInterface, err := nettest.NewLocalListener("tcp")
-			require.NoError(t, err)
+			suite := testsuite.New(conf)
+			errOpenVPNClientCh := suite.SetupManagementEnvironment(ctx, t, nil)
 
-			t.Cleanup(func() {
-				require.NoError(t, managementInterface.Close())
-			})
+			suite.ExpectVersionAndReleaseHold(t)
+			suite.SendAndExpectMessage(t, ">HOLD:Waiting for hold release:0", "hold release")
 
-			conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
+			suite.SendMessagef(t, tc.message)
 
-			tokenStorage := tokenstorage.NewInMemory(testsuite.Secret, time.Hour)
-			_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
-
-			managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
-			require.NoError(t, err)
-
-			reader := bufio.NewReader(managementInterfaceConn)
-
-			testutils.ExpectVersionAndReleaseHold(t, managementInterfaceConn, reader)
-			testutils.SendAndExpectMessage(t, managementInterfaceConn, reader, ">HOLD:Waiting for hold release:0", "hold release")
-
-			testutils.SendMessagef(t, managementInterfaceConn, tc.message)
-
-			require.NoError(t, managementInterfaceConn.Close())
+			require.NoError(t, suite.GetManagementInterfaceConn().Close())
 
 			select {
 			case err := <-errOpenVPNClientCh:
 				require.NoError(t, err)
-				require.Contains(t, logger.String(), "command response not accepted")
+				require.Contains(t, suite.Logs(), "command response not accepted")
 			case <-time.After(3 * time.Second):
-				t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", logger.String())
+				t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", suite.Logs())
 			}
 		})
 	}

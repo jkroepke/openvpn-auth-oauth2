@@ -1,10 +1,12 @@
 package internal_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
+	"github.com/stretchr/testify/require"
 )
 
 func BenchmarkFull(b *testing.B) {
@@ -14,10 +16,7 @@ func BenchmarkFull(b *testing.B) {
 	suite.SetupMockEnvironment(b.Context(), b, nil)
 	suite.ExpectVersionAndReleaseHold(b)
 
-	var (
-		closer  func()
-		authURL string
-	)
+	var authURL string
 
 	b.ResetTimer()
 	b.StartTimer()
@@ -28,8 +27,8 @@ func BenchmarkFull(b *testing.B) {
 		authURL = testsuite.GetAuthURLFromMessage(suite.ReadLine(b))
 		suite.SendMessagef(b, "SUCCESS: client-pending-auth command succeeded")
 
-		_, closer = suite.CallAuthURL(b, authURL)
-		closer()
+		_, _, err := suite.DoHTTPRequest(b, http.MethodGet, authURL, nil, http.NoBody) //nolint:bodyclose
+		require.NoError(b, err)
 
 		suite.ExpectMessage(b, "client-auth-nt 0 1")
 		suite.SendMessagef(b, "SUCCESS: client-auth command succeeded")

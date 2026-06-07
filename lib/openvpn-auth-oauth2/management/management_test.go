@@ -3,7 +3,6 @@
 package management_test
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"log/slog"
@@ -15,7 +14,6 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/version"
 	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/management"
 	"github.com/stretchr/testify/require"
@@ -59,32 +57,32 @@ func TestServer_Listen(t *testing.T) {
 				_ = client.Close()
 			})
 
-			clientReader := bufio.NewReader(client)
+			clientConn := testsuite.NewConn(client)
 
-			testutils.ExpectMessage(t, client, clientReader, openvpn.WelcomeBanner)
-			testutils.SendMessagef(t, client, "")
-			testutils.SendAndExpectMessage(t, client, clientReader, "hold release", "SUCCESS: hold released")
-			testutils.SendAndExpectMessage(t, client, clientReader, "version", fmt.Sprintf("OpenVPN Version: openvpn-auth-oauth2 %s\nManagement Interface Version: 5\nEND", version.Version))
-			testutils.SendAndExpectMessage(t, client, clientReader, "help", "SUCCESS: help")
-			testutils.SendAndExpectMessage(t, client, clientReader, "unknown", "ERROR: unknown command, enter 'help' for more options")
+			clientConn.ExpectMessage(t, openvpn.WelcomeBanner)
+			clientConn.SendMessagef(t, "")
+			clientConn.SendAndExpectMessage(t, "hold release", "SUCCESS: hold released")
+			clientConn.SendAndExpectMessage(t, "version", fmt.Sprintf("OpenVPN Version: openvpn-auth-oauth2 %s\nManagement Interface Version: 5\nEND", version.Version))
+			clientConn.SendAndExpectMessage(t, "help", "SUCCESS: help")
+			clientConn.SendAndExpectMessage(t, "unknown", "ERROR: unknown command, enter 'help' for more options")
 
 			require.NoError(t, client.Close())
 
 			client, err = dialer.DialContext(t.Context(), tc.protocol, managementInterface.Addr().String())
 			require.NoError(t, err)
 
-			clientReader = bufio.NewReader(client)
+			clientConn = testsuite.NewConn(client)
 
-			testutils.ExpectMessage(t, client, clientReader, openvpn.WelcomeBanner)
-			testutils.SendAndExpectMessage(t, client, clientReader, "exit", "SUCCESS: exiting")
+			clientConn.ExpectMessage(t, openvpn.WelcomeBanner)
+			clientConn.SendAndExpectMessage(t, "exit", "SUCCESS: exiting")
 
 			client, err = dialer.DialContext(t.Context(), tc.protocol, managementInterface.Addr().String())
 			require.NoError(t, err)
 
-			clientReader = bufio.NewReader(client)
+			clientConn = testsuite.NewConn(client)
 
-			testutils.ExpectMessage(t, client, clientReader, openvpn.WelcomeBanner)
-			testutils.SendAndExpectMessage(t, client, clientReader, "quit", "SUCCESS: exiting")
+			clientConn.ExpectMessage(t, openvpn.WelcomeBanner)
+			clientConn.SendAndExpectMessage(t, "quit", "SUCCESS: exiting")
 
 			client, err = dialer.DialContext(t.Context(), tc.protocol, managementInterface.Addr().String())
 			require.NoError(t, err)
@@ -143,16 +141,16 @@ func TestServer_Listen_Password_Correct(t *testing.T) {
 		_ = client.Close()
 	})
 
-	clientReader := bufio.NewReader(client)
+	clientConn := testsuite.NewConn(client)
 
-	resp, err := clientReader.ReadString(':')
+	resp, err := clientConn.Reader().ReadString(':')
 	require.NoError(t, err)
 	require.Equal(t, "ENTER PASSWORD:", resp)
 
-	testutils.SendMessagef(t, client, testsuite.Password)
-	testutils.ExpectMessage(t, client, clientReader, "SUCCESS: password is correct")
-	testutils.ExpectMessage(t, client, clientReader, openvpn.WelcomeBanner)
-	testutils.SendMessagef(t, client, "quit")
+	clientConn.SendMessagef(t, testsuite.Password)
+	clientConn.ExpectMessage(t, "SUCCESS: password is correct")
+	clientConn.ExpectMessage(t, openvpn.WelcomeBanner)
+	clientConn.SendMessagef(t, "quit")
 }
 
 func TestServer_Listen_Password_Incorrect(t *testing.T) {
@@ -179,15 +177,15 @@ func TestServer_Listen_Password_Incorrect(t *testing.T) {
 		_ = client.Close()
 	})
 
-	clientReader := bufio.NewReader(client)
+	clientConn := testsuite.NewConn(client)
 
-	resp, err := clientReader.ReadString(':')
+	resp, err := clientConn.Reader().ReadString(':')
 	require.NoError(t, err)
 	require.Equal(t, "ENTER PASSWORD:", resp)
 
-	testutils.SendMessagef(t, client, testsuite.Password)
-	testutils.ExpectMessage(t, client, clientReader, "ERROR: bad password")
-	testutils.SendMessagef(t, client, "quit")
+	clientConn.SendMessagef(t, testsuite.Password)
+	clientConn.ExpectMessage(t, "ERROR: bad password")
+	clientConn.SendMessagef(t, "quit")
 }
 
 func TestServer_AuthPendingPoller(t *testing.T) {
@@ -326,12 +324,12 @@ func TestServer_AuthPendingPoller(t *testing.T) {
 				_ = client.Close()
 			})
 
-			clientReader := bufio.NewReader(client)
+			clientConn := testsuite.NewConn(client)
 
-			testutils.ExpectMessage(t, client, clientReader, openvpn.WelcomeBanner)
-			testutils.SendMessagef(t, client, tc.command)
+			clientConn.ExpectMessage(t, openvpn.WelcomeBanner)
+			clientConn.SendMessagef(t, tc.command)
 
-			testutils.ExpectMessage(t, client, clientReader, tc.resp)
+			clientConn.ExpectMessage(t, tc.resp)
 
 			if strings.HasSuffix(tc.name, "invalid") {
 				return
@@ -423,8 +421,8 @@ func TestServer_ReconnectDuringPendingAuth(t *testing.T) {
 	client1, err := dialer.DialContext(t.Context(), "tcp", managementInterface.Addr().String())
 	require.NoError(t, err)
 
-	clientReader := bufio.NewReader(client1)
-	testutils.ExpectMessage(t, client1, clientReader, openvpn.WelcomeBanner)
+	client1Conn := testsuite.NewConn(client1)
+	client1Conn.ExpectMessage(t, openvpn.WelcomeBanner)
 
 	// Close the first client without responding
 	require.NoError(t, client1.Close())
@@ -440,10 +438,10 @@ func TestServer_ReconnectDuringPendingAuth(t *testing.T) {
 		_ = client2.Close()
 	})
 
-	clientReader = bufio.NewReader(client2)
-	testutils.ExpectMessage(t, client2, clientReader, openvpn.WelcomeBanner)
-	testutils.SendMessagef(t, client2, "client-auth-nt 99 0")
-	testutils.ExpectMessage(t, client2, clientReader, "SUCCESS: client-auth command succeeded")
+	client2Conn := testsuite.NewConn(client2)
+	client2Conn.ExpectMessage(t, openvpn.WelcomeBanner)
+	client2Conn.SendMessagef(t, "client-auth-nt 99 0")
+	client2Conn.ExpectMessage(t, "SUCCESS: client-auth command succeeded")
 
 	require.NoError(t, <-errCh)
 }
@@ -469,12 +467,12 @@ func TestServer_PartialMultilineClientAuth(t *testing.T) {
 	client, err := dialer.DialContext(t.Context(), "tcp", managementInterface.Addr().String())
 	require.NoError(t, err)
 
-	clientReader := bufio.NewReader(client)
-	testutils.ExpectMessage(t, client, clientReader, openvpn.WelcomeBanner)
+	clientConn := testsuite.NewConn(client)
+	clientConn.ExpectMessage(t, openvpn.WelcomeBanner)
 
 	// Send client-auth without the END terminator, then close
-	testutils.SendMessagef(t, client, "client-auth 1 0")
-	testutils.SendMessagef(t, client, "push \"route 10.0.0.0 255.255.255.0\"")
+	clientConn.SendMessagef(t, "client-auth 1 0")
+	clientConn.SendMessagef(t, "push \"route 10.0.0.0 255.255.255.0\"")
 
 	// Close without sending END — the server should handle this gracefully
 	require.NoError(t, client.Close())
@@ -490,9 +488,9 @@ func TestServer_PartialMultilineClientAuth(t *testing.T) {
 		_ = client2.Close()
 	})
 
-	clientReader = bufio.NewReader(client2)
-	testutils.ExpectMessage(t, client2, clientReader, openvpn.WelcomeBanner)
-	testutils.SendAndExpectMessage(t, client2, clientReader, "help", "SUCCESS: help")
+	client2Conn := testsuite.NewConn(client2)
+	client2Conn.ExpectMessage(t, openvpn.WelcomeBanner)
+	client2Conn.SendAndExpectMessage(t, "help", "SUCCESS: help")
 }
 
 func TestServer_ContextCancellation(t *testing.T) {

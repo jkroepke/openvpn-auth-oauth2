@@ -695,7 +695,7 @@ func TestHandler(t *testing.T) {
 				return http.ErrUseLastResponse
 			}
 
-			resp, _, err := suite.DoHTTPRequest(ctx, http.MethodGet, "/ready", nil, http.NoBody) //nolint:bodyclose
+			resp, _, err := suite.DoHTTPRequest(t, http.MethodGet, "/ready", nil, http.NoBody) //nolint:bodyclose
 			require.NoError(t, err)
 			require.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -714,7 +714,7 @@ func TestHandler(t *testing.T) {
 			urlPath := "/oauth2/start?state=" + session
 
 			if tc.conf.HTTP.ShortURL {
-				resp, _, err = suite.DoHTTPRequest(ctx, http.MethodGet, "/?s="+session, nil, http.NoBody) //nolint:bodyclose
+				resp, _, err = suite.DoHTTPRequest(t, http.MethodGet, "/?s="+session, nil, http.NoBody) //nolint:bodyclose
 				require.NoError(t, err)
 
 				require.Equal(t, http.StatusFound, resp.StatusCode)
@@ -733,7 +733,7 @@ func TestHandler(t *testing.T) {
 			go func() {
 				var err error
 
-				resp, _, err = suite.DoHTTPRequest(ctx, http.MethodGet, urlPath, header, http.NoBody) //nolint:bodyclose
+				resp, _, err = suite.DoHTTPRequest(t, http.MethodGet, urlPath, header, http.NoBody) //nolint:bodyclose
 
 				reqErrCh <- err
 			}()
@@ -777,7 +777,7 @@ func TestHandler(t *testing.T) {
 			go func() {
 				var err error
 
-				resp, body, err = suite.DoHTTPRequest(ctx, http.MethodGet, resp.Header.Get("Location"), header, http.NoBody) //nolint:bodyclose
+				resp, body, err = suite.DoHTTPRequest(t, http.MethodGet, resp.Header.Get("Location"), header, http.NoBody) //nolint:bodyclose
 				reqErrCh <- err
 			}()
 
@@ -866,14 +866,11 @@ func TestHandler(t *testing.T) {
 					var err error
 
 					//nolint:bodyclose
-					resp, body, err = suite.DoHTTPRequest(ctx, http.MethodPost,
-						"/oauth2/profile-submit",
-						header,
-						strings.NewReader(fmt.Sprintf(
-							"token=%s&profile=%s",
-							url.QueryEscape(fields["token"]),
-							url.QueryEscape(fields["profile"]),
-						)))
+					resp, body, err = suite.DoHTTPRequest(t, http.MethodPost, "/oauth2/profile-submit", header, strings.NewReader(fmt.Sprintf(
+						"token=%s&profile=%s",
+						url.QueryEscape(fields["token"]),
+						url.QueryEscape(fields["profile"]),
+					)))
 
 					reqErrCh <- err
 				}()
