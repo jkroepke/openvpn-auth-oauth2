@@ -4,13 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 // RoundTripperFunc wraps an http.RoundTripper and allows a custom function to
@@ -110,6 +114,33 @@ func (f *MockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) 
 	default:
 		return f.rt.RoundTrip(req) //nolint:wrapcheck
 	}
+}
+
+func DoHTTPRequest(tb testing.TB, client *http.Client, baseURL, method, requestURL string, header http.Header, body io.Reader) (*http.Response, []byte, error) {
+	tb.Helper()
+
+	if !strings.Contains(requestURL, "://") && baseURL != "" {
+		requestURL = baseURL + requestURL
+	}
+
+	request, err := http.NewRequestWithContext(tb.Context(), method, requestURL, body)
+	require.NoError(tb, err)
+
+	if header != nil {
+		request.Header = header
+	}
+
+	resp, err := client.Do(request)
+	require.NoError(tb, err)
+
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	respBody, err := io.ReadAll(resp.Body)
+	require.NoError(tb, err)
+
+	return resp, respBody, nil
 }
 
 // WaitUntilListening tries to connect to a network address until it is

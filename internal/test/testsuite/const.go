@@ -8,10 +8,12 @@ import (
 )
 
 const (
-	Password     = "password"
-	Secret       = "0123456789101112"
-	SubjectClaim = "sub"
-	TestDomain   = "example.com"
+	Password                 = "password"
+	Secret                   = "0123456789101112"
+	SubjectClaim             = "sub"
+	TestDomain               = "example.com"
+	ManagementCommandHold    = "hold release"
+	ManagementCommandVersion = "version"
 )
 
 //nolint:gochecknoglobals

@@ -4,7 +4,6 @@
 package openvpn
 
 import (
-	"io"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -20,8 +19,6 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/httphandler"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/c"
 	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/util/testutil"
 	"github.com/stretchr/testify/require"
@@ -115,28 +112,19 @@ func TestPlugin(t *testing.T) {
 			status = PluginFuncV3(PluginStructVerMin, args, ret)
 			require.Equal(t, c.OpenVPNPluginFuncSuccess, status)
 
-			logger := testsuite.NewTestLogger()
-
 			// clientListener must not be closed, because it is used by the httpClientListener.
 			clientListener, err := nettest.NewLocalListener("tcp")
-			require.NoError(t, err)
-
-			_, resourceServerURL, clientCredentials, err := testutils.SetupResourceServer(t, clientListener, logger.Logger, nil)
 			require.NoError(t, err)
 
 			tc.conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: "unix", Path: unixSocket}}
 			tc.conf.OpenVPN.Password = "password"
 			tc.conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
-			tc.conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: clientListener.Addr().String()}}
-			tc.conf.HTTP.Secret = testsuite.Secret
-			tc.conf.OAuth2.Issuer = resourceServerURL
-			tc.conf.OAuth2.Nonce = true                                  // enable nonce for mock testing
-			tc.conf.OAuth2.RefreshNonce = config.OAuth2RefreshNonceEmpty // use empty nonce for the token refresh to avoid mock issues.
-			tc.conf.OAuth2.Client.ID = clientCredentials.ID
-			tc.conf.OAuth2.Client.Secret = clientCredentials.Secret
 
-			tokenStorage := tokenstorage.NewInMemory(testsuite.Secret, time.Hour)
-			oAuth2Client, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(t.Context(), t, tc.conf, logger.Logger, http.DefaultClient, tokenStorage)
+			suite := testsuite.New(tc.conf)
+			suite.SetupOIDCServer(t, clientListener, nil)
+			tc.conf = suite.GetConfig()
+
+			oAuth2Client, openVPNClient := suite.SetupOpenVPNOAuth2Clients(t.Context(), t, nil)
 
 			httpHandler := httphandler.New(tc.conf, oAuth2Client)
 			httpClientListener := httptest.NewUnstartedServer(httpHandler)
@@ -212,8 +200,6 @@ func TestPlugin(t *testing.T) {
 
 			authURL := strings.TrimSpace(strings.SplitN(string(data), "\n", 3)[2][10:])
 
-			request, _ := http.NewRequestWithContext(t.Context(), http.MethodGet, authURL, nil)
-
 			jar, err := cookiejar.New(nil)
 			require.NoError(t, err)
 
@@ -226,17 +212,14 @@ func TestPlugin(t *testing.T) {
 
 			wg := sync.WaitGroup{}
 			wg.Go(func() {
-				resp, err = httpClient.Do(request) //nolint:bodyclose
+				resp, _, err = testsuite.DoHTTPRequest(t, httpClient, "", http.MethodGet, authURL, nil, http.NoBody) //nolint:bodyclose
 			})
 
 			wg.Wait()
 
 			require.NoError(t, err)
 
-			_, _ = io.Copy(io.Discard, resp.Body)
-			_ = resp.Body.Close()
-
-			require.Equal(t, http.StatusOK, resp.StatusCode, logger.String())
+			require.Equal(t, http.StatusOK, resp.StatusCode, suite.Logs())
 
 			data, err = os.ReadFile(authControlFile.Name())
 			require.NoError(t, err)
@@ -344,29 +327,19 @@ func TestPluginDenyNonWebAuthClient(t *testing.T) {
 	status = PluginFuncV3(PluginStructVerMin, args, ret)
 	require.Equal(t, c.OpenVPNPluginFuncSuccess, status)
 
-	logger := testsuite.NewTestLogger()
-
 	// clientListener must not be closed, because it is used by the httpClientListener.
 	clientListener, err := nettest.NewLocalListener("tcp")
-	require.NoError(t, err)
-
-	_, resourceServerURL, clientCredentials, err := testutils.SetupResourceServer(t, clientListener, logger.Logger, nil)
 	require.NoError(t, err)
 
 	conf := config.Defaults
 	conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: "unix", Path: unixSocket}}
 	conf.OpenVPN.Password = "password"
 	conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
-	conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: clientListener.Addr().String()}}
-	conf.HTTP.Secret = testsuite.Secret
-	conf.OAuth2.Issuer = resourceServerURL
-	conf.OAuth2.Nonce = true
-	conf.OAuth2.RefreshNonce = config.OAuth2RefreshNonceEmpty
-	conf.OAuth2.Client.ID = clientCredentials.ID
-	conf.OAuth2.Client.Secret = clientCredentials.Secret
 
-	tokenStorage := tokenstorage.NewInMemory(testsuite.Secret, time.Hour)
-	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(t.Context(), t, conf, logger.Logger, http.DefaultClient, tokenStorage)
+	suite := testsuite.New(conf)
+	suite.SetupOIDCServer(t, clientListener, nil)
+
+	_, openVPNClient := suite.SetupOpenVPNOAuth2Clients(t.Context(), t, nil)
 
 	errOpenVPNClientCh := make(chan error, 1)
 
@@ -419,7 +392,7 @@ func TestPluginDenyNonWebAuthClient(t *testing.T) {
 
 	// A client without webauth support must be denied: the plugin must return ERROR.
 	status = PluginFuncV3(PluginStructVerMin, args, ret)
-	require.Equal(t, c.OpenVPNPluginFuncError, status, logger.String())
+	require.Equal(t, c.OpenVPNPluginFuncError, status, suite.Logs())
 
 	PluginClientDestructorV1(args.Handle, clientContextPtr)
 }

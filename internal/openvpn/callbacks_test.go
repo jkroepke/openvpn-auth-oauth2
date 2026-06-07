@@ -1,13 +1,11 @@
 package openvpn_test
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"errors"
 	"io"
 	"io/fs"
-	"net/http"
 	"net/url"
 	"sync/atomic"
 	"testing"
@@ -17,10 +15,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils/testutils"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/net/nettest"
 )
 
 func TestAcceptClientClosesClientConfigFile(t *testing.T) {
@@ -29,7 +24,6 @@ func TestAcceptClientClosesClientConfigFile(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	t.Cleanup(cancel)
 
-	logger := testsuite.NewTestLogger()
 	file := &closeTrackingFile{Reader: bytes.NewReader([]byte("push route\n"))}
 	conf := config.Config{
 		HTTP: config.HTTP{
@@ -46,45 +40,33 @@ func TestAcceptClientClosesClientConfigFile(t *testing.T) {
 		},
 	}
 
-	managementInterface, err := nettest.NewLocalListener("tcp")
-	require.NoError(t, err)
+	suite := testsuite.New(conf)
+	errOpenVPNClientCh := suite.SetupManagementEnvironment(ctx, t, nil)
+	openVPNClient := suite.GetOpenVPNClient()
 
-	t.Cleanup(func() {
-		require.NoError(t, managementInterface.Close())
-	})
-
-	conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: managementInterface.Addr().Network(), Host: managementInterface.Addr().String()}}
-
-	tokenStorage := tokenstorage.NewInMemory(testsuite.Secret, time.Hour)
-	_, openVPNClient := testutils.SetupOpenVPNOAuth2Clients(ctx, t, conf, logger.Logger, http.DefaultClient, tokenStorage)
-
-	managementInterfaceConn, errOpenVPNClientCh, err := testutils.ConnectToManagementInterface(t, managementInterface, openVPNClient)
-	require.NoError(t, err)
-
-	reader := bufio.NewReader(managementInterfaceConn)
-	testutils.ExpectVersionAndReleaseHold(t, managementInterfaceConn, reader)
+	suite.ExpectVersionAndReleaseHold(t)
 
 	acceptDone := make(chan struct{})
 	go func() {
 		defer close(acceptDone)
 
-		openVPNClient.AcceptClient(ctx, logger.Logger, state.ClientIdentifier{CID: 1, KID: 2}, "user", "client")
+		openVPNClient.AcceptClient(ctx, suite.GetLogger(), state.ClientIdentifier{CID: 1, KID: 2}, "user", "client")
 	}()
 
-	require.Equal(t, "client-auth 1 2", testutils.ReadLine(t, managementInterfaceConn, reader))
+	require.Equal(t, "client-auth 1 2", suite.ReadLine(t))
 	require.True(t, file.closed.Load())
-	require.Equal(t, "push route", testutils.ReadLine(t, managementInterfaceConn, reader))
-	require.Equal(t, "END", testutils.ReadLine(t, managementInterfaceConn, reader))
+	require.Equal(t, "push route", suite.ReadLine(t))
+	require.Equal(t, "END", suite.ReadLine(t))
 
-	testutils.SendMessagef(t, managementInterfaceConn, "SUCCESS: client-auth command succeeded")
+	suite.SendMessagef(t, "SUCCESS: client-auth command succeeded")
 
 	select {
 	case <-acceptDone:
 	case <-time.After(time.Second):
-		t.Fatalf("timeout waiting for AcceptClient. Logs:\n\n%s", logger.String())
+		t.Fatalf("timeout waiting for AcceptClient. Logs:\n\n%s", suite.Logs())
 	}
 
-	require.NoError(t, managementInterfaceConn.Close())
+	require.NoError(t, suite.GetManagementInterfaceConn().Close())
 
 	select {
 	case err := <-errOpenVPNClientCh:
@@ -92,7 +74,7 @@ func TestAcceptClientClosesClientConfigFile(t *testing.T) {
 			require.NoError(t, err)
 		}
 	case <-time.After(time.Second):
-		t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", logger.String())
+		t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", suite.Logs())
 	}
 }
 
