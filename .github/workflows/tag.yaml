@@ -25,6 +25,7 @@ jobs:
         with:
           client-id: 1248576
           private-key: ${{ secrets.AUTOMATION_APP_PRIVATE_KEY }}
+          permission-contents: 'write'
 
       - name: Create Tag
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
