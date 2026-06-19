@@ -5,7 +5,7 @@ go 1.26.4
 require (
 	github.com/google/cel-go v0.28.1
 	github.com/madflojo/testcerts v1.5.0
-	github.com/moby/moby/api v1.54.2
+	github.com/moby/moby/api v1.55.0
 	github.com/moby/moby/client v0.4.1
 	github.com/stretchr/testify v1.11.1
 	github.com/testcontainers/testcontainers-go v0.42.0
