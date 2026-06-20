@@ -22,13 +22,9 @@ func checkClientIPAddr(r *http.Request, conf config.Config, session state.State)
 		return fmt.Errorf("unable to split remote address %s: %w", r.RemoteAddr, err)
 	}
 
-	if strings.HasPrefix(r.RemoteAddr, "[") {
-		clientIP = fmt.Sprintf("[%s]", clientIP)
-	}
-
 	if conf.HTTP.EnableProxyHeaders {
 		if fwdAddress := r.Header.Get("X-Forwarded-For"); fwdAddress != "" {
-			clientIP = strings.Split(fwdAddress, ", ")[0]
+			clientIP = strings.TrimSpace(strings.Split(fwdAddress, ",")[0])
 		}
 	}
 

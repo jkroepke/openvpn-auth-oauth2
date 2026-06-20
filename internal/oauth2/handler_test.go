@@ -319,6 +319,29 @@ func TestHandler(t *testing.T) {
 			true,
 		},
 		{
+			"with ipaddr + forwarded-for ipv6",
+			func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.Secret = testsuite.Secret
+				conf.HTTP.Check.IPAddr = true
+				conf.HTTP.EnableProxyHeaders = true
+				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
+				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
+				conf.OAuth2.Validate.Issuer = true
+				conf.OAuth2.Validate.IPAddr = false
+				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
+				conf.OpenVPN.AuthTokenUser = true
+				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
+
+				return conf
+			}(),
+			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, IPAddr: "2001:db8::1", IPPort: "12345"},
+			false,
+			"2001:db8::1, 8.8.8.8",
+			true,
+			true,
+		},
+		{
 			"with cel validation result false",
 			func() config.Config {
 				conf := config.Defaults
