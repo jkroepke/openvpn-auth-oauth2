@@ -15,7 +15,7 @@ openvpn-auth-oauth2 looks for a file
 named after the token claim or common name with `.conf` suffix in the client config directory.
 
 Client configuration files are opened through Go's `os.Root` mechanism.
-The file name must satisfy `fs.ValidPath`, so absolute paths and `.` or `..` path elements are rejected.
+The filename must satisfy `fs.ValidPath`, so absolute paths and `.` or `..` path elements are rejected.
 Symbolic links are followed only when their targets remain inside the configured client config directory.
 These checks prevent profile names and token claims from escaping that directory without restricting them to an ASCII-only naming scheme.
 
