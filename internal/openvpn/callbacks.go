@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"io/fs"
 	"log/slog"
 	"strings"
 
@@ -108,7 +109,12 @@ func (c *Client) readClientConfig(username string) ([]string, error) {
 		return make([]string, 0, 1), nil
 	}
 
-	clientConfigFile, err := c.conf.OpenVPN.ClientConfig.Path.Open(username + ".conf")
+	clientConfigPath := username + ".conf"
+	if !fs.ValidPath(clientConfigPath) {
+		return nil, fmt.Errorf("invalid client config path %q", clientConfigPath)
+	}
+
+	clientConfigFile, err := c.conf.OpenVPN.ClientConfig.Path.Open(clientConfigPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open client config file: %w", err)
 	}

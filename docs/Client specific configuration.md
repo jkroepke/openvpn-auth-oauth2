@@ -14,6 +14,11 @@ The feature must be enabled with `--openvpn.client-config.enabled`.
 openvpn-auth-oauth2 looks for a file
 named after the token claim or common name with `.conf` suffix in the client config directory.
 
+Client configuration files are opened through Go's `os.Root` mechanism.
+The file name must satisfy `fs.ValidPath`, so absolute paths and `.` or `..` path elements are rejected.
+Symbolic links are followed only when their targets remain inside the configured client config directory.
+These checks prevent profile names and token claims from escaping that directory without restricting them to an ASCII-only naming scheme.
+
 ## Client Profile Selector
 
 The user profile selector feature allows users to choose their client configuration profile through a web UI after OAuth2 authentication. This is useful when:
@@ -162,6 +167,7 @@ If a user has `"roles": ["admin", "developer"]` in their token, they will see th
 ### Security Considerations
 
 - The profile selector validates that the selected profile is in the list of allowed profiles (from static values and/or token claims)
+- Client configuration lookups cannot escape the configured directory through path elements or symbolic links
 - Invalid profile selections are rejected
 - All profile data is encrypted during transmission between the browser and server
 - Profile selection requires a valid OAuth2 authentication session

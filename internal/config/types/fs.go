@@ -14,7 +14,7 @@ type FS struct {
 }
 
 func NewFS(filePath string) (FS, error) {
-	dirFS := os.DirFS(filePath)
+	dirFS := NewRootFS(filePath)
 
 	dir, err := dirFS.Open(".")
 	if err != nil {
@@ -30,7 +30,28 @@ func NewFS(filePath string) (FS, error) {
 		return FS{}, fmt.Errorf("path %q is not a directory", filePath)
 	}
 
-	return FS{dirFS, filePath}, nil
+	return dirFS, nil
+}
+
+// NewRootFS returns a file system rooted at filePath.
+//
+// Unlike [os.DirFS], the returned file system prevents symbolic links from
+// escaping the root. Both implementations reject paths containing "." or
+// ".." elements as required by [fs.ValidPath].
+func NewRootFS(filePath string) FS {
+	return FS{FS: rootFS(filePath), path: filePath}
+}
+
+type rootFS string
+
+func (f rootFS) Open(name string) (fs.File, error) {
+	root, err := os.OpenRoot(string(f))
+	if err != nil {
+		return nil, fmt.Errorf("open root %q: %w", f, err)
+	}
+	defer root.Close()
+
+	return root.FS().Open(name) //nolint:wrapcheck
 }
 
 // IsEmpty checks if the template is empty.

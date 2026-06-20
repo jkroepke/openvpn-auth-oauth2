@@ -1,6 +1,9 @@
 package types_test
 
 import (
+	"os"
+	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
@@ -20,7 +23,7 @@ func TestFS(t *testing.T) {
 		{
 			"empty",
 			"",
-			"os: DirFS with empty root",
+			"open :",
 		},
 		{
 			"dir",
@@ -99,7 +102,7 @@ func TestFSUnmarshalText(t *testing.T) {
 		{
 			"empty",
 			"",
-			"os: DirFS with empty root",
+			"open :",
 		},
 		{
 			"dir",
@@ -120,6 +123,34 @@ func TestFSUnmarshalText(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestFSPreventsPathTraversal(t *testing.T) {
+	t.Parallel()
+
+	parentDir := t.TempDir()
+	rootDir := filepath.Join(parentDir, "root")
+	require.NoError(t, os.Mkdir(rootDir, 0o750))
+	require.NoError(t, os.WriteFile(filepath.Join(parentDir, "outside.conf"), []byte("outside"), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(rootDir, "profile ä !.conf"), []byte("inside"), 0o600))
+
+	rootedFS, err := types.NewFS(rootDir)
+	require.NoError(t, err)
+	validFile, err := rootedFS.Open("profile ä !.conf")
+	require.NoError(t, err)
+	require.NoError(t, validFile.Close())
+
+	_, err = rootedFS.Open("../outside.conf")
+	require.Error(t, err)
+
+	if runtime.GOOS == "windows" {
+		return
+	}
+
+	require.NoError(t, os.Symlink(filepath.Join(parentDir, "outside.conf"), filepath.Join(rootDir, "link.conf")))
+
+	_, err = rootedFS.Open("link.conf")
+	require.Error(t, err)
 }
 
 func TestFSMarshalText(t *testing.T) {
