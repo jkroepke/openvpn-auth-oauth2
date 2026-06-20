@@ -218,7 +218,9 @@ func setupOpenVPNClient(
 
 	openvpnClient := openvpn.New(logger, conf)
 
-	oAuth2Client, err := oauth2.New(ctx, logger, conf, httpClient, tokenStorage, crypto.New(conf.HTTP.Secret.String()), provider, openvpnClient)
+	stateCrypto := crypto.NewWithMaxAge(conf.HTTP.Secret.String(), conf.OpenVPN.AuthPendingTimeout)
+
+	oAuth2Client, err := oauth2.New(ctx, logger, conf, httpClient, tokenStorage, stateCrypto, provider, openvpnClient)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error creating oauth2 client: %w", err)
 	}

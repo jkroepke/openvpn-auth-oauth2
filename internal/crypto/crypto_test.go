@@ -2,7 +2,10 @@ package crypto_test
 
 import (
 	"bytes"
+	"encoding/base64"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/crypto"
 	"github.com/stretchr/testify/require"
@@ -241,6 +244,28 @@ func TestEncryptBytesWithTimeUsesRawURLBase64(t *testing.T) {
 	decrypted, err := cipher.DecryptBytesWithTime(encrypted)
 	require.NoError(t, err)
 	require.Equal(t, []byte("hello world"), decrypted)
+}
+
+func TestDecryptBytesWithTimeMaxAge(t *testing.T) {
+	t.Parallel()
+
+	const key = "test-key"
+
+	issued := time.Now().Add(-3 * time.Minute).Unix()
+	plainText := strconv.AppendInt(nil, issued, 10)
+	plainText = append(plainText, " payload"...)
+	encrypted, err := crypto.New(key).EncryptBytes(plainText)
+	require.NoError(t, err)
+
+	encoded := make([]byte, base64.RawURLEncoding.EncodedLen(len(encrypted)))
+	base64.RawURLEncoding.Encode(encoded, encrypted)
+
+	_, err = crypto.New(key).DecryptBytesWithTime(encoded)
+	require.ErrorContains(t, err, "expired after 2m0s")
+
+	decrypted, err := crypto.NewWithMaxAge(key, 4*time.Minute).DecryptBytesWithTime(encoded)
+	require.NoError(t, err)
+	require.Equal(t, []byte("payload"), decrypted)
 }
 
 func TestCipherConsistency(t *testing.T) {
