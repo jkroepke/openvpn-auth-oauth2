@@ -22,6 +22,7 @@ const (
 	salsa20NonceSize = 8
 	hmacTagSize      = 16
 	derivedKeySize   = 32
+	defaultMaxAge    = 2 * time.Minute
 )
 
 // ErrCipherTextBlockSize is returned when the ciphertext block size is too short.
@@ -35,6 +36,7 @@ type Cipher struct {
 	macPool sync.Pool
 	encKey  *[32]byte
 	macKey  []byte
+	maxAge  time.Duration
 }
 
 // New creates a new Cipher instance with the given encryption key.
@@ -43,6 +45,12 @@ type Cipher struct {
 // "hmac-authentication") to ensure domain separation. The raw key string is not
 // retained in memory after construction.
 func New(encryptionKey string) *Cipher {
+	return NewWithMaxAge(encryptionKey, defaultMaxAge)
+}
+
+// NewWithMaxAge creates a new Cipher instance with the given encryption key and
+// maximum age for timestamped payloads.
+func NewWithMaxAge(encryptionKey string, maxAge time.Duration) *Cipher {
 	secret := []byte(encryptionKey)
 
 	encKeyBytes := deriveHKDFKey(secret, "salsa20-encryption")
@@ -54,6 +62,7 @@ func New(encryptionKey string) *Cipher {
 	cipher := &Cipher{
 		encKey: &encKey,
 		macKey: macKeyBytes,
+		maxAge: maxAge,
 	}
 	cipher.macPool.New = func() any {
 		return hmac.New(sha256.New, cipher.macKey)
@@ -189,7 +198,7 @@ func (c *Cipher) DecryptBytesWithTime(encryptedBase64 []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	if err := validateIssued(issued); err != nil {
+	if err := c.validateIssued(issued); err != nil {
 		return nil, err
 	}
 
@@ -242,11 +251,11 @@ func extractIssued(data []byte) (int64, []byte, error) {
 }
 
 // validateIssued checks that the issued timestamp is within the accepted clock window.
-func validateIssued(issued int64) error {
+func (c *Cipher) validateIssued(issued int64) error {
 	issuedSince := time.Since(time.Unix(issued, 0))
 
-	if issuedSince >= time.Minute*2 {
-		return fmt.Errorf("%w: expired after 2 minutes, issued at: %s", ErrInvalid, issuedSince.String())
+	if issuedSince >= c.maxAge {
+		return fmt.Errorf("%w: expired after %s, issued at: %s", ErrInvalid, c.maxAge, issuedSince.String())
 	}
 
 	if issuedSince <= time.Second*-5 {

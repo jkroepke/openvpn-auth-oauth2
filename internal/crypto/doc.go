@@ -15,6 +15,6 @@
 // EncryptBytesWithTime wraps the encrypted payload with an issued timestamp and
 // encodes the result using unpadded URL-safe base64. DecryptBytesWithTime only
 // accepts that raw URL-base64 form, rejects oversized input, verifies integrity,
-// and rejects data older than two minutes or issued more than five seconds in
-// the future.
+// and rejects data older than the cipher's configured maximum age or issued
+// more than five seconds in the future.
 package crypto
