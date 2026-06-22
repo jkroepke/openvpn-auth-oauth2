@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/containerd/errdefs"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/httphandler"
@@ -30,6 +31,10 @@ import (
 
 const entrypointScript = `#!/bin/sh
 set -e
+
+PLUGIN_SOCKET=/run/openvpn/openvpn-oauth2.sock
+
+install -d -o nobody -g nogroup -m 0750 "$(dirname "${PLUGIN_SOCKET}")"
 
 if [ ! -f /etc/openvpn/pki/ca.crt ]; then
   /usr/share/easy-rsa/easyrsa init-pki nopass
@@ -76,7 +81,7 @@ group nogroup
 # Does not work in containers
 disable-dco
 
-plugin /plugin/openvpn-auth-oauth2.so tcp://0.0.0.0:8081 /etc/openvpn/password.txt
+plugin /plugin/openvpn-auth-oauth2.so unix://${PLUGIN_SOCKET} /etc/openvpn/password.txt
 
 reneg-sec 600
 push "reneg-sec 0"
@@ -109,8 +114,12 @@ $(cat /etc/openvpn/pki/ca.crt)
 </ca>
 EOF
 
+socat TCP-LISTEN:8081,reuseaddr,fork UNIX-CONNECT:${PLUGIN_SOCKET} &
+
 exec openvpn --config "/etc/openvpn/openvpn.conf" --tmp-dir /tmp/
 `
+
+const pluginSocketPath = "/run/openvpn/openvpn-oauth2.sock"
 
 func TestIT(t *testing.T) {
 	t.Parallel()
@@ -296,6 +305,24 @@ func TestIT(t *testing.T) {
 	containerServerLogs, _ = getContainerLogs(t, containerServer)
 	containerClientLogs, _ = getContainerLogs(t, containerClient)
 	require.Contains(t, line, ">PASSWORD:Auth-Token:", "server logs:\n%s\nclient logs:\n%s", containerServerLogs, containerClientLogs)
+
+	dockerClient, err := testcontainers.NewDockerClientWithOpts(t.Context())
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = dockerClient.Close() })
+
+	_, err = dockerClient.ContainerStatPath(t.Context(), containerServer.GetContainerID(), client.ContainerStatPathOptions{Path: pluginSocketPath})
+	require.NoError(t, err)
+
+	stopTimeout := 10 * time.Second
+	require.NoError(t, containerServer.Stop(t.Context(), &stopTimeout))
+
+	containerServerLogs, err = getContainerLogs(t, containerServer)
+	require.NoError(t, err)
+	require.Contains(t, containerServerLogs, "plugin closed")
+
+	_, err = dockerClient.ContainerStatPath(t.Context(), containerServer.GetContainerID(), client.ContainerStatPathOptions{Path: pluginSocketPath})
+	require.Error(t, err)
+	require.True(t, errdefs.IsNotFound(err), "expected plugin socket to be removed, got: %v", err)
 }
 
 func getContainerLogs(t *testing.T, ctr testcontainers.Container) (string, error) {

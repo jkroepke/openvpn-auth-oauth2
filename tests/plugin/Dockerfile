@@ -13,7 +13,7 @@ ENV EASYRSA=/usr/share/easy-rsa/ \
 
 WORKDIR /app/
 
-RUN apt-get update && apt-get install libssl-dev openvpn easy-rsa -y --no-install-recommends
+RUN apt-get update && apt-get install libssl-dev openvpn easy-rsa socat -y --no-install-recommends
 
 COPY . /app/
 
