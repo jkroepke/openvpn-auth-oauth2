@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
@@ -23,6 +24,10 @@ import (
 const minManagementInterfaceVersion = 5
 
 const WelcomeBanner = ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info"
+
+// retryDelay is the interval between successive connection attempts when
+// the management interface socket exists but no process is listening yet.
+const retryDelay = time.Second
 
 // New creates a new Client configured with the provided logger and
 // configuration.
@@ -68,7 +73,7 @@ func (c *Client) Connect(ctx context.Context) error {
 
 	c.logger.LogAttrs(ctx, slog.LevelInfo, "connect to openvpn management interface "+c.conf.OpenVPN.Addr.String())
 
-	if err = c.setupConnection(ctx); err != nil {
+	if err = c.setupConnectionWithRetry(ctx); err != nil {
 		return fmt.Errorf("unable to connect to openvpn management interface %s: %w", c.conf.OpenVPN.Addr.String(), err)
 	}
 
@@ -155,6 +160,60 @@ func (c *Client) setupConnection(ctx context.Context) error {
 	}
 
 	return err
+}
+
+// setupConnectionWithRetry calls setupConnection and, when the connection
+// attempt fails with a transient error (socket not yet available or nothing
+// listening on it), waits briefly and retries. This handles the common
+// situation where openvpn-auth-oauth2 starts before the OpenVPN management
+// interface socket is ready, or when a stale socket file is left behind after
+// an unclean shutdown and OpenVPN has not yet recreated it.
+//
+// Retries are limited to Unix socket connections because that is the scheme
+// where stale socket files can cause transient failures on restart.
+func (c *Client) setupConnectionWithRetry(ctx context.Context) error {
+	if c.conf.OpenVPN.Addr.Scheme != SchemeUnix {
+		return c.setupConnection(ctx)
+	}
+
+	for {
+		err := c.setupConnection(ctx)
+		if err == nil {
+			return nil
+		}
+
+		if !isTransientDialError(err) {
+			return err
+		}
+
+		c.logger.LogAttrs(
+			ctx, slog.LevelWarn,
+			"openvpn management interface not ready, retrying",
+			slog.String("reason", err.Error()),
+		)
+
+		select {
+		case <-ctx.Done():
+			return ctx.Err() //nolint:wrapcheck
+		case <-time.After(retryDelay):
+		}
+	}
+}
+
+// isTransientDialError reports whether err represents a temporary condition
+// that is likely to resolve on a subsequent connection attempt. Currently this
+// covers the two most common cases for Unix sockets:
+//   - ENOENT  – the socket file does not exist yet (OpenVPN is still starting)
+//   - ECONNREFUSED – the socket file exists but no process is listening (stale
+//     file left over from an unclean shutdown, or OpenVPN is in the middle of
+//     recreating it)
+func isTransientDialError(err error) bool {
+	var netErr *net.OpError
+	if !errors.As(err, &netErr) {
+		return false
+	}
+
+	return errors.Is(netErr, syscall.ECONNREFUSED) || errors.Is(netErr, syscall.ENOENT)
 }
 
 // checkManagementInterfaceVersion verifies that the management interface meets

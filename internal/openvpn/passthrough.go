@@ -271,6 +271,10 @@ func (c *Client) setupPassThroughListener(ctx context.Context) (net.Listener, fu
 
 		closer = func() { _ = listener.Close() }
 	case SchemeUnix:
+		if err = removeStaleUnixSocket(ctx, c.logger, c.conf.OpenVPN.Passthrough.Address.Path); err != nil {
+			return nil, nil, err
+		}
+
 		listener, err = listenConfig.Listen(ctx, c.conf.OpenVPN.Passthrough.Address.Scheme, c.conf.OpenVPN.Passthrough.Address.Path)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error listen: %w", err)

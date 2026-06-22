@@ -149,6 +149,10 @@ func (s *Server) Listen(ctx context.Context, addr string) error {
 		s.listenSocket, err = listenConfig.Listen(ctx, parsedURL.Scheme, parsedURL.Host)
 		s.connectionMu.Unlock()
 	case "unix":
+		if err = removeStaleUnixSocket(ctx, s.logger, parsedURL.Path); err != nil {
+			return err
+		}
+
 		s.connectionMu.Lock()
 		s.listenSocket, err = listenConfig.Listen(ctx, parsedURL.Scheme, parsedURL.Path)
 		s.connectionMu.Unlock()
