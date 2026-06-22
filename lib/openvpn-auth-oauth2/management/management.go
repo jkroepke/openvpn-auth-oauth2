@@ -17,6 +17,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/version"
 )
 
@@ -149,6 +150,10 @@ func (s *Server) Listen(ctx context.Context, addr string) error {
 		s.listenSocket, err = listenConfig.Listen(ctx, parsedURL.Scheme, parsedURL.Host)
 		s.connectionMu.Unlock()
 	case "unix":
+		if err = utils.PrepareUnixSocket(ctx, parsedURL.Path); err != nil {
+			return fmt.Errorf("failed to prepare %s: %w", addr, err)
+		}
+
 		s.connectionMu.Lock()
 		s.listenSocket, err = listenConfig.Listen(ctx, parsedURL.Scheme, parsedURL.Path)
 		s.connectionMu.Unlock()
@@ -187,7 +192,8 @@ func (s *Server) Listen(ctx context.Context, addr string) error {
 				slog.String("remote_addr", connection.RemoteAddr().String()),
 			)
 
-			if err := s.handleManagementClient(ctx, connection); err != nil {
+			if err := s.handleManagementClient(ctx, connection); err != nil &&
+				!errors.Is(err, net.ErrClosed) && ctx.Err() == nil {
 				s.logger.WarnContext(
 					ctx, "error handling management client",
 					slog.Any("error", err),
@@ -216,6 +222,10 @@ func (s *Server) Close() {
 	}
 
 	if s.listenSocket != nil {
+		// A Unix listener unlinks its socket during Close, but Go does not report an unlink error.
+		// OpenVPN may create the socket as root and then drop privileges, so the runtime user must
+		// be allowed to remove entries from the parent directory. In particular, a root-owned socket
+		// in a sticky directory such as /tmp cannot be removed after OpenVPN changes to another user.
 		if err := s.listenSocket.Close(); err != nil {
 			s.logger.Error(fmt.Errorf("unable to close listen socket: %w", err).Error())
 		}

@@ -271,16 +271,22 @@ func (c *Client) setupPassThroughListener(ctx context.Context) (net.Listener, fu
 
 		closer = func() { _ = listener.Close() }
 	case SchemeUnix:
+		if err = utils.PrepareUnixSocket(ctx, c.conf.OpenVPN.Passthrough.Address.Path); err != nil {
+			return nil, nil, fmt.Errorf("error prepare unix socket: %w", err)
+		}
+
 		listener, err = listenConfig.Listen(ctx, c.conf.OpenVPN.Passthrough.Address.Scheme, c.conf.OpenVPN.Passthrough.Address.Path)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error listen: %w", err)
 		}
 
 		if err = c.setupUNIXSocketPermissions(); err != nil {
+			_ = listener.Close()
+
 			return nil, nil, err
 		}
 
-		closer = func() { _ = listener.Close(); _ = os.Remove(c.conf.OpenVPN.Passthrough.Address.Path) }
+		closer = func() { _ = listener.Close() }
 	default:
 		return nil, nil, fmt.Errorf("%w %s", ErrUnknownProtocol, c.conf.OpenVPN.Addr.Scheme)
 	}

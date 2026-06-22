@@ -160,6 +160,8 @@ func PluginCloseV1(handlePtr c.OpenVPNPluginHandle) {
 		return
 	}
 
+	handle.logger.DebugContext(handle.ctx, "openvpn_plugin_close_v1: called")
+
 	handle.cancel()
 	handle.managementClient.Close()
 
@@ -225,6 +227,8 @@ func PluginAbortV1(pluginHandlePtr c.OpenVPNPluginHandle) {
 	if err != nil {
 		return
 	}
+
+	pluginHandle.logger.DebugContext(pluginHandle.ctx, "openvpn_plugin_abort_v1: called")
 
 	pluginHandle.cancel()
 	pluginHandle.managementClient.Close()

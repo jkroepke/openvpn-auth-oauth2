@@ -3,6 +3,7 @@ module github.com/jkroepke/openvpn-auth-oauth2
 go 1.26.4
 
 require (
+	github.com/containerd/errdefs v1.0.0
 	github.com/google/cel-go v0.28.1
 	github.com/madflojo/testcerts v1.5.0
 	github.com/moby/moby/api v1.55.0
@@ -27,7 +28,6 @@ require (
 	github.com/bmatcuk/doublestar/v4 v4.10.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/containerd/errdefs v1.0.0 // indirect
 	github.com/containerd/errdefs/pkg v0.3.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/containerd/platforms v0.2.1 // indirect

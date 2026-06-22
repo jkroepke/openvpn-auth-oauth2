@@ -7,12 +7,14 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"os"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testlogger"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/version"
 	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/management"
@@ -89,6 +91,79 @@ func TestServer_Listen(t *testing.T) {
 			require.NoError(t, client.Close())
 		})
 	}
+}
+
+func TestServer_Listen_UnixSocketLifecycle(t *testing.T) {
+	t.Parallel()
+
+	path, err := nettest.LocalPath()
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = os.Remove(path) })
+
+	managementServer := management.NewServer(slog.New(slog.DiscardHandler), "")
+	require.NoError(t, managementServer.Listen(t.Context(), "unix://"+path))
+	require.FileExists(t, path)
+
+	managementServer.Close()
+
+	_, err = os.Lstat(path)
+	require.ErrorIs(t, err, os.ErrNotExist)
+}
+
+func TestServer_Close_DoesNotWarnAboutClosedConnection(t *testing.T) {
+	t.Parallel()
+
+	managementInterface, err := nettest.NewLocalListener("tcp")
+	require.NoError(t, err)
+	require.NoError(t, managementInterface.Close())
+
+	logger := testlogger.New()
+	managementServer := management.NewServer(logger.Logger(), "")
+	require.NoError(t, managementServer.Listen(t.Context(), "tcp://"+managementInterface.Addr().String()))
+
+	var dialer net.Dialer
+
+	client, err := dialer.DialContext(t.Context(), "tcp", managementInterface.Addr().String())
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = client.Close() })
+
+	clientConn := testsuite.NewConn(client)
+	clientConn.ExpectMessage(t, openvpn.WelcomeBanner)
+
+	managementServer.Close()
+
+	require.Eventually(t, func() bool {
+		return strings.Contains(logger.String(), "management client disconnected")
+	}, time.Second, 10*time.Millisecond)
+	require.NotContains(t, logger.String(), "error handling management client")
+}
+
+func TestServer_Listen_ReplacesStaleUnixSocket(t *testing.T) {
+	t.Parallel()
+
+	path, err := nettest.LocalPath()
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = os.Remove(path) })
+
+	var listenConfig net.ListenConfig
+
+	stoppedListener, err := listenConfig.Listen(t.Context(), "unix", path)
+	require.NoError(t, err)
+
+	unixListener, ok := stoppedListener.(*net.UnixListener)
+	require.True(t, ok)
+	unixListener.SetUnlinkOnClose(false)
+	require.NoError(t, stoppedListener.Close())
+	require.FileExists(t, path)
+
+	managementServer := management.NewServer(slog.New(slog.DiscardHandler), "")
+	require.NoError(t, managementServer.Listen(t.Context(), "unix://"+path))
+	t.Cleanup(managementServer.Close)
+
+	dialer := net.Dialer{}
+	client, err := dialer.DialContext(t.Context(), "unix", path)
+	require.NoError(t, err)
+	require.NoError(t, client.Close())
 }
 
 func TestServer_Listen_Invalid_Addr(t *testing.T) {
