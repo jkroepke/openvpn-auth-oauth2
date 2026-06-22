@@ -37,7 +37,7 @@ func removeStaleUnixSocket(ctx context.Context, logger *slog.Logger, path string
 	}
 
 	// Connection was refused: no process is listening on this path.
-	logger.LogAttrs(ctx, slog.LevelWarn, "removing stale unix socket file", slog.String("path", path))
+	logger.LogAttrs(ctx, slog.LevelDebug, "removing stale unix socket file", slog.String("path", path))
 
 	if err = os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("unable to remove stale unix socket file %s: %w", path, err)
