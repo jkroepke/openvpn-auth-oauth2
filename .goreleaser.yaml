@@ -17,8 +17,6 @@ builds:
     goarch:
       - amd64
       - arm64
-    goamd64:
-      - v2
     mod_timestamp: '{{ .CommitTimestamp }}'
     env:
       - CGO_ENABLED=0
@@ -51,8 +49,6 @@ builds:
     goarch:
       - amd64
     #  - arm64
-    goamd64:
-      - v2
     mod_timestamp: '{{ .CommitTimestamp }}'
     tags:
       - no_otel
