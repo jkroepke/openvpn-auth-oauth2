@@ -2,9 +2,6 @@ FROM golang:1.26 AS builder
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-# production builds uses v2 by default as well.
-ARG GOAMD64=v2
-
 ENV EASYRSA=/usr/share/easy-rsa/ \
     EASYRSA_PKI=/etc/openvpn/pki \
     EASYRSA_BATCH=1 \
