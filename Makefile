@@ -16,6 +16,10 @@ PROJECT_NAME := $(notdir $(CURRENT_DIR))
 # Get the GOOS value
 GOOS := $(shell go env GOOS)
 
+# https://go.dev/wiki/MinimumRequirements#amd64
+# Allow SSE3+ usage
+GOAMD64 := v2
+
 # Disable CGO for static binaries
 CGO_ENABLED := 0
 
