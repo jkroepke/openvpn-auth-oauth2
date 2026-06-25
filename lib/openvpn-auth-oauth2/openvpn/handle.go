@@ -3,6 +3,7 @@
 package openvpn
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"strconv"
@@ -144,6 +145,8 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 			slog.String("reason", reason),
 		)
 
+		writeAuthFailedReason(p.ctx, logger, openVPNClient, reason)
+
 		return c.OpenVPNPluginFuncError
 	case management.ClientAuthPending:
 		pendingTimeout := parsePendingPollerTimeout(resp.Timeout)
@@ -212,6 +215,8 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 					slog.String("reason", reason),
 				)
 
+				writeAuthFailedReason(p.ctx, logger, openVPNClient, reason)
+
 				if err := openVPNClient.WriteToAuthFile("0"); err != nil {
 					logger.ErrorContext(
 						p.ctx, "write to auth file",
@@ -230,6 +235,15 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 		p.logger.ErrorContext(p.ctx, "unknown client auth response from management interface")
 
 		return c.OpenVPNPluginFuncError
+	}
+}
+
+func writeAuthFailedReason(ctx context.Context, logger *slog.Logger, openVPNClient *client.Client, reason string) {
+	if err := openVPNClient.WriteAuthFailedReason(reason); err != nil {
+		logger.ErrorContext(
+			ctx, "write to failed reason file",
+			slog.Any("err", err),
+		)
 	}
 }
 
