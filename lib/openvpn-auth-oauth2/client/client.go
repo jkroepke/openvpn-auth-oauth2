@@ -23,6 +23,7 @@ const (
 var (
 	ErrAuthControlFileNotSet = errors.New("auth_control_file not set")
 	ErrAuthPendingFileNotSet = errors.New("auth_pending_file not set")
+	ErrUnsafeEnvVar          = errors.New("environment variable contains CR or LF")
 )
 
 type Client struct {
@@ -54,6 +55,10 @@ func NewClient(clientID uint64, envArray util.List) (*Client, error) {
 		case AuthControlFileEnvKey:
 			client.AuthControlFile = value
 		default:
+			if strings.ContainsAny(key, "\r\n") || strings.ContainsAny(value, "\r\n") {
+				return nil, fmt.Errorf("%w: %s", ErrUnsafeEnvVar, key)
+			}
+
 			client.estimatedSize += len(key) + len(value) + 15
 		}
 	}
@@ -81,6 +86,18 @@ func (c *Client) WriteToAuthFile(auth string) error {
 
 	if err := os.WriteFile(c.AuthControlFile, []byte(auth), 0o600); err != nil {
 		return fmt.Errorf("write to file %s: %w", c.AuthControlFile, err)
+	}
+
+	return nil
+}
+
+func (c *Client) WriteAuthFailedReason(reason string) error {
+	if c.AuthFailedReasonFile == "" {
+		return nil
+	}
+
+	if err := os.WriteFile(c.AuthFailedReasonFile, []byte(reason), 0o600); err != nil {
+		return fmt.Errorf("write to failed reason file %s: %w", c.AuthFailedReasonFile, err)
 	}
 
 	return nil
