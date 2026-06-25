@@ -58,6 +58,8 @@ func openvpn_plugin_min_version_required_v1() C.int {
 //export openvpn_plugin_open_v3_go
 //goland:noinspection GoSnakeCaseUsage,GoUnusedFunction
 func openvpn_plugin_open_v3_go(v3structver C.int, args *C.struct_openvpn_plugin_args_open_in, ret *C.struct_openvpn_plugin_args_open_return) C.int {
+	setMemoryLimit()
+
 	return C.int(openvpn.PluginOpenV3(
 		int(v3structver),
 		(*c.OpenVPNPluginArgsOpenIn)(unsafe.Pointer(args)),
