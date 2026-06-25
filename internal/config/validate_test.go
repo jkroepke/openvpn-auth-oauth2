@@ -3,6 +3,7 @@ package config_test
 import (
 	"net/url"
 	"testing"
+	"testing/fstest"
 	"text/template"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
@@ -235,6 +236,28 @@ func TestValidate(t *testing.T) {
 			},
 			"oauth2.userinfo: cannot be used if oauth2.endpoint.auth and oauth2.endpoint.token is set",
 		},
+		{
+			func() config.Config {
+				conf := validConfig()
+				conf.OpenVPN.ClientConfig.Enabled = true
+				conf.OpenVPN.ClientConfig.Path = types.FS{FS: fstest.MapFS{}}
+
+				return conf
+			}(),
+			"openvpn.client-config.expression is required when openvpn.client-config.enabled is true",
+		},
+		{
+			func() config.Config {
+				conf := validConfig()
+				conf.OpenVPN.CommonName.Mode = config.CommonNameModeOmit
+				conf.OpenVPN.ClientConfig.Enabled = true
+				conf.OpenVPN.ClientConfig.Path = types.FS{FS: fstest.MapFS{}}
+				conf.OpenVPN.ClientConfig.Expression = `["base"]`
+
+				return conf
+			}(),
+			"",
+		},
 	} {
 		t.Run(tc.err, func(t *testing.T) {
 			t.Parallel()
@@ -250,5 +273,22 @@ func TestValidate(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func validConfig() config.Config {
+	return config.Config{
+		HTTP: config.HTTP{
+			BaseURL:  types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
+			Secret:   testsuite.Secret,
+			Template: config.Defaults.HTTP.Template,
+		},
+		OAuth2: config.OAuth2{
+			Client: config.OAuth2Client{ID: "ID", Secret: testsuite.Secret},
+			Issuer: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
+		},
+		OpenVPN: config.OpenVPN{
+			Addr: types.URL{URL: &url.URL{Scheme: "tcp", Host: "127.0.0.1:9000"}},
+		},
 	}
 }

@@ -324,6 +324,7 @@ func TestHandler(t *testing.T) {
 				conf.OpenVPN.AuthTokenUser = true
 				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
 				conf.OpenVPN.ClientConfig.Enabled = true
+				conf.OpenVPN.ClientConfig.Expression = "[string(oauth2TokenClaims." + testsuite.SubjectClaim + ")]"
 				conf.OpenVPN.ClientConfig.Path = types.FS{
 					FS: fstest.MapFS{
 						"id1.conf": &fstest.MapFile{
@@ -353,7 +354,7 @@ func TestHandler(t *testing.T) {
 				conf.OpenVPN.AuthTokenUser = true
 				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
 				conf.OpenVPN.ClientConfig.Enabled = true
-				conf.OpenVPN.ClientConfig.TokenClaim = testsuite.SubjectClaim
+				conf.OpenVPN.ClientConfig.Expression = "[string(oauth2TokenClaims." + testsuite.SubjectClaim + ")]"
 				conf.OpenVPN.ClientConfig.Path = types.FS{
 					FS: fstest.MapFS{
 						"id1.conf": &fstest.MapFile{
@@ -383,6 +384,7 @@ func TestHandler(t *testing.T) {
 				conf.OpenVPN.AuthTokenUser = true
 				conf.OAuth2.OpenVPNUsername = ""
 				conf.OpenVPN.ClientConfig.Enabled = true
+				conf.OpenVPN.ClientConfig.Expression = "[openVPNUserCommonName]"
 				conf.OpenVPN.ClientConfig.Path = types.FS{
 					FS: fstest.MapFS{},
 				}
@@ -408,8 +410,8 @@ func TestHandler(t *testing.T) {
 				conf.OpenVPN.AuthTokenUser = true
 				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
 				conf.OpenVPN.ClientConfig.Enabled = true
-				conf.OpenVPN.ClientConfig.UserSelector.Enabled = true
-				conf.OpenVPN.ClientConfig.UserSelector.StaticValues = []string{"static"}
+				conf.OpenVPN.ClientConfig.Strategy = config.OpenVPNConfigStrategyUserSelector
+				conf.OpenVPN.ClientConfig.Expression = `["static"]`
 				conf.OpenVPN.ClientConfig.Path = types.FS{
 					FS: fstest.MapFS{
 						"static.conf": &fstest.MapFile{
@@ -439,9 +441,8 @@ func TestHandler(t *testing.T) {
 				conf.OpenVPN.AuthTokenUser = true
 				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
 				conf.OpenVPN.ClientConfig.Enabled = true
-				conf.OpenVPN.ClientConfig.UserSelector.Enabled = true
-				conf.OpenVPN.ClientConfig.UserSelector.StaticValues = []string{"static"}
-				conf.OpenVPN.ClientConfig.TokenClaim = testsuite.SubjectClaim
+				conf.OpenVPN.ClientConfig.Strategy = config.OpenVPNConfigStrategyUserSelector
+				conf.OpenVPN.ClientConfig.Expression = `["static", string(oauth2TokenClaims.` + testsuite.SubjectClaim + `)]`
 				conf.OpenVPN.ClientConfig.Path = types.FS{
 					FS: fstest.MapFS{
 						"id1.conf": &fstest.MapFile{
@@ -471,9 +472,8 @@ func TestHandler(t *testing.T) {
 				conf.OpenVPN.AuthTokenUser = true
 				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
 				conf.OpenVPN.ClientConfig.Enabled = true
-				conf.OpenVPN.ClientConfig.UserSelector.Enabled = true
-				conf.OpenVPN.ClientConfig.UserSelector.StaticValues = []string{"aaa"}
-				conf.OpenVPN.ClientConfig.TokenClaim = "amr"
+				conf.OpenVPN.ClientConfig.Strategy = config.OpenVPNConfigStrategyUserSelector
+				conf.OpenVPN.ClientConfig.Expression = `["aaa"] + oauth2TokenClaims.amr`
 				conf.OpenVPN.ClientConfig.Path = types.FS{
 					FS: fstest.MapFS{
 						"pwd.conf": &fstest.MapFile{
@@ -503,9 +503,8 @@ func TestHandler(t *testing.T) {
 				conf.OpenVPN.AuthTokenUser = true
 				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
 				conf.OpenVPN.ClientConfig.Enabled = true
-				conf.OpenVPN.ClientConfig.UserSelector.Enabled = true
-				conf.OpenVPN.ClientConfig.UserSelector.StaticValues = []string{"static"}
-				conf.OpenVPN.ClientConfig.TokenClaim = invalid
+				conf.OpenVPN.ClientConfig.Strategy = config.OpenVPNConfigStrategyUserSelector
+				conf.OpenVPN.ClientConfig.Expression = `["static"]`
 				conf.OpenVPN.ClientConfig.Path = types.FS{
 					FS: fstest.MapFS{
 						"static.conf": &fstest.MapFile{
@@ -535,8 +534,8 @@ func TestHandler(t *testing.T) {
 				conf.OpenVPN.AuthTokenUser = true
 				conf.OAuth2.OpenVPNUsername = ""
 				conf.OpenVPN.ClientConfig.Enabled = true
-				conf.OpenVPN.ClientConfig.UserSelector.Enabled = true
-				conf.OpenVPN.ClientConfig.UserSelector.StaticValues = []string{"not found"}
+				conf.OpenVPN.ClientConfig.Strategy = config.OpenVPNConfigStrategyUserSelector
+				conf.OpenVPN.ClientConfig.Expression = `["not found"]`
 				conf.OpenVPN.ClientConfig.Path = types.FS{
 					FS: fstest.MapFS{
 						"static.conf": &fstest.MapFile{
@@ -566,8 +565,8 @@ func TestHandler(t *testing.T) {
 				conf.OpenVPN.AuthTokenUser = true
 				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
 				conf.OpenVPN.ClientConfig.Enabled = true
-				conf.OpenVPN.ClientConfig.UserSelector.Enabled = true
-				conf.OpenVPN.ClientConfig.UserSelector.StaticValues = []string{"group1", "group2"}
+				conf.OpenVPN.ClientConfig.Strategy = config.OpenVPNConfigStrategyUserSelector
+				conf.OpenVPN.ClientConfig.Expression = `["group1", "group2"]`
 				conf.OpenVPN.ClientConfig.Path = types.FS{
 					FS: fstest.MapFS{
 						"group2.conf": &fstest.MapFile{
@@ -728,9 +727,10 @@ func TestHandler(t *testing.T) {
 				reqErrCh <- err
 			}()
 
-			clientConfigSelectorActive := tc.conf.OpenVPN.ClientConfig.Enabled && tc.conf.OpenVPN.ClientConfig.TokenClaim != invalid &&
-				(len(tc.conf.OpenVPN.ClientConfig.UserSelector.StaticValues) > 1 ||
-					(len(tc.conf.OpenVPN.ClientConfig.UserSelector.StaticValues) >= 1 && tc.conf.OpenVPN.ClientConfig.TokenClaim != ""))
+			clientConfigSelectorActive := tc.conf.OpenVPN.ClientConfig.Enabled &&
+				tc.conf.OpenVPN.ClientConfig.Strategy == config.OpenVPNConfigStrategyUserSelector &&
+				(strings.Contains(tc.conf.OpenVPN.ClientConfig.Expression, ",") ||
+					strings.Contains(tc.conf.OpenVPN.ClientConfig.Expression, "+ oauth2TokenClaims"))
 
 			switch {
 			case !tc.postAllow:

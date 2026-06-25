@@ -40,6 +40,178 @@ oauth2:
 
 The environment variable for the new option is `CONFIG_OAUTH2_OPENVPN__USERNAME`.
 
+## Client-specific configuration
+
+Version 2 changes OpenVPN client-specific configuration from a single config
+name lookup to an expression-based resolver.
+
+The following options are removed:
+
+| Version 1 option                                    | Version 2 replacement                           |
+|-----------------------------------------------------|-------------------------------------------------|
+| `openvpn.client-config.token-claim`                 | `openvpn.client-config.expression`              |
+| `openvpn.client-config.user-selector.enabled`       | `openvpn.client-config.strategy: user-selector` |
+| `openvpn.client-config.user-selector.static-values` | `openvpn.client-config.expression`              |
+
+`openvpn.client-config.expression` is a CEL expression and must evaluate
+to an ordered list of strings. It receives `oauth2TokenClaims`, which contains
+the OAuth2 ID token claims, and `openVPNUserCommonName`, which contains the
+OpenVPN common name. It also receives `username`, which contains the resolved
+OpenVPN username after `oauth2.openvpn-username` has been evaluated.
+
+The default strategy is now `merge`. It loads every resolved config file,
+deduplicates repeated config names and identical config lines, and skips missing
+config files. Keep authorization in `oauth2.validate.groups` or
+`oauth2.validate.expression`; client config files only assign OpenVPN settings
+such as routes.
+
+When `openvpn.client-config.expression` returns an empty list, version 2 loads
+`DEFAULT.conf`. This follows OpenVPN's `client-config-dir` default-file pattern.
+When the expression returns one or more config names, missing `<name>.conf` files
+are ignored by default. Set `openvpn.client-config.ignore-not-found: false` to
+deny the client when a returned config file does not exist.
+
+### Common name client config
+
+Version 1 could use the OpenVPN common name as the implicit client config name:
+
+```yaml
+# Version 1
+openvpn:
+  client-config:
+    enabled: true
+    path: /etc/openvpn-auth-oauth2/client-config
+```
+
+In version 2, configure the resolver explicitly:
+
+```yaml
+# Version 2
+openvpn:
+  client-config:
+    enabled: true
+    path: /etc/openvpn-auth-oauth2/client-config
+    expression: |
+        [openVPNUserCommonName]
+```
+
+To use the resolved OpenVPN username instead, use `username`:
+
+```yaml
+openvpn:
+  client-config:
+    enabled: true
+    path: /etc/openvpn-auth-oauth2/client-config
+    expression: |
+        [username]
+```
+
+### Token claim client config
+
+Version 1 could read a config name from one token claim:
+
+```yaml
+# Version 1
+openvpn:
+  client-config:
+    enabled: true
+    path: /etc/openvpn-auth-oauth2/client-config
+    token-claim: groups
+```
+
+In version 2, read the claim through `client-config.expression`:
+
+```yaml
+# Version 2
+openvpn:
+  client-config:
+    enabled: true
+    path: /etc/openvpn-auth-oauth2/client-config
+    expression: |
+        oauth2TokenClaims.groups
+```
+
+If the claim can contain several values, all matching config files are merged by
+default.
+
+### Profile selector
+
+Version 1 enabled the selector with `user-selector.enabled`:
+
+```yaml
+# Version 1
+openvpn:
+  client-config:
+    enabled: true
+    path: /etc/openvpn-auth-oauth2/client-config
+    token-claim: groups
+    user-selector:
+      enabled: true
+```
+
+In version 2, use `strategy: user-selector`:
+
+```yaml
+# Version 2
+openvpn:
+  client-config:
+    enabled: true
+    path: /etc/openvpn-auth-oauth2/client-config
+    strategy: user-selector
+    expression: |
+        oauth2TokenClaims.groups
+```
+
+Static selector values also move into the expression:
+
+```yaml
+# Version 1
+openvpn:
+  client-config:
+    enabled: true
+    path: /etc/openvpn-auth-oauth2/client-config
+    user-selector:
+      enabled: true
+      static-values:
+        - corporate
+        - guest
+```
+
+```yaml
+# Version 2
+openvpn:
+  client-config:
+    enabled: true
+    path: /etc/openvpn-auth-oauth2/client-config
+    strategy: user-selector
+    expression: |
+        ["corporate", "guest"]
+```
+
+### Additive group routes
+
+To assign several config files without showing the selector, keep the default
+`merge` strategy and return every allowed config name:
+
+```yaml
+oauth2:
+  validate:
+    groups:
+      - GRP-VPN
+
+openvpn:
+  client-config:
+    enabled: true
+    path: /etc/openvpn-auth-oauth2/client-config
+    expression: |
+        oauth2TokenClaims.groups.filter(g, g in [
+          "GRP-VPN",
+          "GRP-ADMIN",
+          "GRP-NETWORK"
+        ]) +
+        [username]
+```
+
 ## Token validation
 
 Version 2 removes the following dedicated validation options:

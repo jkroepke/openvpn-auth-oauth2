@@ -116,12 +116,12 @@ Usage of openvpn-auth-oauth2:
     	If true, openvpn-auth-oauth2 will read the CCD directory for additional configuration. This function mimic the client-config-dir directive in OpenVPN. (env: CONFIG_OPENVPN_CLIENT__CONFIG_ENABLED)
   --openvpn.client-config.path value
     	Path to the CCD directory. openvpn-auth-oauth2 will look for an file with an .conf suffix and returns the content back. (env: CONFIG_OPENVPN_CLIENT__CONFIG_PATH)
-  --openvpn.client-config.token-claim string
-    	If non-empty, the value of the token claim is used to lookup the configuration file in the CCD directory. If empty, the common name is used. (env: CONFIG_OPENVPN_CLIENT__CONFIG_TOKEN__CLAIM)
-  --openvpn.client-config.user-selector.enabled
-    	If true, openvpn-auth-oauth2 will display a profile selection UI after OAuth2 authentication, allowing users to choose their client configuration profile. Profile options are populated from openvpn.client-config.user-selector.static-values and openvpn.client-config.token-claim (if configured). After selection, the chosen profile name is used to lookup the configuration file in the CCD directory. (env: CONFIG_OPENVPN_CLIENT__CONFIG_USER__SELECTOR_ENABLED)
-  --openvpn.client-config.user-selector.static-values value
-    	Comma-separated list of static profile names that are always available in the profile selector UI. These profiles will be displayed as selectable options for all users. (env: CONFIG_OPENVPN_CLIENT__CONFIG_USER__SELECTOR_STATIC__VALUES)
+  --openvpn.client-config.ignore-not-found
+    	Ignore missing client configuration files. (env: CONFIG_OPENVPN_CLIENT__CONFIG_IGNORE__NOT__FOUND) (default true)
+  --openvpn.client-config.expression string
+    	CEL expression that returns an ordered list of client configuration names. (env: CONFIG_OPENVPN_CLIENT__CONFIG_EXPRESSION)
+  --openvpn.client-config.strategy value
+    	Client config selection strategy. Values: [merge,user-selector]. (env: CONFIG_OPENVPN_CLIENT__CONFIG_STRATEGY) (default merge)
   --openvpn.common-name.environment-variable-name string
     	Name of the environment variable in the OpenVPN management interface which contains the common name. If username-as-common-name is enabled, this should be set to 'username' to use the username as common name. Other values like 'X509_0_emailAddress' are supported. See https://openvpn.net/community-resources/reference-manual-for-openvpn-2-6/#environmental-variables for more information. (env: CONFIG_OPENVPN_COMMON__NAME_ENVIRONMENT__VARIABLE__NAME) (default "common_name")
   --openvpn.common-name.mode value

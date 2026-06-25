@@ -20,6 +20,7 @@ type Client struct {
 	storage         tokenstorage.Storage
 	provider        Provider
 	celEvalPrg      cel.Program
+	configsCELPrg   cel.Program
 	logger          *slog.Logger
 	stateCrypto     *crypto.Cipher
 	conf            *types2.Config

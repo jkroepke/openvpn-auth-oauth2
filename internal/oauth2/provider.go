@@ -80,6 +80,11 @@ func New(
 		return nil, err
 	}
 
+	err = client.initializeClientConfigResolver()
+	if err != nil {
+		return nil, err
+	}
+
 	return client, nil
 }
 
@@ -97,7 +102,8 @@ func (c *Client) initializeCELValidation() error {
 		cel.VariableWithDoc("openVPNUserIPAddr", cel.StringType, "The IP address of the OpenVPN user"),
 		cel.VariableWithDoc("oauth2TokenIPAddr", cel.StringType, "The IP address claim of the OAuth2 ID token"),
 		cel.VariableWithDoc("oauth2TokenClaims", cel.MapType(cel.StringType, cel.DynType), "The claims of the OAuth2 ID token"),
-		ext.Strings(ext.StringsVersion(4)),
+		ext.Strings(ext.StringsVersion(5)),
+		ext.Lists(ext.ListsVersion(3)),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create CEL environment: %w", err)

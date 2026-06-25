@@ -1,5 +1,13 @@
 ## CEL Language Features
 
+[CEL, the Common Expression Language](https://cel.dev/), is a small expression language designed for
+fast and safe evaluation of user-defined rules. openvpn-auth-oauth2 uses CEL for
+configuration values that need logic, such as token validation, deriving the
+OpenVPN username, and resolving client configuration names. CEL expressions can
+inspect the variables provided by openvpn-auth-oauth2, call the documented
+string and list helpers, and return the type required by the specific setting.
+They cannot access files, make network calls, or execute arbitrary code.
+
 CEL supports many standard operations:
 
 ### Comparison Operators
@@ -11,6 +19,36 @@ CEL supports many standard operations:
 - `&&` (AND)
 - `||` (OR)
 - `!` (NOT)
+
+### Available Variables
+
+The available variables depend on the CEL expression being evaluated.
+
+#### `oauth2.validate.expression`
+
+- `authMode`: authentication mode, for example `interactive` or
+  `non-interactive`
+- `openVPNSessionState`: OpenVPN session state
+- `openVPNUserCommonName`: common name of the OpenVPN user
+- `openVPNUserIPAddr`: IP address of the OpenVPN user
+- `oauth2TokenIPAddr`: IP address claim from the OAuth2 ID token
+- `oauth2TokenClaims`: OAuth2 ID token claims
+
+#### `oauth2.openvpn-username`
+
+- `oauth2TokenClaims`: OAuth2 ID token claims
+
+#### `openvpn.client-config.expression`
+
+- `oauth2TokenClaims`: OAuth2 ID token claims
+- `openVPNUserCommonName`: common name of the OpenVPN user
+- `username`: resolved OpenVPN username after `oauth2.openvpn-username` has
+  been evaluated
+
+### Extension Libraries
+
+All CEL expressions load the [CEL strings extension](https://pkg.go.dev/github.com/google/cel-go/ext#Strings)
+and [CEL lists extension](https://pkg.go.dev/github.com/google/cel-go/ext#Lists).
 
 ### String Functions
 
@@ -71,8 +109,68 @@ The following string functions are available through the [CEL strings extension]
   - Example: `strings.quote('single-quote with "double quote"')` returns `'"single-quote with \"double quote\""'`
 
 ### List Functions
-- `in` - Check if element is in list
+- `in` - Check if an element is in a list
 - `size()` - Get the size of a list or map
+- `exists(var, predicate)` - Check if any element matches
+  - Example: `oauth2TokenClaims.groups.exists(g, g == 'vpn-users')`
+- `all(var, predicate)` - Check if every element matches
+  - Example: `oauth2TokenClaims.groups.all(g, g.startsWith('vpn-'))`
+- `exists_one(var, predicate)` - Check if exactly one element matches
+  - Example: `oauth2TokenClaims.groups.exists_one(g, g == 'vpn-admin')`
+- `filter(var, predicate)` - Keep matching elements
+  - Example: `oauth2TokenClaims.groups.filter(g, g.startsWith('vpn-'))`
+- `map(var, expression)` - Transform elements
+  - Example: `oauth2TokenClaims.groups.map(g, g.lowerAscii())`
+- `map(var, predicate, expression)` - Transform matching elements
+  - Example: `oauth2TokenClaims.groups.map(g, g.startsWith('vpn-'), g.lowerAscii())`
+
+The CEL lists extension adds more list helpers:
+
+- `slice(<int>, <int>)` - Return a sub-list
+  - Example: `['base', 'admin', 'net'].slice(0, 2)` returns `['base', 'admin']`
+- `flatten()` - Flatten one nested list level
+  - Example: `[['base'], ['admin', 'net']].flatten()` returns `['base', 'admin', 'net']`
+- `flatten(<int>)` - Flatten a specific number of nested list levels
+- `sort()` - Sort a list of comparable values
+  - Example: `['net', 'base', 'admin'].sort()` returns `['admin', 'base', 'net']`
+- `sortBy(var, expression)` - Sort a list by a derived key
+  - Example: `[{'name': 'admin', 'order': 2}, {'name': 'base', 'order': 1}].sortBy(p, p.order).map(p, p.name)`
+- `reverse()` - Reverse list order
+  - Example: `['base', 'admin'].reverse()` returns `['admin', 'base']`
+- `distinct()` - Remove duplicate list elements while keeping first occurrence
+  - Example: `['base', 'admin', 'base'].distinct()` returns `['base', 'admin']`
+
+Example for client configuration:
+
+```yaml
+openvpn:
+  client-config:
+    expression: |
+      (
+        ['base'] +
+        oauth2TokenClaims.groups
+          .filter(g, g.startsWith('vpn-'))
+          .map(g, g.replace('vpn-', ''))
+          .sort() +
+        [username]
+      ).distinct()
+```
+
+Example that maps each group to one or more shared config files:
+
+```yaml
+openvpn:
+  client-config:
+    expression: |
+      oauth2TokenClaims.groups
+        .map(g, {
+          'GRP-VPN': ['base-vpn'],
+          'GRP-ADMIN': ['base-vpn', 'admin-routes'],
+          'GRP-NETWORK': ['base-vpn', 'network-routes']
+        }[g])
+        .flatten()
+        .distinct()
+```
 
 ### Map/Object Functions
 - `has()` - Check if a key exists in a map
@@ -84,6 +182,7 @@ For more details, see:
 - [CEL Specification](https://github.com/google/cel-spec/blob/master/doc/langdef.md)
 - [CEL Strings Extension](https://github.com/google/cel-spec/blob/master/doc/extensions/strings.md)
 - [cel-go Strings Documentation](https://pkg.go.dev/github.com/google/cel-go/ext#Strings)
+- [cel-go Lists Documentation](https://pkg.go.dev/github.com/google/cel-go/ext#Lists)
 
 ## Error Handling
 
@@ -115,16 +214,6 @@ expression: 'openVPNUserCommonName'
 # ✅ Good - evaluates to a boolean
 expression: 'openVPNUserCommonName != ""'
 ```
-
-## Relationship with Other Validation Options
-
-CEL validation is **in addition to** the remaining validation options. All validation checks must pass for the user to be granted access:
-
-1. Standard validation checks (`oauth2.validate.groups`, etc.)
-2. CEL validation (if configured)
-3. Provider-specific validation
-
-If any validation step fails, the user is denied access.
 
 ## Best Practices
 

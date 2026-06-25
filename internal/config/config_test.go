@@ -112,12 +112,11 @@ openvpn:
         - "test2"
     client-config:
         enabled: true
-        token-claim: sub
+        ignore-not-found: false
         path: "."
-        user-selector:
-            enabled: true
-            static-values:
-            - "default"
+        strategy: user-selector
+        expression: |
+            ["default", string(oauth2TokenClaims.sub)]
     common-name:
         environment-variable-name: X509_0_emailAddress
         mode: omit
@@ -184,18 +183,15 @@ http:
 						CommonNames: types.RegexpSlice{regexp.MustCompile(`^(?:test)$`), regexp.MustCompile(`^(?:test2)$`)},
 					},
 					ClientConfig: config.OpenVPNConfig{
-						Enabled:    true,
-						TokenClaim: testsuite.SubjectClaim,
+						Enabled:  true,
+						Strategy: config.OpenVPNConfigStrategyUserSelector,
 						Path: func() types.FS {
 							dirFS, err := types.NewFS(".")
 							require.NoError(t, err)
 
 							return dirFS
 						}(),
-						UserSelector: config.OpenVPNConfigProfileSelector{
-							Enabled:      true,
-							StaticValues: []string{"default"},
-						},
+						Expression: "[\"default\", string(oauth2TokenClaims.sub)]\n",
 					},
 					Password:           "1jd93h5b6s82lf03jh5b2hf9",
 					AuthTokenUser:      true,

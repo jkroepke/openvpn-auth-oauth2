@@ -11,9 +11,11 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"testing/fstest"
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	configtypes "github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/github"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/google"
@@ -25,6 +27,23 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 	"github.com/zitadel/oidc/v3/pkg/op"
 )
+
+func configTypesFS(files map[string][]byte) configtypes.FS {
+	mapFS := make(fstest.MapFS, len(files))
+	for name, data := range files {
+		mapFS[name] = &fstest.MapFile{Data: data}
+	}
+
+	return configtypes.FS{FS: mapFS}
+}
+
+func expectProfileClientAuth(t *testing.T, suite *testsuite.Suite, cid, kid uint64) {
+	t.Helper()
+
+	suite.ExpectMessage(t, fmt.Sprintf("client-auth %d %d", cid, kid))
+	suite.ExpectMessage(t, `push "route 10.8.0.0 255.255.0.0"`)
+	suite.ExpectMessage(t, "END")
+}
 
 func TestRefreshReAuth(t *testing.T) {
 	t.Parallel()
@@ -110,6 +129,26 @@ func TestRefreshReAuth(t *testing.T) {
 				conf.OAuth2.Refresh.Enabled = true
 				conf.OAuth2.Refresh.ValidateUser = false
 				conf.OAuth2.Refresh.UseSessionID = false
+
+				return conf
+			}(),
+			rt: http.DefaultTransport,
+		},
+		{
+			name:                     "Refresh with ValidateUser=false and client config",
+			clientCommonName:         "test",
+			nonInteractiveShouldWork: true,
+			conf: func() config.Config {
+				conf := config.Defaults
+				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.Refresh.Enabled = true
+				conf.OAuth2.Refresh.ValidateUser = false
+				conf.OAuth2.Refresh.UseSessionID = false
+				conf.OpenVPN.ClientConfig.Enabled = true
+				conf.OpenVPN.ClientConfig.Expression = `["profile"]`
+				conf.OpenVPN.ClientConfig.Path = configTypesFS(map[string][]byte{
+					"profile.conf": []byte(`push "route 10.8.0.0 255.255.0.0"`),
+				})
 
 				return conf
 			}(),
@@ -389,6 +428,8 @@ func TestRefreshReAuth(t *testing.T) {
 			})
 
 			switch {
+			case !tc.conf.OAuth2.Refresh.ValidateUser && tc.conf.OpenVPN.ClientConfig.Enabled:
+				expectProfileClientAuth(t, suite, 1, 2)
 			case !tc.conf.OAuth2.Refresh.ValidateUser:
 				suite.ExpectMessage(t, "client-auth-nt 1 2")
 			case tc.conf.OpenVPN.OverrideUsername:
@@ -457,6 +498,8 @@ func TestRefreshReAuth(t *testing.T) {
 			}
 
 			switch {
+			case !tc.conf.OAuth2.Refresh.ValidateUser && tc.conf.OpenVPN.ClientConfig.Enabled:
+				expectProfileClientAuth(t, suite, 1, 3)
 			case !tc.conf.OAuth2.Refresh.ValidateUser:
 				suite.ExpectMessage(t, "client-auth-nt 1 3")
 			case tc.conf.OpenVPN.OverrideUsername:
@@ -499,6 +542,8 @@ func TestRefreshReAuth(t *testing.T) {
 			)
 
 			switch {
+			case !tc.conf.OAuth2.Refresh.ValidateUser && tc.conf.OpenVPN.ClientConfig.Enabled:
+				expectProfileClientAuth(t, suite, 1, 4)
 			case !tc.conf.OAuth2.Refresh.ValidateUser:
 				suite.ExpectMessage(t, "client-auth-nt 1 4")
 			case tc.conf.OpenVPN.OverrideUsername:

@@ -50,6 +50,51 @@ func TestCNModeString(t *testing.T) {
 	assert.Panics(t, func() { _ = config.OpenVPNCommonNameMode(-1).String() }, "The code did not panic")
 }
 
+func TestOpenVPNConfigStrategyUnmarshalText(t *testing.T) {
+	t.Parallel()
+
+	var strategy config.OpenVPNConfigStrategy
+
+	require.NoError(t, strategy.UnmarshalText([]byte("")))
+	assert.Equal(t, config.OpenVPNConfigStrategyMerge, strategy)
+
+	require.NoError(t, strategy.UnmarshalText([]byte("merge")))
+	assert.Equal(t, config.OpenVPNConfigStrategyMerge, strategy)
+
+	require.NoError(t, strategy.UnmarshalText([]byte("user-selector")))
+	assert.Equal(t, config.OpenVPNConfigStrategyUserSelector, strategy)
+
+	require.Error(t, strategy.UnmarshalText([]byte("selector")))
+	require.Error(t, strategy.UnmarshalText([]byte("single")))
+}
+
+func TestOpenVPNConfigStrategyMarshalText(t *testing.T) {
+	t.Parallel()
+
+	strategy, err := config.OpenVPNConfigStrategyMerge.MarshalText()
+
+	require.NoError(t, err)
+	assert.Equal(t, []byte("merge"), strategy)
+
+	strategy, err = config.OpenVPNConfigStrategyUserSelector.MarshalText()
+
+	require.NoError(t, err)
+	assert.Equal(t, []byte("user-selector"), strategy)
+
+	_, err = config.OpenVPNConfigStrategy(-1).MarshalText()
+
+	require.Error(t, err)
+}
+
+func TestOpenVPNConfigStrategyString(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, "merge", config.OpenVPNConfigStrategyMerge.String())
+	assert.Equal(t, "user-selector", config.OpenVPNConfigStrategyUserSelector.String())
+
+	assert.Panics(t, func() { _ = config.OpenVPNConfigStrategy(-1).String() }, "The code did not panic")
+}
+
 func TestOAuth2AuthStyleUnmarshalText(t *testing.T) {
 	t.Parallel()
 

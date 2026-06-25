@@ -2,10 +2,12 @@ package oauth2
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
 	"strconv"
+	"strings"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
@@ -15,44 +17,134 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
 )
 
+const (
+	internalRefreshTokenPrefix = types.EmptyToken + "client-config:"
+	providerRefreshTokenPrefix = types.EmptyToken + "refresh-token:"
+)
+
+type internalRefreshToken struct {
+	ClientConfigNames []string `json:"client-config-names,omitempty"`
+}
+
+type providerRefreshToken struct {
+	RefreshToken      string   `json:"refresh-token"`
+	ClientConfigNames []string `json:"client-config-names,omitempty"`
+}
+
 // RefreshClientAuth initiates non-interactive authentication against the SSO provider.
-func (c *Client) RefreshClientAuth(ctx context.Context, logger *slog.Logger, client connection.Client) (types.UserInfo, *idtoken.IDToken, bool, error) {
+func (c *Client) RefreshClientAuth(
+	ctx context.Context, logger *slog.Logger, client connection.Client,
+) (types.UserInfo, *idtoken.IDToken, []string, bool, error) {
 	clientID := c.getRefreshClientID(client)
 
 	refreshToken, hasRefreshToken, err := c.loadRefreshToken(ctx, logger, clientID)
 	if err != nil {
-		return types.UserInfo{}, nil, false, err
+		return types.UserInfo{}, nil, nil, false, err
 	}
 
 	if !hasRefreshToken {
-		return types.UserInfo{}, nil, false, nil
+		return types.UserInfo{}, nil, nil, false, nil
 	}
 
 	if !c.conf.OAuth2.Refresh.ValidateUser {
+		clientConfigNames, err := decodeInternalRefreshToken(refreshToken)
+		if err != nil {
+			return types.UserInfo{}, nil, nil, false, err
+		}
+
 		logger.LogAttrs(ctx, slog.LevelInfo, "successful non-interactive authentication via internal token")
 
-		return types.UserInfo{}, nil, true, nil
+		return types.UserInfo{}, nil, clientConfigNames, true, nil
+	}
+
+	refreshToken, clientConfigNames, err := decodeProviderRefreshToken(refreshToken)
+	if err != nil {
+		return types.UserInfo{}, nil, nil, false, err
 	}
 
 	ctx = c.withRefreshNonce(ctx, clientID)
 
 	tokens, err := c.refreshTokens(ctx, logger, refreshToken)
 	if err != nil {
-		return types.UserInfo{}, nil, false, err
+		return types.UserInfo{}, nil, nil, false, err
 	}
 
 	oAuth2State := refreshOAuth2State(client)
 
 	user, err := c.validateRefreshedUser(ctx, logger, oAuth2State, tokens)
 	if err != nil {
-		return types.UserInfo{}, nil, false, err
+		return types.UserInfo{}, nil, nil, false, err
 	}
 
 	logger.LogAttrs(ctx, slog.LevelInfo, "successful authenticate via refresh token")
 
-	c.storeRotatedRefreshToken(ctx, logger, oAuth2State, clientID, tokens)
+	c.storeRotatedRefreshToken(ctx, logger, oAuth2State, clientID, tokens, clientConfigNames)
 
-	return user, tokens, true, nil
+	return user, tokens, clientConfigNames, true, nil
+}
+
+func encodeInternalRefreshToken(clientConfigNames []string) (string, error) {
+	if len(clientConfigNames) == 0 {
+		return types.EmptyToken, nil
+	}
+
+	tokenBytes, err := json.Marshal(internalRefreshToken{ClientConfigNames: clientConfigNames})
+	if err != nil {
+		return "", fmt.Errorf("unable to marshal internal refresh token: %w", err)
+	}
+
+	return internalRefreshTokenPrefix + string(tokenBytes), nil
+}
+
+func decodeInternalRefreshToken(refreshToken string) ([]string, error) {
+	if !strings.HasPrefix(refreshToken, internalRefreshTokenPrefix) {
+		return nil, nil
+	}
+
+	var token internalRefreshToken
+	if err := json.Unmarshal([]byte(strings.TrimPrefix(refreshToken, internalRefreshTokenPrefix)), &token); err != nil {
+		return nil, fmt.Errorf("unable to parse internal refresh token: %w", err)
+	}
+
+	return validateClientConfigNames(token.ClientConfigNames)
+}
+
+func encodeProviderRefreshToken(refreshToken string, clientConfigNames []string) (string, error) {
+	if len(clientConfigNames) == 0 {
+		return refreshToken, nil
+	}
+
+	tokenBytes, err := json.Marshal(providerRefreshToken{
+		RefreshToken:      refreshToken,
+		ClientConfigNames: clientConfigNames,
+	})
+	if err != nil {
+		return "", fmt.Errorf("unable to marshal provider refresh token: %w", err)
+	}
+
+	return providerRefreshTokenPrefix + string(tokenBytes), nil
+}
+
+func decodeProviderRefreshToken(refreshToken string) (string, []string, error) {
+	if !strings.HasPrefix(refreshToken, providerRefreshTokenPrefix) {
+		return refreshToken, nil, nil
+	}
+
+	var token providerRefreshToken
+	if err := json.Unmarshal([]byte(strings.TrimPrefix(refreshToken, providerRefreshTokenPrefix)), &token); err != nil {
+		return "", nil, fmt.Errorf("unable to parse provider refresh token: %w", err)
+	}
+
+	if token.RefreshToken == "" {
+		return "", nil, errors.New("provider refresh token is empty")
+	}
+
+	clientConfigNames, err := validateClientConfigNames(token.ClientConfigNames)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return token.RefreshToken, clientConfigNames, nil
 }
 
 // getRefreshClientID returns the token storage key for a reconnecting OpenVPN client.
@@ -172,6 +264,7 @@ func (c *Client) storeRotatedRefreshToken(
 	oAuth2State state.State,
 	clientID string,
 	tokens *idtoken.IDToken,
+	clientConfigNames []string,
 ) {
 	refreshToken, err := c.provider.GetRefreshToken(tokens)
 	if err != nil {
@@ -182,6 +275,13 @@ func (c *Client) storeRotatedRefreshToken(
 
 	if refreshToken == "" {
 		logger.LogAttrs(ctx, slog.LevelWarn, "refresh token is empty")
+
+		return
+	}
+
+	refreshToken, err = encodeProviderRefreshToken(refreshToken, clientConfigNames)
+	if err != nil {
+		logger.LogAttrs(ctx, slog.LevelWarn, err.Error())
 
 		return
 	}
@@ -237,6 +337,13 @@ func (c *Client) ClientDisconnect(ctx context.Context, logger *slog.Logger, clie
 	}
 
 	if !c.conf.OAuth2.Refresh.ValidateUser {
+		return
+	}
+
+	refreshToken, _, err = decodeProviderRefreshToken(refreshToken)
+	if err != nil {
+		logger.LogAttrs(ctx, slog.LevelWarn, err.Error())
+
 		return
 	}
 

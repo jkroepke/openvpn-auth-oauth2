@@ -46,11 +46,9 @@ func TestAcceptClientClosesClientConfigFile(t *testing.T) {
 
 	suite.ExpectVersionAndReleaseHold(t)
 
-	acceptDone := make(chan struct{})
+	acceptDone := make(chan error, 1)
 	go func() {
-		defer close(acceptDone)
-
-		openVPNClient.AcceptClient(ctx, suite.GetLogger(), state.ClientIdentifier{CID: 1, KID: 2}, "user", "client")
+		acceptDone <- openVPNClient.AcceptClient(ctx, suite.GetLogger(), state.ClientIdentifier{CID: 1, KID: 2}, "user", "client")
 	}()
 
 	require.Equal(t, "client-auth 1 2", suite.ReadLine(t))
@@ -61,7 +59,8 @@ func TestAcceptClientClosesClientConfigFile(t *testing.T) {
 	suite.SendMessagef(t, "SUCCESS: client-auth command succeeded")
 
 	select {
-	case <-acceptDone:
+	case err := <-acceptDone:
+		require.NoError(t, err)
 	case <-time.After(time.Second):
 		t.Fatalf("timeout waiting for AcceptClient. Logs:\n\n%s", suite.Logs())
 	}
