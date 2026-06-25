@@ -219,6 +219,7 @@ func (s *Server) Close() {
 		_ = s.connection.Close()
 
 		s.connection = nil
+		s.connected.Store(0)
 	}
 
 	if s.listenSocket != nil {
@@ -276,18 +277,15 @@ func (s *Server) waitForResponse(ctx context.Context, clientID uint64, timeout t
 //
 //nolint:cyclop
 func (s *Server) handleManagementClient(ctx context.Context, conn net.Conn) error {
-	s.connectionMu.Lock()
-	s.connection = conn
-	s.connectionMu.Unlock()
-	s.connected.Store(1)
-
 	defer func() {
 		_ = conn.Close()
 
 		s.connectionMu.Lock()
-		s.connection = nil
+		if s.connection == conn {
+			s.connection = nil
+			s.connected.Store(0)
+		}
 		s.connectionMu.Unlock()
-		s.connected.Store(0)
 	}()
 
 	scanner := bufio.NewScanner(conn)
@@ -298,8 +296,12 @@ func (s *Server) handleManagementClient(ctx context.Context, conn net.Conn) erro
 		return err
 	}
 
-	_ = s.writeToClient(">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info")
+	s.connectionMu.Lock()
+	s.connection = conn
 	s.connected.Store(1)
+	s.connectionMu.Unlock()
+
+	_ = s.writeToClient(">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info")
 
 scan:
 	for scanner.Scan() {
@@ -412,6 +414,10 @@ func (s *Server) handleManagementClientAuth(_ context.Context, conn net.Conn, sc
 		return fmt.Errorf("unable to writeToClient to client: %w", err)
 	}
 
+	if err := conn.SetReadDeadline(time.Now().Add(writeTimeout)); err != nil {
+		return fmt.Errorf("unable to set read deadline: %w", err)
+	}
+
 	if !scanner.Scan() {
 		if err = scanner.Err(); err == nil {
 			err = io.EOF
@@ -420,13 +426,22 @@ func (s *Server) handleManagementClientAuth(_ context.Context, conn net.Conn, sc
 		return fmt.Errorf("unable to read from client: %w", err)
 	}
 
+	if err := conn.SetReadDeadline(time.Time{}); err != nil {
+		return fmt.Errorf("unable to clear read deadline: %w", err)
+	}
+
 	if scanner.Text() != s.password {
-		_ = s.writeToClient("ERROR: bad password")
+		_, _ = conn.Write([]byte("ERROR: bad password\r\n"))
 
 		return errors.New("client provide invalid password")
 	}
 
-	return s.writeToClient("SUCCESS: password is correct")
+	_, err = conn.Write([]byte("SUCCESS: password is correct\r\n"))
+	if err != nil {
+		return fmt.Errorf("unable to writeToClient to client: %w", err)
+	}
+
+	return nil
 }
 
 func (s *Server) parseResponse(response string) (*Response, error) {
