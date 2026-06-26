@@ -263,6 +263,46 @@ func TestServer_Listen_Password_Incorrect(t *testing.T) {
 	clientConn.SendMessagef(t, "quit")
 }
 
+func TestServer_Listen_PasswordPromptDoesNotPublishConnection(t *testing.T) {
+	t.Parallel()
+
+	managementInterface, err := nettest.NewLocalListener("tcp")
+	require.NoError(t, err)
+
+	err = managementInterface.Close()
+	require.NoError(t, err)
+
+	managementServer := management.NewServer(slog.New(slog.DiscardHandler), testsuite.Password)
+	err = managementServer.Listen(t.Context(), fmt.Sprintf("%s://%s", managementInterface.Addr().Network(), managementInterface.Addr().String()))
+	require.NoError(t, err)
+
+	t.Cleanup(managementServer.Close)
+
+	var dialer net.Dialer
+
+	client, err := dialer.DialContext(t.Context(), "tcp", managementInterface.Addr().String())
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		_ = client.Close()
+	})
+
+	clientConn := testsuite.NewConn(client)
+
+	resp, err := clientConn.Reader().ReadString(':')
+	require.NoError(t, err)
+	require.Equal(t, "ENTER PASSWORD:", resp)
+
+	_, err = managementServer.ClientAuth(t.Context(), 1, ">CLIENT:CONNECT,1,1\r\n>CLIENT:ENV,END")
+	require.EqualError(t, err, "no client connected")
+
+	require.NoError(t, client.SetReadDeadline(time.Now().Add(50*time.Millisecond)))
+
+	_, err = clientConn.Reader().ReadString('\n')
+	require.Error(t, err)
+	require.ErrorIs(t, err, os.ErrDeadlineExceeded)
+}
+
 func TestServer_AuthPendingPoller(t *testing.T) {
 	t.Parallel()
 
