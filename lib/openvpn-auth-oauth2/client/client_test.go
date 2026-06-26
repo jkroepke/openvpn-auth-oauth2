@@ -95,6 +95,41 @@ func TestNewClient_ClientID(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestNewClient_RejectsManagementProtocolLineBreaks(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		name string
+		env  map[string]string
+	}{
+		{
+			name: "key with newline",
+			env: map[string]string{
+				"user\nname": "testuser",
+			},
+		},
+		{
+			name: "value with newline",
+			env: map[string]string{
+				"username": "test\n>CLIENT:ENV,injected=true",
+			},
+		},
+		{
+			name: "value with carriage return",
+			env: map[string]string{
+				"username": "test\r>CLIENT:ENV,injected=true",
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			_, err := client.NewClient(12345, tc.env)
+			require.ErrorIs(t, err, client.ErrUnsafeEnvVar)
+		})
+	}
+}
+
 func TestClient_WriteToAuthFile(t *testing.T) {
 	t.Parallel()
 
@@ -139,6 +174,54 @@ func TestClient_WriteToAuthFile(t *testing.T) {
 		require.NoError(t, err)
 
 		err = vpnClient.WriteToAuthFile("1")
+		require.Error(t, err)
+	})
+}
+
+func TestClient_WriteAuthFailedReason(t *testing.T) {
+	t.Parallel()
+
+	t.Run("OK", func(t *testing.T) {
+		t.Parallel()
+
+		authFailedReasonFile, err := os.CreateTemp(t.TempDir(), "auth_failed_reason_file")
+		require.NoError(t, err)
+		t.Cleanup(func() {
+			require.NoError(t, authFailedReasonFile.Close())
+		})
+
+		vpnClient, err := client.NewClient(12345, map[string]string{
+			"auth_failed_reason_file": authFailedReasonFile.Name(),
+		})
+		require.NoError(t, err)
+
+		err = vpnClient.WriteAuthFailedReason("access denied")
+		require.NoError(t, err)
+
+		data, err := os.ReadFile(authFailedReasonFile.Name())
+		require.NoError(t, err)
+		require.Equal(t, "access denied", string(data))
+	})
+
+	t.Run("AuthFailedReasonFileNotSet", func(t *testing.T) {
+		t.Parallel()
+
+		vpnClient, err := client.NewClient(12345, map[string]string{})
+		require.NoError(t, err)
+
+		err = vpnClient.WriteAuthFailedReason("access denied")
+		require.NoError(t, err)
+	})
+
+	t.Run("WriteError", func(t *testing.T) {
+		t.Parallel()
+
+		vpnClient, err := client.NewClient(12345, map[string]string{
+			"auth_failed_reason_file": "/non/existent/path/auth_failed_reason_file",
+		})
+		require.NoError(t, err)
+
+		err = vpnClient.WriteAuthFailedReason("access denied")
 		require.Error(t, err)
 	})
 }
