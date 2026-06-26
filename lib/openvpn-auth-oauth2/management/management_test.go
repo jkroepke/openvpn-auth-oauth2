@@ -303,7 +303,7 @@ func TestServer_Listen_PasswordPromptDoesNotPublishConnection(t *testing.T) {
 	require.ErrorIs(t, err, os.ErrDeadlineExceeded)
 }
 
-func TestServer_AuthPendingPoller(t *testing.T) {
+func TestServer_PendingPoller(t *testing.T) {
 	t.Parallel()
 
 	for _, tc := range []struct {
@@ -420,9 +420,11 @@ func TestServer_AuthPendingPoller(t *testing.T) {
 				require.NoError(t, err)
 
 				ctx := t.Context()
+				pendingRespCh, err := managementServer.RegisterPendingPoller(clientID)
+				require.NoError(t, err)
 
 				go func() {
-					response, err := managementServer.AuthPendingPoller(ctx, clientID, time.Second*5)
+					response, err := managementServer.WaitPendingPoller(ctx, clientID, time.Second*5, pendingRespCh)
 
 					errCh <- err
 
@@ -464,7 +466,7 @@ func TestServer_AuthPendingPoller(t *testing.T) {
 	}
 }
 
-func TestServer_AuthPendingPoller_Twice(t *testing.T) {
+func TestServer_PendingPoller_Twice(t *testing.T) {
 	t.Parallel()
 
 	managementInterface, err := nettest.NewLocalListener("tcp")
@@ -479,21 +481,20 @@ func TestServer_AuthPendingPoller_Twice(t *testing.T) {
 
 	t.Cleanup(managementServer.Close)
 
-	errCh := make(chan error, 1)
+	pendingRespCh, err := managementServer.RegisterPendingPoller(0)
+	require.NoError(t, err)
 
 	ctx := t.Context()
+	errCh := make(chan error, 1)
 
 	go func() {
-		_, err := managementServer.AuthPendingPoller(ctx, 0, time.Millisecond*10)
+		_, err := managementServer.WaitPendingPoller(ctx, 0, time.Millisecond*10, pendingRespCh)
 		errCh <- err
 	}()
 
-	go func() {
-		_, err := managementServer.AuthPendingPoller(ctx, 0, time.Millisecond*10)
-		errCh <- err
-	}()
+	_, err = managementServer.RegisterPendingPoller(0)
+	require.EqualError(t, err, "poller for client ID 0 already exists")
 
-	require.EqualError(t, <-errCh, "poller for client ID 0 already exists")
 	require.EqualError(t, <-errCh, "timeout waiting for client response")
 }
 
@@ -523,10 +524,12 @@ func TestServer_ReconnectDuringPendingAuth(t *testing.T) {
 
 	ctx := t.Context()
 	errCh := make(chan error, 1)
+	pendingRespCh, err := managementServer.RegisterPendingPoller(99)
+	require.NoError(t, err)
 
 	// Register a pending poller that will wait for a response
 	go func() {
-		_, err := managementServer.AuthPendingPoller(ctx, 99, time.Second*3)
+		_, err := managementServer.WaitPendingPoller(ctx, 99, time.Second*3, pendingRespCh)
 		errCh <- err
 	}()
 
@@ -625,9 +628,11 @@ func TestServer_ContextCancellation(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(t.Context())
 	errCh := make(chan error, 1)
+	pendingRespCh, err := managementServer.RegisterPendingPoller(42)
+	require.NoError(t, err)
 
 	go func() {
-		_, err := managementServer.AuthPendingPoller(ctx, 42, time.Minute)
+		_, err := managementServer.WaitPendingPoller(ctx, 42, time.Minute, pendingRespCh)
 		errCh <- err
 	}()
 

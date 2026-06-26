@@ -75,8 +75,8 @@ func (h *PluginHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	return &handler
 }
 
-func (h *PluginHandler) WithGroup(_ string) slog.Handler {
-	panic("implement me")
+func (h *PluginHandler) WithGroup(string) slog.Handler {
+	return h
 }
 
 func (h *PluginHandler) Enabled(_ context.Context, level slog.Level) bool {
@@ -167,9 +167,9 @@ func (h *PluginHandler) appendAttr(buf []byte, attr slog.Attr) []byte {
 	case slog.KindBool:
 		buf = fmt.Appendf(buf, " %s=%t", attr.Key, attr.Value.Bool())
 	case slog.KindLogValuer:
-		panic("implement me")
+		buf = fmt.Appendf(buf, " %s=%s", attr.Key, attr.Value.String())
 	default:
-		buf = fmt.Appendf(buf, " %s=%s", attr.Key, attr.Value)
+		buf = fmt.Appendf(buf, " %s=%s", attr.Key, attr.Value.String())
 	}
 
 	return buf

@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"unsafe"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/c"
 )
@@ -57,22 +56,13 @@ func NewEnvList(envVarsChar **c.Char) (List, error) {
 		return nil, ErrInvalidPointer
 	}
 
-	// Count
-	count := 0
-	for p := envVarsChar; *p != nil; p = (**c.Char)(unsafe.Add(unsafe.Pointer(p), unsafe.Sizeof(*p))) {
-		count++
-	}
+	envVars := cStringArrayToStrings(envVarsChar)
+	envArray := make(List, len(envVars))
 
-	ptrs := unsafe.Slice(envVarsChar, count)
-	envArray := make(List, count)
-
-	// Iterate through NULL-terminated array
-	for _, s := range ptrs {
-		envStr := c.GoString(s)
-
-		key, value, err := parseEnvVar(envStr)
+	for _, envVar := range envVars {
+		key, value, err := parseEnvVar(envVar)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse env var %q: %w", envStr, err)
+			return nil, fmt.Errorf("failed to parse env var %q: %w", envVar, err)
 		}
 
 		// Skip empty entries (empty strings)

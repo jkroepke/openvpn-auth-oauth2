@@ -154,20 +154,8 @@ func PluginFuncV3(v3structver c.Int, args *c.OpenVPNPluginArgsFuncIn, ret *c.Ope
 	}
 }
 
-func PluginCloseV1(handlePtr c.OpenVPNPluginHandle) {
-	handle, err := pluginHandleFromPtr(handlePtr)
-	if err != nil {
-		return
-	}
-
-	handle.logger.DebugContext(handle.ctx, "openvpn_plugin_close_v1: called")
-
-	handle.cancel()
-	handle.managementClient.Close()
-
-	handle.logger.InfoContext(handle.ctx, "plugin closed")
-
-	handlePtr.Delete() // frees handle, allows GC to collect Go object
+func PluginCloseV1(pluginHandlePtr c.OpenVPNPluginHandle) {
+	closePluginHandle(pluginHandlePtr, slog.LevelInfo, "openvpn_plugin_close_v1: called", "plugin closed")
 }
 
 // PluginClientConstructorV1 allocates a new per-client context using cgo.Handle
@@ -223,17 +211,21 @@ func PluginAbortV1(pluginHandlePtr c.OpenVPNPluginHandle) {
 		return
 	}
 
-	pluginHandle, err := pluginHandleFromPtr(pluginHandlePtr)
+	closePluginHandle(pluginHandlePtr, slog.LevelWarn, "openvpn_plugin_abort_v1: called", "plugin abort")
+}
+
+func closePluginHandle(pluginHandlePtr c.OpenVPNPluginHandle, level slog.Level, debugMessage, closeMessage string) {
+	handle, err := pluginHandleFromPtr(pluginHandlePtr)
 	if err != nil {
 		return
 	}
 
-	pluginHandle.logger.DebugContext(pluginHandle.ctx, "openvpn_plugin_abort_v1: called")
+	handle.logger.DebugContext(handle.ctx, debugMessage)
 
-	pluginHandle.cancel()
-	pluginHandle.managementClient.Close()
+	handle.cancel()
+	handle.managementClient.Close()
 
-	pluginHandle.logger.WarnContext(pluginHandle.ctx, "plugin abort")
+	handle.logger.Log(handle.ctx, level, closeMessage)
 
 	// frees the handle, allows GC to collect Go object
 	pluginHandlePtr.Delete()

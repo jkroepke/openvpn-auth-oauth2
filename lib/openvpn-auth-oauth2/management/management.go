@@ -74,15 +74,6 @@ func NewServer(logger *slog.Logger, password string) *Server {
 	}
 }
 
-func (s *Server) AuthPendingPoller(ctx context.Context, clientID uint64, timeout time.Duration) (*Response, error) {
-	respCh, err := s.registerResponseChannel(clientID)
-	if err != nil {
-		return nil, err
-	}
-
-	return s.waitForResponse(ctx, clientID, timeout, respCh)
-}
-
 func (s *Server) RegisterPendingPoller(clientID uint64) (chan *Response, error) {
 	return s.registerResponseChannel(clientID)
 }
