@@ -23,15 +23,16 @@ func ArgvToStrings(argv **c.Char) []string {
 		return nil
 	}
 
-	// Count
+	return cStringArrayToStrings(argv)
+}
+
+func cStringArrayToStrings(argv **c.Char) []string {
 	count := 0
 	for p := argv; *p != nil; p = (**c.Char)(unsafe.Add(unsafe.Pointer(p), unsafe.Sizeof(*p))) {
 		count++
 	}
 
-	// Build slice and convert
 	ptrs := unsafe.Slice(argv, count)
-
 	stringArgs := make([]string, count)
 
 	for i, s := range ptrs {

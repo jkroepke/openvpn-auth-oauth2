@@ -129,23 +129,11 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 	case management.ClientAuthAccept:
 		logger.InfoContext(p.ctx, "authentication accepted")
 
-		perClientContext.mu.Lock()
-		perClientContext.clientConfig = resp.ClientConfig
-		perClientContext.mu.Unlock()
+		perClientContext.setClientConfig(resp.ClientConfig)
 
 		return c.OpenVPNPluginFuncSuccess
 	case management.ClientAuthDeny:
-		reason := "authentication failed"
-		if resp.Message != "" {
-			reason = resp.Message
-		}
-
-		logger.InfoContext(
-			p.ctx, "authentication denied",
-			slog.String("reason", reason),
-		)
-
-		writeAuthFailedReason(p.ctx, logger, openVPNClient, reason)
+		handleAuthDenied(p.ctx, logger, openVPNClient, resp)
 
 		return c.OpenVPNPluginFuncError
 	case management.ClientAuthPending:
@@ -201,21 +189,9 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 
 				logger.InfoContext(p.ctx, "authentication accepted")
 
-				perClientContext.mu.Lock()
-				perClientContext.clientConfig = resp.ClientConfig
-				perClientContext.mu.Unlock()
+				perClientContext.setClientConfig(resp.ClientConfig)
 			case management.ClientAuthDeny:
-				reason := "authentication failed"
-				if resp.Message != "" {
-					reason = resp.Message
-				}
-
-				logger.InfoContext(
-					p.ctx, "authentication denied",
-					slog.String("reason", reason),
-				)
-
-				writeAuthFailedReason(p.ctx, logger, openVPNClient, reason)
+				handleAuthDenied(p.ctx, logger, openVPNClient, resp)
 
 				if err := openVPNClient.WriteToAuthFile("0"); err != nil {
 					logger.ErrorContext(
@@ -236,6 +212,31 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 
 		return c.OpenVPNPluginFuncError
 	}
+}
+
+func (ctx *ClientContext) setClientConfig(clientConfig string) {
+	ctx.mu.Lock()
+	ctx.clientConfig = clientConfig
+	ctx.mu.Unlock()
+}
+
+func handleAuthDenied(ctx context.Context, logger *slog.Logger, openVPNClient *client.Client, resp *management.Response) {
+	reason := authDeniedReason(resp)
+
+	logger.InfoContext(
+		ctx, "authentication denied",
+		slog.String("reason", reason),
+	)
+
+	writeAuthFailedReason(ctx, logger, openVPNClient, reason)
+}
+
+func authDeniedReason(resp *management.Response) string {
+	if resp.Message != "" {
+		return resp.Message
+	}
+
+	return "authentication failed"
 }
 
 func writeAuthFailedReason(ctx context.Context, logger *slog.Logger, openVPNClient *client.Client, reason string) {
