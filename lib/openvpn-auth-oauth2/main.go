@@ -52,6 +52,6 @@ func main() {
 	// which will be called from C.
 }
 
-func setMemoryLimit() {
+func init() {
 	debug.SetMemoryLimit(memoryLimit)
 }
