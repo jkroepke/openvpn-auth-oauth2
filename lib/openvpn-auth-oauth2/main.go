@@ -52,6 +52,7 @@ func main() {
 	// which will be called from C.
 }
 
+//nolint:gochecknoinits
 func init() {
 	debug.SetMemoryLimit(memoryLimit)
 }
