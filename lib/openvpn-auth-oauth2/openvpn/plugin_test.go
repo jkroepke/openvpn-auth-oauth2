@@ -364,6 +364,12 @@ func TestPluginDenyNonWebAuthClient(t *testing.T) {
 		require.NoError(t, authControlFile.Close())
 	})
 
+	authFailedReasonFile, err := os.CreateTemp(t.TempDir(), "auth_failed_reason_file")
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		require.NoError(t, authFailedReasonFile.Close())
+	})
+
 	// Client without webauth support (no IV_SSO=webauth)
 	envp, envCStrings := testutil.CreateCStringArray([]string{
 		"n_clients=0",
@@ -375,6 +381,7 @@ func TestPluginDenyNonWebAuthClient(t *testing.T) {
 		"username=",
 		"session_state=Initial",
 		"auth_control_file=" + authControlFile.Name(),
+		"auth_failed_reason_file=" + authFailedReasonFile.Name(),
 	})
 
 	t.Cleanup(func() {
@@ -393,6 +400,10 @@ func TestPluginDenyNonWebAuthClient(t *testing.T) {
 	// A client without webauth support must be denied: the plugin must return ERROR.
 	status = PluginFuncV3(PluginStructVerMin, args, ret)
 	require.Equal(t, c.OpenVPNPluginFuncError, status, suite.Logs())
+
+	data, err := os.ReadFile(authFailedReasonFile.Name())
+	require.NoError(t, err)
+	require.Equal(t, "OpenVPN Client does not support SSO authentication via webauth", string(data))
 
 	PluginClientDestructorV1(args.Handle, clientContextPtr)
 }
