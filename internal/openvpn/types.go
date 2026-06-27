@@ -40,7 +40,7 @@ type Client struct {
 }
 
 type oauth2Client interface {
-	RefreshClientAuth(ctx context.Context, logger *slog.Logger, client connection.Client) (types.UserInfo, idtoken.IDToken, bool, error)
+	RefreshClientAuth(ctx context.Context, logger *slog.Logger, client connection.Client) (types.UserInfo, *idtoken.IDToken, bool, error)
 	ClientDisconnect(ctx context.Context, logger *slog.Logger, client connection.Client)
 	EncryptState(oidcState state.State) (state.EncryptedState, error)
 }

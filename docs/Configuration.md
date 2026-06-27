@@ -100,22 +100,12 @@ Usage of openvpn-auth-oauth2:
     	oauth2 token scopes. Defaults depends on oauth2.provider. Comma separated list. Example: openid,profile,email (env: CONFIG_OAUTH2_SCOPES)
   --oauth2.user-info
     	If true, openvpn-auth-oauth2 uses the OIDC UserInfo endpoint to fetch additional information about the user (e.g. groups). (env: CONFIG_OAUTH2_USER__INFO)
-  --oauth2.validate.acr value
-    	oauth2 required acr values. Comma separated list. Example: phr,phrh (env: CONFIG_OAUTH2_VALIDATE_ACR)
   --oauth2.validate.cel string
     	CEL expression for custom token validation. The expression must evaluate to a boolean value. Example: openVPNUserCommonName == oauth2TokenClaims.preferred_username (env: CONFIG_OAUTH2_VALIDATE_CEL)
-  --oauth2.validate.common-name string
-    	validate common_name from OpenVPN with ID Token claim. For example: preferred_username or sub (env: CONFIG_OAUTH2_VALIDATE_COMMON__NAME)
-  --oauth2.validate.common-name-case-sensitive
-    	If true, openvpn-auth-oauth2 will validate the common case in sensitive mode (env: CONFIG_OAUTH2_VALIDATE_COMMON__NAME__CASE__SENSITIVE)
   --oauth2.validate.groups value
     	oauth2 required user groups. If multiple groups are configured, the user needs to be least in one group. Comma separated list. Example: group1,group2,group3 (env: CONFIG_OAUTH2_VALIDATE_GROUPS)
-  --oauth2.validate.ipaddr
-    	validate client ipaddr between VPN and OIDC token (env: CONFIG_OAUTH2_VALIDATE_IPADDR)
   --oauth2.validate.issuer
     	validate issuer from OIDC discovery (env: CONFIG_OAUTH2_VALIDATE_ISSUER) (default true)
-  --oauth2.validate.roles value
-    	oauth2 required user roles. If multiple role are configured, the user needs to be least in one role. Comma separated list. Example: role1,role2,role3 (env: CONFIG_OAUTH2_VALIDATE_ROLES)
   --openvpn.addr value
     	openvpn management interface addr. Must start with unix:// or tcp:// (env: CONFIG_OPENVPN_ADDR) (default unix:/run/openvpn/server.sock)
   --openvpn.auth-pending-timeout duration
@@ -137,7 +127,7 @@ Usage of openvpn-auth-oauth2:
   --openvpn.common-name.environment-variable-name string
     	Name of the environment variable in the OpenVPN management interface which contains the common name. If username-as-common-name is enabled, this should be set to 'username' to use the username as common name. Other values like 'X509_0_emailAddress' are supported. See https://openvpn.net/community-resources/reference-manual-for-openvpn-2-6/#environmental-variables for more information. (env: CONFIG_OPENVPN_COMMON__NAME_ENVIRONMENT__VARIABLE__NAME) (default "common_name")
   --openvpn.common-name.mode value
-    	If common names are too long, use md5/sha1 to hash them or omit to skip them. If omit, oauth2.validate.common-name does not work anymore. Values: [plain,omit] (env: CONFIG_OPENVPN_COMMON__NAME_MODE) (default plain)
+    	If common names are too long, use md5/sha1 to hash them or omit to skip them. Values: [plain,omit] (env: CONFIG_OPENVPN_COMMON__NAME_MODE) (default plain)
   --openvpn.override-username
     	Requires OpenVPN Server 2.7! If true, openvpn-auth-oauth2 use the override-username command to set the username in OpenVPN connection. This is useful to use real usernames in OpenVPN statistics. The username will be set after client configs are read. Read OpenVPN man page for limitations of the override-username. (env: CONFIG_OPENVPN_OVERRIDE__USERNAME)
   --openvpn.pass-through.address value

@@ -14,7 +14,6 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
 	"github.com/stretchr/testify/require"
-	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
 func TestCheckTokenCEL(t *testing.T) {
@@ -24,7 +23,7 @@ func TestCheckTokenCEL(t *testing.T) {
 		name  string
 		conf  config.Config
 		state state.State
-		token idtoken.IDToken
+		token *idtoken.IDToken
 		err   string
 	}{
 		{
@@ -97,7 +96,7 @@ func TestCheckTokenCEL(t *testing.T) {
 				},
 				IPAddr: "127.0.0.1",
 			},
-			token: &oidc.Tokens[*idtoken.Claims]{
+			token: &idtoken.IDToken{
 				IDTokenClaims: &idtoken.Claims{
 					Claims: map[string]any{
 						"preferred_username": "test-user",
@@ -124,7 +123,7 @@ func TestCheckTokenCEL(t *testing.T) {
 				},
 				IPAddr: "127.0.0.1",
 			},
-			token: &oidc.Tokens[*idtoken.Claims]{
+			token: &idtoken.IDToken{
 				IDTokenClaims: &idtoken.Claims{
 					Claims: map[string]any{
 						"preferred_username": "test-user",
@@ -151,7 +150,7 @@ func TestCheckTokenCEL(t *testing.T) {
 				},
 				IPAddr: "127.0.0.1",
 			},
-			token: &oidc.Tokens[*idtoken.Claims]{
+			token: &idtoken.IDToken{
 				IDTokenClaims: &idtoken.Claims{
 					Claims: map[string]any{
 						"preferred_username": "test-client",
@@ -177,7 +176,7 @@ func TestCheckTokenCEL(t *testing.T) {
 				},
 				IPAddr: "127.0.0.1",
 			},
-			token: &oidc.Tokens[*idtoken.Claims]{
+			token: &idtoken.IDToken{
 				IDTokenClaims: &idtoken.Claims{
 					Claims: map[string]any{
 						"preferred_username": "test-client",
@@ -204,7 +203,7 @@ func TestCheckTokenCEL(t *testing.T) {
 				},
 				IPAddr: "127.0.0.1",
 			},
-			token: &oidc.Tokens[*idtoken.Claims]{
+			token: &idtoken.IDToken{
 				IDTokenClaims: &idtoken.Claims{
 					Claims: map[string]any{
 						"preferred_username": "test-client",
@@ -231,11 +230,38 @@ func TestCheckTokenCEL(t *testing.T) {
 				},
 				IPAddr: "127.0.0.1",
 			},
-			token: &oidc.Tokens[*idtoken.Claims]{
+			token: &idtoken.IDToken{
 				IDTokenClaims: &idtoken.Claims{
 					Claims: map[string]any{
 						"preferred_username": "test-client",
 					},
+				},
+			},
+		},
+		{
+			name: "CEL expression with token IP address",
+			conf: func() config.Config {
+				conf := config.Defaults
+				conf.OAuth2.Issuer = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
+				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
+				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
+				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
+				conf.OAuth2.Validate.CEL = "openVPNUserIPAddr == oauth2TokenIPAddr"
+
+				return conf
+			}(),
+			state: state.State{
+				Client: state.ClientIdentifier{
+					CommonName: "test-client",
+				},
+				IPAddr: "127.0.0.1",
+			},
+			token: &idtoken.IDToken{
+				IDTokenClaims: &idtoken.Claims{
+					Claims: map[string]any{
+						"preferred_username": "test-client",
+					},
+					IPAddr: "127.0.0.1",
 				},
 			},
 		},

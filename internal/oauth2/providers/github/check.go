@@ -22,10 +22,16 @@ type teamType struct {
 // CheckUser implements the [github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2.Provider] interface.
 // It checks if it meets specific GitHub related conditions.
 func (p Provider) CheckUser(
-	ctx context.Context, sessionState state.State, userData types.UserInfo, tokens idtoken.IDToken,
+	ctx context.Context, sessionState state.State, userData types.UserInfo, tokens *idtoken.IDToken,
 ) error {
-	//nolint:exhaustruct
-	tokens.IDTokenClaims = &idtoken.Claims{}
+	if tokens.IDTokenClaims == nil {
+		//nolint:exhaustruct
+		tokens.IDTokenClaims = &idtoken.Claims{}
+	}
+
+	if tokens.IDTokenClaims.Claims == nil {
+		tokens.IDTokenClaims.Claims = make(map[string]any)
+	}
 
 	if len(p.Conf.OAuth2.Validate.Groups) > 0 {
 		organizations, err := p.getOrganizations(ctx, tokens)
@@ -36,20 +42,20 @@ func (p Provider) CheckUser(
 		userData.Groups = organizations
 	}
 
-	if len(p.Conf.OAuth2.Validate.Roles) > 0 {
+	if p.Conf.OAuth2.Validate.CEL != "" {
 		teams, err := p.getTeams(ctx, tokens)
 		if err != nil {
 			return fmt.Errorf("error getting GitHub teams: %w", err)
 		}
 
-		tokens.IDTokenClaims.Roles = teams
+		tokens.IDTokenClaims.Claims["roles"] = teams
 	}
 
 	return p.Provider.CheckUser(ctx, sessionState, userData, tokens) //nolint:wrapcheck
 }
 
-// getTeams fetch the users GitHub team by accessing the GitHub API.
-func (p Provider) getTeams(ctx context.Context, tokens idtoken.IDToken) ([]string, error) {
+// getTeams fetch the users GitHub teams by accessing the GitHub API.
+func (p Provider) getTeams(ctx context.Context, tokens *idtoken.IDToken) ([]string, error) {
 	if tokens.AccessToken == "" {
 		return nil, errors.New("access token is empty")
 	}
@@ -80,7 +86,7 @@ func (p Provider) getTeams(ctx context.Context, tokens idtoken.IDToken) ([]strin
 }
 
 // getOrganizations fetch the users GitHub organization by accessing the GitHub API.
-func (p Provider) getOrganizations(ctx context.Context, tokens idtoken.IDToken) ([]string, error) {
+func (p Provider) getOrganizations(ctx context.Context, tokens *idtoken.IDToken) ([]string, error) {
 	if tokens.AccessToken == "" {
 		return nil, errors.New("access token is empty")
 	}

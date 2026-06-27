@@ -103,9 +103,7 @@ var Defaults = Config{
 		Scopes: make([]string, 0),
 		Validate: OAuth2Validate{
 			Groups: make([]string, 0),
-			IPAddr: false,
 			Issuer: true,
-			Roles:  make([]string, 0),
 		},
 	},
 	Provider: Provider{

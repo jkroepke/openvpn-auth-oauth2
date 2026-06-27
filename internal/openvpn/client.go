@@ -136,7 +136,7 @@ func (c *Client) startClientAuth(ctx context.Context, logger *slog.Logger, clien
 		ipPort string
 	)
 
-	if c.conf.Log.VPNClientIP || c.conf.HTTP.Check.IPAddr || c.conf.OAuth2.Validate.IPAddr {
+	if c.conf.Log.VPNClientIP || c.conf.HTTP.Check.IPAddr || c.conf.OAuth2.Validate.CEL != "" {
 		ipAddr = client.IPAddr
 	}
 
@@ -191,7 +191,7 @@ func (c *Client) checkAuthBypass(client connection.Client) bool {
 
 // silentReAuthentication attempts to silently re-authenticate the client using a refresh token if available.
 // It returns true if the client was successfully re-authenticated, false otherwise.
-func (c *Client) silentReAuthentication(ctx context.Context, logger *slog.Logger, client connection.Client) (types.UserInfo, idtoken.IDToken, bool, error) {
+func (c *Client) silentReAuthentication(ctx context.Context, logger *slog.Logger, client connection.Client) (types.UserInfo, *idtoken.IDToken, bool, error) {
 	if !c.conf.OAuth2.Refresh.Enabled {
 		logger.LogAttrs(ctx, slog.LevelDebug, "silent re-authentication disabled by configuration")
 

@@ -9,6 +9,6 @@ import (
 )
 
 // GetUser delegates user resolution to the embedded generic provider.
-func (p Provider) GetUser(ctx context.Context, logger *slog.Logger, tokens idtoken.IDToken, userInfo *types.UserInfo) (types.UserInfo, error) {
+func (p Provider) GetUser(ctx context.Context, logger *slog.Logger, tokens *idtoken.IDToken, userInfo *types.UserInfo) (types.UserInfo, error) {
 	return p.Provider.GetUser(ctx, logger, tokens, userInfo) //nolint:wrapcheck
 }

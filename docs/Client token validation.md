@@ -42,6 +42,7 @@ The following variables are available in your CEL expressions:
 | `openVPNSessionState` | `string` | The OpenVPN session state (e.g., `""`, `"Empty"`, `"Initial"`, `"Authenticated"`, `"Expired"`, `"Invalid"`, `"AuthenticatedEmptyUser"`, `"ExpiredEmptyUser"`) |
 | `openVPNUserCommonName` | `string` | The common name (CN) of the OpenVPN client certificate |
 | `openVPNUserIPAddr` | `string` | The IP address of the OpenVPN client |
+| `oauth2TokenIPAddr` | `string` | The IP address claim from the OAuth2 ID token |
 | `oauth2TokenClaims` | `map<string, dynamic>` | All claims from the OAuth2 ID token |
 
 ## Expression Requirements
@@ -115,14 +116,14 @@ oauth2:
       ('vpn-users' in oauth2TokenClaims.groups || 'administrators' in oauth2TokenClaims.groups)
 ```
 
-### IP Address Range Validation
+### IP Address Claim Validation
 
-Validate that the VPN client IP is in an expected range:
+Validate that the VPN client IP matches the IP address claim from the token:
 
 ```yaml
 oauth2:
   validate:
-    cel: 'openVPNUserIPAddr.startsWith("10.0.") || openVPNUserIPAddr.startsWith("192.168.")'
+    cel: 'openVPNUserIPAddr == oauth2TokenIPAddr'
 ```
 
 ### Case-Insensitive Username Validation

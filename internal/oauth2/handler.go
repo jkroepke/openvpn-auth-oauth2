@@ -129,7 +129,7 @@ func (c *Client) OAuth2Callback() http.Handler {
 		} else {
 			codeExchangeHandler = func(
 				w http.ResponseWriter, r *http.Request,
-				tokens idtoken.IDToken, encryptedOAuth2State state.EncryptedState, provider rp.RelyingParty,
+				tokens *idtoken.IDToken, encryptedOAuth2State state.EncryptedState, provider rp.RelyingParty,
 			) {
 				c.postCodeExchangeHandler(logger, encryptedOAuth2State, oAuth2State, clientID)(w, r, tokens, encryptedOAuth2State, provider, nil)
 			}
@@ -260,7 +260,7 @@ func (c *Client) postCodeExchangeHandler(
 	logger *slog.Logger, encryptedState state.EncryptedState, session state.State, clientID string,
 ) rp.CodeExchangeUserinfoCallback[*idtoken.Claims, *types.UserInfo] {
 	return func(
-		w http.ResponseWriter, r *http.Request, tokens idtoken.IDToken, _ string,
+		w http.ResponseWriter, r *http.Request, tokens *idtoken.IDToken, _ string,
 		_ rp.RelyingParty, userInfo *types.UserInfo,
 	) {
 		ctx := r.Context()
@@ -314,7 +314,7 @@ func (c *Client) postCodeExchangeHandler(
 }
 
 // withIDTokenClaimsLogger enriches the logger with ID token claim fields when claims are available.
-func withIDTokenClaimsLogger(ctx context.Context, logger *slog.Logger, tokens idtoken.IDToken) *slog.Logger {
+func withIDTokenClaimsLogger(ctx context.Context, logger *slog.Logger, tokens *idtoken.IDToken) *slog.Logger {
 	if tokens.IDTokenClaims == nil {
 		return logger
 	}
@@ -341,7 +341,7 @@ type userValidationError struct {
 func (c *Client) fetchUser(
 	ctx context.Context,
 	logger *slog.Logger,
-	tokens idtoken.IDToken,
+	tokens *idtoken.IDToken,
 	userInfo *types.UserInfo,
 ) (types.UserInfo, *userValidationError) {
 	user, err := c.provider.GetUser(ctx, logger, tokens, userInfo)
@@ -362,7 +362,7 @@ func (c *Client) validateInteractiveUser(
 	ctx context.Context,
 	session state.State,
 	user types.UserInfo,
-	tokens idtoken.IDToken,
+	tokens *idtoken.IDToken,
 ) *userValidationError {
 	if err := c.provider.CheckUser(ctx, session, user, tokens); err != nil {
 		return failedUserValidation(err)
@@ -387,7 +387,7 @@ func failedUserValidation(err error) *userValidationError {
 
 type codeExchangeRequest struct {
 	logger         *slog.Logger
-	tokens         idtoken.IDToken
+	tokens         *idtoken.IDToken
 	encryptedState state.EncryptedState
 	clientID       string
 	username       string
@@ -476,7 +476,7 @@ func (c *Client) renderClientConfigProfileSelector(
 }
 
 // clientConfigNameFromToken returns the client configuration name from the configured token claim when present.
-func (c *Client) clientConfigNameFromToken(tokens idtoken.IDToken, defaultName string) string {
+func (c *Client) clientConfigNameFromToken(tokens *idtoken.IDToken, defaultName string) string {
 	clientConfigClaim := c.conf.OpenVPN.ClientConfig.TokenClaim
 	if clientConfigClaim == "" || tokens.IDTokenClaims == nil || defaultName == "" {
 		return defaultName
@@ -509,7 +509,7 @@ func (c *Client) acceptOAuth2Client(
 
 // postCodeExchangeHandlerStoreRefreshToken stores refresh data for future non-interactive authentication.
 func (c *Client) postCodeExchangeHandlerStoreRefreshToken(
-	ctx context.Context, logger *slog.Logger, session state.State, clientID string, tokens idtoken.IDToken,
+	ctx context.Context, logger *slog.Logger, session state.State, clientID string, tokens *idtoken.IDToken,
 ) {
 	if !c.conf.OAuth2.Refresh.Enabled {
 		return
@@ -551,7 +551,7 @@ func (c *Client) postCodeExchangeHandlerStoreRefreshToken(
 }
 
 // extractConfigProfilesFromIDToken extracts the list of available profiles from static configuration and token claims.
-func (c *Client) extractConfigProfilesFromIDToken(tokens idtoken.IDToken) []string {
+func (c *Client) extractConfigProfilesFromIDToken(tokens *idtoken.IDToken) []string {
 	profiles := c.conf.OpenVPN.ClientConfig.UserSelector.StaticValues
 
 	clientConfigClaim := c.conf.OpenVPN.ClientConfig.TokenClaim

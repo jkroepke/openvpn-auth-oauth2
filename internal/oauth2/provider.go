@@ -17,7 +17,6 @@ import (
 	"github.com/zitadel/logging"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
 	httphelper "github.com/zitadel/oidc/v3/pkg/http"
-	"github.com/zitadel/oidc/v3/pkg/oidc"
 	"golang.org/x/oauth2"
 )
 
@@ -96,6 +95,7 @@ func (c *Client) initializeCELValidation() error {
 			"(e.g., '', 'Empty', 'Initial', 'Authenticated', 'Expired', 'Invalid', 'AuthenticatedEmptyUser', 'ExpiredEmptyUser')"),
 		cel.VariableWithDoc("openVPNUserCommonName", cel.StringType, "The common name of the OpenVPN user"),
 		cel.VariableWithDoc("openVPNUserIPAddr", cel.StringType, "The IP address of the OpenVPN user"),
+		cel.VariableWithDoc("oauth2TokenIPAddr", cel.StringType, "The IP address claim of the OAuth2 ID token"),
 		cel.VariableWithDoc("oauth2TokenClaims", cel.MapType(cel.StringType, cel.DynType), "The claims of the OAuth2 ID token"),
 		ext.Strings(ext.StringsVersion(4)),
 	)
@@ -199,10 +199,6 @@ func (c *Client) getRelyingPartyOptions(httpClient *http.Client) []rp.Option {
 		rp.WithIssuedAtMaxAge(30*time.Minute),
 		rp.WithIssuedAtOffset(5*time.Second),
 	)
-
-	if c.conf.OAuth2.Validate.Acr != nil {
-		verifierOpts = append(verifierOpts, rp.WithACRVerifier(oidc.DefaultACRVerifier(c.conf.OAuth2.Validate.Acr)))
-	}
 
 	if c.conf.OAuth2.Nonce {
 		verifierOpts = append(verifierOpts, rp.WithNonce(func(ctx context.Context) string {
