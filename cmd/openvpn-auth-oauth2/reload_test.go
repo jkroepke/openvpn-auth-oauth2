@@ -28,7 +28,8 @@ func TestReload(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, httpListener.Close())
 
-	resourceServer, _, clientCredentials := testsuite.New(config.Config{}).SetupOIDCServer(t, httpListener, nil)
+	conf := config.Config{}
+	resourceServer, _, clientCredentials := testsuite.New(&conf).SetupOIDCServer(t, httpListener, nil)
 
 	buf := testlogger.NewSyncBuffer()
 

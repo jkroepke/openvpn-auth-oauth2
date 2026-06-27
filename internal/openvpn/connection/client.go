@@ -29,7 +29,7 @@ type Client struct {
 // untrusted IP address, port and session identifiers. Unsupported or empty
 // environment lines are ignored. If no valid reason line is found,
 // ErrParseErrorClientReason is returned.
-func NewClient(conf config.Config, message string) (Client, error) { //nolint:cyclop
+func NewClient(conf *config.Config, message string) (Client, error) { //nolint:cyclop
 	client := Client{}
 
 	var (

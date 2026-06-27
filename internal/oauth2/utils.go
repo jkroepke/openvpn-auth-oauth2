@@ -16,7 +16,7 @@ import (
 )
 
 // checkClientIPAddr verifies that the HTTP client address matches the VPN client address from the OAuth2 state.
-func checkClientIPAddr(r *http.Request, conf config.Config, session state.State) error {
+func checkClientIPAddr(r *http.Request, conf *config.Config, session state.State) error {
 	clientIP, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		return fmt.Errorf("unable to split remote address %s: %w", r.RemoteAddr, err)

@@ -21,7 +21,7 @@ import (
 // All other paths respond with 404 via http.NotFoundHandler.
 // The returned mux can be passed to an HTTP server directly.
 
-func New(conf config.Config, oAuth2Client *oauth2.Client) *http.ServeMux {
+func New(conf *config.Config, oAuth2Client *oauth2.Client) *http.ServeMux {
 	basePath := strings.TrimSuffix(conf.HTTP.BaseURL.Path, "/")
 
 	mux := http.NewServeMux()

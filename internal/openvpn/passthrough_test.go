@@ -186,7 +186,7 @@ func TestPassThroughFull(t *testing.T) {
 				tc.conf.OpenVPN.Passthrough.Address = types.URL{URL: &url.URL{Scheme: tc.scheme, Path: temp}}
 			}
 
-			suite := testsuite.New(tc.conf)
+			suite := testsuite.New(&tc.conf)
 			errOpenVPNClientCh := suite.SetupManagementEnvironment(ctx, t, nil)
 			openVPNClient := suite.GetOpenVPNClient()
 

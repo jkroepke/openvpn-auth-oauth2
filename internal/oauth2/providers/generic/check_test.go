@@ -76,7 +76,7 @@ func TestCheckUser(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			provider, err := generic.NewProvider(t.Context(), tc.conf, http.DefaultClient)
+			provider, err := generic.NewProvider(t.Context(), &tc.conf, http.DefaultClient)
 			require.NoError(t, err)
 
 			userData, err := provider.GetUser(t.Context(), slog.New(slog.DiscardHandler), tc.token, tc.userInfo)
@@ -128,7 +128,7 @@ func TestInvalidToken(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			provider, err := generic.NewProvider(t.Context(), tc.conf, http.DefaultClient)
+			provider, err := generic.NewProvider(t.Context(), &tc.conf, http.DefaultClient)
 			require.NoError(t, err)
 
 			userData, err := provider.GetUser(t.Context(), slog.New(slog.DiscardHandler), tc.token, nil)
@@ -169,7 +169,7 @@ func TestValidateGroups(t *testing.T) {
 			conf := config.Defaults
 			conf.OAuth2.Validate.Groups = tc.requiredGroups
 
-			provider, err := generic.NewProvider(t.Context(), conf, http.DefaultClient)
+			provider, err := generic.NewProvider(t.Context(), &conf, http.DefaultClient)
 			require.NoError(t, err)
 
 			err = provider.CheckGroups(types.UserInfo{

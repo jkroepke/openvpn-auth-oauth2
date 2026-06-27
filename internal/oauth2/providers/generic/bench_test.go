@@ -90,7 +90,7 @@ func BenchmarkGetUser(b *testing.B) {
 		},
 	} {
 		b.Run(tc.name, func(b *testing.B) {
-			provider, err := generic.NewProvider(ctx, tc.conf, http.DefaultClient)
+			provider, err := generic.NewProvider(ctx, &tc.conf, http.DefaultClient)
 			require.NoError(b, err)
 
 			var user oauth2types.UserInfo

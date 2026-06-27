@@ -14,13 +14,13 @@ const Name = "generic"
 
 type Provider struct {
 	celEvalPrg cel.Program
-	Conf       config.Config
+	Conf       *config.Config
 }
 
 // NewProvider creates a new generic provider from the supplied configuration.
 // The http.Client argument is ignored because the provider uses the global
 // client from the oauth2 package.
-func NewProvider(_ context.Context, conf config.Config, _ *http.Client) (*Provider, error) {
+func NewProvider(_ context.Context, conf *config.Config, _ *http.Client) (*Provider, error) {
 	provider := &Provider{
 		Conf: conf,
 	}

@@ -140,7 +140,7 @@ func TestValidateGroups(t *testing.T) {
 				}),
 			}
 
-			provider, err := google.NewProvider(t.Context(), conf, httpClient)
+			provider, err := google.NewProvider(t.Context(), &conf, httpClient)
 			require.NoError(t, err)
 
 			err = provider.CheckUser(t.Context(), state.State{}, types.UserInfo{Subject: "123456789101112131415"}, token)
@@ -276,7 +276,7 @@ func TestValidateGroupsTransitive(t *testing.T) {
 				}),
 			}
 
-			provider, err := google.NewProvider(t.Context(), conf, httpClient)
+			provider, err := google.NewProvider(t.Context(), &conf, httpClient)
 			require.NoError(t, err)
 
 			err = provider.CheckUser(

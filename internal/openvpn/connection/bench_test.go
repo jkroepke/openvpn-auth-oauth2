@@ -24,7 +24,9 @@ func BenchmarkConnection(b *testing.B) {
 			b.ResetTimer()
 
 			for b.Loop() {
-				client, err := connection.NewClient(config.Defaults, message)
+				conf := config.Defaults
+
+				client, err := connection.NewClient(&conf, message)
 				if err != nil {
 					b.Fatal(err)
 				}

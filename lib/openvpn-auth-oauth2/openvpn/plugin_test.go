@@ -120,13 +120,13 @@ func TestPlugin(t *testing.T) {
 			tc.conf.OpenVPN.Password = "password"
 			tc.conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
 
-			suite := testsuite.New(tc.conf)
+			suite := testsuite.New(&tc.conf)
 			suite.SetupOIDCServer(t, clientListener, nil)
-			tc.conf = suite.GetConfig()
+			conf := suite.GetConfig()
 
 			oAuth2Client, openVPNClient := suite.SetupOpenVPNOAuth2Clients(t.Context(), t, nil)
 
-			httpHandler := httphandler.New(tc.conf, oAuth2Client)
+			httpHandler := httphandler.New(conf, oAuth2Client)
 			httpClientListener := httptest.NewUnstartedServer(httpHandler)
 			require.NoError(t, httpClientListener.Listener.Close())
 
@@ -336,7 +336,7 @@ func TestPluginDenyNonWebAuthClient(t *testing.T) {
 	conf.OpenVPN.Password = "password"
 	conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
 
-	suite := testsuite.New(conf)
+	suite := testsuite.New(&conf)
 	suite.SetupOIDCServer(t, clientListener, nil)
 
 	_, openVPNClient := suite.SetupOpenVPNOAuth2Clients(t.Context(), t, nil)

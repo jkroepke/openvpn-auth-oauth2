@@ -24,7 +24,7 @@ import (
 //
 //nolint:revive // New wires together package dependencies.
 func New(
-	ctx context.Context, logger *slog.Logger, conf config.Config,
+	ctx context.Context, logger *slog.Logger, conf *config.Config,
 	httpClient *http.Client, tokenStorage tokenstorage.Storage, stateCrypto *crypto.Cipher,
 	provider Provider, openvpn openvpnManagementClient,
 ) (*Client, error) {
@@ -118,7 +118,7 @@ func (c *Client) initializeCELValidation() error {
 
 // newOIDCRelyingParty creates a new [rp.NewRelyingPartyOIDC]. This is used for providers that support OIDC.
 func newOIDCRelyingParty(
-	ctx context.Context, logger *slog.Logger, conf config.Config, provider Provider, scopes []string, options []rp.Option,
+	ctx context.Context, logger *slog.Logger, conf *config.Config, provider Provider, scopes []string, options []rp.Option,
 ) (rp.RelyingParty, error) {
 	if !conf.OAuth2.Endpoints.Discovery.IsEmpty() {
 		logger.LogAttrs(ctx, slog.LevelInfo, fmt.Sprintf(
@@ -152,7 +152,7 @@ func newOIDCRelyingParty(
 
 // newOAuthRelyingParty creates a new [rp.NewRelyingPartyOAuth]. This is used for providers that do not support OIDC.
 func newOAuthRelyingParty(
-	ctx context.Context, logger *slog.Logger, conf config.Config, provider Provider, scopes []string, options []rp.Option, providerConfig types.ProviderConfig,
+	ctx context.Context, logger *slog.Logger, conf *config.Config, provider Provider, scopes []string, options []rp.Option, providerConfig types.ProviderConfig,
 ) (rp.RelyingParty, error) {
 	logger.LogAttrs(ctx, slog.LevelInfo, fmt.Sprintf(
 		"manually configure oauth2 provider with provider %s and providerConfig %s and %s",

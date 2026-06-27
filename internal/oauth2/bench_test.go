@@ -55,7 +55,7 @@ func BenchmarkCheckClientIPAddr(b *testing.B) {
 		b.ResetTimer()
 
 		for b.Loop() {
-			if err := checkClientIPAddr(req, conf, session); err != nil {
+			if err := checkClientIPAddr(req, &conf, session); err != nil {
 				b.Fatal(err)
 			}
 		}
@@ -71,7 +71,7 @@ func BenchmarkCheckClientIPAddr(b *testing.B) {
 		b.ResetTimer()
 
 		for b.Loop() {
-			if err := checkClientIPAddr(req, conf, session); err != nil {
+			if err := checkClientIPAddr(req, &conf, session); err != nil {
 				b.Fatal(err)
 			}
 		}
@@ -112,7 +112,7 @@ func BenchmarkCheckTokenCEL(b *testing.B) {
 			conf := config.Defaults
 			conf.OAuth2.Validate.Expression = tc.expression
 
-			client := &Client{conf: conf}
+			client := &Client{conf: &conf}
 			require.NoError(b, client.initializeCELValidation())
 
 			b.ReportAllocs()

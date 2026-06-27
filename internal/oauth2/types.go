@@ -22,8 +22,8 @@ type Client struct {
 	celEvalPrg      cel.Program
 	logger          *slog.Logger
 	stateCrypto     *crypto.Cipher
+	conf            *types2.Config
 	authorizeParams []rp.URLParamOpt
-	conf            types2.Config
 }
 
 type Provider interface {

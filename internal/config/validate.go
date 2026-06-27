@@ -10,7 +10,7 @@ import (
 )
 
 // Validate validates the config.
-func Validate(mode int, conf Config) error {
+func Validate(mode int, conf *Config) error {
 	if err := validateOAuth2Config(conf); err != nil {
 		return err
 	}
@@ -41,7 +41,7 @@ func Validate(mode int, conf Config) error {
 }
 
 // validateHTTPConfig validates the HTTP configuration.
-func validateHTTPConfig(conf Config) error {
+func validateHTTPConfig(conf *Config) error {
 	if conf.HTTP.Secret.String() == "" {
 		return fmt.Errorf("http.secret is %w", ErrRequired)
 	}
@@ -70,14 +70,14 @@ func validateHTTPConfig(conf Config) error {
 }
 
 // validateOpenVPNConfig validates the OpenVPN configuration.
-func validateOpenVPNConfig(_ Config) error {
+func validateOpenVPNConfig(_ *Config) error {
 	return nil
 }
 
 // validateOAuth2Config validates the OAuth2 configuration.
 //
 //nolint:cyclop
-func validateOAuth2Config(conf Config) error {
+func validateOAuth2Config(conf *Config) error {
 	if conf.OAuth2.Issuer.IsEmpty() {
 		return fmt.Errorf("oauth2.issuer is %w", ErrRequired)
 	}
