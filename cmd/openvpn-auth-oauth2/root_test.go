@@ -15,7 +15,7 @@ func TestExecuteVersion(t *testing.T) {
 	t.Parallel()
 
 	logger := testlogger.New()
-	returnCode := execute([]string{"", "--version"}, logger, make(chan os.Signal, 1))
+	returnCode := runLoop([]string{"", "--version"}, logger, make(chan os.Signal, 1))
 	output := logger.String()
 
 	assert.Equal(t, 0, returnCode, output)
@@ -25,7 +25,7 @@ func TestExecuteHelp(t *testing.T) {
 	t.Parallel()
 
 	logger := testlogger.New()
-	returnCode := execute([]string{"openvpn-auth-oauth2", "--help"}, logger, make(chan os.Signal, 1))
+	returnCode := runLoop([]string{"openvpn-auth-oauth2", "--help"}, logger, make(chan os.Signal, 1))
 	output := logger.String()
 
 	assert.Equal(t, 0, returnCode, output)
@@ -116,7 +116,7 @@ func TestExecuteConfigInvalid(t *testing.T) {
 			})
 
 			logger := testlogger.New()
-			returnCode := execute(append(tc.args, "--openvpn.addr=tcp://"+managementInterface.Addr().String()), logger, make(chan os.Signal, 1))
+			returnCode := runLoop(append(tc.args, "--openvpn.addr=tcp://"+managementInterface.Addr().String()), logger, make(chan os.Signal, 1))
 			output := logger.String()
 
 			assert.Equal(t, 1, returnCode, output)

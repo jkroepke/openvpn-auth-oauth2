@@ -5,7 +5,7 @@ The following guidelines apply to all files in this repository.
 Before you start contributing, read [`DEVELOPER.md`](DEVELOPER.md) for a basic
 understanding of how the project is structured and works.
 
-Ensure that that the local go version matches the one specified in
+Ensure that the local go version matches the one specified in
 [`go.mod`](go.mod).
 Never update the Go version in `go.mod`.
 
@@ -21,13 +21,13 @@ If a command fails because of missing dependencies or network restrictions, note
 
 ## Pull requests
 
-Summarise your changes and cite relevant lines in the repository. Mention the output of the programmatic checks.
+Summarize your changes and cite relevant lines in the repository. Mention the output of the programmatic checks.
 
 ## Documentation
 
 If you write documentation, please respect the [textlint-rule-terminology](https://github.com/sapegin/textlint-rule-terminology) rule.
 
-Here are the ruleset: https://github.com/sapegin/textlint-rule-terminology/blob/master/terms.jsonc
+Ruleset: https://github.com/sapegin/textlint-rule-terminology/blob/master/terms.jsonc
 
 ## Program overview
 
@@ -37,14 +37,14 @@ with OIDC providers. The executable communicates with the OpenVPN management
 interface via a Unix or TCP socket, and it exposes an HTTP listener that handles
 browser-based authentication.
 
-The typical authentication flow is:
+The typical authentication flow:
 
 1. A VPN client connects to the OpenVPN server.
 2. The server contacts `openvpn-auth-oauth2` using the management interface and
    receives a `WEBAUTH:` URL.
 3. The VPN client opens that URL in a browser and logs in against the OIDC
    provider.
-4. After successful login, the token is validated and the result is sent back to
+4. After a successful login, the token is validated, and the result is sent back to
    the OpenVPN server to complete the connection.
 
 Configuration is usually done through a YAML file or environment variables. The

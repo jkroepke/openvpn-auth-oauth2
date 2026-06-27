@@ -65,7 +65,7 @@ func TestReload(t *testing.T) {
 			"--oauth2.nonce=false",
 		}
 
-		returnCodeCh <- execute(args, buf, termCh)
+		returnCodeCh <- runLoop(args, buf, termCh)
 	}()
 
 	t.Cleanup(func() {
