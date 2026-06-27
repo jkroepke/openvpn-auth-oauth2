@@ -334,7 +334,7 @@ func TestRefreshReAuth(t *testing.T) {
 				conf.OAuth2.Refresh.Enabled = true
 				conf.OAuth2.Refresh.ValidateUser = true
 				conf.OAuth2.Refresh.UseSessionID = false
-				conf.OAuth2.Validate.CEL = "authMode == 'interactive'"
+				conf.OAuth2.Validate.Expression = "authMode == 'interactive'"
 
 				return conf
 			}(),

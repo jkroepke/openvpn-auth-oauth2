@@ -264,7 +264,7 @@ func initializeConfigAndLogger(args []string, stdout io.Writer) (config.Config, 
 }
 
 func logWarnings(logger *slog.Logger, conf config.Config) {
-	if conf.OAuth2.Validate.CEL != "" {
+	if conf.OAuth2.Validate.Expression != "" {
 		logger.Warn("Using CEL validation is experimental and may not be suitable for production use.")
 	}
 }

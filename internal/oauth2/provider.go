@@ -85,7 +85,7 @@ func New(
 
 // initializeCELValidation compiles the configured CEL expression used for token validation.
 func (c *Client) initializeCELValidation() error {
-	if c.conf.OAuth2.Validate.CEL == "" {
+	if c.conf.OAuth2.Validate.Expression == "" {
 		return nil
 	}
 
@@ -103,7 +103,7 @@ func (c *Client) initializeCELValidation() error {
 		return fmt.Errorf("failed to create CEL environment: %w", err)
 	}
 
-	prg, issues := env.Compile(c.conf.OAuth2.Validate.CEL)
+	prg, issues := env.Compile(c.conf.OAuth2.Validate.Expression)
 	if issues.Err() != nil {
 		return fmt.Errorf("failed to compile CEL expression: %w", issues.Err())
 	}

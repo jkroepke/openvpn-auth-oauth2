@@ -389,9 +389,9 @@ func (c *Config) flagSetOAuth2(flagSet *flag.FlagSet) {
 			"Comma separated list. Example: group1,group2,group3",
 	)
 	flagSet.StringVar(
-		&c.OAuth2.Validate.CEL,
-		"oauth2.validate.cel",
-		lookupEnvOrDefault("oauth2.validate.cel", c.OAuth2.Validate.CEL),
+		&c.OAuth2.Validate.Expression,
+		"oauth2.validate.expression",
+		lookupEnvOrDefault("oauth2.validate.expression", c.OAuth2.Validate.Expression),
 		"CEL expression for custom token validation. "+
 			"The expression must evaluate to a boolean value. "+
 			"Example: openVPNUserCommonName == oauth2TokenClaims.preferred_username",

@@ -46,7 +46,7 @@ func TestCheckTokenCEL(t *testing.T) {
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
-				conf.OAuth2.Validate.CEL = ""
+				conf.OAuth2.Validate.Expression = ""
 
 				return conf
 			}(),
@@ -59,7 +59,7 @@ func TestCheckTokenCEL(t *testing.T) {
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
-				conf.OAuth2.Validate.CEL = "-"
+				conf.OAuth2.Validate.Expression = "-"
 
 				return conf
 			}(),
@@ -72,7 +72,7 @@ func TestCheckTokenCEL(t *testing.T) {
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
-				conf.OAuth2.Validate.CEL = "true"
+				conf.OAuth2.Validate.Expression = "true"
 
 				return conf
 			}(),
@@ -86,7 +86,7 @@ func TestCheckTokenCEL(t *testing.T) {
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
-				conf.OAuth2.Validate.CEL = "oauth2TokenClaims.unknown == 'test-user'"
+				conf.OAuth2.Validate.Expression = "oauth2TokenClaims.unknown == 'test-user'"
 
 				return conf
 			}(),
@@ -113,7 +113,7 @@ func TestCheckTokenCEL(t *testing.T) {
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
-				conf.OAuth2.Validate.CEL = "has(oauth2TokenClaims.unknown) && oauth2TokenClaims.unknown == 'test-user'"
+				conf.OAuth2.Validate.Expression = "has(oauth2TokenClaims.unknown) && oauth2TokenClaims.unknown == 'test-user'"
 
 				return conf
 			}(),
@@ -140,7 +140,7 @@ func TestCheckTokenCEL(t *testing.T) {
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
-				conf.OAuth2.Validate.CEL = "openVPNUserCommonName == oauth2TokenClaims.preferred_username"
+				conf.OAuth2.Validate.Expression = "openVPNUserCommonName == oauth2TokenClaims.preferred_username"
 
 				return conf
 			}(),
@@ -166,7 +166,7 @@ func TestCheckTokenCEL(t *testing.T) {
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
-				conf.OAuth2.Validate.CEL = "openVPNUserCommonName != oauth2TokenClaims.preferred_username"
+				conf.OAuth2.Validate.Expression = "openVPNUserCommonName != oauth2TokenClaims.preferred_username"
 
 				return conf
 			}(),
@@ -193,7 +193,7 @@ func TestCheckTokenCEL(t *testing.T) {
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
-				conf.OAuth2.Validate.CEL = "openVPNUserCommonName"
+				conf.OAuth2.Validate.Expression = "openVPNUserCommonName"
 
 				return conf
 			}(),
@@ -220,7 +220,7 @@ func TestCheckTokenCEL(t *testing.T) {
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
-				conf.OAuth2.Validate.CEL = "openVPNUserCommonName.lowerAscii() == string(oauth2TokenClaims.preferred_username).lowerAscii()"
+				conf.OAuth2.Validate.Expression = "openVPNUserCommonName.lowerAscii() == string(oauth2TokenClaims.preferred_username).lowerAscii()"
 
 				return conf
 			}(),
@@ -246,7 +246,7 @@ func TestCheckTokenCEL(t *testing.T) {
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
-				conf.OAuth2.Validate.CEL = "openVPNUserIPAddr == oauth2TokenIPAddr"
+				conf.OAuth2.Validate.Expression = "openVPNUserIPAddr == oauth2TokenIPAddr"
 
 				return conf
 			}(),
@@ -273,7 +273,7 @@ func TestCheckTokenCEL(t *testing.T) {
 			require.NoError(t, err)
 
 			oAuth2Client, err := oauth2.New(t.Context(), slog.New(slog.DiscardHandler), tc.conf, http.DefaultClient, testsuite.NewFakeStorage(), testsuite.Cipher, provider, testsuite.NewFakeOpenVPNClient())
-			if tc.conf.OAuth2.Validate.CEL == "-" {
+			if tc.conf.OAuth2.Validate.Expression == "-" {
 				require.ErrorContains(t, err, "failed to compile CEL expression:")
 
 				return

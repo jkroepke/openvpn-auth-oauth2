@@ -151,7 +151,7 @@ func TestCheckUserLoadsTeamsForCEL(t *testing.T) {
 	conf := types2.Config{
 		OAuth2: types2.OAuth2{
 			Validate: types2.OAuth2Validate{
-				CEL: "'apple:justice-league' in oauth2TokenClaims.roles",
+				Expression: "'apple:justice-league' in oauth2TokenClaims.roles",
 			},
 		},
 	}

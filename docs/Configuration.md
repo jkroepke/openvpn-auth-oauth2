@@ -100,8 +100,8 @@ Usage of openvpn-auth-oauth2:
     	oauth2 token scopes. Defaults depends on oauth2.provider. Comma separated list. Example: openid,profile,email (env: CONFIG_OAUTH2_SCOPES)
   --oauth2.user-info
     	If true, openvpn-auth-oauth2 uses the OIDC UserInfo endpoint to fetch additional information about the user (e.g. groups). (env: CONFIG_OAUTH2_USER__INFO)
-  --oauth2.validate.cel string
-    	CEL expression for custom token validation. The expression must evaluate to a boolean value. Example: openVPNUserCommonName == oauth2TokenClaims.preferred_username (env: CONFIG_OAUTH2_VALIDATE_CEL)
+  --oauth2.validate.expression string
+    	CEL expression for custom token validation. The expression must evaluate to a boolean value. Example: openVPNUserCommonName == oauth2TokenClaims.preferred_username (env: CONFIG_OAUTH2_VALIDATE_EXPRESSION)
   --oauth2.validate.groups value
     	oauth2 required user groups. If multiple groups are configured, the user needs to be least in one group. Comma separated list. Example: group1,group2,group3 (env: CONFIG_OAUTH2_VALIDATE_GROUPS)
   --openvpn.addr value
