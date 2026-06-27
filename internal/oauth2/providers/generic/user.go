@@ -59,10 +59,10 @@ func (p Provider) GetUser(ctx context.Context, logger *slog.Logger, tokens idtok
 	}, nil
 }
 
-// extractUsernameFromToken resolves the OpenVPN username from CEL or the configured claim.
+// extractUsernameFromToken resolves the OpenVPN username from a CEL expression.
 func (p Provider) extractUsernameFromToken(tokens idtoken.IDToken) (string, error) {
 	switch {
-	case p.Conf.OAuth2.OpenVPNUsernameCEL != "":
+	case p.Conf.OAuth2.OpenVPNUsername != "":
 		out, _, err := p.celEvalPrg.Eval(map[string]any{
 			"oauth2TokenClaims": tokens.IDTokenClaims.Claims,
 		})
@@ -73,18 +73,6 @@ func (p Provider) extractUsernameFromToken(tokens idtoken.IDToken) (string, erro
 		username, ok := out.Value().(string)
 		if !ok {
 			return "", fmt.Errorf("%w: CEL expression for username did not evaluate to a string: %T", types.ErrInvalidClaimType, out.Value())
-		}
-
-		return username, nil
-	case p.Conf.OAuth2.OpenVPNUsernameClaim != "":
-		usernameClaim, ok := tokens.IDTokenClaims.Claims[p.Conf.OAuth2.OpenVPNUsernameClaim]
-		if !ok {
-			return "", fmt.Errorf("username %w: %s", types.ErrNonExistsClaim, p.Conf.OAuth2.OpenVPNUsernameClaim)
-		}
-
-		username, ok := usernameClaim.(string)
-		if !ok {
-			return "", fmt.Errorf("%w: username claim did not evaluate to a string: %T", types.ErrInvalidClaimType, usernameClaim)
 		}
 
 		return username, nil

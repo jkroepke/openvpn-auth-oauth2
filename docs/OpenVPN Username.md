@@ -89,22 +89,22 @@ CONFIG_OPENVPN_OVERRIDE__USERNAME=true
 
 #### Username Source
 
-The username is extracted from the OAuth2 ID token using one of these configurations (in order of precedence):
+The username is extracted from the OAuth2 ID token using `oauth2.openvpn-username`.
+The value is a CEL expression that must evaluate to a string.
 
-1. **`oauth2.openvpn-username-claim`** - Extract username from a specific token claim (default: `preferred_username`)
-2. **`oauth2.openvpn-username-cel`** - Use a CEL expression to extract or transform the username from token claims
+By default, the expression is `oauth2TokenClaims.preferred_username`.
 
 Example configurations:
 
 ```bash
 # Use a specific claim
---oauth2.openvpn-username-claim=email
+--oauth2.openvpn-username='oauth2TokenClaims.email'
 
 # Use CEL expression for complex transformations
---oauth2.openvpn-username-cel='oauth2TokenClaims.email.split("@")[0]'
+--oauth2.openvpn-username='oauth2TokenClaims.email.split("@")[0]'
 ```
 
-For more details on CEL expressions, see the [Client token values](Client%20token%20validation.md#cel-language-features) documentation.
+For more details on CEL expressions, see the [CEL Language Features](CEL%20Language%20Features.md) documentation.
 
 #### Important Limitations
 

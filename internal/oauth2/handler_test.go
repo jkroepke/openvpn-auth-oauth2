@@ -47,7 +47,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
 
 				return conf
 			}(),
@@ -69,7 +69,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
 
 				return conf
 			}(),
@@ -94,7 +94,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.PKCE = true
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
 
 				return conf
 			}(),
@@ -120,7 +120,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
 
 				return conf
 			}(),
@@ -145,7 +145,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.UserInfo = true
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
 
 				return conf
 			}(),
@@ -170,7 +170,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.UserInfo = true
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
 
 				return conf
 			}(),
@@ -195,7 +195,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.UserInfo = true
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
 
 				return conf
 			}(),
@@ -217,7 +217,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
 
 				return conf
 			}(),
@@ -239,7 +239,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
 
 				return conf
 			}(),
@@ -262,7 +262,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
 
 				return conf
 			}(),
@@ -285,7 +285,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
 
 				return conf
 			}(),
@@ -308,7 +308,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
 
 				return conf
 			}(),
@@ -331,7 +331,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
 
 				return conf
 			}(),
@@ -355,7 +355,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.CEL = "false"
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
 
 				return conf
 			}(),
@@ -378,7 +378,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
 				conf.OpenVPN.ClientConfig.Enabled = true
 				conf.OpenVPN.ClientConfig.Path = types.FS{
 					FS: fstest.MapFS{
@@ -409,7 +409,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
 				conf.OpenVPN.ClientConfig.Enabled = true
 				conf.OpenVPN.ClientConfig.TokenClaim = testsuite.SubjectClaim
 				conf.OpenVPN.ClientConfig.Path = types.FS{
@@ -441,7 +441,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = ""
+				conf.OAuth2.OpenVPNUsername = ""
 				conf.OpenVPN.ClientConfig.Enabled = true
 				conf.OpenVPN.ClientConfig.Path = types.FS{
 					FS: fstest.MapFS{},
@@ -468,7 +468,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
 				conf.OpenVPN.ClientConfig.Enabled = true
 				conf.OpenVPN.ClientConfig.UserSelector.Enabled = true
 				conf.OpenVPN.ClientConfig.UserSelector.StaticValues = []string{"static"}
@@ -501,7 +501,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
 				conf.OpenVPN.ClientConfig.Enabled = true
 				conf.OpenVPN.ClientConfig.UserSelector.Enabled = true
 				conf.OpenVPN.ClientConfig.UserSelector.StaticValues = []string{"static"}
@@ -535,7 +535,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
 				conf.OpenVPN.ClientConfig.Enabled = true
 				conf.OpenVPN.ClientConfig.UserSelector.Enabled = true
 				conf.OpenVPN.ClientConfig.UserSelector.StaticValues = []string{"aaa"}
@@ -569,7 +569,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
 				conf.OpenVPN.ClientConfig.Enabled = true
 				conf.OpenVPN.ClientConfig.UserSelector.Enabled = true
 				conf.OpenVPN.ClientConfig.UserSelector.StaticValues = []string{"static"}
@@ -603,7 +603,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = ""
+				conf.OAuth2.OpenVPNUsername = ""
 				conf.OpenVPN.ClientConfig.Enabled = true
 				conf.OpenVPN.ClientConfig.UserSelector.Enabled = true
 				conf.OpenVPN.ClientConfig.UserSelector.StaticValues = []string{"not found"}
@@ -636,7 +636,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
 				conf.OpenVPN.ClientConfig.Enabled = true
 				conf.OpenVPN.ClientConfig.UserSelector.Enabled = true
 				conf.OpenVPN.ClientConfig.UserSelector.StaticValues = []string{"group1", "group2"}
@@ -669,7 +669,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
 
 				return conf
 			}(),
@@ -692,7 +692,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.IPAddr = false
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
 
 				return conf
 			}(),

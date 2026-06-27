@@ -78,10 +78,8 @@ Usage of openvpn-auth-oauth2:
     	oauth2 issuer (env: CONFIG_OAUTH2_ISSUER)
   --oauth2.nonce
     	If true, a nonce will be defined on the auth URL which is expected inside the token. (env: CONFIG_OAUTH2_NONCE) (default true)
-  --oauth2.openvpn-username-cel string
-    	CEL expression to extract the username from the token. The expression must evaluate to a string value. Example: oauth2TokenClaims.sub Note: oauth2.openvpn-username-claim and oauth2.openvpn-username-cel cannot be set at the same time. (env: CONFIG_OAUTH2_OPENVPN__USERNAME__CEL)
-  --oauth2.openvpn-username-claim string
-    	The claim name in the ID Token which should be used as username in OpenVPN. If empty, the common name is used. (env: CONFIG_OAUTH2_OPENVPN__USERNAME__CLAIM) (default "preferred_username")
+  --oauth2.openvpn-username string
+	CEL expression to extract the username from the token. The expression must evaluate to a string value. Example: oauth2TokenClaims.sub. If empty, the common name is used. (env: CONFIG_OAUTH2_OPENVPN__USERNAME) (default "oauth2TokenClaims.preferred_username")
   --oauth2.pkce
     	If true, Proof Key for Code Exchange (PKCE) RFC 7636 is used for token exchange. (env: CONFIG_OAUTH2_PKCE) (default true)
   --oauth2.provider string
