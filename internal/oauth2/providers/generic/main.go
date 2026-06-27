@@ -42,7 +42,7 @@ func (p Provider) GetName() string {
 
 // setupCEL compiles the optional CEL expression used to derive the OpenVPN username.
 func (p Provider) setupCEL() (cel.Program, error) {
-	if p.Conf.OAuth2.OpenVPNUsernameCEL == "" {
+	if p.Conf.OAuth2.OpenVPNUsername == "" {
 		return nil, nil //nolint:nilnil // No CEL expression configured, so we don't need to set up a program.
 	}
 
@@ -54,7 +54,7 @@ func (p Provider) setupCEL() (cel.Program, error) {
 		return nil, fmt.Errorf("failed to create CEL environment: %w", err)
 	}
 
-	prg, issues := env.Compile(p.Conf.OAuth2.OpenVPNUsernameCEL)
+	prg, issues := env.Compile(p.Conf.OAuth2.OpenVPNUsername)
 	if issues.Err() != nil {
 		return nil, fmt.Errorf("failed to compile CEL expression: %w", issues.Err())
 	}

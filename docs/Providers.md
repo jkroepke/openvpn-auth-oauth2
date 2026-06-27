@@ -145,7 +145,7 @@ oauth2:
   client:
     id: "162738495-xxxxx.apps.googleusercontent.com"
     secret: "GOCSPX-xxxxxxxx"
-  openvpn-username-claim: "email"
+  openvpn-username: "oauth2TokenClaims.email"
   # The scopes openid profile email are required, but configured by default.
   # https://www.googleapis.com/auth/cloud-identity.groups.readonly is mandatory for group validation.
   # Enabled by default, if scopes aren't set in the config.

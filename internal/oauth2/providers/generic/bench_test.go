@@ -75,8 +75,7 @@ func BenchmarkGetUser(b *testing.B) {
 			name: "username-cel",
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsernameClaim = ""
-				conf.OAuth2.OpenVPNUsernameCEL = "string(oauth2TokenClaims.groups[0])"
+				conf.OAuth2.OpenVPNUsername = "string(oauth2TokenClaims.groups[0])"
 
 				return conf
 			}(),

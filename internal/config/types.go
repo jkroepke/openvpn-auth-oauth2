@@ -102,22 +102,21 @@ type OpenVPNCommonName struct {
 }
 
 type OAuth2 struct {
-	Endpoints            OAuth2Endpoints    `json:"endpoint"               yaml:"endpoint"`
-	Issuer               types.URL          `json:"issuer"                 yaml:"issuer"`
-	Client               OAuth2Client       `json:"client"                 yaml:"client"`
-	OpenVPNUsernameClaim string             `json:"openvpn-username-claim" yaml:"openvpn-username-claim"`
-	GroupsClaim          string             `json:"groups-claim"           yaml:"groups-claim"`
-	AuthorizeParams      string             `json:"authorize-params"       yaml:"authorize-params"`
-	Provider             string             `json:"provider"               yaml:"provider"`
-	OpenVPNUsernameCEL   string             `json:"openvpn-username-cel"   yaml:"openvpn-username-cel"`
-	Scopes               types.StringSlice  `json:"scopes"                 yaml:"scopes"`
-	Validate             OAuth2Validate     `json:"validate"               yaml:"validate"`
-	Refresh              OAuth2Refresh      `json:"refresh"                yaml:"refresh"`
-	RefreshNonce         OAuth2RefreshNonce `json:"refresh-nonce"          yaml:"refresh-nonce"`
-	AuthStyle            OAuth2AuthStyle    `json:"auth-style"             yaml:"auth-style"`
-	Nonce                bool               `json:"nonce"                  yaml:"nonce"`
-	PKCE                 bool               `json:"pkce"                   yaml:"pkce"`
-	UserInfo             bool               `json:"user-info"              yaml:"user-info"`
+	Endpoints       OAuth2Endpoints    `json:"endpoint"         yaml:"endpoint"`
+	Issuer          types.URL          `json:"issuer"           yaml:"issuer"`
+	Client          OAuth2Client       `json:"client"           yaml:"client"`
+	OpenVPNUsername string             `json:"openvpn-username" yaml:"openvpn-username"`
+	GroupsClaim     string             `json:"groups-claim"     yaml:"groups-claim"`
+	AuthorizeParams string             `json:"authorize-params" yaml:"authorize-params"`
+	Provider        string             `json:"provider"         yaml:"provider"`
+	Scopes          types.StringSlice  `json:"scopes"           yaml:"scopes"`
+	Validate        OAuth2Validate     `json:"validate"         yaml:"validate"`
+	Refresh         OAuth2Refresh      `json:"refresh"          yaml:"refresh"`
+	RefreshNonce    OAuth2RefreshNonce `json:"refresh-nonce"    yaml:"refresh-nonce"`
+	AuthStyle       OAuth2AuthStyle    `json:"auth-style"       yaml:"auth-style"`
+	Nonce           bool               `json:"nonce"            yaml:"nonce"`
+	PKCE            bool               `json:"pkce"             yaml:"pkce"`
+	UserInfo        bool               `json:"user-info"        yaml:"user-info"`
 }
 
 type OAuth2Client struct {

@@ -227,10 +227,10 @@ func TestGetUser(t *testing.T) {
 			nil,
 		},
 		{
-			"custom username claim",
+			"custom username expression",
 			func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsernameClaim = testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
 
 				return conf
 			}(),
@@ -253,10 +253,10 @@ func TestGetUser(t *testing.T) {
 			nil,
 		},
 		{
-			"custom username claim with invalid claim type",
+			"custom username expression with missing claim",
 			func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsernameClaim = "invalid"
+				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims.invalid"
 
 				return conf
 			}(),
@@ -276,13 +276,13 @@ func TestGetUser(t *testing.T) {
 				Subject:  "subject",
 				Username: testsuite.SubjectClaim,
 			},
-			types.ErrNonExistsClaim,
+			errors.New("failed to evaluate CEL expression for username"),
 		},
 		{
-			"custom username claim",
+			"custom username expression with invalid claim type",
 			func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsernameClaim = "groups"
+				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims.groups"
 
 				return conf
 			}(),
@@ -308,8 +308,7 @@ func TestGetUser(t *testing.T) {
 			"custom username CEL expression",
 			func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsernameClaim = ""
-				conf.OAuth2.OpenVPNUsernameCEL = "oauth2TokenClaims.sub"
+				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims.sub"
 
 				return conf
 			}(),
@@ -334,8 +333,7 @@ func TestGetUser(t *testing.T) {
 			"custom username CEL expression with string",
 			func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsernameClaim = ""
-				conf.OAuth2.OpenVPNUsernameCEL = "string(oauth2TokenClaims.groups[0])"
+				conf.OAuth2.OpenVPNUsername = "string(oauth2TokenClaims.groups[0])"
 
 				return conf
 			}(),
@@ -361,8 +359,7 @@ func TestGetUser(t *testing.T) {
 			"invalid CEL expression",
 			func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsernameClaim = ""
-				conf.OAuth2.OpenVPNUsernameCEL = "string(oauth2TokenClaims.groups[0]"
+				conf.OAuth2.OpenVPNUsername = "string(oauth2TokenClaims.groups[0]"
 
 				return conf
 			}(),
@@ -385,11 +382,10 @@ func TestGetUser(t *testing.T) {
 			errors.New("failed to compile CEL expression"),
 		},
 		{
-			"empty CEL expression and claim ",
+			"empty username expression",
 			func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsernameClaim = ""
-				conf.OAuth2.OpenVPNUsernameCEL = ""
+				conf.OAuth2.OpenVPNUsername = ""
 
 				return conf
 			}(),
@@ -422,7 +418,7 @@ func TestGetUser(t *testing.T) {
 				require.Equal(t, tc.userData, userData)
 			} else {
 				require.Error(t, err)
-				require.ErrorIs(t, err, tc.err)
+				require.ErrorContains(t, err, tc.err.Error())
 			}
 		})
 	}
