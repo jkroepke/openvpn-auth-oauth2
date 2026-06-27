@@ -97,8 +97,6 @@ func PluginOpenV3(v3structver c.Int, args *c.OpenVPNPluginArgsOpenIn, ret *c.Ope
 		slog.String("version", version.Version),
 	)
 
-	logger.WarnContext(ctx, "THIS PLUGIN IS STILL IN EXPERIMENTAL STATE")
-
 	return c.OpenVPNPluginFuncSuccess
 }
 

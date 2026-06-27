@@ -1,8 +1,5 @@
 # OpenVPN Plugin
 
-> [!IMPORTANT]
-> This state is experimental.
-
 This plugin acts as a shim between OpenVPN Server and openvpn-auth-oauth2, allowing the authentication service to connect via a management interface socket instead of directly to OpenVPN's management interface. This prevents blocking the management interface for other purposes.
 
 Due limitation on Go site, this plugin runs only under Linux.

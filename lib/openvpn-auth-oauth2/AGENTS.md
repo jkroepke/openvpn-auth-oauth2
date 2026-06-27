@@ -621,18 +621,17 @@ ctx := h.Value().(*ClientContext) // recover Go object from handle table
 - Use OpenVPN's real management interface for non-auth operations
 - That's the whole point of this plugin!
 
-### 2. Experimental Status
+### 2. Stable Status
 
-**Issue:** Plugin is marked as experimental/WIP.
+**Issue:** Plugin is stable, but only implements the auth-related management surface.
 
 **Impact:**
-- Not recommended for production use yet
-- May have undiscovered bugs
-- API may change
+- Production use should still include compatibility testing with the target OpenVPN version
+- New plugin API coverage should stay covered by package-level tests
 
 **Workaround:**
-- Thorough testing required
-- Use at your own risk
+- Keep Cgo pointer and handle lifecycle tests close to the plugin package
+- Use OpenVPN's real management interface for non-auth operations
 
 ---
 
