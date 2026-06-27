@@ -30,13 +30,13 @@ func TestAssets(t *testing.T) {
 	conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: config.SchemeHTTP, Host: "localhost:9000"}}
 	conf.HTTP.ShortURL = false
 
-	provider, err := generic.NewProvider(t.Context(), conf, http.DefaultClient)
+	provider, err := generic.NewProvider(t.Context(), &conf, http.DefaultClient)
 	require.NoError(t, err)
 
-	oAuth2Client, err := oauth2.New(t.Context(), logger.Logger(), conf, http.DefaultClient, testsuite.NewFakeStorage(), crypto.New(conf.HTTP.Secret.String()), provider, testsuite.NewFakeOpenVPNClient())
+	oAuth2Client, err := oauth2.New(t.Context(), logger.Logger(), &conf, http.DefaultClient, testsuite.NewFakeStorage(), crypto.New(conf.HTTP.Secret.String()), provider, testsuite.NewFakeOpenVPNClient())
 	require.NoError(t, err)
 
-	handler := httphandler.New(conf, oAuth2Client)
+	handler := httphandler.New(&conf, oAuth2Client)
 
 	require.HTTPStatusCode(t, handler.ServeHTTP, http.MethodGet, "/", nil, http.StatusNotFound)
 	require.HTTPSuccess(t, handler.ServeHTTP, http.MethodGet, "/assets/favicon.svg", nil)
@@ -56,10 +56,10 @@ func TestCustomAssets(t *testing.T) {
 	conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: config.SchemeHTTP, Host: "localhost:9000"}}
 	conf.HTTP.BaseURL.Path = "/custom"
 
-	provider, err := generic.NewProvider(t.Context(), conf, http.DefaultClient)
+	provider, err := generic.NewProvider(t.Context(), &conf, http.DefaultClient)
 	require.NoError(t, err)
 
-	oAuth2Client, err := oauth2.New(t.Context(), logger.Logger(), conf, http.DefaultClient, testsuite.NewFakeStorage(), crypto.New(conf.HTTP.Secret.String()), provider, testsuite.NewFakeOpenVPNClient())
+	oAuth2Client, err := oauth2.New(t.Context(), logger.Logger(), &conf, http.DefaultClient, testsuite.NewFakeStorage(), crypto.New(conf.HTTP.Secret.String()), provider, testsuite.NewFakeOpenVPNClient())
 	require.NoError(t, err)
 
 	conf.HTTP.AssetPath = types.FS{
@@ -70,7 +70,7 @@ func TestCustomAssets(t *testing.T) {
 		},
 	}
 
-	handler := httphandler.New(conf, oAuth2Client)
+	handler := httphandler.New(&conf, oAuth2Client)
 
 	require.HTTPBodyContains(t, handler.ServeHTTP, http.MethodGet, "/custom/assets/index.txt", nil, "index")
 }

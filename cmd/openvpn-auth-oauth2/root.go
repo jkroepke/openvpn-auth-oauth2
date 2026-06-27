@@ -123,21 +123,21 @@ func printVersion(writer io.Writer) {
 }
 
 // setupConfiguration parses the command line arguments and loads the configuration.
-func setupConfiguration(args []string, logWriter io.Writer) (config.Config, error) {
+func setupConfiguration(args []string, logWriter io.Writer) (*config.Config, error) {
 	conf, err := config.New(args, logWriter)
 	if err != nil {
-		return config.Config{}, fmt.Errorf("configuration error: %w", err)
+		return nil, fmt.Errorf("configuration error: %w", err)
 	}
 
 	if err = config.Validate(config.ManagementClient, conf); err != nil {
-		return config.Config{}, fmt.Errorf("configuration validation error: %w", err)
+		return nil, fmt.Errorf("configuration validation error: %w", err)
 	}
 
 	return conf, nil
 }
 
 // setupLogger initializes the logger based on the configuration.
-func setupLogger(conf config.Config, writer io.Writer) (*slog.Logger, error) {
+func setupLogger(conf *config.Config, writer io.Writer) (*slog.Logger, error) {
 	opts := &slog.HandlerOptions{
 		AddSource: false,
 		Level:     conf.Log.Level,
@@ -154,29 +154,29 @@ func setupLogger(conf config.Config, writer io.Writer) (*slog.Logger, error) {
 }
 
 // initializeConfigAndLogger handles configuration parsing and logger setup.
-func initializeConfigAndLogger(args []string, stdout io.Writer) (config.Config, *slog.Logger, ReturnCode) {
+func initializeConfigAndLogger(args []string, stdout io.Writer) (*config.Config, *slog.Logger, ReturnCode) {
 	conf, err := setupConfiguration(args, stdout)
 	if err != nil {
 		if errors.Is(err, flag.ErrHelp) {
-			return config.Config{}, nil, ReturnCodeOK
+			return nil, nil, ReturnCodeOK
 		}
 
 		if errors.Is(err, config.ErrVersion) {
 			printVersion(stdout)
 
-			return config.Config{}, nil, ReturnCodeOK
+			return nil, nil, ReturnCodeOK
 		}
 
 		_, _ = fmt.Fprintln(stdout, err.Error())
 
-		return config.Config{}, nil, ReturnCodeError
+		return nil, nil, ReturnCodeError
 	}
 
 	logger, err := setupLogger(conf, stdout)
 	if err != nil {
 		_, _ = fmt.Fprintln(stdout, fmt.Errorf("error setupConfiguration logging: %w", err).Error())
 
-		return config.Config{}, nil, ReturnCodeError
+		return nil, nil, ReturnCodeError
 	}
 
 	return conf, logger, ReturnCodeNoError

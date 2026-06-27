@@ -13,7 +13,7 @@ import (
 )
 
 // New creates the OAuth2 provider implementation selected by configuration.
-func New(ctx context.Context, conf config.Config, httpClient *http.Client) (oauth2.Provider, error) {
+func New(ctx context.Context, conf *config.Config, httpClient *http.Client) (oauth2.Provider, error) {
 	switch conf.OAuth2.Provider {
 	case generic.Name:
 		provider, err := generic.NewProvider(ctx, conf, httpClient)

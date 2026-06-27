@@ -119,7 +119,7 @@ func TestValidateGroups(t *testing.T) {
 				}),
 			}
 
-			provider, err := github.NewProvider(t.Context(), conf, httpClient)
+			provider, err := github.NewProvider(t.Context(), &conf, httpClient)
 			require.NoError(t, err)
 
 			err = provider.CheckUser(t.Context(), state.State{}, types.UserInfo{Email: "ID"}, token)
@@ -173,7 +173,7 @@ func TestCheckUserLoadsTeamsForCEL(t *testing.T) {
 		}),
 	}
 
-	provider, err := github.NewProvider(t.Context(), conf, httpClient)
+	provider, err := github.NewProvider(t.Context(), &conf, httpClient)
 	require.NoError(t, err)
 
 	err = provider.CheckUser(t.Context(), state.State{}, types.UserInfo{Email: "ID"}, token)

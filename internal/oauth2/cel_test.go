@@ -269,10 +269,10 @@ func TestCheckTokenCEL(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			provider, err := generic.NewProvider(t.Context(), tc.conf, http.DefaultClient)
+			provider, err := generic.NewProvider(t.Context(), &tc.conf, http.DefaultClient)
 			require.NoError(t, err)
 
-			oAuth2Client, err := oauth2.New(t.Context(), slog.New(slog.DiscardHandler), tc.conf, http.DefaultClient, testsuite.NewFakeStorage(), testsuite.Cipher, provider, testsuite.NewFakeOpenVPNClient())
+			oAuth2Client, err := oauth2.New(t.Context(), slog.New(slog.DiscardHandler), &tc.conf, http.DefaultClient, testsuite.NewFakeStorage(), testsuite.Cipher, provider, testsuite.NewFakeOpenVPNClient())
 			if tc.conf.OAuth2.Validate.Expression == "-" {
 				require.ErrorContains(t, err, "failed to compile CEL expression:")
 

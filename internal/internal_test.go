@@ -13,7 +13,8 @@ import (
 func BenchmarkFull(b *testing.B) {
 	b.StopTimer()
 
-	suite := testsuite.New(config.Config{})
+	conf := config.Config{}
+	suite := testsuite.New(&conf)
 	suite.SetupMockEnvironment(b.Context(), b, nil)
 	suite.ExpectVersionAndReleaseHold(b)
 

@@ -38,7 +38,7 @@ func TestClientInvalidServer(t *testing.T) {
 		},
 	}
 
-	suite := testsuite.New(conf)
+	suite := testsuite.New(&conf)
 	_, openVPNClient := suite.SetupOpenVPNOAuth2Clients(ctx, t, nil)
 
 	err := openVPNClient.Connect(t.Context())
@@ -272,7 +272,7 @@ func TestClientFull(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
 
-			suite := testsuite.New(tc.conf)
+			suite := testsuite.New(&tc.conf)
 			errOpenVPNClientCh := suite.SetupManagementEnvironment(ctx, t, nil)
 			t.Cleanup(func() {
 				require.NoError(t, suite.GetManagementInterfaceConn().Close())
@@ -348,7 +348,7 @@ func TestClientInvalidPassword(t *testing.T) {
 	conf := config.Defaults
 	conf.OpenVPN.Password = "invalid"
 
-	suite := testsuite.New(conf)
+	suite := testsuite.New(&conf)
 	errOpenVPNClientCh := suite.SetupMockEnvironment(ctx, t, nil)
 	suite.SendMessagef(t, "ENTER PASSWORD:")
 	suite.ExpectMessage(t, conf.OpenVPN.Password.String())
@@ -392,7 +392,8 @@ func TestClientInvalidVersion(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
 
-			suite := testsuite.New(config.Defaults)
+			conf := config.Defaults
+			suite := testsuite.New(&conf)
 			errOpenVPNClientCh := suite.SetupMockEnvironment(ctx, t, nil)
 			suite.SendMessagef(t, openvpn.WelcomeBanner)
 			suite.ExpectMessage(t, "version")
@@ -424,7 +425,7 @@ func TestHoldRelease(t *testing.T) {
 		},
 	}
 
-	suite := testsuite.New(conf)
+	suite := testsuite.New(&conf)
 	errOpenVPNClientCh := suite.SetupManagementEnvironment(ctx, t, nil)
 
 	suite.ExpectVersionAndReleaseHold(t)
@@ -460,7 +461,7 @@ func TestCommandTimeout(t *testing.T) {
 		},
 	}
 
-	suite := testsuite.New(conf)
+	suite := testsuite.New(&conf)
 	errOpenVPNClientCh := suite.SetupManagementEnvironment(ctx, t, nil)
 	openVPNClient := suite.GetOpenVPNClient()
 
@@ -503,7 +504,7 @@ func TestSendCommandSerializesConcurrentCallers(t *testing.T) {
 		},
 	}
 
-	suite := testsuite.New(conf)
+	suite := testsuite.New(&conf)
 	errOpenVPNClientCh := suite.SetupManagementEnvironment(ctx, t, nil)
 	openVPNClient := suite.GetOpenVPNClient()
 	managementInterfaceConn := suite.GetManagementInterfaceConn()
@@ -589,7 +590,7 @@ func TestDeadLocks(t *testing.T) {
 			conf.HTTP.Secret = testsuite.Secret
 			conf.OpenVPN.Bypass = config.OpenVPNBypass{CommonNames: make(types.RegexpSlice, 0)}
 
-			suite := testsuite.New(conf)
+			suite := testsuite.New(&conf)
 			errOpenVPNClientCh := suite.SetupManagementEnvironment(ctx, t, nil)
 
 			suite.ExpectVersionAndReleaseHold(t)
@@ -642,7 +643,7 @@ func TestInvalidCommandResponses(t *testing.T) {
 				},
 			}
 
-			suite := testsuite.New(conf)
+			suite := testsuite.New(&conf)
 			errOpenVPNClientCh := suite.SetupManagementEnvironment(ctx, t, nil)
 
 			suite.ExpectVersionAndReleaseHold(t)

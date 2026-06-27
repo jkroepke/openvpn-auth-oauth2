@@ -19,7 +19,7 @@ import (
 )
 
 // New wires the daemon services for one loaded configuration.
-func New(ctx context.Context, logger *slog.Logger, conf config.Config, tokenStorage tokenstorage.Storage) (*Runtime, error) {
+func New(ctx context.Context, logger *slog.Logger, conf *config.Config, tokenStorage tokenstorage.Storage) (*Runtime, error) {
 	openvpnClient, httpHandler, err := setupOpenVPNClient(ctx, logger, conf, tokenStorage)
 	if err != nil {
 		return nil, fmt.Errorf("error setting up openvpn client: %w", err)
@@ -48,7 +48,7 @@ func New(ctx context.Context, logger *slog.Logger, conf config.Config, tokenStor
 	return newRuntime(logger, server, services), nil
 }
 
-func newDebugServer(logger *slog.Logger, conf config.Config) *httpserver.Server {
+func newDebugServer(logger *slog.Logger, conf *config.Config) *httpserver.Server {
 	mux := http.NewServeMux()
 	mux.Handle("GET /", http.RedirectHandler("/debug/pprof/", http.StatusTemporaryRedirect))
 	mux.HandleFunc("GET /debug/pprof/", pprof.Index)
@@ -61,7 +61,7 @@ func newDebugServer(logger *slog.Logger, conf config.Config) *httpserver.Server 
 }
 
 func setupOpenVPNClient(
-	ctx context.Context, logger *slog.Logger, conf config.Config, tokenStorage tokenstorage.Storage,
+	ctx context.Context, logger *slog.Logger, conf *config.Config, tokenStorage tokenstorage.Storage,
 ) (*openvpn.Client, *http.ServeMux, error) {
 	httpClient := &http.Client{Transport: utils.NewUserAgentTransport(http.DefaultTransport)}
 

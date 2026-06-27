@@ -42,10 +42,10 @@ type Suite struct {
 	openVPNClient                 *openvpn.Client
 	oAuth2Client                  *oauth2.Client
 	errOpenVPNClientCh            chan error
-	conf                          config.Config
+	conf                          *config.Config
 }
 
-func New(conf config.Config, opts ...Options) *Suite {
+func New(conf *config.Config, opts ...Options) *Suite {
 	suite := &Suite{
 		conf:   conf,
 		logger: testlogger.New(),
@@ -378,7 +378,7 @@ func (s *Suite) GetHTTPClient() *http.Client {
 	return s.httpClient
 }
 
-func (s *Suite) GetConfig() config.Config {
+func (s *Suite) GetConfig() *config.Config {
 	return s.conf
 }
 

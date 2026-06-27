@@ -633,7 +633,7 @@ func TestHandler(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
 
-			suite := testsuite.New(tc.conf)
+			suite := testsuite.New(&tc.conf)
 			suite.SetupMockEnvironment(ctx, t, nil)
 			suite.ExpectVersionAndReleaseHold(t)
 
@@ -964,7 +964,7 @@ func TestOAuth2ProfileSubmit(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
 
-			suite := testsuite.New(tc.conf)
+			suite := testsuite.New(&tc.conf)
 			suite.SetupMockEnvironment(ctx, t, nil)
 			suite.ExpectVersionAndReleaseHold(t)
 
@@ -1048,7 +1048,7 @@ func TestOAuth2Callback(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
 
-			suite := testsuite.New(tc.conf)
+			suite := testsuite.New(&tc.conf)
 			suite.SetupMockEnvironment(ctx, t, nil)
 			suite.ExpectVersionAndReleaseHold(t)
 

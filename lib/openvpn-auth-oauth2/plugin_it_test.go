@@ -229,10 +229,10 @@ func TestIT(t *testing.T) {
 	conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: "tcp", Host: strings.TrimPrefix(pluginManagementEndpoint, "tcp://")}}
 	conf.OpenVPN.Password = testsuite.Password
 
-	suite := testsuite.New(conf)
+	suite := testsuite.New(&conf)
 	suite.SetupOIDCServer(t, clientListener, nil)
 
-	conf = suite.GetConfig()
+	confRef := suite.GetConfig()
 	oAuth2Client, openVPNClient := suite.SetupOpenVPNOAuth2Clients(t.Context(), t, nil)
 
 	errOpenVPNClientCh := make(chan error, 1)
@@ -251,7 +251,7 @@ func TestIT(t *testing.T) {
 		openVPNClient.Shutdown(t.Context())
 	})
 
-	httpHandler := httphandler.New(conf, oAuth2Client)
+	httpHandler := httphandler.New(confRef, oAuth2Client)
 	httpClientListener := httptest.NewUnstartedServer(httpHandler)
 	require.NoError(t, httpClientListener.Listener.Close())
 

@@ -26,7 +26,8 @@ func TestNewProvider(t *testing.T) {
 	clientListener, err := nettest.NewLocalListener("tcp")
 	require.NoError(t, err)
 
-	_, resourceServerURL, clientCredentials := testsuite.New(config.Config{}).SetupOIDCServer(t, clientListener, nil)
+	conf := config.Config{}
+	_, resourceServerURL, clientCredentials := testsuite.New(&conf).SetupOIDCServer(t, clientListener, nil)
 
 	tests := []struct {
 		name string
@@ -145,18 +146,18 @@ func TestNewProvider(t *testing.T) {
 
 			switch tc.conf.OAuth2.Provider {
 			case generic.Name:
-				provider, err = generic.NewProvider(ctx, tc.conf, http.DefaultClient)
+				provider, err = generic.NewProvider(ctx, &tc.conf, http.DefaultClient)
 			case github.Name:
-				provider, err = github.NewProvider(ctx, tc.conf, http.DefaultClient)
+				provider, err = github.NewProvider(ctx, &tc.conf, http.DefaultClient)
 			case google.Name:
-				provider, err = google.NewProvider(ctx, tc.conf, http.DefaultClient)
+				provider, err = google.NewProvider(ctx, &tc.conf, http.DefaultClient)
 			default:
 				t.Fatal("unknown oauth2 provider: " + tc.conf.OAuth2.Provider)
 			}
 
 			require.NoError(t, err)
 
-			oAuth2Client, err := oauth2.New(ctx, logger.Logger(), tc.conf, http.DefaultClient, testsuite.NewFakeStorage(), testsuite.Cipher, provider, testsuite.NewFakeOpenVPNClient())
+			oAuth2Client, err := oauth2.New(ctx, logger.Logger(), &tc.conf, http.DefaultClient, testsuite.NewFakeStorage(), testsuite.Cipher, provider, testsuite.NewFakeOpenVPNClient())
 			if tc.err != "" {
 				require.Error(t, err)
 				assert.Equal(t, tc.err, strings.TrimSpace(err.Error()))

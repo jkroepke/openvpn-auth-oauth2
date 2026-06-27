@@ -26,7 +26,7 @@ const WelcomeBanner = ">INFO:OpenVPN Management Interface Version 5 -- type 'hel
 
 // New creates a new Client configured with the provided logger and
 // configuration.
-func New(logger *slog.Logger, conf config.Config) *Client {
+func New(logger *slog.Logger, conf *config.Config) *Client {
 	client := &Client{
 		conf:   conf,
 		logger: logger,

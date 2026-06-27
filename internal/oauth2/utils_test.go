@@ -21,5 +21,5 @@ func TestCheckClientIPAddrIPv6RemoteAddr(t *testing.T) {
 	}
 	session := state.State{IPAddr: "2001:db8::1"}
 
-	require.NoError(t, checkClientIPAddr(req, conf, session))
+	require.NoError(t, checkClientIPAddr(req, &conf, session))
 }

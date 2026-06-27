@@ -40,7 +40,7 @@ func TestAcceptClientClosesClientConfigFile(t *testing.T) {
 		},
 	}
 
-	suite := testsuite.New(conf)
+	suite := testsuite.New(&conf)
 	errOpenVPNClientCh := suite.SetupManagementEnvironment(ctx, t, nil)
 	openVPNClient := suite.GetOpenVPNClient()
 

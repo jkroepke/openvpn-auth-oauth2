@@ -24,15 +24,15 @@ const (
 type Client struct {
 	oauth2               oauth2Client
 	conn                 net.Conn
-	ctxCancel            context.CancelFunc
+	commandResponseCh    chan string
 	commandsCh           chan string
 	logger               *slog.Logger
 	scanner              *bufio.Scanner
-	commandResponseCh    chan string
+	ctxCancel            context.CancelFunc
 	clientsCh            chan connection.Client
 	passThroughCh        chan string
+	conf                 *config.Config
 	commandsBuffer       bytes.Buffer
-	conf                 config.Config
 	commandMu            sync.Mutex
 	connMu               sync.Mutex
 	closed               atomic.Uint32

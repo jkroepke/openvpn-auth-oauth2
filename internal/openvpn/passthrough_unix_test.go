@@ -24,7 +24,7 @@ func TestClient_SetupPassThroughListener_UnixSocketLifecycle(t *testing.T) {
 	conf := config.Defaults
 	conf.OpenVPN.Passthrough.Address = types.URL{URL: &url.URL{Scheme: SchemeUnix, Path: path}}
 
-	client := New(slog.New(slog.DiscardHandler), conf)
+	client := New(slog.New(slog.DiscardHandler), &conf)
 	_, closer, err := client.setupPassThroughListener(t.Context())
 	require.NoError(t, err)
 	require.FileExists(t, path)

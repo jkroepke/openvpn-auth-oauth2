@@ -173,7 +173,7 @@ func TestNewClientConnection(t *testing.T) {
 
 			message := strings.Join(tc.lines, "\r\n")
 
-			clientConnection, err := connection.NewClient(tc.conf, message)
+			clientConnection, err := connection.NewClient(&tc.conf, message)
 			if tc.err == "" {
 				require.NoError(t, err)
 				assert.Equal(t, tc.clientConnection, clientConnection)

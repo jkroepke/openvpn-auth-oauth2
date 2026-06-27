@@ -284,7 +284,7 @@ http:
 				assert.Equal(t, tc.err.Error(), err.Error())
 			} else {
 				require.NoError(t, err)
-				assert.Equal(t, tc.conf, conf)
+				assert.Equal(t, tc.conf, *conf)
 			}
 		})
 	}
@@ -387,7 +387,7 @@ func TestConfigFlagSet(t *testing.T) {
 			conf, err := config.New(slices.Concat([]string{"openvpn-auth-oauth2"}, tc.args), &buf)
 
 			require.NoError(t, err)
-			assert.Equal(t, tc.expectConfig, conf)
+			assert.Equal(t, tc.expectConfig, *conf)
 		})
 	}
 }

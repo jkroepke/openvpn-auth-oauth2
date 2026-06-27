@@ -347,7 +347,7 @@ func TestRefreshReAuth(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
 
-			suite := testsuite.New(tc.conf, testsuite.WithHTTPTransport(tc.rt))
+			suite := testsuite.New(&tc.conf, testsuite.WithHTTPTransport(tc.rt))
 			errOpenVPNClientCh := suite.SetupMockEnvironment(ctx, t, tc.opConf)
 			conf := suite.GetConfig()
 			httpClient := suite.GetHTTPClient()

@@ -107,6 +107,10 @@ func (c *Client) handlePassThrough(ctx context.Context, errCh chan<- error) {
 		// Listen for an incoming connection.
 		conn, err = listener.Accept()
 		if err != nil {
+			if errors.Is(err, net.ErrClosed) || ctx.Err() != nil || c.closed.Load() == 1 {
+				return
+			}
+
 			errCh <- fmt.Errorf("error accepting: %w", err)
 
 			return

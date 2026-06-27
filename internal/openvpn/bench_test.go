@@ -25,7 +25,7 @@ func BenchmarkOpenVPNHandler(b *testing.B) {
 	conf.HTTP.Secret = testsuite.Secret
 	conf.OpenVPN.Bypass = config.OpenVPNBypass{CommonNames: make(types.RegexpSlice, 0)}
 
-	suite := testsuite.New(conf)
+	suite := testsuite.New(&conf)
 	errOpenVPNClientCh := suite.SetupManagementEnvironment(ctx, b, nil)
 	openVPNClient := suite.GetOpenVPNClient()
 	managementInterfaceConn := suite.GetManagementInterfaceConn()
@@ -75,7 +75,7 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 	conf.OpenVPN.Passthrough.Enabled = true
 	conf.OpenVPN.Passthrough.Address = types.URL{URL: &url.URL{Scheme: "tcp", Host: "127.0.0.1:0"}}
 
-	suite := testsuite.New(conf)
+	suite := testsuite.New(&conf)
 	errOpenVPNClientCh := suite.SetupManagementEnvironment(b.Context(), b, nil)
 	openVPNClient := suite.GetOpenVPNClient()
 
