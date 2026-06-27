@@ -84,7 +84,7 @@ oauth2:
         groups:
         - "test"
         - "test2"
-        cel: "openVPNUserCommonName == oauth2TokenClaims.preferred_username"
+        expression: "openVPNUserCommonName == oauth2TokenClaims.preferred_username"
     authorize-params: "a=c"
     auth-style: "AuthStyleInHeader"
     scopes:
@@ -251,8 +251,8 @@ http:
 						ValidateUser: true,
 					},
 					Validate: config.OAuth2Validate{
-						CEL:    "openVPNUserCommonName == oauth2TokenClaims.preferred_username",
-						Groups: []string{"test", "test2"},
+						Expression: "openVPNUserCommonName == oauth2TokenClaims.preferred_username",
+						Groups:     []string{"test", "test2"},
 					},
 				},
 			},
@@ -334,11 +334,11 @@ func TestConfigFlagSet(t *testing.T) {
 			}(),
 		},
 		{
-			"--oauth2.validate.cel",
-			[]string{"--oauth2.validate.cel=openVPNUserCommonName == oauth2TokenClaims.preferred_username"},
+			"--oauth2.validate.expression",
+			[]string{"--oauth2.validate.expression=openVPNUserCommonName == oauth2TokenClaims.preferred_username"},
 			func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.Validate.CEL = "openVPNUserCommonName == oauth2TokenClaims.preferred_username"
+				conf.OAuth2.Validate.Expression = "openVPNUserCommonName == oauth2TokenClaims.preferred_username"
 
 				return conf
 			}(),

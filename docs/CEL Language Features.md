@@ -94,10 +94,10 @@ If you try to access a claim that doesn't exist in the ID token without checking
 ```yaml
 ---
 # ❌ Bad - will fail if 'department' claim doesn't exist
-cel: 'oauth2TokenClaims.department == "engineering"'
+expression: 'oauth2TokenClaims.department == "engineering"'
 ---
 # ✅ Good - safely checks for claim existence first
-cel: 'has(oauth2TokenClaims.department) && oauth2TokenClaims.department == "engineering"'
+expression: 'has(oauth2TokenClaims.department) && oauth2TokenClaims.department == "engineering"'
 ```
 
 ### Invalid Expressions
@@ -110,10 +110,10 @@ The expression must evaluate to a boolean. If it evaluates to another type (stri
 
 ```yaml
 # ❌ Bad - evaluates to a string, not a boolean
-cel: 'openVPNUserCommonName'
+expression: 'openVPNUserCommonName'
 ---
 # ✅ Good - evaluates to a boolean
-cel: 'openVPNUserCommonName != ""'
+expression: 'openVPNUserCommonName != ""'
 ```
 
 ## Relationship with Other Validation Options

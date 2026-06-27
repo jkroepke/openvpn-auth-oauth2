@@ -39,7 +39,7 @@
 #    groups: []
 #    #  - "test"
 #    #  - "test2"
-#    cel: "openVPNUserCommonName == oauth2TokenClaims.preferred_username"  # CEL expression for custom validation
+#    expression: "openVPNUserCommonName == oauth2TokenClaims.preferred_username"  # CEL expression for custom validation
 #  nonce: true
 #  refresh-nonce: "auto"  # Options: auto (try with nonce, retry without on error), empty (always use empty nonce for refresh), equal (use same nonce as initial auth)
 #  pkce: true

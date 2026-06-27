@@ -42,7 +42,7 @@ func (p Provider) CheckUser(
 		userData.Groups = organizations
 	}
 
-	if p.Conf.OAuth2.Validate.CEL != "" {
+	if p.Conf.OAuth2.Validate.Expression != "" {
 		teams, err := p.getTeams(ctx, tokens)
 		if err != nil {
 			return fmt.Errorf("error getting GitHub teams: %w", err)

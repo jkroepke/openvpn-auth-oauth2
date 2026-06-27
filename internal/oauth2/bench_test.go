@@ -110,7 +110,7 @@ func BenchmarkCheckTokenCEL(b *testing.B) {
 	} {
 		b.Run(tc.name, func(b *testing.B) {
 			conf := config.Defaults
-			conf.OAuth2.Validate.CEL = tc.expression
+			conf.OAuth2.Validate.Expression = tc.expression
 
 			client := &Client{conf: conf}
 			require.NoError(b, client.initializeCELValidation())

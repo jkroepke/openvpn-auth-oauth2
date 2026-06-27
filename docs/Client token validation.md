@@ -13,20 +13,20 @@ This ensures that access policies are continuously enforced throughout the lifec
 
 ## Configuration
 
-To enable CEL validation, configure the `oauth2.validate.cel` property in your configuration file:
+To enable CEL validation, configure the `oauth2.validate.expression` property in your configuration file:
 
 ### YAML Configuration
 
 ```yaml
 oauth2:
   validate:
-    cel: 'openVPNUserCommonName == oauth2TokenClaims.preferred_username'
+    expression: 'openVPNUserCommonName == oauth2TokenClaims.preferred_username'
 ```
 
 ### Environment Variable
 
 ```bash
-CONFIG_OAUTH2_VALIDATE_VALIDATION__CEL='openVPNUserCommonName == oauth2TokenClaims.preferred_username'
+CONFIG_OAUTH2_VALIDATE_EXPRESSION='openVPNUserCommonName == oauth2TokenClaims.preferred_username'
 ```
 
 > [!IMPORTANT]
@@ -59,7 +59,7 @@ Use the `has()` function to safely check for claim existence before accessing it
 ```yaml
 oauth2:
   validate:
-    cel: |
+    expression: |
       has(oauth2TokenClaims.department) &&
       oauth2TokenClaims.department == 'engineering'
 ```
@@ -76,7 +76,7 @@ Ensure the OpenVPN common name matches the OAuth2 username claim:
 ```yaml
 oauth2:
   validate:
-    cel: 'openVPNUserCommonName == oauth2TokenClaims.preferred_username'
+    expression: 'openVPNUserCommonName == oauth2TokenClaims.preferred_username'
 ```
 
 ### Email Domain Validation
@@ -86,7 +86,7 @@ Only allow users with email addresses from specific domains:
 ```yaml
 oauth2:
   validate:
-    cel: |
+    expression: |
       has(oauth2TokenClaims.email) &&
       oauth2TokenClaims.email.endsWith('@example.com')
 ```
@@ -98,7 +98,7 @@ Combine multiple conditions with logical operators:
 ```yaml
 oauth2:
   validate:
-    cel: |
+    expression: |
       openVPNUserCommonName == oauth2TokenClaims.preferred_username &&
       has(oauth2TokenClaims.email_verified) &&
       oauth2TokenClaims.email_verified == true
@@ -111,7 +111,7 @@ Allow access only if the user belongs to specific groups:
 ```yaml
 oauth2:
   validate:
-    cel: |
+    expression: |
       has(oauth2TokenClaims.groups) &&
       ('vpn-users' in oauth2TokenClaims.groups || 'administrators' in oauth2TokenClaims.groups)
 ```
@@ -123,7 +123,7 @@ Validate that the VPN client IP matches the IP address claim from the token:
 ```yaml
 oauth2:
   validate:
-    cel: 'openVPNUserIPAddr == oauth2TokenIPAddr'
+    expression: 'openVPNUserIPAddr == oauth2TokenIPAddr'
 ```
 
 ### Case-Insensitive Username Validation
@@ -133,7 +133,7 @@ Compare usernames in a case-insensitive manner using the `lowerAscii()` function
 ```yaml
 oauth2:
   validate:
-    cel: |
+    expression: |
       has(oauth2TokenClaims.preferred_username) && openVPNUserCommonName.lowerAscii() == string(oauth2TokenClaims.preferred_username).lowerAscii()
 ```
 
@@ -147,7 +147,7 @@ Combine multiple conditions for sophisticated validation rules:
 ```yaml
 oauth2:
   validate:
-    cel: |
+    expression: |
       openVPNUserCommonName == oauth2TokenClaims.sub &&
       (
         (has(oauth2TokenClaims.role) && oauth2TokenClaims.role == 'admin') ||
@@ -163,7 +163,7 @@ Extract and validate the prefix of an email address:
 ```yaml
 oauth2:
   validate:
-    cel: |
+    expression: |
       has(oauth2TokenClaims.email) &&
       string(oauth2TokenClaims.email).split('@')[0] == openVPNUserCommonName
 ```
@@ -175,7 +175,7 @@ Validate that a username contains only allowed characters using regular expressi
 ```yaml
 oauth2:
   validate:
-    cel: |
+    expression: |
       has(oauth2TokenClaims.preferred_username) &&
       string(oauth2TokenClaims.preferred_username).matches('^[a-zA-Z0-9._-]+$')
 ```
@@ -187,7 +187,7 @@ Ensure usernames meet minimum length requirements:
 ```yaml
 oauth2:
   validate:
-    cel: |
+    expression: |
       openVPNUserCommonName.size() >= 3 &&
       has(oauth2TokenClaims.preferred_username) &&
       string(oauth2TokenClaims.preferred_username).size() >= 3
@@ -200,7 +200,7 @@ Allow different IP ranges based on email domain:
 ```yaml
 oauth2:
   validate:
-    cel: |
+    expression: |
       has(oauth2TokenClaims.email) &&
       (
         (string(oauth2TokenClaims.email).endsWith('@internal.company.com') &&
@@ -217,7 +217,7 @@ Apply different validation rules based on whether this is an initial login or a 
 ```yaml
 oauth2:
   validate:
-    cel: |
+    expression: |
       authMode == 'interactive' ||
       (authMode == 'non-interactive' && has(oauth2TokenClaims.refresh_allowed) && oauth2TokenClaims.refresh_allowed == true)
 ```
@@ -229,7 +229,7 @@ Validate based on the current OpenVPN session state:
 ```yaml
 oauth2:
   validate:
-    cel: |
+    expression: |
       openVPNSessionState in ['Initial', 'Authenticated', 'AuthenticatedEmptyUser'] &&
       openVPNUserCommonName == oauth2TokenClaims.preferred_username
 ```
@@ -241,7 +241,7 @@ Combine authentication mode and session state for fine-grained control:
 ```yaml
 oauth2:
   validate:
-    cel: |
+    expression: |
       (authMode == 'interactive' && openVPNSessionState == 'Initial') ||
       (authMode == 'non-interactive' && openVPNSessionState == 'Authenticated')
 ```

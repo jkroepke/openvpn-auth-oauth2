@@ -298,7 +298,7 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.EnableProxyHeaders = true
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
-				conf.OAuth2.Validate.CEL = "false"
+				conf.OAuth2.Validate.Expression = "false"
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
 				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim

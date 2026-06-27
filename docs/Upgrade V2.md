@@ -46,12 +46,12 @@ Version 2 removes the following dedicated validation options:
 
 | Version 1 option | Version 2 replacement |
 | --- | --- |
-| `oauth2.validate.acr` | `oauth2.validate.cel` |
-| `oauth2.validate.common-name` | `oauth2.validate.cel` |
-| `oauth2.validate.common-name-case-sensitive` | `oauth2.validate.cel` |
-| `oauth2.validate.ipaddr` | `oauth2.validate.cel` |
+| `oauth2.validate.acr` | `oauth2.validate.expression` |
+| `oauth2.validate.common-name` | `oauth2.validate.expression` |
+| `oauth2.validate.common-name-case-sensitive` | `oauth2.validate.expression` |
+| `oauth2.validate.ipaddr` | `oauth2.validate.expression` |
 | `oauth2.validate.issuer` | Removed |
-| `oauth2.validate.roles` | `oauth2.validate.cel` |
+| `oauth2.validate.roles` | `oauth2.validate.expression` |
 
 `oauth2.validate.groups` stays available and does not need to be migrated.
 Remove `oauth2.validate.issuer` and `CONFIG_OAUTH2_VALIDATE_ISSUER` from your
@@ -76,7 +76,7 @@ Use a CEL expression with `lowerAscii()` for the same case-insensitive behavior:
 # Version 2
 oauth2:
   validate:
-    cel: |
+    expression: |
       has(oauth2TokenClaims.preferred_username) &&
       openVPNUserCommonName.lowerAscii() == string(oauth2TokenClaims.preferred_username).lowerAscii()
 ```
@@ -97,7 +97,7 @@ Use a direct CEL comparison:
 # Version 2
 oauth2:
   validate:
-    cel: |
+    expression: |
       has(oauth2TokenClaims.preferred_username) &&
       openVPNUserCommonName == string(oauth2TokenClaims.preferred_username)
 ```
@@ -119,7 +119,7 @@ Version 2 exposes the OpenVPN client IP as `openVPNUserIPAddr` and the token IP 
 # Version 2
 oauth2:
   validate:
-    cel: 'openVPNUserIPAddr == oauth2TokenIPAddr'
+    expression: 'openVPNUserIPAddr == oauth2TokenIPAddr'
 ```
 
 ### Roles validation
@@ -141,7 +141,7 @@ Use CEL to check the `roles` claim directly:
 # Version 2
 oauth2:
   validate:
-    cel: |
+    expression: |
       has(oauth2TokenClaims.roles) &&
       ('admin' in oauth2TokenClaims.roles || 'vpn-user' in oauth2TokenClaims.roles)
 ```
@@ -166,7 +166,7 @@ oauth2:
 oauth2:
   provider: github
   validate:
-    cel: |
+    expression: |
       has(oauth2TokenClaims.roles) &&
       ('my-org:vpn-users' in oauth2TokenClaims.roles || 'my-org:admins' in oauth2TokenClaims.roles)
 ```
@@ -193,7 +193,7 @@ Use CEL to check the `acr` claim:
 # Version 2
 oauth2:
   validate:
-    cel: |
+    expression: |
       has(oauth2TokenClaims.acr) &&
       (oauth2TokenClaims.acr == 'phr' || oauth2TokenClaims.acr == 'phrh')
 ```
@@ -216,7 +216,7 @@ oauth2:
 # Version 2
 oauth2:
   validate:
-    cel: |
+    expression: |
       has(oauth2TokenClaims.preferred_username) &&
       openVPNUserCommonName.lowerAscii() == string(oauth2TokenClaims.preferred_username).lowerAscii() &&
       openVPNUserIPAddr == oauth2TokenIPAddr &&
@@ -231,7 +231,7 @@ oauth2:
   validate:
     groups:
       - vpn-users
-    cel: |
+    expression: |
       has(oauth2TokenClaims.acr) &&
       oauth2TokenClaims.acr == 'phr'
 ```

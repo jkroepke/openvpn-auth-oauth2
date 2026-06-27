@@ -64,7 +64,7 @@ func TestClientFull(t *testing.T) {
 				conf.HTTP.Secret = testsuite.Secret
 				conf.OpenVPN.CommonName.EnvironmentVariableName = config.CommonName
 				conf.OpenVPN.Bypass = config.OpenVPNBypass{CommonNames: make(types.RegexpSlice, 0)}
-				conf.OAuth2.Validate.CEL = "true"
+				conf.OAuth2.Validate.Expression = "true"
 
 				return conf
 			}(),
@@ -96,7 +96,7 @@ func TestClientFull(t *testing.T) {
 				conf.OpenVPN.CommonName.EnvironmentVariableName = config.CommonName
 				conf.OpenVPN.Bypass = config.OpenVPNBypass{CommonNames: make(types.RegexpSlice, 0)}
 				conf.OpenVPN.Password = testsuite.Password
-				conf.OAuth2.Validate.CEL = "true"
+				conf.OAuth2.Validate.Expression = "true"
 
 				return conf
 			}(),
@@ -112,7 +112,7 @@ func TestClientFull(t *testing.T) {
 				conf.HTTP.Secret = testsuite.Secret
 				conf.OpenVPN.CommonName.EnvironmentVariableName = "username"
 				conf.OpenVPN.Bypass = config.OpenVPNBypass{CommonNames: make(types.RegexpSlice, 0)}
-				conf.OAuth2.Validate.CEL = "true"
+				conf.OAuth2.Validate.Expression = "true"
 
 				return conf
 			}(),
