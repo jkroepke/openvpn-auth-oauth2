@@ -135,7 +135,6 @@ type OAuth2Endpoints struct {
 type OAuth2Validate struct {
 	CEL    string            `json:"cel"    yaml:"cel"`
 	Groups types.StringSlice `json:"groups" yaml:"groups"`
-	Issuer bool              `json:"issuer" yaml:"issuer"`
 }
 
 type OAuth2Refresh struct {

@@ -144,7 +144,6 @@ services:
       CONFIG_OPENVPN_PASSWORD: "password"
       CONFIG_OAUTH2_ISSUER: "http://localhost:8080/realms/openvpn-auth-oauth2"
       CONFIG_OAUTH2_ENDPOINT_DISCOVERY: "http://keycloak:8080/realms/openvpn-auth-oauth2/.well-known/openid-configuration"
-      CONFIG_OAUTH2_VALIDATE_ISSUER: "false"
       CONFIG_OAUTH2_REFRESH_ENABLED: "true"
       CONFIG_OAUTH2_REFRESH_SECRET: "1jd93h5b6s82lf03jh5b2hf9"
       CONFIG_OAUTH2_CLIENT_ID: "openvpn-auth-oauth2"
