@@ -11,27 +11,16 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"net/http"
-	"net/http/pprof"
 	"os"
 	"os/signal"
 	"runtime"
 	"runtime/debug"
-	"sync"
 	"syscall"
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/crypto"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/httphandler"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/httpserver"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/github"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/google"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/daemon"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/version"
 )
 
@@ -54,11 +43,11 @@ func main() {
 	termCh := make(chan os.Signal, 1)
 	signal.Notify(termCh, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, SIGUSR1)
 
-	os.Exit(execute(os.Args, os.Stdout, termCh)) //nolint:forbidigo // entry point
+	os.Exit(runLoop(os.Args, os.Stdout, termCh)) //nolint:forbidigo // entry point
 }
 
-// execute is the main entry point for the openvpn-auth-oauth2 daemon.
-func execute(args []string, stdout io.Writer, termCh <-chan os.Signal) int {
+// runLoop is the main entry point for the openvpn-auth-oauth2 daemon.
+func runLoop(args []string, stdout io.Writer, termCh <-chan os.Signal) int {
 	tokenDataStorage := tokenstorage.DataMap{}
 	ctx := context.Background()
 
@@ -77,10 +66,6 @@ func run(ctx context.Context, args []string, stdout io.Writer, tokenDataStorage 
 	if rc != ReturnCodeNoError {
 		return rc
 	}
-
-	// initialize the root context with a cancel function
-	ctx, cancel := context.WithCancelCause(ctx)
-	defer cancel(nil)
 
 	logger.LogAttrs(
 		ctx, slog.LevelDebug, "config",
@@ -103,27 +88,25 @@ func run(ctx context.Context, args []string, stdout io.Writer, tokenDataStorage 
 		return ReturnCodeError
 	}
 
-	openvpnClient, httpHandler, err := setupOpenVPNClient(ctx, logger, conf, tokenStorage)
+	appRuntime, err := daemon.New(ctx, logger, conf, tokenStorage)
 	if err != nil {
 		logger.LogAttrs(
-			ctx, slog.LevelError, "error setting up openvpn client",
+			ctx, slog.LevelError, err.Error(),
 			slog.Any("err", err),
 		)
 
 		return ReturnCodeError
 	}
 
-	wg := &sync.WaitGroup{}
-	defer wg.Wait()
-
-	server := startServices(ctx, cancel, wg, logger, conf, openvpnClient, httpHandler)
+	appRuntime.Start(ctx)
+	defer appRuntime.Wait()
 
 	logger.LogAttrs(
 		ctx, slog.LevelInfo,
 		"openvpn-auth-oauth2 started with base url "+conf.HTTP.BaseURL.String(),
 	)
 
-	return handleSignalsAndShutdown(ctx, cancel, termCh, logger, server)
+	return handleSignalsAndShutdown(ctx, termCh, logger, appRuntime)
 }
 
 func printVersion(writer io.Writer) {
@@ -170,68 +153,6 @@ func setupLogger(conf config.Config, writer io.Writer) (*slog.Logger, error) {
 	}
 }
 
-// setupDebugListener sets up an HTTP server for debugging purposes, including pprof endpoints.
-func setupDebugListener(ctx context.Context, logger *slog.Logger, conf config.Config) error {
-	mux := http.NewServeMux()
-	mux.Handle("GET /", http.RedirectHandler("/debug/pprof/", http.StatusTemporaryRedirect))
-	mux.HandleFunc("GET /debug/pprof/", pprof.Index)
-	mux.HandleFunc("GET /debug/pprof/cmdline", pprof.Cmdline)
-	mux.HandleFunc("GET /debug/pprof/profile", pprof.Profile)
-	mux.HandleFunc("GET /debug/pprof/symbol", pprof.Symbol)
-	mux.HandleFunc("GET /debug/pprof/trace", pprof.Trace)
-
-	server := httpserver.NewHTTPServer(httpserver.ServerNameDebug, logger, config.HTTP{Listen: conf.Debug.Listen}, mux)
-
-	err := server.Listen(ctx)
-	if err != nil {
-		return fmt.Errorf("error debug http listener: %w", err)
-	}
-
-	return nil
-}
-
-// setupOpenVPNClient initializes the OpenVPN client with the provided configuration and OAuth2 provider.
-func setupOpenVPNClient(
-	ctx context.Context, logger *slog.Logger, conf config.Config, tokenStorage tokenstorage.Storage,
-) (*openvpn.Client, *http.ServeMux, error) {
-	httpClient := &http.Client{Transport: utils.NewUserAgentTransport(http.DefaultTransport)}
-
-	var (
-		provider oauth2.Provider
-		err      error
-	)
-
-	switch conf.OAuth2.Provider {
-	case generic.Name:
-		provider, err = generic.NewProvider(ctx, conf, httpClient)
-	case github.Name:
-		provider, err = github.NewProvider(ctx, conf, httpClient)
-	case google.Name:
-		provider, err = google.NewProvider(ctx, conf, httpClient)
-	default:
-		err = errors.New("unknown oauth2 provider: " + conf.OAuth2.Provider)
-	}
-
-	if err != nil {
-		return nil, nil, fmt.Errorf("error creating oauth2 provider: %w", err)
-	}
-
-	openvpnClient := openvpn.New(logger, conf)
-
-	stateCrypto := crypto.NewWithMaxAge(conf.HTTP.Secret.String(), conf.OpenVPN.AuthPendingTimeout)
-
-	oAuth2Client, err := oauth2.New(ctx, logger, conf, httpClient, tokenStorage, stateCrypto, provider, openvpnClient)
-	if err != nil {
-		return nil, nil, fmt.Errorf("error creating oauth2 client: %w", err)
-	}
-
-	openvpnClient.SetOAuth2Client(oAuth2Client)
-
-	httpHandler := httphandler.New(conf, oAuth2Client)
-
-	return openvpnClient, httpHandler, nil
-}
-
 // initializeConfigAndLogger handles configuration parsing and logger setup.
 func initializeConfigAndLogger(args []string, stdout io.Writer) (config.Config, *slog.Logger, ReturnCode) {
 	conf, err := setupConfiguration(args, stdout)
@@ -258,91 +179,28 @@ func initializeConfigAndLogger(args []string, stdout io.Writer) (config.Config, 
 		return config.Config{}, nil, ReturnCodeError
 	}
 
-	logWarnings(logger, conf)
-
 	return conf, logger, ReturnCodeNoError
-}
-
-func logWarnings(logger *slog.Logger, conf config.Config) {
-	if conf.OAuth2.Validate.Expression != "" {
-		logger.Warn("Using CEL validation is experimental and may not be suitable for production use.")
-	}
-}
-
-// startServices starts all the background services (HTTP server, OpenVPN client, debug listener).
-func startServices(
-	ctx context.Context,
-	cancel context.CancelCauseFunc,
-	wg *sync.WaitGroup,
-	logger *slog.Logger,
-	conf config.Config,
-	openvpnClient *openvpn.Client,
-	httpHandler *http.ServeMux,
-) *httpserver.Server {
-	// Start debug listener if enabled
-	if conf.Debug.Pprof {
-		wg.Go(func() {
-			cancel(setupDebugListener(ctx, logger, conf))
-		})
-	}
-
-	// Start HTTP server
-	server := httpserver.NewHTTPServer(httpserver.ServerNameDefault, logger, conf.HTTP, httpHandler)
-	startHTTPServer(ctx, cancel, wg, server)
-
-	// Start OpenVPN client
-	startOpenVPNClient(ctx, cancel, wg, openvpnClient)
-
-	return server
-}
-
-// startHTTPServer starts the main HTTP server in a goroutine.
-func startHTTPServer(ctx context.Context, cancel context.CancelCauseFunc, wg *sync.WaitGroup, server *httpserver.Server) {
-	wg.Go(func() {
-		if err := server.Listen(ctx); err != nil {
-			cancel(fmt.Errorf("error http listener: %w", err))
-
-			return
-		}
-
-		cancel(nil)
-	})
-}
-
-// startOpenVPNClient starts the OpenVPN client in a goroutine.
-func startOpenVPNClient(ctx context.Context, cancel context.CancelCauseFunc, wg *sync.WaitGroup, openvpnClient *openvpn.Client) {
-	wg.Go(func() {
-		if err := openvpnClient.Connect(ctx); err != nil {
-			cancel(fmt.Errorf("openvpn: %w", err))
-
-			return
-		}
-
-		cancel(nil)
-	})
 }
 
 // handleSignalsAndShutdown manages the main event loop for signals and shutdown.
 func handleSignalsAndShutdown(
 	ctx context.Context,
-	cancel context.CancelCauseFunc,
 	termCh <-chan os.Signal,
 	logger *slog.Logger,
-	server *httpserver.Server,
+	appRuntime *daemon.Runtime,
 ) ReturnCode {
 	for {
 		select {
-		case <-ctx.Done():
-			return handleContextDone(ctx, logger)
+		case <-appRuntime.Done():
+			return handleContextDone(ctx, logger, appRuntime.Err())
 		case sig := <-termCh:
-			handleSignal(ctx, cancel, sig, logger, server)
+			handleSignal(ctx, sig, logger, appRuntime)
 		}
 	}
 }
 
 // handleContextDone processes context cancellation and returns appropriate return code.
-func handleContextDone(ctx context.Context, logger *slog.Logger) ReturnCode {
-	err := context.Cause(ctx)
+func handleContextDone(ctx context.Context, logger *slog.Logger, err error) ReturnCode {
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
 			return ReturnCodeOK
@@ -363,22 +221,21 @@ func handleContextDone(ctx context.Context, logger *slog.Logger) ReturnCode {
 // handleSignal processes incoming OS signals.
 func handleSignal(
 	ctx context.Context,
-	cancel context.CancelCauseFunc,
 	sig os.Signal,
 	logger *slog.Logger,
-	server *httpserver.Server,
+	appRuntime *daemon.Runtime,
 ) {
 	logger.LogAttrs(ctx, slog.LevelInfo, "receiving signal: "+sig.String())
 
 	switch sig {
 	case syscall.SIGHUP:
-		if err := server.Reload(ctx); err != nil {
-			cancel(fmt.Errorf("error reloading http server: %w", err))
+		if err := appRuntime.Reload(ctx); err != nil {
+			appRuntime.Stop(err)
 		}
 	case SIGUSR1:
 		logger.LogAttrs(ctx, slog.LevelInfo, "reloading configuration")
-		cancel(ErrReload)
+		appRuntime.Stop(ErrReload)
 	default:
-		cancel(nil)
+		appRuntime.Stop(nil)
 	}
 }

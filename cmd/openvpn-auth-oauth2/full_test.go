@@ -108,7 +108,7 @@ func TestFull(t *testing.T) {
 					args = append(args, "--http.tls=true", "--http.cert="+cert, "--http.key="+key)
 				}
 
-				returnCodeCh <- execute(args, buf, termCh)
+				returnCodeCh <- runLoop(args, buf, termCh)
 			}()
 
 			t.Cleanup(func() {
