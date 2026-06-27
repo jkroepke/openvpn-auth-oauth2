@@ -50,9 +50,13 @@ Version 2 removes the following dedicated validation options:
 | `oauth2.validate.common-name` | `oauth2.validate.cel` |
 | `oauth2.validate.common-name-case-sensitive` | `oauth2.validate.cel` |
 | `oauth2.validate.ipaddr` | `oauth2.validate.cel` |
+| `oauth2.validate.issuer` | Removed |
 | `oauth2.validate.roles` | `oauth2.validate.cel` |
 
 `oauth2.validate.groups` stays available and does not need to be migrated.
+Remove `oauth2.validate.issuer` and `CONFIG_OAUTH2_VALIDATE_ISSUER` from your
+configuration. The setting did not disable issuer checks; issuer validation is
+always enforced for OIDC discovery and ID token verification.
 
 ### Common name validation
 

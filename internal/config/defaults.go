@@ -103,7 +103,6 @@ var Defaults = Config{
 		Scopes: make([]string, 0),
 		Validate: OAuth2Validate{
 			Groups: make([]string, 0),
-			Issuer: true,
 		},
 	},
 	Provider: Provider{

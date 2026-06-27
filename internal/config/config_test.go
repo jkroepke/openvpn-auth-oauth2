@@ -84,7 +84,6 @@ oauth2:
         groups:
         - "test"
         - "test2"
-        issuer: false
         cel: "openVPNUserCommonName == oauth2TokenClaims.preferred_username"
     authorize-params: "a=c"
     auth-style: "AuthStyleInHeader"
@@ -253,7 +252,6 @@ http:
 					},
 					Validate: config.OAuth2Validate{
 						CEL:    "openVPNUserCommonName == oauth2TokenClaims.preferred_username",
-						Issuer: false,
 						Groups: []string{"test", "test2"},
 					},
 				},

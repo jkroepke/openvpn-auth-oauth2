@@ -388,12 +388,6 @@ func (c *Config) flagSetOAuth2(flagSet *flag.FlagSet) {
 		"oauth2 required user groups. If multiple groups are configured, the user needs to be least in one group. "+
 			"Comma separated list. Example: group1,group2,group3",
 	)
-	flagSet.BoolVar(
-		&c.OAuth2.Validate.Issuer,
-		"oauth2.validate.issuer",
-		lookupEnvOrDefault("oauth2.validate.issuer", c.OAuth2.Validate.Issuer),
-		"validate issuer from OIDC discovery",
-	)
 	flagSet.StringVar(
 		&c.OAuth2.Validate.CEL,
 		"oauth2.validate.cel",
