@@ -34,7 +34,7 @@ type apiError struct {
 }
 
 // checkGroupMembership fetches the groups from a user using the Google Identity API.
-func (p Provider) checkGroupMembership(ctx context.Context, groupID string, userInfo types.UserInfo, tokens idtoken.IDToken) (bool, error) {
+func (p Provider) checkGroupMembership(ctx context.Context, groupID string, userInfo types.UserInfo, tokens *idtoken.IDToken) (bool, error) {
 	// https://cloud.google.com/identity/docs/reference/rest/v1beta1/groups.memberships/searchDirectGroups
 	apiURL := &url.URL{
 		Scheme: "https",
@@ -71,7 +71,7 @@ func (p Provider) checkGroupMembership(ctx context.Context, groupID string, user
 // checkTransitiveGroupMembership uses the Cloud Identity API to determine whether the user is a
 // transitive (direct or nested) member of the given group.
 // https://cloud.google.com/identity/docs/reference/rest/v1/groups.memberships/checkTransitiveMembership
-func (p Provider) checkTransitiveGroupMembership(ctx context.Context, groupID string, userInfo types.UserInfo, tokens idtoken.IDToken) (bool, error) {
+func (p Provider) checkTransitiveGroupMembership(ctx context.Context, groupID string, userInfo types.UserInfo, tokens *idtoken.IDToken) (bool, error) {
 	memberKey := userInfo.Email
 	if memberKey == "" {
 		memberKey = userInfo.Subject

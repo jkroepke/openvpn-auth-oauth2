@@ -73,7 +73,6 @@ func TestGetUser(t *testing.T) {
 				OAuth2: types2.OAuth2{
 					Validate: types2.OAuth2Validate{
 						Groups: make([]string, 0),
-						Roles:  make([]string, 0),
 					},
 				},
 			}

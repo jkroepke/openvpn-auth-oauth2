@@ -10,7 +10,7 @@ import (
 )
 
 // GetUser resolves user data from UserInfo when available, otherwise from ID token claims.
-func (p Provider) GetUser(ctx context.Context, logger *slog.Logger, tokens idtoken.IDToken, userinfo *types.UserInfo) (types.UserInfo, error) {
+func (p Provider) GetUser(ctx context.Context, logger *slog.Logger, tokens *idtoken.IDToken, userinfo *types.UserInfo) (types.UserInfo, error) {
 	if userinfo != nil {
 		return *userinfo, nil
 	}
@@ -60,7 +60,7 @@ func (p Provider) GetUser(ctx context.Context, logger *slog.Logger, tokens idtok
 }
 
 // extractUsernameFromToken resolves the OpenVPN username from a CEL expression.
-func (p Provider) extractUsernameFromToken(tokens idtoken.IDToken) (string, error) {
+func (p Provider) extractUsernameFromToken(tokens *idtoken.IDToken) (string, error) {
 	switch {
 	case p.Conf.OAuth2.OpenVPNUsername != "":
 		out, _, err := p.celEvalPrg.Eval(map[string]any{
@@ -82,7 +82,7 @@ func (p Provider) extractUsernameFromToken(tokens idtoken.IDToken) (string, erro
 }
 
 // extractGroups reads the configured groups claim from the ID token.
-func (p Provider) extractGroups(ctx context.Context, logger *slog.Logger, tokens idtoken.IDToken) ([]string, error) {
+func (p Provider) extractGroups(ctx context.Context, logger *slog.Logger, tokens *idtoken.IDToken) ([]string, error) {
 	groupClaim, ok := tokens.IDTokenClaims.Claims[p.Conf.OAuth2.GroupsClaim]
 	if !ok {
 		logger.LogAttrs(ctx, slog.LevelWarn, "provider did not return a groups claim. validation of groups is not possible.")

@@ -16,7 +16,7 @@ import (
 )
 
 // RefreshClientAuth initiates non-interactive authentication against the SSO provider.
-func (c *Client) RefreshClientAuth(ctx context.Context, logger *slog.Logger, client connection.Client) (types.UserInfo, idtoken.IDToken, bool, error) {
+func (c *Client) RefreshClientAuth(ctx context.Context, logger *slog.Logger, client connection.Client) (types.UserInfo, *idtoken.IDToken, bool, error) {
 	clientID := c.getRefreshClientID(client)
 
 	refreshToken, hasRefreshToken, err := c.loadRefreshToken(ctx, logger, clientID)
@@ -96,7 +96,7 @@ func (c *Client) withRefreshNonce(ctx context.Context, clientID string) context.
 }
 
 // refreshTokens exchanges a stored refresh token for fresh OAuth2 tokens.
-func (c *Client) refreshTokens(ctx context.Context, logger *slog.Logger, refreshToken string) (idtoken.IDToken, error) {
+func (c *Client) refreshTokens(ctx context.Context, logger *slog.Logger, refreshToken string) (*idtoken.IDToken, error) {
 	logger.LogAttrs(ctx, slog.LevelInfo, "initiate non-interactive authentication via refresh token")
 
 	tokens, err := c.provider.Refresh(ctx, logger, c.relyingParty, refreshToken)
@@ -127,7 +127,7 @@ func (c *Client) validateRefreshedUser(
 	ctx context.Context,
 	logger *slog.Logger,
 	oAuth2State state.State,
-	tokens idtoken.IDToken,
+	tokens *idtoken.IDToken,
 ) (types.UserInfo, error) {
 	userInfo, err := c.refreshedUserInfo(ctx, tokens)
 	if err != nil {
@@ -151,7 +151,7 @@ func (c *Client) validateRefreshedUser(
 }
 
 // refreshedUserInfo fetches UserInfo for refreshed tokens when UserInfo support is enabled.
-func (c *Client) refreshedUserInfo(ctx context.Context, tokens idtoken.IDToken) (*types.UserInfo, error) {
+func (c *Client) refreshedUserInfo(ctx context.Context, tokens *idtoken.IDToken) (*types.UserInfo, error) {
 	if !c.conf.OAuth2.UserInfo {
 		return nil, nil //nolint:nilnil // UserInfo is optional and absent when disabled.
 	}
@@ -171,7 +171,7 @@ func (c *Client) storeRotatedRefreshToken(
 	logger *slog.Logger,
 	oAuth2State state.State,
 	clientID string,
-	tokens idtoken.IDToken,
+	tokens *idtoken.IDToken,
 ) {
 	refreshToken, err := c.provider.GetRefreshToken(tokens)
 	if err != nil {

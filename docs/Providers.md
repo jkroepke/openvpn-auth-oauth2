@@ -323,7 +323,6 @@ CONFIG_OAUTH2_ISSUER=https://github.com
 CONFIG_OAUTH2_CLIENT_ID=<client_id>
 CONFIG_OAUTH2_CLIENT_SECRET=<client_secret>
 CONFIG_OAUTH2_VALIDATE_GROUPS=your_github_org_name
-CONFIG_OAUTH2_VALIDATE_ROLES=your_github_org_name:team_name
 ```
 </td></tr></tbody>
 <thead><tr><td>yaml configuration</td></tr></thead>
@@ -338,7 +337,6 @@ oauth2:
     secret: "<client_secret>"
   validate:
     groups: "your_github_org_name"
-    roles: "your_github_org_name:team_name"
 ```
 </td></tr></tbody>
 </table>

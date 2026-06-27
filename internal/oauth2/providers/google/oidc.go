@@ -9,12 +9,12 @@ import (
 )
 
 // GetRefreshToken delegates refresh token extraction to the embedded generic provider.
-func (p Provider) GetRefreshToken(tokens idtoken.IDToken) (string, error) {
+func (p Provider) GetRefreshToken(tokens *idtoken.IDToken) (string, error) {
 	return p.Provider.GetRefreshToken(tokens) //nolint:wrapcheck
 }
 
 // Refresh delegates refresh-token authentication to the embedded generic provider.
-func (p Provider) Refresh(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, refreshToken string) (idtoken.IDToken, error) {
+func (p Provider) Refresh(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, refreshToken string) (*idtoken.IDToken, error) {
 	return p.Provider.Refresh(ctx, logger, relyingParty, refreshToken) //nolint:wrapcheck
 }
 

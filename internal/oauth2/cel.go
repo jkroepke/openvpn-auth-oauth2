@@ -15,7 +15,7 @@ const (
 )
 
 // CheckTokenCEL checks the provided ID token claims against the configured CEL expression.
-func (c *Client) CheckTokenCEL(authMode CELAuthMode, session state.State, tokens idtoken.IDToken) error {
+func (c *Client) CheckTokenCEL(authMode CELAuthMode, session state.State, tokens *idtoken.IDToken) error {
 	if c.celEvalPrg == nil {
 		return nil
 	}
@@ -29,6 +29,7 @@ func (c *Client) CheckTokenCEL(authMode CELAuthMode, session state.State, tokens
 		"openVPNSessionState":   session.SessionState,
 		"openVPNUserCommonName": session.Client.CommonName,
 		"openVPNUserIPAddr":     session.IPAddr,
+		"oauth2TokenIPAddr":     tokens.IDTokenClaims.IPAddr,
 		"oauth2TokenClaims":     tokens.IDTokenClaims.Claims,
 	}
 

@@ -118,9 +118,9 @@ cel: 'openVPNUserCommonName != ""'
 
 ## Relationship with Other Validation Options
 
-CEL validation is **in addition to** the existing validation options. All validation checks must pass for the user to be granted access:
+CEL validation is **in addition to** the remaining validation options. All validation checks must pass for the user to be granted access:
 
-1. Standard validation checks (`oauth2.validate.common-name`, `oauth2.validate.groups`, etc.)
+1. Standard validation checks (`oauth2.validate.groups`, etc.)
 2. CEL validation (if configured)
 3. Provider-specific validation
 

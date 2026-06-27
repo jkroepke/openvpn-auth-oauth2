@@ -21,7 +21,7 @@ func TestGetUser(t *testing.T) {
 	for _, tc := range []struct {
 		name     string
 		conf     config.Config
-		token    idtoken.IDToken
+		token    *idtoken.IDToken
 		userInfo *types.UserInfo
 		userData types.UserInfo
 		err      error

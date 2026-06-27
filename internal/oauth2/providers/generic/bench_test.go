@@ -21,12 +21,12 @@ func BenchmarkGetUser(b *testing.B) {
 	for _, tc := range []struct {
 		name  string
 		conf  config.Config
-		token idtoken.IDToken
+		token *idtoken.IDToken
 	}{
 		{
 			name: "default-username-claim",
 			conf: config.Defaults,
-			token: &oidc.Tokens[*idtoken.Claims]{
+			token: &idtoken.IDToken{
 				IDTokenClaims: &idtoken.Claims{
 					Claims: map[string]any{
 						"preferred_username": "username",
@@ -43,7 +43,7 @@ func BenchmarkGetUser(b *testing.B) {
 
 				return conf
 			}(),
-			token: &oidc.Tokens[*idtoken.Claims]{
+			token: &idtoken.IDToken{
 				IDTokenClaims: &idtoken.Claims{
 					Claims: map[string]any{
 						"preferred_username": "username",
@@ -61,7 +61,7 @@ func BenchmarkGetUser(b *testing.B) {
 
 				return conf
 			}(),
-			token: &oidc.Tokens[*idtoken.Claims]{
+			token: &idtoken.IDToken{
 				IDTokenClaims: &idtoken.Claims{
 					Claims: map[string]any{
 						"preferred_username": "username",
@@ -79,7 +79,7 @@ func BenchmarkGetUser(b *testing.B) {
 
 				return conf
 			}(),
-			token: &oidc.Tokens[*idtoken.Claims]{
+			token: &idtoken.IDToken{
 				IDTokenClaims: &idtoken.Claims{
 					Claims: map[string]any{
 						"groups": []any{"group1", "group2"},

@@ -8,7 +8,6 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 	"github.com/stretchr/testify/require"
-	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
 func BenchmarkGetAuthorizeParams(b *testing.B) {
@@ -84,7 +83,7 @@ func BenchmarkCheckTokenCEL(b *testing.B) {
 		name       string
 		expression string
 		state      state.State
-		token      idtoken.IDToken
+		token      *idtoken.IDToken
 	}{
 		{
 			name:       "equality",
@@ -93,7 +92,7 @@ func BenchmarkCheckTokenCEL(b *testing.B) {
 				Client: state.ClientIdentifier{CommonName: "test-client"},
 				IPAddr: "127.0.0.1",
 			},
-			token: &oidc.Tokens[*idtoken.Claims]{
+			token: &idtoken.IDToken{
 				IDTokenClaims: &idtoken.Claims{Claims: map[string]any{"preferred_username": "test-client"}},
 			},
 		},
@@ -104,7 +103,7 @@ func BenchmarkCheckTokenCEL(b *testing.B) {
 				Client: state.ClientIdentifier{CommonName: "Test-Client"},
 				IPAddr: "127.0.0.1",
 			},
-			token: &oidc.Tokens[*idtoken.Claims]{
+			token: &idtoken.IDToken{
 				IDTokenClaims: &idtoken.Claims{Claims: map[string]any{"preferred_username": "test-client"}},
 			},
 		},

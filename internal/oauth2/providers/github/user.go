@@ -20,7 +20,7 @@ type userType struct {
 }
 
 // GetUser fetches the authenticated GitHub user through the REST API.
-func (p Provider) GetUser(ctx context.Context, _ *slog.Logger, tokens idtoken.IDToken, _ *types.UserInfo) (types.UserInfo, error) {
+func (p Provider) GetUser(ctx context.Context, _ *slog.Logger, tokens *idtoken.IDToken, _ *types.UserInfo) (types.UserInfo, error) {
 	if tokens.AccessToken == "" {
 		return types.UserInfo{}, errors.New("access token is empty")
 	}

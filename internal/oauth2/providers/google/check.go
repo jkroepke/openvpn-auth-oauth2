@@ -14,7 +14,7 @@ func (p Provider) CheckUser(
 	ctx context.Context,
 	session state.State,
 	userData types.UserInfo,
-	tokens idtoken.IDToken,
+	tokens *idtoken.IDToken,
 ) error {
 	if len(p.Conf.OAuth2.Validate.Groups) > 0 {
 		if err := p.resolveGroupMemberships(ctx, &userData, tokens); err != nil {
@@ -28,7 +28,7 @@ func (p Provider) CheckUser(
 // resolveGroupMemberships replaces userData.Groups with the subset of configured
 // required groups that the user is a member of. Membership is resolved either
 // directly (default) or transitively when GroupsTransitive is enabled.
-func (p Provider) resolveGroupMemberships(ctx context.Context, userData *types.UserInfo, tokens idtoken.IDToken) error {
+func (p Provider) resolveGroupMemberships(ctx context.Context, userData *types.UserInfo, tokens *idtoken.IDToken) error {
 	if tokens.AccessToken == "" {
 		return errors.New("access token is empty")
 	}
@@ -50,7 +50,7 @@ func (p Provider) resolveGroupMemberships(ctx context.Context, userData *types.U
 }
 
 // isGroupMember dispatches to the direct or transitive membership check based on configuration.
-func (p Provider) isGroupMember(ctx context.Context, group string, userData types.UserInfo, tokens idtoken.IDToken) (bool, error) {
+func (p Provider) isGroupMember(ctx context.Context, group string, userData types.UserInfo, tokens *idtoken.IDToken) (bool, error) {
 	if p.Conf.Provider.Google.Validate.GroupsTransitive {
 		return p.checkTransitiveGroupMembership(ctx, group, userData, tokens)
 	}

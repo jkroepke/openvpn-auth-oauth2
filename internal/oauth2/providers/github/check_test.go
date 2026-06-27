@@ -15,7 +15,6 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/zitadel/oidc/v3/pkg/oidc"
 	"golang.org/x/oauth2"
 )
 
@@ -88,7 +87,7 @@ func TestValidateGroups(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			token := &oidc.Tokens[*idtoken.Claims]{
+			token := &idtoken.IDToken{
 				Token: &oauth2.Token{
 					AccessToken: "TOKEN",
 				},
@@ -135,116 +134,52 @@ func TestValidateGroups(t *testing.T) {
 	}
 }
 
-func TestValidateRoles(t *testing.T) {
+func TestCheckUserLoadsTeamsForCEL(t *testing.T) {
 	t.Parallel()
 
-	for _, tc := range []struct {
-		name          string
-		userTeams     string
-		requiredRoles []string
-		err           string
-	}{
-		{
-			"empty",
-			`[]`,
-			make([]string, 0),
-			"",
+	token := &idtoken.IDToken{
+		Token: &oauth2.Token{
+			AccessToken: "TOKEN",
 		},
-		{
-			"present",
-			`[{ "slug": "justice-league", "organization": { "login": "apple" }}]`,
-			make([]string, 0),
-			"",
+		IDTokenClaims: &idtoken.Claims{
+			Claims: map[string]any{
+				"login": "test-user",
+			},
 		},
-		{
-			"configure one group",
-			`[{ "slug": "justice-league", "organization": { "login": "apple" }}]`,
-			[]string{"apple:justice-league"},
-			"",
-		},
-		{
-			EmptyToken,
-			`ERROR`,
-			[]string{"apple"},
-			"error getting GitHub teams: access token is empty",
-		},
-		{
-			"http status error",
-			`error`,
-			[]string{"apple"},
-			"error getting GitHub teams: error from GitHub API https://api.github.com/user/teams: http status code: 500; message: error",
-		},
-		{
-			"invalid json",
-			`ERROR`,
-			[]string{"apple"},
-			"error getting GitHub teams: unable to decode JSON from GitHub API https://api.github.com/user/teams: 'ERROR': invalid character 'E' looking for beginning of value",
-		},
-		{
-			"configure two group, none match",
-			`[{ "slug": "justice-league", "organization": { "login": "pineapple" }}]`,
-			[]string{"apple:justice-league", "pear:justice-league"},
-			oauth3.ErrMissingRequiredRole.Error(),
-		},
-		{
-			"configure two group, missing one",
-			`[{ "slug": "justice-league", "organization": { "login": "apple" }}]`,
-			[]string{"apple:justice-league", "pear:justice-league"},
-			"",
-		},
-		{
-			"configure two group",
-			`[{ "slug": "justice-league", "organization": { "login": "apple" }},{ "slug": "justice-league", "organization": { "login": "pear" }}]`,
-			[]string{"apple:justice-league", "pear:justice-league"},
-			"",
-		},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			token := &oidc.Tokens[*idtoken.Claims]{
-				Token: &oauth2.Token{
-					AccessToken: "TOKEN",
-				},
-				IDTokenClaims: &idtoken.Claims{},
-			}
-
-			if tc.name == EmptyToken {
-				token.AccessToken = ""
-			}
-
-			conf := types2.Config{
-				OAuth2: types2.OAuth2{
-					Validate: types2.OAuth2Validate{
-						Roles: tc.requiredRoles,
-					},
-				},
-			}
-
-			httpClient := &http.Client{
-				Transport: testsuite.NewRoundTripperFunc(nil, func(_ http.RoundTripper, _ *http.Request) (*http.Response, error) {
-					resp := httptest.NewRecorder()
-					if strings.Contains(tc.userTeams, "error") {
-						resp.WriteHeader(http.StatusInternalServerError)
-					}
-
-					_, _ = resp.WriteString(tc.userTeams)
-
-					return resp.Result(), nil
-				}),
-			}
-
-			provider, err := github.NewProvider(t.Context(), conf, httpClient)
-			require.NoError(t, err)
-
-			err = provider.CheckUser(t.Context(), state.State{}, types.UserInfo{Email: "ID"}, token)
-
-			if tc.err == "" {
-				require.NoError(t, err)
-			} else {
-				require.Error(t, err)
-				assert.EqualError(t, err, tc.err)
-			}
-		})
 	}
+
+	conf := types2.Config{
+		OAuth2: types2.OAuth2{
+			Validate: types2.OAuth2Validate{
+				CEL: "'apple:justice-league' in oauth2TokenClaims.roles",
+			},
+		},
+	}
+
+	var teamsCalled bool
+
+	httpClient := &http.Client{
+		Transport: testsuite.NewRoundTripperFunc(testsuite.NewMockRoundTripper(nil), func(rt http.RoundTripper, req *http.Request) (*http.Response, error) {
+			if req.URL.Path != "/user/teams" {
+				return rt.RoundTrip(req)
+			}
+
+			teamsCalled = true
+
+			resp := httptest.NewRecorder()
+			_, _ = resp.WriteString(`[{ "slug": "justice-league", "organization": { "login": "apple" }}]`)
+
+			return resp.Result(), nil
+		}),
+	}
+
+	provider, err := github.NewProvider(t.Context(), conf, httpClient)
+	require.NoError(t, err)
+
+	err = provider.CheckUser(t.Context(), state.State{}, types.UserInfo{Email: "ID"}, token)
+	require.NoError(t, err)
+
+	assert.True(t, teamsCalled)
+	assert.Equal(t, []string{"apple:justice-league"}, token.IDTokenClaims.Claims["roles"])
+	assert.Equal(t, "test-user", token.IDTokenClaims.Claims["login"])
 }

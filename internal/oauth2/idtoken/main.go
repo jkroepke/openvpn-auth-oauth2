@@ -7,7 +7,7 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
-type IDToken = *oidc.Tokens[*Claims]
+type IDToken = oidc.Tokens[*Claims]
 
 //nolint:tagliatelle
 type Claims struct {
@@ -15,12 +15,10 @@ type Claims struct {
 
 	Claims map[string]any `json:"-"`
 
-	PreferredUsername string   `json:"preferred_username,omitempty"`
-	AccessTokenHash   string   `json:"at_hash,omitempty"`
-	IPAddr            string   `json:"ipaddr,omitempty"`
-	EMail             string   `json:"email,omitempty"`
-	Hd                string   `json:"hd,omitempty"`
-	Roles             []string `json:"roles,omitempty"`
+	PreferredUsername string `json:"preferred_username,omitempty"`
+	AccessTokenHash   string `json:"at_hash,omitempty"`
+	IPAddr            string `json:"ipaddr,omitempty"`
+	EMail             string `json:"email,omitempty"`
 }
 
 // GetAccessTokenHash implements the oidc.IDTokenClaims interface.

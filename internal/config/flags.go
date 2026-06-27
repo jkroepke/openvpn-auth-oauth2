@@ -195,8 +195,7 @@ func (c *Config) flagSetOpenVPN(flagSet *flag.FlagSet) {
 		&c.OpenVPN.CommonName.Mode,
 		"openvpn.common-name.mode",
 		lookupEnvOrDefault("openvpn.common-name.mode", c.OpenVPN.CommonName.Mode),
-		"If common names are too long, use md5/sha1 to hash them or omit to skip them. "+
-			"If omit, oauth2.validate.common-name does not work anymore. Values: [plain,omit]",
+		"If common names are too long, use md5/sha1 to hash them or omit to skip them. Values: [plain,omit]",
 	)
 	flagSet.BoolVar(
 		&c.OpenVPN.OverrideUsername,
@@ -383,49 +382,17 @@ func (c *Config) flagSetOAuth2(flagSet *flag.FlagSet) {
 			"Usefully, if API limits are exceeded or OIDC provider can't deliver an refresh token.",
 	)
 	flagSet.TextVar(
-		&c.OAuth2.Validate.Acr,
-		"oauth2.validate.acr",
-		lookupEnvOrDefault("oauth2.validate.acr", c.OAuth2.Validate.Acr),
-		"oauth2 required acr values. Comma separated list. "+
-			"Example: phr,phrh",
-	)
-	flagSet.TextVar(
 		&c.OAuth2.Validate.Groups,
 		"oauth2.validate.groups",
 		lookupEnvOrDefault("oauth2.validate.groups", c.OAuth2.Validate.Groups),
 		"oauth2 required user groups. If multiple groups are configured, the user needs to be least in one group. "+
 			"Comma separated list. Example: group1,group2,group3",
 	)
-	flagSet.TextVar(
-		&c.OAuth2.Validate.Roles,
-		"oauth2.validate.roles",
-		lookupEnvOrDefault("oauth2.validate.roles", c.OAuth2.Validate.Roles),
-		"oauth2 required user roles. If multiple role are configured, the user needs to be least in one role. "+
-			"Comma separated list. Example: role1,role2,role3",
-	)
-	flagSet.BoolVar(
-		&c.OAuth2.Validate.IPAddr,
-		"oauth2.validate.ipaddr",
-		lookupEnvOrDefault("oauth2.validate.ipaddr", c.OAuth2.Validate.IPAddr),
-		"validate client ipaddr between VPN and OIDC token",
-	)
 	flagSet.BoolVar(
 		&c.OAuth2.Validate.Issuer,
 		"oauth2.validate.issuer",
 		lookupEnvOrDefault("oauth2.validate.issuer", c.OAuth2.Validate.Issuer),
 		"validate issuer from OIDC discovery",
-	)
-	flagSet.StringVar(
-		&c.OAuth2.Validate.CommonName,
-		"oauth2.validate.common-name",
-		lookupEnvOrDefault("oauth2.validate.common-name", c.OAuth2.Validate.CommonName),
-		"validate common_name from OpenVPN with ID Token claim. For example: preferred_username or sub",
-	)
-	flagSet.BoolVar(
-		&c.OAuth2.Validate.CommonNameCaseSensitive,
-		"oauth2.validate.common-name-case-sensitive",
-		lookupEnvOrDefault("oauth2.validate.common-name-case-sensitive", c.OAuth2.Validate.CommonNameCaseSensitive),
-		"If true, openvpn-auth-oauth2 will validate the common case in sensitive mode",
 	)
 	flagSet.StringVar(
 		&c.OAuth2.Validate.CEL,

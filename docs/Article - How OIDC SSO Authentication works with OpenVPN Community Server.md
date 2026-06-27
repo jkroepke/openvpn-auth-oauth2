@@ -66,17 +66,17 @@ Replace `group1,group2` with a comma-separated list of the groups that should ha
 
 The Authentication Context or `acr` ([Authentication Context Class Reference](https://openid.net/specs/openid-connect-eap-acr-values-1_0-ID1.html)) is a string used in OpenID Connect requests to specify the desired level of security for the authentication process. It allows the client to request certain authentication methods or processes to be applied when the user is logging in.
 
-In the context of `openvpn-auth-oauth2`, the `acr` can be used to enforce certain authentication requirements. For example, you might want to require multi-factor authentication (MFA) for all users accessing your OpenVPN Community Server.
+In the context of `openvpn-auth-oauth2`, the `acr` claim can be used to enforce certain authentication requirements. For example, you might want to require multi-factor authentication (MFA) for all users accessing your OpenVPN Community Server.
 
-To configure `acr` validation, you need to set the `oauth2.validate.acr` configuration property in your `openvpn-auth-oauth2` configuration file. Here's an example:
+To configure `acr` validation, set a CEL validation expression in your `openvpn-auth-oauth2` configuration file. Here's an example:
 
 ```ini
-CONFIG_OAUTH2_VALIDATE_ACR=phr
+CONFIG_OAUTH2_VALIDATE_CEL="oauth2TokenClaims.acr == 'phr'"
 ```
 
 In this example, `phr` is the `acr` value that represents a specific authentication method. `phr` stands for Phishing Resistant. It's a term used in the context of multi-factor authentication (MFA). Phishing-resistant mechanisms are designed to resist phishing and other fraudulent attempts to steal user credentials. This could be a hardware device that requires a user to physically interact with it, or a biometric authentication method. When used in the `acr` (Authentication Context Class Reference) in OpenID Connect, it indicates that the authentication process should involve a phishing-resistant method.
 
-When a user attempts to authenticate, the `openvpn-auth-oauth2` plugin will check the `acr` value in the ID token issued by the OIDC provider. If the `acr` value matches the one specified in the configuration (`phr` in this example), the authentication process will proceed. If not, the authentication process will fail, and the user will not be granted access.
+When a user attempts to authenticate, the `openvpn-auth-oauth2` plugin will check the `acr` value in the ID token issued by the OIDC provider. If the CEL expression evaluates to `true`, the authentication process will proceed. If not, the authentication process will fail, and the user will not be granted access.
 
 This feature provides an additional layer of security by allowing you to enforce specific authentication requirements. However, it should be used in conjunction with other security measures for a comprehensive security strategy.
 

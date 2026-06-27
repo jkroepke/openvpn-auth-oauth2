@@ -133,14 +133,9 @@ type OAuth2Endpoints struct {
 }
 
 type OAuth2Validate struct {
-	CommonName              string            `json:"common-name"                yaml:"common-name"`
-	CEL                     string            `json:"cel"                        yaml:"cel"`
-	Acr                     types.StringSlice `json:"acr"                        yaml:"acr"`
-	Groups                  types.StringSlice `json:"groups"                     yaml:"groups"`
-	Roles                   types.StringSlice `json:"roles"                      yaml:"roles"`
-	IPAddr                  bool              `json:"ipaddr"                     yaml:"ipaddr"`
-	Issuer                  bool              `json:"issuer"                     yaml:"issuer"`
-	CommonNameCaseSensitive bool              `json:"common-name-case-sensitive" yaml:"common-name-case-sensitive"`
+	CEL    string            `json:"cel"    yaml:"cel"`
+	Groups types.StringSlice `json:"groups" yaml:"groups"`
+	Issuer bool              `json:"issuer" yaml:"issuer"`
 }
 
 type OAuth2Refresh struct {

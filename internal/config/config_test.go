@@ -81,16 +81,11 @@ oauth2:
         secret: "test"
         private-key-id: "openvpn-auth-oauth2"
     validate:
-        common-name: "preffered_username"
-        common-name-case-sensitive: true
         groups:
         - "test"
         - "test2"
-        roles:
-        - "test"
-        - "test2"
-        ipaddr: true
         issuer: false
+        cel: "openVPNUserCommonName == oauth2TokenClaims.preferred_username"
     authorize-params: "a=c"
     auth-style: "AuthStyleInHeader"
     scopes:
@@ -257,12 +252,9 @@ http:
 						ValidateUser: true,
 					},
 					Validate: config.OAuth2Validate{
-						CommonName:              "preffered_username",
-						CommonNameCaseSensitive: true,
-						IPAddr:                  true,
-						Issuer:                  false,
-						Groups:                  []string{"test", "test2"},
-						Roles:                   []string{"test", "test2"},
+						CEL:    "openVPNUserCommonName == oauth2TokenClaims.preferred_username",
+						Issuer: false,
+						Groups: []string{"test", "test2"},
 					},
 				},
 			},
@@ -344,11 +336,11 @@ func TestConfigFlagSet(t *testing.T) {
 			}(),
 		},
 		{
-			"--oauth2.validate.common-name",
-			[]string{"--oauth2.validate.common-name=plain"},
+			"--oauth2.validate.cel",
+			[]string{"--oauth2.validate.cel=openVPNUserCommonName == oauth2TokenClaims.preferred_username"},
 			func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.Validate.CommonName = "plain"
+				conf.OAuth2.Validate.CEL = "openVPNUserCommonName == oauth2TokenClaims.preferred_username"
 
 				return conf
 			}(),
