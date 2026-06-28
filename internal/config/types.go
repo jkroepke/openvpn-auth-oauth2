@@ -314,9 +314,9 @@ func (s *OAuth2AuthStyle) UnmarshalText(text []byte) error {
 type OAuth2RefreshNonce int
 
 const (
-	OAuth2RefreshNonceAuto OAuth2RefreshNonce = iota
-	OAuth2RefreshNonceEmpty
-	OAuth2RefreshNonceEqual
+	OAuth2RefreshNonceAuto  OAuth2RefreshNonce = iota // Always use empty nonce for refresh requests
+	OAuth2RefreshNonceEmpty                           // Use the same nonce as initial authentication
+	OAuth2RefreshNonceEqual                           // try with nonce, retry without on error
 )
 
 // String returns the string representation of the refresh nonce mode.

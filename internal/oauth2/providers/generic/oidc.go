@@ -33,15 +33,8 @@ func (p Provider) Refresh(ctx context.Context, logger *slog.Logger, relyingParty
 	ctx = logging.ToContext(ctx, logger)
 
 	// Apply refresh nonce control based on configuration
-	switch p.Conf.OAuth2.RefreshNonce {
-	case config.OAuth2RefreshNonceEmpty:
-		// Always use empty nonce for refresh requests
+	if p.Conf.OAuth2.RefreshNonce == config.OAuth2RefreshNonceEmpty {
 		ctx = context.WithValue(ctx, types.CtxNonce{}, "")
-	case config.OAuth2RefreshNonceEqual:
-		// Use the same nonce as initial authentication (default behavior)
-		// No additional action needed - relies on the nonce set by calling code
-	case config.OAuth2RefreshNonceAuto:
-		// Fallback to original behavior: try with nonce, retry without on error
 	}
 
 	tokens, err := rp.RefreshTokens[*idtoken.Claims](ctx, relyingParty, refreshToken, "", "")
