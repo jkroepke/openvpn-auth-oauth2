@@ -138,6 +138,18 @@ func TestURLMarshalText(t *testing.T) {
 	require.Equal(t, []byte("https://example.com"), urlBytes)
 }
 
+func TestURLMarshalJSON(t *testing.T) {
+	t.Parallel()
+
+	actualURL, err := types.NewURL("https://example.com")
+	require.NoError(t, err)
+
+	body, err := json.Marshal(actualURL)
+	require.NoError(t, err)
+
+	require.JSONEq(t, `"https://example.com"`, string(body))
+}
+
 func TestURLUnmarshalJSON(t *testing.T) {
 	t.Parallel()
 

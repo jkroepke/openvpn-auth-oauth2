@@ -1,6 +1,7 @@
 package types_test
 
 import (
+	"encoding/json"
 	"os"
 	"path"
 	"testing"
@@ -46,4 +47,35 @@ func TestSecretUnmarshalTextFile(t *testing.T) {
 	require.NoError(t, os.WriteFile(filePath, []byte("SECRET"), 0o600))
 	require.NoError(t, secret.UnmarshalText([]byte("file://"+filePath)))
 	assert.Equal(t, types.Secret("SECRET"), secret)
+}
+
+func TestSecretMarshalJSON(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		secret   types.Secret
+		expected string
+	}{
+		{
+			name:     "empty",
+			expected: `""`,
+		},
+		{
+			name:     "redacted",
+			secret:   types.Secret("SECRET"),
+			expected: `"***"`,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			body, err := json.Marshal(testCase.secret)
+
+			require.NoError(t, err)
+			assert.JSONEq(t, testCase.expected, string(body))
+		})
+	}
 }

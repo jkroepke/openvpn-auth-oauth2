@@ -76,3 +76,105 @@ func TestProviderRefreshTokenKeepsLegacyRawToken(t *testing.T) {
 	require.Equal(t, "provider-refresh-token", refreshToken)
 	require.Nil(t, clientConfigNames)
 }
+
+func TestDecodeInternalRefreshTokenErrors(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		refreshToken string
+		expectedErr  string
+	}{
+		{
+			name:         "malformed json",
+			refreshToken: internalRefreshTokenPrefix + `{`,
+			expectedErr:  "unable to parse internal refresh token",
+		},
+		{
+			name:         "empty client config name",
+			refreshToken: internalRefreshTokenPrefix + `{"client-config-names":[""]}`,
+			expectedErr:  "client config name is empty",
+		},
+		{
+			name:         "invalid client config path",
+			refreshToken: internalRefreshTokenPrefix + `{"client-config-names":["../default"]}`,
+			expectedErr:  `invalid client config path "../default.conf"`,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			clientConfigNames, err := decodeInternalRefreshToken(testCase.refreshToken)
+
+			require.Error(t, err)
+			require.Contains(t, err.Error(), testCase.expectedErr)
+			require.Nil(t, clientConfigNames)
+		})
+	}
+}
+
+func TestDecodeProviderRefreshTokenErrors(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		refreshToken string
+		expectedErr  string
+	}{
+		{
+			name:         "malformed json",
+			refreshToken: providerRefreshTokenPrefix + `{`,
+			expectedErr:  "unable to parse provider refresh token",
+		},
+		{
+			name:         "empty refresh token",
+			refreshToken: providerRefreshTokenPrefix + `{"refresh-token":""}`,
+			expectedErr:  "provider refresh token is empty",
+		},
+		{
+			name:         "empty client config name",
+			refreshToken: providerRefreshTokenPrefix + `{"refresh-token":"provider-refresh-token","client-config-names":[""]}`,
+			expectedErr:  "client config name is empty",
+		},
+		{
+			name:         "invalid client config path",
+			refreshToken: providerRefreshTokenPrefix + `{"refresh-token":"provider-refresh-token","client-config-names":["../default"]}`,
+			expectedErr:  `invalid client config path "../default.conf"`,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			refreshToken, clientConfigNames, err := decodeProviderRefreshToken(testCase.refreshToken)
+
+			require.Error(t, err)
+			require.Contains(t, err.Error(), testCase.expectedErr)
+			require.Empty(t, refreshToken)
+			require.Nil(t, clientConfigNames)
+		})
+	}
+}
+
+func TestEncodeInternalRefreshToken(t *testing.T) {
+	t.Parallel()
+
+	emptyToken, err := encodeInternalRefreshToken(nil)
+	require.NoError(t, err)
+	require.Equal(t, types.EmptyToken, emptyToken)
+
+	encodedToken, err := encodeInternalRefreshToken([]string{"profile"})
+	require.NoError(t, err)
+	require.Contains(t, encodedToken, internalRefreshTokenPrefix)
+}
+
+func TestDecodeProviderRefreshTokenPreservesValidationError(t *testing.T) {
+	t.Parallel()
+
+	_, _, err := decodeProviderRefreshToken(providerRefreshTokenPrefix + `{"refresh-token":"provider-refresh-token","client-config-names":[""]}`)
+
+	require.ErrorIs(t, err, types.ErrInvalidClaimType)
+}
