@@ -79,6 +79,7 @@ linters:
         - name: forbidden-call-in-wg-go
         - name: get-return
         - name: identical-branches
+        - name: identical-switch-branches
         - name: if-return
         - name: import-alias-naming
         - name: import-shadowing
