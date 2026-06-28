@@ -11,7 +11,7 @@ files.
 When `openvpn.client-config.enabled` is false, no client configuration file is
 loaded, including `DEFAULT.conf`.
 
-Each resolved config name loads `<name>.conf` from that directory. File names
+Each resolved config name loads `<name>.conf` from that directory. Filenames
 must satisfy Go's `fs.ValidPath`; absolute paths and `.` or `..` path elements
 are rejected. Symbolic links are followed only when their targets remain inside
 the configured client config directory.
