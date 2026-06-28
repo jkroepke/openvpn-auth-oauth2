@@ -144,7 +144,7 @@ func TestURLMarshalJSON(t *testing.T) {
 	actualURL, err := types.NewURL("https://example.com")
 	require.NoError(t, err)
 
-	body, err := json.Marshal(actualURL)
+	body, err := json.Marshal(&actualURL)
 	require.NoError(t, err)
 
 	require.JSONEq(t, `"https://example.com"`, string(body))
