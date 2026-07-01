@@ -54,15 +54,13 @@ func (c *Client) processClient(ctx context.Context, client connection.Client) er
 }
 
 // handleClientAuthentication holds the shared authentication logic for CONNECT and REAUTH events.
-//
-//nolint:cyclop,nestif
 func (c *Client) handleClientAuthentication(ctx context.Context, logger *slog.Logger, client connection.Client) {
 	logger.LogAttrs(ctx, slog.LevelInfo, "new client authentication")
 
 	// Check if the client is allowed to bypass authentication. If so, accept the client.
 	if c.checkAuthBypass(client) {
 		logger.LogAttrs(ctx, slog.LevelInfo, "client bypass authentication")
-		c.AcceptClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, client.CommonName, "")
+		_ = c.AcceptClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, client.CommonName, "")
 
 		return
 	}
@@ -78,7 +76,7 @@ func (c *Client) handleClientAuthentication(ctx context.Context, logger *slog.Lo
 
 	// Check if the client is already authenticated and refresh the client's authentication if enabled.
 	// If the client is successfully re-authenticated, accept the client.
-	user, tokens, ok, err := c.silentReAuthentication(ctx, logger, client)
+	user, tokens, clientConfigNames, ok, err := c.silentReAuthentication(ctx, logger, client)
 	if err != nil {
 		c.DenyClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, ReasonStateExpiredOrInvalid)
 
@@ -89,17 +87,17 @@ func (c *Client) handleClientAuthentication(ctx context.Context, logger *slog.Lo
 
 		return
 	} else if ok {
-		clientConfigName := user.Username
+		if tokens != nil && len(clientConfigNames) == 0 {
+			clientConfigNames, err = c.oauth2.ResolveClientConfigNames(tokens, client.CommonName, user.Username)
+			if err != nil {
+				logger.LogAttrs(ctx, slog.LevelWarn, "failed to resolve client config", slog.Any("err", err))
+				c.DenyClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, "invalid client config")
 
-		if clientConfigClaim := c.conf.OpenVPN.ClientConfig.TokenClaim; clientConfigClaim != "" && tokens.IDTokenClaims != nil {
-			if claimValue, ok := tokens.IDTokenClaims.Claims[clientConfigClaim]; ok {
-				if clientConfigTokenValue, ok := claimValue.(string); ok && clientConfigName != "" {
-					clientConfigName = clientConfigTokenValue
-				}
+				return
 			}
 		}
 
-		c.AcceptClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, user.Username, clientConfigName)
+		_ = c.AcceptClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, user.Username, clientConfigNames...)
 
 		return
 	}
@@ -191,33 +189,35 @@ func (c *Client) checkAuthBypass(client connection.Client) bool {
 
 // silentReAuthentication attempts to silently re-authenticate the client using a refresh token if available.
 // It returns true if the client was successfully re-authenticated, false otherwise.
-func (c *Client) silentReAuthentication(ctx context.Context, logger *slog.Logger, client connection.Client) (types.UserInfo, *idtoken.IDToken, bool, error) {
+func (c *Client) silentReAuthentication(
+	ctx context.Context, logger *slog.Logger, client connection.Client,
+) (types.UserInfo, *idtoken.IDToken, []string, bool, error) {
 	if !c.conf.OAuth2.Refresh.Enabled {
 		logger.LogAttrs(ctx, slog.LevelDebug, "silent re-authentication disabled by configuration")
 
-		return types.UserInfo{}, nil, false, nil
+		return types.UserInfo{}, nil, nil, false, nil
 	}
 
 	if c.conf.OAuth2.Refresh.UseSessionID {
 		if client.SessionID == "" || !slices.Contains([]string{"Initial", "AuthenticatedEmptyUser", "Authenticated"}, client.SessionState) {
-			return types.UserInfo{}, nil, false, ErrClientSessionStateInvalidOrExpired
+			return types.UserInfo{}, nil, nil, false, ErrClientSessionStateInvalidOrExpired
 		}
 	} else if client.SessionID != "" {
 		logger.LogAttrs(ctx, slog.LevelWarn, "detected client session ID but not configured to use it. Please enable --oauth2.refresh.use-session-id")
 	}
 
 	if c.oauth2 == nil {
-		return types.UserInfo{}, nil, false, errors.New("oauth2 client not set")
+		return types.UserInfo{}, nil, nil, false, errors.New("oauth2 client not set")
 	}
 
-	user, token, ok, err := c.oauth2.RefreshClientAuth(ctx, logger, client)
+	user, token, clientConfigNames, ok, err := c.oauth2.RefreshClientAuth(ctx, logger, client)
 	if err != nil {
 		logger.LogAttrs(ctx, slog.LevelWarn, "error refreshing client auth", slog.Any("err", err))
 	}
 
 	logger.LogAttrs(ctx, slog.LevelDebug, "silent re-authentication", slog.Bool("result", ok))
 
-	return user, token, ok, nil
+	return user, token, clientConfigNames, ok, nil
 }
 
 func (c *Client) clientEstablished(ctx context.Context, logger *slog.Logger, client connection.Client) {

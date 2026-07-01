@@ -85,15 +85,11 @@ type OpenVPNBypass struct {
 	CommonNames types.RegexpSlice `json:"common-names" yaml:"common-names"`
 }
 type OpenVPNConfig struct {
-	Path         types.FS                     `json:"path"          yaml:"path"`
-	TokenClaim   string                       `json:"token-claim"   yaml:"token-claim"`
-	UserSelector OpenVPNConfigProfileSelector `json:"user-selector" yaml:"user-selector"`
-	Enabled      bool                         `json:"enabled"       yaml:"enabled"`
-}
-
-type OpenVPNConfigProfileSelector struct {
-	StaticValues types.StringSlice `json:"static-values" yaml:"static-values"`
-	Enabled      bool              `json:"enabled"       yaml:"enabled"`
+	Path           types.FS              `json:"path"             yaml:"path"`
+	Expression     string                `json:"expression"       yaml:"expression"`
+	Strategy       OpenVPNConfigStrategy `json:"strategy"         yaml:"strategy"`
+	Enabled        bool                  `json:"enabled"          yaml:"enabled"`
+	IgnoreNotFound bool                  `json:"ignore-not-found" yaml:"ignore-not-found"`
 }
 
 type OpenVPNCommonName struct {
@@ -160,12 +156,19 @@ type Debug struct {
 
 type OpenVPNCommonNameMode int
 
+type OpenVPNConfigStrategy int
+
 const (
 	CommonNameModePlain OpenVPNCommonNameMode = iota
 	CommonNameModeOmit
 )
 
 const CommonNameModeOmitValue = "-"
+
+const (
+	OpenVPNConfigStrategyMerge OpenVPNConfigStrategy = iota
+	OpenVPNConfigStrategyUserSelector
+)
 
 // String returns the string representation of the common name mode.
 //
@@ -205,6 +208,49 @@ func (s *OpenVPNCommonNameMode) UnmarshalText(text []byte) error {
 		*s = CommonNameModeOmit
 	default:
 		return fmt.Errorf("invalid value %s", config)
+	}
+
+	return nil
+}
+
+// String returns the string representation of the client config strategy.
+//
+//goland:noinspection GoMixedReceiverTypes
+func (s OpenVPNConfigStrategy) String() string {
+	text, err := s.MarshalText()
+	if err != nil {
+		panic(err)
+	}
+
+	return string(text)
+}
+
+// MarshalText implements the [encoding.TextMarshaler] interface.
+//
+//goland:noinspection GoMixedReceiverTypes
+func (s OpenVPNConfigStrategy) MarshalText() ([]byte, error) {
+	switch s {
+	case OpenVPNConfigStrategyMerge:
+		return []byte("merge"), nil
+	case OpenVPNConfigStrategyUserSelector:
+		return []byte("user-selector"), nil
+	default:
+		return nil, fmt.Errorf("unknown client config strategy %d", s)
+	}
+}
+
+// UnmarshalText implements the [encoding.TextUnmarshaler] interface.
+//
+//goland:noinspection GoMixedReceiverTypes
+func (s *OpenVPNConfigStrategy) UnmarshalText(text []byte) error {
+	strategy := strings.ToLower(string(text))
+	switch strategy {
+	case "", "merge":
+		*s = OpenVPNConfigStrategyMerge
+	case "user-selector":
+		*s = OpenVPNConfigStrategyUserSelector
+	default:
+		return fmt.Errorf("invalid value %s", strategy)
 	}
 
 	return nil
@@ -268,9 +314,9 @@ func (s *OAuth2AuthStyle) UnmarshalText(text []byte) error {
 type OAuth2RefreshNonce int
 
 const (
-	OAuth2RefreshNonceAuto OAuth2RefreshNonce = iota
-	OAuth2RefreshNonceEmpty
-	OAuth2RefreshNonceEqual
+	OAuth2RefreshNonceAuto  OAuth2RefreshNonce = iota // Always use empty nonce for refresh requests
+	OAuth2RefreshNonceEmpty                           // Use the same nonce as initial authentication
+	OAuth2RefreshNonceEqual                           // try with nonce, retry without on error
 )
 
 // String returns the string representation of the refresh nonce mode.

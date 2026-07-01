@@ -28,7 +28,7 @@ const (
 )
 
 type openvpnManagementClient interface {
-	AcceptClient(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, username string, clientConfigName string)
+	AcceptClient(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, username string, clientConfigNames ...string) error
 	DenyClient(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, reason string)
 }
 
@@ -219,7 +219,14 @@ func (c *Client) OAuth2ProfileSubmit() http.Handler {
 
 		logger.LogAttrs(ctx, slog.LevelInfo, "successful authorization via oauth2 with profile selection")
 
-		c.openvpn.AcceptClient(ctx, logger, oAuth2State.Client, username, clientConfigName)
+		if err = c.openvpn.AcceptClient(ctx, logger, oAuth2State.Client, username, clientConfigName); err != nil {
+			c.writeHTTPError(ctx, w, logger, http.StatusInternalServerError, "OpenVPN", err.Error())
+
+			return
+		}
+
+		c.storeSelectedProfileRefreshState(ctx, logger, oAuth2State, clientID, clientConfigName)
+
 		c.writeHTTPSuccess(ctx, w, logger)
 	})
 }
@@ -231,6 +238,45 @@ func (c *Client) getClientID(session state.State) string {
 	}
 
 	return strconv.FormatUint(session.Client.CID, 10)
+}
+
+func (c *Client) storeSelectedProfileRefreshState(
+	ctx context.Context, logger *slog.Logger, session state.State, clientID, clientConfigName string,
+) {
+	if !c.conf.OAuth2.Refresh.Enabled {
+		return
+	}
+
+	if !c.conf.OAuth2.Refresh.ValidateUser {
+		c.postCodeExchangeHandlerStoreRefreshToken(ctx, logger, session, clientID, nil, []string{clientConfigName})
+
+		return
+	}
+
+	refreshToken, err := c.storage.Get(ctx, clientID)
+	if err != nil {
+		logger.LogAttrs(ctx, slog.LevelWarn, "unable to load refresh token for selected profile", slog.Any("err", err))
+
+		return
+	}
+
+	refreshToken, _, err = decodeProviderRefreshToken(refreshToken)
+	if err != nil {
+		logger.LogAttrs(ctx, slog.LevelWarn, err.Error())
+
+		return
+	}
+
+	refreshToken, err = encodeProviderRefreshToken(refreshToken, []string{clientConfigName})
+	if err != nil {
+		logger.LogAttrs(ctx, slog.LevelWarn, err.Error())
+
+		return
+	}
+
+	if err = c.storage.Set(ctx, clientID, refreshToken); err != nil {
+		logger.LogAttrs(ctx, slog.LevelWarn, "unable to store selected profile refresh token", slog.Any("err", err))
+	}
 }
 
 // createSessionLogger creates a logger with common session information.
@@ -303,13 +349,11 @@ func (c *Client) postCodeExchangeHandler(
 			username:       username,
 		}
 
-		if c.handleUserSelectedClientConfig(ctx, w, codeExchange) {
+		if c.handleClientConfig(ctx, w, codeExchange) {
 			return
 		}
 
-		clientConfigName := c.clientConfigNameFromToken(tokens, username)
-
-		c.acceptOAuth2Client(ctx, w, codeExchange, clientConfigName)
+		c.acceptOAuth2Client(ctx, w, codeExchange, username)
 	}
 }
 
@@ -394,23 +438,44 @@ type codeExchangeRequest struct {
 	session        state.State
 }
 
-// handleUserSelectedClientConfig handles client configuration profile selection when it is enabled.
-func (c *Client) handleUserSelectedClientConfig(ctx context.Context, w http.ResponseWriter, req codeExchangeRequest) bool {
-	if !c.conf.OpenVPN.ClientConfig.UserSelector.Enabled {
+// handleClientConfig resolves client configuration names and applies the configured strategy.
+func (c *Client) handleClientConfig(ctx context.Context, w http.ResponseWriter, req codeExchangeRequest) bool {
+	if !c.conf.OpenVPN.ClientConfig.Enabled {
 		return false
 	}
 
-	clientConfigProfiles := c.extractConfigProfilesFromIDToken(req.tokens)
+	clientConfigProfiles, err := c.ResolveClientConfigNames(req.tokens, req.session.Client.CommonName, req.username)
+	if err != nil {
+		c.openvpn.DenyClient(ctx, req.logger, req.session.Client, "invalid client config")
+		c.writeHTTPError(ctx, w, req.logger, http.StatusForbidden, "client config", err.Error())
 
+		return true
+	}
+
+	if c.conf.OpenVPN.ClientConfig.Strategy == config.OpenVPNConfigStrategyUserSelector {
+		return c.handleClientConfigSelector(ctx, w, req, clientConfigProfiles)
+	}
+
+	c.acceptOAuth2Client(ctx, w, req, clientConfigProfiles...)
+
+	return true
+}
+
+// handleClientConfigSelector handles client configuration profile selection.
+func (c *Client) handleClientConfigSelector(ctx context.Context, w http.ResponseWriter, req codeExchangeRequest, clientConfigProfiles []string) bool {
 	switch len(clientConfigProfiles) {
 	case 0:
-		return false
+		c.acceptOAuth2Client(ctx, w, req)
+
+		return true
 	case 1:
 		c.acceptOAuth2Client(ctx, w, req, clientConfigProfiles[0])
 
 		return true
 	default:
-		c.postCodeExchangeHandlerStoreRefreshToken(ctx, req.logger, req.session, req.clientID, req.tokens)
+		if c.conf.OAuth2.Refresh.ValidateUser {
+			c.postCodeExchangeHandlerStoreRefreshToken(ctx, req.logger, req.session, req.clientID, req.tokens, nil)
+		}
 
 		if err := c.renderClientConfigProfileSelector(ctx, w, req, clientConfigProfiles); err != nil {
 			c.openvpn.DenyClient(ctx, req.logger, req.session.Client, err.openvpnReason)
@@ -475,52 +540,33 @@ func (c *Client) renderClientConfigProfileSelector(
 	return nil
 }
 
-// clientConfigNameFromToken returns the client configuration name from the configured token claim when present.
-func (c *Client) clientConfigNameFromToken(tokens *idtoken.IDToken, defaultName string) string {
-	clientConfigClaim := c.conf.OpenVPN.ClientConfig.TokenClaim
-	if clientConfigClaim == "" || tokens.IDTokenClaims == nil || defaultName == "" {
-		return defaultName
-	}
-
-	claimValue, ok := tokens.IDTokenClaims.Claims[clientConfigClaim]
-	if !ok {
-		return defaultName
-	}
-
-	clientConfigName, ok := claimValue.(string)
-	if !ok {
-		return defaultName
-	}
-
-	return clientConfigName
-}
-
 // acceptOAuth2Client accepts the OpenVPN client, stores refresh state, and renders the success page.
 func (c *Client) acceptOAuth2Client(
 	ctx context.Context,
 	w http.ResponseWriter,
 	req codeExchangeRequest,
-	clientConfigName string,
+	clientConfigNames ...string,
 ) {
-	c.openvpn.AcceptClient(ctx, req.logger, req.session.Client, req.username, clientConfigName)
-	c.postCodeExchangeHandlerStoreRefreshToken(ctx, req.logger, req.session, req.clientID, req.tokens)
+	if err := c.openvpn.AcceptClient(ctx, req.logger, req.session.Client, req.username, clientConfigNames...); err != nil {
+		c.writeHTTPError(ctx, w, req.logger, http.StatusInternalServerError, "OpenVPN", err.Error())
+
+		return
+	}
+
+	c.postCodeExchangeHandlerStoreRefreshToken(ctx, req.logger, req.session, req.clientID, req.tokens, clientConfigNames)
 	c.writeHTTPSuccess(ctx, w, req.logger)
 }
 
 // postCodeExchangeHandlerStoreRefreshToken stores refresh data for future non-interactive authentication.
 func (c *Client) postCodeExchangeHandlerStoreRefreshToken(
-	ctx context.Context, logger *slog.Logger, session state.State, clientID string, tokens *idtoken.IDToken,
+	ctx context.Context, logger *slog.Logger, session state.State, clientID string, tokens *idtoken.IDToken, clientConfigNames []string,
 ) {
 	if !c.conf.OAuth2.Refresh.Enabled {
 		return
 	}
 
 	if !c.conf.OAuth2.Refresh.ValidateUser {
-		if err := c.storage.Set(ctx, clientID, types.EmptyToken); err != nil {
-			logger.LogAttrs(ctx, slog.LevelWarn, err.Error())
-		} else {
-			logger.LogAttrs(ctx, slog.LevelDebug, "empty token for non-interactive re-authentication stored")
-		}
+		c.storeInternalRefreshToken(ctx, logger, clientID, clientConfigNames)
 
 		return
 	}
@@ -550,34 +596,15 @@ func (c *Client) postCodeExchangeHandlerStoreRefreshToken(
 	}
 }
 
-// extractConfigProfilesFromIDToken extracts the list of available profiles from static configuration and token claims.
-func (c *Client) extractConfigProfilesFromIDToken(tokens *idtoken.IDToken) []string {
-	profiles := c.conf.OpenVPN.ClientConfig.UserSelector.StaticValues
-
-	clientConfigClaim := c.conf.OpenVPN.ClientConfig.TokenClaim
-	if clientConfigClaim == "" || tokens.IDTokenClaims == nil {
-		return profiles
+func (c *Client) storeInternalRefreshToken(ctx context.Context, logger *slog.Logger, clientID string, clientConfigNames []string) {
+	internalToken, err := encodeInternalRefreshToken(clientConfigNames)
+	if err != nil {
+		logger.LogAttrs(ctx, slog.LevelWarn, err.Error())
+	} else if err := c.storage.Set(ctx, clientID, internalToken); err != nil {
+		logger.LogAttrs(ctx, slog.LevelWarn, err.Error())
+	} else {
+		logger.LogAttrs(ctx, slog.LevelDebug, "empty token for non-interactive re-authentication stored")
 	}
-
-	iClaimValue, ok := tokens.IDTokenClaims.Claims[clientConfigClaim]
-	if !ok {
-		return profiles
-	}
-
-	switch claimValue := iClaimValue.(type) {
-	case []any:
-		profiles = slices.Grow(profiles, len(claimValue))
-
-		for _, profile := range claimValue {
-			if profileStr, ok := profile.(string); ok {
-				profiles = append(profiles, profileStr)
-			}
-		}
-	case string:
-		profiles = append(profiles, claimValue)
-	}
-
-	return profiles
 }
 
 // storeProfileSelectorToken stores an encrypted profile selector token under a short-lived lookup key.

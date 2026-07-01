@@ -4,6 +4,8 @@
 package openvpn
 
 import (
+	"context"
+	"log/slog"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -20,6 +22,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/httphandler"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
 	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/c"
+	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/management"
 	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/util/testutil"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/nettest"
@@ -422,6 +425,107 @@ func TestPluginFuncV3_InvalidArgs(t *testing.T) {
 	require.Equal(t, c.OpenVPNPluginFuncError, status)
 }
 
+//nolint:paralleltest // handleAuthUserPassVerify increments the package-level clientIDCounter.
+func TestHandleAuthUserPassVerifyErrors(t *testing.T) {
+	clientIDCounter.Store(0)
+	t.Cleanup(func() {
+		clientIDCounter.Store(0)
+	})
+
+	tests := []struct {
+		name             string
+		env              []string
+		perClientContext *ClientContext
+	}{
+		{
+			name: "missing per client context",
+			env:  validAuthUserPassVerifyEnv(),
+		},
+		{
+			name:             "invalid env pointer",
+			perClientContext: &ClientContext{},
+		},
+		{
+			name:             "missing session id",
+			env:              []string{"common_name=user@example.com"},
+			perClientContext: &ClientContext{},
+		},
+		{
+			name:             "no management client connected",
+			env:              validAuthUserPassVerifyEnv(),
+			perClientContext: &ClientContext{},
+		},
+	}
+
+	for _, testCase := range tests { //nolint:paralleltest // subtests share the package-level clientIDCounter.
+		t.Run(testCase.name, func(t *testing.T) {
+			handle := newTestPluginHandle(t)
+
+			envp := newTestEnvp(t, testCase.env)
+
+			status := handle.handleAuthUserPassVerify(envp, testCase.perClientContext)
+
+			require.Equal(t, c.OpenVPNPluginFuncError, status)
+		})
+	}
+}
+
+func TestHandleClientConnectErrors(t *testing.T) {
+	t.Parallel()
+
+	handle := newTestPluginHandle(t)
+
+	require.Equal(t, c.OpenVPNPluginFuncError, handle.handleClientConnect(nil, &c.OpenVPNPluginArgsFuncReturn{}))
+
+	clientContext := &ClientContext{clientConfig: "push \"route 10.0.0.0 255.255.255.0\""}
+
+	require.Equal(t, c.OpenVPNPluginFuncError, handle.handleClientConnect(clientContext, nil))
+	require.Equal(t, c.OpenVPNPluginFuncError, handle.handleClientConnect(clientContext, &c.OpenVPNPluginArgsFuncReturn{}))
+}
+
+func TestHandleClientDisconnectErrors(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name             string
+		env              []string
+		perClientContext *ClientContext
+	}{
+		{
+			name: "missing per client context",
+			env:  []string{"common_name=user@example.com"},
+		},
+		{
+			name:             "invalid env pointer",
+			perClientContext: &ClientContext{},
+		},
+		{
+			name:             "unsafe env var",
+			env:              []string{"common_name=user@example.com", "bad\nkey=value"},
+			perClientContext: &ClientContext{},
+		},
+		{
+			name:             "no management client connected",
+			env:              []string{"common_name=user@example.com"},
+			perClientContext: &ClientContext{clientID: 7},
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			handle := newTestPluginHandle(t)
+
+			envp := newTestEnvp(t, testCase.env)
+
+			status := handle.handleClientDisconnect(envp, testCase.perClientContext)
+
+			require.Equal(t, c.OpenVPNPluginFuncError, status)
+		})
+	}
+}
+
 func TestPluginHandleFromPtr_ZeroHandle(t *testing.T) {
 	t.Parallel()
 
@@ -455,4 +559,48 @@ func TestPluginHandleFromPtr_DeletedHandle(t *testing.T) {
 
 	require.Nil(t, handle)
 	require.ErrorIs(t, err, errInvalidPluginHandle)
+}
+
+func newTestPluginHandle(t *testing.T) *PluginHandle {
+	t.Helper()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	t.Cleanup(cancel)
+
+	logger := slog.New(slog.DiscardHandler)
+
+	return &PluginHandle{
+		ctx:              ctx,
+		cancel:           cancel,
+		logger:           logger,
+		managementClient: management.NewServer(logger, ""),
+		listenSocketAddr: "tcp://127.0.0.1:0",
+	}
+}
+
+func newTestEnvp(t *testing.T, env []string) **c.Char {
+	t.Helper()
+
+	if env == nil {
+		return nil
+	}
+
+	envp, cStrings := testutil.CreateCStringArray(env)
+
+	t.Cleanup(func() {
+		testutil.FreeCStringArray(envp, cStrings)
+	})
+
+	return envp
+}
+
+func validAuthUserPassVerifyEnv() []string {
+	return []string{
+		"session_id=SESSIONID",
+		"untrusted_port=17016",
+		"untrusted_ip=192.168.65.1",
+		"common_name=user@example.com",
+		"username=",
+		"session_state=Initial",
+	}
 }

@@ -114,8 +114,8 @@ When `openvpn.override-username` is enabled, OpenVPN's native `client-config-dir
 
 **Workaround:** Use openvpn-auth-oauth2's built-in [Client specific configuration](Client%20specific%20configuration.md) feature instead, which:
 - Works seamlessly with `openvpn.override-username`
-- Uses token claims to lookup configuration files
-- Provides additional features like profile selection UI
+- Uses `openvpn.client-config.expression` to resolve configuration files from token claims and the resolved username
+- Can merge several configuration files or show a profile selector with `openvpn.client-config.strategy: user-selector`
 
 For more details, see the OpenVPN man page regarding `override-username` limitations.
 

@@ -3,35 +3,171 @@ package openvpn
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
 	"log/slog"
 	"strings"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
 )
 
 // AcceptClient accepts an OpenVPN client connection.
 // It reads the client configuration from the CCD path if enabled.
-func (c *Client) AcceptClient(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, username, clientConfigName string) {
+func (c *Client) AcceptClient(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, username string, clientConfigNames ...string) error {
 	logger.LogAttrs(ctx, slog.LevelInfo, "client authentication")
 
-	clientConfig := c.loadClientConfig(ctx, logger, client, clientConfigName, username)
+	clientConfig, err := c.loadClientConfig(ctx, logger, client, clientConfigNames, username)
+	if err != nil {
+		logger.LogAttrs(
+			ctx, slog.LevelWarn, "failed to load client config",
+			slog.Any("error", err),
+		)
+		c.DenyClient(ctx, logger, client, "client configuration not found")
 
-	err := c.sendClientAuth(ctx, client, clientConfig)
+		return err
+	}
+
+	err = c.sendClientAuth(ctx, client, clientConfig)
 	if err != nil {
 		logger.LogAttrs(
 			ctx, slog.LevelWarn, "failed to accept client",
 			slog.Any("error", err),
 		)
 	}
+
+	return err
 }
 
 // loadClientConfig reads the client configuration from CCD and logs the result.
-func (c *Client) loadClientConfig(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, clientConfigName, username string) []string {
-	clientConfig, err := c.readClientConfig(clientConfigName)
+func (c *Client) loadClientConfig(
+	ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, clientConfigNames []string, username string,
+) ([]string, error) {
+	var clientConfig []string
 
+	if !c.conf.OpenVPN.ClientConfig.Enabled {
+		return c.applyUsernameConfig(clientConfig, client, username), nil
+	}
+
+	if len(clientConfigNames) == 0 {
+		clientConfigNames = []string{"DEFAULT"}
+	}
+
+	if c.conf.OpenVPN.ClientConfig.Strategy != config.OpenVPNConfigStrategyMerge {
+		clientConfigNames = clientConfigNames[:1]
+	}
+
+	clientConfig, err := c.readClientConfigs(ctx, logger, clientConfigNames)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.applyUsernameConfig(clientConfig, client, username), nil
+}
+
+func (c *Client) applyUsernameConfig(clientConfig []string, client state.ClientIdentifier, username string) []string {
+	if !c.conf.OAuth2.Refresh.ValidateUser {
+		return clientConfig
+	}
+
+	if c.conf.OpenVPN.OverrideUsername {
+		clientConfig = append(clientConfig, fmt.Sprintf(`override-username %q`, username))
+	} else if c.conf.OpenVPN.AuthTokenUser && client.UsernameIsDefined == 0 {
+		if len(username) == 0 {
+			username = "username"
+		}
+
+		clientConfig = append(clientConfig, fmt.Sprintf(`push "auth-token-user %s"`, base64.StdEncoding.EncodeToString([]byte(username))))
+	}
+
+	return clientConfig
+}
+
+func (c *Client) readClientConfigs(ctx context.Context, logger *slog.Logger, clientConfigNames []string) ([]string, error) {
+	if c.conf.OpenVPN.ClientConfig.Strategy != config.OpenVPNConfigStrategyMerge {
+		return c.readSingleClientConfig(ctx, logger, clientConfigNames[0])
+	}
+
+	seenConfigNames := make(map[string]struct{}, len(clientConfigNames))
+	seenLines := make(map[string]struct{})
+	clientConfig := make([]string, 0, len(clientConfigNames))
+
+	for _, clientConfigName := range clientConfigNames {
+		if _, ok := seenConfigNames[clientConfigName]; ok {
+			continue
+		}
+
+		seenConfigNames[clientConfigName] = struct{}{}
+
+		configLines, err := c.readClientConfig(clientConfigName)
+		if err != nil {
+			skip, err := c.handleClientConfigReadError(ctx, logger, clientConfigName, err)
+			if err != nil {
+				return nil, err
+			}
+
+			if skip {
+				continue
+			}
+		} else {
+			c.logClientConfigRead(ctx, logger, clientConfigName, configLines, nil)
+		}
+
+		if len(configLines) == 0 {
+			continue
+		}
+
+		for _, line := range configLines {
+			if _, ok := seenLines[line]; ok {
+				continue
+			}
+
+			seenLines[line] = struct{}{}
+			clientConfig = append(clientConfig, line)
+		}
+	}
+
+	return clientConfig, nil
+}
+
+func (c *Client) readSingleClientConfig(ctx context.Context, logger *slog.Logger, clientConfigName string) ([]string, error) {
+	clientConfig, err := c.readClientConfig(clientConfigName)
+	if err != nil {
+		_, err := c.handleClientConfigReadError(ctx, logger, clientConfigName, err)
+		if err != nil {
+			return nil, err
+		}
+
+		return nil, nil
+	}
+
+	c.logClientConfigRead(ctx, logger, clientConfigName, clientConfig, nil)
+
+	return clientConfig, nil
+}
+
+func (c *Client) handleClientConfigReadError(ctx context.Context, logger *slog.Logger, clientConfigName string, err error) (bool, error) {
+	if !errors.Is(err, fs.ErrNotExist) {
+		c.logClientConfigRead(ctx, logger, clientConfigName, nil, err)
+
+		return true, nil
+	}
+
+	logger.LogAttrs(
+		ctx, slog.LevelDebug, "client config file not found",
+		slog.String("config", clientConfigName),
+	)
+
+	if !c.conf.OpenVPN.ClientConfig.IgnoreNotFound {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func (c *Client) logClientConfigRead(ctx context.Context, logger *slog.Logger, clientConfigName string, clientConfig []string, err error) {
 	switch {
 	case err != nil:
 		logger.LogAttrs(
@@ -51,22 +187,6 @@ func (c *Client) loadClientConfig(ctx context.Context, logger *slog.Logger, clie
 			slog.String("config", clientConfigName),
 		)
 	}
-
-	if !c.conf.OAuth2.Refresh.ValidateUser {
-		return clientConfig
-	}
-
-	if c.conf.OpenVPN.OverrideUsername {
-		clientConfig = append(clientConfig, fmt.Sprintf(`override-username %q`, username))
-	} else if c.conf.OpenVPN.AuthTokenUser && client.UsernameIsDefined == 0 {
-		if len(username) == 0 {
-			username = "username"
-		}
-
-		clientConfig = append(clientConfig, fmt.Sprintf(`push "auth-token-user %s"`, base64.StdEncoding.EncodeToString([]byte(username))))
-	}
-
-	return clientConfig
 }
 
 // sendClientAuth sends the appropriate client-auth or client-auth-nt command.

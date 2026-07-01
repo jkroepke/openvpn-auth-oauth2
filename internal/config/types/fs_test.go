@@ -1,6 +1,7 @@
 package types_test
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -163,4 +164,16 @@ func TestFSMarshalText(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, []byte("."), path)
+}
+
+func TestFSMarshalJSON(t *testing.T) {
+	t.Parallel()
+
+	dirFS, err := types.NewFS(".")
+	require.NoError(t, err)
+
+	body, err := json.Marshal(&dirFS)
+	require.NoError(t, err)
+
+	assert.JSONEq(t, `"."`, string(body))
 }

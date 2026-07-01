@@ -161,26 +161,23 @@ func (c *Config) flagSetOpenVPN(flagSet *flag.FlagSet) {
 		lookupEnvOrDefault("openvpn.client-config.path", c.OpenVPN.ClientConfig.Path),
 		"Path to the CCD directory. openvpn-auth-oauth2 will look for an file with an .conf suffix and returns the content back.",
 	)
-	flagSet.StringVar(
-		&c.OpenVPN.ClientConfig.TokenClaim,
-		"openvpn.client-config.token-claim",
-		lookupEnvOrDefault("openvpn.client-config.token-claim", c.OpenVPN.ClientConfig.TokenClaim),
-		"If non-empty, the value of the token claim is used to lookup the configuration file in the CCD directory. If empty, the common name is used.",
-	)
 	flagSet.BoolVar(
-		&c.OpenVPN.ClientConfig.UserSelector.Enabled,
-		"openvpn.client-config.user-selector.enabled",
-		lookupEnvOrDefault("openvpn.client-config.user-selector.enabled", c.OpenVPN.ClientConfig.UserSelector.Enabled),
-		"If true, openvpn-auth-oauth2 will display a profile selection UI after OAuth2 authentication, allowing users to choose their client configuration profile. "+
-			"Profile options are populated from openvpn.client-config.user-selector.static-values and openvpn.client-config.token-claim (if configured). "+
-			"After selection, the chosen profile name is used to lookup the configuration file in the CCD directory.",
+		&c.OpenVPN.ClientConfig.IgnoreNotFound,
+		"openvpn.client-config.ignore-not-found",
+		lookupEnvOrDefault("openvpn.client-config.ignore-not-found", c.OpenVPN.ClientConfig.IgnoreNotFound),
+		"Ignore missing client configuration files.",
 	)
 	flagSet.TextVar(
-		&c.OpenVPN.ClientConfig.UserSelector.StaticValues,
-		"openvpn.client-config.user-selector.static-values",
-		lookupEnvOrDefault("openvpn.client-config.user-selector.static-values", c.OpenVPN.ClientConfig.UserSelector.StaticValues),
-		"Comma-separated list of static profile names that are always available in the profile selector UI. "+
-			"These profiles will be displayed as selectable options for all users.",
+		&c.OpenVPN.ClientConfig.Strategy,
+		"openvpn.client-config.strategy",
+		lookupEnvOrDefault("openvpn.client-config.strategy", c.OpenVPN.ClientConfig.Strategy),
+		"Client config selection strategy. Values: [merge,user-selector].",
+	)
+	flagSet.StringVar(
+		&c.OpenVPN.ClientConfig.Expression,
+		"openvpn.client-config.expression",
+		lookupEnvOrDefault("openvpn.client-config.expression", c.OpenVPN.ClientConfig.Expression),
+		"CEL expression that returns an ordered list of client configuration names.",
 	)
 	flagSet.StringVar(
 		&c.OpenVPN.CommonName.EnvironmentVariableName,

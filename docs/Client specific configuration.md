@@ -1,181 +1,140 @@
 # Client specific configuration
 
-## Introduction
+openvpn-auth-oauth2 can load OpenVPN client configuration snippets from a
+configured directory and send the merged result through the OpenVPN management
+interface.
 
-This document describes the client-specific configuration options of openvpn-auth-oauth2.
-It mimics the client-config-dir capability of OpenVPN.
-But instead the client username, a token claim is used as config identifier.
+Enable the feature with `--openvpn.client-config.enabled` and set
+`--openvpn.client-config.path` to the directory that contains the configuration
+files.
 
-## Configuration
+When `openvpn.client-config.enabled` is false, no client configuration file is
+loaded, including `DEFAULT.conf`.
 
-The feature must be enabled with `--openvpn.client-config.enabled`.
-`--openvpn.client-config.path` points to a directory where the client-specific configuration files are stored.
+Each resolved config name loads `<name>.conf` from that directory. Filenames
+must satisfy Go's `fs.ValidPath`; absolute paths and `.` or `..` path elements
+are rejected. Symbolic links are followed only when their targets remain inside
+the configured client config directory.
 
-openvpn-auth-oauth2 looks for a file
-named after the token claim or common name with `.conf` suffix in the client config directory.
+If the expression returns an empty list, openvpn-auth-oauth2 loads
+`DEFAULT.conf`, matching OpenVPN's `client-config-dir` default-file pattern. If
+a returned `<name>.conf` file is not found, the default behavior is to ignore the
+missing file and continue. Set `openvpn.client-config.ignore-not-found: false`
+to deny the client instead.
 
-Client configuration files are opened through Go's `os.Root` mechanism.
-The filename must satisfy `fs.ValidPath`, so absolute paths and `.` or `..` path elements are rejected.
-Symbolic links are followed only when their targets remain inside the configured client config directory.
-These checks prevent profile names and token claims from escaping that directory without restricting them to an ASCII-only naming scheme.
+## Resolver
 
-## Client Profile Selector
+Client config names are resolved with
+`openvpn.client-config.expression`. The expression is [CEL](CEL%20Language%20Features.md) and must return
+an ordered string list.
 
-The user profile selector feature allows users to choose their client configuration profile through a web UI after OAuth2 authentication. This is useful when:
-- Users need access to different VPN configurations (e.g., different network segments, access levels)
-- Profile assignments are determined by OAuth2 token claims (e.g., roles, groups, departments)
-- You want to provide a self-service experience for profile selection
+The expression receives:
 
-### Configuration Options
+- `oauth2TokenClaims`: the OAuth2 ID token claims.
+- `openVPNUserCommonName`: the OpenVPN user common name.
+- `username`: the resolved OpenVPN username.
 
-#### Enable Profile Selector
+Example:
 
-```bash
---openvpn.client-config.user-selector.enabled
+```yaml
+oauth2:
+  openvpn-username: oauth2TokenClaims.preferred_username
+  validate:
+    groups:
+      - GRP-VPN
+
+openvpn:
+  override-username: true
+  client-config:
+    enabled: true
+    path: /etc/openvpn-auth-oauth2/client-config
+    expression: |
+        oauth2TokenClaims.groups.filter(g, g in [
+          "GRP-VPN",
+          "GRP-ADMIN",
+          "GRP-NETWORK"
+        ]) +
+        [username]
 ```
 
-**Environment Variable:** `CONFIG_OPENVPN_CLIENT__CONFIG_USER__SELECTOR_ENABLED`
+For `alice@example.edu` with `GRP-VPN` and `GRP-ADMIN`, this loads:
 
-**Default:** `false`
+1. `GRP-VPN.conf`
+2. `GRP-ADMIN.conf`
+3. `alice@example.edu.conf`
 
-When enabled, openvpn-auth-oauth2 will display a profile selection UI after successful OAuth2 authentication. Users can choose from available profiles before connecting to the VPN.
+## Strategy
 
-Profile options are populated from:
-- Static values configured via `--openvpn.client-config.user-selector.static-values`
-- Token claim values from `--openvpn.client-config.token-claim` (if configured)
+`openvpn.client-config.strategy` controls how resolved config names are applied.
 
-**Note:** The profile selector only appears when there are 2 or more profiles available. If only one profile is available, it will be automatically selected without showing the UI.
+The default is `merge`.
 
-#### Static Profile Values
+### merge
 
-```bash
---openvpn.client-config.user-selector.static-values value1,value2,value3
-```
+`merge` loads all resolved config files in resolver order.
 
-**Environment Variable:** `CONFIG_OPENVPN_CLIENT__CONFIG_USER__SELECTOR_STATIC__VALUES`
-
-**Default:** (empty)
-
-A comma-separated list of static profile names that are always available in the profile selector UI. These profiles will be displayed as selectable options for all authenticated users, regardless of their token claims.
-
-**Example:**
-```bash
---openvpn.client-config.user-selector.static-values corporate,guest,remote
-```
-
-This would show three profiles (corporate, guest, remote) to every user.
-
-
-### How It Works
-
-1. User completes OAuth2 authentication
-2. openvpn-auth-oauth2 extracts available profiles from:
-   - Static values (from `--openvpn.client-config.user-selector.static-values`)
-   - Token claim values (from `--openvpn.client-config.token-claim`, if configured
-   - supports both string and array values)
-3. Based on the number of profiles:
-   - **0 profiles:** Falls back to default behavior (uses username or token claim from `--openvpn.client-config.token-claim`)
-   - **1 profile:** Automatically selects that profile without showing UI
-   - **2+ profiles:** Displays profile selector UI to the user
-4. User selects a profile
-5. OpenVPN client configuration is applied based on the selected profile name
-
-### Profile Configuration Files
-
-After a profile is selected, openvpn-auth-oauth2 looks for a configuration file in the client config directory:
-
-```
-<client-config-path>/<selected-profile>.conf
-```
-
-For example, if a user selects the "corporate" profile, the file would be:
-```
-/path/to/client-config/corporate.conf
-```
-
-### Example Configurations
-
-#### Example 1: Static Profiles Only
-
-Allow all users to choose from three predefined profiles:
+Duplicate config names are loaded once. Duplicate config lines are sent once,
+preserving the first occurrence. Missing config files are skipped when
+`openvpn.client-config.ignore-not-found` is true, so authorization must still be
+enforced with `oauth2.validate.groups` or `oauth2.validate.expression`.
+This lets the expression return every valid role or group name and leave
+unconfigured names without a matching `.conf` file.
 
 ```yaml
 openvpn:
   client-config:
     enabled: true
-    path: /etc/openvpn/client-config
-    user-selector:
-      enabled: true
-      static-values:
-        - full-access
-        - limited-access
-        - guest-access
+    path: /etc/openvpn-auth-oauth2/client-config
+    strategy: merge
+    expression: |
+        (["base-vpn"] + oauth2TokenClaims.roles).distinct()
 ```
 
-Or via command line:
-```bash
---openvpn.client-config.enabled \
---openvpn.client-config.path=/etc/openvpn/client-config \
---openvpn.client-config.user-selector.enabled \
---openvpn.client-config.user-selector.static-values=full-access,limited-access,guest-access
-```
+With this configuration, a role named `admin-routes` loads
+`admin-routes.conf`. A role without a matching file is ignored while
+`openvpn.client-config.ignore-not-found` is true.
 
-#### Example 2: Dynamic Profiles from Token Claims
-
-Profiles are determined by the user's "groups" claim:
+Groups can also map to several shared config files. This is useful when
+different groups should receive overlapping route sets:
 
 ```yaml
 openvpn:
   client-config:
     enabled: true
-    path: /etc/openvpn/client-config
-    token-claim: groups
-    user-selector:
-      enabled: true
+    path: /etc/openvpn-auth-oauth2/client-config
+    strategy: merge
+    expression: |
+        oauth2TokenClaims.groups
+          .map(g, {
+            "GRP-VPN": ["base-vpn"],
+            "GRP-ADMIN": ["base-vpn", "admin-routes"],
+            "GRP-NETWORK": ["base-vpn", "network-routes"]
+          }[g])
+          .flatten()
+          .distinct()
 ```
 
-If a user's ID token contains:
-```json
-{
-  "groups": ["engineering", "vpn-users"]
-}
-```
+The map returns a list of config names for each group. `flatten()` converts the
+list of lists into one ordered list, and `distinct()` removes repeated entries
+such as `base-vpn`.
 
-They will see profiles "engineering" and "vpn-users" in the selector.
+Use this pattern when every input group is expected to exist in the map. If the
+token can contain unrelated groups, prefer returning the group names directly and
+let `openvpn.client-config.ignore-not-found` skip missing files.
 
-#### Example 3: Combined Static and Dynamic Profiles
+### user-selector
 
-Provide a "guest" profile to everyone, plus role-based profiles:
+`user-selector` shows the profile selector when the resolver returns more than
+one config name. If the resolver returns one config name, that config is used
+directly. If the resolver returns an empty list, `DEFAULT.conf` is used.
 
 ```yaml
 openvpn:
   client-config:
     enabled: true
-    path: /etc/openvpn/client-config
-    token-claim: roles
-    user-selector:
-      enabled: true
-      static-values:
-        - guest
+    path: /etc/openvpn-auth-oauth2/client-config
+    strategy: user-selector
+    expression: |
+        ["corporate", "guest"] +
+        oauth2TokenClaims.groups.filter(g, g.startsWith("vpn-profile-"))
 ```
-
-If a user has `"roles": ["admin", "developer"]` in their token, they will see three profiles:
-- guest (static)
-- admin (from token)
-- developer (from token)
-
-### Security Considerations
-
-- The profile selector validates that the selected profile is in the list of allowed profiles (from static values and/or token claims)
-- Client configuration lookups cannot escape the configured directory through path elements or symbolic links
-- Invalid profile selections are rejected
-- All profile data is encrypted during transmission between the browser and server
-- Profile selection requires a valid OAuth2 authentication session
-
-### Interaction with Other Settings
-
-The user profile selector takes precedence over the `--openvpn.client-config.token-claim` setting when enabled. The flow is:
-
-1. If `user-selector.enabled` is true and multiple profiles are available → Show profile selector
-2. If `user-selector.enabled` is true and one profile is available → Use that profile automatically
-3. Otherwise → Fall back to standard behavior using `--openvpn.client-config.token-claim` if configured

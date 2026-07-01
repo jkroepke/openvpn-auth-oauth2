@@ -17,7 +17,8 @@ func NewFakeOpenVPNClient() FakeOpenVPNClient {
 }
 
 // AcceptClient is a no-op implementation of the real method.
-func (FakeOpenVPNClient) AcceptClient(_ context.Context, _ *slog.Logger, _ state.ClientIdentifier, _, _ string) {
+func (FakeOpenVPNClient) AcceptClient(_ context.Context, _ *slog.Logger, _ state.ClientIdentifier, _ string, _ ...string) error {
+	return nil
 }
 
 // DenyClient is a no-op implementation of the real method.

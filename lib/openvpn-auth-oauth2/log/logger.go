@@ -151,7 +151,7 @@ func (h *PluginHandler) appendAttr(buf []byte, attr slog.Attr) []byte {
 		}
 
 		if attr.Key != "" {
-			buf = fmt.Appendf(buf, "}")
+			buf = fmt.Append(buf, "}")
 		}
 	case slog.KindAny:
 		// Use the default string representation for any other kinds.
@@ -167,7 +167,7 @@ func (h *PluginHandler) appendAttr(buf []byte, attr slog.Attr) []byte {
 	case slog.KindBool:
 		buf = fmt.Appendf(buf, " %s=%t", attr.Key, attr.Value.Bool())
 	case slog.KindLogValuer:
-		buf = fmt.Appendf(buf, " %s=%s", attr.Key, attr.Value.String())
+		fallthrough
 	default:
 		buf = fmt.Appendf(buf, " %s=%s", attr.Key, attr.Value.String())
 	}

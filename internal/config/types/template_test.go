@@ -128,6 +128,18 @@ func TestTemplateMarshalText(t *testing.T) {
 	require.Equal(t, []byte("../../../README.md"), tmplBytes)
 }
 
+func TestTemplateMarshalJSON(t *testing.T) {
+	t.Parallel()
+
+	actualTmpl, err := types.NewTemplate("../../../README.md")
+	require.NoError(t, err)
+
+	body, err := json.Marshal(&actualTmpl)
+	require.NoError(t, err)
+
+	require.JSONEq(t, `"../../../README.md"`, string(body))
+}
+
 func TestTemplateUnmarshalJSON(t *testing.T) {
 	t.Parallel()
 

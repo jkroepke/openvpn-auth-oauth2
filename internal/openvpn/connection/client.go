@@ -57,9 +57,7 @@ func NewClient(conf *config.Config, message string) (Client, error) { //nolint:c
 			}
 
 			switch envKey {
-			case "untrusted_ip":
-				client.IPAddr = envValue
-			case "untrusted_ip6":
+			case "untrusted_ip", "untrusted_ip6":
 				client.IPAddr = envValue
 			case "untrusted_port":
 				client.IPPort = envValue

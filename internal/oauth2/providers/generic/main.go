@@ -48,7 +48,8 @@ func (p Provider) setupCEL() (cel.Program, error) {
 
 	env, err := cel.NewEnv(
 		cel.VariableWithDoc("oauth2TokenClaims", cel.MapType(cel.StringType, cel.DynType), "The claims of the OAuth2 ID token"),
-		ext.Strings(ext.StringsVersion(4)),
+		ext.Strings(ext.StringsVersion(5)),
+		ext.Lists(ext.ListsVersion(3)),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create CEL environment: %w", err)

@@ -498,6 +498,69 @@ func TestServer_PendingPoller_Twice(t *testing.T) {
 	require.EqualError(t, <-errCh, "timeout waiting for client response")
 }
 
+func TestServer_CancelPendingPollerAllowsClientIDReuse(t *testing.T) {
+	t.Parallel()
+
+	managementServer := management.NewServer(slog.New(slog.DiscardHandler), "")
+
+	pendingRespCh, err := managementServer.RegisterPendingPoller(7)
+	require.NoError(t, err)
+	require.NotNil(t, pendingRespCh)
+
+	managementServer.CancelPendingPoller(7)
+
+	pendingRespCh, err = managementServer.RegisterPendingPoller(7)
+	require.NoError(t, err)
+	require.NotNil(t, pendingRespCh)
+}
+
+func TestServer_ClientDisconnect(t *testing.T) {
+	t.Parallel()
+
+	t.Run("without connected client", func(t *testing.T) {
+		t.Parallel()
+
+		managementServer := management.NewServer(slog.New(slog.DiscardHandler), "")
+
+		err := managementServer.ClientDisconnect(">CLIENT:DISCONNECT,7\r\n>CLIENT:ENV,END")
+
+		require.EqualError(t, err, "no client connected")
+	})
+
+	t.Run("writes message to connected client", func(t *testing.T) {
+		t.Parallel()
+
+		managementInterface, err := nettest.NewLocalListener("tcp")
+		require.NoError(t, err)
+
+		require.NoError(t, managementInterface.Close())
+
+		managementServer := management.NewServer(slog.New(slog.DiscardHandler), "")
+		err = managementServer.Listen(t.Context(), fmt.Sprintf("%s://%s", managementInterface.Addr().Network(), managementInterface.Addr().String()))
+		require.NoError(t, err)
+
+		t.Cleanup(managementServer.Close)
+
+		var dialer net.Dialer
+
+		client, err := dialer.DialContext(t.Context(), "tcp", managementInterface.Addr().String())
+		require.NoError(t, err)
+
+		t.Cleanup(func() {
+			_ = client.Close()
+		})
+
+		clientConn := testsuite.NewConn(client)
+		clientConn.ExpectMessage(t, openvpn.WelcomeBanner)
+
+		err = managementServer.ClientDisconnect(">CLIENT:DISCONNECT,7\r\n>CLIENT:ENV,END")
+		require.NoError(t, err)
+
+		clientConn.ExpectMessage(t, ">CLIENT:DISCONNECT,7")
+		clientConn.ExpectMessage(t, ">CLIENT:ENV,END")
+	})
+}
+
 func TestClientAuth_String(t *testing.T) {
 	t.Parallel()
 
