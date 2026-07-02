@@ -76,7 +76,7 @@ jobs:
           GPG_KEY: ${{ secrets.GPG_KEY }}
 
       - name: go build (with goreleaser)
-        uses: goreleaser/goreleaser-action@5daf1e915a5f0af01ddbcd89a43b8061ff4f1a89 # v7.2.2
+        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
         with:
           # renovate: github=goreleaser/goreleaser
           version: v2.16.0
@@ -107,7 +107,7 @@ jobs:
       - run: go mod tidy -diff
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@82606bf257cbaff209d206a39f5134f0cfbfd2ee # v9.2.1
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
           # renovate: github=golangci/golangci-lint
           version: v2.12.2
@@ -203,7 +203,7 @@ jobs:
           GPG_KEY_PATH: "${{ secrets.GPG_KEY_PATH }}"
 
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@5daf1e915a5f0af01ddbcd89a43b8061ff4f1a89 # v7.2.2
+        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
         with:
           # renovate: github=goreleaser/goreleaser
           version: v2.16.0
