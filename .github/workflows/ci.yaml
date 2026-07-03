@@ -140,9 +140,10 @@ jobs:
           VALIDATE_BASH_EXEC: true
           VALIDATE_EDITORCONFIG: true
           VALIDATE_ENV: true
-          VALIDATE_GO_RELEASER: true
+          VALIDATE_GIT_MERGE_CONFLICT_MARKERS: true
           VALIDATE_GITHUB_ACTIONS: true
           VALIDATE_GITHUB_ACTIONS_ZIZMOR: true
+          VALIDATE_GO_RELEASER: true
           VALIDATE_HTML: true
           VALIDATE_JSON: true
           VALIDATE_NATURAL_LANGUAGE: true

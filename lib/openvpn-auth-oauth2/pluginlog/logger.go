@@ -1,6 +1,6 @@
 //go:build (darwin || linux || openbsd || freebsd) && cgo
 
-package log
+package pluginlog
 
 /*
 #include <stdlib.h>

@@ -20,8 +20,8 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/version"
 	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/c"
-	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/log"
 	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/management"
+	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/pluginlog"
 	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/util"
 )
 
@@ -54,7 +54,7 @@ func PluginOpenV3(v3structver c.Int, args *c.OpenVPNPluginArgsOpenIn, ret *c.Ope
 
 	pluginArgs := util.ArgvToStrings(args.Argv)
 
-	logger := slog.New(log.NewOpenVPNPluginLogger(args.Callbacks))
+	logger := slog.New(pluginlog.NewOpenVPNPluginLogger(args.Callbacks))
 
 	if len(pluginArgs) > 3 || len(pluginArgs) < 2 {
 		logger.Error("Invalid amount of arguments! openvpn-auth-oauth2.so <listen socket> [<password-file>]")
