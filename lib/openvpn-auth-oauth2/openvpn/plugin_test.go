@@ -4,6 +4,7 @@
 package openvpn
 
 import (
+	"bytes"
 	"context"
 	"log/slog"
 	"net/http"
@@ -474,6 +475,49 @@ func TestHandleAuthUserPassVerifyErrors(t *testing.T) {
 			status := handle.handleAuthUserPassVerify(envp, testCase.perClientContext)
 
 			require.Equal(t, c.OpenVPNPluginFuncError, status)
+		})
+	}
+}
+
+//nolint:paralleltest // handleAuthUserPassVerify increments the package-level clientIDCounter.
+func TestHandleAuthUserPassVerifyRejectsUnsafeEnvBeforeDebugLog(t *testing.T) {
+	clientIDCounter.Store(0)
+	t.Cleanup(func() {
+		clientIDCounter.Store(0)
+	})
+
+	for _, tc := range []struct {
+		name        string
+		env         string
+		notContains string
+	}{
+		{
+			name:        "unsafe value",
+			env:         "common_name=alice\nforged=true",
+			notContains: "forged=true",
+		},
+		{
+			name:        "unsafe key",
+			env:         "bad\nkey=value",
+			notContains: "bad\nkey",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var logs bytes.Buffer
+
+			logger := slog.New(slog.NewTextHandler(&logs, &slog.HandlerOptions{Level: slog.LevelDebug}))
+			handle := newTestPluginHandle(t)
+			handle.logger = logger
+			handle.managementClient = management.NewServer(logger, "")
+
+			env := append(validAuthUserPassVerifyEnv(), tc.env)
+			envp := newTestEnvp(t, env)
+
+			status := handle.handleAuthUserPassVerify(envp, &ClientContext{})
+
+			require.Equal(t, c.OpenVPNPluginFuncError, status)
+			require.NotContains(t, logs.String(), tc.notContains)
+			require.NotContains(t, logs.String(), "msg=env")
 		})
 	}
 }

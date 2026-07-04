@@ -56,7 +56,7 @@ func NewClient(clientID uint64, envArray util.List) (*Client, error) {
 			client.AuthControlFile = value
 		default:
 			if strings.ContainsAny(key, "\r\n") || strings.ContainsAny(value, "\r\n") {
-				return nil, fmt.Errorf("%w: %s", ErrUnsafeEnvVar, key)
+				return nil, fmt.Errorf("%w: %q", ErrUnsafeEnvVar, key)
 			}
 
 			client.estimatedSize += len(key) + len(value) + 15
