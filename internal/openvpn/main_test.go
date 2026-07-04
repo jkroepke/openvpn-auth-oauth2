@@ -577,6 +577,26 @@ func TestDeadLocks(t *testing.T) {
 			name:    "empty-lines",
 			message: "\r\n",
 		},
+		{
+			name:    "short event marker",
+			message: ">",
+		},
+		{
+			name:    "short hold event",
+			message: ">H",
+		},
+		{
+			name:    "short info event",
+			message: ">I",
+		},
+		{
+			name:    "short notify event",
+			message: ">N",
+		},
+		{
+			name:    "short line",
+			message: "S",
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
