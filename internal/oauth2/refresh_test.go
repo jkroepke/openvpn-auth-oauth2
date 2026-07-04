@@ -392,8 +392,6 @@ func TestRefreshReAuth(t *testing.T) {
 			httpClient := suite.GetHTTPClient()
 			suite.ExpectVersionAndReleaseHold(t)
 
-			time.Sleep(time.Millisecond * 100)
-
 			suite.SendMessagef(
 				t,
 				">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=%s\r\n>CLIENT:ENV,session_state=Initial\r\n>CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END",

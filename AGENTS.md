@@ -19,6 +19,12 @@ Before committing any changes, always run:
 
 If a command fails because of missing dependencies or network restrictions, note this in the PR's Testing section using the provided disclaimer.
 
+GitHub security alerts are the primary mechanism for dependency CVE tracking in
+this repository. Do not add or require `govulncheck` as a mandatory local or CI
+check unless the maintainer explicitly asks for it. It may still be used as an
+optional diagnostic tool when investigating a specific Go vulnerability or
+dependency risk.
+
 ## Pull requests
 
 Summarize your changes and cite relevant lines in the repository. Mention the output of the programmatic checks.

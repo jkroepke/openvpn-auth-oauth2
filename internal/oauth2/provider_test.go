@@ -75,7 +75,7 @@ func TestNewProvider(t *testing.T) {
 					},
 				},
 			},
-			"error oidc provider: OpenID Provider Configuration Discovery has failed\nhttp status not ok: 404 Not Found 404 page not found",
+			"error OIDC provider: OpenID Provider Configuration Discovery has failed\nhttp status not ok: 404 Not Found 404 page not found",
 		},
 		{
 			"with custom endpoints",

@@ -109,7 +109,7 @@ func (s *InMemory) Get(_ context.Context, client string) (string, error) {
 		return "", ErrNotExists
 	}
 
-	// we need to copy the data, since crypto.DecryptBytesAES will modify the slice in place
+	// Copy the encrypted data before decrypting so storage internals cannot be mutated by future cipher changes.
 	encryptedBytes := make([]byte, len(data.Data))
 	copy(encryptedBytes, data.Data)
 

@@ -214,14 +214,11 @@ func TestPassThroughFull(t *testing.T) {
 
 			var passThroughAddr []string
 
-			for range 10 {
+			require.Eventually(t, func() bool {
 				passThroughAddr = rePassThroughLogListen.FindStringSubmatch(suite.Logs())
-				if passThroughAddr != nil {
-					break
-				}
 
-				time.Sleep(50 * time.Millisecond)
-			}
+				return passThroughAddr != nil
+			}, time.Second, 50*time.Millisecond)
 
 			require.Len(t, passThroughAddr, 2, "unexpected log output: %s", suite.Logs())
 

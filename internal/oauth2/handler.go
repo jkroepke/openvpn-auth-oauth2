@@ -1,6 +1,7 @@
 package oauth2
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -517,7 +518,9 @@ func (c *Client) renderClientConfigProfileSelector(
 		}
 	}
 
-	err = c.conf.HTTP.Template.Execute(w, map[string]any{
+	var response bytes.Buffer
+
+	err = c.conf.HTTP.Template.Execute(&response, map[string]any{
 		title:                  "Select Profile",
 		message:                "Please select your client configuration profile.",
 		"token":                clientConfigSelectorToken,
@@ -528,6 +531,14 @@ func (c *Client) renderClientConfigProfileSelector(
 			"err", fmt.Errorf("executing template: %w", err),
 		))
 		w.WriteHeader(http.StatusInternalServerError)
+
+		return nil
+	}
+
+	w.WriteHeader(http.StatusOK)
+
+	if _, err = response.WriteTo(w); err != nil {
+		req.logger.LogAttrs(ctx, slog.LevelError, "response write error", slog.Any("err", err))
 
 		return nil
 	}
@@ -690,7 +701,9 @@ func (c *Client) writeHTTPError(ctx context.Context, w http.ResponseWriter, logg
 
 // writeHTTPSuccess writes the configured access-granted page.
 func (c *Client) writeHTTPSuccess(ctx context.Context, w http.ResponseWriter, logger *slog.Logger) {
-	err := c.conf.HTTP.Template.Execute(w, map[string]string{
+	var response bytes.Buffer
+
+	err := c.conf.HTTP.Template.Execute(&response, map[string]string{
 		title:   "Access granted",
 		message: "You can close this window now.",
 	})
@@ -699,5 +712,13 @@ func (c *Client) writeHTTPSuccess(ctx context.Context, w http.ResponseWriter, lo
 			"err", err,
 		))
 		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+
+	if _, err = response.WriteTo(w); err != nil {
+		logger.LogAttrs(ctx, slog.LevelError, "response write error", slog.Any("err", err))
 	}
 }

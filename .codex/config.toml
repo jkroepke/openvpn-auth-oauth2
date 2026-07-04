@@ -1,0 +1,15 @@
+default_permissions = "project-edit"
+
+[permissions.project-edit]
+extends = ":workspace"
+
+[permissions.project-edit.filesystem.":workspace_roots"]
+"**/*.env" = "deny"
+
+[permissions.project-edit.network]
+enabled = true
+allow_local_binding = true
+
+[permissions.project-edit.network.domains]
+"localhost" = "allow"
+"127.0.0.1" = "allow"

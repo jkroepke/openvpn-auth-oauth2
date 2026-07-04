@@ -597,30 +597,18 @@ func TestServer_ReconnectDuringPendingAuth(t *testing.T) {
 	}()
 
 	// Connect first client, then disconnect without sending a response
-	var dialer net.Dialer
-
-	client1, err := dialer.DialContext(t.Context(), "tcp", managementInterface.Addr().String())
-	require.NoError(t, err)
-
-	client1Conn := testsuite.NewConn(client1)
-	client1Conn.ExpectMessage(t, openvpn.WelcomeBanner)
+	client1, _ := connectManagementClient(t, managementInterface.Addr().String())
 
 	// Close the first client without responding
 	require.NoError(t, client1.Close())
 
-	// Give the server time to notice the disconnect
-	time.Sleep(100 * time.Millisecond)
-
 	// Connect a second client and send the response
-	client2, err := dialer.DialContext(t.Context(), "tcp", managementInterface.Addr().String())
-	require.NoError(t, err)
+	client2, client2Conn := connectManagementClient(t, managementInterface.Addr().String())
 
 	t.Cleanup(func() {
 		_ = client2.Close()
 	})
 
-	client2Conn := testsuite.NewConn(client2)
-	client2Conn.ExpectMessage(t, openvpn.WelcomeBanner)
 	client2Conn.SendMessagef(t, "client-auth-nt 99 0")
 	client2Conn.ExpectMessage(t, "SUCCESS: client-auth command succeeded")
 
@@ -642,14 +630,8 @@ func TestServer_PartialMultilineClientAuth(t *testing.T) {
 
 	t.Cleanup(managementServer.Close)
 
-	var dialer net.Dialer
-
 	// Connect and send a partial multiline client-auth, then disconnect
-	client, err := dialer.DialContext(t.Context(), "tcp", managementInterface.Addr().String())
-	require.NoError(t, err)
-
-	clientConn := testsuite.NewConn(client)
-	clientConn.ExpectMessage(t, openvpn.WelcomeBanner)
+	client, clientConn := connectManagementClient(t, managementInterface.Addr().String())
 
 	// Send client-auth without the END terminator, then close
 	clientConn.SendMessagef(t, "client-auth 1 0")
@@ -658,20 +640,58 @@ func TestServer_PartialMultilineClientAuth(t *testing.T) {
 	// Close without sending END — the server should handle this gracefully
 	require.NoError(t, client.Close())
 
-	// Give the server time to process
-	time.Sleep(100 * time.Millisecond)
-
 	// The server should still be able to accept new connections
-	client2, err := dialer.DialContext(t.Context(), "tcp", managementInterface.Addr().String())
-	require.NoError(t, err)
+	client2, client2Conn := connectManagementClient(t, managementInterface.Addr().String())
 
 	t.Cleanup(func() {
 		_ = client2.Close()
 	})
 
-	client2Conn := testsuite.NewConn(client2)
-	client2Conn.ExpectMessage(t, openvpn.WelcomeBanner)
 	client2Conn.SendAndExpectMessage(t, "help", "SUCCESS: help")
+}
+
+func connectManagementClient(tb testing.TB, address string) (net.Conn, *testsuite.Conn) {
+	tb.Helper()
+
+	var (
+		client net.Conn
+		conn   *testsuite.Conn
+	)
+
+	require.Eventually(tb, func() bool {
+		var dialer net.Dialer
+
+		var err error
+
+		client, err = dialer.DialContext(tb.Context(), "tcp", address)
+		if err != nil {
+			return false
+		}
+
+		conn = testsuite.NewConn(client)
+		if err = client.SetReadDeadline(time.Now().Add(100 * time.Millisecond)); err != nil {
+			_ = client.Close()
+
+			return false
+		}
+
+		line, err := conn.Reader().ReadString('\n')
+		if err != nil {
+			_ = client.Close()
+
+			return false
+		}
+
+		if strings.TrimSpace(line) != openvpn.WelcomeBanner {
+			_ = client.Close()
+
+			return false
+		}
+
+		return true
+	}, time.Second, 25*time.Millisecond)
+
+	return client, conn
 }
 
 func TestServer_ContextCancellation(t *testing.T) {

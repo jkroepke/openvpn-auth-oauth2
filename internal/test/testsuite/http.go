@@ -155,6 +155,9 @@ func WaitUntilListening(ctx context.Context, tb testing.TB, network, address str
 
 	dialer := &net.Dialer{Timeout: 100 * time.Millisecond}
 
+	ticker := time.NewTicker(50 * time.Millisecond)
+	defer ticker.Stop()
+
 	for range 10 {
 		conn, err = dialer.DialContext(ctx, network, address)
 		if err == nil {
@@ -162,7 +165,11 @@ func WaitUntilListening(ctx context.Context, tb testing.TB, network, address str
 		}
 
 		if errors.Is(err, syscall.ECONNREFUSED) || errors.Is(err, syscall.Errno(10061)) {
-			time.Sleep(50 * time.Millisecond)
+			select {
+			case <-ctx.Done():
+				return nil, fmt.Errorf("listener not listening: %w", ctx.Err())
+			case <-ticker.C:
+			}
 
 			continue
 		}

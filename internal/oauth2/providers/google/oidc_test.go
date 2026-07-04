@@ -41,8 +41,7 @@ func TestGetRefreshToken(t *testing.T) {
 		},
 	}
 
-	conf := config.Defaults
-	provider, err := google.NewProvider(t.Context(), &conf, http.DefaultClient)
+	provider, err := google.NewProvider(t.Context(), new(config.Defaults), http.DefaultClient)
 	require.NoError(t, err)
 
 	for _, testCase := range tests {

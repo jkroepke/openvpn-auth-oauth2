@@ -148,7 +148,9 @@ func (c *Client) handlePassThroughClient(ctx context.Context, conn net.Conn) {
 	case SchemeUnix:
 		logger = c.logger.With(slog.String("client", conn.RemoteAddr().Network()))
 	default:
-		panic(fmt.Errorf("%w %s", ErrUnknownProtocol, c.conf.OpenVPN.Passthrough.Address.Scheme))
+		c.logger.LogAttrs(ctx, slog.LevelError, fmt.Errorf("%w %s", ErrUnknownProtocol, c.conf.OpenVPN.Passthrough.Address.Scheme).Error())
+
+		return
 	}
 
 	logger.LogAttrs(ctx, slog.LevelInfo, "pass-through: accepted connection")

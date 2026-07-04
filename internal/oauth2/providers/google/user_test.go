@@ -16,8 +16,7 @@ import (
 func TestGetUser(t *testing.T) {
 	t.Parallel()
 
-	conf := config.Defaults
-	provider, err := google.NewProvider(t.Context(), &conf, http.DefaultClient)
+	provider, err := google.NewProvider(t.Context(), new(config.Defaults), http.DefaultClient)
 	require.NoError(t, err)
 
 	user, err := provider.GetUser(
@@ -47,8 +46,7 @@ func TestGetUser(t *testing.T) {
 func TestGetUserPrefersUserInfo(t *testing.T) {
 	t.Parallel()
 
-	conf := config.Defaults
-	provider, err := google.NewProvider(t.Context(), &conf, http.DefaultClient)
+	provider, err := google.NewProvider(t.Context(), new(config.Defaults), http.DefaultClient)
 	require.NoError(t, err)
 
 	expectedUser := types.UserInfo{

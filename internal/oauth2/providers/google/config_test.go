@@ -13,9 +13,7 @@ import (
 func TestProviderBasics(t *testing.T) {
 	t.Parallel()
 
-	conf := config.Defaults
-
-	provider, err := google.NewProvider(t.Context(), &conf, http.DefaultClient)
+	provider, err := google.NewProvider(t.Context(), new(config.Defaults), http.DefaultClient)
 	require.NoError(t, err)
 	require.Equal(t, google.Name, provider.GetName())
 

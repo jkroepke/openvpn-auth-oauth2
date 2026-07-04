@@ -117,15 +117,14 @@ func TestStorageInMemory_GarbageCollection(t *testing.T) {
 	require.NoError(t, tokenStorage.Set(ctx, "0", "TEST0"))
 	require.NoError(t, tokenStorage.Set(ctx, "1", "TEST1"))
 
-	// Wait for tokens to expire and GC to run
-	time.Sleep(200 * time.Millisecond)
-
 	// After expiration and GC, tokens should not be retrievable
-	_, err := tokenStorage.Get(ctx, "0")
-	require.ErrorIs(t, err, tokenstorage.ErrNotExists)
+	require.EventuallyWithT(t, func(collect *assert.CollectT) {
+		_, err := tokenStorage.Get(ctx, "0")
+		assert.ErrorIs(collect, err, tokenstorage.ErrNotExists)
 
-	_, err = tokenStorage.Get(ctx, "1")
-	require.ErrorIs(t, err, tokenstorage.ErrNotExists)
+		_, err = tokenStorage.Get(ctx, "1")
+		assert.ErrorIs(collect, err, tokenstorage.ErrNotExists)
+	}, time.Second, 25*time.Millisecond)
 }
 
 func TestStorageInMemory_NoGC(t *testing.T) {
@@ -141,10 +140,9 @@ func TestStorageInMemory_NoGC(t *testing.T) {
 
 	require.NoError(t, tokenStorage.Set(ctx, "0", "TEST0"))
 
-	// Wait for token to expire
-	time.Sleep(100 * time.Millisecond)
-
 	// Access should trigger removal
-	_, err := tokenStorage.Get(ctx, "0")
-	require.ErrorIs(t, err, tokenstorage.ErrNotExists)
+	require.EventuallyWithT(t, func(collect *assert.CollectT) {
+		_, err := tokenStorage.Get(ctx, "0")
+		assert.ErrorIs(collect, err, tokenstorage.ErrNotExists)
+	}, time.Second, 25*time.Millisecond)
 }

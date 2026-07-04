@@ -73,15 +73,15 @@ func TestExecuteConfigInvalid(t *testing.T) {
 			`invalid value "invalid" for flag -log.level: slog: level string "invalid": unknown name`,
 		},
 		{
-			"error oidc provider",
+			"error OIDC provider",
 			[]string{
 				"", "--config=../../config.example.yaml", "--log.format=console", "--log.level=info", "--http.secret=" + testsuite.Secret,
 				"--http.listen=127.0.0.1:0",
 			},
-			`error oidc provider`,
+			`error OIDC provider`,
 		},
 		{
-			"error oidc invalid provider",
+			"error OIDC invalid provider",
 			[]string{"", "--config=../../config.example.yaml", "--log.format=console", "--log.level=info", "--http.secret=" + testsuite.Secret, "--http.listen=127.0.0.1:0", "--oauth2.provider=invalid"},
 			`unknown oauth2 provider: invalid`,
 		},
