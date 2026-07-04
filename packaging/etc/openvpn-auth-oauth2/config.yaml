@@ -1,6 +1,6 @@
 #debug:
 #  pprof: false
-#  listen: :9001
+#  listen: 127.0.0.1:9001
 #http:
 #  assets-path: "" # Example: "/etc/openvpn-auth-oauth2/assets/"
 #  baseurl: "http://localhost:9000/"

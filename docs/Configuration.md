@@ -23,7 +23,7 @@ Usage of openvpn-auth-oauth2:
   --config string
     	path to one .yaml config file (env: CONFIG_CONFIG)
   --debug.listen string
-    	listen address for go profiling endpoint (env: CONFIG_DEBUG_LISTEN) (default ":9001")
+    	listen address for go profiling endpoint (env: CONFIG_DEBUG_LISTEN) (default "127.0.0.1:9001")
   --debug.pprof
     	Enables go profiling endpoint. This should be never exposed. (env: CONFIG_DEBUG_PPROF)
   --http.assets-path value
