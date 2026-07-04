@@ -150,7 +150,7 @@ func newOIDCRelyingParty(
 		options...,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("error oidc provider: %w", err)
+		return nil, fmt.Errorf("error OIDC provider: %w", err)
 	}
 
 	return replyingParty, nil

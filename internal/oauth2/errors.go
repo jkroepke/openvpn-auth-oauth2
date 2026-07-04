@@ -3,9 +3,8 @@ package oauth2
 import "errors"
 
 var (
-	ErrMismatch                     = errors.New("mismatch")
-	ErrMissingClaim                 = errors.New("missing claim")
-	ErrMissingRequiredRole          = errors.New("missing required role")
+	ErrMissingClaim = errors.New("missing claim")
+
 	ErrMissingRequiredGroup         = errors.New("missing required group")
 	ErrMissingToken                 = errors.New("no tokens provided")
 	ErrAuthAndTokenEndpointRequired = errors.New("both oauth2.endpoints.tokenUrl and oauth2.endpoints.authUrl are required")

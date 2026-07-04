@@ -76,7 +76,11 @@ func TestPlugin(t *testing.T) {
 			_, err = passwordFile.WriteString("password")
 			require.NoError(t, err)
 
-			argv, cStrings := testutil.CreateCStringArray([]string{"openvpn-auth-oauth2", "unix://" + unixSocket, passwordFile.Name()})
+			argv, argvCStrings := testutil.CreateCStringArray([]string{"openvpn-auth-oauth2", "unix://" + unixSocket, passwordFile.Name()})
+
+			t.Cleanup(func() {
+				testutil.FreeCStringArray(argv, argvCStrings)
+			})
 
 			openArgs := &c.OpenVPNPluginArgsOpenIn{
 				Callbacks: testutil.Callbacks(),
@@ -143,13 +147,7 @@ func TestPlugin(t *testing.T) {
 				errCh <- openVPNClient.Connect(t.Context())
 			}(errOpenVPNClientCh)
 
-			select {
-			case err := <-errOpenVPNClientCh:
-				require.NoError(t, err)
-			default:
-			}
-
-			time.Sleep(50 * time.Millisecond)
+			waitOpenVPNClientConnected(t, suite, errOpenVPNClientCh)
 
 			clientContextPtr := PluginClientConstructorV1(openRet.Handle)
 			require.NotNil(t, clientContextPtr)
@@ -350,13 +348,7 @@ func TestPluginDenyNonWebAuthClient(t *testing.T) {
 		errCh <- openVPNClient.Connect(t.Context())
 	}(errOpenVPNClientCh)
 
-	select {
-	case err := <-errOpenVPNClientCh:
-		require.NoError(t, err)
-	default:
-	}
-
-	time.Sleep(50 * time.Millisecond)
+	waitOpenVPNClientConnected(t, suite, errOpenVPNClientCh)
 
 	clientContextPtr := PluginClientConstructorV1(openRet.Handle)
 	require.NotNil(t, clientContextPtr)
@@ -423,6 +415,22 @@ func TestPluginFuncV3_InvalidArgs(t *testing.T) {
 
 	status := PluginFuncV3(0, nil, nil)
 	require.Equal(t, c.OpenVPNPluginFuncError, status)
+}
+
+func waitOpenVPNClientConnected(tb testing.TB, suite *testsuite.Suite, errCh <-chan error) {
+	tb.Helper()
+
+	require.Eventually(tb, func() bool {
+		select {
+		case err := <-errCh:
+			require.NoError(tb, err)
+
+			return false
+		default:
+		}
+
+		return strings.Contains(suite.Logs(), "connection to OpenVPN management interface established")
+	}, time.Second, 10*time.Millisecond, suite.Logs())
 }
 
 //nolint:paralleltest // handleAuthUserPassVerify increments the package-level clientIDCounter.

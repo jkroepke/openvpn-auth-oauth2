@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
@@ -92,7 +91,6 @@ func TestNewHTTPServer(t *testing.T) {
 			if tc.err == nil {
 				require.NoError(t, svr.Reload(t.Context()))
 
-				time.Sleep(50 * time.Millisecond)
 				cancel()
 
 				require.NoError(t, <-errCh)

@@ -294,8 +294,6 @@ func TestIT(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
-	time.Sleep(2 * time.Second)
-
 	err = tcpClient.SetReadDeadline(time.Now().Add(time.Second * 4))
 	require.NoError(t, err)
 
@@ -313,8 +311,7 @@ func TestIT(t *testing.T) {
 	_, err = dockerClient.ContainerStatPath(t.Context(), containerServer.GetContainerID(), client.ContainerStatPathOptions{Path: pluginSocketPath})
 	require.NoError(t, err)
 
-	stopTimeout := 10 * time.Second
-	require.NoError(t, containerServer.Stop(t.Context(), &stopTimeout))
+	require.NoError(t, containerServer.Stop(t.Context(), new(10*time.Second)))
 
 	containerServerLogs, err = getContainerLogs(t, containerServer)
 	require.NoError(t, err)

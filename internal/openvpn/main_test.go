@@ -392,8 +392,7 @@ func TestClientInvalidVersion(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
 
-			conf := config.Defaults
-			suite := testsuite.New(&conf)
+			suite := testsuite.New(new(config.Defaults))
 			errOpenVPNClientCh := suite.SetupMockEnvironment(ctx, t, nil)
 			suite.SendMessagef(t, openvpn.WelcomeBanner)
 			suite.ExpectMessage(t, "version")

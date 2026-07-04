@@ -51,7 +51,7 @@ func NewHTTPServer(name string, logger *slog.Logger, conf config.HTTP, fnHandler
 	}
 }
 
-// Listen starts the HTTP server and blocks until the context is cancelled.
+// Listen starts the HTTP server and blocks until the context is canceled.
 // It configures TLS if enabled and performs graceful shutdown when the
 // context signals cancellation.
 func (s *Server) Listen(ctx context.Context) error {
@@ -154,9 +154,9 @@ func (s *Server) serve(ctx context.Context) error {
 
 	if s.name == ServerNameDefault && os.Getenv("LISTEN_PID") == strconv.Itoa(os.Getpid()) {
 		// systemd run
-		listener, err = net.FileListener(os.NewFile(3, "from systemd"))
+		listener, err = systemdFileListener()
 		if err != nil {
-			return fmt.Errorf("net.FileListener: %w", err)
+			return err
 		}
 	} else {
 		var listenConfig net.ListenConfig
@@ -190,13 +190,38 @@ func (s *Server) serve(ctx context.Context) error {
 	return nil
 }
 
-// shutdown gracefully shuts down the http.Server with a 10 second timeout.
+func systemdFileListener() (net.Listener, error) {
+	systemdFile := os.NewFile(3, "from systemd")
+	if systemdFile == nil {
+		return nil, errors.New("systemd listener file is nil")
+	}
+
+	listener, err := net.FileListener(systemdFile)
+
+	closeErr := systemdFile.Close()
+	if err != nil {
+		return nil, fmt.Errorf("net.FileListener: %w", errors.Join(err, closeErr))
+	}
+
+	if closeErr != nil {
+		_ = listener.Close()
+
+		return nil, fmt.Errorf("close systemd listener file: %w", closeErr)
+	}
+
+	return listener, nil
+}
+
+// shutdown gracefully shuts down the http.Server with a 10-second timeout.
 func (s *Server) shutdown() error {
 	if s.server == nil {
 		return fmt.Errorf("http %s server is nil", s.name)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// Cancel the shutdown context once Shutdown starts closing listeners.
+	// Some tests and clients can leave keep-alive connections open; waiting for
+	// those connections would delay process shutdown until the full timeout.
 	s.server.RegisterOnShutdown(cancel)
 
 	return s.server.Shutdown(ctx) //nolint:wrapcheck
