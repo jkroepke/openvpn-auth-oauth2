@@ -3,8 +3,8 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"path"
-	"text/template"
 )
 
 type Template struct {

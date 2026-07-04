@@ -1,10 +1,10 @@
 package config_test
 
 import (
+	"html/template"
 	"net/url"
 	"testing"
 	"testing/fstest"
-	"text/template"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"

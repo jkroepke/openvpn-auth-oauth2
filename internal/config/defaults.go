@@ -1,9 +1,9 @@
 package config
 
 import (
+	"html/template"
 	"log/slog"
 	"net/url"
-	"text/template"
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io/fs"
 	"reflect"
+	"strings"
+	"unicode"
 
 	"github.com/google/cel-go/cel"
 	"github.com/google/cel-go/ext"
@@ -106,7 +108,19 @@ func validateClientConfigNames(names []string) ([]string, error) {
 		if !fs.ValidPath(clientConfigPath) {
 			return nil, fmt.Errorf("%w: invalid client config path %q", types.ErrInvalidClaimType, clientConfigPath)
 		}
+
+		if clientConfigNameUnsafe(name) {
+			return nil, fmt.Errorf("%w: unsafe client config name %q", types.ErrInvalidClaimType, name)
+		}
 	}
 
 	return names, nil
+}
+
+func clientConfigNameUnsafe(name string) bool {
+	if strings.ContainsAny(name, `<>"'&`+"`") {
+		return true
+	}
+
+	return strings.ContainsFunc(name, unicode.IsControl)
 }
