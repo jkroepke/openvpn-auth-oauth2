@@ -163,6 +163,7 @@ http:
 						IPAddr: true,
 					},
 					EnableProxyHeaders: false,
+					TrustedProxies:     types.StringSlice{},
 					ShortURL:           false,
 					Listen:             ":9001",
 					Secret:             "1jd93h5b6s82lf03jh5b2hf9",

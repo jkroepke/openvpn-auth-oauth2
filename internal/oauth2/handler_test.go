@@ -212,6 +212,7 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
+				conf.HTTP.TrustedProxies = types.StringSlice{"127.0.0.1/32"}
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
@@ -248,12 +249,13 @@ func TestHandler(t *testing.T) {
 			false,
 		},
 		{
-			"with ipaddr + multiple forwarded-for",
+			"with ipaddr + forwarded-for from trusted proxy",
 			func() config.Config {
 				conf := config.Defaults
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
+				conf.HTTP.TrustedProxies = types.StringSlice{"127.0.0.1/32"}
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
@@ -264,7 +266,7 @@ func TestHandler(t *testing.T) {
 			}(),
 			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, IPAddr: "127.0.0.2", IPPort: "12345"},
 			false,
-			"127.0.0.2, 8.8.8.8",
+			"127.0.0.2",
 			true,
 			true,
 		},
@@ -275,6 +277,7 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
+				conf.HTTP.TrustedProxies = types.StringSlice{"127.0.0.1/32"}
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
@@ -285,7 +288,7 @@ func TestHandler(t *testing.T) {
 			}(),
 			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, IPAddr: "2001:db8::1", IPPort: "12345"},
 			false,
-			"2001:db8::1, 8.8.8.8",
+			"2001:db8::1",
 			true,
 			true,
 		},
@@ -296,6 +299,7 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
+				conf.HTTP.TrustedProxies = types.StringSlice{"127.0.0.1/32"}
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OAuth2.Validate.Expression = "false"
@@ -307,7 +311,7 @@ func TestHandler(t *testing.T) {
 			}(),
 			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, IPAddr: "127.0.0.2", IPPort: "12345"},
 			false,
-			"127.0.0.2, 8.8.8.8",
+			"127.0.0.2",
 			true,
 			false,
 		},
@@ -318,6 +322,7 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
+				conf.HTTP.TrustedProxies = types.StringSlice{"127.0.0.1/32"}
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
@@ -337,7 +342,7 @@ func TestHandler(t *testing.T) {
 			}(),
 			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, IPAddr: "127.0.0.2", IPPort: "12345"},
 			false,
-			"127.0.0.2, 8.8.8.8",
+			"127.0.0.2",
 			true,
 			true,
 		},
@@ -348,6 +353,7 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
+				conf.HTTP.TrustedProxies = types.StringSlice{"127.0.0.1/32"}
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
@@ -367,7 +373,7 @@ func TestHandler(t *testing.T) {
 			}(),
 			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, IPAddr: "127.0.0.2", IPPort: "12345"},
 			false,
-			"127.0.0.2, 8.8.8.8",
+			"127.0.0.2",
 			true,
 			true,
 		},
@@ -378,6 +384,7 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
+				conf.HTTP.TrustedProxies = types.StringSlice{"127.0.0.1/32"}
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
@@ -393,7 +400,7 @@ func TestHandler(t *testing.T) {
 			}(),
 			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "client"}, IPAddr: "127.0.0.2", IPPort: "12345"},
 			false,
-			"127.0.0.2, 8.8.8.8",
+			"127.0.0.2",
 			true,
 			true,
 		},
@@ -404,6 +411,7 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
+				conf.HTTP.TrustedProxies = types.StringSlice{"127.0.0.1/32"}
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
@@ -424,7 +432,7 @@ func TestHandler(t *testing.T) {
 			}(),
 			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, IPAddr: "127.0.0.2", IPPort: "12345"},
 			false,
-			"127.0.0.2, 8.8.8.8",
+			"127.0.0.2",
 			true,
 			true,
 		},
@@ -435,6 +443,7 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
+				conf.HTTP.TrustedProxies = types.StringSlice{"127.0.0.1/32"}
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
@@ -455,7 +464,7 @@ func TestHandler(t *testing.T) {
 			}(),
 			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, IPAddr: "127.0.0.2", IPPort: "12345"},
 			false,
-			"127.0.0.2, 8.8.8.8",
+			"127.0.0.2",
 			true,
 			true,
 		},
@@ -466,6 +475,7 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
+				conf.HTTP.TrustedProxies = types.StringSlice{"127.0.0.1/32"}
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
@@ -486,7 +496,7 @@ func TestHandler(t *testing.T) {
 			}(),
 			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, IPAddr: "127.0.0.2", IPPort: "12345"},
 			false,
-			"127.0.0.2, 8.8.8.8",
+			"127.0.0.2",
 			true,
 			true,
 		},
@@ -497,6 +507,7 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
+				conf.HTTP.TrustedProxies = types.StringSlice{"127.0.0.1/32"}
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
@@ -517,7 +528,7 @@ func TestHandler(t *testing.T) {
 			}(),
 			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, IPAddr: "127.0.0.2", IPPort: "12345"},
 			false,
-			"127.0.0.2, 8.8.8.8",
+			"127.0.0.2",
 			true,
 			true,
 		},
@@ -528,6 +539,7 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
+				conf.HTTP.TrustedProxies = types.StringSlice{"127.0.0.1/32"}
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
@@ -548,7 +560,7 @@ func TestHandler(t *testing.T) {
 			}(),
 			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "client"}, IPAddr: "127.0.0.2", IPPort: "12345"},
 			false,
-			"127.0.0.2, 8.8.8.8",
+			"127.0.0.2",
 			true,
 			true,
 		},
@@ -559,6 +571,7 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
+				conf.HTTP.TrustedProxies = types.StringSlice{"127.0.0.1/32"}
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
@@ -579,7 +592,7 @@ func TestHandler(t *testing.T) {
 			}(),
 			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, IPAddr: "127.0.0.2", IPPort: "12345"},
 			false,
-			"127.0.0.2, 8.8.8.8",
+			"127.0.0.2",
 			true,
 			true,
 		},
@@ -590,6 +603,7 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
+				conf.HTTP.TrustedProxies = types.StringSlice{"127.0.0.1/32"}
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
@@ -611,6 +625,7 @@ func TestHandler(t *testing.T) {
 				conf.HTTP.Secret = testsuite.Secret
 				conf.HTTP.Check.IPAddr = true
 				conf.HTTP.EnableProxyHeaders = true
+				conf.HTTP.TrustedProxies = types.StringSlice{"127.0.0.1/32"}
 				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)

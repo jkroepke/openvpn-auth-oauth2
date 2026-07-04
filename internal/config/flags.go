@@ -98,7 +98,13 @@ func (c *Config) flagSetHTTP(flagSet *flag.FlagSet) {
 		&c.HTTP.EnableProxyHeaders,
 		"http.enable-proxy-headers",
 		lookupEnvOrDefault("http.enable-proxy-headers", c.HTTP.EnableProxyHeaders),
-		"Use X-Forward-For http header for client ips",
+		"Use X-Forwarded-For http header for client ips",
+	)
+	flagSet.TextVar(
+		&c.HTTP.TrustedProxies,
+		"http.trusted-proxies",
+		lookupEnvOrDefault("http.trusted-proxies", c.HTTP.TrustedProxies),
+		"Trusted reverse proxy CIDRs allowed to set X-Forwarded-For. Multiple values can be provided as a comma-separated list.",
 	)
 	flagSet.BoolVar(
 		&c.HTTP.ShortURL,

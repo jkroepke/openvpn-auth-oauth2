@@ -41,6 +41,7 @@ An attacker could initiate a VPN connection on their own device and then send th
 To protect against this type of social engineering attack, consider implementing the following measures:
 
 * **Enable IP address validation with `--http.check.ipaddr`**: This ensures that the IP address initiating the VPN connection matches the IP address completing the OIDC authentication flow. This is the most effective technical control, as it prevents the attack even if the employee clicks the link, since the authentication will be rejected due to the IP mismatch.
+  If openvpn-auth-oauth2 runs behind a reverse proxy, enable `--http.enable-proxy-headers` only with `--http.trusted-proxies` set to the proxy CIDR ranges.
   > [!NOTE]
   > While `--http.check.ipaddr` provides strong technical protection against this attack vector, it may not be suitable for all environments (e.g., users behind NAT, mobile users with changing IPs, or organizations using forward proxies). In such cases, compensating controls like user education and enhanced monitoring become even more critical.
 

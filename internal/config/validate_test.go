@@ -186,6 +186,35 @@ func TestValidate(t *testing.T) {
 			"oauth2.refresh.secret requires a length of 16, 24 or 32",
 		},
 		{
+			func() config.Config {
+				conf := validConfig()
+				conf.HTTP.EnableProxyHeaders = true
+
+				return conf
+			}(),
+			"http.trusted-proxies is required when http.enable-proxy-headers is true",
+		},
+		{
+			func() config.Config {
+				conf := validConfig()
+				conf.HTTP.EnableProxyHeaders = true
+				conf.HTTP.TrustedProxies = types.StringSlice{"127.0.0.1"}
+
+				return conf
+			}(),
+			`http.trusted-proxies: invalid CIDR "127.0.0.1": netip.ParsePrefix("127.0.0.1"): no '/'`,
+		},
+		{
+			func() config.Config {
+				conf := validConfig()
+				conf.HTTP.EnableProxyHeaders = true
+				conf.HTTP.TrustedProxies = types.StringSlice{"127.0.0.1/32", "2001:db8::/64"}
+
+				return conf
+			}(),
+			"",
+		},
+		{
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL:  types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},

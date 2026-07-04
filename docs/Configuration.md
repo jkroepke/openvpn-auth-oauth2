@@ -35,7 +35,9 @@ Usage of openvpn-auth-oauth2:
   --http.check.ipaddr
     	Check if client IP in http and VPN is equal (env: CONFIG_HTTP_CHECK_IPADDR)
   --http.enable-proxy-headers
-    	Use X-Forward-For http header for client ips (env: CONFIG_HTTP_ENABLE__PROXY__HEADERS)
+    	Use X-Forwarded-For http header for client ips (env: CONFIG_HTTP_ENABLE__PROXY__HEADERS)
+  --http.trusted-proxies value
+    	Trusted reverse proxy CIDRs allowed to set X-Forwarded-For. Multiple values can be provided as a comma-separated list. (env: CONFIG_HTTP_TRUSTED__PROXIES)
   --http.key string
     	Path to tls server key used for TLS listener. (env: CONFIG_HTTP_KEY)
   --http.listen string

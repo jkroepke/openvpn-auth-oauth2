@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/netip"
 	"slices"
+	"strings"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
 )
@@ -56,6 +58,19 @@ func validateHTTPConfig(conf *Config) error {
 
 	if err := validateURL(conf.HTTP.BaseURL); err != nil {
 		return fmt.Errorf("http.baseurl: %w", err)
+	}
+
+	if conf.HTTP.EnableProxyHeaders {
+		if len(conf.HTTP.TrustedProxies) == 0 {
+			return fmt.Errorf("http.trusted-proxies is %w when http.enable-proxy-headers is true", ErrRequired)
+		}
+
+		for _, trustedProxy := range conf.HTTP.TrustedProxies {
+			trustedProxy = strings.TrimSpace(trustedProxy)
+			if _, err := netip.ParsePrefix(trustedProxy); err != nil {
+				return fmt.Errorf("http.trusted-proxies: invalid CIDR %q: %w", trustedProxy, err)
+			}
+		}
 	}
 
 	if err := conf.HTTP.Template.Execute(io.Discard, map[string]string{

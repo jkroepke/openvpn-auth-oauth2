@@ -64,6 +64,7 @@ func BenchmarkCheckClientIPAddr(b *testing.B) {
 	b.Run("proxy-headers", func(b *testing.B) {
 		conf := config.Defaults
 		conf.HTTP.EnableProxyHeaders = true
+		conf.HTTP.TrustedProxies = append(conf.HTTP.TrustedProxies, "10.0.0.1/32")
 
 		req := &http.Request{RemoteAddr: "10.0.0.1:12345", Header: http.Header{"X-Forwarded-For": []string{"127.0.0.1, 10.0.0.1"}}}
 

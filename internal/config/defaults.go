@@ -41,7 +41,8 @@ var Defaults = Config{
 		Check: HTTPCheck{
 			IPAddr: false,
 		},
-		Template: types.Template{Template: template.Must(template.New("index.gohtml").ParseFS(ui.Template, "index.gohtml"))},
+		TrustedProxies: types.StringSlice{},
+		Template:       types.Template{Template: template.Must(template.New("index.gohtml").ParseFS(ui.Template, "index.gohtml"))},
 	},
 	OpenVPN: OpenVPN{
 		Addr: types.URL{URL: &url.URL{
