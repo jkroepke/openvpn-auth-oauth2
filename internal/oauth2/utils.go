@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/netip"
 	"net/url"
+	"slices"
 	"strings"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
@@ -22,9 +24,9 @@ func checkClientIPAddr(r *http.Request, conf *config.Config, session state.State
 		return fmt.Errorf("unable to split remote address %s: %w", r.RemoteAddr, err)
 	}
 
-	if conf.HTTP.EnableProxyHeaders {
-		if fwdAddress := r.Header.Get("X-Forwarded-For"); fwdAddress != "" {
-			clientIP = strings.TrimSpace(strings.Split(fwdAddress, ",")[0])
+	if conf.HTTP.EnableProxyHeaders && addrTrustedProxy(clientIP, conf.HTTP.TrustedProxies) {
+		if forwardedFor := r.Header.Values("X-Forwarded-For"); len(forwardedFor) != 0 {
+			clientIP = clientIPFromForwardedChain(clientIP, forwardedFor, conf.HTTP.TrustedProxies)
 		}
 	}
 
@@ -33,6 +35,51 @@ func checkClientIPAddr(r *http.Request, conf *config.Config, session state.State
 	}
 
 	return nil
+}
+
+func clientIPFromForwardedChain(remoteAddr string, forwardedForHeaders, trustedProxies []string) string {
+	forwardedFor := strings.Join(forwardedForHeaders, ",")
+	forwardedAddrs := strings.Split(forwardedFor, ",")
+	currentAddr := remoteAddr
+
+	for _, forwardedAddr := range slices.Backward(forwardedAddrs) {
+		if !addrTrustedProxy(currentAddr, trustedProxies) {
+			return currentAddr
+		}
+
+		forwardedAddr = strings.TrimSpace(forwardedAddr)
+		if forwardedAddr == "" {
+			continue
+		}
+
+		currentAddr = forwardedAddr
+	}
+
+	return currentAddr
+}
+
+func addrTrustedProxy(addrText string, trustedProxies []string) bool {
+	addr, err := netip.ParseAddr(addrText)
+	if err != nil {
+		return false
+	}
+
+	addr = addr.Unmap()
+
+	for _, trustedProxy := range trustedProxies {
+		trustedProxy = strings.TrimSpace(trustedProxy)
+
+		prefix, err := netip.ParsePrefix(trustedProxy)
+		if err != nil {
+			continue
+		}
+
+		if prefix.Contains(addr) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // getAuthorizeParams parses the authorizeParams string and returns a slice of rp.URLParamOpt.

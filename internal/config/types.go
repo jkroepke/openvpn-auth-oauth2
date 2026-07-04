@@ -44,17 +44,18 @@ type ProviderGoogleValidate struct {
 }
 
 type HTTP struct {
-	BaseURL            types.URL      `json:"baseurl"              yaml:"baseurl"`
-	AssetPath          types.FS       `json:"assets-path"          yaml:"assets-path"`
-	Template           types.Template `json:"template"             yaml:"template"`
-	Listen             string         `json:"listen"               yaml:"listen"`
-	CertFile           string         `json:"cert"                 yaml:"cert"`
-	KeyFile            string         `json:"key"                  yaml:"key"`
-	Secret             types.Secret   `json:"secret"               yaml:"secret"`
-	TLS                bool           `json:"tls"                  yaml:"tls"`
-	Check              HTTPCheck      `json:"check"                yaml:"check"`
-	EnableProxyHeaders bool           `json:"enable-proxy-headers" yaml:"enable-proxy-headers"`
-	ShortURL           bool           `json:"short-url"            yaml:"short-url"`
+	BaseURL            types.URL         `json:"baseurl"              yaml:"baseurl"`
+	AssetPath          types.FS          `json:"assets-path"          yaml:"assets-path"`
+	Template           types.Template    `json:"template"             yaml:"template"`
+	Listen             string            `json:"listen"               yaml:"listen"`
+	CertFile           string            `json:"cert"                 yaml:"cert"`
+	KeyFile            string            `json:"key"                  yaml:"key"`
+	Secret             types.Secret      `json:"secret"               yaml:"secret"`
+	TrustedProxies     types.StringSlice `json:"trusted-proxies"      yaml:"trusted-proxies"`
+	TLS                bool              `json:"tls"                  yaml:"tls"`
+	Check              HTTPCheck         `json:"check"                yaml:"check"`
+	EnableProxyHeaders bool              `json:"enable-proxy-headers" yaml:"enable-proxy-headers"`
+	ShortURL           bool              `json:"short-url"            yaml:"short-url"`
 }
 
 type HTTPCheck struct {
