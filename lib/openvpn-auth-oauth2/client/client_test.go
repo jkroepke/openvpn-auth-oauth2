@@ -126,6 +126,8 @@ func TestNewClient_RejectsManagementProtocolLineBreaks(t *testing.T) {
 
 			_, err := client.NewClient(12345, tc.env)
 			require.ErrorIs(t, err, client.ErrUnsafeEnvVar)
+			require.NotContains(t, err.Error(), "\n")
+			require.NotContains(t, err.Error(), "\r")
 		})
 	}
 }

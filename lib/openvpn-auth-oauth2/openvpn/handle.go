@@ -97,8 +97,6 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 		slog.String("client_ip", fmt.Sprintf("%s:%s", envArray["untrusted_ip"], envArray["untrusted_port"])),
 	)
 
-	logger.DebugContext(p.ctx, "env", slog.Any("env", envArray))
-
 	openVPNClient, err := client.NewClient(currentClientID, envArray)
 	if err != nil {
 		logger.ErrorContext(
@@ -108,6 +106,8 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 
 		return c.OpenVPNPluginFuncError
 	}
+
+	logger.DebugContext(p.ctx, "env", slog.Any("env", redactedEnvList(envArray)))
 
 	resp, err := p.managementClient.ClientAuth(p.ctx, currentClientID, openVPNClient.GetConnectMessage())
 	if err != nil {
