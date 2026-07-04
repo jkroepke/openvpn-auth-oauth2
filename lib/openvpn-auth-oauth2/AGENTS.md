@@ -108,29 +108,19 @@ plugin /path/to/plugin.so "arg1" "arg2" "arg3"
                            +---------------- argv[1] (socket address)
 ```
 
-**Systemd/AppArmor lockdown note:** The plugin password file is consumed by two
-different processes with different confinement rules:
+**Shared password file permissions:** The plugin password file is consumed by
+two different processes:
 
 - OpenVPN reads it when loading the plugin from its own configuration context.
 - `openvpn-auth-oauth2` reads the same secret via `openvpn.password=file://...`
-  from the packaged systemd service.
+  when connecting to the plugin management socket.
 
-Do not move the documented shared password file only to
-`/etc/openvpn-auth-oauth2/` without checking OpenVPN's confinement, because
-OpenVPN may only be allowed to read `/etc/openvpn/**`. The current packaged
-pattern keeps the file at `/etc/openvpn/oauth2-plugin-password.txt` and grants
-`openvpn-auth-oauth2` a narrow AppArmor read rule for that exact file in
-`packaging/etc/apparmor.d/usr.bin.openvpn-auth-oauth2`.
-
-When changing plugin password paths, permissions, or packaging hardening,
-validate all of these together:
-
-1. OpenVPN can read the password file before or during plugin load.
-2. The `openvpn-auth-oauth2` systemd service can read the same file under
-   `DynamicUser=true`, `SupplementaryGroups=openvpn-auth-oauth2`,
-   `ProtectSystem=strict`, and the shipped AppArmor profile.
-3. The file remains group-readable only to the required processes, e.g. mode
-   `0640` with a group shared by both readers, or a documented local override.
+When changing the password file path, owner, group, or mode, validate the
+filesystem permissions for both readers. Both processes need read permission on
+the file and execute/search permission on every parent directory. The file must
+not be readable by unrelated users. A typical setup uses a group shared by the
+two readers and mode `0640`, or a documented local override when the deployment
+uses different service identities.
 
 #### 4. `openvpn_plugin_func_v3()`
 Called for each plugin event. We handle:
