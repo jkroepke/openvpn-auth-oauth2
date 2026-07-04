@@ -93,7 +93,7 @@ We use `PRE_DAEMON` because we need to create sockets that require root privileg
 
 #### 3. `openvpn_plugin_open_v3()`
 Called when OpenVPN loads the plugin. Our implementation:
-- Parses plugin arguments (socket address, optional password)
+- Parses plugin arguments (socket address, password file)
 - Creates management server socket
 - Starts listening for openvpn-auth-oauth2 connection
 - Returns plugin handle (pointer to our context struct)
@@ -104,7 +104,7 @@ plugin /path/to/plugin.so "arg1" "arg2" "arg3"
                            ^      ^      ^
                            |      |      |
                            |      |      +-- argv[3]
-                           |      +--------- argv[2] (password)
+                           |      +--------- argv[2] (password file)
                            +---------------- argv[1] (socket address)
 ```
 
