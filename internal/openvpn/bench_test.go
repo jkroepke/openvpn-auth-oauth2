@@ -74,6 +74,7 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 	conf := config.Defaults
 	conf.OpenVPN.Passthrough.Enabled = true
 	conf.OpenVPN.Passthrough.Address = types.URL{URL: &url.URL{Scheme: "tcp", Host: "127.0.0.1:0"}}
+	conf.OpenVPN.Passthrough.Password = testsuite.Secret
 
 	suite := testsuite.New(&conf)
 	errOpenVPNClientCh := suite.SetupManagementEnvironment(b.Context(), b, nil)
@@ -104,6 +105,13 @@ func BenchmarkOpenVPNPassthrough(b *testing.B) {
 	require.NoError(b, err)
 
 	passThroughConn := testsuite.NewConn(passThroughNetConn)
+
+	buf := make([]byte, len("ENTER PASSWORD:"))
+	_, err = passThroughNetConn.Read(buf)
+	require.NoError(b, err)
+	require.Equal(b, "ENTER PASSWORD:", string(buf))
+
+	passThroughConn.SendAndExpectMessage(b, testsuite.Secret, "SUCCESS: password is correct")
 
 	tests := []struct {
 		command  string

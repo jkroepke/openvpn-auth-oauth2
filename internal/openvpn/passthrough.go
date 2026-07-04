@@ -11,6 +11,7 @@ import (
 	"net"
 	"os"
 	"runtime/debug"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -188,7 +189,7 @@ func (c *Client) handlePassThroughClientCommands(ctx context.Context, conn net.C
 			continue
 		}
 
-		logger.LogAttrs(ctx, slog.LevelDebug, "received command", slog.String("command", line))
+		logger.LogAttrs(ctx, slog.LevelDebug, "received command", slog.String("command", passThroughCommandName(line)))
 
 		switch {
 		case strings.HasPrefix(line, "client-deny"), strings.HasPrefix(line, "client-auth"):
@@ -204,6 +205,11 @@ func (c *Client) handlePassThroughClientCommands(ctx context.Context, conn net.C
 			_ = conn.Close()
 
 			return nil
+		case !passThroughCommandAllowed(line):
+			c.writeToPassThroughClient("ERROR: command not allowed")
+			logger.LogAttrs(ctx, slog.LevelWarn, "pass-through: command not allowed", slog.String("command", passThroughCommandName(line)))
+
+			continue
 		}
 
 		resp, err = c.SendCommand(ctx, line, true)
@@ -221,9 +227,44 @@ func (c *Client) handlePassThroughClientCommands(ctx context.Context, conn net.C
 	return nil
 }
 
+func passThroughCommandName(line string) string {
+	fields := strings.Fields(line)
+	if len(fields) == 0 {
+		return ""
+	}
+
+	return fields[0]
+}
+
+func passThroughCommandAllowed(line string) bool {
+	fields := strings.Fields(line)
+	if len(fields) == 0 {
+		return false
+	}
+
+	switch fields[0] {
+	case "help", "load-stats", "pid", "version":
+		return len(fields) == 1
+	case "status":
+		if len(fields) == 1 {
+			return true
+		}
+
+		if len(fields) != 2 {
+			return false
+		}
+
+		statusVersion, err := strconv.Atoi(fields[1])
+
+		return err == nil && statusVersion >= 0
+	default:
+		return false
+	}
+}
+
 func (c *Client) handlePassThroughClientAuth(_ context.Context, conn net.Conn, scanner *bufio.Scanner) error {
 	if c.conf.OpenVPN.Passthrough.Password.String() == "" {
-		return nil
+		return errors.New("pass-through: password is required")
 	}
 
 	if err := conn.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil {
@@ -235,12 +276,20 @@ func (c *Client) handlePassThroughClientAuth(_ context.Context, conn net.Conn, s
 		return fmt.Errorf("unable to write to client: %w", err)
 	}
 
+	if err := conn.SetReadDeadline(time.Now().Add(writeTimeout)); err != nil {
+		return fmt.Errorf("unable to set read deadline: %w", err)
+	}
+
 	if !scanner.Scan() {
 		if err = scanner.Err(); err == nil {
 			err = io.EOF
 		}
 
 		return fmt.Errorf("pass-through: unable to read from client: %w", err)
+	}
+
+	if err := conn.SetReadDeadline(time.Time{}); err != nil {
+		return fmt.Errorf("unable to clear read deadline: %w", err)
 	}
 
 	if subtle.ConstantTimeCompare(scanner.Bytes(), []byte(c.conf.OpenVPN.Passthrough.Password.String())) == 0 {

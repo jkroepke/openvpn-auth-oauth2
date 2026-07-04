@@ -258,6 +258,15 @@ func TestValidate(t *testing.T) {
 			}(),
 			"",
 		},
+		{
+			func() config.Config {
+				conf := validConfig()
+				conf.OpenVPN.Passthrough.Enabled = true
+
+				return conf
+			}(),
+			"openvpn.pass-through.password is required",
+		},
 	} {
 		t.Run(tc.err, func(t *testing.T) {
 			t.Parallel()

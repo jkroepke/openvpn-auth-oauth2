@@ -51,11 +51,16 @@ openvpn:
 
 ## Command Filtering
 
-openvpn-auth-oauth2 filters certain commands for security reasons. The following commands are not allowed and will be filtered:
+openvpn-auth-oauth2 allows only a small set of read-only OpenVPN management commands through the pass-through socket:
 
-- `client-deny`
-- `client-auth`
-- `client-auth-nt`
+- `help`
+- `load-stats`
+- `pid`
+- `status [n]`
+- `version`
 
-If a client sends one of these commands, openvpn-auth-oauth2 will respond with "ERROR: command not allowed" and log a warning message.
+The local session commands `hold`, `exit`, and `quit` are handled by openvpn-auth-oauth2 itself and are not forwarded to OpenVPN.
 
+All other commands are filtered for security reasons. This includes authentication and control commands such as `client-auth`, `client-auth-nt`, `client-deny`, `client-kill`, `kill`, `signal`, and `verb`.
+
+If a client sends a filtered command, openvpn-auth-oauth2 will respond with "ERROR: command not allowed" and log a warning message.

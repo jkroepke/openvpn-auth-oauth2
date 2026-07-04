@@ -119,6 +119,7 @@ func TestPassThroughFull(t *testing.T) {
 				conf.HTTP.Secret = testsuite.Secret
 				conf.Log.Level = slog.LevelDebug
 				conf.OpenVPN.Passthrough.Enabled = true
+				conf.OpenVPN.Passthrough.Password = testsuite.Secret
 
 				return conf
 			}(),
@@ -131,6 +132,7 @@ func TestPassThroughFull(t *testing.T) {
 				conf.HTTP.Secret = testsuite.Secret
 				conf.Log.Level = slog.LevelDebug
 				conf.OpenVPN.Passthrough.Enabled = true
+				conf.OpenVPN.Passthrough.Password = testsuite.Secret
 				conf.OpenVPN.Passthrough.SocketMode = 0o0600
 				conf.OpenVPN.Passthrough.SocketGroup = strconv.Itoa(os.Getgid())
 
@@ -260,25 +262,23 @@ func TestPassThroughFull(t *testing.T) {
 				passThroughConn.ExpectMessage(t, "SUCCESS: pid=7")
 
 				// unknown command
-				passThroughConn.SendMessagef(t, "foo")
-				suite.ExpectMessage(t, "foo")
-				suite.SendMessagef(t, "ERROR: unknown command, enter 'help' for more options")
-				passThroughConn.ExpectMessage(t, "ERROR: unknown command, enter 'help' for more options")
+				passThroughConn.SendAndExpectMessage(t, "foo", "ERROR: command not allowed")
 
 				// kill 1
-				passThroughConn.SendMessagef(t, "kill 1")
-				suite.ExpectMessage(t, "kill 1")
-				suite.SendMessagef(t, "ERROR: common name '1' not found")
-				passThroughConn.ExpectMessage(t, "ERROR: common name '1' not found")
+				passThroughConn.SendAndExpectMessage(t, "kill 1", "ERROR: command not allowed")
 
 				// client-auth-nt 1
 				passThroughConn.SendAndExpectMessage(t, "client-auth-nt 1", "ERROR: command not allowed")
 
 				// client-kill 1
-				passThroughConn.SendMessagef(t, "client-kill 1")
-				suite.ExpectMessage(t, "client-kill 1")
-				suite.SendMessagef(t, "ERROR: client-kill command failed")
-				passThroughConn.ExpectMessage(t, "ERROR: client-kill command failed")
+				passThroughConn.SendAndExpectMessage(t, "client-kill 1", "ERROR: command not allowed")
+
+				// version with argument changes client version
+				passThroughConn.SendAndExpectMessage(t, "version 3", "ERROR: command not allowed")
+
+				// rejected secret-bearing commands must not log the secret value
+				passThroughConn.SendAndExpectMessage(t, "password Auth super-secret-value", "ERROR: command not allowed")
+				require.NotContains(t, suite.Logs(), "super-secret-value")
 
 				// version
 				passThroughConn.SendMessagef(t, "version")

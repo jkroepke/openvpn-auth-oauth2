@@ -70,7 +70,11 @@ func validateHTTPConfig(conf *Config) error {
 }
 
 // validateOpenVPNConfig validates the OpenVPN configuration.
-func validateOpenVPNConfig(_ *Config) error {
+func validateOpenVPNConfig(conf *Config) error {
+	if conf.OpenVPN.Passthrough.Enabled && conf.OpenVPN.Passthrough.Password.String() == "" {
+		return fmt.Errorf("openvpn.pass-through.password is %w", ErrRequired)
+	}
+
 	return nil
 }
 
