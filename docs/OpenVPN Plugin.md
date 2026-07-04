@@ -32,10 +32,10 @@ Add the plugin to your OpenVPN server configuration:
 
 ```
 # Load the plugin with listen socket address and password file
-plugin /path/to/openvpn-auth-oauth2.so "tcp://127.0.0.1:9000" "/etc/openvpn-auth-oauth2/plugin-password.txt"
+plugin /path/to/openvpn-auth-oauth2.so "tcp://127.0.0.1:9000" "/etc/openvpn/oauth2-plugin-password.txt"
 
 # Or use Unix socket
-plugin /path/to/openvpn-auth-oauth2.so "unix:///var/run/openvpn-oauth2.sock" "/etc/openvpn-auth-oauth2/plugin-password.txt"
+plugin /path/to/openvpn-auth-oauth2.so "unix:///var/run/openvpn-oauth2.sock" "/etc/openvpn/oauth2-plugin-password.txt"
 ```
 
 Plugin arguments:
@@ -44,11 +44,13 @@ Plugin arguments:
   - Unix: `unix:///path/to/socket` (e.g., `unix:///var/run/openvpn-oauth2.sock`)
 2. **Password file** (required): File containing the management interface password
 
-For package installations, place the password file below `/etc/openvpn-auth-oauth2/`.
-The shipped AppArmor profile allows `openvpn-auth-oauth2` to read this directory,
-and the systemd service runs with the `openvpn-auth-oauth2` supplementary group.
-Create the file with restrictive ownership and permissions, for example
-`root:openvpn-auth-oauth2` and mode `0640`.
+For package installations, the shipped AppArmor profile allows
+`openvpn-auth-oauth2` to read `/etc/openvpn/oauth2-plugin-password.txt`.
+Create the file so both the OpenVPN process and `openvpn-auth-oauth2` can read
+it, for example `root:openvpn-auth-oauth2` and mode `0640` when OpenVPN loads
+the plugin as root. If OpenVPN is also running unprivileged before plugin load,
+use a group that both processes can read, or adjust the file path and local
+AppArmor rules together.
 
 ### openvpn-auth-oauth2 Configuration
 
@@ -60,7 +62,7 @@ Configure openvpn-auth-oauth2 to connect to the plugin's management socket inste
 
 ```ini
 CONFIG_OPENVPN_ADDR=unix:///var/run/openvpn-oauth2.sock
-CONFIG_OPENVPN_PASSWORD=file:///etc/openvpn-auth-oauth2/plugin-password.txt
+CONFIG_OPENVPN_PASSWORD=file:///etc/openvpn/oauth2-plugin-password.txt
 CONFIG_OAUTH2_REFRESH_ENABLED=true
 CONFIG_OAUTH2_REFRESH_EXPIRES=8h
 CONFIG_OAUTH2_REFRESH_SECRET= # a static secret to encrypt token. Must be 16, 24 or 32
@@ -74,7 +76,7 @@ CONFIG_OPENVPN_AUTH__TOKEN__USER=true
 ```yaml
 openvpn:
   addr: unix:///var/run/openvpn-oauth2.sock
-  password: "file:///etc/openvpn-auth-oauth2/plugin-password.txt"
+  password: "file:///etc/openvpn/oauth2-plugin-password.txt"
 oauth2:
   refresh:
     enabled: true

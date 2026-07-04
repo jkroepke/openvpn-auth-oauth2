@@ -11,6 +11,7 @@ include <tunables/global>
   @{PROC}/sys/kernel/core_pattern r,
 
   @{etc_ro}/openvpn-auth-oauth2/** r,
+  @{etc_ro}/openvpn/oauth2-plugin-password.txt r,
 
   @{run}/openvpn{,-server}/* rw,
 
