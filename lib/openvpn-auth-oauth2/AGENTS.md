@@ -108,6 +108,30 @@ plugin /path/to/plugin.so "arg1" "arg2" "arg3"
                            +---------------- argv[1] (socket address)
 ```
 
+**Systemd/AppArmor lockdown note:** The plugin password file is consumed by two
+different processes with different confinement rules:
+
+- OpenVPN reads it when loading the plugin from its own configuration context.
+- `openvpn-auth-oauth2` reads the same secret via `openvpn.password=file://...`
+  from the packaged systemd service.
+
+Do not move the documented shared password file only to
+`/etc/openvpn-auth-oauth2/` without checking OpenVPN's confinement, because
+OpenVPN may only be allowed to read `/etc/openvpn/**`. The current packaged
+pattern keeps the file at `/etc/openvpn/oauth2-plugin-password.txt` and grants
+`openvpn-auth-oauth2` a narrow AppArmor read rule for that exact file in
+`packaging/etc/apparmor.d/usr.bin.openvpn-auth-oauth2`.
+
+When changing plugin password paths, permissions, or packaging hardening,
+validate all of these together:
+
+1. OpenVPN can read the password file before or during plugin load.
+2. The `openvpn-auth-oauth2` systemd service can read the same file under
+   `DynamicUser=true`, `SupplementaryGroups=openvpn-auth-oauth2`,
+   `ProtectSystem=strict`, and the shipped AppArmor profile.
+3. The file remains group-readable only to the required processes, e.g. mode
+   `0640` with a group shared by both readers, or a documented local override.
+
 #### 4. `openvpn_plugin_func_v3()`
 Called for each plugin event. We handle:
 - `OPENVPN_PLUGIN_UP` - Server is ready
