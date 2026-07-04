@@ -23,7 +23,7 @@ const (
 //nolint:gochecknoglobals
 var Defaults = Config{
 	Debug: Debug{
-		Listen: ":9001",
+		Listen: "127.0.0.1:9001",
 	},
 	Log: Log{
 		Format:      "console",
