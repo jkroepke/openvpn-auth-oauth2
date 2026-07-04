@@ -13,8 +13,10 @@ loaded, including `DEFAULT.conf`.
 
 Each resolved config name loads `<name>.conf` from that directory. Filenames
 must satisfy Go's `fs.ValidPath`; absolute paths and `.` or `..` path elements
-are rejected. Symbolic links are followed only when their targets remain inside
-the configured client config directory.
+are rejected. Config names containing `<`, `>`, `"`, `'`, `&`, `` ` ``, or
+control characters are rejected because names can also be rendered in the
+browser-based profile selector. Symbolic links are followed only when their
+targets remain inside the configured client config directory.
 
 If the expression returns an empty list, openvpn-auth-oauth2 loads
 `DEFAULT.conf`, matching OpenVPN's `client-config-dir` default-file pattern. If

@@ -1,6 +1,7 @@
 package types_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"strings"
 	"testing"
@@ -41,6 +42,23 @@ func TestTemplate(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestTemplateEscapesHTML(t *testing.T) {
+	t.Parallel()
+
+	tmpl, err := types.NewTemplate("testdata/profile.gohtml")
+	require.NoError(t, err)
+
+	var out bytes.Buffer
+
+	err = tmpl.Execute(&out, map[string]any{
+		"value": `"><script>alert(1)</script>`,
+	})
+
+	require.NoError(t, err)
+	require.NotContains(t, out.String(), `<script>`)
+	require.Contains(t, out.String(), `&#34;&gt;&lt;script&gt;alert(1)&lt;/script&gt;`)
 }
 
 //nolint:exhaustruct

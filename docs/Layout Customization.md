@@ -15,7 +15,9 @@ Available variables:
 - `{{.clientConfigProfiles}}`: List of available profiles, used to render the profile selection screen.
 - `{{.token}}`: An encrypted token to identify the user session, used for profile selection.
 
-The [go template engine](https://pkg.go.dev/text/template) is used to render the HTML file.
+The [Go HTML template engine](https://pkg.go.dev/html/template) is used to
+render the HTML file. Template values are contextually escaped before they are
+written to the rendered HTML.
 
 ## Client Profile Selector
 
