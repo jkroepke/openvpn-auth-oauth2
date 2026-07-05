@@ -5,8 +5,9 @@ configuration, token validation, and security hardening.
 
 ## Security hardening
 
-If you do not use reverse proxy headers or the OpenVPN plugin, no action is
-needed for this section.
+Review the rest of this page even if these hardening items do not apply to your
+deployment. This section only requires action when you use reverse proxy headers
+or the OpenVPN plugin.
 
 ### Reverse proxy headers
 
