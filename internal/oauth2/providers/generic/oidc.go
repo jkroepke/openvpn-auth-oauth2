@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
@@ -62,10 +63,26 @@ func (p Provider) Refresh(ctx context.Context, logger *slog.Logger, relyingParty
 func (p Provider) RevokeRefreshToken(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, refreshToken string) error {
 	ctx = logging.ToContext(ctx, logger)
 
-	err := rp.RevokeToken(ctx, relyingParty, refreshToken, "refresh_token")
+	err := rp.RevokeToken(ctx, revokeRelyingParty{RelyingParty: relyingParty}, refreshToken, "refresh_token")
 	if err != nil && !errors.Is(err, rp.ErrRelyingPartyNotSupportRevokeCaller) {
 		return fmt.Errorf("error revoke refresh token: %w", err)
 	}
 
 	return nil
+}
+
+type revokeRelyingParty struct {
+	rp.RelyingParty
+}
+
+//nolint:revive // HttpClient is required by the upstream rp.RelyingParty interface.
+func (r revokeRelyingParty) HttpClient() *http.Client {
+	client := r.RelyingParty.HttpClient()
+	if client == nil {
+		client = http.DefaultClient
+	}
+
+	clientCopy := *client
+
+	return &clientCopy
 }
