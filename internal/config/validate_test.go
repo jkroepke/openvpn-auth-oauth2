@@ -265,7 +265,7 @@ func TestValidate(t *testing.T) {
 
 				return conf
 			}(),
-			"openvpn.pass-through.password is required",
+			"",
 		},
 	} {
 		t.Run(tc.err, func(t *testing.T) {

@@ -108,32 +108,21 @@ func TestPassThroughFull(t *testing.T) {
 	t.Parallel()
 
 	configs := []struct {
-		name   string
-		scheme string
-		conf   config.Config
+		name            string
+		scheme          string
+		conf            config.Config
+		invalidPassword bool
 	}{
 		{
-			name:   "tcp default",
+			name:   "tcp without password",
 			scheme: openvpn.SchemeTCP,
-			conf: func() config.Config {
-				conf := config.Defaults
-				conf.HTTP.Secret = testsuite.Secret
-				conf.Log.Level = slog.LevelDebug
-				conf.OpenVPN.Passthrough.Enabled = true
-				conf.OpenVPN.Passthrough.Password = testsuite.Secret
-
-				return conf
-			}(),
+			conf:   newPassThroughTestConfig(""),
 		},
 		{
-			name:   "unix default",
+			name:   "unix with password",
 			scheme: openvpn.SchemeUnix,
 			conf: func() config.Config {
-				conf := config.Defaults
-				conf.HTTP.Secret = testsuite.Secret
-				conf.Log.Level = slog.LevelDebug
-				conf.OpenVPN.Passthrough.Enabled = true
-				conf.OpenVPN.Passthrough.Password = testsuite.Secret
+				conf := newPassThroughTestConfig(testsuite.Secret)
 				conf.OpenVPN.Passthrough.SocketMode = 0o0600
 				conf.OpenVPN.Passthrough.SocketGroup = strconv.Itoa(os.Getgid())
 
@@ -143,28 +132,13 @@ func TestPassThroughFull(t *testing.T) {
 		{
 			name:   "tcp with password",
 			scheme: openvpn.SchemeTCP,
-			conf: func() config.Config {
-				conf := config.Defaults
-				conf.HTTP.Secret = testsuite.Secret
-				conf.Log.Level = slog.LevelDebug
-				conf.OpenVPN.Passthrough.Enabled = true
-				conf.OpenVPN.Passthrough.Password = testsuite.Secret
-
-				return conf
-			}(),
+			conf:   newPassThroughTestConfig(testsuite.Secret),
 		},
 		{
-			name:   "tcp with invalid password",
-			scheme: openvpn.SchemeTCP,
-			conf: func() config.Config {
-				conf := config.Defaults
-				conf.HTTP.Secret = testsuite.Secret
-				conf.Log.Level = slog.LevelDebug
-				conf.OpenVPN.Passthrough.Enabled = true
-				conf.OpenVPN.Passthrough.Password = testsuite.Secret
-
-				return conf
-			}(),
+			name:            "tcp with invalid password",
+			scheme:          openvpn.SchemeTCP,
+			conf:            newPassThroughTestConfig(testsuite.Secret),
+			invalidPassword: true,
 		},
 	}
 
@@ -175,76 +149,9 @@ func TestPassThroughFull(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
 
-			if tc.scheme == openvpn.SchemeUnix && runtime.GOOS == "windows" {
-				t.Skip("skipping test on windows")
-			}
-
-			switch tc.scheme {
-			case openvpn.SchemeTCP:
-				tc.conf.OpenVPN.Passthrough.Address = types.URL{URL: &url.URL{Scheme: tc.scheme, Host: "127.0.0.1:0"}}
-			case openvpn.SchemeUnix:
-				temp, err := nettest.LocalPath()
-				require.NoError(t, err)
-
-				tc.conf.OpenVPN.Passthrough.Address = types.URL{URL: &url.URL{Scheme: tc.scheme, Path: temp}}
-			}
-
-			suite := testsuite.New(&tc.conf)
-			errOpenVPNClientCh := suite.SetupManagementEnvironment(ctx, t, nil)
-			openVPNClient := suite.GetOpenVPNClient()
-
-			t.Cleanup(func() {
-				openVPNClient.Shutdown(t.Context())
-
-				select {
-				case err := <-errOpenVPNClientCh:
-					require.NoError(t, err)
-				case <-time.After(1 * time.Second):
-					t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", suite.Logs())
-				}
-			})
-
-			if tc.conf.OpenVPN.Password != "" {
-				suite.SendMessagef(t, "ENTER PASSWORD:")
-				suite.ExpectMessage(t, tc.conf.OpenVPN.Password.String())
-
-				suite.SendMessagef(t, "SUCCESS: password is correct")
-			}
-
-			suite.ExpectVersionAndReleaseHold(t)
-			suite.SendMessagef(t, "")
-			suite.SendMessagef(t, "\r\n")
-
-			var passThroughAddr []string
-
-			require.Eventually(t, func() bool {
-				passThroughAddr = rePassThroughLogListen.FindStringSubmatch(suite.Logs())
-
-				return passThroughAddr != nil
-			}, time.Second, 50*time.Millisecond)
-
-			require.Len(t, passThroughAddr, 2, "unexpected log output: %s", suite.Logs())
-
-			passThroughNetConn, err := testsuite.WaitUntilListening(ctx, t, tc.scheme, passThroughAddr[1])
-			require.NoError(t, err)
-
-			passThroughConn := testsuite.NewConn(passThroughNetConn)
-
-			if tc.conf.OpenVPN.Passthrough.Password != "" {
-				buf := make([]byte, 15)
-
-				_, err = passThroughNetConn.Read(buf)
-				require.NoError(t, err)
-
-				require.Equal(t, "ENTER PASSWORD:", string(buf))
-
-				if strings.Contains(tc.name, "invalid") {
-					passThroughConn.SendAndExpectMessage(t, "invalid", "ERROR: bad password")
-
-					return
-				}
-
-				passThroughConn.SendAndExpectMessage(t, tc.conf.OpenVPN.Passthrough.Password.String(), "SUCCESS: password is correct")
+			suite, passThroughConn, passThroughNetConn := setupPassThroughConnection(t, ctx, tc.scheme, &tc.conf)
+			if !authenticatePassThroughConnection(t, tc.conf, passThroughNetConn, passThroughConn, tc.invalidPassword) {
+				return
 			}
 
 			passThroughConn.ExpectMessage(t, openvpn.WelcomeBanner)
@@ -257,22 +164,13 @@ func TestPassThroughFull(t *testing.T) {
 				passThroughConn.SendAndExpectMessage(t, "hold", "SUCCESS: hold release succeeded")
 
 				// PID
-				passThroughConn.SendMessagef(t, "pid")
-				suite.ExpectMessage(t, "pid")
-				suite.SendMessagef(t, "SUCCESS: pid=7")
-				passThroughConn.ExpectMessage(t, "SUCCESS: pid=7")
+				forwardPassThroughCommand(t, suite, passThroughConn, "pid", "SUCCESS: pid=7")
 
 				// unknown command
-				passThroughConn.SendMessagef(t, "foo")
-				suite.ExpectMessage(t, "foo")
-				suite.SendMessagef(t, "ERROR: unknown command, enter 'help' for more options")
-				passThroughConn.ExpectMessage(t, "ERROR: unknown command, enter 'help' for more options")
+				forwardPassThroughCommand(t, suite, passThroughConn, "foo", "ERROR: unknown command, enter 'help' for more options")
 
 				// kill 1
-				passThroughConn.SendMessagef(t, "kill 1")
-				suite.ExpectMessage(t, "kill 1")
-				suite.SendMessagef(t, "SUCCESS: common name '1' killed")
-				passThroughConn.ExpectMessage(t, "SUCCESS: common name '1' killed")
+				forwardPassThroughCommand(t, suite, passThroughConn, "kill 1", "SUCCESS: common name '1' killed")
 
 				// auth decision commands are owned by openvpn-auth-oauth2.
 				passThroughConn.SendAndExpectMessage(t, "client-auth 1 2", "ERROR: command not allowed")
@@ -281,55 +179,31 @@ func TestPassThroughFull(t *testing.T) {
 				passThroughConn.SendAndExpectMessage(t, "client-pending-auth 1 2 msg 10", "ERROR: command not allowed")
 
 				// client-kill 1
-				passThroughConn.SendMessagef(t, "client-kill 1")
-				suite.ExpectMessage(t, "client-kill 1")
-				suite.SendMessagef(t, "ERROR: client-kill command failed")
-				passThroughConn.ExpectMessage(t, "ERROR: client-kill command failed")
+				forwardPassThroughCommand(t, suite, passThroughConn, "client-kill 1", "ERROR: client-kill command failed")
 
 				// version with argument changes client version
-				passThroughConn.SendMessagef(t, "version 3")
-				suite.ExpectMessage(t, "version 3")
-				suite.SendMessagef(t, "SUCCESS: version=3")
-				passThroughConn.ExpectMessage(t, "SUCCESS: version=3")
+				forwardPassThroughCommand(t, suite, passThroughConn, "version 3", "SUCCESS: version=3")
 
 				// Forwarded secret-bearing commands must not log the secret value.
-				passThroughConn.SendMessagef(t, "password Auth super-secret-value")
-				suite.ExpectMessage(t, "password Auth super-secret-value")
-				suite.SendMessagef(t, "SUCCESS: password is correct")
-				passThroughConn.ExpectMessage(t, "SUCCESS: password is correct")
+				forwardPassThroughCommand(t, suite, passThroughConn, "password Auth super-secret-value", "SUCCESS: password is correct")
 				require.NotContains(t, suite.Logs(), "super-secret-value")
 
 				// version
-				passThroughConn.SendMessagef(t, "version")
-				suite.ExpectMessage(t, "version")
-				suite.SendMessagef(t, "OpenVPN Version: openvpn-auth-oauth2\r\nManagement Interface Version: 5\r\nEND")
-				passThroughConn.ExpectMessage(t, "OpenVPN Version: openvpn-auth-oauth2\r\nManagement Interface Version: 5\r\nEND")
+				forwardPassThroughCommand(t, suite, passThroughConn, "version", "OpenVPN Version: openvpn-auth-oauth2\r\nManagement Interface Version: 5\r\nEND")
 
 				// status
-				passThroughConn.SendMessagef(t, "status")
-				suite.ExpectMessage(t, "status")
-				suite.SendMessagef(t, OpenVPNManagementInterfaceCommandResultStatus)
-				passThroughConn.ExpectMessage(t, OpenVPNManagementInterfaceCommandResultStatus)
+				forwardPassThroughCommand(t, suite, passThroughConn, "status", OpenVPNManagementInterfaceCommandResultStatus)
 
 				// status 2
-				passThroughConn.SendMessagef(t, "status 2")
-				suite.ExpectMessage(t, "status 2")
-				suite.SendMessagef(t, OpenVPNManagementInterfaceCommandResultStatus2)
-				passThroughConn.ExpectMessage(t, OpenVPNManagementInterfaceCommandResultStatus2)
+				forwardPassThroughCommand(t, suite, passThroughConn, "status 2", OpenVPNManagementInterfaceCommandResultStatus2)
 
 				// status 3
-				passThroughConn.SendMessagef(t, "status 3")
-				suite.ExpectMessage(t, "status 3")
-				suite.SendMessagef(t, OpenVPNManagementInterfaceCommandResultStatus3)
-				passThroughConn.ExpectMessage(t, OpenVPNManagementInterfaceCommandResultStatus3)
+				forwardPassThroughCommand(t, suite, passThroughConn, "status 3", OpenVPNManagementInterfaceCommandResultStatus3)
 			}
 
 			// help
 			for range 10 {
-				passThroughConn.SendMessagef(t, "help")
-				suite.ExpectMessage(t, "help")
-				suite.SendMessagef(t, OpenVPNManagementInterfaceCommandResultHelp)
-				passThroughConn.ExpectMessage(t, OpenVPNManagementInterfaceCommandResultHelp)
+				forwardPassThroughCommand(t, suite, passThroughConn, "help", OpenVPNManagementInterfaceCommandResultHelp)
 			}
 
 			if tc.scheme == openvpn.SchemeUnix {
@@ -360,60 +234,11 @@ func TestPassThroughCommandTimeoutSanitizesLogs(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	t.Cleanup(cancel)
 
-	conf := config.Defaults
-	conf.HTTP.Secret = testsuite.Secret
-	conf.Log.Level = slog.LevelDebug
+	conf := newPassThroughTestConfig(testsuite.Secret)
 	conf.OpenVPN.CommandTimeout = 100 * time.Millisecond
-	conf.OpenVPN.Passthrough.Enabled = true
-	conf.OpenVPN.Passthrough.Address = types.URL{URL: &url.URL{Scheme: openvpn.SchemeTCP, Host: "127.0.0.1:0"}}
-	conf.OpenVPN.Passthrough.Password = testsuite.Secret
 
-	suite := testsuite.New(&conf)
-	errOpenVPNClientCh := suite.SetupManagementEnvironment(ctx, t, nil)
-	openVPNClient := suite.GetOpenVPNClient()
-
-	var passThroughNetConn net.Conn
-
-	t.Cleanup(func() {
-		if passThroughNetConn != nil {
-			require.NoError(t, passThroughNetConn.Close())
-		}
-
-		openVPNClient.Shutdown(t.Context())
-
-		select {
-		case err := <-errOpenVPNClientCh:
-			require.NoError(t, err, suite.Logs())
-		case <-time.After(1 * time.Second):
-			t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", suite.Logs())
-		}
-	})
-
-	suite.ExpectVersionAndReleaseHold(t)
-
-	var passThroughAddr []string
-
-	require.Eventually(t, func() bool {
-		passThroughAddr = rePassThroughLogListen.FindStringSubmatch(suite.Logs())
-
-		return passThroughAddr != nil
-	}, time.Second, 50*time.Millisecond)
-
-	require.Len(t, passThroughAddr, 2, "unexpected log output: %s", suite.Logs())
-
-	var err error
-
-	passThroughNetConn, err = testsuite.WaitUntilListening(ctx, t, openvpn.SchemeTCP, passThroughAddr[1])
-	require.NoError(t, err)
-
-	passThroughConn := testsuite.NewConn(passThroughNetConn).WithLogs(suite.Logs)
-
-	buf := make([]byte, 15)
-	_, err = passThroughNetConn.Read(buf)
-	require.NoError(t, err)
-	require.Equal(t, "ENTER PASSWORD:", string(buf))
-
-	passThroughConn.SendAndExpectMessage(t, testsuite.Secret, "SUCCESS: password is correct")
+	suite, passThroughConn, passThroughNetConn := setupPassThroughConnection(t, ctx, openvpn.SchemeTCP, &conf)
+	require.True(t, authenticatePassThroughConnection(t, conf, passThroughNetConn, passThroughConn, false))
 	passThroughConn.ExpectMessage(t, openvpn.WelcomeBanner)
 
 	passThroughConn.SendMessagef(t, "password Auth super-secret-value")
@@ -427,4 +252,129 @@ func TestPassThroughCommandTimeoutSanitizesLogs(t *testing.T) {
 	}, time.Second, 10*time.Millisecond, suite.Logs())
 
 	require.NotContains(t, suite.Logs(), "super-secret-value")
+}
+
+func newPassThroughTestConfig(password string) config.Config {
+	conf := config.Defaults
+	conf.HTTP.Secret = testsuite.Secret
+	conf.Log.Level = slog.LevelDebug
+	conf.OpenVPN.Passthrough.Enabled = true
+	conf.OpenVPN.Passthrough.Password = types.Secret(password)
+
+	return conf
+}
+
+func setupPassThroughConnection(
+	t *testing.T,
+	ctx context.Context,
+	scheme string,
+	conf *config.Config,
+) (*testsuite.Suite, *testsuite.Conn, net.Conn) {
+	t.Helper()
+
+	if scheme == openvpn.SchemeUnix && runtime.GOOS == "windows" {
+		t.Skip("skipping test on windows")
+	}
+
+	switch scheme {
+	case openvpn.SchemeTCP:
+		conf.OpenVPN.Passthrough.Address = types.URL{URL: &url.URL{Scheme: scheme, Host: "127.0.0.1:0"}}
+	case openvpn.SchemeUnix:
+		temp, err := nettest.LocalPath()
+		require.NoError(t, err)
+
+		conf.OpenVPN.Passthrough.Address = types.URL{URL: &url.URL{Scheme: scheme, Path: temp}}
+	}
+
+	suite := testsuite.New(conf)
+	errOpenVPNClientCh := suite.SetupManagementEnvironment(ctx, t, nil)
+	openVPNClient := suite.GetOpenVPNClient()
+
+	var passThroughNetConn net.Conn
+
+	t.Cleanup(func() {
+		if passThroughNetConn != nil {
+			_ = passThroughNetConn.Close()
+		}
+
+		openVPNClient.Shutdown(t.Context())
+
+		select {
+		case err := <-errOpenVPNClientCh:
+			require.NoError(t, err, suite.Logs())
+		case <-time.After(1 * time.Second):
+			t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", suite.Logs())
+		}
+	})
+
+	if conf.OpenVPN.Password != "" {
+		suite.SendMessagef(t, "ENTER PASSWORD:")
+		suite.ExpectMessage(t, conf.OpenVPN.Password.String())
+		suite.SendMessagef(t, "SUCCESS: password is correct")
+	}
+
+	suite.ExpectVersionAndReleaseHold(t)
+	suite.SendMessagef(t, "")
+	suite.SendMessagef(t, "\r\n")
+
+	passThroughNetConn = dialPassThroughConnection(t, ctx, suite, scheme)
+
+	return suite, testsuite.NewConn(passThroughNetConn).WithLogs(suite.Logs), passThroughNetConn
+}
+
+func dialPassThroughConnection(t *testing.T, ctx context.Context, suite *testsuite.Suite, scheme string) net.Conn {
+	t.Helper()
+
+	var passThroughAddr []string
+
+	require.Eventually(t, func() bool {
+		passThroughAddr = rePassThroughLogListen.FindStringSubmatch(suite.Logs())
+
+		return passThroughAddr != nil
+	}, time.Second, 50*time.Millisecond)
+
+	require.Len(t, passThroughAddr, 2, "unexpected log output: %s", suite.Logs())
+
+	passThroughNetConn, err := testsuite.WaitUntilListening(ctx, t, scheme, passThroughAddr[1])
+	require.NoError(t, err)
+
+	return passThroughNetConn
+}
+
+func authenticatePassThroughConnection(
+	t *testing.T,
+	conf config.Config,
+	passThroughNetConn net.Conn,
+	passThroughConn *testsuite.Conn,
+	invalidPassword bool,
+) bool {
+	t.Helper()
+
+	if conf.OpenVPN.Passthrough.Password.String() == "" {
+		return true
+	}
+
+	buf := make([]byte, 15)
+	_, err := passThroughNetConn.Read(buf)
+	require.NoError(t, err)
+	require.Equal(t, "ENTER PASSWORD:", string(buf))
+
+	if invalidPassword {
+		passThroughConn.SendAndExpectMessage(t, "invalid", "ERROR: bad password")
+
+		return false
+	}
+
+	passThroughConn.SendAndExpectMessage(t, conf.OpenVPN.Passthrough.Password.String(), "SUCCESS: password is correct")
+
+	return true
+}
+
+func forwardPassThroughCommand(t *testing.T, suite *testsuite.Suite, passThroughConn *testsuite.Conn, command, response string) {
+	t.Helper()
+
+	passThroughConn.SendMessagef(t, command)
+	suite.ExpectMessage(t, command)
+	suite.SendMessagef(t, response)
+	passThroughConn.ExpectMessage(t, response)
 }

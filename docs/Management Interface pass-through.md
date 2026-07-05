@@ -18,7 +18,7 @@ You can configure the pass-through feature  using the following options:
 openvpn-auth-oauth2 \
   --openvpn.pass-through.enabled=true \
   --openvpn.pass-through.address=unix:///run/openvpn/pass-through.sock  \
-  --openvpn.pass-through.password=secret
+  # --openvpn.pass-through.password=secret # optional
   # --openvpn.pass-through.socket-group=openvpn-auth-oauth2 # optional
   # --openvpn.pass-through.socket-mode=0660 # optional
 ```
@@ -29,7 +29,7 @@ openvpn-auth-oauth2 \
 ```ini
 CONFIG_OPENVPN_PASS__THROUGH_ENABLED=true
 CONFIG_OPENVPN_PASS__THROUGH_ADDRESS=unix:///run/openvpn/pass-through.sock
-CONFIG_OPENVPN_PASS__THROUGH_PASSWORD=secret
+# CONFIG_OPENVPN_PASS__THROUGH_PASSWORD=secret # optional
 # CONFIG_OPENVPN_PASS__THROUGH_SOCKET__GROUP=openvpn-auth-oauth2 # optional
 # CONFIG_OPENVPN_PASS__THROUGH_SOCKET__MODE=0660 # optional
 ```
@@ -42,7 +42,7 @@ openvpn:
   pass-through:
     enabled: true
     address: "unix:///run/openvpn/pass-through.sock"
-    password: "secret"
+    #password: "secret" # optional
     #socket-group: "openvpn-auth-oauth2" # optional
     #socket-mode: 660 # optional
 ```
@@ -51,7 +51,7 @@ openvpn:
 
 ## Command Forwarding
 
-openvpn-auth-oauth2 forwards OpenVPN management commands through the pass-through socket after the client authenticates with the configured pass-through password. Treat this socket as an administrator interface: a client with access can run powerful OpenVPN management commands such as disconnecting clients, changing daemon state, and entering dynamic credentials.
+openvpn-auth-oauth2 forwards OpenVPN management commands through the pass-through socket. If `openvpn.pass-through.password` is configured, the client must authenticate with that password before commands are accepted. If it is not configured, commands are accepted immediately after connecting. Treat this socket as an administrator interface: a client with access can run powerful OpenVPN management commands such as disconnecting clients, changing daemon state, and entering dynamic credentials.
 
 The local session commands `hold`, `exit`, and `quit` are handled by openvpn-auth-oauth2 itself and are not forwarded to OpenVPN.
 
@@ -62,4 +62,4 @@ Authentication decision commands are reserved for openvpn-auth-oauth2 because th
 - `client-deny`
 - `client-pending-auth`
 
-If a client sends a reserved command, openvpn-auth-oauth2 will respond with "ERROR: command not allowed" and log a warning message. Use a Unix socket with restrictive filesystem permissions, or otherwise restrict the listener to trusted administrator clients only.
+If a client sends a reserved command, openvpn-auth-oauth2 will respond with "ERROR: command not allowed" and log a warning message. Use a Unix socket with restrictive filesystem permissions, or otherwise restrict the listener to trusted administrator clients only. This is especially important when no pass-through password is configured.

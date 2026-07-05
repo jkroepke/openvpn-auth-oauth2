@@ -15,10 +15,6 @@ func Validate(mode int, conf *Config) error {
 		return err
 	}
 
-	if err := validateOpenVPNConfig(conf); err != nil {
-		return err
-	}
-
 	if err := validateHTTPConfig(conf); err != nil {
 		return err
 	}
@@ -64,15 +60,6 @@ func validateHTTPConfig(conf *Config) error {
 		"errorID": "",
 	}); err != nil {
 		return fmt.Errorf("invalid rendering http.template: %w", err)
-	}
-
-	return nil
-}
-
-// validateOpenVPNConfig validates the OpenVPN configuration.
-func validateOpenVPNConfig(conf *Config) error {
-	if conf.OpenVPN.Passthrough.Enabled && conf.OpenVPN.Passthrough.Password.String() == "" {
-		return fmt.Errorf("openvpn.pass-through.password is %w", ErrRequired)
 	}
 
 	return nil

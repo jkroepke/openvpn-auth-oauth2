@@ -238,7 +238,7 @@ func passThroughCommandReserved(line string) bool {
 
 func (c *Client) handlePassThroughClientAuth(_ context.Context, conn net.Conn, scanner *bufio.Scanner) error {
 	if c.conf.OpenVPN.Passthrough.Password.String() == "" {
-		return errors.New("pass-through: password is required")
+		return nil
 	}
 
 	if err := conn.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil {
