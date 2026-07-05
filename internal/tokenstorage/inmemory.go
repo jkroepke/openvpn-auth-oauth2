@@ -109,11 +109,7 @@ func (s *InMemory) Get(_ context.Context, client string) (string, error) {
 		return "", ErrNotExists
 	}
 
-	// Copy the encrypted data before decrypting so storage internals cannot be mutated by future cipher changes.
-	encryptedBytes := make([]byte, len(data.Data))
-	copy(encryptedBytes, data.Data)
-
-	token, err := s.cipher.DecryptBytes(encryptedBytes)
+	token, err := s.cipher.DecryptBytes(data.Data)
 	if err != nil {
 		return "", fmt.Errorf("decrypt error: %w", err)
 	}
