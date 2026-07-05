@@ -108,19 +108,20 @@ plugin /path/to/plugin.so "arg1" "arg2" "arg3"
                            +---------------- argv[1] (socket address)
 ```
 
-**Shared password file permissions:** The plugin password file is consumed by
-two different processes:
+**Plugin password file permissions:** The plugin management password is consumed
+by two different processes:
 
 - OpenVPN reads it when loading the plugin from its own configuration context.
-- `openvpn-auth-oauth2` reads the same secret via `openvpn.password=file://...`
+- `openvpn-auth-oauth2` reads the same password via `openvpn.password=file://...`
   when connecting to the plugin management socket.
 
-When changing the password file path, owner, group, or mode, validate the
-filesystem permissions for both readers. Both processes need read permission on
-the file and execute/search permission on every parent directory. The file must
-not be readable by unrelated users. A typical setup uses a group shared by the
-two readers and mode `0640`, or a documented local override when the deployment
-uses different service identities.
+The two readers do not need to use the same filesystem path. When their
+filesystem permissions or confinement differ, prefer two dedicated files with
+identical contents, each located and permissioned for the process that reads it.
+For every configured password file, validate that the intended process has read
+permission on the file and execute/search permission on every parent directory.
+The files must not be readable by unrelated users. A typical setup uses mode
+`0640` with the appropriate service group for each reader.
 
 #### 4. `openvpn_plugin_func_v3()`
 Called for each plugin event. We handle:
