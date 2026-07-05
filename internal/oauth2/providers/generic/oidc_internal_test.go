@@ -21,7 +21,7 @@ func TestRevokeRelyingPartyHTTPClientReturnsCopy(t *testing.T) {
 		Timeout: time.Second,
 	}
 
-	wrapped := revokeRelyingParty{RelyingParty: testRevokeRelyingParty{httpClient: originalClient}}
+	wrapped := revokeHTTPClientRelyingParty{RelyingParty: testRevokeRelyingParty{httpClient: originalClient}}
 	revokeClient := wrapped.HttpClient()
 
 	require.NotSame(t, originalClient, revokeClient)
