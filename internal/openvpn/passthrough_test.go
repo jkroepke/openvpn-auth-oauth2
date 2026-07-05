@@ -149,7 +149,7 @@ func TestPassThroughFull(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
 
-			suite, passThroughConn, passThroughNetConn := setupPassThroughConnection(t, ctx, tc.scheme, &tc.conf)
+			suite, passThroughConn, passThroughNetConn := setupPassThroughConnection(ctx, t, tc.scheme, &tc.conf)
 			if !authenticatePassThroughConnection(t, tc.conf, passThroughNetConn, passThroughConn, tc.invalidPassword) {
 				return
 			}
@@ -237,7 +237,7 @@ func TestPassThroughCommandTimeoutSanitizesLogs(t *testing.T) {
 	conf := newPassThroughTestConfig(testsuite.Secret)
 	conf.OpenVPN.CommandTimeout = 100 * time.Millisecond
 
-	suite, passThroughConn, passThroughNetConn := setupPassThroughConnection(t, ctx, openvpn.SchemeTCP, &conf)
+	suite, passThroughConn, passThroughNetConn := setupPassThroughConnection(ctx, t, openvpn.SchemeTCP, &conf)
 	require.True(t, authenticatePassThroughConnection(t, conf, passThroughNetConn, passThroughConn, false))
 	passThroughConn.ExpectMessage(t, openvpn.WelcomeBanner)
 
@@ -265,8 +265,8 @@ func newPassThroughTestConfig(password string) config.Config {
 }
 
 func setupPassThroughConnection(
-	t *testing.T,
 	ctx context.Context,
+	t *testing.T,
 	scheme string,
 	conf *config.Config,
 ) (*testsuite.Suite, *testsuite.Conn, net.Conn) {
@@ -317,12 +317,12 @@ func setupPassThroughConnection(
 	suite.SendMessagef(t, "")
 	suite.SendMessagef(t, "\r\n")
 
-	passThroughNetConn = dialPassThroughConnection(t, ctx, suite, scheme)
+	passThroughNetConn = dialPassThroughConnection(ctx, t, suite, scheme)
 
 	return suite, testsuite.NewConn(passThroughNetConn).WithLogs(suite.Logs), passThroughNetConn
 }
 
-func dialPassThroughConnection(t *testing.T, ctx context.Context, suite *testsuite.Suite, scheme string) net.Conn {
+func dialPassThroughConnection(ctx context.Context, t *testing.T, suite *testsuite.Suite, scheme string) net.Conn {
 	t.Helper()
 
 	var passThroughAddr []string
