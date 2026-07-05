@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/crypto"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/crypto"
 )
 
 var ErrNilData = errors.New("data map cannot be nil")

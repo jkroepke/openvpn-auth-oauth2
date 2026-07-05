@@ -1,7 +1,7 @@
 package github
 
 import (
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/endpoints"
 )

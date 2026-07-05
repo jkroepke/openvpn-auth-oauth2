@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
 )
 
 // FakeOpenVPNClient implements the parts of the OpenVPN client interface used

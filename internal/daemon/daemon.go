@@ -7,15 +7,15 @@ import (
 	"net/http"
 	"net/http/pprof"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/crypto"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/httphandler"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/httpserver"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/crypto"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/httphandler"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/httpserver"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/providers"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/tokenstorage"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/utils"
 )
 
 // New wires the daemon services for one loaded configuration.

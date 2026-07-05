@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/test/testsuite"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/tokenstorage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

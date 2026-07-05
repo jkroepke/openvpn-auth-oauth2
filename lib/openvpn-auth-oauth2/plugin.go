@@ -13,8 +13,8 @@ import "C"
 import (
 	"unsafe"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/c"
-	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/openvpn"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/lib/openvpn-auth-oauth2/c"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/lib/openvpn-auth-oauth2/openvpn"
 )
 
 // openvpn_plugin_select_initialization_point_v1

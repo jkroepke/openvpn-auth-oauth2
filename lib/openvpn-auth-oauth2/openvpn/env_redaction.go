@@ -6,7 +6,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/util"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/lib/openvpn-auth-oauth2/util"
 )
 
 const redactedEnvValue = "***"

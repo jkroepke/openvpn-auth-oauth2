@@ -3,7 +3,7 @@ package testsuite
 import (
 	"crypto/sha256"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/crypto"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/crypto"
 	"golang.org/x/text/language"
 )
 

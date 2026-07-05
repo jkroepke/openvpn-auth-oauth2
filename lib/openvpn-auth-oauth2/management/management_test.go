@@ -13,11 +13,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testlogger"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/version"
-	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/management"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/test/testlogger"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/test/testsuite"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/version"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/lib/openvpn-auth-oauth2/management"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/nettest"
 )

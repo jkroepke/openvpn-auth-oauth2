@@ -17,9 +17,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/managementauth"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/version"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/managementauth"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/utils"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/version"
 )
 
 const (

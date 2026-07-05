@@ -6,8 +6,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2"
 )
 
 // New returns a ServeMux with all HTTP endpoints for the management listener.

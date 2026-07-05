@@ -10,7 +10,7 @@ import "C"
 import (
 	"unsafe"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/c"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/lib/openvpn-auth-oauth2/c"
 )
 
 // CreateCStringArray creates a NULL-terminated C string array from a Go string slice.

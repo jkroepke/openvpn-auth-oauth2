@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	oauth2internal "github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
+	oauth2internal "github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/providers/generic"
 	"github.com/stretchr/testify/require"
 	gooauth2 "golang.org/x/oauth2"
 )

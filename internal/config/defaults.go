@@ -6,9 +6,9 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/ui"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/ui/assets"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/ui"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/ui/assets"
 	"golang.org/x/oauth2"
 )
 
