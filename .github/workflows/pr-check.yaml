@@ -43,11 +43,11 @@ jobs:
       - name: check
         run: |
           PR_TITLE_PREFIX=$(echo "$PR_TITLE" | cut -d':' -f1)
-          if [[ "$PR_TITLE_PREFIX" == "fix"* ]] || [[ "$PR_TITLE_PREFIX" == "feat"* ]] || [[ "$PR_TITLE_PREFIX" == "chore"* ]]; then
+          if [[ "$PR_TITLE_PREFIX" == "fix"* ]] || [[ "$PR_TITLE_PREFIX" == "feat"* ]] || [[ "$PR_TITLE_PREFIX" == "docs"* ]] || [[ "$PR_TITLE_PREFIX" == "chore"* ]]; then
             exit 0
           fi
 
-          echo "PR title must start with feat, fix or chore"
+          echo "PR title must start with feat, fix, docs or chore"
           exit 1
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
