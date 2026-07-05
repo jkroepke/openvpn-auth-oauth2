@@ -6,14 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"regexp"
-)
-
-// Pagination URL patterns
-// https://developer.GitHub.com/v3/#pagination
-var (
-	reNext = regexp.MustCompile("<([^>]+)>; rel=\"next\"")
-	reLast = regexp.MustCompile("<([^>]+)>; rel=\"last\"")
+	"strings"
 )
 
 // get performs an authenticated GitHub API request and decodes the JSON response.
@@ -56,18 +49,63 @@ func getPagination(apiURL string, resp *http.Response) string {
 	}
 
 	links := resp.Header.Get("Link")
-	if len(reLast.FindStringSubmatch(links)) == 0 {
+
+	nextPageURL, lastPageURL := parsePaginationLinks(links)
+	if lastPageURL == "" {
 		return ""
 	}
 
-	lastPageURL := reLast.FindStringSubmatch(links)[1]
 	if apiURL == lastPageURL {
 		return ""
 	}
 
-	if len(reNext.FindStringSubmatch(links)) > 1 {
-		return reNext.FindStringSubmatch(links)[1]
+	return nextPageURL
+}
+
+func parsePaginationLinks(links string) (string, string) {
+	var nextPageURL, lastPageURL string
+
+	for links != "" {
+		links = strings.TrimSpace(links)
+
+		if !strings.HasPrefix(links, "<") {
+			return nextPageURL, lastPageURL
+		}
+
+		targetEnd := strings.IndexByte(links, '>')
+		if targetEnd < 0 {
+			return nextPageURL, lastPageURL
+		}
+
+		linkURL := links[1:targetEnd]
+		attrs, remaining := splitPaginationLinkAttrs(links[targetEnd+1:])
+
+		for attr := range strings.SplitSeq(attrs, ";") {
+			switch strings.TrimSpace(attr) {
+			case `rel="next"`:
+				nextPageURL = linkURL
+			case `rel="last"`:
+				lastPageURL = linkURL
+			}
+		}
+
+		links = remaining
 	}
 
-	return ""
+	return nextPageURL, lastPageURL
+}
+
+func splitPaginationLinkAttrs(attrs string) (string, string) {
+	for i := range attrs {
+		if attrs[i] != ',' {
+			continue
+		}
+
+		remaining := strings.TrimSpace(attrs[i+1:])
+		if strings.HasPrefix(remaining, "<") {
+			return attrs[:i], remaining
+		}
+	}
+
+	return attrs, ""
 }
