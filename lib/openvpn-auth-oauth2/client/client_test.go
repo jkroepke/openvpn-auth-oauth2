@@ -9,8 +9,8 @@ import (
 	"testing"
 	"testing/synctest"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/client"
-	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/management"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/lib/openvpn-auth-oauth2/client"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/lib/openvpn-auth-oauth2/management"
 	"github.com/stretchr/testify/require"
 )
 

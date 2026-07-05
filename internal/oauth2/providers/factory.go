@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/github"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/google"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/providers/generic"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/providers/github"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/providers/google"
 )
 
 // New creates the OAuth2 provider implementation selected by configuration.

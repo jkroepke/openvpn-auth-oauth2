@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/providers/generic"
 )
 
 const Name = "github"

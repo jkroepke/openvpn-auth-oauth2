@@ -6,13 +6,13 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/providers/generic"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/test/testsuite"
 	"github.com/stretchr/testify/require"
 )
 

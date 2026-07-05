@@ -12,12 +12,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn/connection"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/test/testsuite"
 	"github.com/stretchr/testify/require"
 )
 

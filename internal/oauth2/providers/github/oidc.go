@@ -4,8 +4,8 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
 	gooauth2 "golang.org/x/oauth2"
 )

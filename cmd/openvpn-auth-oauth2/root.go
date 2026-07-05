@@ -18,10 +18,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/daemon"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/tokenstorage"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/version"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/daemon"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/tokenstorage"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/version"
 )
 
 type ReturnCode = int

@@ -4,9 +4,9 @@ import (
 	"log/slog"
 	"testing"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/github"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/providers/github"
 	"github.com/stretchr/testify/require"
 	gooauth2 "golang.org/x/oauth2"
 )

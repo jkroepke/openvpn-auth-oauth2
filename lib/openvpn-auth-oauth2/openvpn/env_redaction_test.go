@@ -6,7 +6,7 @@ package openvpn
 import (
 	"testing"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/util"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/lib/openvpn-auth-oauth2/util"
 	"github.com/stretchr/testify/require"
 )
 

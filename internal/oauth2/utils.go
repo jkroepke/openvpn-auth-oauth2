@@ -11,8 +11,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
 	"golang.org/x/oauth2"
 )

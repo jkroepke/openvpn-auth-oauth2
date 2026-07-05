@@ -10,8 +10,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
 )
 
 //nolint:tagliatelle // The API response is a JSON object with a dynamic structure.

@@ -7,8 +7,8 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/ui/assets"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/ui/assets"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

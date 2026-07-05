@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/state"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn/connection"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/utils"
 )
 
 func (c *Client) processClient(ctx context.Context, client connection.Client) error {

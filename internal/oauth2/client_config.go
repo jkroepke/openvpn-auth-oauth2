@@ -10,8 +10,8 @@ import (
 
 	"github.com/google/cel-go/cel"
 	"github.com/google/cel-go/ext"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
 )
 
 // initializeClientConfigResolver compiles the optional CEL expression used to resolve client configs.

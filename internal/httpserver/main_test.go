@@ -9,10 +9,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/httpserver"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testlogger"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/httpserver"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/test/testlogger"
 	"github.com/madflojo/testcerts"
 	"github.com/stretchr/testify/require"
 )

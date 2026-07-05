@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config/types"
 	"github.com/stretchr/testify/require"
 	"go.yaml.in/yaml/v3"
 )

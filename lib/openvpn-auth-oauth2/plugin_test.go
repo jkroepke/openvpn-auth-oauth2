@@ -5,8 +5,8 @@ package main
 import (
 	"testing"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/c"
-	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/openvpn"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/lib/openvpn-auth-oauth2/c"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/lib/openvpn-auth-oauth2/openvpn"
 	"github.com/stretchr/testify/require"
 )
 

@@ -6,9 +6,9 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/test/testsuite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -17,14 +17,17 @@ func TestValidate(t *testing.T) {
 	t.Parallel()
 
 	for _, tc := range []struct {
+		name string
 		conf config.Config
 		err  string
 	}{
 		{
+			"missing oauth2 issuer",
 			config.Config{},
 			"oauth2.issuer is required",
 		},
 		{
+			"missing oauth2 client id",
 			config.Config{
 				OAuth2: config.OAuth2{
 					Issuer: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
@@ -33,6 +36,7 @@ func TestValidate(t *testing.T) {
 			"oauth2.client.id is required",
 		},
 		{
+			"missing http secret",
 			config.Config{
 				OAuth2: config.OAuth2{
 					Client: config.OAuth2Client{ID: "ID", Secret: testsuite.Secret},
@@ -42,6 +46,7 @@ func TestValidate(t *testing.T) {
 			"http.secret is required",
 		},
 		{
+			"missing oauth2 client private key and secret",
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL:  types.URL{},
@@ -56,6 +61,7 @@ func TestValidate(t *testing.T) {
 			"one of oauth2.client.private-key or oauth2.client.secret is required",
 		},
 		{
+			"missing http base url",
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL:  types.URL{},
@@ -70,6 +76,7 @@ func TestValidate(t *testing.T) {
 			"http.baseurl is required",
 		},
 		{
+			"invalid http template rendering",
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL:  types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
@@ -87,6 +94,7 @@ func TestValidate(t *testing.T) {
 			"invalid rendering http.template: template: index.gohtml:1:3: executing \"index.gohtml\" at <slice .invalid.error 1 2>: error calling slice: slice of untyped nil",
 		},
 		{
+			"missing oauth2 issuer after http configured",
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL:  types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
@@ -101,6 +109,7 @@ func TestValidate(t *testing.T) {
 			"oauth2.issuer is required",
 		},
 		{
+			"missing openvpn address",
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL:  types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
@@ -115,6 +124,7 @@ func TestValidate(t *testing.T) {
 			"openvpn.addr is required",
 		},
 		{
+			"invalid http secret length",
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL:  types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
@@ -132,6 +142,7 @@ func TestValidate(t *testing.T) {
 			"http.secret requires a length of 16, 24 or 32",
 		},
 		{
+			"invalid http base url scheme",
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL:  types.URL{URL: &url.URL{Scheme: "invalid", Host: "localhost"}},
@@ -149,6 +160,7 @@ func TestValidate(t *testing.T) {
 			"http.baseurl: invalid URL. only http:// or https:// scheme supported",
 		},
 		{
+			"invalid openvpn address scheme",
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL:  types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
@@ -166,6 +178,7 @@ func TestValidate(t *testing.T) {
 			"openvpn.addr: invalid URL. only tcp://addr or unix://addr scheme supported",
 		},
 		{
+			"invalid oauth2 refresh secret length",
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL:  types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
@@ -186,6 +199,7 @@ func TestValidate(t *testing.T) {
 			"oauth2.refresh.secret requires a length of 16, 24 or 32",
 		},
 		{
+			"missing trusted proxies with proxy headers enabled",
 			func() config.Config {
 				conf := validConfig()
 				conf.HTTP.EnableProxyHeaders = true
@@ -195,6 +209,7 @@ func TestValidate(t *testing.T) {
 			"http.trusted-proxies is required when http.enable-proxy-headers is true",
 		},
 		{
+			"invalid trusted proxy cidr",
 			func() config.Config {
 				conf := validConfig()
 				conf.HTTP.EnableProxyHeaders = true
@@ -205,6 +220,7 @@ func TestValidate(t *testing.T) {
 			`http.trusted-proxies: invalid CIDR "127.0.0.1": netip.ParsePrefix("127.0.0.1"): no '/'`,
 		},
 		{
+			"valid trusted proxies",
 			func() config.Config {
 				conf := validConfig()
 				conf.HTTP.EnableProxyHeaders = true
@@ -215,6 +231,7 @@ func TestValidate(t *testing.T) {
 			"",
 		},
 		{
+			"valid refresh discovery endpoint",
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL:  types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
@@ -239,6 +256,7 @@ func TestValidate(t *testing.T) {
 			"",
 		},
 		{
+			"userinfo conflicts with auth and token endpoints",
 			config.Config{
 				HTTP: config.HTTP{
 					BaseURL:  types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
@@ -266,6 +284,7 @@ func TestValidate(t *testing.T) {
 			"oauth2.userinfo: cannot be used if oauth2.endpoint.auth and oauth2.endpoint.token is set",
 		},
 		{
+			"missing client config expression",
 			func() config.Config {
 				conf := validConfig()
 				conf.OpenVPN.ClientConfig.Enabled = true
@@ -276,6 +295,7 @@ func TestValidate(t *testing.T) {
 			"openvpn.client-config.expression is required when openvpn.client-config.enabled is true",
 		},
 		{
+			"valid client config with omitted common name",
 			func() config.Config {
 				conf := validConfig()
 				conf.OpenVPN.CommonName.Mode = config.CommonNameModeOmit
@@ -288,6 +308,7 @@ func TestValidate(t *testing.T) {
 			"",
 		},
 		{
+			"valid openvpn passthrough",
 			func() config.Config {
 				conf := validConfig()
 				conf.OpenVPN.Passthrough.Enabled = true
@@ -297,7 +318,7 @@ func TestValidate(t *testing.T) {
 			"",
 		},
 	} {
-		t.Run(tc.err, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			err := config.Validate(config.ManagementClient, &tc.conf)

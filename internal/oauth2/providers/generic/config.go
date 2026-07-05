@@ -1,8 +1,8 @@
 package generic
 
 import (
-	oauth3 "github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
+	oauth3 "github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
 	"golang.org/x/oauth2"
 )
 

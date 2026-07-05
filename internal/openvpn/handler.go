@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn/connection"
 )
 
 var reMaskClientPassword = regexp.MustCompile(`CLIENT:ENV,password=(.*)\r?\n`)

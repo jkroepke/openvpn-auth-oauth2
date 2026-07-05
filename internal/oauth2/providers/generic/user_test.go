@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/idtoken"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/providers/generic"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2/types"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/providers/generic"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/test/testsuite"
 	"github.com/stretchr/testify/require"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 )

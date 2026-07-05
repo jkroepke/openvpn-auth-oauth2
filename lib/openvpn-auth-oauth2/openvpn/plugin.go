@@ -18,11 +18,11 @@ import (
 	"sync/atomic"
 	"unsafe"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/version"
-	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/c"
-	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/management"
-	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/pluginlog"
-	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/util"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/version"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/lib/openvpn-auth-oauth2/c"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/lib/openvpn-auth-oauth2/management"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/lib/openvpn-auth-oauth2/pluginlog"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/lib/openvpn-auth-oauth2/util"
 )
 
 const (

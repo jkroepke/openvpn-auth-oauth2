@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
 )
 
 // TransformCommonName returns the common name according to the provided mode.

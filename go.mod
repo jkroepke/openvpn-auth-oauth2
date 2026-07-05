@@ -1,4 +1,4 @@
-module github.com/jkroepke/openvpn-auth-oauth2
+module github.com/jkroepke/openvpn-auth-oauth2/v2
 
 go 1.26.4
 
@@ -80,5 +80,3 @@ require (
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-// replace github.com/zitadel/oidc/v3 => ../oidc

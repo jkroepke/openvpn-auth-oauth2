@@ -8,7 +8,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config/types"
 )
 
 // Validate validates the config.

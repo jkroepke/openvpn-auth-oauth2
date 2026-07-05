@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/c"
-	"github.com/jkroepke/openvpn-auth-oauth2/lib/openvpn-auth-oauth2/util/testutil"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/lib/openvpn-auth-oauth2/c"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/lib/openvpn-auth-oauth2/util/testutil"
 	"github.com/stretchr/testify/require"
 )
 

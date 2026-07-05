@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/netip"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/crypto"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/crypto"
 )
 
 const (

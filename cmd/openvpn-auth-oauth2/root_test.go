@@ -4,8 +4,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testlogger"
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/test/testlogger"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/test/testsuite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/nettest"

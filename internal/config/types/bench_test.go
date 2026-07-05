@@ -3,7 +3,7 @@ package types_test
 import (
 	"testing"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/config/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config/types"
 )
 
 func BenchmarkURLUnmarshalText(b *testing.B) {

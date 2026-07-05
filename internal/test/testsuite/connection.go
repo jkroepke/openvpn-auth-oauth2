@@ -11,7 +11,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn"
 	"github.com/stretchr/testify/require"
 )
 
