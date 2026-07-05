@@ -3,6 +3,9 @@ package openvpn_test
 import (
 	"context"
 	"log/slog"
+	"os"
+	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"testing/fstest"
@@ -17,6 +20,113 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/test/testsuite"
 	"github.com/stretchr/testify/require"
 )
+
+func TestClientAuthenticationEventsProcessConcurrently(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	t.Cleanup(cancel)
+
+	conf := config.Defaults
+	conf.OAuth2.Refresh.Enabled = true
+	conf.OAuth2.Refresh.ValidateUser = true
+
+	suite := testsuite.New(&conf)
+	suite.SetupManagementEnvironment(ctx, t, nil)
+
+	oauth2Client := newBlockingRefreshOAuth2Client()
+	suite.GetOpenVPNClient().SetOAuth2Client(oauth2Client)
+	t.Cleanup(func() {
+		suite.Close(t)
+	})
+	t.Cleanup(oauth2Client.release)
+
+	suite.ExpectVersionAndReleaseHold(t)
+	suite.SendMessagef(
+		t,
+		">CLIENT:CONNECT,1,1\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n"+
+			">CLIENT:ENV,common_name=first\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END",
+	)
+
+	select {
+	case <-oauth2Client.blockedFirst:
+	case <-time.After(time.Second):
+		t.Fatalf("timeout waiting for first refresh to block. Logs:\n\n%s", suite.Logs())
+	}
+
+	suite.SendMessagef(
+		t,
+		">CLIENT:CONNECT,2,1\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n"+
+			">CLIENT:ENV,common_name=second\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END",
+	)
+
+	auth, err := readOpenVPNManagementLine(t, suite, time.Second)
+	require.NoError(t, err, suite.Logs())
+	require.Contains(t, auth, `client-pending-auth 2 1 "WEB_AUTH::`, suite.Logs())
+	suite.SendMessagef(t, "SUCCESS: client-pending-auth command succeeded")
+
+	oauth2Client.release()
+
+	auth, err = readOpenVPNManagementLine(t, suite, time.Second)
+	require.NoError(t, err, suite.Logs())
+	require.Contains(t, auth, `client-pending-auth 1 1 "WEB_AUTH::`, suite.Logs())
+	suite.SendMessagef(t, "SUCCESS: client-pending-auth command succeeded")
+}
+
+func TestClientAuthenticationEventsKeepSameClientOrder(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	t.Cleanup(cancel)
+
+	conf := config.Defaults
+	conf.OAuth2.Refresh.Enabled = true
+	conf.OAuth2.Refresh.ValidateUser = true
+
+	suite := testsuite.New(&conf)
+	suite.SetupManagementEnvironment(ctx, t, nil)
+
+	oauth2Client := newBlockingRefreshOAuth2Client()
+	suite.GetOpenVPNClient().SetOAuth2Client(oauth2Client)
+	t.Cleanup(func() {
+		suite.Close(t)
+	})
+	t.Cleanup(oauth2Client.release)
+
+	suite.ExpectVersionAndReleaseHold(t)
+	suite.SendMessagef(
+		t,
+		">CLIENT:CONNECT,1,1\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n"+
+			">CLIENT:ENV,common_name=first\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END",
+	)
+
+	select {
+	case <-oauth2Client.blockedFirst:
+	case <-time.After(time.Second):
+		t.Fatalf("timeout waiting for first refresh to block. Logs:\n\n%s", suite.Logs())
+	}
+
+	suite.SendMessagef(
+		t,
+		">CLIENT:CONNECT,1,2\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n"+
+			">CLIENT:ENV,common_name=second\r\n>CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END",
+	)
+
+	_, err := readOpenVPNManagementLine(t, suite, 100*time.Millisecond)
+	require.ErrorIs(t, err, os.ErrDeadlineExceeded, suite.Logs())
+
+	oauth2Client.release()
+
+	auth, err := readOpenVPNManagementLine(t, suite, time.Second)
+	require.NoError(t, err, suite.Logs())
+	require.Contains(t, auth, `client-pending-auth 1 1 "WEB_AUTH::`, suite.Logs())
+	suite.SendMessagef(t, "SUCCESS: client-pending-auth command succeeded")
+
+	auth, err = readOpenVPNManagementLine(t, suite, time.Second)
+	require.NoError(t, err, suite.Logs())
+	require.Contains(t, auth, `client-pending-auth 1 2 "WEB_AUTH::`, suite.Logs())
+	suite.SendMessagef(t, "SUCCESS: client-pending-auth command succeeded")
+}
 
 func TestSilentReAuthenticationUsesStoredSelectedProfile(t *testing.T) {
 	t.Parallel()
@@ -68,6 +178,68 @@ func TestSilentReAuthenticationUsesStoredSelectedProfile(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", suite.Logs())
 	}
+}
+
+func readOpenVPNManagementLine(t *testing.T, suite *testsuite.Suite, timeout time.Duration) (string, error) {
+	t.Helper()
+
+	require.NoError(t, suite.GetManagementInterfaceConn().SetReadDeadline(time.Now().Add(timeout)))
+
+	line, err := suite.GetManagementInterfaceConnReader().ReadString('\n')
+
+	return strings.TrimSpace(line), err
+}
+
+type blockingRefreshOAuth2Client struct {
+	blockedFirst chan struct{}
+	releaseFirst chan struct{}
+	releaseOnce  sync.Once
+	firstBlocked atomic.Bool
+}
+
+func newBlockingRefreshOAuth2Client() *blockingRefreshOAuth2Client {
+	return &blockingRefreshOAuth2Client{
+		blockedFirst: make(chan struct{}),
+		releaseFirst: make(chan struct{}),
+	}
+}
+
+func (c *blockingRefreshOAuth2Client) RefreshClientAuth(
+	ctx context.Context,
+	_ *slog.Logger,
+	client connection.Client,
+) (oauth2types.UserInfo, *idtoken.IDToken, []string, bool, error) {
+	if client.CID == 1 && c.firstBlocked.CompareAndSwap(false, true) {
+		close(c.blockedFirst)
+
+		select {
+		case <-ctx.Done():
+			return oauth2types.UserInfo{}, nil, nil, false, ctx.Err()
+		case <-c.releaseFirst:
+		}
+	}
+
+	return oauth2types.UserInfo{}, nil, nil, false, nil
+}
+
+func (c *blockingRefreshOAuth2Client) ResolveClientConfigNames(
+	_ *idtoken.IDToken,
+	_, _ string,
+) ([]string, error) {
+	return nil, nil
+}
+
+func (c *blockingRefreshOAuth2Client) ClientDisconnect(context.Context, *slog.Logger, connection.Client) {
+}
+
+func (c *blockingRefreshOAuth2Client) EncryptState(state.State) (state.EncryptedState, error) {
+	return "state", nil
+}
+
+func (c *blockingRefreshOAuth2Client) release() {
+	c.releaseOnce.Do(func() {
+		close(c.releaseFirst)
+	})
 }
 
 type storedProfileOAuth2Client struct {

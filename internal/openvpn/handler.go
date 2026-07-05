@@ -9,12 +9,18 @@ import (
 	"log/slog"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/openvpn/connection"
 )
 
 var reMaskClientPassword = regexp.MustCompile(`CLIENT:ENV,password=(.*)\r?\n`)
+
+const (
+	clientWorkerCount     = 10
+	clientWorkerQueueSize = 32
+)
 
 // handlePassword enters the password on the OpenVPN management interface connection.
 func (c *Client) handlePassword(ctx context.Context) error {
@@ -159,25 +165,69 @@ func (c *Client) handleClientMessage(ctx context.Context, message string) error 
 	return nil
 }
 
-// handlePassword receive a new message from clientsCh and process them.
+// handleClients receives new messages from clientsCh and processes them.
 func (c *Client) handleClients(ctx context.Context, errCh chan<- error) {
+	clientJobs := make([]chan connection.Client, clientWorkerCount)
+
 	var (
-		client connection.Client
-		ok     bool
-		err    error
+		wg      sync.WaitGroup
+		errOnce sync.Once
 	)
+
+	reportErr := func(err error) {
+		errOnce.Do(func() {
+			errCh <- err
+		})
+	}
+
+	for i := range clientJobs {
+		clientJobs[i] = make(chan connection.Client, clientWorkerQueueSize)
+
+		wg.Go(func() {
+			c.handleClientWorker(ctx, clientJobs[i], reportErr)
+		})
+	}
+
+	defer func() {
+		for _, clientJob := range clientJobs {
+			close(clientJob)
+		}
+
+		wg.Wait()
+	}()
 
 	for {
 		select {
 		case <-ctx.Done():
 			return // Error somewhere, terminate
-		case client, ok = <-c.clientsCh:
+		case client, ok := <-c.clientsCh:
 			if !ok {
 				return
 			}
 
-			if err = c.processClient(ctx, client); err != nil {
-				errCh <- err
+			workerIndex := client.CID % uint64(len(clientJobs))
+
+			select {
+			case clientJobs[workerIndex] <- client:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}
+}
+
+func (c *Client) handleClientWorker(ctx context.Context, clients <-chan connection.Client, reportErr func(error)) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case client, ok := <-clients:
+			if !ok {
+				return
+			}
+
+			if err := c.processClient(ctx, client); err != nil {
+				reportErr(err)
 
 				return
 			}
