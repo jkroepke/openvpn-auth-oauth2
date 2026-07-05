@@ -25,15 +25,15 @@ func (p Provider) CheckUser(
 	return p.Provider.CheckUser(ctx, session, userData, tokens) //nolint:wrapcheck
 }
 
-// resolveGroupMemberships replaces userData.Groups with the subset of configured
-// required groups that the user is a member of. Membership is resolved either
-// directly (default) or transitively when GroupsTransitive is enabled.
+// resolveGroupMemberships replaces userData.Groups with the configured required
+// groups that the user is a member of. Do not stop after the first match:
+// client-specific configuration can depend on the complete resolved group list.
 func (p Provider) resolveGroupMemberships(ctx context.Context, userData *types.UserInfo, tokens *idtoken.IDToken) error {
 	if tokens.AccessToken == "" {
 		return errors.New("access token is empty")
 	}
 
-	userData.Groups = make([]string, 0)
+	userData.Groups = make([]string, 0, len(p.Conf.OAuth2.Validate.Groups))
 
 	for _, group := range p.Conf.OAuth2.Validate.Groups {
 		isMember, err := p.isGroupMember(ctx, group, *userData, tokens)

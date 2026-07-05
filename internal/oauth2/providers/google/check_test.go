@@ -1,9 +1,11 @@
 package google_test
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/config"
@@ -151,6 +153,87 @@ func TestValidateGroups(t *testing.T) {
 				require.Error(t, err)
 				assert.EqualError(t, err, tc.err)
 			}
+		})
+	}
+}
+
+func TestValidateGroupsChecksAllConfiguredGroupsAfterFirstMatch(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		name       string
+		transitive bool
+	}{
+		{
+			name: "direct membership",
+		},
+		{
+			name:       "transitive membership",
+			transitive: true,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			token := &oidc.Tokens[*idtoken.Claims]{
+				Token: &gooauth2.Token{
+					AccessToken: "TOKEN",
+				},
+				IDTokenClaims: &idtoken.Claims{},
+			}
+
+			conf := config.Config{
+				OAuth2: config.OAuth2{
+					Validate: config.OAuth2Validate{
+						Groups: []string{"000000000000000", "000000000000001"},
+					},
+				},
+				Provider: config.Provider{
+					Google: config.ProviderGoogle{
+						Validate: config.ProviderGoogleValidate{
+							GroupsTransitive: tc.transitive,
+						},
+					},
+				},
+			}
+
+			var requests atomic.Int32
+
+			httpClient := &http.Client{
+				Transport: testsuite.NewRoundTripperFunc(nil, func(_ http.RoundTripper, req *http.Request) (*http.Response, error) {
+					requests.Add(1)
+
+					resp := httptest.NewRecorder()
+
+					if tc.transitive {
+						_, _ = resp.WriteString(`{"hasMembership": true}`)
+					} else {
+						groupID := strings.TrimPrefix(req.URL.Path, "/v1/groups/")
+						groupID = strings.TrimSuffix(groupID, "/memberships")
+
+						_, _ = fmt.Fprintf(
+							resp,
+							`{"memberships": [{"name": "groups/%s/memberships/123456789101112131415"}], "nextPageToken": ""}`,
+							groupID,
+						)
+					}
+
+					return resp.Result(), nil
+				}),
+			}
+
+			provider, err := google.NewProvider(t.Context(), &conf, httpClient)
+			require.NoError(t, err)
+
+			err = provider.CheckUser(
+				t.Context(),
+				state.State{},
+				types.UserInfo{Subject: "123456789101112131415", Email: "user@example.com"},
+				token,
+			)
+
+			require.NoError(t, err)
+			assert.EqualValues(t, 2, requests.Load())
 		})
 	}
 }
