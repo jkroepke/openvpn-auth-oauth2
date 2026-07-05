@@ -409,6 +409,75 @@ func TestPluginOpenV3_InvalidArgs(t *testing.T) {
 
 	status := PluginOpenV3(0, nil, nil)
 	require.Equal(t, c.OpenVPNPluginFuncError, status)
+
+	for _, tc := range []struct {
+		name string
+		args []string
+	}{
+		{
+			name: "missing password file",
+			args: []string{"openvpn-auth-oauth2", "unix:///tmp/openvpn-auth-oauth2.sock"},
+		},
+		{
+			name: "too many args",
+			args: []string{
+				"openvpn-auth-oauth2",
+				"unix:///tmp/openvpn-auth-oauth2.sock",
+				"/tmp/openvpn-auth-oauth2-password",
+				"extra",
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			argv, argvCStrings := testutil.CreateCStringArray(tc.args)
+
+			t.Cleanup(func() {
+				testutil.FreeCStringArray(argv, argvCStrings)
+			})
+
+			openArgs := &c.OpenVPNPluginArgsOpenIn{
+				Callbacks: testutil.Callbacks(),
+				Argv:      argv,
+			}
+			openRet := &c.OpenVPNPluginArgsOpenReturn{}
+
+			status := PluginOpenV3(PluginStructVerMin, openArgs, openRet)
+			require.Equal(t, c.OpenVPNPluginFuncError, status)
+			require.Zero(t, openRet.Handle)
+		})
+	}
+}
+
+func TestPluginOpenV3_EmptyPasswordFile(t *testing.T) {
+	t.Parallel()
+
+	passwordFile, err := os.CreateTemp(t.TempDir(), "openvpn-auth-oauth2-test-")
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = passwordFile.Close()
+	})
+
+	argv, argvCStrings := testutil.CreateCStringArray([]string{
+		"openvpn-auth-oauth2",
+		"unix:///tmp/openvpn-auth-oauth2.sock",
+		passwordFile.Name(),
+	})
+
+	t.Cleanup(func() {
+		testutil.FreeCStringArray(argv, argvCStrings)
+	})
+
+	openArgs := &c.OpenVPNPluginArgsOpenIn{
+		Callbacks: testutil.Callbacks(),
+		Argv:      argv,
+	}
+	openRet := &c.OpenVPNPluginArgsOpenReturn{}
+
+	status := PluginOpenV3(PluginStructVerMin, openArgs, openRet)
+	require.Equal(t, c.OpenVPNPluginFuncError, status)
+	require.Zero(t, openRet.Handle)
 }
 
 func TestPluginFuncV3_InvalidArgs(t *testing.T) {

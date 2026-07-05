@@ -93,7 +93,7 @@ We use `PRE_DAEMON` because we need to create sockets that require root privileg
 
 #### 3. `openvpn_plugin_open_v3()`
 Called when OpenVPN loads the plugin. Our implementation:
-- Parses plugin arguments (socket address, optional password)
+- Parses plugin arguments (socket address, password file)
 - Creates management server socket
 - Starts listening for openvpn-auth-oauth2 connection
 - Returns plugin handle (pointer to our context struct)
@@ -104,9 +104,24 @@ plugin /path/to/plugin.so "arg1" "arg2" "arg3"
                            ^      ^      ^
                            |      |      |
                            |      |      +-- argv[3]
-                           |      +--------- argv[2] (password)
+                           |      +--------- argv[2] (password file)
                            +---------------- argv[1] (socket address)
 ```
+
+**Plugin password file permissions:** The plugin management password is consumed
+by two different processes:
+
+- OpenVPN reads it when loading the plugin from its own configuration context.
+- `openvpn-auth-oauth2` reads the same password via `openvpn.password=file://...`
+  when connecting to the plugin management socket.
+
+The two readers do not need to use the same filesystem path. When their
+filesystem permissions or confinement differ, prefer two dedicated files with
+identical contents, each located and permissioned for the process that reads it.
+For every configured password file, validate that the intended process has read
+permission on the file and execute/search permission on every parent directory.
+The files must not be readable by unrelated users. A typical setup uses mode
+`0640` with the appropriate service group for each reader.
 
 #### 4. `openvpn_plugin_func_v3()`
 Called for each plugin event. We handle:

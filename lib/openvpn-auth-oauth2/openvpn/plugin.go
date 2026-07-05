@@ -56,28 +56,29 @@ func PluginOpenV3(v3structver c.Int, args *c.OpenVPNPluginArgsOpenIn, ret *c.Ope
 
 	logger := slog.New(pluginlog.NewOpenVPNPluginLogger(args.Callbacks))
 
-	if len(pluginArgs) > 3 || len(pluginArgs) < 2 {
-		logger.Error("Invalid amount of arguments! openvpn-auth-oauth2.so <listen socket> [<password-file>]")
+	if len(pluginArgs) != 3 {
+		logger.Error("Invalid amount of arguments! openvpn-auth-oauth2.so <listen socket> <password-file>")
 
 		return c.OpenVPNPluginFuncError
 	}
 
 	listenSocketAddr := pluginArgs[1]
 
-	var listenSocketPassword string
+	password, err := os.ReadFile(pluginArgs[2])
+	if err != nil {
+		logger.Error(
+			"Failed to read password file",
+			slog.Any("err", err),
+		)
 
-	if len(pluginArgs) == 3 {
-		password, err := os.ReadFile(pluginArgs[2])
-		if err != nil {
-			logger.Error(
-				"Failed to read password file",
-				slog.Any("err", err),
-			)
+		return c.OpenVPNPluginFuncError
+	}
 
-			return c.OpenVPNPluginFuncError
-		}
+	listenSocketPassword := strings.TrimSpace(string(password))
+	if listenSocketPassword == "" {
+		logger.Error("Password file is empty")
 
-		listenSocketPassword = strings.TrimSpace(string(password))
+		return c.OpenVPNPluginFuncError
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
