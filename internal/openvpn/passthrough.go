@@ -3,10 +3,8 @@ package openvpn
 import (
 	"bufio"
 	"context"
-	"crypto/subtle"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"net"
 	"os"
@@ -15,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/managementauth"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
@@ -237,47 +236,9 @@ func passThroughCommandReserved(line string) bool {
 }
 
 func (c *Client) handlePassThroughClientAuth(_ context.Context, conn net.Conn, scanner *bufio.Scanner) error {
-	if c.conf.OpenVPN.Passthrough.Password.String() == "" {
-		return nil
-	}
-
-	if err := conn.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil {
-		return fmt.Errorf("unable to set write deadline: %w", err)
-	}
-
-	_, err := conn.Write([]byte("ENTER PASSWORD:"))
+	err := managementauth.Authenticate(conn, scanner, c.conf.OpenVPN.Passthrough.Password.String(), writeTimeout)
 	if err != nil {
-		return fmt.Errorf("unable to write to client: %w", err)
-	}
-
-	if err := conn.SetReadDeadline(time.Now().Add(writeTimeout)); err != nil {
-		return fmt.Errorf("unable to set read deadline: %w", err)
-	}
-
-	if !scanner.Scan() {
-		if err = scanner.Err(); err == nil {
-			err = io.EOF
-		}
-
-		return fmt.Errorf("pass-through: unable to read from client: %w", err)
-	}
-
-	if err := conn.SetReadDeadline(time.Time{}); err != nil {
-		return fmt.Errorf("unable to clear read deadline: %w", err)
-	}
-
-	if subtle.ConstantTimeCompare(scanner.Bytes(), []byte(c.conf.OpenVPN.Passthrough.Password.String())) == 0 {
-		_ = conn.SetWriteDeadline(time.Now().Add(writeTimeout))
-		_, _ = conn.Write([]byte("ERROR: bad password\r\n"))
-
-		return errors.New("pass-through: client provide invalid password")
-	}
-
-	_ = conn.SetWriteDeadline(time.Now().Add(writeTimeout))
-
-	_, err = conn.Write([]byte("SUCCESS: password is correct\r\n"))
-	if err != nil {
-		return fmt.Errorf("unable to write to client: %w", err)
+		return fmt.Errorf("pass-through: %w", err)
 	}
 
 	return nil
