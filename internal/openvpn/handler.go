@@ -115,13 +115,13 @@ func (c *Client) handleMessages(ctx context.Context, errCh chan<- error) {
 //nolint:cyclop
 func (c *Client) handleMessage(ctx context.Context, message string) error {
 	switch {
-	case message[0] == '>':
-		switch message[0:6] {
-		case ">CLIEN":
+	case strings.HasPrefix(message, ">"):
+		switch {
+		case strings.HasPrefix(message, ">CLIEN"):
 			return c.handleClientMessage(ctx, message)
-		case ">HOLD:":
+		case strings.HasPrefix(message, ">HOLD:"):
 			c.commandsCh <- "hold release"
-		case ">INFO:":
+		case strings.HasPrefix(message, ">INFO:"):
 			// welcome message
 			if strings.HasPrefix(message, ">INFO:OpenVPN Management Interface Version") {
 				return nil
