@@ -63,7 +63,7 @@ func newDebugServer(logger *slog.Logger, conf *config.Config) *httpserver.Server
 func setupOpenVPNClient(
 	ctx context.Context, logger *slog.Logger, conf *config.Config, tokenStorage tokenstorage.Storage,
 ) (*openvpn.Client, *http.ServeMux, error) {
-	httpClient := utils.NewOAuth2HTTPClient(http.DefaultTransport)
+	httpClient := utils.NewOAuth2HTTPClient(nil)
 
 	provider, err := providers.New(ctx, conf, httpClient)
 	if err != nil {
