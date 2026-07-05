@@ -51,6 +51,12 @@ func TestGetPagination(t *testing.T) {
 			link:     `<https://api.github.com/user/orgs?page=3>; rel="last", <https://api.github.com/user/orgs?page=2>; rel="next"`,
 			expected: "https://api.github.com/user/orgs?page=2",
 		},
+		{
+			name:     "next url contains separators",
+			apiURL:   "https://api.github.com/user/orgs?affiliation=owner,collaborator;admin&page=1",
+			link:     `<https://api.github.com/user/orgs?affiliation=owner,collaborator;admin&page=2>; rel="next", <https://api.github.com/user/orgs?affiliation=owner,collaborator;admin&page=3>; rel="last"`,
+			expected: "https://api.github.com/user/orgs?affiliation=owner,collaborator;admin&page=2",
+		},
 	}
 
 	for _, testCase := range tests {
