@@ -17,10 +17,6 @@ func Validate(mode int, conf *Config) error {
 		return err
 	}
 
-	if err := validateOpenVPNConfig(conf); err != nil {
-		return err
-	}
-
 	if err := validateHTTPConfig(conf); err != nil {
 		return err
 	}
@@ -81,11 +77,6 @@ func validateHTTPConfig(conf *Config) error {
 		return fmt.Errorf("invalid rendering http.template: %w", err)
 	}
 
-	return nil
-}
-
-// validateOpenVPNConfig validates the OpenVPN configuration.
-func validateOpenVPNConfig(_ *Config) error {
 	return nil
 }
 

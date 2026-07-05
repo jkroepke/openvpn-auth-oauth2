@@ -17,6 +17,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/managementauth"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/version"
 )
@@ -392,44 +393,8 @@ scan:
 }
 
 func (s *Server) handleManagementClientAuth(_ context.Context, conn net.Conn, scanner *bufio.Scanner) error {
-	if s.password == "" {
-		return nil
-	}
-
-	if err := conn.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil {
-		return fmt.Errorf("unable to set writeToClient deadline: %w", err)
-	}
-
-	_, err := conn.Write([]byte("ENTER PASSWORD:"))
-	if err != nil {
-		return fmt.Errorf("unable to writeToClient to client: %w", err)
-	}
-
-	if err := conn.SetReadDeadline(time.Now().Add(writeTimeout)); err != nil {
-		return fmt.Errorf("unable to set read deadline: %w", err)
-	}
-
-	if !scanner.Scan() {
-		if err = scanner.Err(); err == nil {
-			err = io.EOF
-		}
-
-		return fmt.Errorf("unable to read from client: %w", err)
-	}
-
-	if err := conn.SetReadDeadline(time.Time{}); err != nil {
-		return fmt.Errorf("unable to clear read deadline: %w", err)
-	}
-
-	if scanner.Text() != s.password {
-		_, _ = conn.Write([]byte("ERROR: bad password\r\n"))
-
-		return errors.New("client provide invalid password")
-	}
-
-	_, err = conn.Write([]byte("SUCCESS: password is correct\r\n"))
-	if err != nil {
-		return fmt.Errorf("unable to writeToClient to client: %w", err)
+	if err := managementauth.Authenticate(conn, scanner, s.password, writeTimeout); err != nil {
+		return fmt.Errorf("unable to authenticate management client: %w", err)
 	}
 
 	return nil

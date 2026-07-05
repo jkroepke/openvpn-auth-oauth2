@@ -248,25 +248,20 @@ func (c *Client) SendCommand(ctx context.Context, cmd string, passthrough bool) 
 		}
 
 		if resp == "" {
-			cmdFirstLine := strings.SplitN(cmd, "\r\n", 2)[0]
-
-			return "", fmt.Errorf("command error '%s': %w", cmdFirstLine, ErrEmptyResponse)
+			return "", fmt.Errorf("command error '%s': %w", managementCommandForError(cmd, passthrough), ErrEmptyResponse)
 		}
 
 		if strings.HasPrefix(resp, "ERROR:") {
-			cmdFirstLine := strings.SplitN(cmd, "\r\n", 2)[0]
 			c.logger.LogAttrs(
 				ctx, slog.LevelWarn, "command error",
-				slog.String("command", cmdFirstLine),
+				slog.String("command", managementCommandForError(cmd, passthrough)),
 				slog.String("response", resp),
 			)
 		}
 
 		return resp, nil
 	case <-time.After(c.conf.OpenVPN.CommandTimeout):
-		cmdFirstLine := strings.SplitN(cmd, "\r\n", 2)[0]
-
-		return "", fmt.Errorf("command error '%s': %w", cmdFirstLine, ErrTimeout)
+		return "", fmt.Errorf("command error '%s': %w", managementCommandForError(cmd, passthrough), ErrTimeout)
 	}
 }
 
@@ -276,9 +271,9 @@ func (c *Client) SendCommandf(ctx context.Context, format string, a ...any) (str
 }
 
 // rawCommand writes a command followed by CRLF to the management interface.
-func (c *Client) rawCommand(ctx context.Context, cmd string) error {
+func (c *Client) rawCommand(ctx context.Context, cmd, logCommand string) error {
 	if c.logger.Enabled(ctx, slog.LevelDebug) {
-		c.logger.LogAttrs(ctx, slog.LevelDebug, "send command", slog.String("command", cmd))
+		c.logger.LogAttrs(ctx, slog.LevelDebug, "send command", slog.String("command", logCommand))
 	}
 
 	c.commandsBuffer.Reset()
@@ -294,6 +289,25 @@ func (c *Client) rawCommand(ctx context.Context, cmd string) error {
 	}
 
 	return nil
+}
+
+func managementCommandForError(cmd string, passthrough bool) string {
+	if passthrough {
+		return managementCommandName(cmd)
+	}
+
+	return strings.SplitN(cmd, "\r\n", 2)[0]
+}
+
+func managementCommandName(cmd string) string {
+	cmdFirstLine := strings.SplitN(cmd, "\r\n", 2)[0]
+
+	fields := strings.Fields(cmdFirstLine)
+	if len(fields) == 0 {
+		return ""
+	}
+
+	return fields[0]
 }
 
 // readMessage .

@@ -3,10 +3,8 @@ package openvpn
 import (
 	"bufio"
 	"context"
-	"crypto/subtle"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"net"
 	"os"
@@ -15,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/internal/managementauth"
 	"github.com/jkroepke/openvpn-auth-oauth2/internal/utils"
 )
 
@@ -188,12 +187,12 @@ func (c *Client) handlePassThroughClientCommands(ctx context.Context, conn net.C
 			continue
 		}
 
-		logger.LogAttrs(ctx, slog.LevelDebug, "received command", slog.String("command", line))
+		logger.LogAttrs(ctx, slog.LevelDebug, "received command", slog.String("command", managementCommandName(line)))
 
 		switch {
-		case strings.HasPrefix(line, "client-deny"), strings.HasPrefix(line, "client-auth"):
+		case passThroughCommandReserved(line):
 			c.writeToPassThroughClient("ERROR: command not allowed")
-			logger.LogAttrs(ctx, slog.LevelWarn, "pass-through: client send client-deny or client-auth message, ignoring...")
+			logger.LogAttrs(ctx, slog.LevelWarn, "pass-through: reserved command rejected", slog.String("command", managementCommandName(line)))
 
 			continue
 		case line == "hold":
@@ -208,7 +207,13 @@ func (c *Client) handlePassThroughClientCommands(ctx context.Context, conn net.C
 
 		resp, err = c.SendCommand(ctx, line, true)
 		if err != nil {
-			logger.LogAttrs(ctx, slog.LevelWarn, fmt.Errorf("pass-through: error from command '%s': %w", line, err).Error())
+			logger.LogAttrs(
+				ctx,
+				slog.LevelWarn,
+				"pass-through: command failed",
+				slog.String("command", managementCommandName(line)),
+				slog.String("err", err.Error()),
+			)
 		} else {
 			c.writeToPassThroughClient(strings.TrimSpace(resp))
 		}
@@ -221,40 +226,19 @@ func (c *Client) handlePassThroughClientCommands(ctx context.Context, conn net.C
 	return nil
 }
 
+func passThroughCommandReserved(line string) bool {
+	switch strings.ToLower(managementCommandName(line)) {
+	case "client-auth", "client-auth-nt", "client-deny", "client-pending-auth":
+		return true
+	default:
+		return false
+	}
+}
+
 func (c *Client) handlePassThroughClientAuth(_ context.Context, conn net.Conn, scanner *bufio.Scanner) error {
-	if c.conf.OpenVPN.Passthrough.Password.String() == "" {
-		return nil
-	}
-
-	if err := conn.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil {
-		return fmt.Errorf("unable to set write deadline: %w", err)
-	}
-
-	_, err := conn.Write([]byte("ENTER PASSWORD:"))
+	err := managementauth.Authenticate(conn, scanner, c.conf.OpenVPN.Passthrough.Password.String(), writeTimeout)
 	if err != nil {
-		return fmt.Errorf("unable to write to client: %w", err)
-	}
-
-	if !scanner.Scan() {
-		if err = scanner.Err(); err == nil {
-			err = io.EOF
-		}
-
-		return fmt.Errorf("pass-through: unable to read from client: %w", err)
-	}
-
-	if subtle.ConstantTimeCompare(scanner.Bytes(), []byte(c.conf.OpenVPN.Passthrough.Password.String())) == 0 {
-		_ = conn.SetWriteDeadline(time.Now().Add(writeTimeout))
-		_, _ = conn.Write([]byte("ERROR: bad password\r\n"))
-
-		return errors.New("pass-through: client provide invalid password")
-	}
-
-	_ = conn.SetWriteDeadline(time.Now().Add(writeTimeout))
-
-	_, err = conn.Write([]byte("SUCCESS: password is correct\r\n"))
-	if err != nil {
-		return fmt.Errorf("unable to write to client: %w", err)
+		return fmt.Errorf("pass-through: %w", err)
 	}
 
 	return nil
