@@ -49,18 +49,17 @@ openvpn:
 </td></tr></tbody>
 </table>
 
-## Command Filtering
+## Command Forwarding
 
-openvpn-auth-oauth2 allows only a small set of read-only OpenVPN management commands through the pass-through socket:
-
-- `help`
-- `load-stats`
-- `pid`
-- `status [n]`
-- `version`
+openvpn-auth-oauth2 forwards OpenVPN management commands through the pass-through socket after the client authenticates with the configured pass-through password. Treat this socket as an administrator interface: a client with access can run powerful OpenVPN management commands such as disconnecting clients, changing daemon state, and entering dynamic credentials.
 
 The local session commands `hold`, `exit`, and `quit` are handled by openvpn-auth-oauth2 itself and are not forwarded to OpenVPN.
 
-All other commands are filtered for security reasons. This includes authentication and control commands such as `client-auth`, `client-auth-nt`, `client-deny`, `client-kill`, `kill`, `signal`, and `verb`.
+Authentication decision commands are reserved for openvpn-auth-oauth2 because they are part of its own webauth flow:
 
-If a client sends a filtered command, openvpn-auth-oauth2 will respond with "ERROR: command not allowed" and log a warning message.
+- `client-auth`
+- `client-auth-nt`
+- `client-deny`
+- `client-pending-auth`
+
+If a client sends a reserved command, openvpn-auth-oauth2 will respond with "ERROR: command not allowed" and log a warning message. Use a Unix socket with restrictive filesystem permissions, or otherwise restrict the listener to trusted administrator clients only.

@@ -11,7 +11,6 @@ import (
 	"net"
 	"os"
 	"runtime/debug"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -189,12 +188,12 @@ func (c *Client) handlePassThroughClientCommands(ctx context.Context, conn net.C
 			continue
 		}
 
-		logger.LogAttrs(ctx, slog.LevelDebug, "received command", slog.String("command", passThroughCommandName(line)))
+		logger.LogAttrs(ctx, slog.LevelDebug, "received command", slog.String("command", managementCommandName(line)))
 
 		switch {
-		case strings.HasPrefix(line, "client-deny"), strings.HasPrefix(line, "client-auth"):
+		case passThroughCommandReserved(line):
 			c.writeToPassThroughClient("ERROR: command not allowed")
-			logger.LogAttrs(ctx, slog.LevelWarn, "pass-through: client send client-deny or client-auth message, ignoring...")
+			logger.LogAttrs(ctx, slog.LevelWarn, "pass-through: reserved command rejected", slog.String("command", managementCommandName(line)))
 
 			continue
 		case line == "hold":
@@ -205,16 +204,17 @@ func (c *Client) handlePassThroughClientCommands(ctx context.Context, conn net.C
 			_ = conn.Close()
 
 			return nil
-		case !passThroughCommandAllowed(line):
-			c.writeToPassThroughClient("ERROR: command not allowed")
-			logger.LogAttrs(ctx, slog.LevelWarn, "pass-through: command not allowed", slog.String("command", passThroughCommandName(line)))
-
-			continue
 		}
 
 		resp, err = c.SendCommand(ctx, line, true)
 		if err != nil {
-			logger.LogAttrs(ctx, slog.LevelWarn, fmt.Errorf("pass-through: error from command '%s': %w", line, err).Error())
+			logger.LogAttrs(
+				ctx,
+				slog.LevelWarn,
+				"pass-through: command failed",
+				slog.String("command", managementCommandName(line)),
+				slog.String("err", err.Error()),
+			)
 		} else {
 			c.writeToPassThroughClient(strings.TrimSpace(resp))
 		}
@@ -227,36 +227,10 @@ func (c *Client) handlePassThroughClientCommands(ctx context.Context, conn net.C
 	return nil
 }
 
-func passThroughCommandName(line string) string {
-	fields := strings.Fields(line)
-	if len(fields) == 0 {
-		return ""
-	}
-
-	return fields[0]
-}
-
-func passThroughCommandAllowed(line string) bool {
-	fields := strings.Fields(line)
-	if len(fields) == 0 {
-		return false
-	}
-
-	switch fields[0] {
-	case "help", "load-stats", "pid", "version":
-		return len(fields) == 1
-	case "status":
-		if len(fields) == 1 {
-			return true
-		}
-
-		if len(fields) != 2 {
-			return false
-		}
-
-		statusVersion, err := strconv.Atoi(fields[1])
-
-		return err == nil && statusVersion >= 0
+func passThroughCommandReserved(line string) bool {
+	switch strings.ToLower(managementCommandName(line)) {
+	case "client-auth", "client-auth-nt", "client-deny", "client-pending-auth":
+		return true
 	default:
 		return false
 	}
