@@ -309,14 +309,11 @@ func (c *Client) logRefreshTokenError(ctx context.Context, logger *slog.Logger, 
 
 // ClientDisconnect purges the refresh token from the [tokenstorage.Storage].
 func (c *Client) ClientDisconnect(ctx context.Context, logger *slog.Logger, client connection.Client) {
-	if c.conf.OAuth2.Refresh.UseSessionID {
+	if !c.conf.OAuth2.Refresh.Enabled || c.conf.OAuth2.Refresh.UseSessionID {
 		return
 	}
 
 	clientID := strconv.FormatUint(client.CID, 10)
-	if c.conf.OAuth2.Refresh.UseSessionID && client.SessionID != "" {
-		clientID = client.SessionID
-	}
 
 	refreshToken, err := c.storage.Get(ctx, clientID)
 	if err != nil {
