@@ -21,7 +21,9 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/providers/google"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn/connection"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/test/testsuite"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/tokenstorage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
@@ -43,6 +45,47 @@ func expectProfileClientAuth(t *testing.T, suite *testsuite.Suite, cid, kid uint
 	suite.ExpectMessage(t, fmt.Sprintf("client-auth %d %d", cid, kid))
 	suite.ExpectMessage(t, `push "route 10.8.0.0 255.255.0.0"`)
 	suite.ExpectMessage(t, "END")
+}
+
+type disconnectTokenStorage struct {
+	getCount int
+}
+
+func (s *disconnectTokenStorage) Get(_ context.Context, _ string) (string, error) {
+	s.getCount++
+
+	return "", tokenstorage.ErrNotExists
+}
+
+func (s *disconnectTokenStorage) Set(_ context.Context, _, _ string) error {
+	return nil
+}
+
+func (s *disconnectTokenStorage) Delete(_ context.Context, _ string) error {
+	return nil
+}
+
+func (s *disconnectTokenStorage) Close() error {
+	return nil
+}
+
+func TestClientDisconnectRefreshDisabledSkipsTokenStorage(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	t.Cleanup(cancel)
+
+	conf := config.Defaults
+	conf.OAuth2.Refresh.Enabled = false
+
+	storage := &disconnectTokenStorage{}
+	suite := testsuite.New(&conf)
+	oAuth2Client, _ := suite.SetupOpenVPNOAuth2Clients(ctx, t, storage)
+
+	oAuth2Client.ClientDisconnect(ctx, suite.GetLogger(), connection.Client{CID: 7})
+
+	assert.Equal(t, 0, storage.getCount)
+	assert.NotContains(t, suite.Logs(), "error from token store")
 }
 
 func TestRefreshReAuth(t *testing.T) {
