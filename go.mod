@@ -4,7 +4,7 @@ go 1.26.4
 
 require (
 	github.com/containerd/errdefs v1.0.0
-	github.com/google/cel-go v0.29.1
+	github.com/google/cel-go v0.29.2
 	github.com/madflojo/testcerts v1.5.0
 	github.com/moby/moby/api v1.55.0
 	github.com/moby/moby/client v0.5.0
