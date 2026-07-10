@@ -1,2 +1,2 @@
 [codespell]
-skip = */.gitignores,*/package-lock.json,*/go.mod,*/go.sum,*.log,.git
+skip = */.gitignores,*/package-lock.json,*/go.mod,*/go.sum,*.log,.git,*.json
