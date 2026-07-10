@@ -5,11 +5,9 @@ package util
 import "C"
 
 import (
-	"errors"
-	"fmt"
-	"strings"
-
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/lib/openvpn-auth-oauth2/c"
+	"solod.dev/so/errors"
+	"solod.dev/so/strings"
 )
 
 var (
@@ -62,7 +60,7 @@ func NewEnvList(envVarsChar **c.Char) (List, error) {
 	for _, envVar := range envVars {
 		key, value, err := parseEnvVar(envVar)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse env var %q: %w", envVar, err)
+			return nil, Errorf("failed to parse env var %q: %s", envVar, err.Error())
 		}
 
 		// Skip empty entries (empty strings)
@@ -99,14 +97,14 @@ func parseEnvVar(envVar string) (string, string, error) {
 		return "", "", nil // Skip empty strings
 	}
 
-	key, value, found := strings.Cut(envVar, "=")
-	if !found {
-		return "", "", fmt.Errorf("%w: %q (missing '=')", ErrMalformedEnvVar, envVar)
+	key, value := strings.Cut(envVar, "=")
+	if key == envVar {
+		return "", "", Errorf("%s: %q (missing '=')", ErrMalformedEnvVar.Error(), envVar)
 	}
 
 	key = strings.TrimSpace(key)
 	if key == "" {
-		return "", "", fmt.Errorf("%w: %q (empty key)", ErrMalformedEnvVar, envVar)
+		return "", "", Errorf("%s: %q (empty key)", ErrMalformedEnvVar.Error(), envVar)
 	}
 
 	return key, value, nil

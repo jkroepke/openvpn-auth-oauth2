@@ -10,10 +10,11 @@ import "C"
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"sync"
 	"time"
 	"unsafe"
+
+	"solod.dev/so/log/slog"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/lib/openvpn-auth-oauth2/c"
 )
