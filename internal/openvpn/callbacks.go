@@ -228,7 +228,6 @@ func (c *Client) KillClient(ctx context.Context, logger *slog.Logger, client sta
 	logger.LogAttrs(ctx, slog.LevelInfo, fmt.Sprintf("kill OpenVPN client cid %d", client.CID))
 
 	_, err := c.SendCommandf(ctx, "client-kill %d", client.CID)
-
 	if err != nil {
 		logger.LogAttrs(
 			ctx, slog.LevelWarn, "failed to kill client",

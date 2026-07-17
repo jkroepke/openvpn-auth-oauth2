@@ -138,6 +138,7 @@ func TestSilentReAuthenticationUsesStoredSelectedProfile(t *testing.T) {
 	conf.OAuth2.Refresh.Enabled = true
 	conf.OAuth2.Refresh.ValidateUser = true
 	conf.OpenVPN.AuthTokenUser = false
+	conf.OpenVPN.KillDuplicateUsername = true
 	conf.OpenVPN.ClientConfig.Enabled = true
 	conf.OpenVPN.ClientConfig.Strategy = config.OpenVPNConfigStrategyUserSelector
 	conf.OpenVPN.ClientConfig.Path = configtypes.FS{
@@ -206,8 +207,9 @@ func TestSilentReAuthenticationHandlesDuplicateUsernameSession(t *testing.T) {
 
 	suite.ExpectMessage(t, "client-auth-nt 1 3")
 	suite.SendMessagef(t, "SUCCESS: client-auth command succeeded")
-	require.Equal(t, int32(1), oauth2Client.killCalls.Load())
-	require.Equal(t, int32(1), oauth2Client.storeCalls.Load())
+	require.Eventually(t, func() bool {
+		return oauth2Client.killCalls.Load() == 1 && oauth2Client.storeCalls.Load() == 1
+	}, time.Second, 10*time.Millisecond)
 
 	require.NoError(t, suite.GetManagementInterfaceConn().Close())
 
@@ -272,21 +274,19 @@ func (c *blockingRefreshOAuth2Client) ClientDisconnect(context.Context, *slog.Lo
 }
 
 func (c *blockingRefreshOAuth2Client) KillDuplicateUsernameSession(
-	context.Context,
-	*slog.Logger,
-	state.ClientIdentifier,
-	string,
-	string,
+	_ context.Context,
+	_ *slog.Logger,
+	_ state.ClientIdentifier,
+	_, _ string,
 ) error {
 	return nil
 }
 
 func (c *blockingRefreshOAuth2Client) StoreDuplicateUsernameSession(
-	context.Context,
-	*slog.Logger,
-	state.ClientIdentifier,
-	string,
-	string,
+	_ context.Context,
+	_ *slog.Logger,
+	_ state.ClientIdentifier,
+	_, _ string,
 ) {
 }
 
@@ -329,11 +329,10 @@ func (c *storedProfileOAuth2Client) ClientDisconnect(context.Context, *slog.Logg
 }
 
 func (c *storedProfileOAuth2Client) KillDuplicateUsernameSession(
-	context.Context,
-	*slog.Logger,
-	state.ClientIdentifier,
-	string,
-	string,
+	_ context.Context,
+	_ *slog.Logger,
+	_ state.ClientIdentifier,
+	_, _ string,
 ) error {
 	c.killCalls.Add(1)
 
@@ -341,11 +340,10 @@ func (c *storedProfileOAuth2Client) KillDuplicateUsernameSession(
 }
 
 func (c *storedProfileOAuth2Client) StoreDuplicateUsernameSession(
-	context.Context,
-	*slog.Logger,
-	state.ClientIdentifier,
-	string,
-	string,
+	_ context.Context,
+	_ *slog.Logger,
+	_ state.ClientIdentifier,
+	_, _ string,
 ) {
 	c.storeCalls.Add(1)
 }

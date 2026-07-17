@@ -13,9 +13,17 @@ import (
 
 const duplicateUsernameStoragePrefix = "duplicate-username:"
 
+type duplicateUsernameStoredClient struct {
+	CommonName        string `json:"common-name,omitempty"`
+	SessionID         string `json:"session-id,omitempty"`
+	CID               uint64 `json:"cid"`
+	KID               uint64 `json:"kid"`
+	UsernameIsDefined int    `json:"username-is-defined,omitempty"`
+}
+
 type duplicateUsernameSession struct {
-	Client   state.ClientIdentifier `json:"client"`
-	ClientID string                 `json:"client-id"`
+	ClientID string                        `json:"client-id"`
+	Client   duplicateUsernameStoredClient `json:"client"`
 }
 
 func duplicateUsernameSessionKey(username string) string {
@@ -58,7 +66,7 @@ func (c *Client) KillDuplicateUsernameSession(
 		slog.String("session_id", client.SessionID),
 	)
 
-	if err = c.openvpn.KillClient(ctx, logger, existingClient.Client); err != nil {
+	if err = c.openvpn.KillClient(ctx, logger, existingClient.Client.toStateClientIdentifier()); err != nil {
 		return fmt.Errorf("unable to kill duplicate username session: %w", err)
 	}
 
@@ -76,8 +84,8 @@ func (c *Client) StoreDuplicateUsernameSession(
 	}
 
 	clientData, err := json.Marshal(duplicateUsernameSession{
-		Client:   client,
 		ClientID: clientID,
+		Client:   newDuplicateUsernameStoredClient(client),
 	})
 	if err != nil {
 		logger.LogAttrs(ctx, slog.LevelWarn, "unable to marshal duplicate username session", slog.Any("err", err))
@@ -96,28 +104,21 @@ func (c *Client) StoreDuplicateUsernameSession(
 	}
 }
 
-func (c *Client) DeleteDuplicateUsernameSession(
-	ctx context.Context,
-	logger *slog.Logger,
-	clientID string,
-) {
+func (c *Client) DeleteDuplicateUsernameSession(ctx context.Context, logger *slog.Logger, clientID string) {
 	if !c.conf.OpenVPN.KillDuplicateUsername || clientID == "" {
 		return
 	}
 
-	username, err := c.storage.Get(ctx, duplicateUsernameClientKey(clientID))
-	if err != nil {
-		if !errors.Is(err, tokenstorage.ErrNotExists) {
-			logger.LogAttrs(ctx, slog.LevelWarn, "unable to load duplicate username client mapping", slog.Any("err", err))
-		}
-
+	username, ok := c.loadDuplicateUsernameClientUsername(ctx, logger, clientID)
+	if !ok {
 		return
 	}
 
-	if err = c.storage.Delete(ctx, duplicateUsernameClientKey(clientID)); err != nil && !errors.Is(err, tokenstorage.ErrNotExists) {
-		logger.LogAttrs(ctx, slog.LevelWarn, "unable to delete duplicate username client mapping", slog.Any("err", err))
-	}
+	c.deleteDuplicateUsernameClientMapping(ctx, logger, clientID)
+	c.removeStoredDuplicateUsernameSession(ctx, logger, username, clientID)
+}
 
+func (c *Client) removeStoredDuplicateUsernameSession(ctx context.Context, logger *slog.Logger, username, clientID string) {
 	existingClient, err := c.loadDuplicateUsernameSession(ctx, username)
 	if err != nil {
 		if !errors.Is(err, tokenstorage.ErrNotExists) {
@@ -136,10 +137,29 @@ func (c *Client) DeleteDuplicateUsernameSession(
 	}
 }
 
+func (c *Client) deleteDuplicateUsernameClientMapping(ctx context.Context, logger *slog.Logger, clientID string) {
+	if err := c.storage.Delete(ctx, duplicateUsernameClientKey(clientID)); err != nil && !errors.Is(err, tokenstorage.ErrNotExists) {
+		logger.LogAttrs(ctx, slog.LevelWarn, "unable to delete duplicate username client mapping", slog.Any("err", err))
+	}
+}
+
+func (c *Client) loadDuplicateUsernameClientUsername(ctx context.Context, logger *slog.Logger, clientID string) (string, bool) {
+	username, err := c.storage.Get(ctx, duplicateUsernameClientKey(clientID))
+	if err != nil {
+		if !errors.Is(err, tokenstorage.ErrNotExists) {
+			logger.LogAttrs(ctx, slog.LevelWarn, "unable to load duplicate username client mapping", slog.Any("err", err))
+		}
+
+		return "", false
+	}
+
+	return username, true
+}
+
 func (c *Client) loadDuplicateUsernameSession(ctx context.Context, username string) (duplicateUsernameSession, error) {
 	clientData, err := c.storage.Get(ctx, duplicateUsernameSessionKey(username))
 	if err != nil {
-		return duplicateUsernameSession{}, err
+		return duplicateUsernameSession{}, fmt.Errorf("load duplicate username session: %w", err)
 	}
 
 	var session duplicateUsernameSession
@@ -148,4 +168,24 @@ func (c *Client) loadDuplicateUsernameSession(ctx context.Context, username stri
 	}
 
 	return session, nil
+}
+
+func newDuplicateUsernameStoredClient(client state.ClientIdentifier) duplicateUsernameStoredClient {
+	return duplicateUsernameStoredClient{
+		CID:               client.CID,
+		KID:               client.KID,
+		UsernameIsDefined: client.UsernameIsDefined,
+		CommonName:        client.CommonName,
+		SessionID:         client.SessionID,
+	}
+}
+
+func (c duplicateUsernameStoredClient) toStateClientIdentifier() state.ClientIdentifier {
+	return state.ClientIdentifier{
+		CID:               c.CID,
+		KID:               c.KID,
+		UsernameIsDefined: c.UsernameIsDefined,
+		CommonName:        c.CommonName,
+		SessionID:         c.SessionID,
+	}
 }

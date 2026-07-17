@@ -24,3 +24,8 @@ func (FakeOpenVPNClient) AcceptClient(_ context.Context, _ *slog.Logger, _ state
 // DenyClient is a no-op implementation of the real method.
 func (FakeOpenVPNClient) DenyClient(_ context.Context, _ *slog.Logger, _ state.ClientIdentifier, _ string) {
 }
+
+// KillClient is a no-op implementation of the real method.
+func (FakeOpenVPNClient) KillClient(_ context.Context, _ *slog.Logger, _ state.ClientIdentifier) error {
+	return nil
+}

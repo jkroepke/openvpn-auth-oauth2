@@ -86,39 +86,10 @@ func (c *Client) handleClientAuthentication(ctx context.Context, logger *slog.Lo
 		)
 
 		return
-	} else if ok {
-		if tokens != nil && len(clientConfigNames) == 0 {
-			clientConfigNames, err = c.oauth2.ResolveClientConfigNames(tokens, client.CommonName, user.Username)
-			if err != nil {
-				logger.LogAttrs(ctx, slog.LevelWarn, "failed to resolve client config", slog.Any("err", err))
-				c.DenyClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, "invalid client config")
+	}
 
-				return
-			}
-		}
-
-		clientIdentifier := state.ClientIdentifier{
-			CID:               client.CID,
-			KID:               client.KID,
-			CommonName:        client.CommonName,
-			SessionID:         client.SessionID,
-			UsernameIsDefined: client.UsernameIsDefined,
-		}
-
-		if err = c.oauth2.KillDuplicateUsernameSession(ctx, logger, clientIdentifier, currentClientID(c.conf, client), user.Username); err != nil {
-			logger.LogAttrs(ctx, slog.LevelError, "error killing existing session for duplicate username", slog.Any("err", err))
-			c.DenyClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, "internal error")
-
-			return
-		}
-
-		if err = c.AcceptClient(ctx, logger, clientIdentifier, user.Username, clientConfigNames...); err != nil {
-			c.DenyClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, "internal error")
-
-			return
-		}
-
-		c.oauth2.StoreDuplicateUsernameSession(ctx, logger, clientIdentifier, currentClientID(c.conf, client), user.Username)
+	if ok {
+		c.acceptSilentlyReAuthenticatedClient(ctx, logger, client, user, tokens, clientConfigNames)
 
 		return
 	}
@@ -133,6 +104,51 @@ func (c *Client) handleClientAuthentication(ctx context.Context, logger *slog.Lo
 
 		c.DenyClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, "internal error")
 	}
+}
+
+func (c *Client) acceptSilentlyReAuthenticatedClient(
+	ctx context.Context,
+	logger *slog.Logger,
+	client connection.Client,
+	user types.UserInfo,
+	tokens *idtoken.IDToken,
+	clientConfigNames []string,
+) {
+	if tokens != nil && len(clientConfigNames) == 0 {
+		var err error
+
+		clientConfigNames, err = c.oauth2.ResolveClientConfigNames(tokens, client.CommonName, user.Username)
+		if err != nil {
+			logger.LogAttrs(ctx, slog.LevelWarn, "failed to resolve client config", slog.Any("err", err))
+			c.DenyClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, "invalid client config")
+
+			return
+		}
+	}
+
+	clientIdentifier := state.ClientIdentifier{
+		CID:               client.CID,
+		KID:               client.KID,
+		CommonName:        client.CommonName,
+		SessionID:         client.SessionID,
+		UsernameIsDefined: client.UsernameIsDefined,
+	}
+	clientID := currentClientID(c.conf, client)
+
+	if err := c.oauth2.KillDuplicateUsernameSession(ctx, logger, clientIdentifier, clientID, user.Username); err != nil {
+		logger.LogAttrs(ctx, slog.LevelError, "error killing existing session for duplicate username", slog.Any("err", err))
+		c.DenyClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, "internal error")
+
+		return
+	}
+
+	if err := c.AcceptClient(ctx, logger, clientIdentifier, user.Username, clientConfigNames...); err != nil {
+		c.DenyClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, "internal error")
+
+		return
+	}
+
+	c.oauth2.StoreDuplicateUsernameSession(ctx, logger, clientIdentifier, clientID, user.Username)
 }
 
 // startClientAuth initiates the authentication process for the client.
