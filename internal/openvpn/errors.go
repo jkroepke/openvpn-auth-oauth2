@@ -16,7 +16,7 @@ var (
 	ErrRequireManagementInterfaceVersion5   = errors.New("openvpn-auth-oauth2 requires OpenVPN management interface version 5 or higher")
 	ErrKillDuplicateUsernameUnsupported     = errors.New(
 		"duplicate username replacement requires an OpenVPN management interface with client-kill support; " +
-			"disable it when using openvpn-auth-oauth2 as a management plugin",
+			"set openvpn.kill-duplicate-username=false when using openvpn-auth-oauth2 as a management plugin",
 	)
 	ErrClientSessionStateInvalidOrExpired = errors.New(ReasonStateExpiredOrInvalid)
 )

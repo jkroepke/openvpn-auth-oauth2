@@ -21,6 +21,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// managementVersionResponse formats a complete response to the management
+// interface version command for tests.
 func managementVersionResponse(versionLine string) string {
 	return versionLine + "\r\nManagement Interface Version: 5\r\nEND\r\n"
 }
