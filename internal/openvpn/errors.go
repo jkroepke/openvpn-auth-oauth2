@@ -14,8 +14,11 @@ var (
 	ErrUnknownClientReason                  = errors.New("unknown client reason")
 	ErrUnexpectedResponseFromVersionCommand = errors.New("unexpected response from version command")
 	ErrRequireManagementInterfaceVersion5   = errors.New("openvpn-auth-oauth2 requires OpenVPN management interface version 5 or higher")
-	ErrKillDuplicateUsernameUnsupported     = errors.New("duplicate username replacement requires an OpenVPN management interface with client-kill support")
-	ErrClientSessionStateInvalidOrExpired   = errors.New(ReasonStateExpiredOrInvalid)
+	ErrKillDuplicateUsernameUnsupported     = errors.New(
+		"duplicate username replacement requires an OpenVPN management interface with client-kill support; " +
+			"disable it when using openvpn-auth-oauth2 as a management plugin",
+	)
+	ErrClientSessionStateInvalidOrExpired = errors.New(ReasonStateExpiredOrInvalid)
 )
 
 const (
