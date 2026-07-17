@@ -56,3 +56,13 @@ func currentClientID(conf *config.Config, client connection.Client) string {
 
 	return strconv.FormatUint(client.CID, 10)
 }
+
+func stateClientIdentifier(client connection.Client) state.ClientIdentifier {
+	return state.ClientIdentifier{
+		CID:               client.CID,
+		KID:               client.KID,
+		CommonName:        client.CommonName,
+		SessionID:         client.SessionID,
+		UsernameIsDefined: client.UsernameIsDefined,
+	}
+}

@@ -2,6 +2,7 @@ package oauth2
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,7 +12,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/tokenstorage"
 )
 
-const duplicateUsernameStoragePrefix = "duplicate-username:"
+const duplicateUsernameStoragePrefix = "duplicate-username/"
 
 type duplicateUsernameStoredClient struct {
 	CommonName        string `json:"common-name,omitempty"`
@@ -27,7 +28,7 @@ type duplicateUsernameSession struct {
 }
 
 func duplicateUsernameSessionKey(username string) string {
-	return duplicateUsernameStoragePrefix + "username:" + username
+	return duplicateUsernameStoragePrefix + "username:" + base64.RawURLEncoding.EncodeToString([]byte(username))
 }
 
 func duplicateUsernameClientKey(clientID string) string {
@@ -102,6 +103,10 @@ func (c *Client) StoreDuplicateUsernameSession(
 	}
 
 	if err = c.storage.Set(ctx, duplicateUsernameClientKey(clientID), username); err != nil {
+		if cleanupErr := c.storage.Delete(ctx, duplicateUsernameSessionKey(username)); cleanupErr != nil && !errors.Is(cleanupErr, tokenstorage.ErrNotExists) {
+			logger.LogAttrs(ctx, slog.LevelWarn, "unable to clean up duplicate username session after client mapping error", slog.Any("err", cleanupErr))
+		}
+
 		logger.LogAttrs(ctx, slog.LevelWarn, "unable to store duplicate username client mapping", slog.Any("err", err))
 	}
 }

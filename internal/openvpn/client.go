@@ -61,9 +61,10 @@ func (c *Client) handleClientAuthentication(ctx context.Context, logger *slog.Lo
 	if c.checkAuthBypass(client) {
 		logger.LogAttrs(ctx, slog.LevelInfo, "client bypass authentication")
 
-		if err := c.AcceptClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, client.CommonName, ""); err != nil {
+		clientIdentifier := stateClientIdentifier(client)
+		if err := c.AcceptClient(ctx, logger, clientIdentifier, client.CommonName, ""); err != nil {
 			logger.LogAttrs(ctx, slog.LevelWarn, "failed to accept bypassed client", slog.Any("err", err))
-			c.DenyClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, "internal error")
+			c.DenyClient(ctx, logger, clientIdentifier, "authentication bypass failed")
 		}
 
 		return
@@ -81,8 +82,10 @@ func (c *Client) handleClientAuthentication(ctx context.Context, logger *slog.Lo
 	// Check if the client is already authenticated and refresh the client's authentication if enabled.
 	// If the client is successfully re-authenticated, accept the client.
 	user, tokens, clientConfigNames, ok, err := c.silentReAuthentication(ctx, logger, client)
+
+	clientIdentifier := stateClientIdentifier(client)
 	if err != nil {
-		c.DenyClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, ReasonStateExpiredOrInvalid)
+		c.DenyClient(ctx, logger, clientIdentifier, ReasonStateExpiredOrInvalid)
 
 		logger.LogAttrs(
 			ctx, slog.LevelError, "error refreshing client auth",
@@ -93,7 +96,7 @@ func (c *Client) handleClientAuthentication(ctx context.Context, logger *slog.Lo
 	}
 
 	if ok {
-		c.acceptSilentlyReAuthenticatedClient(ctx, logger, client, user, tokens, clientConfigNames)
+		c.acceptSilentlyReAuthenticatedClient(ctx, logger, client, clientIdentifier, user, tokens, clientConfigNames)
 
 		return
 	}
@@ -106,7 +109,7 @@ func (c *Client) handleClientAuthentication(ctx context.Context, logger *slog.Lo
 			slog.Any("err", err),
 		)
 
-		c.DenyClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, "internal error")
+		c.DenyClient(ctx, logger, clientIdentifier, "internal error")
 	}
 }
 
@@ -114,6 +117,7 @@ func (c *Client) acceptSilentlyReAuthenticatedClient(
 	ctx context.Context,
 	logger *slog.Logger,
 	client connection.Client,
+	clientIdentifier state.ClientIdentifier,
 	user types.UserInfo,
 	tokens *idtoken.IDToken,
 	clientConfigNames []string,
@@ -124,31 +128,24 @@ func (c *Client) acceptSilentlyReAuthenticatedClient(
 		clientConfigNames, err = c.oauth2.ResolveClientConfigNames(tokens, client.CommonName, user.Username)
 		if err != nil {
 			logger.LogAttrs(ctx, slog.LevelWarn, "failed to resolve client config", slog.Any("err", err))
-			c.DenyClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, "invalid client config")
+			c.DenyClient(ctx, logger, clientIdentifier, "invalid client config")
 
 			return
 		}
 	}
 
-	clientIdentifier := state.ClientIdentifier{
-		CID:               client.CID,
-		KID:               client.KID,
-		CommonName:        client.CommonName,
-		SessionID:         client.SessionID,
-		UsernameIsDefined: client.UsernameIsDefined,
-	}
 	clientID := currentClientID(c.conf, client)
 
 	if err := c.oauth2.KillDuplicateUsernameSession(ctx, logger, clientIdentifier, clientID, user.Username); err != nil {
 		logger.LogAttrs(ctx, slog.LevelError, "error killing existing session for duplicate username", slog.Any("err", err))
-		c.DenyClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, "internal error")
+		c.DenyClient(ctx, logger, clientIdentifier, "duplicate session handling failed")
 
 		return
 	}
 
 	if err := c.AcceptClient(ctx, logger, clientIdentifier, user.Username, clientConfigNames...); err != nil {
 		logger.LogAttrs(ctx, slog.LevelWarn, "failed to accept silently re-authenticated client", slog.Any("err", err))
-		c.DenyClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, "internal error")
+		c.DenyClient(ctx, logger, clientIdentifier, "authentication acceptance failed")
 
 		return
 	}

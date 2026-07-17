@@ -560,7 +560,7 @@ func (c *Client) acceptOAuth2Client(
 	clientConfigNames ...string,
 ) {
 	if err := c.KillDuplicateUsernameSession(ctx, req.logger, req.session.Client, req.clientID, req.username); err != nil {
-		c.writeHTTPError(ctx, w, req.logger, http.StatusInternalServerError, "Session Management", err.Error())
+		c.writeHTTPError(ctx, w, req.logger, http.StatusInternalServerError, "Duplicate Session Handling", err.Error())
 
 		return
 	}

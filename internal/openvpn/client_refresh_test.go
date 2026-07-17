@@ -139,13 +139,6 @@ func TestSilentReAuthenticationUsesStoredSelectedProfile(t *testing.T) {
 	conf.OAuth2.Refresh.ValidateUser = true
 	conf.OpenVPN.AuthTokenUser = false
 	conf.OpenVPN.KillDuplicateUsername = true
-
-	const (
-		expectedClientID = "1"
-		expectedUsername = "alice"
-	)
-
-	conf.OpenVPN.KillDuplicateUsername = true
 	conf.OpenVPN.ClientConfig.Enabled = true
 	conf.OpenVPN.ClientConfig.Strategy = config.OpenVPNConfigStrategyUserSelector
 	conf.OpenVPN.ClientConfig.Path = configtypes.FS{
