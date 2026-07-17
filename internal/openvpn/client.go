@@ -60,7 +60,11 @@ func (c *Client) handleClientAuthentication(ctx context.Context, logger *slog.Lo
 	// Check if the client is allowed to bypass authentication. If so, accept the client.
 	if c.checkAuthBypass(client) {
 		logger.LogAttrs(ctx, slog.LevelInfo, "client bypass authentication")
-		_ = c.AcceptClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, client.CommonName, "")
+
+		if err := c.AcceptClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, client.CommonName, ""); err != nil {
+			logger.LogAttrs(ctx, slog.LevelWarn, "failed to accept bypassed client", slog.Any("err", err))
+			c.DenyClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, "internal error")
+		}
 
 		return
 	}
@@ -143,6 +147,7 @@ func (c *Client) acceptSilentlyReAuthenticatedClient(
 	}
 
 	if err := c.AcceptClient(ctx, logger, clientIdentifier, user.Username, clientConfigNames...); err != nil {
+		logger.LogAttrs(ctx, slog.LevelWarn, "failed to accept silently re-authenticated client", slog.Any("err", err))
 		c.DenyClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, "internal error")
 
 		return

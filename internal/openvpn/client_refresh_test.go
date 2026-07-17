@@ -139,6 +139,13 @@ func TestSilentReAuthenticationUsesStoredSelectedProfile(t *testing.T) {
 	conf.OAuth2.Refresh.ValidateUser = true
 	conf.OpenVPN.AuthTokenUser = false
 	conf.OpenVPN.KillDuplicateUsername = true
+
+	const (
+		expectedClientID = "1"
+		expectedUsername = "alice"
+	)
+
+	conf.OpenVPN.KillDuplicateUsername = true
 	conf.OpenVPN.ClientConfig.Enabled = true
 	conf.OpenVPN.ClientConfig.Strategy = config.OpenVPNConfigStrategyUserSelector
 	conf.OpenVPN.ClientConfig.Path = configtypes.FS{
@@ -191,6 +198,12 @@ func TestSilentReAuthenticationHandlesDuplicateUsernameSession(t *testing.T) {
 	conf.OAuth2.Refresh.Enabled = true
 	conf.OAuth2.Refresh.ValidateUser = true
 	conf.OpenVPN.AuthTokenUser = false
+	conf.OpenVPN.KillDuplicateUsername = true
+
+	const (
+		expectedClientID = "1"
+		expectedUsername = "alice"
+	)
 
 	suite := testsuite.New(&conf)
 	errOpenVPNClientCh := suite.SetupManagementEnvironment(ctx, t, nil)
@@ -210,6 +223,10 @@ func TestSilentReAuthenticationHandlesDuplicateUsernameSession(t *testing.T) {
 	require.Eventually(t, func() bool {
 		return oauth2Client.killCalls.Load() == 1 && oauth2Client.storeCalls.Load() == 1
 	}, time.Second, 10*time.Millisecond)
+
+	clientID, username := oauth2Client.DuplicateSessionArgs()
+	require.Equal(t, expectedClientID, clientID)
+	require.Equal(t, expectedUsername, username)
 
 	require.NoError(t, suite.GetManagementInterfaceConn().Close())
 
@@ -304,6 +321,9 @@ type storedProfileOAuth2Client struct {
 	resolveCalls atomic.Int32
 	killCalls    atomic.Int32
 	storeCalls   atomic.Int32
+	duplicateMu  sync.Mutex
+	lastClientID string
+	lastUsername string
 }
 
 func (c *storedProfileOAuth2Client) RefreshClientAuth(
@@ -332,9 +352,13 @@ func (c *storedProfileOAuth2Client) KillDuplicateUsernameSession(
 	_ context.Context,
 	_ *slog.Logger,
 	_ state.ClientIdentifier,
-	_, _ string,
+	clientID, username string,
 ) error {
 	c.killCalls.Add(1)
+	c.duplicateMu.Lock()
+	c.lastClientID = clientID
+	c.lastUsername = username
+	c.duplicateMu.Unlock()
 
 	return nil
 }
@@ -346,6 +370,13 @@ func (c *storedProfileOAuth2Client) StoreDuplicateUsernameSession(
 	_, _ string,
 ) {
 	c.storeCalls.Add(1)
+}
+
+func (c *storedProfileOAuth2Client) DuplicateSessionArgs() (string, string) {
+	c.duplicateMu.Lock()
+	defer c.duplicateMu.Unlock()
+
+	return c.lastClientID, c.lastUsername
 }
 
 func (c *storedProfileOAuth2Client) EncryptState(state.State) (state.EncryptedState, error) {

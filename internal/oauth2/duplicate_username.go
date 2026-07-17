@@ -53,6 +53,8 @@ func (c *Client) KillDuplicateUsernameSession(
 		return fmt.Errorf("unable to load duplicate username session: %w", err)
 	}
 
+	// Re-authentication for the same OpenVPN client can revisit this path and
+	// must not kill the currently active session.
 	if existingClient.ClientID == clientID {
 		return nil
 	}
@@ -128,6 +130,9 @@ func (c *Client) removeStoredDuplicateUsernameSession(ctx context.Context, logge
 		return
 	}
 
+	// A newer session for the same username may already have replaced this
+	// mapping, so only remove the username entry when it still points to the
+	// disconnecting client.
 	if existingClient.ClientID != clientID {
 		return
 	}
@@ -159,12 +164,12 @@ func (c *Client) loadDuplicateUsernameClientUsername(ctx context.Context, logger
 func (c *Client) loadDuplicateUsernameSession(ctx context.Context, username string) (duplicateUsernameSession, error) {
 	clientData, err := c.storage.Get(ctx, duplicateUsernameSessionKey(username))
 	if err != nil {
-		return duplicateUsernameSession{}, fmt.Errorf("load duplicate username session: %w", err)
+		return duplicateUsernameSession{}, fmt.Errorf("load duplicate username session for %q: %w", username, err)
 	}
 
 	var session duplicateUsernameSession
 	if err = json.Unmarshal([]byte(clientData), &session); err != nil {
-		return duplicateUsernameSession{}, fmt.Errorf("unable to parse duplicate username session: %w", err)
+		return duplicateUsernameSession{}, fmt.Errorf("unable to parse stored duplicate username session: %w", err)
 	}
 
 	return session, nil
