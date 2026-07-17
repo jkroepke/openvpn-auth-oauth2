@@ -421,7 +421,7 @@ func TestClientKillDuplicateUsernameUnsupportedWithManagementPlugin(t *testing.T
 	errOpenVPNClientCh := suite.SetupMockEnvironment(ctx, t, nil)
 	suite.SendMessagef(t, openvpn.WelcomeBanner)
 	suite.ExpectMessage(t, "version")
-	suite.SendMessagef(t, openvpn.ManagementInterfaceVersionOpenVPNAuthOAuth2+"\r\nManagement Interface Version: 5\r\nEND\r\n")
+	suite.SendMessagef(t, openvpn.ManagementInterfaceVersionOpenVPNAuthOAuth2+" 0.0.0\r\nManagement Interface Version: 5\r\nEND\r\n")
 
 	select {
 	case err := <-errOpenVPNClientCh:
