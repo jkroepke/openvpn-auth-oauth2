@@ -408,6 +408,29 @@ func TestClientInvalidVersion(t *testing.T) {
 	}
 }
 
+func TestClientKillDuplicateUsernameUnsupportedWithManagementPlugin(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	t.Cleanup(cancel)
+
+	conf := config.Defaults
+	conf.OpenVPN.KillDuplicateUsername = true
+
+	suite := testsuite.New(&conf)
+	errOpenVPNClientCh := suite.SetupMockEnvironment(ctx, t, nil)
+	suite.SendMessagef(t, openvpn.WelcomeBanner)
+	suite.ExpectMessage(t, "version")
+	suite.SendMessagef(t, "OpenVPN Version: openvpn-auth-oauth2\r\nManagement Interface Version: 5\r\nEND\r\n")
+
+	select {
+	case err := <-errOpenVPNClientCh:
+		require.ErrorIs(t, err, openvpn.ErrKillDuplicateUsernameUnsupported)
+	case <-time.After(1 * time.Second):
+		t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", suite.Logs())
+	}
+}
+
 func TestHoldRelease(t *testing.T) {
 	t.Parallel()
 

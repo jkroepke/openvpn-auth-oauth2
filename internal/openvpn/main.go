@@ -181,6 +181,11 @@ func (c *Client) checkManagementInterfaceVersion(ctx context.Context) error {
 
 	c.logger.LogAttrs(ctx, slog.LevelInfo, strings.Join(versionParts[0:1], " - "))
 
+	if c.conf.OpenVPN.KillDuplicateUsername &&
+		strings.HasPrefix(versionParts[0], "OpenVPN Version: openvpn-auth-oauth2") {
+		return ErrKillDuplicateUsernameUnsupported
+	}
+
 	managementInterfaceVersion, err := strconv.Atoi(versionParts[1][len(versionParts[1])-1:])
 	if err != nil {
 		return fmt.Errorf("unable to parse openvpn management interface version: %w", err)
