@@ -97,7 +97,28 @@ func (c *Client) handleClientAuthentication(ctx context.Context, logger *slog.Lo
 			}
 		}
 
-		_ = c.AcceptClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, user.Username, clientConfigNames...)
+		clientIdentifier := state.ClientIdentifier{
+			CID:               client.CID,
+			KID:               client.KID,
+			CommonName:        client.CommonName,
+			SessionID:         client.SessionID,
+			UsernameIsDefined: client.UsernameIsDefined,
+		}
+
+		if err = c.oauth2.KillDuplicateUsernameSession(ctx, logger, clientIdentifier, currentClientID(c.conf, client), user.Username); err != nil {
+			logger.LogAttrs(ctx, slog.LevelError, "error killing existing session for duplicate username", slog.Any("err", err))
+			c.DenyClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, "internal error")
+
+			return
+		}
+
+		if err = c.AcceptClient(ctx, logger, clientIdentifier, user.Username, clientConfigNames...); err != nil {
+			c.DenyClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, "internal error")
+
+			return
+		}
+
+		c.oauth2.StoreDuplicateUsernameSession(ctx, logger, clientIdentifier, currentClientID(c.conf, client), user.Username)
 
 		return
 	}

@@ -6,6 +6,7 @@ import (
 	"context"
 	"log/slog"
 	"net"
+	"strconv"
 	"sync"
 	"sync/atomic"
 
@@ -43,5 +44,15 @@ type oauth2Client interface {
 	RefreshClientAuth(ctx context.Context, logger *slog.Logger, client connection.Client) (types.UserInfo, *idtoken.IDToken, []string, bool, error)
 	ResolveClientConfigNames(tokens *idtoken.IDToken, openVPNUserCommonName, username string) ([]string, error)
 	ClientDisconnect(ctx context.Context, logger *slog.Logger, client connection.Client)
+	KillDuplicateUsernameSession(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, clientID, username string) error
+	StoreDuplicateUsernameSession(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, clientID, username string)
 	EncryptState(oidcState state.State) (state.EncryptedState, error)
+}
+
+func currentClientID(conf *config.Config, client connection.Client) string {
+	if conf.OAuth2.Refresh.UseSessionID && client.SessionID != "" {
+		return client.SessionID
+	}
+
+	return strconv.FormatUint(client.CID, 10)
 }

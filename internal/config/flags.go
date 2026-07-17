@@ -210,6 +210,12 @@ func (c *Config) flagSetOpenVPN(flagSet *flag.FlagSet) {
 			"Read OpenVPN man page for limitations of the override-username.",
 	)
 	flagSet.BoolVar(
+		&c.OpenVPN.KillDuplicateUsername,
+		"openvpn.kill-duplicate-username",
+		lookupEnvOrDefault("openvpn.kill-duplicate-username", c.OpenVPN.KillDuplicateUsername),
+		"If true, openvpn-auth-oauth2 kills an existing authenticated session before accepting a new session for the same username.",
+	)
+	flagSet.BoolVar(
 		&c.OpenVPN.Passthrough.Enabled,
 		"openvpn.pass-through.enabled",
 		lookupEnvOrDefault("openvpn.pass-through.enabled", c.OpenVPN.Passthrough.Enabled),

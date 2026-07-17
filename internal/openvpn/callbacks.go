@@ -224,6 +224,21 @@ func (c *Client) DenyClient(ctx context.Context, logger *slog.Logger, client sta
 	}
 }
 
+func (c *Client) KillClient(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier) error {
+	logger.LogAttrs(ctx, slog.LevelInfo, fmt.Sprintf("kill OpenVPN client cid %d", client.CID))
+
+	_, err := c.SendCommandf(ctx, "client-kill %d", client.CID)
+
+	if err != nil {
+		logger.LogAttrs(
+			ctx, slog.LevelWarn, "failed to kill client",
+			slog.Any("error", err),
+		)
+	}
+
+	return err
+}
+
 func (c *Client) readClientConfig(username string) ([]string, error) {
 	if !c.conf.OpenVPN.ClientConfig.Enabled || c.conf.OpenVPN.ClientConfig.Path.IsEmpty() || len(username) == 0 {
 		return make([]string, 0, 1), nil

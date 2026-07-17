@@ -180,6 +180,45 @@ func TestSilentReAuthenticationUsesStoredSelectedProfile(t *testing.T) {
 	}
 }
 
+func TestSilentReAuthenticationHandlesDuplicateUsernameSession(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	t.Cleanup(cancel)
+
+	conf := config.Defaults
+	conf.OAuth2.Refresh.Enabled = true
+	conf.OAuth2.Refresh.ValidateUser = true
+	conf.OpenVPN.AuthTokenUser = false
+
+	suite := testsuite.New(&conf)
+	errOpenVPNClientCh := suite.SetupManagementEnvironment(ctx, t, nil)
+	oauth2Client := &storedProfileOAuth2Client{}
+	suite.GetOpenVPNClient().SetOAuth2Client(oauth2Client)
+	suite.ExpectVersionAndReleaseHold(t)
+
+	suite.SendMessagef(
+		t,
+		">CLIENT:REAUTH,1,3\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n"+
+			">CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,session_state=AuthenticatedEmptyUser\r\n"+
+			">CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END",
+	)
+
+	suite.ExpectMessage(t, "client-auth-nt 1 3")
+	suite.SendMessagef(t, "SUCCESS: client-auth command succeeded")
+	require.Equal(t, int32(1), oauth2Client.killCalls.Load())
+	require.Equal(t, int32(1), oauth2Client.storeCalls.Load())
+
+	require.NoError(t, suite.GetManagementInterfaceConn().Close())
+
+	select {
+	case err := <-errOpenVPNClientCh:
+		require.NoError(t, err, suite.Logs())
+	case <-time.After(time.Second):
+		t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", suite.Logs())
+	}
+}
+
 func readOpenVPNManagementLine(t *testing.T, suite *testsuite.Suite, timeout time.Duration) (string, error) {
 	t.Helper()
 
@@ -232,6 +271,25 @@ func (c *blockingRefreshOAuth2Client) ResolveClientConfigNames(
 func (c *blockingRefreshOAuth2Client) ClientDisconnect(context.Context, *slog.Logger, connection.Client) {
 }
 
+func (c *blockingRefreshOAuth2Client) KillDuplicateUsernameSession(
+	context.Context,
+	*slog.Logger,
+	state.ClientIdentifier,
+	string,
+	string,
+) error {
+	return nil
+}
+
+func (c *blockingRefreshOAuth2Client) StoreDuplicateUsernameSession(
+	context.Context,
+	*slog.Logger,
+	state.ClientIdentifier,
+	string,
+	string,
+) {
+}
+
 func (c *blockingRefreshOAuth2Client) EncryptState(state.State) (state.EncryptedState, error) {
 	return "state", nil
 }
@@ -244,6 +302,8 @@ func (c *blockingRefreshOAuth2Client) release() {
 
 type storedProfileOAuth2Client struct {
 	resolveCalls atomic.Int32
+	killCalls    atomic.Int32
+	storeCalls   atomic.Int32
 }
 
 func (c *storedProfileOAuth2Client) RefreshClientAuth(
@@ -266,6 +326,28 @@ func (c *storedProfileOAuth2Client) ResolveClientConfigNames(
 }
 
 func (c *storedProfileOAuth2Client) ClientDisconnect(context.Context, *slog.Logger, connection.Client) {
+}
+
+func (c *storedProfileOAuth2Client) KillDuplicateUsernameSession(
+	context.Context,
+	*slog.Logger,
+	state.ClientIdentifier,
+	string,
+	string,
+) error {
+	c.killCalls.Add(1)
+
+	return nil
+}
+
+func (c *storedProfileOAuth2Client) StoreDuplicateUsernameSession(
+	context.Context,
+	*slog.Logger,
+	state.ClientIdentifier,
+	string,
+	string,
+) {
+	c.storeCalls.Add(1)
 }
 
 func (c *storedProfileOAuth2Client) EncryptState(state.State) (state.EncryptedState, error) {

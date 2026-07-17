@@ -31,6 +31,7 @@ const (
 type openvpnManagementClient interface {
 	AcceptClient(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, username string, clientConfigNames ...string) error
 	DenyClient(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, reason string)
+	KillClient(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier) error
 }
 
 // OAuth2Start returns a http.Handler that starts the OAuth2 authorization flow.
@@ -558,12 +559,19 @@ func (c *Client) acceptOAuth2Client(
 	req codeExchangeRequest,
 	clientConfigNames ...string,
 ) {
+	if err := c.KillDuplicateUsernameSession(ctx, req.logger, req.session.Client, req.clientID, req.username); err != nil {
+		c.writeHTTPError(ctx, w, req.logger, http.StatusInternalServerError, "OpenVPN", err.Error())
+
+		return
+	}
+
 	if err := c.openvpn.AcceptClient(ctx, req.logger, req.session.Client, req.username, clientConfigNames...); err != nil {
 		c.writeHTTPError(ctx, w, req.logger, http.StatusInternalServerError, "OpenVPN", err.Error())
 
 		return
 	}
 
+	c.StoreDuplicateUsernameSession(ctx, req.logger, req.session.Client, req.clientID, req.username)
 	c.postCodeExchangeHandlerStoreRefreshToken(ctx, req.logger, req.session, req.clientID, req.tokens, clientConfigNames)
 	c.writeHTTPSuccess(ctx, w, req.logger)
 }

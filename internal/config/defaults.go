@@ -61,7 +61,8 @@ var Defaults = Config{
 			EnvironmentVariableName: "common_name",
 			Mode:                    CommonNameModePlain,
 		},
-		OverrideUsername: false,
+		OverrideUsername:      false,
+		KillDuplicateUsername: false,
 		Bypass: OpenVPNBypass{
 			CommonNames: types.RegexpSlice{},
 		},

@@ -105,6 +105,7 @@ openvpn:
     addr: "unix:///run/openvpn/server2.sock"
     auth-token-user: true
     auth-pending-timeout: 2m
+    kill-duplicate-username: true
     override-username: true
     bypass:
         common-names:
@@ -197,6 +198,7 @@ http:
 					Password:           "1jd93h5b6s82lf03jh5b2hf9",
 					AuthTokenUser:      true,
 					AuthPendingTimeout: 2 * time.Minute,
+					KillDuplicateUsername: true,
 					OverrideUsername:   true,
 					CommonName: config.OpenVPNCommonName{
 						EnvironmentVariableName: "X509_0_emailAddress",
@@ -359,6 +361,16 @@ func TestConfigFlagSet(t *testing.T) {
 
 				conf := config.Defaults
 				conf.HTTP.AssetPath = dirFS
+
+				return conf
+			}(),
+		},
+		{
+			"--openvpn.kill-duplicate-username",
+			[]string{"--openvpn.kill-duplicate-username"},
+			func() config.Config {
+				conf := config.Defaults
+				conf.OpenVPN.KillDuplicateUsername = true
 
 				return conf
 			}(),

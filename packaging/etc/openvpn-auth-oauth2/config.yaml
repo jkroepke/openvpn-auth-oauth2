@@ -53,6 +53,7 @@
 #  addr: "unix:///run/openvpn/server.sock"  # This is overridden by /etc/sysconfig/openvpn-auth-oauth2
 #  auth-token-user: true
 #  auth-pending-timeout: 2m
+#  kill-duplicate-username: false
 #  bypass:
 #    common-names:
 #      - "test"
