@@ -24,6 +24,8 @@ const minManagementInterfaceVersion = 5
 
 const WelcomeBanner = ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info"
 
+const ManagementInterfaceVersionOpenVPNAuthOAuth2 = "OpenVPN Version: openvpn-auth-oauth2"
+
 // New creates a new Client configured with the provided logger and
 // configuration.
 func New(logger *slog.Logger, conf *config.Config) *Client {
@@ -182,7 +184,7 @@ func (c *Client) checkManagementInterfaceVersion(ctx context.Context) error {
 	c.logger.LogAttrs(ctx, slog.LevelInfo, strings.Join(versionParts[0:1], " - "))
 
 	if c.conf.OpenVPN.KillDuplicateUsername &&
-		strings.HasPrefix(versionParts[0], "OpenVPN Version: openvpn-auth-oauth2") {
+		strings.HasPrefix(versionParts[0], ManagementInterfaceVersionOpenVPNAuthOAuth2) {
 		return ErrKillDuplicateUsernameUnsupported
 	}
 
