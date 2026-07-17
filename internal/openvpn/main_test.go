@@ -21,6 +21,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func managementVersionResponse(versionLine string) string {
+	return versionLine + "\r\nManagement Interface Version: 5\r\nEND\r\n"
+}
+
 func TestClientInvalidServer(t *testing.T) {
 	t.Parallel()
 
@@ -421,7 +425,7 @@ func TestClientKillDuplicateUsernameUnsupportedWithManagementPlugin(t *testing.T
 	errOpenVPNClientCh := suite.SetupMockEnvironment(ctx, t, nil)
 	suite.SendMessagef(t, openvpn.WelcomeBanner)
 	suite.ExpectMessage(t, "version")
-	suite.SendMessagef(t, openvpn.ManagementInterfaceVersionOpenVPNAuthOAuth2+" 0.0.0\r\nManagement Interface Version: 5\r\nEND\r\n")
+	suite.SendMessagef(t, managementVersionResponse(openvpn.ManagementInterfaceVersionOpenVPNAuthOAuth2+" 0.0.0"))
 
 	select {
 	case err := <-errOpenVPNClientCh:
