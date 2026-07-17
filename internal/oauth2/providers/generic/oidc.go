@@ -76,8 +76,6 @@ type revokeHTTPClientRelyingParty struct {
 }
 
 // HttpClient returns a shallow copy because upstream revoke mutates CheckRedirect.
-//
-//nolint:revive // HttpClient is required by the upstream rp.RelyingParty interface.
 func (r revokeHTTPClientRelyingParty) HttpClient() *http.Client {
 	client := r.RelyingParty.HttpClient()
 	if client == nil {
