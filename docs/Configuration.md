@@ -113,7 +113,7 @@ Usage of openvpn-auth-oauth2:
   --openvpn.auth-token-user
     	Override the username of a session with the username from the token by using auth-token-user, if the client username is empty (env: CONFIG_OPENVPN_AUTH__TOKEN__USER) (default true)
   --openvpn.kill-duplicate-username
-    	If true, openvpn-auth-oauth2 kills an existing authenticated session before accepting a new session for the same username. (env: CONFIG_OPENVPN_KILL__DUPLICATE__USERNAME)
+        If true, openvpn-auth-oauth2 kills an existing authenticated session before accepting a new session for the same username. (env: CONFIG_OPENVPN_KILL__DUPLICATE__USERNAME)
   --openvpn.bypass.common-names value
     	Skip OAuth authentication for client certificate common names (CNs) matching any of the given regular expressions. Multiple expressions can be provided as a comma-separated list. Regular expressions are automatically anchored (^…$) by default, so "client" matches only "client". To allow partial matches, specify explicitly (e.g. "client.*"). (env: CONFIG_OPENVPN_BYPASS_COMMON__NAMES)
   --openvpn.client-config.enabled

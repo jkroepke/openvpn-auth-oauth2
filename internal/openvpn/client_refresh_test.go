@@ -283,21 +283,14 @@ func (c *blockingRefreshOAuth2Client) ResolveClientConfigNames(
 func (c *blockingRefreshOAuth2Client) ClientDisconnect(context.Context, *slog.Logger, connection.Client) {
 }
 
-func (c *blockingRefreshOAuth2Client) KillDuplicateUsernameSession(
+func (c *blockingRefreshOAuth2Client) AcceptClientWithDuplicateUsernameSession(
 	_ context.Context,
 	_ *slog.Logger,
 	_ state.ClientIdentifier,
 	_, _ string,
+	accept func() error,
 ) error {
-	return nil
-}
-
-func (c *blockingRefreshOAuth2Client) StoreDuplicateUsernameSession(
-	_ context.Context,
-	_ *slog.Logger,
-	_ state.ClientIdentifier,
-	_, _ string,
-) {
+	return accept()
 }
 
 func (c *blockingRefreshOAuth2Client) EncryptState(state.State) (state.EncryptedState, error) {
@@ -341,11 +334,12 @@ func (c *storedProfileOAuth2Client) ResolveClientConfigNames(
 func (c *storedProfileOAuth2Client) ClientDisconnect(context.Context, *slog.Logger, connection.Client) {
 }
 
-func (c *storedProfileOAuth2Client) KillDuplicateUsernameSession(
+func (c *storedProfileOAuth2Client) AcceptClientWithDuplicateUsernameSession(
 	_ context.Context,
 	_ *slog.Logger,
 	_ state.ClientIdentifier,
 	clientID, username string,
+	accept func() error,
 ) error {
 	c.killCalls.Add(1)
 	c.duplicateMu.Lock()
@@ -353,16 +347,13 @@ func (c *storedProfileOAuth2Client) KillDuplicateUsernameSession(
 	c.lastUsername = username
 	c.duplicateMu.Unlock()
 
-	return nil
-}
+	if err := accept(); err != nil {
+		return err
+	}
 
-func (c *storedProfileOAuth2Client) StoreDuplicateUsernameSession(
-	_ context.Context,
-	_ *slog.Logger,
-	_ state.ClientIdentifier,
-	_, _ string,
-) {
 	c.storeCalls.Add(1)
+
+	return nil
 }
 
 func (c *storedProfileOAuth2Client) DuplicateSessionArgs() (string, string) {

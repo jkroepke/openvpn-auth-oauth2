@@ -11,8 +11,11 @@ import (
 	"strings"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn/connection"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
 )
+
+const clientKillFailedResponse = "ERROR: client-kill command failed"
 
 // AcceptClient accepts an OpenVPN client connection.
 // It reads the client configuration from the CCD path if enabled.
@@ -227,15 +230,23 @@ func (c *Client) DenyClient(ctx context.Context, logger *slog.Logger, client sta
 func (c *Client) KillClient(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier) error {
 	logger.LogAttrs(ctx, slog.LevelInfo, fmt.Sprintf("kill OpenVPN client cid %d", client.CID))
 
-	_, err := c.SendCommandf(ctx, "client-kill %d", client.CID)
+	resp, err := c.SendCommandf(ctx, "client-kill %d", client.CID)
 	if err != nil {
-		logger.LogAttrs(
-			ctx, slog.LevelWarn, "failed to kill client",
-			slog.Any("error", err),
-		)
+		return fmt.Errorf("kill OpenVPN client cid %d: %w", client.CID, err)
 	}
 
-	return err
+	// OpenVPN returns this exact response when its CID lookup finds no active
+	// client. Match it narrowly so transport and other management errors remain
+	// fatal. See management_kill_by_cid in OpenVPN's src/openvpn/multi.c.
+	if strings.TrimSuffix(resp, "\r\n") == clientKillFailedResponse {
+		return fmt.Errorf("kill OpenVPN client cid %d: %w: %s", client.CID, connection.ErrClientNotFound, resp)
+	}
+
+	if strings.HasPrefix(resp, "ERROR:") {
+		return fmt.Errorf("kill OpenVPN client cid %d: %w: %s", client.CID, ErrErrorResponse, resp)
+	}
+
+	return nil
 }
 
 func (c *Client) readClientConfig(username string) ([]string, error) {

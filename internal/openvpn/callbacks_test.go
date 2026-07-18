@@ -13,6 +13,8 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn/connection"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/test/testsuite"
 	"github.com/stretchr/testify/require"
@@ -74,6 +76,67 @@ func TestAcceptClientClosesClientConfigFile(t *testing.T) {
 		}
 	case <-time.After(time.Second):
 		t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", suite.Logs())
+	}
+}
+
+func TestKillClientReturnsOpenVPNErrorResponse(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		name     string
+		response string
+		target   error
+	}{
+		{
+			name:     "client does not exist",
+			response: "ERROR: client-kill command failed",
+			target:   connection.ErrClientNotFound,
+		},
+		{
+			name:     "other OpenVPN error",
+			response: "ERROR: command not allowed",
+			target:   openvpn.ErrErrorResponse,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithCancel(t.Context())
+			t.Cleanup(cancel)
+
+			conf := config.Defaults
+			suite := testsuite.New(&conf)
+			errOpenVPNClientCh := suite.SetupManagementEnvironment(ctx, t, nil)
+			openVPNClient := suite.GetOpenVPNClient()
+
+			suite.ExpectVersionAndReleaseHold(t)
+
+			killErrCh := make(chan error, 1)
+			go func() {
+				killErrCh <- openVPNClient.KillClient(ctx, suite.GetLogger(), state.ClientIdentifier{CID: 1})
+			}()
+
+			suite.ExpectMessage(t, "client-kill 1")
+			suite.SendMessagef(t, "%s", tc.response)
+
+			select {
+			case err := <-killErrCh:
+				require.ErrorIs(t, err, tc.target)
+			case <-time.After(time.Second):
+				t.Fatalf("timeout waiting for KillClient. Logs:\n\n%s", suite.Logs())
+			}
+
+			require.NoError(t, suite.GetManagementInterfaceConn().Close())
+
+			select {
+			case err := <-errOpenVPNClientCh:
+				if err != nil && !errors.Is(err, io.EOF) {
+					require.NoError(t, err)
+				}
+			case <-time.After(time.Second):
+				t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", suite.Logs())
+			}
+		})
 	}
 }
 

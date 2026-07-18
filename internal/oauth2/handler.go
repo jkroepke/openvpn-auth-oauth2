@@ -221,7 +221,16 @@ func (c *Client) OAuth2ProfileSubmit() http.Handler {
 
 		logger.LogAttrs(ctx, slog.LevelInfo, "successful authorization via oauth2 with profile selection")
 
-		if err = c.openvpn.AcceptClient(ctx, logger, oAuth2State.Client, username, clientConfigName); err != nil {
+		if err = c.AcceptClientWithDuplicateUsernameSession(
+			ctx,
+			logger,
+			oAuth2State.Client,
+			clientID,
+			username,
+			func() error {
+				return c.openvpn.AcceptClient(ctx, logger, oAuth2State.Client, username, clientConfigName)
+			},
+		); err != nil {
 			c.writeHTTPError(ctx, w, logger, http.StatusInternalServerError, "OpenVPN", err.Error())
 
 			return
@@ -559,19 +568,21 @@ func (c *Client) acceptOAuth2Client(
 	req codeExchangeRequest,
 	clientConfigNames ...string,
 ) {
-	if err := c.KillDuplicateUsernameSession(ctx, req.logger, req.session.Client, req.clientID, req.username); err != nil {
-		c.writeHTTPError(ctx, w, req.logger, http.StatusInternalServerError, "Duplicate Session Handling", err.Error())
-
-		return
-	}
-
-	if err := c.openvpn.AcceptClient(ctx, req.logger, req.session.Client, req.username, clientConfigNames...); err != nil {
+	if err := c.AcceptClientWithDuplicateUsernameSession(
+		ctx,
+		req.logger,
+		req.session.Client,
+		req.clientID,
+		req.username,
+		func() error {
+			return c.openvpn.AcceptClient(ctx, req.logger, req.session.Client, req.username, clientConfigNames...)
+		},
+	); err != nil {
 		c.writeHTTPError(ctx, w, req.logger, http.StatusInternalServerError, "OpenVPN", err.Error())
 
 		return
 	}
 
-	c.StoreDuplicateUsernameSession(ctx, req.logger, req.session.Client, req.clientID, req.username)
 	c.postCodeExchangeHandlerStoreRefreshToken(ctx, req.logger, req.session, req.clientID, req.tokens, clientConfigNames)
 	c.writeHTTPSuccess(ctx, w, req.logger)
 }

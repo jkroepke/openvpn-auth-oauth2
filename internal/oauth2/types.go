@@ -3,6 +3,7 @@ package oauth2
 import (
 	"context"
 	"log/slog"
+	"sync"
 
 	"github.com/google/cel-go/cel"
 	types2 "github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
@@ -25,6 +26,8 @@ type Client struct {
 	stateCrypto     *crypto.Cipher
 	conf            *types2.Config
 	authorizeParams []rp.URLParamOpt
+
+	duplicateUsernameMu sync.Mutex
 }
 
 type Provider interface {

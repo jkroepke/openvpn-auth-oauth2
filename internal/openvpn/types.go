@@ -44,8 +44,13 @@ type oauth2Client interface {
 	RefreshClientAuth(ctx context.Context, logger *slog.Logger, client connection.Client) (types.UserInfo, *idtoken.IDToken, []string, bool, error)
 	ResolveClientConfigNames(tokens *idtoken.IDToken, openVPNUserCommonName, username string) ([]string, error)
 	ClientDisconnect(ctx context.Context, logger *slog.Logger, client connection.Client)
-	KillDuplicateUsernameSession(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, clientID, username string) error
-	StoreDuplicateUsernameSession(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, clientID, username string)
+	AcceptClientWithDuplicateUsernameSession(
+		ctx context.Context,
+		logger *slog.Logger,
+		client state.ClientIdentifier,
+		clientID, username string,
+		accept func() error,
+	) error
 	EncryptState(oidcState state.State) (state.EncryptedState, error)
 }
 

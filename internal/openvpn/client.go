@@ -136,21 +136,21 @@ func (c *Client) acceptSilentlyReAuthenticatedClient(
 
 	clientID := currentClientID(c.conf, client)
 
-	if err := c.oauth2.KillDuplicateUsernameSession(ctx, logger, clientIdentifier, clientID, user.Username); err != nil {
-		logger.LogAttrs(ctx, slog.LevelError, "error killing existing session for duplicate username", slog.Any("err", err))
-		c.DenyClient(ctx, logger, clientIdentifier, "duplicate session handling failed")
-
-		return
-	}
-
-	if err := c.AcceptClient(ctx, logger, clientIdentifier, user.Username, clientConfigNames...); err != nil {
+	if err := c.oauth2.AcceptClientWithDuplicateUsernameSession(
+		ctx,
+		logger,
+		clientIdentifier,
+		clientID,
+		user.Username,
+		func() error {
+			return c.AcceptClient(ctx, logger, clientIdentifier, user.Username, clientConfigNames...)
+		},
+	); err != nil {
 		logger.LogAttrs(ctx, slog.LevelWarn, "failed to accept silently re-authenticated client", slog.Any("err", err))
 		c.DenyClient(ctx, logger, clientIdentifier, "authentication acceptance failed")
 
 		return
 	}
-
-	c.oauth2.StoreDuplicateUsernameSession(ctx, logger, clientIdentifier, clientID, user.Username)
 }
 
 // startClientAuth initiates the authentication process for the client.

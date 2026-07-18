@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn/connection"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/tokenstorage"
 )
@@ -35,16 +36,41 @@ func duplicateUsernameClientKey(clientID string) string {
 	return duplicateUsernameStoragePrefix + "client:" + clientID
 }
 
-func (c *Client) KillDuplicateUsernameSession(
+// AcceptClientWithDuplicateUsernameSession serializes duplicate-session
+// replacement so concurrent authentication attempts cannot both be accepted.
+func (c *Client) AcceptClientWithDuplicateUsernameSession(
+	ctx context.Context,
+	logger *slog.Logger,
+	client state.ClientIdentifier,
+	clientID, username string,
+	accept func() error,
+) error {
+	if !c.conf.OpenVPN.KillDuplicateUsername || username == "" {
+		return accept()
+	}
+
+	c.duplicateUsernameMu.Lock()
+	defer c.duplicateUsernameMu.Unlock()
+
+	if err := c.killDuplicateUsernameSession(ctx, logger, client, clientID, username); err != nil {
+		return err
+	}
+
+	if err := accept(); err != nil {
+		return err
+	}
+
+	c.storeDuplicateUsernameSession(ctx, logger, client, clientID, username)
+
+	return nil
+}
+
+func (c *Client) killDuplicateUsernameSession(
 	ctx context.Context,
 	logger *slog.Logger,
 	client state.ClientIdentifier,
 	clientID, username string,
 ) error {
-	if !c.conf.OpenVPN.KillDuplicateUsername || username == "" {
-		return nil
-	}
-
 	existingClient, err := c.loadDuplicateUsernameSession(ctx, username)
 	if err != nil {
 		if errors.Is(err, tokenstorage.ErrNotExists) {
@@ -69,14 +95,28 @@ func (c *Client) KillDuplicateUsernameSession(
 		slog.String("session_id", client.SessionID),
 	)
 
-	if err = c.openvpn.KillClient(ctx, logger, existingClient.Client.toStateClientIdentifier()); err != nil {
+	err = c.openvpn.KillClient(ctx, logger, existingClient.Client.toStateClientIdentifier())
+	if errors.Is(err, connection.ErrClientNotFound) {
+		logger.LogAttrs(
+			ctx, slog.LevelDebug, "remove stale duplicate username session",
+			slog.String("user_username", username),
+			slog.Uint64("existing_cid", existingClient.Client.CID),
+		)
+
+		c.deleteDuplicateUsernameClientMapping(ctx, logger, existingClient.ClientID)
+		c.removeStoredDuplicateUsernameSession(ctx, logger, username, existingClient.ClientID)
+
+		return nil
+	}
+
+	if err != nil {
 		return fmt.Errorf("unable to kill duplicate username session: %w", err)
 	}
 
 	return nil
 }
 
-func (c *Client) StoreDuplicateUsernameSession(
+func (c *Client) storeDuplicateUsernameSession(
 	ctx context.Context,
 	logger *slog.Logger,
 	client state.ClientIdentifier,
@@ -115,6 +155,9 @@ func (c *Client) DeleteDuplicateUsernameSession(ctx context.Context, logger *slo
 	if !c.conf.OpenVPN.KillDuplicateUsername || clientID == "" {
 		return
 	}
+
+	c.duplicateUsernameMu.Lock()
+	defer c.duplicateUsernameMu.Unlock()
 
 	username, ok := c.loadDuplicateUsernameClientUsername(ctx, logger, clientID)
 	if !ok {
