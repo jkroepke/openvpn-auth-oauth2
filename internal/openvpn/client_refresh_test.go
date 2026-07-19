@@ -128,6 +128,60 @@ func TestClientAuthenticationEventsKeepSameClientOrder(t *testing.T) {
 	suite.SendMessagef(t, "SUCCESS: client-pending-auth command succeeded")
 }
 
+func TestSilentAuthenticationEnforcesUniqueUser(t *testing.T) {
+	t.Parallel()
+
+	for _, reason := range []string{"CONNECT", "REAUTH"} {
+		t.Run(reason, func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithCancel(t.Context())
+			t.Cleanup(cancel)
+
+			conf := config.Defaults
+			conf.OAuth2.Refresh.Enabled = true
+			conf.OAuth2.Refresh.ValidateUser = true
+			conf.OpenVPN.EnforceUniqueUser = true
+			conf.OpenVPN.OverrideUsername = true
+
+			suite := testsuite.New(&conf)
+			errOpenVPNClientCh := suite.SetupManagementEnvironment(ctx, t, nil)
+			suite.GetOpenVPNClient().SetOAuth2Client(&storedProfileOAuth2Client{})
+			suite.ExpectVersionAndReleaseHold(t)
+
+			suite.SendMessagef(
+				t,
+				">CLIENT:%s,10,3\r\n>CLIENT:ENV,untrusted_ip=127.0.0.1\r\n>CLIENT:ENV,common_name=test\r\n"+
+					">CLIENT:ENV,session_id=session_id\r\n>CLIENT:ENV,session_state=Authenticated\r\n"+
+					">CLIENT:ENV,IV_SSO=webauth\r\n>CLIENT:ENV,END",
+				reason,
+			)
+
+			suite.ExpectMessage(t, "status 3")
+			suite.SendMessagef(
+				t,
+				"HEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tVirtual IPv6 Address\t"+
+					"Bytes Received\tBytes Sent\tConnected Since\tConnected Since (time_t)\tUsername\tClient ID\tPeer ID\tData Channel Cipher\r\n"+
+					"CLIENT_LIST\tclient\t127.0.0.1:1194\t10.8.0.2\t\t1\t2\tnow\t1\talice\t7\t0\tAES-256-GCM\r\n"+
+					"CLIENT_LIST\tclient\t127.0.0.1:1194\t10.8.0.3\t\t1\t2\tnow\t1\talice\t10\t0\tAES-256-GCM\r\nEND",
+			)
+			suite.ExpectMessage(t, "client-kill 7")
+			suite.SendMessagef(t, "SUCCESS: client-kill command succeeded")
+			suite.ExpectMessage(t, "client-auth 10 3\r\noverride-username \"alice\"\r\nEND")
+			suite.SendMessagef(t, "SUCCESS: client-auth command succeeded")
+
+			require.NoError(t, suite.GetManagementInterfaceConn().Close())
+
+			select {
+			case err := <-errOpenVPNClientCh:
+				require.NoError(t, err, suite.Logs())
+			case <-time.After(time.Second):
+				t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", suite.Logs())
+			}
+		})
+	}
+}
+
 func TestSilentReAuthenticationUsesStoredSelectedProfile(t *testing.T) {
 	t.Parallel()
 

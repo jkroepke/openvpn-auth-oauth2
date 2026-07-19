@@ -5,3 +5,4 @@ oauth2:
     secret: SECRET
 openvpn:
   auth-token-user: true
+  enforce-unique-user: false

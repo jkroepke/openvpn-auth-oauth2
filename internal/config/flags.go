@@ -210,6 +210,13 @@ func (c *Config) flagSetOpenVPN(flagSet *flag.FlagSet) {
 			"Read OpenVPN man page for limitations of the override-username.",
 	)
 	flagSet.BoolVar(
+		&c.OpenVPN.EnforceUniqueUser,
+		"openvpn.enforce-unique-user",
+		lookupEnvOrDefault("openvpn.enforce-unique-user", c.OpenVPN.EnforceUniqueUser),
+		"Requires OpenVPN Server 2.7 and openvpn.override-username=true. "+
+			"If true, openvpn-auth-oauth2 enforces one active OpenVPN session per username.",
+	)
+	flagSet.BoolVar(
 		&c.OpenVPN.Passthrough.Enabled,
 		"openvpn.pass-through.enabled",
 		lookupEnvOrDefault("openvpn.pass-through.enabled", c.OpenVPN.Passthrough.Enabled),

@@ -408,6 +408,33 @@ func TestClientInvalidVersion(t *testing.T) {
 	}
 }
 
+func TestClientEnforceUniqueUserRejectsPluginShim(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	t.Cleanup(cancel)
+
+	conf := config.Defaults
+	conf.OpenVPN.EnforceUniqueUser = true
+	conf.OpenVPN.OverrideUsername = true
+
+	suite := testsuite.New(&conf)
+	errOpenVPNClientCh := suite.SetupMockEnvironment(ctx, t, nil)
+	suite.SendMessagef(t, openvpn.WelcomeBanner)
+	suite.ExpectMessage(t, "version")
+	suite.SendMessagef(
+		t,
+		"OpenVPN Version: openvpn-auth-oauth2 2.0.0\r\nManagement Interface Version: 5\r\nEND",
+	)
+
+	select {
+	case err := <-errOpenVPNClientCh:
+		require.ErrorIs(t, err, openvpn.ErrEnforceUniqueUserUnsupported)
+	case <-time.After(time.Second):
+		t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", suite.Logs())
+	}
+}
+
 func TestHoldRelease(t *testing.T) {
 	t.Parallel()
 

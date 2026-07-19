@@ -30,6 +30,20 @@ func (c *Client) AcceptClient(ctx context.Context, logger *slog.Logger, client s
 		return err
 	}
 
+	if c.conf.OpenVPN.EnforceUniqueUser {
+		c.acceptMu.Lock()
+		defer c.acceptMu.Unlock()
+
+		if err = c.enforceUniqueUser(ctx, logger, client.CID, username); err != nil {
+			logger.LogAttrs(
+				ctx, slog.LevelWarn, "failed to terminate existing OpenVPN sessions",
+				slog.Any("error", err),
+			)
+
+			return err
+		}
+	}
+
 	err = c.sendClientAuth(ctx, client, clientConfig)
 	if err != nil {
 		logger.LogAttrs(
@@ -68,7 +82,7 @@ func (c *Client) loadClientConfig(
 }
 
 func (c *Client) applyUsernameConfig(clientConfig []string, client state.ClientIdentifier, username string) []string {
-	if !c.conf.OAuth2.Refresh.ValidateUser {
+	if !c.conf.OAuth2.Refresh.ValidateUser && !c.conf.OpenVPN.EnforceUniqueUser {
 		return clientConfig
 	}
 

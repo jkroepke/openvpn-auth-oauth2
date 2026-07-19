@@ -33,6 +33,7 @@ type Client struct {
 	passThroughCh        chan string
 	conf                 *config.Config
 	commandsBuffer       bytes.Buffer
+	acceptMu             sync.Mutex
 	commandMu            sync.Mutex
 	connMu               sync.Mutex
 	closed               atomic.Uint32

@@ -21,18 +21,28 @@ func Validate(mode int, conf *Config) error {
 		return err
 	}
 
-	if mode == ManagementClient {
-		for key, value := range map[string]types.URL{
-			"openvpn.addr": conf.OpenVPN.Addr,
-		} {
-			if value.IsEmpty() {
-				return fmt.Errorf("%s is %w", key, ErrRequired)
-			}
-		}
+	return validateOpenVPNConfig(mode, conf)
+}
 
-		if !slices.Contains([]string{SchemeTCP, SchemeUNIX}, conf.OpenVPN.Addr.Scheme) {
-			return errors.New("openvpn.addr: invalid URL. only tcp://addr or unix://addr scheme supported")
-		}
+func validateOpenVPNConfig(mode int, conf *Config) error {
+	if conf.OpenVPN.EnforceUniqueUser && !conf.OpenVPN.OverrideUsername {
+		return errors.New("openvpn.enforce-unique-user requires openvpn.override-username=true")
+	}
+
+	if conf.OpenVPN.EnforceUniqueUser && mode != ManagementClient {
+		return errors.New("openvpn.enforce-unique-user requires the OpenVPN management interface")
+	}
+
+	if mode != ManagementClient {
+		return nil
+	}
+
+	if conf.OpenVPN.Addr.IsEmpty() {
+		return fmt.Errorf("openvpn.addr is %w", ErrRequired)
+	}
+
+	if !slices.Contains([]string{SchemeTCP, SchemeUNIX}, conf.OpenVPN.Addr.Scheme) {
+		return errors.New("openvpn.addr: invalid URL. only tcp://addr or unix://addr scheme supported")
 	}
 
 	return nil

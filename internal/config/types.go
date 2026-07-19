@@ -77,6 +77,7 @@ type OpenVPN struct {
 	ClientConfig       OpenVPNConfig      `json:"client-config"        yaml:"client-config"`
 	AuthPendingTimeout time.Duration      `json:"auth-pending-timeout" yaml:"auth-pending-timeout"`
 	CommandTimeout     time.Duration      `json:"command-timeout"      yaml:"command-timeout"`
+	EnforceUniqueUser  bool               `json:"enforce-unique-user"  yaml:"enforce-unique-user"`
 	OverrideUsername   bool               `json:"override-username"    yaml:"override-username"`
 	ReAuthentication   bool               `json:"reauthentication"     yaml:"reauthentication"`
 	AuthTokenUser      bool               `json:"auth-token-user"      yaml:"auth-token-user"`

@@ -308,6 +308,27 @@ func TestValidate(t *testing.T) {
 			"",
 		},
 		{
+			"single active session requires override username",
+			func() config.Config {
+				conf := validConfig()
+				conf.OpenVPN.EnforceUniqueUser = true
+
+				return conf
+			}(),
+			"openvpn.enforce-unique-user requires openvpn.override-username=true",
+		},
+		{
+			"valid single active session configuration",
+			func() config.Config {
+				conf := validConfig()
+				conf.OpenVPN.EnforceUniqueUser = true
+				conf.OpenVPN.OverrideUsername = true
+
+				return conf
+			}(),
+			"",
+		},
+		{
 			"valid openvpn passthrough",
 			func() config.Config {
 				conf := validConfig()
@@ -350,4 +371,16 @@ func validConfig() config.Config {
 			Addr: types.URL{URL: &url.URL{Scheme: "tcp", Host: "127.0.0.1:9000"}},
 		},
 	}
+}
+
+func TestValidateEnforceUniqueUserRequiresManagementClient(t *testing.T) {
+	t.Parallel()
+
+	conf := validConfig()
+	conf.OpenVPN.EnforceUniqueUser = true
+	conf.OpenVPN.OverrideUsername = true
+
+	err := config.Validate(config.Plugin, &conf)
+
+	require.EqualError(t, err, "openvpn.enforce-unique-user requires the OpenVPN management interface")
 }

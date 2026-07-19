@@ -226,7 +226,7 @@ func (c *Client) OAuth2ProfileSubmit() http.Handler {
 			return
 		}
 
-		c.storeSelectedProfileRefreshState(ctx, logger, oAuth2State, clientID, clientConfigName)
+		c.storeSelectedProfileRefreshState(ctx, logger, oAuth2State, clientID, username, clientConfigName)
 
 		c.writeHTTPSuccess(ctx, w, logger)
 	})
@@ -242,14 +242,14 @@ func (c *Client) getClientID(session state.State) string {
 }
 
 func (c *Client) storeSelectedProfileRefreshState(
-	ctx context.Context, logger *slog.Logger, session state.State, clientID, clientConfigName string,
+	ctx context.Context, logger *slog.Logger, session state.State, clientID, username, clientConfigName string,
 ) {
 	if !c.conf.OAuth2.Refresh.Enabled {
 		return
 	}
 
 	if !c.conf.OAuth2.Refresh.ValidateUser {
-		c.postCodeExchangeHandlerStoreRefreshToken(ctx, logger, session, clientID, nil, []string{clientConfigName})
+		c.postCodeExchangeHandlerStoreRefreshToken(ctx, logger, session, clientID, username, nil, []string{clientConfigName})
 
 		return
 	}
@@ -475,7 +475,7 @@ func (c *Client) handleClientConfigSelector(ctx context.Context, w http.Response
 		return true
 	default:
 		if c.conf.OAuth2.Refresh.ValidateUser {
-			c.postCodeExchangeHandlerStoreRefreshToken(ctx, req.logger, req.session, req.clientID, req.tokens, nil)
+			c.postCodeExchangeHandlerStoreRefreshToken(ctx, req.logger, req.session, req.clientID, req.username, req.tokens, nil)
 		}
 
 		if err := c.renderClientConfigProfileSelector(ctx, w, req, clientConfigProfiles); err != nil {
@@ -564,20 +564,25 @@ func (c *Client) acceptOAuth2Client(
 		return
 	}
 
-	c.postCodeExchangeHandlerStoreRefreshToken(ctx, req.logger, req.session, req.clientID, req.tokens, clientConfigNames)
+	c.postCodeExchangeHandlerStoreRefreshToken(ctx, req.logger, req.session, req.clientID, req.username, req.tokens, clientConfigNames)
 	c.writeHTTPSuccess(ctx, w, req.logger)
 }
 
 // postCodeExchangeHandlerStoreRefreshToken stores refresh data for future non-interactive authentication.
 func (c *Client) postCodeExchangeHandlerStoreRefreshToken(
-	ctx context.Context, logger *slog.Logger, session state.State, clientID string, tokens *idtoken.IDToken, clientConfigNames []string,
+	ctx context.Context,
+	logger *slog.Logger,
+	session state.State,
+	clientID, username string,
+	tokens *idtoken.IDToken,
+	clientConfigNames []string,
 ) {
 	if !c.conf.OAuth2.Refresh.Enabled {
 		return
 	}
 
 	if !c.conf.OAuth2.Refresh.ValidateUser {
-		c.storeInternalRefreshToken(ctx, logger, clientID, clientConfigNames)
+		c.storeInternalRefreshToken(ctx, logger, clientID, username, clientConfigNames)
 
 		return
 	}
@@ -607,14 +612,16 @@ func (c *Client) postCodeExchangeHandlerStoreRefreshToken(
 	}
 }
 
-func (c *Client) storeInternalRefreshToken(ctx context.Context, logger *slog.Logger, clientID string, clientConfigNames []string) {
-	internalToken, err := encodeInternalRefreshToken(clientConfigNames)
+func (c *Client) storeInternalRefreshToken(
+	ctx context.Context, logger *slog.Logger, clientID, username string, clientConfigNames []string,
+) {
+	internalToken, err := encodeInternalRefreshToken(username, clientConfigNames)
 	if err != nil {
 		logger.LogAttrs(ctx, slog.LevelWarn, err.Error())
 	} else if err := c.storage.Set(ctx, clientID, internalToken); err != nil {
 		logger.LogAttrs(ctx, slog.LevelWarn, err.Error())
 	} else {
-		logger.LogAttrs(ctx, slog.LevelDebug, "empty token for non-interactive re-authentication stored")
+		logger.LogAttrs(ctx, slog.LevelDebug, "internal token for non-interactive re-authentication stored")
 	}
 }
 

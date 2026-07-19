@@ -119,6 +119,47 @@ When `openvpn.override-username` is enabled, OpenVPN's native `client-config-dir
 
 For more details, see the OpenVPN man page regarding `override-username` limitations.
 
+### Limiting a Username to One Active Session
+
+OpenVPN checks duplicate common names before `override-username` replaces a
+placeholder username with the identity resolved from OAuth2. As a result,
+OpenVPN's common-name check cannot prevent two clients that use the same shared
+profile from authenticating as the same OAuth2 user.
+
+Enable `openvpn.enforce-unique-user` to replace active sessions based on the
+resolved OAuth2 username. This applies the single-client behavior that OpenVPN
+normally bases on certificate common names, and that `duplicate-cn` disables,
+to the resolved user identity:
+
+```yaml
+openvpn:
+  override-username: true
+  enforce-unique-user: true
+```
+
+The option requires OpenVPN 2.7 or later and a direct management-interface
+connection. It is not compatible with the [OpenVPN Plugin](OpenVPN%20Plugin).
+Configuration validation rejects the option unless `openvpn.override-username`
+is also enabled.
+
+Before accepting a client, openvpn-auth-oauth2 requests `status 3`, finds every
+active client with an exactly matching `Username` field, and sends
+`client-kill <CID>` for each match except the CID currently authenticating. The
+status lookup and client acceptance are serialized so two concurrent logins
+cannot both pass the check. A status, parsing, or kill error prevents the new
+client from being accepted. If a matching CID disconnected after the status
+lookup, authentication continues because the old session is already gone.
+
+The check applies to interactive authentication, silent reauthentication, and
+non-interactive reconnects. When `oauth2.refresh.validate-user=false`, the
+resolved username is retained in encrypted refresh state so these paths use the
+same identity. The current CID is excluded, so a TLS reauthentication does not
+terminate its own session.
+
+This setting limits sessions on the OpenVPN server connected to this
+openvpn-auth-oauth2 process. It does not coordinate sessions across separate
+OpenVPN servers.
+
 ### Alternative: `openvpn.auth-token-user`
 
 If you're using OpenVPN Server < 2.7 or cannot use `override-username`, the `openvpn.auth-token-user` option provides limited username support:

@@ -66,6 +66,7 @@
 #    environment-variable-name: common_name
 #    mode: plain
 #  password: ""
+#  enforce-unique-user: false # (requires OpenVPN 2.7 server and override-username)
 #  override-username: false # (requires OpenVPN 2.7 server)
 #  reauthentication: true
 #pass-through:

@@ -22,6 +22,8 @@ import (
 // OpenVPN management interface.
 const minManagementInterfaceVersion = 5
 
+const managementPluginVersionPrefix = "OpenVPN Version: openvpn-auth-oauth2"
+
 const WelcomeBanner = ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info"
 
 // New creates a new Client configured with the provided logger and
@@ -180,6 +182,10 @@ func (c *Client) checkManagementInterfaceVersion(ctx context.Context) error {
 	}
 
 	c.logger.LogAttrs(ctx, slog.LevelInfo, strings.Join(versionParts[0:1], " - "))
+
+	if c.conf.OpenVPN.EnforceUniqueUser && strings.HasPrefix(versionParts[0], managementPluginVersionPrefix) {
+		return ErrEnforceUniqueUserUnsupported
+	}
 
 	managementInterfaceVersion, err := strconv.Atoi(versionParts[1][len(versionParts[1])-1:])
 	if err != nil {
