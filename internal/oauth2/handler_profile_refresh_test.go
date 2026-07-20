@@ -28,7 +28,7 @@ func TestStoreSelectedProfileRefreshState(t *testing.T) {
 		storage := tokenstorage.NewInMemoryWithGC("1234567890123456", time.Hour, 0)
 		client := Client{conf: &conf, storage: storage}
 
-		client.storeSelectedProfileRefreshState(ctx, logger, session, "7", "selected")
+		client.storeSelectedProfileRefreshState(ctx, logger, session, "7", "alice", "selected")
 
 		_, err := storage.Get(ctx, "7")
 		require.ErrorIs(t, err, tokenstorage.ErrNotExists)
@@ -43,13 +43,14 @@ func TestStoreSelectedProfileRefreshState(t *testing.T) {
 		storage := tokenstorage.NewInMemoryWithGC("1234567890123456", time.Hour, 0)
 		client := Client{conf: &conf, storage: storage}
 
-		client.storeSelectedProfileRefreshState(ctx, logger, session, "7", "selected")
+		client.storeSelectedProfileRefreshState(ctx, logger, session, "7", "alice", "selected")
 
 		refreshToken, err := storage.Get(ctx, "7")
 		require.NoError(t, err)
 
-		clientConfigNames, err := decodeInternalRefreshToken(refreshToken)
+		username, clientConfigNames, err := decodeInternalRefreshToken(refreshToken)
 		require.NoError(t, err)
+		require.Equal(t, "alice", username)
 		require.Equal(t, []string{"selected"}, clientConfigNames)
 	})
 
@@ -65,7 +66,7 @@ func TestStoreSelectedProfileRefreshState(t *testing.T) {
 		require.NoError(t, storage.Set(ctx, "7", storedToken))
 
 		client := Client{conf: &conf, storage: storage}
-		client.storeSelectedProfileRefreshState(ctx, logger, session, "7", "selected")
+		client.storeSelectedProfileRefreshState(ctx, logger, session, "7", "alice", "selected")
 
 		refreshToken, err := storage.Get(ctx, "7")
 		require.NoError(t, err)
@@ -85,7 +86,7 @@ func TestStoreSelectedProfileRefreshState(t *testing.T) {
 		storage := &profileRefreshStorage{getErr: errors.New("get failed")}
 		client := Client{conf: &conf, storage: storage}
 
-		client.storeSelectedProfileRefreshState(ctx, logger, session, "7", "selected")
+		client.storeSelectedProfileRefreshState(ctx, logger, session, "7", "alice", "selected")
 
 		require.False(t, storage.setCalled)
 	})
@@ -100,7 +101,7 @@ func TestStoreSelectedProfileRefreshState(t *testing.T) {
 		require.NoError(t, storage.Set(ctx, "7", providerRefreshTokenPrefix+"{"))
 
 		client := Client{conf: &conf, storage: storage}
-		client.storeSelectedProfileRefreshState(ctx, logger, session, "7", "selected")
+		client.storeSelectedProfileRefreshState(ctx, logger, session, "7", "alice", "selected")
 
 		refreshToken, err := storage.Get(ctx, "7")
 		require.NoError(t, err)
@@ -122,7 +123,7 @@ func TestStoreSelectedProfileRefreshState(t *testing.T) {
 		}
 		client := Client{conf: &conf, storage: storage}
 
-		client.storeSelectedProfileRefreshState(ctx, logger, session, "7", "selected")
+		client.storeSelectedProfileRefreshState(ctx, logger, session, "7", "alice", "selected")
 
 		require.True(t, storage.setCalled)
 

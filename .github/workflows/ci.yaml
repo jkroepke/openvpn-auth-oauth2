@@ -44,8 +44,11 @@ jobs:
       - name: go test -bench
         run: go test ./... -timeout 20s -run='^$' -bench=. -benchmem
 
-      - name: go test (Plugin Integration Tests)
-        run: go test ./lib/openvpn-auth-oauth2 -run '^TestIT$'
+      - name: go test (Integration Tests)
+        run: go test -race -count=1 -timeout=15m -run '^TestIT(EnforceUniqueUser)?$' ./internal ./lib/openvpn-auth-oauth2
+        env:
+          OPENVPN_IT_TEST: '1'
+          PLUGIN_IT_TEST: '1'
 
       - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         env:

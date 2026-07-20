@@ -3,6 +3,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net"
@@ -119,7 +120,10 @@ socat TCP-LISTEN:8081,reuseaddr,fork UNIX-CONNECT:${PLUGIN_SOCKET} &
 exec openvpn --config "/etc/openvpn/openvpn.conf" --tmp-dir /tmp/
 `
 
-const pluginSocketPath = "/run/openvpn/openvpn-oauth2.sock"
+const (
+	pluginITImage    = "testcontainers/openvpn-auth-oauth2:latest"
+	pluginSocketPath = "/run/openvpn/openvpn-oauth2.sock"
+)
 
 func TestIT(t *testing.T) {
 	t.Parallel()
@@ -134,9 +138,24 @@ func TestIT(t *testing.T) {
 
 	testcontainers.SkipIfProviderIsNotHealthy(t)
 
+	dockerClient, err := testcontainers.NewDockerClientWithOpts(t.Context())
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = dockerClient.Close() })
+
+	volumeName := fmt.Sprintf("openvpn-auth-oauth2-plugin-it-%d", time.Now().UnixNano())
+
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		_, err := dockerClient.VolumeRemove(ctx, volumeName, client.VolumeRemoveOptions{Force: true})
+		if err != nil && !errdefs.IsNotFound(err) {
+			t.Errorf("remove Docker volume %s: %v", volumeName, err)
+		}
+	})
+
 	containerServer, err := testcontainers.Run(
 		t.Context(), "",
-		testcontainers.WithName("openvpn-auth-oauth2-it-server"),
 		testcontainers.WithDockerfile(testcontainers.FromDockerfile{
 			Context:    `../../`,
 			Dockerfile: `./tests/plugin/Dockerfile`,
@@ -153,7 +172,7 @@ func TestIT(t *testing.T) {
 			"UPN": "user@example.com",
 		}),
 		testcontainers.WithMounts(testcontainers.ContainerMount{
-			Source: testcontainers.GenericVolumeMountSource{Name: "openvpn-auth-oauth2-it-data"},
+			Source: testcontainers.GenericVolumeMountSource{Name: volumeName},
 			Target: "/etc/openvpn",
 		}),
 		testcontainers.WithFiles(testcontainers.ContainerFile{
@@ -167,6 +186,9 @@ func TestIT(t *testing.T) {
 		}),
 		testcontainers.WithEntrypoint("/entrypoint.sh"),
 	)
+	if containerServer != nil {
+		testcontainers.CleanupContainer(t, containerServer)
+	}
 
 	if containerServer == nil {
 		require.NoError(t, err)
@@ -174,26 +196,22 @@ func TestIT(t *testing.T) {
 		return
 	}
 
-	testcontainers.CleanupContainer(t, containerServer)
-
 	containerServerLogs, _ := getContainerLogs(t, containerServer)
 	require.NoError(t, err, containerServerLogs)
 
+	pluginManagementEndpoint, err := containerServer.PortEndpoint(t.Context(), "8081", "tcp")
+	require.NoError(t, err)
+
+	clientManagementEndpoint, err := containerServer.PortEndpoint(t.Context(), "8082", "tcp")
+	require.NoError(t, err)
+
 	containerClient, err := testcontainers.Run(
-		t.Context(), "",
-		testcontainers.WithName("openvpn-auth-oauth2-it-client"),
-		testcontainers.WithDockerfile(testcontainers.FromDockerfile{
-			Context:    `../../`,
-			Dockerfile: `./tests/plugin/Dockerfile`,
-			Repo:       "testcontainers/openvpn-auth-oauth2",
-			Tag:        "latest",
-			KeepImage:  true,
-		}),
+		t.Context(), pluginITImage,
 		testcontainers.WithLabels(map[string]string{
 			"testcontainers": "true",
 		}),
 		testcontainers.WithMounts(testcontainers.ContainerMount{
-			Source: testcontainers.GenericVolumeMountSource{Name: "openvpn-auth-oauth2-it-data"},
+			Source: testcontainers.GenericVolumeMountSource{Name: volumeName},
 			Target: "/etc/openvpn",
 		}),
 		testcontainers.WithHostConfigModifier(func(hostConfig *container.HostConfig) {
@@ -205,6 +223,9 @@ func TestIT(t *testing.T) {
 		testcontainers.WithEntrypoint("openvpn"),
 		testcontainers.WithEntrypointArgs("--config", "/etc/openvpn/user@example.com.ovpn", "--echo", "off"),
 	)
+	if containerClient != nil {
+		testcontainers.CleanupContainer(t, containerClient)
+	}
 
 	if containerClient == nil {
 		require.NoError(t, err)
@@ -212,16 +233,11 @@ func TestIT(t *testing.T) {
 		return
 	}
 
-	testcontainers.CleanupContainer(t, containerClient)
-
 	containerClientLogs, _ := getContainerLogs(t, containerClient)
 	require.NoError(t, err, containerClientLogs)
 
 	// clientListener must not be closed, because it is used by the httpClientListener.
 	clientListener, err := nettest.NewLocalListener("tcp")
-	require.NoError(t, err)
-
-	pluginManagementEndpoint, err := containerServer.PortEndpoint(t.Context(), "8081", "tcp")
 	require.NoError(t, err)
 
 	conf := config.Defaults
@@ -258,9 +274,6 @@ func TestIT(t *testing.T) {
 	httpClientListener.Listener = clientListener
 	httpClientListener.Start()
 	t.Cleanup(httpClientListener.Close)
-
-	clientManagementEndpoint, err := containerServer.PortEndpoint(t.Context(), "8082", "tcp")
-	require.NoError(t, err)
 
 	var dial net.Dialer
 
@@ -304,10 +317,6 @@ func TestIT(t *testing.T) {
 	containerClientLogs, _ = getContainerLogs(t, containerClient)
 	require.Contains(t, line, ">PASSWORD:Auth-Token:", "server logs:\n%s\nclient logs:\n%s", containerServerLogs, containerClientLogs)
 
-	dockerClient, err := testcontainers.NewDockerClientWithOpts(t.Context())
-	require.NoError(t, err)
-	t.Cleanup(func() { _ = dockerClient.Close() })
-
 	_, err = dockerClient.ContainerStatPath(t.Context(), containerServer.GetContainerID(), client.ContainerStatPathOptions{Path: pluginSocketPath})
 	require.NoError(t, err)
 
@@ -325,18 +334,13 @@ func TestIT(t *testing.T) {
 func getContainerLogs(t *testing.T, ctr testcontainers.Container) (string, error) {
 	t.Helper()
 
-	cli, err := testcontainers.NewDockerClientWithOpts(t.Context())
-	if err != nil {
-		return "", fmt.Errorf("failed to create Docker client: %w", err)
-	}
-
-	logReader, err := cli.ContainerLogs(t.Context(), ctr.GetContainerID(), client.ContainerLogsOptions{
-		ShowStderr: true,
-		ShowStdout: true,
-	})
+	logReader, err := ctr.Logs(t.Context())
 	if err != nil {
 		return "", fmt.Errorf("failed to get container logs: %w", err)
 	}
+	defer func() {
+		_ = logReader.Close()
+	}()
 
 	containerLogs, err := io.ReadAll(logReader)
 	if err != nil {

@@ -22,7 +22,7 @@ func TestRefreshClientAuthInternalTokenRestoresClientConfigNames(t *testing.T) {
 	conf.OAuth2.Refresh.ValidateUser = false
 
 	storage := tokenstorage.NewInMemoryWithGC("1234567890123456", time.Hour, 0)
-	internalToken, err := encodeInternalRefreshToken([]string{"profile", "base"})
+	internalToken, err := encodeInternalRefreshToken("alice", []string{"profile", "base"})
 	require.NoError(t, err)
 	require.NoError(t, storage.Set(ctx, "7", internalToken))
 
@@ -31,7 +31,7 @@ func TestRefreshClientAuthInternalTokenRestoresClientConfigNames(t *testing.T) {
 
 	require.NoError(t, err)
 	require.True(t, ok)
-	require.Equal(t, types.UserInfo{}, user)
+	require.Equal(t, types.UserInfo{Username: "alice"}, user)
 	require.Nil(t, tokens)
 	require.Equal(t, []string{"profile", "base"}, clientConfigNames)
 }
@@ -52,6 +52,65 @@ func TestRefreshClientAuthInternalTokenKeepsLegacyEmptyToken(t *testing.T) {
 
 	require.NoError(t, err)
 	require.True(t, ok)
+	require.Nil(t, tokens)
+	require.Nil(t, clientConfigNames)
+}
+
+func TestRefreshClientAuthInternalTokenKeepsLegacyClientConfigToken(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	conf := config.Defaults
+	conf.OAuth2.Refresh.Enabled = true
+	conf.OAuth2.Refresh.ValidateUser = false
+
+	storage := tokenstorage.NewInMemoryWithGC("1234567890123456", time.Hour, 0)
+	require.NoError(t, storage.Set(
+		ctx,
+		"7",
+		internalRefreshTokenPrefix+`{"client-config-names":["profile","base"]}`,
+	))
+
+	client := Client{conf: &conf, storage: storage}
+	user, tokens, clientConfigNames, ok, err := client.RefreshClientAuth(
+		ctx,
+		slog.New(slog.DiscardHandler),
+		connection.Client{CID: 7},
+	)
+
+	require.NoError(t, err)
+	require.True(t, ok)
+	require.Equal(t, types.UserInfo{}, user)
+	require.Nil(t, tokens)
+	require.Equal(t, []string{"profile", "base"}, clientConfigNames)
+}
+
+func TestRefreshClientAuthInternalTokenWithoutUsernameFallsBackToInteractiveAuthentication(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	conf := config.Defaults
+	conf.OAuth2.Refresh.Enabled = true
+	conf.OAuth2.Refresh.ValidateUser = false
+	conf.OpenVPN.EnforceUniqueUser = true
+
+	storage := tokenstorage.NewInMemoryWithGC("1234567890123456", time.Hour, 0)
+	require.NoError(t, storage.Set(
+		ctx,
+		"7",
+		internalRefreshTokenPrefix+`{"client-config-names":["profile","base"]}`,
+	))
+
+	client := Client{conf: &conf, storage: storage}
+	user, tokens, clientConfigNames, ok, err := client.RefreshClientAuth(
+		ctx,
+		slog.New(slog.DiscardHandler),
+		connection.Client{CID: 7},
+	)
+
+	require.NoError(t, err)
+	require.False(t, ok)
+	require.Equal(t, types.UserInfo{}, user)
 	require.Nil(t, tokens)
 	require.Nil(t, clientConfigNames)
 }
@@ -106,7 +165,7 @@ func TestDecodeInternalRefreshTokenErrors(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			clientConfigNames, err := decodeInternalRefreshToken(testCase.refreshToken)
+			_, clientConfigNames, err := decodeInternalRefreshToken(testCase.refreshToken)
 
 			require.Error(t, err)
 			require.Contains(t, err.Error(), testCase.expectedErr)
@@ -162,13 +221,14 @@ func TestDecodeProviderRefreshTokenErrors(t *testing.T) {
 func TestEncodeInternalRefreshToken(t *testing.T) {
 	t.Parallel()
 
-	emptyToken, err := encodeInternalRefreshToken(nil)
+	emptyToken, err := encodeInternalRefreshToken("", nil)
 	require.NoError(t, err)
 	require.Equal(t, types.EmptyToken, emptyToken)
 
-	encodedToken, err := encodeInternalRefreshToken([]string{"profile"})
+	encodedToken, err := encodeInternalRefreshToken("alice", []string{"profile"})
 	require.NoError(t, err)
 	require.Contains(t, encodedToken, internalRefreshTokenPrefix)
+	require.Contains(t, encodedToken, `"username":"alice"`)
 }
 
 func TestDecodeProviderRefreshTokenPreservesValidationError(t *testing.T) {

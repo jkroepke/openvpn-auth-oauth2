@@ -23,6 +23,7 @@ const (
 )
 
 type internalRefreshToken struct {
+	Username          string   `json:"username,omitempty"`
 	ClientConfigNames []string `json:"client-config-names,omitempty"`
 }
 
@@ -47,14 +48,20 @@ func (c *Client) RefreshClientAuth(
 	}
 
 	if !c.conf.OAuth2.Refresh.ValidateUser {
-		clientConfigNames, err := decodeInternalRefreshToken(refreshToken)
+		username, clientConfigNames, err := decodeInternalRefreshToken(refreshToken)
 		if err != nil {
 			return types.UserInfo{}, nil, nil, false, err
 		}
 
+		if c.conf.OpenVPN.EnforceUniqueUser && username == "" {
+			logger.LogAttrs(ctx, slog.LevelInfo, "stored internal token has no username; interactive authentication is required")
+
+			return types.UserInfo{}, nil, nil, false, nil
+		}
+
 		logger.LogAttrs(ctx, slog.LevelInfo, "successful non-interactive authentication via internal token")
 
-		return types.UserInfo{}, nil, clientConfigNames, true, nil
+		return types.UserInfo{Username: username}, nil, clientConfigNames, true, nil
 	}
 
 	refreshToken, clientConfigNames, err := decodeProviderRefreshToken(refreshToken)
@@ -83,12 +90,15 @@ func (c *Client) RefreshClientAuth(
 	return user, tokens, clientConfigNames, true, nil
 }
 
-func encodeInternalRefreshToken(clientConfigNames []string) (string, error) {
-	if len(clientConfigNames) == 0 {
+func encodeInternalRefreshToken(username string, clientConfigNames []string) (string, error) {
+	if username == "" && len(clientConfigNames) == 0 {
 		return types.EmptyToken, nil
 	}
 
-	tokenBytes, err := json.Marshal(internalRefreshToken{ClientConfigNames: clientConfigNames})
+	tokenBytes, err := json.Marshal(internalRefreshToken{
+		ClientConfigNames: clientConfigNames,
+		Username:          username,
+	})
 	if err != nil {
 		return "", fmt.Errorf("unable to marshal internal refresh token: %w", err)
 	}
@@ -96,17 +106,19 @@ func encodeInternalRefreshToken(clientConfigNames []string) (string, error) {
 	return internalRefreshTokenPrefix + string(tokenBytes), nil
 }
 
-func decodeInternalRefreshToken(refreshToken string) ([]string, error) {
+func decodeInternalRefreshToken(refreshToken string) (string, []string, error) {
 	if !strings.HasPrefix(refreshToken, internalRefreshTokenPrefix) {
-		return nil, nil
+		return "", nil, nil
 	}
 
 	var token internalRefreshToken
 	if err := json.Unmarshal([]byte(strings.TrimPrefix(refreshToken, internalRefreshTokenPrefix)), &token); err != nil {
-		return nil, fmt.Errorf("unable to parse internal refresh token: %w", err)
+		return "", nil, fmt.Errorf("unable to parse internal refresh token: %w", err)
 	}
 
-	return validateClientConfigNames(token.ClientConfigNames)
+	clientConfigNames, err := validateClientConfigNames(token.ClientConfigNames)
+
+	return token.Username, clientConfigNames, err
 }
 
 func encodeProviderRefreshToken(refreshToken string, clientConfigNames []string) (string, error) {
