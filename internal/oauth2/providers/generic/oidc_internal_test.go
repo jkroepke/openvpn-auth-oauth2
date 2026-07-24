@@ -41,6 +41,7 @@ type testRevokeRelyingParty struct {
 	httpClient *http.Client
 }
 
+//nolint:revive // HttpClient is required by the upstream rp.RelyingParty interface.
 func (r testRevokeRelyingParty) HttpClient() *http.Client {
 	return r.httpClient
 }
