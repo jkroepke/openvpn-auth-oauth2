@@ -22,10 +22,6 @@ func (c *Client) enforceUniqueUser(ctx context.Context, logger *slog.Logger, cur
 		return fmt.Errorf("query OpenVPN status: %w", err)
 	}
 
-	if strings.HasPrefix(status, "ERROR:") {
-		return fmt.Errorf("query OpenVPN status: %w: %s", ErrErrorResponse, strings.TrimSpace(status))
-	}
-
 	clientIDs, err := statusClientIDsByUsername(status, username, currentCID)
 	if err != nil {
 		return fmt.Errorf("parse OpenVPN status: %w", err)
@@ -39,12 +35,9 @@ func (c *Client) enforceUniqueUser(ctx context.Context, logger *slog.Logger, cur
 		)
 
 		response, err := c.SendCommandf(ctx, "client-kill %d", clientID)
-		if err != nil {
-			return fmt.Errorf("terminate OpenVPN client %d: %w", clientID, err)
-		}
 
 		response = strings.TrimSpace(response)
-		if response == clientKillMissingResponse {
+		if errors.Is(err, ErrErrorResponse) && response == clientKillMissingResponse {
 			logger.LogAttrs(
 				ctx, slog.LevelDebug, "existing OpenVPN session already terminated",
 				slog.Uint64("existing_cid", clientID),
@@ -53,8 +46,8 @@ func (c *Client) enforceUniqueUser(ctx context.Context, logger *slog.Logger, cur
 			continue
 		}
 
-		if strings.HasPrefix(response, "ERROR:") {
-			return fmt.Errorf("terminate OpenVPN client %d: %w: %s", clientID, ErrErrorResponse, response)
+		if err != nil {
+			return fmt.Errorf("terminate OpenVPN client %d: %w", clientID, err)
 		}
 	}
 

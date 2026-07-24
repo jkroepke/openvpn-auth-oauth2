@@ -14,6 +14,7 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/test/testsuite"
 	"github.com/stretchr/testify/require"
@@ -62,6 +63,54 @@ func TestAcceptClientClosesClientConfigFile(t *testing.T) {
 	select {
 	case err := <-acceptDone:
 		require.NoError(t, err)
+	case <-time.After(time.Second):
+		t.Fatalf("timeout waiting for AcceptClient. Logs:\n\n%s", suite.Logs())
+	}
+
+	require.NoError(t, suite.GetManagementInterfaceConn().Close())
+
+	select {
+	case err := <-errOpenVPNClientCh:
+		if err != nil && !errors.Is(err, io.EOF) {
+			require.NoError(t, err)
+		}
+	case <-time.After(time.Second):
+		t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", suite.Logs())
+	}
+}
+
+func TestAcceptClientPropagatesCommandRejection(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	t.Cleanup(cancel)
+
+	conf := config.Defaults
+	conf.OAuth2.Refresh.ValidateUser = false
+
+	suite := testsuite.New(&conf)
+	errOpenVPNClientCh := suite.SetupManagementEnvironment(ctx, t, nil)
+	openVPNClient := suite.GetOpenVPNClient()
+
+	suite.ExpectVersionAndReleaseHold(t)
+
+	acceptDone := make(chan error, 1)
+	go func() {
+		acceptDone <- openVPNClient.AcceptClient(
+			ctx,
+			suite.GetLogger(),
+			state.ClientIdentifier{CID: 10, KID: 2},
+			"alice",
+		)
+	}()
+
+	suite.ExpectMessage(t, "client-auth-nt 10 2")
+	suite.SendMessagef(t, "ERROR: client-auth command failed")
+
+	select {
+	case err := <-acceptDone:
+		require.ErrorIs(t, err, openvpn.ErrErrorResponse)
+		require.ErrorContains(t, err, "ERROR: client-auth command failed")
 	case <-time.After(time.Second):
 		t.Fatalf("timeout waiting for AcceptClient. Logs:\n\n%s", suite.Logs())
 	}
