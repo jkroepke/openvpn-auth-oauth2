@@ -42,7 +42,12 @@ type Client struct {
 
 type oauth2Client interface {
 	RefreshClientAuth(ctx context.Context, logger *slog.Logger, client connection.Client) (types.UserInfo, *idtoken.IDToken, []string, bool, error)
-	ResolveClientConfigNames(tokens *idtoken.IDToken, openVPNUserCommonName, username string) ([]string, error)
+	ResolveClientConfigNames(
+		authMode types.AuthMode,
+		session state.State,
+		tokens *idtoken.IDToken,
+		user types.UserInfo,
+	) ([]string, error)
 	ClientDisconnect(ctx context.Context, logger *slog.Logger, client connection.Client)
 	EncryptState(oidcState state.State) (state.EncryptedState, error)
 }

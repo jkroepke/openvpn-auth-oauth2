@@ -314,7 +314,7 @@ func (c *Client) postCodeExchangeHandler(
 
 		logger = withIDTokenClaimsLogger(ctx, logger, tokens)
 
-		user, err := c.fetchUser(ctx, logger, tokens, userInfo)
+		user, err := c.fetchUser(ctx, logger, session, tokens, userInfo)
 		if err != nil {
 			c.openvpn.DenyClient(ctx, logger, session.Client, err.openvpnReason)
 			c.writeHTTPError(ctx, w, logger, err.httpStatus, err.errorType, err.err.Error())
@@ -336,25 +336,21 @@ func (c *Client) postCodeExchangeHandler(
 
 		logger.LogAttrs(ctx, slog.LevelInfo, "successful authorization via oauth2")
 
-		username := user.Username
-		if username == "" {
-			username = session.Client.CommonName
-		}
-
 		codeExchange := codeExchangeRequest{
 			logger:         logger,
 			encryptedState: encryptedState,
 			session:        session,
 			clientID:       clientID,
 			tokens:         tokens,
-			username:       username,
+			user:           user,
+			username:       user.Username,
 		}
 
 		if c.handleClientConfig(ctx, w, codeExchange) {
 			return
 		}
 
-		c.acceptOAuth2Client(ctx, w, codeExchange, username)
+		c.acceptOAuth2Client(ctx, w, codeExchange, user.Username)
 	}
 }
 
@@ -386,10 +382,11 @@ type userValidationError struct {
 func (c *Client) fetchUser(
 	ctx context.Context,
 	logger *slog.Logger,
+	session state.State,
 	tokens *idtoken.IDToken,
 	userInfo *types.UserInfo,
 ) (types.UserInfo, *userValidationError) {
-	user, err := c.provider.GetUser(ctx, logger, tokens, userInfo)
+	user, err := c.resolveUser(ctx, logger, CELAuthModeInteractive, session, tokens, userInfo)
 	if err != nil {
 		return types.UserInfo{}, &userValidationError{
 			err:           err,
@@ -397,6 +394,28 @@ func (c *Client) fetchUser(
 			errorType:     "fetchUser",
 			openvpnReason: "unable to fetch user data",
 		}
+	}
+
+	return user, nil
+}
+
+// resolveUser normalizes provider data and applies the configured username expression.
+func (c *Client) resolveUser(
+	ctx context.Context,
+	logger *slog.Logger,
+	authMode CELAuthMode,
+	session state.State,
+	tokens *idtoken.IDToken,
+	userInfo *types.UserInfo,
+) (types.UserInfo, error) {
+	user, err := c.provider.GetUser(ctx, logger, tokens, userInfo)
+	if err != nil {
+		return types.UserInfo{}, fmt.Errorf("get user from provider: %w", err)
+	}
+
+	user.Username, err = c.resolveUsername(authMode, session, tokens, user)
+	if err != nil {
+		return types.UserInfo{}, err
 	}
 
 	return user, nil
@@ -413,7 +432,7 @@ func (c *Client) validateInteractiveUser(
 		return failedUserValidation(err)
 	}
 
-	if err := c.CheckTokenCEL(CELAuthModeInteractive, session, tokens); err != nil {
+	if err := c.CheckIdentityCEL(CELAuthModeInteractive, session, tokens, user); err != nil {
 		return failedUserValidation(err)
 	}
 
@@ -433,6 +452,7 @@ func failedUserValidation(err error) *userValidationError {
 type codeExchangeRequest struct {
 	logger         *slog.Logger
 	tokens         *idtoken.IDToken
+	user           types.UserInfo
 	encryptedState state.EncryptedState
 	clientID       string
 	username       string
@@ -445,7 +465,7 @@ func (c *Client) handleClientConfig(ctx context.Context, w http.ResponseWriter, 
 		return false
 	}
 
-	clientConfigProfiles, err := c.ResolveClientConfigNames(req.tokens, req.session.Client.CommonName, req.username)
+	clientConfigProfiles, err := c.ResolveClientConfigNames(CELAuthModeInteractive, req.session, req.tokens, req.user)
 	if err != nil {
 		c.openvpn.DenyClient(ctx, req.logger, req.session.Client, "invalid client config")
 		c.writeHTTPError(ctx, w, req.logger, http.StatusForbidden, "client config", err.Error())

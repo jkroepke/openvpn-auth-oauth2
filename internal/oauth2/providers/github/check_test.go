@@ -10,7 +10,6 @@ import (
 	oauth3 "github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/providers/github"
-	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/test/testsuite"
 	"github.com/stretchr/testify/assert"
@@ -51,7 +50,7 @@ func TestValidateGroups(t *testing.T) {
 			EmptyToken,
 			`ERROR`,
 			[]string{"apple"},
-			"error getting GitHub organizations: access token is empty",
+			"access token is empty",
 		},
 		{
 			"http status error",
@@ -107,13 +106,21 @@ func TestValidateGroups(t *testing.T) {
 			}
 
 			httpClient := &http.Client{
-				Transport: testsuite.NewRoundTripperFunc(nil, func(_ http.RoundTripper, _ *http.Request) (*http.Response, error) {
+				Transport: testsuite.NewRoundTripperFunc(nil, func(_ http.RoundTripper, req *http.Request) (*http.Response, error) {
 					resp := httptest.NewRecorder()
-					if strings.Contains(tc.userOrgs, "error") {
-						resp.WriteHeader(http.StatusInternalServerError)
-					}
 
-					_, _ = resp.WriteString(tc.userOrgs)
+					switch req.URL.Path {
+					case "/user":
+						_, _ = resp.WriteString(`{"login": "login", "email": "ID", "id": 10}`)
+					case "/user/orgs":
+						if strings.Contains(tc.userOrgs, "error") {
+							resp.WriteHeader(http.StatusInternalServerError)
+						}
+
+						_, _ = resp.WriteString(tc.userOrgs)
+					case "/user/teams":
+						_, _ = resp.WriteString(`[]`)
+					}
 
 					return resp.Result(), nil
 				}),
@@ -122,7 +129,10 @@ func TestValidateGroups(t *testing.T) {
 			provider, err := github.NewProvider(t.Context(), &conf, httpClient)
 			require.NoError(t, err)
 
-			err = provider.CheckUser(t.Context(), state.State{}, types.UserInfo{Email: "ID"}, token)
+			user, err := provider.GetUser(t.Context(), nil, token, nil)
+			if err == nil {
+				err = provider.CheckUser(t.Context(), state.State{}, user, token)
+			}
 
 			if tc.err == "" {
 				require.NoError(t, err)
@@ -134,7 +144,7 @@ func TestValidateGroups(t *testing.T) {
 	}
 }
 
-func TestCheckUserLoadsTeamsForCEL(t *testing.T) {
+func TestGetUserEnrichesTeams(t *testing.T) {
 	t.Parallel()
 
 	token := &idtoken.IDToken{
@@ -151,7 +161,7 @@ func TestCheckUserLoadsTeamsForCEL(t *testing.T) {
 	conf := types2.Config{
 		OAuth2: types2.OAuth2{
 			Validate: types2.OAuth2Validate{
-				Expression: "'apple:justice-league' in oauth2TokenClaims.roles",
+				Expression: "'apple:justice-league' in user.roles",
 			},
 		},
 	}
@@ -160,14 +170,19 @@ func TestCheckUserLoadsTeamsForCEL(t *testing.T) {
 
 	httpClient := &http.Client{
 		Transport: testsuite.NewRoundTripperFunc(testsuite.NewMockRoundTripper(nil), func(rt http.RoundTripper, req *http.Request) (*http.Response, error) {
-			if req.URL.Path != "/user/teams" {
+			resp := httptest.NewRecorder()
+
+			switch req.URL.Path {
+			case "/user":
+				_, _ = resp.WriteString(`{"login": "login", "email": "ID", "id": 10}`)
+			case "/user/orgs":
+				_, _ = resp.WriteString(`[]`)
+			case "/user/teams":
+				teamsCalled = true
+				_, _ = resp.WriteString(`[{ "slug": "justice-league", "organization": { "login": "apple" }}]`)
+			default:
 				return rt.RoundTrip(req)
 			}
-
-			teamsCalled = true
-
-			resp := httptest.NewRecorder()
-			_, _ = resp.WriteString(`[{ "slug": "justice-league", "organization": { "login": "apple" }}]`)
 
 			return resp.Result(), nil
 		}),
@@ -176,10 +191,11 @@ func TestCheckUserLoadsTeamsForCEL(t *testing.T) {
 	provider, err := github.NewProvider(t.Context(), &conf, httpClient)
 	require.NoError(t, err)
 
-	err = provider.CheckUser(t.Context(), state.State{}, types.UserInfo{Email: "ID"}, token)
+	user, err := provider.GetUser(t.Context(), nil, token, nil)
 	require.NoError(t, err)
 
 	assert.True(t, teamsCalled)
-	assert.Equal(t, []string{"apple:justice-league"}, token.IDTokenClaims.Claims["roles"])
+	assert.Equal(t, []string{"apple:justice-league"}, user.Roles)
+	assert.NotContains(t, token.IDTokenClaims.Claims, "roles")
 	assert.Equal(t, "test-user", token.IDTokenClaims.Claims["login"])
 }

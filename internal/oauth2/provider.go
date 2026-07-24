@@ -8,8 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/cel-go/cel"
-	"github.com/google/cel-go/ext"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/crypto"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
@@ -75,51 +73,11 @@ func New(
 		}
 	}
 
-	err = client.initializeCELValidation()
-	if err != nil {
-		return nil, err
-	}
-
-	err = client.initializeClientConfigResolver()
-	if err != nil {
+	if err = client.initializeCELPrograms(); err != nil {
 		return nil, err
 	}
 
 	return client, nil
-}
-
-// initializeCELValidation compiles the configured CEL expression used for token validation.
-func (c *Client) initializeCELValidation() error {
-	if c.conf.OAuth2.Validate.Expression == "" {
-		return nil
-	}
-
-	env, err := cel.NewEnv(
-		cel.VariableWithDoc("authMode", cel.StringType, "The authentication mode used (e.g., 'interactive', 'non-interactive')"),
-		cel.VariableWithDoc("openVPNSessionState", cel.StringType, "The OpenVPN session state "+
-			"(e.g., '', 'Empty', 'Initial', 'Authenticated', 'Expired', 'Invalid', 'AuthenticatedEmptyUser', 'ExpiredEmptyUser')"),
-		cel.VariableWithDoc("openVPNUserCommonName", cel.StringType, "The common name of the OpenVPN user"),
-		cel.VariableWithDoc("openVPNUserIPAddr", cel.StringType, "The IP address of the OpenVPN user"),
-		cel.VariableWithDoc("oauth2TokenIPAddr", cel.StringType, "The IP address claim of the OAuth2 ID token"),
-		cel.VariableWithDoc("oauth2TokenClaims", cel.MapType(cel.StringType, cel.DynType), "The claims of the OAuth2 ID token"),
-		ext.Strings(ext.StringsVersion(5)),
-		ext.Lists(ext.ListsVersion(3)),
-	)
-	if err != nil {
-		return fmt.Errorf("failed to create CEL environment: %w", err)
-	}
-
-	prg, issues := env.Compile(c.conf.OAuth2.Validate.Expression)
-	if issues.Err() != nil {
-		return fmt.Errorf("failed to compile CEL expression: %w", issues.Err())
-	}
-
-	c.celEvalPrg, err = env.Program(prg)
-	if err != nil {
-		return fmt.Errorf("failed to create CEL program: %w", err)
-	}
-
-	return nil
 }
 
 // newOIDCRelyingParty creates a new [rp.NewRelyingPartyOIDC]. This is used for providers that support OIDC.

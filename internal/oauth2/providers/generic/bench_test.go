@@ -28,6 +28,7 @@ func BenchmarkGetUser(b *testing.B) {
 			conf: config.Defaults,
 			token: &idtoken.IDToken{
 				IDTokenClaims: &idtoken.Claims{
+					PreferredUsername: "username",
 					Claims: map[string]any{
 						"preferred_username": "username",
 					},
@@ -45,6 +46,7 @@ func BenchmarkGetUser(b *testing.B) {
 			}(),
 			token: &idtoken.IDToken{
 				IDTokenClaims: &idtoken.Claims{
+					PreferredUsername: "username",
 					Claims: map[string]any{
 						"preferred_username": "username",
 						"groups":             []string{"group1", "group2"},
@@ -63,6 +65,7 @@ func BenchmarkGetUser(b *testing.B) {
 			}(),
 			token: &idtoken.IDToken{
 				IDTokenClaims: &idtoken.Claims{
+					PreferredUsername: "username",
 					Claims: map[string]any{
 						"preferred_username": "username",
 						"groups":             []any{"group1", "group2"},
@@ -72,17 +75,12 @@ func BenchmarkGetUser(b *testing.B) {
 			},
 		},
 		{
-			name: "username-cel",
-			conf: func() config.Config {
-				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsername = "string(oauth2TokenClaims.groups[0])"
-
-				return conf
-			}(),
+			name: "roles-any-slice",
+			conf: config.Defaults,
 			token: &idtoken.IDToken{
 				IDTokenClaims: &idtoken.Claims{
 					Claims: map[string]any{
-						"groups": []any{"group1", "group2"},
+						"roles": []any{"role1", "role2"},
 					},
 					TokenClaims: oidc.TokenClaims{Subject: "subject"},
 				},

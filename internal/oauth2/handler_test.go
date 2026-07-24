@@ -45,7 +45,8 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
+				conf.OAuth2.Validate.Expression = "user.username == string(token.claims.sub)"
 
 				return conf
 			}(),
@@ -65,7 +66,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
 
 				return conf
 			}(),
@@ -89,7 +90,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
 
 				return conf
 			}(),
@@ -111,7 +112,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.UserInfo = true
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
 
 				return conf
 			}(),
@@ -133,7 +134,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.UserInfo = true
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
 
 				return conf
 			}(),
@@ -155,7 +156,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.UserInfo = true
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
 
 				return conf
 			}(),
@@ -175,7 +176,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
 
 				return conf
 			}(),
@@ -195,7 +196,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
 
 				return conf
 			}(),
@@ -217,7 +218,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
 
 				return conf
 			}(),
@@ -238,7 +239,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
 
 				return conf
 			}(),
@@ -260,7 +261,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
 
 				return conf
 			}(),
@@ -282,7 +283,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
 
 				return conf
 			}(),
@@ -305,7 +306,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Validate.Expression = "false"
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
 
 				return conf
 			}(),
@@ -327,9 +328,9 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
 				conf.OpenVPN.ClientConfig.Enabled = true
-				conf.OpenVPN.ClientConfig.Expression = "[string(oauth2TokenClaims." + testsuite.SubjectClaim + ")]"
+				conf.OpenVPN.ClientConfig.Expression = "[string(token.claims." + testsuite.SubjectClaim + ")]"
 				conf.OpenVPN.ClientConfig.Path = types.FS{
 					FS: fstest.MapFS{
 						"id1.conf": &fstest.MapFile{
@@ -358,9 +359,9 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
 				conf.OpenVPN.ClientConfig.Enabled = true
-				conf.OpenVPN.ClientConfig.Expression = "[string(oauth2TokenClaims." + testsuite.SubjectClaim + ")]"
+				conf.OpenVPN.ClientConfig.Expression = "[string(token.claims." + testsuite.SubjectClaim + ")]"
 				conf.OpenVPN.ClientConfig.Path = types.FS{
 					FS: fstest.MapFS{
 						"id1.conf": &fstest.MapFile{
@@ -391,7 +392,7 @@ func TestHandler(t *testing.T) {
 				conf.OpenVPN.AuthTokenUser = true
 				conf.OAuth2.OpenVPNUsername = ""
 				conf.OpenVPN.ClientConfig.Enabled = true
-				conf.OpenVPN.ClientConfig.Expression = "[openVPNUserCommonName]"
+				conf.OpenVPN.ClientConfig.Expression = "[openvpn.commonName]"
 				conf.OpenVPN.ClientConfig.Path = types.FS{
 					FS: fstest.MapFS{},
 				}
@@ -416,7 +417,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
 				conf.OpenVPN.ClientConfig.Enabled = true
 				conf.OpenVPN.ClientConfig.Strategy = config.OpenVPNConfigStrategyUserSelector
 				conf.OpenVPN.ClientConfig.Expression = `["static"]`
@@ -448,10 +449,10 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
 				conf.OpenVPN.ClientConfig.Enabled = true
 				conf.OpenVPN.ClientConfig.Strategy = config.OpenVPNConfigStrategyUserSelector
-				conf.OpenVPN.ClientConfig.Expression = `["static", string(oauth2TokenClaims.` + testsuite.SubjectClaim + `)]`
+				conf.OpenVPN.ClientConfig.Expression = `["static", string(token.claims.` + testsuite.SubjectClaim + `)]`
 				conf.OpenVPN.ClientConfig.Path = types.FS{
 					FS: fstest.MapFS{
 						"id1.conf": &fstest.MapFile{
@@ -480,10 +481,10 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
 				conf.OpenVPN.ClientConfig.Enabled = true
 				conf.OpenVPN.ClientConfig.Strategy = config.OpenVPNConfigStrategyUserSelector
-				conf.OpenVPN.ClientConfig.Expression = `["aaa"] + oauth2TokenClaims.amr`
+				conf.OpenVPN.ClientConfig.Expression = `["aaa"] + token.claims.amr`
 				conf.OpenVPN.ClientConfig.Path = types.FS{
 					FS: fstest.MapFS{
 						"pwd.conf": &fstest.MapFile{
@@ -512,7 +513,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
 				conf.OpenVPN.ClientConfig.Enabled = true
 				conf.OpenVPN.ClientConfig.Strategy = config.OpenVPNConfigStrategyUserSelector
 				conf.OpenVPN.ClientConfig.Expression = `["static"]`
@@ -576,7 +577,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
 				conf.OpenVPN.ClientConfig.Enabled = true
 				conf.OpenVPN.ClientConfig.Strategy = config.OpenVPNConfigStrategyUserSelector
 				conf.OpenVPN.ClientConfig.Expression = `["group1", "group2"]`
@@ -608,7 +609,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
 
 				return conf
 			}(),
@@ -630,7 +631,7 @@ func TestHandler(t *testing.T) {
 				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
 				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
 				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
 
 				return conf
 			}(),
@@ -745,7 +746,7 @@ func TestHandler(t *testing.T) {
 			clientConfigSelectorActive := tc.conf.OpenVPN.ClientConfig.Enabled &&
 				tc.conf.OpenVPN.ClientConfig.Strategy == config.OpenVPNConfigStrategyUserSelector &&
 				(strings.Contains(tc.conf.OpenVPN.ClientConfig.Expression, ",") ||
-					strings.Contains(tc.conf.OpenVPN.ClientConfig.Expression, "+ oauth2TokenClaims"))
+					strings.Contains(tc.conf.OpenVPN.ClientConfig.Expression, "+ token.claims"))
 
 			switch {
 			case !tc.postAllow:
@@ -770,12 +771,7 @@ func TestHandler(t *testing.T) {
 					suite.SendMessagef(t, "SUCCESS: client-auth command succeeded")
 				}
 			default:
-				if tc.conf.OAuth2.UserInfo {
-					suite.ExpectMessage(t, "client-auth 0 1\r\npush \"auth-token-user dGVzdC11c2VyQGxvY2FsaG9zdA==\"\r\nEND")
-				} else {
-					suite.ExpectMessage(t, "client-auth 0 1\r\npush \"auth-token-user aWQx\"\r\nEND")
-				}
-
+				suite.ExpectMessage(t, "client-auth 0 1\r\npush \"auth-token-user aWQx\"\r\nEND")
 				suite.SendMessagef(t, "SUCCESS: client-auth command succeeded")
 			}
 

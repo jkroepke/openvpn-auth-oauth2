@@ -2,6 +2,7 @@ package google_test
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -145,7 +146,15 @@ func TestValidateGroups(t *testing.T) {
 			provider, err := google.NewProvider(t.Context(), &conf, httpClient)
 			require.NoError(t, err)
 
-			err = provider.CheckUser(t.Context(), state.State{}, types.UserInfo{Subject: "123456789101112131415"}, token)
+			user, err := provider.GetUser(
+				t.Context(),
+				slog.New(slog.DiscardHandler),
+				token,
+				&types.UserInfo{Subject: "123456789101112131415"},
+			)
+			if err == nil {
+				err = provider.CheckUser(t.Context(), state.State{}, user, token)
+			}
 
 			if tc.err == "" {
 				require.NoError(t, err)
@@ -225,12 +234,15 @@ func TestValidateGroupsChecksAllConfiguredGroupsAfterFirstMatch(t *testing.T) {
 			provider, err := google.NewProvider(t.Context(), &conf, httpClient)
 			require.NoError(t, err)
 
-			err = provider.CheckUser(
+			user, err := provider.GetUser(
 				t.Context(),
-				state.State{},
-				types.UserInfo{Subject: "123456789101112131415", Email: "user@example.com"},
+				slog.New(slog.DiscardHandler),
 				token,
+				&types.UserInfo{Subject: "123456789101112131415", Email: "user@example.com"},
 			)
+			if err == nil {
+				err = provider.CheckUser(t.Context(), state.State{}, user, token)
+			}
 
 			require.NoError(t, err)
 			assert.EqualValues(t, 2, requests.Load())
@@ -362,12 +374,15 @@ func TestValidateGroupsTransitive(t *testing.T) {
 			provider, err := google.NewProvider(t.Context(), &conf, httpClient)
 			require.NoError(t, err)
 
-			err = provider.CheckUser(
+			user, err := provider.GetUser(
 				t.Context(),
-				state.State{},
-				types.UserInfo{Subject: "123456789101112131415", Email: tc.email},
+				slog.New(slog.DiscardHandler),
 				token,
+				&types.UserInfo{Subject: "123456789101112131415", Email: tc.email},
 			)
+			if err == nil {
+				err = provider.CheckUser(t.Context(), state.State{}, user, token)
+			}
 
 			switch {
 			case tc.errContains != "":

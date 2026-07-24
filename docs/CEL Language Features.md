@@ -2,7 +2,7 @@
 
 [CEL, the Common Expression Language](https://cel.dev/), is a small expression language designed for
 fast and safe evaluation of user-defined rules. openvpn-auth-oauth2 uses CEL for
-configuration values that need logic, such as token validation, deriving the
+configuration values that need logic, such as identity validation, deriving the
 OpenVPN username, and resolving client configuration names. CEL expressions can
 inspect the variables provided by openvpn-auth-oauth2, call the documented
 string and list helpers, and return the type required by the specific setting.
@@ -20,30 +20,42 @@ CEL supports many standard operations:
 - `||` (OR)
 - `!` (NOT)
 
-### Available Variables
+### Available context
 
-The available variables depend on the CEL expression being evaluated.
+The same namespaced context is available to `oauth2.openvpn-username`,
+`oauth2.validate.expression`, and `openvpn.client-config.expression`:
 
-#### `oauth2.validate.expression`
+| Field | Type | Description |
+| --- | --- | --- |
+| `auth.mode` | `string` | `interactive` for the initial login or `non-interactive` for token refresh |
+| `openvpn.commonName` | `string` | Common name supplied by OpenVPN |
+| `openvpn.ip` | `string` | OpenVPN client IP address |
+| `openvpn.sessionState` | `string` | Current OpenVPN session state |
+| `token.claims` | `map<string, dynamic>` | Raw OAuth2 ID token claims; an empty map when no parsed ID token is available |
+| `token.ip` | `string` | IP address claim from the OAuth2 ID token; an empty string when unavailable |
+| `user.subject` | `string` | Provider-independent user subject |
+| `user.email` | `string` | Provider-independent email address |
+| `user.username` | `string` | Provider-independent username |
+| `user.groups` | `list<string>` | Provider-independent list of groups |
+| `user.roles` | `list<string>` | Provider-independent list of roles |
 
-- `authMode`: authentication mode, for example `interactive` or
-  `non-interactive`
-- `openVPNSessionState`: OpenVPN session state
-- `openVPNUserCommonName`: common name of the OpenVPN user
-- `openVPNUserIPAddr`: IP address of the OpenVPN user
-- `oauth2TokenIPAddr`: IP address claim from the OAuth2 ID token
-- `oauth2TokenClaims`: OAuth2 ID token claims
+Provider data is normalized before CEL runs. For a generic OIDC provider,
+`user.groups` comes from `oauth2.groups-claim` and `user.roles` comes from the
+`roles` claim. For GitHub, organizations populate `user.groups` and teams
+populate `user.roles` in `org:slug` format when those fields are used. Google
+group validation populates `user.groups` with the configured groups that match
+the user.
 
-#### `oauth2.openvpn-username`
+During `oauth2.openvpn-username`, `user.username` is the provider's username
+candidate, such as `preferred_username` from an ID token or UserInfo response,
+or the GitHub login. The expression result becomes the resolved username.
+`oauth2.validate.expression` and `openvpn.client-config.expression` receive that
+resolved value in `user.username`. An empty expression or an empty expression
+result falls back to `openvpn.commonName`.
 
-- `oauth2TokenClaims`: OAuth2 ID token claims
-
-#### `openvpn.client-config.expression`
-
-- `oauth2TokenClaims`: OAuth2 ID token claims
-- `openVPNUserCommonName`: common name of the OpenVPN user
-- `username`: resolved OpenVPN username after `oauth2.openvpn-username` has
-  been evaluated
+Prefer `user.*` for portable expressions. Use `token.claims.*` when a rule
+depends on a provider-specific raw claim. Raw claims may be absent during a
+refresh or when identity data comes from UserInfo.
 
 ### Extension Libraries
 
@@ -112,17 +124,17 @@ The following string functions are available through the [CEL strings extension]
 - `in` - Check if an element is in a list
 - `size()` - Get the size of a list or map
 - `exists(var, predicate)` - Check if any element matches
-  - Example: `oauth2TokenClaims.groups.exists(g, g == 'vpn-users')`
+  - Example: `user.groups.exists(g, g == 'vpn-users')`
 - `all(var, predicate)` - Check if every element matches
-  - Example: `oauth2TokenClaims.groups.all(g, g.startsWith('vpn-'))`
+  - Example: `user.groups.all(g, g.startsWith('vpn-'))`
 - `exists_one(var, predicate)` - Check if exactly one element matches
-  - Example: `oauth2TokenClaims.groups.exists_one(g, g == 'vpn-admin')`
+  - Example: `user.groups.exists_one(g, g == 'vpn-admin')`
 - `filter(var, predicate)` - Keep matching elements
-  - Example: `oauth2TokenClaims.groups.filter(g, g.startsWith('vpn-'))`
+  - Example: `user.groups.filter(g, g.startsWith('vpn-'))`
 - `map(var, expression)` - Transform elements
-  - Example: `oauth2TokenClaims.groups.map(g, g.lowerAscii())`
+  - Example: `user.groups.map(g, g.lowerAscii())`
 - `map(var, predicate, expression)` - Transform matching elements
-  - Example: `oauth2TokenClaims.groups.map(g, g.startsWith('vpn-'), g.lowerAscii())`
+  - Example: `user.groups.map(g, g.startsWith('vpn-'), g.lowerAscii())`
 
 The CEL lists extension adds more list helpers:
 
@@ -148,11 +160,11 @@ openvpn:
     expression: |
       (
         ['base'] +
-        oauth2TokenClaims.groups
+        user.groups
           .filter(g, g.startsWith('vpn-'))
           .map(g, g.replace('vpn-', ''))
           .sort() +
-        [username]
+        [user.username]
       ).distinct()
 ```
 
@@ -162,7 +174,7 @@ Example that maps each group to one or more shared config files:
 openvpn:
   client-config:
     expression: |
-      oauth2TokenClaims.groups
+      user.groups
         .map(g, {
           'GRP-VPN': ['base-vpn'],
           'GRP-ADMIN': ['base-vpn', 'admin-routes'],
@@ -193,10 +205,10 @@ If you try to access a claim that doesn't exist in the ID token without checking
 ```yaml
 ---
 # ❌ Bad - will fail if 'department' claim doesn't exist
-expression: 'oauth2TokenClaims.department == "engineering"'
+expression: 'token.claims.department == "engineering"'
 ---
 # ✅ Good - safely checks for claim existence first
-expression: 'has(oauth2TokenClaims.department) && oauth2TokenClaims.department == "engineering"'
+expression: 'has(token.claims.department) && token.claims.department == "engineering"'
 ```
 
 ### Invalid Expressions
@@ -209,10 +221,10 @@ The expression must evaluate to a boolean. If it evaluates to another type (stri
 
 ```yaml
 # ❌ Bad - evaluates to a string, not a boolean
-expression: 'openVPNUserCommonName'
+expression: 'openvpn.commonName'
 ---
 # ✅ Good - evaluates to a boolean
-expression: 'openVPNUserCommonName != ""'
+expression: 'openvpn.commonName != ""'
 ```
 
 ## Best Practices

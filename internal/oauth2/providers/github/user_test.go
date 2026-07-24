@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	types2 "github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
@@ -33,6 +34,8 @@ func TestGetUser(t *testing.T) {
 				Username: "login",
 				Email:    "email",
 				Subject:  "10",
+				Groups:   []string{"apple"},
+				Roles:    []string{"apple:justice-league"},
 			},
 			"",
 		},
@@ -72,19 +75,28 @@ func TestGetUser(t *testing.T) {
 			conf := types2.Config{
 				OAuth2: types2.OAuth2{
 					Validate: types2.OAuth2Validate{
-						Groups: make([]string, 0),
+						Groups:     make([]string, 0),
+						Expression: "'apple' in user.groups && 'apple:justice-league' in user.roles",
 					},
 				},
 			}
 
 			httpClient := &http.Client{
-				Transport: testsuite.NewRoundTripperFunc(nil, func(_ http.RoundTripper, _ *http.Request) (*http.Response, error) {
+				Transport: testsuite.NewRoundTripperFunc(nil, func(_ http.RoundTripper, req *http.Request) (*http.Response, error) {
 					resp := httptest.NewRecorder()
-					if strings.Contains(tc.user, "error") {
-						resp.WriteHeader(http.StatusInternalServerError)
-					}
 
-					_, _ = resp.WriteString(tc.user)
+					switch req.URL.Path {
+					case "/user":
+						if strings.Contains(tc.user, "error") {
+							resp.WriteHeader(http.StatusInternalServerError)
+						}
+
+						_, _ = resp.WriteString(tc.user)
+					case "/user/orgs":
+						_, _ = resp.WriteString(`[{ "login": "apple" }]`)
+					case "/user/teams":
+						_, _ = resp.WriteString(`[{ "slug": "justice-league", "organization": { "login": "apple" }}]`)
+					}
 
 					return resp.Result(), nil
 				}),
@@ -104,4 +116,38 @@ func TestGetUser(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetUserSkipsUnusedOrganizationAndTeamLookups(t *testing.T) {
+	t.Parallel()
+
+	token := &idtoken.IDToken{
+		Token: &oauth2.Token{AccessToken: "TOKEN"},
+	}
+	conf := types2.Config{
+		OAuth2: types2.OAuth2{OpenVPNUsername: "user.username"},
+	}
+
+	var requests atomic.Int32
+
+	httpClient := &http.Client{
+		Transport: testsuite.NewRoundTripperFunc(nil, func(_ http.RoundTripper, req *http.Request) (*http.Response, error) {
+			requests.Add(1)
+			require.Equal(t, "/user", req.URL.Path)
+
+			resp := httptest.NewRecorder()
+			_, _ = resp.WriteString(`{"login": "login", "email": "email", "id": 10}`)
+
+			return resp.Result(), nil
+		}),
+	}
+
+	provider, err := github.NewProvider(t.Context(), &conf, httpClient)
+	require.NoError(t, err)
+
+	user, err := provider.GetUser(t.Context(), nil, token, nil)
+
+	require.NoError(t, err)
+	require.Equal(t, "login", user.Username)
+	require.EqualValues(t, 1, requests.Load())
 }

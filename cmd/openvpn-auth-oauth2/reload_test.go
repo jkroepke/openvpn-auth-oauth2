@@ -57,7 +57,7 @@ func TestReload(t *testing.T) {
 			"--http.listen=" + httpListener.Addr().String(),
 			"--http.assets-path=../../internal/ui/assets",
 			"--openvpn.addr=tcp://" + managementInterface.Addr().String(),
-			"--oauth2.openvpn-username=oauth2TokenClaims.sub",
+			"--oauth2.openvpn-username=token.claims.sub",
 			"--oauth2.issuer", resourceServer.URL,
 			"--oauth2.client.id", clientCredentials.ID,
 			"--oauth2.client.secret", clientCredentials.Secret.String(),

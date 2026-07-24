@@ -30,17 +30,24 @@ Client config names are resolved with
 `openvpn.client-config.expression`. The expression is [CEL](CEL%20Language%20Features.md) and must return
 an ordered string list.
 
-The expression receives:
+The resolver receives the same normalized context as the other CEL settings.
+The most useful fields are:
 
-- `oauth2TokenClaims`: the OAuth2 ID token claims.
-- `openVPNUserCommonName`: the OpenVPN user common name.
-- `username`: the resolved OpenVPN username.
+- `user.username`: the resolved OpenVPN username.
+- `user.groups`: the normalized provider groups.
+- `user.roles`: the normalized provider roles.
+- `openvpn.commonName`: the OpenVPN user common name.
+- `token.claims`: the raw OAuth2 ID token claims.
+
+The `auth`, `openvpn`, `token`, and `user` namespaces are all available. See
+[CEL Language Features](CEL%20Language%20Features.md) for the complete
+contract.
 
 Example:
 
 ```yaml
 oauth2:
-  openvpn-username: oauth2TokenClaims.preferred_username
+  openvpn-username: user.username
   validate:
     groups:
       - GRP-VPN
@@ -51,12 +58,12 @@ openvpn:
     enabled: true
     path: /etc/openvpn-auth-oauth2/client-config
     expression: |
-        oauth2TokenClaims.groups.filter(g, g in [
+        user.groups.filter(g, g in [
           "GRP-VPN",
           "GRP-ADMIN",
           "GRP-NETWORK"
         ]) +
-        [username]
+        [user.username]
 ```
 
 For `alice@example.edu` with `GRP-VPN` and `GRP-ADMIN`, this loads:
@@ -89,7 +96,7 @@ openvpn:
     path: /etc/openvpn-auth-oauth2/client-config
     strategy: merge
     expression: |
-        (["base-vpn"] + oauth2TokenClaims.roles).distinct()
+        (["base-vpn"] + user.roles).distinct()
 ```
 
 With this configuration, a role named `admin-routes` loads
@@ -106,7 +113,7 @@ openvpn:
     path: /etc/openvpn-auth-oauth2/client-config
     strategy: merge
     expression: |
-        oauth2TokenClaims.groups
+        user.groups
           .map(g, {
             "GRP-VPN": ["base-vpn"],
             "GRP-ADMIN": ["base-vpn", "admin-routes"],
@@ -138,5 +145,5 @@ openvpn:
     strategy: user-selector
     expression: |
         ["corporate", "guest"] +
-        oauth2TokenClaims.groups.filter(g, g.startsWith("vpn-profile-"))
+        user.groups.filter(g, g.startsWith("vpn-profile-"))
 ```

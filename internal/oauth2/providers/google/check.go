@@ -6,24 +6,7 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
-	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
 )
-
-// CheckUser resolves Google group membership when configured and then runs generic user validation.
-func (p Provider) CheckUser(
-	ctx context.Context,
-	session state.State,
-	userData types.UserInfo,
-	tokens *idtoken.IDToken,
-) error {
-	if len(p.Conf.OAuth2.Validate.Groups) > 0 {
-		if err := p.resolveGroupMemberships(ctx, &userData, tokens); err != nil {
-			return err
-		}
-	}
-
-	return p.Provider.CheckUser(ctx, session, userData, tokens) //nolint:wrapcheck
-}
 
 // resolveGroupMemberships replaces userData.Groups with the configured required
 // groups that the user is a member of. Do not stop after the first match:

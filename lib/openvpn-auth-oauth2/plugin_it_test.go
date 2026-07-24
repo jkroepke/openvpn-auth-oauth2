@@ -241,7 +241,7 @@ func TestIT(t *testing.T) {
 	require.NoError(t, err)
 
 	conf := config.Defaults
-	conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+	conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
 	conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: "tcp", Host: strings.TrimPrefix(pluginManagementEndpoint, "tcp://")}}
 	conf.OpenVPN.Password = testsuite.Password
 

@@ -81,7 +81,7 @@ Usage of openvpn-auth-oauth2:
   --oauth2.nonce
     	If true, a nonce will be defined on the auth URL which is expected inside the token. (env: CONFIG_OAUTH2_NONCE) (default true)
   --oauth2.openvpn-username string
-	CEL expression to extract the username from the token. The expression must evaluate to a string value. Example: oauth2TokenClaims.sub. If empty, the common name is used. (env: CONFIG_OAUTH2_OPENVPN__USERNAME) (default "oauth2TokenClaims.preferred_username")
+        CEL expression to resolve the username from the normalized identity. The expression must evaluate to a string value. Example: string(token.claims.sub). If empty, the common name is used. (env: CONFIG_OAUTH2_OPENVPN__USERNAME) (default "user.username")
   --oauth2.pkce
     	If true, Proof Key for Code Exchange (PKCE) RFC 7636 is used for token exchange. (env: CONFIG_OAUTH2_PKCE) (default true)
   --oauth2.provider string
@@ -103,7 +103,7 @@ Usage of openvpn-auth-oauth2:
   --oauth2.user-info
     	If true, openvpn-auth-oauth2 uses the OIDC UserInfo endpoint to fetch additional information about the user (e.g. groups). (env: CONFIG_OAUTH2_USER__INFO)
   --oauth2.validate.expression string
-    	CEL expression for custom token validation. The expression must evaluate to a boolean value. Example: openVPNUserCommonName == oauth2TokenClaims.preferred_username (env: CONFIG_OAUTH2_VALIDATE_EXPRESSION)
+        CEL expression for custom identity validation. The expression must evaluate to a boolean value. Example: openvpn.commonName == user.username (env: CONFIG_OAUTH2_VALIDATE_EXPRESSION)
   --oauth2.validate.groups value
     	oauth2 required user groups. If multiple groups are configured, the user needs to be least in one group. Comma separated list. Example: group1,group2,group3 (env: CONFIG_OAUTH2_VALIDATE_GROUPS)
   --openvpn.addr value

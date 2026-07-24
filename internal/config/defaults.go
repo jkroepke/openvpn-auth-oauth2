@@ -94,7 +94,7 @@ var Defaults = Config{
 		UserInfo:        false,
 		GroupsClaim:     "groups",
 		Provider:        "generic",
-		OpenVPNUsername: "oauth2TokenClaims.preferred_username",
+		OpenVPNUsername: "user.username",
 		Refresh: OAuth2Refresh{
 			Expires:      time.Hour * 8,
 			ValidateUser: true,

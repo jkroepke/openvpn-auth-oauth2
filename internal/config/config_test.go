@@ -84,7 +84,7 @@ oauth2:
         groups:
         - "test"
         - "test2"
-        expression: "openVPNUserCommonName == oauth2TokenClaims.preferred_username"
+        expression: "openvpn.commonName == token.claims.preferred_username"
     authorize-params: "a=c"
     auth-style: "AuthStyleInHeader"
     scopes:
@@ -100,7 +100,7 @@ oauth2:
         secret: "1jd93h5b6s82lf03jh5b2hf9"
         use-session-id: true
         validate-user: true
-    openvpn-username: "oauth2TokenClaims.sub"
+    openvpn-username: "token.claims.sub"
 openvpn:
     addr: "unix:///run/openvpn/server2.sock"
     auth-token-user: true
@@ -117,7 +117,7 @@ openvpn:
         path: "."
         strategy: user-selector
         expression: |
-            ["default", string(oauth2TokenClaims.sub)]
+            ["default", string(token.claims.sub)]
     common-name:
         environment-variable-name: X509_0_emailAddress
         mode: omit
@@ -193,7 +193,7 @@ http:
 
 							return dirFS
 						}(),
-						Expression: "[\"default\", string(oauth2TokenClaims.sub)]\n",
+						Expression: "[\"default\", string(token.claims.sub)]\n",
 					},
 					Password:           "1jd93h5b6s82lf03jh5b2hf9",
 					AuthTokenUser:      true,
@@ -241,7 +241,7 @@ http:
 					GroupsClaim:     "groups_direct",
 					Scopes:          []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile},
 					AuthStyle:       config.OAuth2AuthStyle(oauth2.AuthStyleInHeader),
-					OpenVPNUsername: "oauth2TokenClaims." + testsuite.SubjectClaim,
+					OpenVPNUsername: "token.claims." + testsuite.SubjectClaim,
 					Refresh: config.OAuth2Refresh{
 						Enabled:      true,
 						Expires:      10 * time.Hour,
@@ -250,7 +250,7 @@ http:
 						ValidateUser: true,
 					},
 					Validate: config.OAuth2Validate{
-						Expression: "openVPNUserCommonName == oauth2TokenClaims.preferred_username",
+						Expression: "openvpn.commonName == token.claims.preferred_username",
 						Groups:     []string{"test", "test2"},
 					},
 				},
@@ -334,10 +334,10 @@ func TestConfigFlagSet(t *testing.T) {
 		},
 		{
 			"--oauth2.validate.expression",
-			[]string{"--oauth2.validate.expression=openVPNUserCommonName == oauth2TokenClaims.preferred_username"},
+			[]string{"--oauth2.validate.expression=openvpn.commonName == token.claims.preferred_username"},
 			func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.Validate.Expression = "openVPNUserCommonName == oauth2TokenClaims.preferred_username"
+				conf.OAuth2.Validate.Expression = "openvpn.commonName == token.claims.preferred_username"
 
 				return conf
 			}(),

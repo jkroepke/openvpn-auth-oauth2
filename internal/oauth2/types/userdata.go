@@ -9,6 +9,7 @@ type UserInfo struct {
 	Email    string   `json:"email"`
 	Username string   `json:"preferred_username"` //nolint:tagliatelle // preferred_username is the standard claim for the username.
 	Groups   []string `json:"groups"`
+	Roles    []string `json:"roles"`
 }
 
 // GetSubject returns the subject identifier from the UserInfo response.

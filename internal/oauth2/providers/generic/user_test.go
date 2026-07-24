@@ -1,7 +1,6 @@
 package generic_test
 
 import (
-	"errors"
 	"log/slog"
 	"net/http"
 	"testing"
@@ -10,7 +9,6 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/providers/generic"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
-	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/test/testsuite"
 	"github.com/stretchr/testify/require"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
@@ -23,403 +21,141 @@ func TestGetUser(t *testing.T) {
 		conf     config.Config
 		token    *idtoken.IDToken
 		userInfo *types.UserInfo
-		userData types.UserInfo
+		expected types.UserInfo
 		err      error
 	}{
 		{
-			"default token",
-			config.Defaults,
-			&oidc.Tokens[*idtoken.Claims]{
-				IDTokenClaims: &idtoken.Claims{
-					Claims: map[string]any{
-						"preferred_username": "username",
-					},
-					TokenClaims: oidc.TokenClaims{
-						Subject: "subject",
-					},
+			name: "ID token identity",
+			conf: config.Defaults,
+			token: tokenWithClaims(
+				map[string]any{},
+				idtoken.Claims{
+					TokenClaims:       oidc.TokenClaims{Subject: "subject"},
+					PreferredUsername: "username",
+					EMail:             "user@example.com",
 				},
-			},
-			nil,
-			types.UserInfo{
+			),
+			expected: types.UserInfo{
 				Subject:  "subject",
+				Email:    "user@example.com",
 				Username: "username",
 			},
-			nil,
 		},
 		{
-			"default token with groups claim",
-			func() config.Config {
-				conf := config.Defaults
-				conf.OAuth2.Validate.Groups = []string{"group"}
-
-				return conf
-			}(),
-			&oidc.Tokens[*idtoken.Claims]{
-				IDTokenClaims: &idtoken.Claims{
-					Claims: map[string]any{
-						"preferred_username": "username",
-						"groups":             []string{"group1", "group2"},
-					},
-					TokenClaims: oidc.TokenClaims{
-						Subject: "subject",
-					},
+			name: "groups and roles",
+			conf: config.Defaults,
+			token: tokenWithClaims(
+				map[string]any{
+					"groups": []any{"group1", "group2"},
+					"roles":  []string{"role1", "role2"},
 				},
+				idtoken.Claims{},
+			),
+			expected: types.UserInfo{
+				Groups: []string{"group1", "group2"},
+				Roles:  []string{"role1", "role2"},
 			},
-			nil,
-			types.UserInfo{
-				Subject:  "subject",
-				Username: "username",
-				Groups:   []string{"group1", "group2"},
-			},
-			nil,
 		},
 		{
-			"default token with groups claim type any",
-			func() config.Config {
+			name: "custom groups claim",
+			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.Validate.Groups = []string{"group"}
-
-				return conf
-			}(),
-			&oidc.Tokens[*idtoken.Claims]{
-				IDTokenClaims: &idtoken.Claims{
-					TokenClaims: oidc.TokenClaims{
-						Subject: "subject",
-					},
-					Claims: map[string]any{
-						"preferred_username": "username",
-						"groups":             []any{any("group1"), any("group2")},
-					},
-				},
-			},
-			nil,
-			types.UserInfo{
-				Subject:  "subject",
-				Username: "username",
-				Groups:   []string{"group1", "group2"},
-			},
-			nil,
-		},
-		{
-			"default token with invalid groups claim type any",
-			func() config.Config {
-				conf := config.Defaults
-				conf.OAuth2.Validate.Groups = []string{"group"}
-
-				return conf
-			}(),
-			&oidc.Tokens[*idtoken.Claims]{
-				IDTokenClaims: &idtoken.Claims{
-					TokenClaims: oidc.TokenClaims{
-						Subject: "subject",
-					},
-					Claims: map[string]any{
-						"preferred_username": "username",
-						"groups":             []any{any("group1"), any(0)},
-					},
-				},
-			},
-			nil,
-			types.UserInfo{},
-			types.ErrInvalidClaimType,
-		},
-		{
-			"default token with custom groups claim",
-			func() config.Config {
-				conf := config.Defaults
-				conf.OAuth2.Validate.Groups = []string{"group"}
-
-				return conf
-			}(),
-			&oidc.Tokens[*idtoken.Claims]{
-				IDTokenClaims: &idtoken.Claims{
-					TokenClaims: oidc.TokenClaims{
-						Subject: "subject",
-					},
-					Claims: map[string]any{
-						"preferred_username": "username",
-						"groups_direct":      []string{"group1", "group2"},
-					},
-				},
-			},
-			nil,
-			types.UserInfo{
-				Subject:  "subject",
-				Username: "username",
-			},
-			nil,
-		},
-		{
-			"default token with configured custom groups claim",
-			func() config.Config {
-				conf := config.Defaults
-				conf.OAuth2.Validate.Groups = []string{"group"}
 				conf.OAuth2.GroupsClaim = "groups_direct"
 
 				return conf
 			}(),
-			&oidc.Tokens[*idtoken.Claims]{
-				IDTokenClaims: &idtoken.Claims{
-					TokenClaims: oidc.TokenClaims{
-						Subject: "subject",
-					},
-					Claims: map[string]any{
-						"preferred_username": "username",
-						"groups_direct":      []string{"group1", "group2"},
-					},
-				},
-			},
-			nil,
-			types.UserInfo{
-				Subject:  "subject",
-				Username: "username",
-				Groups:   []string{"group1", "group2"},
-			},
-			nil,
+			token: tokenWithClaims(
+				map[string]any{"groups_direct": []string{"group1", "group2"}},
+				idtoken.Claims{},
+			),
+			expected: types.UserInfo{Groups: []string{"group1", "group2"}},
 		},
 		{
-			"default token with invalid groups claim",
-			func() config.Config {
-				conf := config.Defaults
-				conf.OAuth2.Validate.Groups = []string{"group"}
-
-				return conf
-			}(),
-			&oidc.Tokens[*idtoken.Claims]{
-				IDTokenClaims: &idtoken.Claims{
-					TokenClaims: oidc.TokenClaims{
-						Subject: "subject",
-					},
-					Claims: map[string]any{
-						"groups":             "group1",
-						"preferred_username": "username",
-					},
+			name: "UserInfo takes precedence and token fills missing fields",
+			conf: config.Defaults,
+			token: tokenWithClaims(
+				map[string]any{
+					"groups": []string{"token-group"},
+					"roles":  []string{"token-role"},
 				},
+				idtoken.Claims{
+					TokenClaims:       oidc.TokenClaims{Subject: "token-subject"},
+					PreferredUsername: "token-username",
+					EMail:             "token@example.com",
+				},
+			),
+			userInfo: &types.UserInfo{
+				Subject:  "userinfo-subject",
+				Username: "userinfo-username",
+				Groups:   []string{"userinfo-group"},
 			},
-			nil,
-			types.UserInfo{},
-			types.ErrInvalidClaimType,
+			expected: types.UserInfo{
+				Subject:  "userinfo-subject",
+				Email:    "token@example.com",
+				Username: "userinfo-username",
+				Groups:   []string{"userinfo-group"},
+				Roles:    []string{"token-role"},
+			},
 		},
 		{
-			"default token with nil groups claim",
-			func() config.Config {
-				conf := config.Defaults
-				conf.OAuth2.Validate.Groups = []string{"group"}
-
-				return conf
-			}(),
-			&oidc.Tokens[*idtoken.Claims]{
-				IDTokenClaims: &idtoken.Claims{
-					TokenClaims: oidc.TokenClaims{
-						Subject: "subject",
-					},
-					Claims: map[string]any{
-						"groups":             nil,
-						"preferred_username": "username",
-					},
-				},
-			},
-			nil,
-			types.UserInfo{
+			name:  "UserInfo without ID token",
+			conf:  config.Defaults,
+			token: &idtoken.IDToken{},
+			userInfo: &types.UserInfo{
 				Subject:  "subject",
 				Username: "username",
 			},
-			nil,
-		},
-		{
-			"custom username expression",
-			func() config.Config {
-				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
-
-				return conf
-			}(),
-			&oidc.Tokens[*idtoken.Claims]{
-				IDTokenClaims: &idtoken.Claims{
-					TokenClaims: oidc.TokenClaims{
-						Subject: "subject",
-					},
-					Claims: map[string]any{
-						testsuite.SubjectClaim: testsuite.SubjectClaim,
-						"preferred_username":   "username",
-					},
-				},
-			},
-			nil,
-			types.UserInfo{
-				Subject:  "subject",
-				Username: testsuite.SubjectClaim,
-			},
-			nil,
-		},
-		{
-			"custom username expression with missing claim",
-			func() config.Config {
-				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims.invalid"
-
-				return conf
-			}(),
-			&oidc.Tokens[*idtoken.Claims]{
-				IDTokenClaims: &idtoken.Claims{
-					TokenClaims: oidc.TokenClaims{
-						Subject: "subject",
-					},
-					Claims: map[string]any{
-						testsuite.SubjectClaim: testsuite.SubjectClaim,
-						"preferred_username":   "username",
-					},
-				},
-			},
-			nil,
-			types.UserInfo{
-				Subject:  "subject",
-				Username: testsuite.SubjectClaim,
-			},
-			errors.New("failed to evaluate CEL expression for username"),
-		},
-		{
-			"custom username expression with invalid claim type",
-			func() config.Config {
-				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims.groups"
-
-				return conf
-			}(),
-			&oidc.Tokens[*idtoken.Claims]{
-				IDTokenClaims: &idtoken.Claims{
-					TokenClaims: oidc.TokenClaims{
-						Subject: "subject",
-					},
-					Claims: map[string]any{
-						"groups":             []any{any("group1"), any("group2")},
-						"preferred_username": "username",
-					},
-				},
-			},
-			nil,
-			types.UserInfo{
-				Subject:  "subject",
-				Username: testsuite.SubjectClaim,
-			},
-			types.ErrInvalidClaimType,
-		},
-		{
-			"custom username CEL expression",
-			func() config.Config {
-				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims.sub"
-
-				return conf
-			}(),
-			&oidc.Tokens[*idtoken.Claims]{
-				IDTokenClaims: &idtoken.Claims{
-					TokenClaims: oidc.TokenClaims{
-						Subject: "subject",
-					},
-					Claims: map[string]any{
-						testsuite.SubjectClaim: "username",
-					},
-				},
-			},
-			nil,
-			types.UserInfo{
+			expected: types.UserInfo{
 				Subject:  "subject",
 				Username: "username",
 			},
-			nil,
 		},
 		{
-			"custom username CEL expression with string",
-			func() config.Config {
-				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsername = "string(oauth2TokenClaims.groups[0])"
-
-				return conf
-			}(),
-			&oidc.Tokens[*idtoken.Claims]{
-				IDTokenClaims: &idtoken.Claims{
-					TokenClaims: oidc.TokenClaims{
-						Subject: "subject",
-					},
-					Claims: map[string]any{
-						"groups":             []any{any("group1"), any("group2")},
-						"preferred_username": "username",
-					},
-				},
-			},
-			nil,
-			types.UserInfo{
-				Subject:  "subject",
-				Username: "group1",
-			},
-			nil,
+			name: "invalid groups element",
+			conf: config.Defaults,
+			token: tokenWithClaims(
+				map[string]any{"groups": []any{"group1", 1}},
+				idtoken.Claims{},
+			),
+			err: types.ErrInvalidClaimType,
 		},
 		{
-			"invalid CEL expression",
-			func() config.Config {
-				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsername = "string(oauth2TokenClaims.groups[0]"
-
-				return conf
-			}(),
-			&oidc.Tokens[*idtoken.Claims]{
-				IDTokenClaims: &idtoken.Claims{
-					TokenClaims: oidc.TokenClaims{
-						Subject: "subject",
-					},
-					Claims: map[string]any{
-						"groups":             []any{any("group1"), any("group2")},
-						"preferred_username": "username",
-					},
-				},
-			},
-			nil,
-			types.UserInfo{
-				Subject:  "subject",
-				Username: "group1",
-			},
-			errors.New("failed to compile CEL expression"),
+			name: "invalid roles type",
+			conf: config.Defaults,
+			token: tokenWithClaims(
+				map[string]any{"roles": "role1"},
+				idtoken.Claims{},
+			),
+			err: types.ErrInvalidClaimType,
 		},
 		{
-			"empty username expression",
-			func() config.Config {
-				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsername = ""
-
-				return conf
-			}(),
-			&oidc.Tokens[*idtoken.Claims]{
-				IDTokenClaims: &idtoken.Claims{
-					TokenClaims: oidc.TokenClaims{},
-					Claims:      nil,
-				},
-			},
-			nil,
-			types.UserInfo{},
-			nil,
+			name:     "missing token",
+			conf:     config.Defaults,
+			token:    nil,
+			expected: types.UserInfo{},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			provider, err := generic.NewProvider(t.Context(), &tc.conf, http.DefaultClient)
-			if err != nil && tc.err != nil {
-				require.ErrorContains(t, err, tc.err.Error())
+			require.NoError(t, err)
+
+			userData, err := provider.GetUser(t.Context(), slog.New(slog.DiscardHandler), tc.token, tc.userInfo)
+			if tc.err != nil {
+				require.ErrorIs(t, err, tc.err)
 
 				return
 			}
 
 			require.NoError(t, err)
-
-			userData, err := provider.GetUser(t.Context(), slog.New(slog.DiscardHandler), tc.token, tc.userInfo)
-			if tc.err == nil {
-				require.NoError(t, err)
-				require.Equal(t, tc.userData, userData)
-			} else {
-				require.Error(t, err)
-				require.ErrorContains(t, err, tc.err.Error())
-			}
+			require.Equal(t, tc.expected, userData)
 		})
 	}
+}
+
+func tokenWithClaims(rawClaims map[string]any, claims idtoken.Claims) *idtoken.IDToken {
+	claims.Claims = rawClaims
+
+	return &idtoken.IDToken{IDTokenClaims: &claims}
 }

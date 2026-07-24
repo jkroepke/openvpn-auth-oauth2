@@ -11,12 +11,13 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/providers/generic"
+	oauth2types "github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/test/testsuite"
 	"github.com/stretchr/testify/require"
 )
 
-func TestCheckTokenCEL(t *testing.T) {
+func TestCheckIdentityCEL(t *testing.T) {
 	t.Parallel()
 
 	for _, tc := range []struct {
@@ -24,6 +25,7 @@ func TestCheckTokenCEL(t *testing.T) {
 		conf  config.Config
 		state state.State
 		token *idtoken.IDToken
+		user  oauth2types.UserInfo
 		err   string
 	}{
 		{
@@ -65,18 +67,18 @@ func TestCheckTokenCEL(t *testing.T) {
 			}(),
 		},
 		{
-			name: "missing ID token claims",
+			name: "UserInfo identity without ID token claims",
 			conf: func() config.Config {
 				conf := config.Defaults
 				conf.OAuth2.Issuer = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
-				conf.OAuth2.Validate.Expression = "true"
+				conf.OAuth2.Validate.Expression = "user.username == 'userinfo-user'"
 
 				return conf
 			}(),
-			err: oauth2.ErrNoIDTokenAvailable.Error(),
+			user: oauth2types.UserInfo{Username: "userinfo-user"},
 		},
 		{
 			name: "try access known key",
@@ -86,7 +88,7 @@ func TestCheckTokenCEL(t *testing.T) {
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
-				conf.OAuth2.Validate.Expression = "oauth2TokenClaims.unknown == 'test-user'"
+				conf.OAuth2.Validate.Expression = "token.claims.unknown == 'test-user'"
 
 				return conf
 			}(),
@@ -103,7 +105,8 @@ func TestCheckTokenCEL(t *testing.T) {
 					},
 				},
 			},
-			err: "failed to evaluate CEL expression: no such key: unknown",
+			user: oauth2types.UserInfo{Username: "test-client"},
+			err:  "failed to evaluate CEL expression: no such key: unknown",
 		},
 		{
 			name: "try safe access known key",
@@ -113,7 +116,7 @@ func TestCheckTokenCEL(t *testing.T) {
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
-				conf.OAuth2.Validate.Expression = "has(oauth2TokenClaims.unknown) && oauth2TokenClaims.unknown == 'test-user'"
+				conf.OAuth2.Validate.Expression = "has(token.claims.unknown) && token.claims.unknown == 'test-user'"
 
 				return conf
 			}(),
@@ -130,7 +133,8 @@ func TestCheckTokenCEL(t *testing.T) {
 					},
 				},
 			},
-			err: "cel validation failed",
+			user: oauth2types.UserInfo{Username: "test-client"},
+			err:  "cel validation failed",
 		},
 		{
 			name: "CEL expression evaluates to true",
@@ -140,7 +144,7 @@ func TestCheckTokenCEL(t *testing.T) {
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
-				conf.OAuth2.Validate.Expression = "openVPNUserCommonName == oauth2TokenClaims.preferred_username"
+				conf.OAuth2.Validate.Expression = "openvpn.commonName == token.claims.preferred_username"
 
 				return conf
 			}(),
@@ -157,6 +161,7 @@ func TestCheckTokenCEL(t *testing.T) {
 					},
 				},
 			},
+			user: oauth2types.UserInfo{Username: "test-client"},
 		},
 		{
 			name: "CEL expression evaluates to false",
@@ -166,7 +171,7 @@ func TestCheckTokenCEL(t *testing.T) {
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
-				conf.OAuth2.Validate.Expression = "openVPNUserCommonName != oauth2TokenClaims.preferred_username"
+				conf.OAuth2.Validate.Expression = "openvpn.commonName != token.claims.preferred_username"
 
 				return conf
 			}(),
@@ -183,7 +188,8 @@ func TestCheckTokenCEL(t *testing.T) {
 					},
 				},
 			},
-			err: oauth2.ErrCELValidationFailed.Error(),
+			user: oauth2types.UserInfo{Username: "test-client"},
+			err:  oauth2.ErrCELValidationFailed.Error(),
 		},
 		{
 			name: "CEL expression evaluates to string",
@@ -193,7 +199,7 @@ func TestCheckTokenCEL(t *testing.T) {
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
-				conf.OAuth2.Validate.Expression = "openVPNUserCommonName"
+				conf.OAuth2.Validate.Expression = "openvpn.commonName"
 
 				return conf
 			}(),
@@ -210,7 +216,8 @@ func TestCheckTokenCEL(t *testing.T) {
 					},
 				},
 			},
-			err: "cel expression did not evaluate to a boolean value",
+			user: oauth2types.UserInfo{Username: "test-client"},
+			err:  "cel expression did not evaluate to a boolean value",
 		},
 		{
 			name: "CEL expression with lowerAscii",
@@ -220,7 +227,7 @@ func TestCheckTokenCEL(t *testing.T) {
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
-				conf.OAuth2.Validate.Expression = "openVPNUserCommonName.lowerAscii() == string(oauth2TokenClaims.preferred_username).lowerAscii()"
+				conf.OAuth2.Validate.Expression = "openvpn.commonName.lowerAscii() == string(token.claims.preferred_username).lowerAscii()"
 
 				return conf
 			}(),
@@ -237,6 +244,7 @@ func TestCheckTokenCEL(t *testing.T) {
 					},
 				},
 			},
+			user: oauth2types.UserInfo{Username: "test-client"},
 		},
 		{
 			name: "CEL expression with token IP address",
@@ -246,7 +254,7 @@ func TestCheckTokenCEL(t *testing.T) {
 				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
 				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
-				conf.OAuth2.Validate.Expression = "openVPNUserIPAddr == oauth2TokenIPAddr"
+				conf.OAuth2.Validate.Expression = "openvpn.ip == token.ip"
 
 				return conf
 			}(),
@@ -281,7 +289,7 @@ func TestCheckTokenCEL(t *testing.T) {
 
 			require.NoError(t, err)
 
-			err = oAuth2Client.CheckTokenCEL(oauth2.CELAuthModeInteractive, tc.state, tc.token)
+			err = oAuth2Client.CheckIdentityCEL(oauth2.CELAuthModeInteractive, tc.state, tc.token, tc.user)
 			if tc.err != "" {
 				require.Error(t, err)
 				require.ErrorContains(t, err, tc.err)

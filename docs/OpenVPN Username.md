@@ -71,7 +71,9 @@ By default, openvpn-auth-oauth2 does not pass the username from the OAuth2 provi
 
 **Requires OpenVPN Server 2.7+**
 
-The `openvpn.override-username` configuration option enables passing the username from OAuth2 token claims to OpenVPN using the `override-username` command. This allows real usernames to appear in OpenVPN statistics and logs.
+The `openvpn.override-username` configuration option passes the username from
+the normalized OAuth2 identity to OpenVPN using the `override-username` command.
+This allows real usernames to appear in OpenVPN statistics and logs.
 
 #### Configuration
 
@@ -87,24 +89,37 @@ Or via environment variable:
 CONFIG_OPENVPN_OVERRIDE__USERNAME=true
 ```
 
-#### Username Source
+#### Username source
 
-The username is extracted from the OAuth2 ID token using `oauth2.openvpn-username`.
-The value is a CEL expression that must evaluate to a string.
+The username is resolved from the normalized identity using
+`oauth2.openvpn-username`. The value is a CEL expression that must evaluate to
+a string.
 
-By default, the expression is `oauth2TokenClaims.preferred_username`.
+By default, the expression is `user.username`. Before this expression runs,
+`user.username` contains the provider's username candidate:
+
+- the `preferred_username` value from UserInfo or an OIDC ID token;
+- the GitHub login for the GitHub provider.
+
+The same expression is applied during interactive authentication, UserInfo
+authentication, and refresh validation. If the setting is empty, or if the
+expression returns an empty string, the OpenVPN common name is used.
 
 Example configurations:
 
 ```bash
-# Use a specific claim
---oauth2.openvpn-username='oauth2TokenClaims.email'
+# Use the normalized email address
+--oauth2.openvpn-username='user.email'
 
-# Use CEL expression for complex transformations
---oauth2.openvpn-username='oauth2TokenClaims.email.split("@")[0]'
+# Use a provider-specific raw claim
+--oauth2.openvpn-username='string(token.claims.employee_id)'
+
+# Transform normalized identity data
+--oauth2.openvpn-username='user.email.split("@")[0]'
 ```
 
-For more details on CEL expressions, see the [CEL Language Features](CEL%20Language%20Features.md) documentation.
+The complete `auth`, `openvpn`, `token`, and `user` context is available. For
+more details, see [CEL Language Features](CEL%20Language%20Features.md).
 
 #### Important Limitations
 
@@ -114,7 +129,7 @@ When `openvpn.override-username` is enabled, OpenVPN's native `client-config-dir
 
 **Workaround:** Use openvpn-auth-oauth2's built-in [Client specific configuration](Client%20specific%20configuration.md) feature instead, which:
 - Works seamlessly with `openvpn.override-username`
-- Uses `openvpn.client-config.expression` to resolve configuration files from token claims and the resolved username
+- Uses `openvpn.client-config.expression` to resolve configuration files from the normalized identity and raw token claims
 - Can merge several configuration files or show a profile selector with `openvpn.client-config.strategy: user-selector`
 
 For more details, see the OpenVPN man page regarding `override-username` limitations.
