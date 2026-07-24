@@ -6,6 +6,7 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
 	"github.com/stretchr/testify/require"
 )
@@ -79,7 +80,7 @@ func BenchmarkCheckClientIPAddr(b *testing.B) {
 	})
 }
 
-func BenchmarkCheckTokenCEL(b *testing.B) {
+func BenchmarkCheckIdentityCEL(b *testing.B) {
 	for _, tc := range []struct {
 		name       string
 		expression string
@@ -88,7 +89,7 @@ func BenchmarkCheckTokenCEL(b *testing.B) {
 	}{
 		{
 			name:       "equality",
-			expression: "openVPNUserCommonName == oauth2TokenClaims.preferred_username",
+			expression: "openvpn.commonName == user.username",
 			state: state.State{
 				Client: state.ClientIdentifier{CommonName: "test-client"},
 				IPAddr: "127.0.0.1",
@@ -99,7 +100,7 @@ func BenchmarkCheckTokenCEL(b *testing.B) {
 		},
 		{
 			name:       "lower-ascii",
-			expression: "openVPNUserCommonName.lowerAscii() == string(oauth2TokenClaims.preferred_username).lowerAscii()",
+			expression: "openvpn.commonName.lowerAscii() == user.username.lowerAscii()",
 			state: state.State{
 				Client: state.ClientIdentifier{CommonName: "Test-Client"},
 				IPAddr: "127.0.0.1",
@@ -120,7 +121,12 @@ func BenchmarkCheckTokenCEL(b *testing.B) {
 			b.ResetTimer()
 
 			for b.Loop() {
-				if err := client.CheckTokenCEL(CELAuthModeInteractive, tc.state, tc.token); err != nil {
+				if err := client.CheckIdentityCEL(
+					CELAuthModeInteractive,
+					tc.state,
+					tc.token,
+					types.UserInfo{Username: "test-client"},
+				); err != nil {
 					b.Fatal(err)
 				}
 			}

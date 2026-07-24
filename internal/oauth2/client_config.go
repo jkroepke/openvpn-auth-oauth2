@@ -9,9 +9,9 @@ import (
 	"unicode"
 
 	"github.com/google/cel-go/cel"
-	"github.com/google/cel-go/ext"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
 )
 
 // initializeClientConfigResolver compiles the optional CEL expression used to resolve client configs.
@@ -20,41 +20,23 @@ func (c *Client) initializeClientConfigResolver() error {
 		return nil
 	}
 
-	env, err := cel.NewEnv(
-		cel.VariableWithDoc("openVPNUserCommonName", cel.StringType, "The common name of the OpenVPN user"),
-		cel.VariableWithDoc("oauth2TokenClaims", cel.MapType(cel.StringType, cel.DynType), "The claims of the OAuth2 ID token"),
-		cel.VariableWithDoc("username", cel.StringType, "The resolved OpenVPN username"),
-		ext.Strings(ext.StringsVersion(5)),
-		ext.Lists(ext.ListsVersion(3)),
-	)
+	program, err := compileCELProgram(c.conf.OpenVPN.ClientConfig.Expression, cel.ListType(cel.StringType))
 	if err != nil {
-		return fmt.Errorf("failed to create client config CEL environment: %w", err)
+		return fmt.Errorf("failed to initialize client config CEL expression: %w", err)
 	}
 
-	prg, issues := env.Compile(c.conf.OpenVPN.ClientConfig.Expression)
-	if issues.Err() != nil {
-		return fmt.Errorf("failed to compile client config CEL expression: %w", issues.Err())
-	}
-
-	expectedType := cel.ListType(cel.StringType)
-	if !prg.OutputType().IsAssignableType(expectedType) {
-		return fmt.Errorf(
-			"client config CEL expression must evaluate to %s, got %s",
-			expectedType,
-			prg.OutputType(),
-		)
-	}
-
-	c.configsCELPrg, err = env.Program(prg)
-	if err != nil {
-		return fmt.Errorf("failed to create client config CEL program: %w", err)
-	}
+	c.configsCELPrg = program
 
 	return nil
 }
 
 // ResolveClientConfigNames returns the ordered client config names for an authenticated user.
-func (c *Client) ResolveClientConfigNames(tokens *idtoken.IDToken, openVPNUserCommonName, username string) ([]string, error) {
+func (c *Client) ResolveClientConfigNames(
+	authMode CELAuthMode,
+	session state.State,
+	tokens *idtoken.IDToken,
+	user types.UserInfo,
+) ([]string, error) {
 	if !c.conf.OpenVPN.ClientConfig.Enabled {
 		return nil, nil
 	}
@@ -63,24 +45,20 @@ func (c *Client) ResolveClientConfigNames(tokens *idtoken.IDToken, openVPNUserCo
 		return nil, errors.New("client config expression is not configured")
 	}
 
-	return c.resolveClientConfigNamesCEL(tokens, openVPNUserCommonName, username)
+	return c.resolveClientConfigNamesCEL(authMode, session, tokens, user)
 }
 
-func (c *Client) resolveClientConfigNamesCEL(tokens *idtoken.IDToken, openVPNUserCommonName, username string) ([]string, error) {
+func (c *Client) resolveClientConfigNamesCEL(
+	authMode CELAuthMode,
+	session state.State,
+	tokens *idtoken.IDToken,
+	user types.UserInfo,
+) ([]string, error) {
 	if c.configsCELPrg == nil {
 		return nil, errors.New("client config CEL expression is not initialized")
 	}
 
-	claims := make(map[string]any)
-	if tokens != nil && tokens.IDTokenClaims != nil {
-		claims = tokens.IDTokenClaims.Claims
-	}
-
-	out, _, err := c.configsCELPrg.Eval(map[string]any{
-		"openVPNUserCommonName": openVPNUserCommonName,
-		"oauth2TokenClaims":     claims,
-		"username":              username,
-	})
+	out, _, err := c.configsCELPrg.Eval(newCELActivation(authMode, session, tokens, user))
 	if err != nil {
 		return nil, fmt.Errorf("failed to evaluate CEL expression for client configs: %w", err)
 	}

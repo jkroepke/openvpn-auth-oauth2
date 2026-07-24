@@ -15,16 +15,17 @@ import (
 )
 
 type Client struct {
-	relyingParty    rp.RelyingParty
-	openvpn         openvpnManagementClient
-	storage         tokenstorage.Storage
-	provider        Provider
-	celEvalPrg      cel.Program
-	configsCELPrg   cel.Program
-	logger          *slog.Logger
-	stateCrypto     *crypto.Cipher
-	conf            *types2.Config
-	authorizeParams []rp.URLParamOpt
+	relyingParty     rp.RelyingParty
+	openvpn          openvpnManagementClient
+	storage          tokenstorage.Storage
+	provider         Provider
+	validationCELPrg cel.Program
+	usernameCELPrg   cel.Program
+	configsCELPrg    cel.Program
+	logger           *slog.Logger
+	stateCrypto      *crypto.Cipher
+	conf             *types2.Config
+	authorizeParams  []rp.URLParamOpt
 }
 
 type Provider interface {

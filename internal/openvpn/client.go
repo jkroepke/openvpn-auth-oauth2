@@ -126,7 +126,17 @@ func (c *Client) acceptSilentlyReAuthenticatedClient(
 	if tokens != nil && len(clientConfigNames) == 0 {
 		var err error
 
-		clientConfigNames, err = c.oauth2.ResolveClientConfigNames(tokens, client.CommonName, user.Username)
+		clientConfigNames, err = c.oauth2.ResolveClientConfigNames(
+			types.AuthModeNonInteractive,
+			state.State{
+				Client:       stateClientIdentifier(client),
+				IPAddr:       client.IPAddr,
+				IPPort:       client.IPPort,
+				SessionState: client.SessionState,
+			},
+			tokens,
+			user,
+		)
 		if err != nil {
 			logger.LogAttrs(ctx, slog.LevelWarn, "failed to resolve client config", slog.Any("err", err))
 			c.DenyClient(ctx, logger, stateClientIdentifier(client), "invalid client config")

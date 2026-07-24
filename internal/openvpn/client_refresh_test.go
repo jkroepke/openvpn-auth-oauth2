@@ -277,8 +277,10 @@ func (c *blockingRefreshOAuth2Client) RefreshClientAuth(
 }
 
 func (c *blockingRefreshOAuth2Client) ResolveClientConfigNames(
+	_ oauth2types.AuthMode,
+	_ state.State,
 	_ *idtoken.IDToken,
-	_, _ string,
+	_ oauth2types.UserInfo,
 ) ([]string, error) {
 	return nil, nil
 }
@@ -311,8 +313,10 @@ func (c *storedProfileOAuth2Client) RefreshClientAuth(
 }
 
 func (c *storedProfileOAuth2Client) ResolveClientConfigNames(
+	_ oauth2types.AuthMode,
+	_ state.State,
 	_ *idtoken.IDToken,
-	_, _ string,
+	_ oauth2types.UserInfo,
 ) ([]string, error) {
 	c.resolveCalls.Add(1)
 

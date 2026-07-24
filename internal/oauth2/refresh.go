@@ -238,7 +238,7 @@ func (c *Client) validateRefreshedUser(
 		return types.UserInfo{}, err
 	}
 
-	user, err := c.provider.GetUser(ctx, logger, tokens, userInfo)
+	user, err := c.resolveUser(ctx, logger, CELAuthModeNonInteractive, oAuth2State, tokens, userInfo)
 	if err != nil {
 		return types.UserInfo{}, fmt.Errorf("error fetch user data: %w", err)
 	}
@@ -247,7 +247,7 @@ func (c *Client) validateRefreshedUser(
 		return types.UserInfo{}, fmt.Errorf("error check user data: %w", err)
 	}
 
-	if err = c.CheckTokenCEL(CELAuthModeNonInteractive, oAuth2State, tokens); err != nil {
+	if err = c.CheckIdentityCEL(CELAuthModeNonInteractive, oAuth2State, tokens, user); err != nil {
 		return types.UserInfo{}, fmt.Errorf("error cel validation: %w", err)
 	}
 

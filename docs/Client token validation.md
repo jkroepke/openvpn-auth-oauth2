@@ -1,6 +1,8 @@
 # Client Token Validation with CEL
 
-openvpn-auth-oauth2 supports advanced token validation using the [Common Expression Language (CEL)](https://github.com/google/cel-spec). CEL allows you to write custom validation rules to verify that the OAuth2 ID token claims match the OpenVPN user's context.
+openvpn-auth-oauth2 supports identity validation using the [Common Expression Language (CEL)](https://github.com/google/cel-spec).
+CEL rules can evaluate the normalized user, raw OAuth2 ID token claims, and the
+OpenVPN session context.
 
 ## Overview
 
@@ -20,17 +22,17 @@ To enable CEL validation, configure the `oauth2.validate.expression` property in
 ```yaml
 oauth2:
   validate:
-    expression: 'openVPNUserCommonName == oauth2TokenClaims.preferred_username'
+    expression: 'openvpn.commonName == user.username'
 ```
 
 ### Environment Variable
 
 ```bash
-CONFIG_OAUTH2_VALIDATE_EXPRESSION='openVPNUserCommonName == oauth2TokenClaims.preferred_username'
+CONFIG_OAUTH2_VALIDATE_EXPRESSION='openvpn.commonName == user.username'
 ```
 
 > [!IMPORTANT]
-> CEL validation is performed **both during initial OAuth2 authentication and during token refresh**. This means your validation rules will be continuously enforced throughout the entire lifecycle of a VPN session. Make sure your expressions account for both scenarios using the `authMode` variable if needed.
+> CEL validation is performed **both during initial OAuth2 authentication and during token refresh**. This means your validation rules will be continuously enforced throughout the entire lifecycle of a VPN session. Make sure your expressions account for both scenarios using `auth.mode` if needed.
 
 ## Available Variables
 
@@ -38,12 +40,22 @@ The following variables are available in your CEL expressions:
 
 | Variable | Type | Description |
 |----------|------|-------------|
-| `authMode` | `string` | The authentication mode: `"interactive"` (initial OAuth2 login) or `"non-interactive"` (token refresh) |
-| `openVPNSessionState` | `string` | The OpenVPN session state (e.g., `""`, `"Empty"`, `"Initial"`, `"Authenticated"`, `"Expired"`, `"Invalid"`, `"AuthenticatedEmptyUser"`, `"ExpiredEmptyUser"`) |
-| `openVPNUserCommonName` | `string` | The common name (CN) of the OpenVPN client certificate |
-| `openVPNUserIPAddr` | `string` | The IP address of the OpenVPN client |
-| `oauth2TokenIPAddr` | `string` | The IP address claim from the OAuth2 ID token |
-| `oauth2TokenClaims` | `map<string, dynamic>` | All claims from the OAuth2 ID token |
+| `auth.mode` | `string` | The authentication mode: `"interactive"` (initial OAuth2 login) or `"non-interactive"` (token refresh) |
+| `openvpn.sessionState` | `string` | The OpenVPN session state (e.g., `""`, `"Empty"`, `"Initial"`, `"Authenticated"`, `"Expired"`, `"Invalid"`, `"AuthenticatedEmptyUser"`, `"ExpiredEmptyUser"`) |
+| `openvpn.commonName` | `string` | The common name (CN) of the OpenVPN client certificate |
+| `openvpn.ip` | `string` | The IP address of the OpenVPN client |
+| `token.ip` | `string` | The IP address claim from the OAuth2 ID token |
+| `token.claims` | `map<string, dynamic>` | All claims from the OAuth2 ID token |
+| `user.subject` | `string` | The normalized provider subject |
+| `user.email` | `string` | The normalized email address |
+| `user.username` | `string` | The final username after `oauth2.openvpn-username` and common-name fallback |
+| `user.groups` | `list<string>` | The normalized groups |
+| `user.roles` | `list<string>` | The normalized roles |
+
+Prefer `user.*` for rules that should work with generic OIDC, UserInfo, GitHub,
+and refresh authentication. Use `token.claims.*` for provider-specific claims.
+See [CEL Language Features](CEL%20Language%20Features.md) for the normalization
+rules and the context shared by all CEL settings.
 
 ## Expression Requirements
 
@@ -60,8 +72,8 @@ Use the `has()` function to safely check for claim existence before accessing it
 oauth2:
   validate:
     expression: |
-      has(oauth2TokenClaims.department) &&
-      oauth2TokenClaims.department == 'engineering'
+      has(token.claims.department) &&
+      token.claims.department == 'engineering'
 ```
 
 > [!IMPORTANT]
@@ -76,7 +88,7 @@ Ensure the OpenVPN common name matches the OAuth2 username claim:
 ```yaml
 oauth2:
   validate:
-    expression: 'openVPNUserCommonName == oauth2TokenClaims.preferred_username'
+    expression: 'openvpn.commonName == user.username'
 ```
 
 ### Email Domain Validation
@@ -87,8 +99,7 @@ Only allow users with email addresses from specific domains:
 oauth2:
   validate:
     expression: |
-      has(oauth2TokenClaims.email) &&
-      oauth2TokenClaims.email.endsWith('@example.com')
+      user.email.endsWith('@example.com')
 ```
 
 ### Multiple Condition Validation
@@ -99,9 +110,9 @@ Combine multiple conditions with logical operators:
 oauth2:
   validate:
     expression: |
-      openVPNUserCommonName == oauth2TokenClaims.preferred_username &&
-      has(oauth2TokenClaims.email_verified) &&
-      oauth2TokenClaims.email_verified == true
+      openvpn.commonName == user.username &&
+      has(token.claims.email_verified) &&
+      token.claims.email_verified == true
 ```
 
 ### Group-Based Validation
@@ -112,8 +123,7 @@ Allow access only if the user belongs to specific groups:
 oauth2:
   validate:
     expression: |
-      has(oauth2TokenClaims.groups) &&
-      ('vpn-users' in oauth2TokenClaims.groups || 'administrators' in oauth2TokenClaims.groups)
+      'vpn-users' in user.groups || 'administrators' in user.groups
 ```
 
 ### IP Address Claim Validation
@@ -123,7 +133,7 @@ Validate that the VPN client IP matches the IP address claim from the token:
 ```yaml
 oauth2:
   validate:
-    expression: 'openVPNUserIPAddr == oauth2TokenIPAddr'
+    expression: 'openvpn.ip == token.ip'
 ```
 
 ### Case-Insensitive Username Validation
@@ -134,11 +144,11 @@ Compare usernames in a case-insensitive manner using the `lowerAscii()` function
 oauth2:
   validate:
     expression: |
-      has(oauth2TokenClaims.preferred_username) && openVPNUserCommonName.lowerAscii() == string(oauth2TokenClaims.preferred_username).lowerAscii()
+      openvpn.commonName.lowerAscii() == user.username.lowerAscii()
 ```
 
 > [!IMPORTANT]
-> When accessing claims from `oauth2TokenClaims` that you want to use with string functions, you may need to cast them to string using `string()` since claims are stored as dynamic types.
+> When accessing claims from `token.claims` that you want to use with string functions, you may need to cast them to string using `string()` since claims are stored as dynamic types.
 
 ### Complex Custom Logic
 
@@ -148,12 +158,12 @@ Combine multiple conditions for sophisticated validation rules:
 oauth2:
   validate:
     expression: |
-      openVPNUserCommonName == oauth2TokenClaims.sub &&
+      openvpn.commonName == token.claims.sub &&
       (
-        (has(oauth2TokenClaims.role) && oauth2TokenClaims.role == 'admin') ||
-        (has(oauth2TokenClaims.vpn_access) && oauth2TokenClaims.vpn_access == true)
+        (has(token.claims.role) && token.claims.role == 'admin') ||
+        (has(token.claims.vpn_access) && token.claims.vpn_access == true)
       ) &&
-      (!has(oauth2TokenClaims.account_locked) || oauth2TokenClaims.account_locked == false)
+      (!has(token.claims.account_locked) || token.claims.account_locked == false)
 ```
 
 ### Email Prefix Validation
@@ -164,8 +174,7 @@ Extract and validate the prefix of an email address:
 oauth2:
   validate:
     expression: |
-      has(oauth2TokenClaims.email) &&
-      string(oauth2TokenClaims.email).split('@')[0] == openVPNUserCommonName
+      user.email.split('@')[0] == openvpn.commonName
 ```
 
 ### Username Format Validation
@@ -176,8 +185,7 @@ Validate that a username contains only allowed characters using regular expressi
 oauth2:
   validate:
     expression: |
-      has(oauth2TokenClaims.preferred_username) &&
-      string(oauth2TokenClaims.preferred_username).matches('^[a-zA-Z0-9._-]+$')
+      user.username.matches('^[a-zA-Z0-9._-]+$')
 ```
 
 ### String Length Validation
@@ -188,9 +196,8 @@ Ensure usernames meet minimum length requirements:
 oauth2:
   validate:
     expression: |
-      openVPNUserCommonName.size() >= 3 &&
-      has(oauth2TokenClaims.preferred_username) &&
-      string(oauth2TokenClaims.preferred_username).size() >= 3
+      openvpn.commonName.size() >= 3 &&
+      user.username.size() >= 3
 ```
 
 ### Domain-Based Routing
@@ -201,12 +208,11 @@ Allow different IP ranges based on email domain:
 oauth2:
   validate:
     expression: |
-      has(oauth2TokenClaims.email) &&
       (
-        (string(oauth2TokenClaims.email).endsWith('@internal.company.com') &&
-         openVPNUserIPAddr.startsWith('10.0.')) ||
-        (string(oauth2TokenClaims.email).endsWith('@company.com') &&
-         openVPNUserIPAddr.startsWith('192.168.'))
+        (user.email.endsWith('@internal.company.com') &&
+         openvpn.ip.startsWith('10.0.')) ||
+        (user.email.endsWith('@company.com') &&
+         openvpn.ip.startsWith('192.168.'))
       )
 ```
 
@@ -218,8 +224,8 @@ Apply different validation rules based on whether this is an initial login or a 
 oauth2:
   validate:
     expression: |
-      authMode == 'interactive' ||
-      (authMode == 'non-interactive' && has(oauth2TokenClaims.refresh_allowed) && oauth2TokenClaims.refresh_allowed == true)
+      auth.mode == 'interactive' ||
+      (auth.mode == 'non-interactive' && has(token.claims.refresh_allowed) && token.claims.refresh_allowed == true)
 ```
 
 ### Session State Validation
@@ -230,8 +236,8 @@ Validate based on the current OpenVPN session state:
 oauth2:
   validate:
     expression: |
-      openVPNSessionState in ['Initial', 'Authenticated', 'AuthenticatedEmptyUser'] &&
-      openVPNUserCommonName == oauth2TokenClaims.preferred_username
+      openvpn.sessionState in ['Initial', 'Authenticated', 'AuthenticatedEmptyUser'] &&
+      openvpn.commonName == user.username
 ```
 
 ### Combined Mode and State Validation
@@ -242,6 +248,6 @@ Combine authentication mode and session state for fine-grained control:
 oauth2:
   validate:
     expression: |
-      (authMode == 'interactive' && openVPNSessionState == 'Initial') ||
-      (authMode == 'non-interactive' && openVPNSessionState == 'Authenticated')
+      (auth.mode == 'interactive' && openvpn.sessionState == 'Initial') ||
+      (auth.mode == 'non-interactive' && openvpn.sessionState == 'Authenticated')
 ```

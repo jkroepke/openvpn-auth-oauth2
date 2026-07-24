@@ -126,7 +126,7 @@ func TestPlugin(t *testing.T) {
 
 			tc.conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: "unix", Path: unixSocket}}
 			tc.conf.OpenVPN.Password = "password"
-			tc.conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+			tc.conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
 
 			suite := testsuite.New(&tc.conf)
 			suite.SetupOIDCServer(t, clientListener, nil)
@@ -336,7 +336,7 @@ func TestPluginDenyNonWebAuthClient(t *testing.T) {
 	conf := config.Defaults
 	conf.OpenVPN.Addr = types.URL{URL: &url.URL{Scheme: "unix", Path: unixSocket}}
 	conf.OpenVPN.Password = "password"
-	conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+	conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
 
 	suite := testsuite.New(&conf)
 	suite.SetupOIDCServer(t, clientListener, nil)

@@ -12,7 +12,6 @@ var (
 
 	ErrCELValidationFailed = errors.New("cel validation failed")
 	ErrCELNoBooleanResult  = errors.New("cel expression did not evaluate to a boolean value")
-	ErrNoIDTokenAvailable  = errors.New("no ID token claims available for cel validation")
 
 	ErrClientRejected = errors.New("client rejected")
 )

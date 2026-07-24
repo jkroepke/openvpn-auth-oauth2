@@ -8,7 +8,18 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
 )
 
-// GetUser delegates user resolution to the embedded generic provider.
+// GetUser normalizes Google user data and resolves configured group memberships.
 func (p Provider) GetUser(ctx context.Context, logger *slog.Logger, tokens *idtoken.IDToken, userInfo *types.UserInfo) (types.UserInfo, error) {
-	return p.Provider.GetUser(ctx, logger, tokens, userInfo) //nolint:wrapcheck
+	user, err := p.Provider.GetUser(ctx, logger, tokens, userInfo)
+	if err != nil {
+		return types.UserInfo{}, err //nolint:wrapcheck
+	}
+
+	if len(p.Conf.OAuth2.Validate.Groups) > 0 {
+		if err = p.resolveGroupMemberships(ctx, &user, tokens); err != nil {
+			return types.UserInfo{}, err
+		}
+	}
+
+	return user, nil
 }

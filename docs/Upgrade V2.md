@@ -69,6 +69,31 @@ The two password files must contain the same password. They can be separate
 files so OpenVPN and openvpn-auth-oauth2 can each read a file from the path
 allowed by their service permissions.
 
+## CEL context
+
+Version 2 uses one namespaced context for username resolution, validation, and
+client config resolution. Update every CEL expression to use the new names:
+
+| Previous field | Version 2 field |
+| --- | --- |
+| `authMode` | `auth.mode` |
+| `openVPNSessionState` | `openvpn.sessionState` |
+| `openVPNUserCommonName` | `openvpn.commonName` |
+| `openVPNUserIPAddr` | `openvpn.ip` |
+| `oauth2TokenIPAddr` | `token.ip` |
+| `oauth2TokenClaims` | `token.claims` |
+| `username` | `user.username` |
+
+Version 2 also exposes normalized `user.subject`, `user.email`, `user.groups`,
+and `user.roles` fields. Prefer these fields when an expression should work
+across generic OIDC, UserInfo, GitHub, and refresh authentication. Raw
+`token.claims` can be empty when a provider supplies identity data through
+another source.
+
+Provider data and groups or roles are resolved first. The
+`oauth2.openvpn-username` expression then sets the final `user.username`, and
+validation and client config resolution use that final identity.
+
 ## OpenVPN username
 
 The following options were removed or renamed:
@@ -79,7 +104,9 @@ The following options were removed or renamed:
 | `oauth2.openvpn-username-cel` | `oauth2.openvpn-username` |
 
 `oauth2.openvpn-username` is a CEL expression and must evaluate to a string.
-The default changed from the claim name `preferred_username` to the equivalent CEL expression `oauth2TokenClaims.preferred_username`.
+The default changed from the claim name `preferred_username` to
+`user.username`. This uses the provider's normalized username, including
+`preferred_username` for OIDC and the GitHub login for GitHub.
 
 If you used `oauth2.openvpn-username-claim`, convert the claim name into a CEL token claim lookup:
 
@@ -90,10 +117,11 @@ oauth2:
 
 # Version 2
 oauth2:
-  openvpn-username: oauth2TokenClaims.email
+  openvpn-username: user.email
 ```
 
-If you used `oauth2.openvpn-username-cel`, keep the same expression and move it to `oauth2.openvpn-username`:
+If you used `oauth2.openvpn-username-cel`, move it to
+`oauth2.openvpn-username` and translate its fields to the namespaced context:
 
 ```yaml
 # Version 1
@@ -102,10 +130,13 @@ oauth2:
 
 # Version 2
 oauth2:
-  openvpn-username: 'oauth2TokenClaims.email.split("@")[0]'
+  openvpn-username: 'user.email.split("@")[0]'
 ```
 
 The environment variable for the new option is `CONFIG_OAUTH2_OPENVPN__USERNAME`.
+Unlike version 1's provider-specific paths, the expression is applied
+consistently when identity comes from an ID token, UserInfo, or the GitHub API,
+and during validated refresh authentication.
 
 ## Client-specific configuration
 
@@ -121,10 +152,10 @@ The following options are removed:
 | `openvpn.client-config.user-selector.static-values` | `openvpn.client-config.expression`              |
 
 `openvpn.client-config.expression` is a CEL expression and must evaluate
-to an ordered list of strings. It receives `oauth2TokenClaims`, which contains
-the OAuth2 ID token claims, and `openVPNUserCommonName`, which contains the
-OpenVPN common name. It also receives `username`, which contains the resolved
-OpenVPN username after `oauth2.openvpn-username` has been evaluated.
+to an ordered list of strings. It receives the full shared CEL context.
+`user.username` contains the resolved OpenVPN username,
+`user.groups` and `user.roles` contain normalized provider data, and
+`token.claims` contains raw ID token claims.
 
 The default strategy is now `merge`. It loads every resolved config file,
 deduplicates repeated config names and identical config lines, and skips missing
@@ -159,10 +190,10 @@ openvpn:
     enabled: true
     path: /etc/openvpn-auth-oauth2/client-config
     expression: |
-        [openVPNUserCommonName]
+        [openvpn.commonName]
 ```
 
-To use the resolved OpenVPN username instead, use `username`:
+To use the resolved OpenVPN username instead, use `user.username`:
 
 ```yaml
 openvpn:
@@ -170,7 +201,7 @@ openvpn:
     enabled: true
     path: /etc/openvpn-auth-oauth2/client-config
     expression: |
-        [username]
+        [user.username]
 ```
 
 ### Token claim client config
@@ -195,7 +226,7 @@ openvpn:
     enabled: true
     path: /etc/openvpn-auth-oauth2/client-config
     expression: |
-        oauth2TokenClaims.groups
+        token.claims.groups
 ```
 
 If the claim can contain several values, all matching config files are merged by
@@ -226,7 +257,7 @@ openvpn:
     path: /etc/openvpn-auth-oauth2/client-config
     strategy: user-selector
     expression: |
-        oauth2TokenClaims.groups
+        token.claims.groups
 ```
 
 Static selector values also move into the expression:
@@ -271,12 +302,12 @@ openvpn:
     enabled: true
     path: /etc/openvpn-auth-oauth2/client-config
     expression: |
-        oauth2TokenClaims.groups.filter(g, g in [
+        user.groups.filter(g, g in [
           "GRP-VPN",
           "GRP-ADMIN",
           "GRP-NETWORK"
         ]) +
-        [username]
+        [user.username]
 ```
 
 ## Token validation
@@ -316,8 +347,8 @@ Use a CEL expression with `lowerAscii()` for the same case-insensitive behavior:
 oauth2:
   validate:
     expression: |
-      has(oauth2TokenClaims.preferred_username) &&
-      openVPNUserCommonName.lowerAscii() == string(oauth2TokenClaims.preferred_username).lowerAscii()
+      has(token.claims.preferred_username) &&
+      openvpn.commonName.lowerAscii() == string(token.claims.preferred_username).lowerAscii()
 ```
 
 If you used case-sensitive common name validation:
@@ -337,8 +368,8 @@ Use a direct CEL comparison:
 oauth2:
   validate:
     expression: |
-      has(oauth2TokenClaims.preferred_username) &&
-      openVPNUserCommonName == string(oauth2TokenClaims.preferred_username)
+      has(token.claims.preferred_username) &&
+      openvpn.commonName == string(token.claims.preferred_username)
 ```
 
 ### IP address validation
@@ -352,13 +383,13 @@ oauth2:
     ipaddr: true
 ```
 
-Version 2 exposes the OpenVPN client IP as `openVPNUserIPAddr` and the token IP address claim as `oauth2TokenIPAddr`:
+Version 2 exposes the OpenVPN client IP as `openvpn.ip` and the token IP address claim as `token.ip`:
 
 ```yaml
 # Version 2
 oauth2:
   validate:
-    expression: 'openVPNUserIPAddr == oauth2TokenIPAddr'
+    expression: 'openvpn.ip == token.ip'
 ```
 
 ### Roles validation
@@ -374,21 +405,19 @@ oauth2:
       - vpn-user
 ```
 
-Use CEL to check the `roles` claim directly:
+Use the normalized roles list:
 
 ```yaml
 # Version 2
 oauth2:
   validate:
     expression: |
-      has(oauth2TokenClaims.roles) &&
-      ('admin' in oauth2TokenClaims.roles || 'vpn-user' in oauth2TokenClaims.roles)
+      'admin' in user.roles || 'vpn-user' in user.roles
 ```
 
 For GitHub provider configurations, team validation is also migrated to CEL.
-The GitHub provider still fetches teams from the `/user/teams` API and exposes
-them through `oauth2TokenClaims.roles` in the same `org:slug` format used by
-version 1:
+The GitHub provider fetches teams from the `/user/teams` API and exposes them
+through `user.roles` in the same `org:slug` format used by version 1:
 
 ```yaml
 # Version 1
@@ -406,8 +435,7 @@ oauth2:
   provider: github
   validate:
     expression: |
-      has(oauth2TokenClaims.roles) &&
-      ('my-org:vpn-users' in oauth2TokenClaims.roles || 'my-org:admins' in oauth2TokenClaims.roles)
+      'my-org:vpn-users' in user.roles || 'my-org:admins' in user.roles
 ```
 
 Keep organization checks with `oauth2.validate.groups`; for GitHub this still
@@ -433,8 +461,8 @@ Use CEL to check the `acr` claim:
 oauth2:
   validate:
     expression: |
-      has(oauth2TokenClaims.acr) &&
-      (oauth2TokenClaims.acr == 'phr' || oauth2TokenClaims.acr == 'phrh')
+      has(token.claims.acr) &&
+      (token.claims.acr == 'phr' || token.claims.acr == 'phrh')
 ```
 
 ### Combining validation rules
@@ -456,11 +484,10 @@ oauth2:
 oauth2:
   validate:
     expression: |
-      has(oauth2TokenClaims.preferred_username) &&
-      openVPNUserCommonName.lowerAscii() == string(oauth2TokenClaims.preferred_username).lowerAscii() &&
-      openVPNUserIPAddr == oauth2TokenIPAddr &&
-      has(oauth2TokenClaims.roles) &&
-      'vpn-user' in oauth2TokenClaims.roles
+      has(token.claims.preferred_username) &&
+      openvpn.commonName.lowerAscii() == string(token.claims.preferred_username).lowerAscii() &&
+      openvpn.ip == token.ip &&
+      'vpn-user' in user.roles
 ```
 
 You can keep `oauth2.validate.groups` alongside CEL:
@@ -471,6 +498,6 @@ oauth2:
     groups:
       - vpn-users
     expression: |
-      has(oauth2TokenClaims.acr) &&
-      oauth2TokenClaims.acr == 'phr'
+      has(token.claims.acr) &&
+      token.claims.acr == 'phr'
 ```

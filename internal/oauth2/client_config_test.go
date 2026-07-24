@@ -6,6 +6,8 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
+	oauth2types "github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
 	"github.com/stretchr/testify/require"
 )
 
@@ -14,18 +16,20 @@ func TestResolveClientConfigNamesExpression(t *testing.T) {
 
 	conf := config.Defaults
 	conf.OpenVPN.ClientConfig.Enabled = true
-	conf.OpenVPN.ClientConfig.Expression = `oauth2TokenClaims.groups.filter(g, g in ["base", "admin"]) + [username]`
+	conf.OpenVPN.ClientConfig.Expression = `user.groups.filter(g, g in ["base", "admin"]) + [user.username]`
 
 	client := Client{conf: &conf}
 	require.NoError(t, client.initializeClientConfigResolver())
 
-	names, err := client.ResolveClientConfigNames(&idtoken.IDToken{
-		IDTokenClaims: &idtoken.Claims{
-			Claims: map[string]any{
-				"groups": []any{"base", "ignored", "admin"},
-			},
+	names, err := client.ResolveClientConfigNames(
+		CELAuthModeInteractive,
+		state.State{Client: state.ClientIdentifier{CommonName: "client-cn"}},
+		&idtoken.IDToken{IDTokenClaims: &idtoken.Claims{Claims: map[string]any{}}},
+		oauth2types.UserInfo{
+			Username: "alice",
+			Groups:   []string{"base", "ignored", "admin"},
 		},
-	}, "client-cn", "alice")
+	)
 
 	require.NoError(t, err)
 	require.Equal(t, []string{"base", "admin", "alice"}, names)
@@ -36,15 +40,16 @@ func TestResolveClientConfigNamesExpressionUsesCommonNameAndUsername(t *testing.
 
 	conf := config.Defaults
 	conf.OpenVPN.ClientConfig.Enabled = true
-	conf.OpenVPN.ClientConfig.Expression = `[openVPNUserCommonName, username]`
+	conf.OpenVPN.ClientConfig.Expression = `[openvpn.commonName, user.username]`
 
 	client := Client{conf: &conf}
 	require.NoError(t, client.initializeClientConfigResolver())
 
 	names, err := client.ResolveClientConfigNames(
+		CELAuthModeInteractive,
+		state.State{Client: state.ClientIdentifier{CommonName: "client-cn"}},
 		&idtoken.IDToken{IDTokenClaims: &idtoken.Claims{Claims: map[string]any{}}},
-		"client-cn",
-		"alice",
+		oauth2types.UserInfo{Username: "alice"},
 	)
 
 	require.NoError(t, err)
@@ -61,7 +66,12 @@ func TestResolveClientConfigNamesExpressionRejectsInvalidName(t *testing.T) {
 	client := Client{conf: &conf}
 	require.NoError(t, client.initializeClientConfigResolver())
 
-	_, err := client.ResolveClientConfigNames(&idtoken.IDToken{IDTokenClaims: &idtoken.Claims{Claims: map[string]any{}}}, "client-cn", "alice")
+	_, err := client.ResolveClientConfigNames(
+		CELAuthModeInteractive,
+		state.State{Client: state.ClientIdentifier{CommonName: "client-cn"}},
+		&idtoken.IDToken{IDTokenClaims: &idtoken.Claims{Claims: map[string]any{}}},
+		oauth2types.UserInfo{Username: "alice"},
+	)
 
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "invalid client config path")
@@ -77,7 +87,12 @@ func TestResolveClientConfigNamesExpressionRejectsUnsafeName(t *testing.T) {
 	client := Client{conf: &conf}
 	require.NoError(t, client.initializeClientConfigResolver())
 
-	_, err := client.ResolveClientConfigNames(&idtoken.IDToken{IDTokenClaims: &idtoken.Claims{Claims: map[string]any{}}}, "client-cn", "alice")
+	_, err := client.ResolveClientConfigNames(
+		CELAuthModeInteractive,
+		state.State{Client: state.ClientIdentifier{CommonName: "client-cn"}},
+		&idtoken.IDToken{IDTokenClaims: &idtoken.Claims{Claims: map[string]any{}}},
+		oauth2types.UserInfo{Username: "alice"},
+	)
 
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "unsafe client config name")
@@ -118,12 +133,17 @@ func TestResolveClientConfigNamesExpressionRejectsMissingClaim(t *testing.T) {
 
 	conf := config.Defaults
 	conf.OpenVPN.ClientConfig.Enabled = true
-	conf.OpenVPN.ClientConfig.Expression = `oauth2TokenClaims.groups`
+	conf.OpenVPN.ClientConfig.Expression = `token.claims.groups`
 
 	client := Client{conf: &conf}
 	require.NoError(t, client.initializeClientConfigResolver())
 
-	_, err := client.ResolveClientConfigNames(&idtoken.IDToken{IDTokenClaims: &idtoken.Claims{Claims: map[string]any{}}}, "client-cn", "alice")
+	_, err := client.ResolveClientConfigNames(
+		CELAuthModeInteractive,
+		state.State{Client: state.ClientIdentifier{CommonName: "client-cn"}},
+		&idtoken.IDToken{IDTokenClaims: &idtoken.Claims{Claims: map[string]any{}}},
+		oauth2types.UserInfo{Username: "alice"},
+	)
 
 	require.Error(t, err)
 }
@@ -136,7 +156,12 @@ func TestResolveClientConfigNamesRequiresExpression(t *testing.T) {
 
 	client := Client{conf: &conf}
 
-	_, err := client.ResolveClientConfigNames(&idtoken.IDToken{IDTokenClaims: &idtoken.Claims{Claims: map[string]any{}}}, "client-cn", "alice")
+	_, err := client.ResolveClientConfigNames(
+		CELAuthModeInteractive,
+		state.State{Client: state.ClientIdentifier{CommonName: "client-cn"}},
+		&idtoken.IDToken{IDTokenClaims: &idtoken.Claims{Claims: map[string]any{}}},
+		oauth2types.UserInfo{Username: "alice"},
+	)
 
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "client config expression is not configured")

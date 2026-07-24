@@ -402,9 +402,9 @@ func (c *Config) flagSetOAuth2(flagSet *flag.FlagSet) {
 		&c.OAuth2.Validate.Expression,
 		"oauth2.validate.expression",
 		lookupEnvOrDefault("oauth2.validate.expression", c.OAuth2.Validate.Expression),
-		"CEL expression for custom token validation. "+
+		"CEL expression for custom identity validation. "+
 			"The expression must evaluate to a boolean value. "+
-			"Example: openVPNUserCommonName == oauth2TokenClaims.preferred_username",
+			"Example: openvpn.commonName == user.username",
 	)
 	flagSet.TextVar(
 		&c.OAuth2.Scopes,
@@ -418,8 +418,8 @@ func (c *Config) flagSetOAuth2(flagSet *flag.FlagSet) {
 		&c.OAuth2.OpenVPNUsername,
 		"oauth2.openvpn-username",
 		lookupEnvOrDefault("oauth2.openvpn-username", c.OAuth2.OpenVPNUsername),
-		"CEL expression to extract the username from the token. The expression must evaluate to a string value. "+
-			"Example: oauth2TokenClaims.sub. If empty, the common name is used.",
+		"CEL expression to resolve the username from the normalized identity. The expression must evaluate to a string value. "+
+			"Example: string(token.claims.sub). If empty, the common name is used.",
 	)
 }
 

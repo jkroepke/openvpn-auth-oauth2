@@ -107,7 +107,7 @@ func TestRefreshReAuth(t *testing.T) {
 			nonInteractiveShouldWork: true,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
 				conf.OAuth2.Refresh.Enabled = true
 				conf.OAuth2.Refresh.ValidateUser = true
 				conf.OAuth2.Refresh.UseSessionID = false
@@ -122,7 +122,7 @@ func TestRefreshReAuth(t *testing.T) {
 			nonInteractiveShouldWork: true,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
 				conf.OpenVPN.ReAuthentication = false
 
 				return conf
@@ -151,7 +151,7 @@ func TestRefreshReAuth(t *testing.T) {
 			nonInteractiveShouldWork: true,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
 				conf.OpenVPN.AuthTokenUser = true
 				conf.OpenVPN.OverrideUsername = true
 				conf.OAuth2.Refresh.Enabled = true
@@ -168,7 +168,7 @@ func TestRefreshReAuth(t *testing.T) {
 			nonInteractiveShouldWork: true,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
 				conf.OAuth2.Refresh.Enabled = true
 				conf.OAuth2.Refresh.ValidateUser = false
 				conf.OAuth2.Refresh.UseSessionID = false
@@ -183,7 +183,7 @@ func TestRefreshReAuth(t *testing.T) {
 			nonInteractiveShouldWork: true,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
 				conf.OAuth2.Refresh.Enabled = true
 				conf.OAuth2.Refresh.ValidateUser = false
 				conf.OAuth2.Refresh.UseSessionID = false
@@ -203,7 +203,7 @@ func TestRefreshReAuth(t *testing.T) {
 			nonInteractiveShouldWork: true,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
 				conf.OAuth2.Validate.Groups = []string{"group1"}
 				conf.OAuth2.UserInfo = true
 				conf.OAuth2.Refresh.Enabled = true
@@ -218,7 +218,7 @@ func TestRefreshReAuth(t *testing.T) {
 			nonInteractiveShouldWork: true,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
 				conf.OpenVPN.AuthTokenUser = false
 				conf.OAuth2.Refresh.Enabled = true
 				conf.OAuth2.Refresh.ValidateUser = false
@@ -234,7 +234,7 @@ func TestRefreshReAuth(t *testing.T) {
 			nonInteractiveShouldWork: true,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
 				conf.OpenVPN.AuthTokenUser = false
 				conf.OAuth2.Refresh.Enabled = true
 				conf.OAuth2.Refresh.ValidateUser = true
@@ -250,7 +250,7 @@ func TestRefreshReAuth(t *testing.T) {
 			nonInteractiveShouldWork: true,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
 				conf.OpenVPN.AuthTokenUser = false
 				conf.OAuth2.Provider = google.Name
 				conf.OAuth2.Scopes = []string{types.ScopeEmail, types.ScopeProfile, types.ScopeOpenID, types.ScopeOfflineAccess}
@@ -268,7 +268,7 @@ func TestRefreshReAuth(t *testing.T) {
 			nonInteractiveShouldWork: true,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "user.username"
 				conf.OpenVPN.AuthTokenUser = false
 				conf.OAuth2.Provider = github.Name
 				conf.OAuth2.Refresh.Enabled = true
@@ -285,7 +285,7 @@ func TestRefreshReAuth(t *testing.T) {
 			nonInteractiveShouldWork: false,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
 				conf.OAuth2.Refresh.Enabled = true
 				conf.OAuth2.Refresh.ValidateUser = true
 				conf.OAuth2.Refresh.UseSessionID = false
@@ -311,7 +311,7 @@ func TestRefreshReAuth(t *testing.T) {
 			nonInteractiveShouldWork: false,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "user.username"
 				conf.OpenVPN.AuthTokenUser = false
 				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Refresh.Enabled = true
@@ -349,7 +349,7 @@ func TestRefreshReAuth(t *testing.T) {
 			nonInteractiveShouldWork: true,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "user.username"
 				conf.OpenVPN.AuthTokenUser = false
 				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Refresh.Enabled = true
@@ -410,13 +410,13 @@ func TestRefreshReAuth(t *testing.T) {
 			nonInteractiveShouldWork: false,
 			conf: func() config.Config {
 				conf := config.Defaults
-				conf.OAuth2.OpenVPNUsername = "oauth2TokenClaims." + testsuite.SubjectClaim
+				conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
 				conf.OpenVPN.AuthTokenUser = false
 				conf.OAuth2.Provider = generic.Name
 				conf.OAuth2.Refresh.Enabled = true
 				conf.OAuth2.Refresh.ValidateUser = true
 				conf.OAuth2.Refresh.UseSessionID = false
-				conf.OAuth2.Validate.Expression = "authMode == 'interactive'"
+				conf.OAuth2.Validate.Expression = "auth.mode == 'interactive'"
 
 				return conf
 			}(),
@@ -480,7 +480,7 @@ func TestRefreshReAuth(t *testing.T) {
 				case tc.clientCommonName == "":
 					suite.ExpectMessage(t, `override-username "username"`)
 				case tc.conf.OAuth2.UserInfo:
-					suite.ExpectMessage(t, `override-username "test-user@localhost"`)
+					suite.ExpectMessage(t, `override-username "id1"`)
 				default:
 					suite.ExpectMessage(t, `override-username "id1"`)
 				}
@@ -493,7 +493,7 @@ func TestRefreshReAuth(t *testing.T) {
 				case tc.clientCommonName == "":
 					suite.ExpectMessage(t, `push "auth-token-user dXNlcm5hbWU="`)
 				case tc.conf.OAuth2.UserInfo:
-					suite.ExpectMessage(t, `push "auth-token-user dGVzdC11c2VyQGxvY2FsaG9zdA=="`)
+					suite.ExpectMessage(t, `push "auth-token-user aWQx"`)
 				default:
 					suite.ExpectMessage(t, `push "auth-token-user aWQx"`)
 				}
@@ -550,7 +550,7 @@ func TestRefreshReAuth(t *testing.T) {
 				case tc.clientCommonName == "":
 					suite.ExpectMessage(t, `override-username "username"`)
 				case tc.conf.OAuth2.UserInfo:
-					suite.ExpectMessage(t, `override-username "test-user@localhost"`)
+					suite.ExpectMessage(t, `override-username "id1"`)
 				default:
 					suite.ExpectMessage(t, `override-username "id1"`)
 				}
@@ -563,7 +563,7 @@ func TestRefreshReAuth(t *testing.T) {
 				case tc.clientCommonName == "":
 					suite.ExpectMessage(t, `push "auth-token-user dXNlcm5hbWU="`)
 				case tc.conf.OAuth2.UserInfo:
-					suite.ExpectMessage(t, `push "auth-token-user dGVzdC11c2VyQGxvY2FsaG9zdA=="`)
+					suite.ExpectMessage(t, `push "auth-token-user aWQx"`)
 				default:
 					suite.ExpectMessage(t, `push "auth-token-user aWQx"`)
 				}
@@ -594,7 +594,7 @@ func TestRefreshReAuth(t *testing.T) {
 				case tc.clientCommonName == "":
 					suite.ExpectMessage(t, `override-username "username"`)
 				case tc.conf.OAuth2.UserInfo:
-					suite.ExpectMessage(t, `override-username "test-user@localhost"`)
+					suite.ExpectMessage(t, `override-username "id1"`)
 				default:
 					suite.ExpectMessage(t, `override-username "id1"`)
 				}
@@ -607,7 +607,7 @@ func TestRefreshReAuth(t *testing.T) {
 				case tc.clientCommonName == "":
 					suite.ExpectMessage(t, `push "auth-token-user dXNlcm5hbWU="`)
 				case tc.conf.OAuth2.UserInfo:
-					suite.ExpectMessage(t, `push "auth-token-user dGVzdC11c2VyQGxvY2FsaG9zdA=="`)
+					suite.ExpectMessage(t, `push "auth-token-user aWQx"`)
 				default:
 					suite.ExpectMessage(t, `push "auth-token-user aWQx"`)
 				}
@@ -636,7 +636,7 @@ func TestRefreshReAuth(t *testing.T) {
 					case tc.clientCommonName == "":
 						suite.ExpectMessage(t, `push "auth-token-user dXNlcm5hbWU="`)
 					case tc.conf.OAuth2.UserInfo:
-						suite.ExpectMessage(t, `push "auth-token-user dGVzdC11c2VyQGxvY2FsaG9zdA=="`)
+						suite.ExpectMessage(t, `push "auth-token-user aWQx"`)
 					default:
 						suite.ExpectMessage(t, `push "auth-token-user aWQx"`)
 					}
