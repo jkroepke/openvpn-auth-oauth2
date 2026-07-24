@@ -3,7 +3,7 @@
 package testutil
 
 /*
-#cgo CFLAGS: -I../../include
+#cgo CFLAGS: -I../../../include
 #include <openvpn-plugin.h>
 
 static void noop_plugin_log(openvpn_plugin_log_flags_t flags,
@@ -22,7 +22,7 @@ import "C"
 import (
 	"unsafe"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/v2/lib/openvpn-auth-oauth2/c"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/lib/openvpn-auth-oauth2/internal/c"
 )
 
 func Callbacks() *c.OpenVPNPluginCallbacks {

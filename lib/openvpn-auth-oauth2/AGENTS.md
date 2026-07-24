@@ -372,6 +372,10 @@ Where:
 
 ## File Structure
 
+The plugin implementation packages live below `internal/` because they are not
+a public Go SDK. The `main` package remains at the plugin root so it can be
+built as a C shared library.
+
 ### Core Files
 
 #### `plugin.go`
@@ -404,10 +408,10 @@ type ClientContext struct {
 }
 ```
 
-#### `log/logger.go`
+#### `internal/pluginlog/logger.go`
 OpenVPN logging integration via callbacks.
 
-#### `management/management.go`
+#### `internal/management/management.go`
 Management interface server implementation.
 
 **Key components:**
@@ -416,7 +420,7 @@ Management interface server implementation.
 - Command parsing
 - Response handling
 
-#### `client/client.go`
+#### `internal/client/client.go`
 OpenVPN client environment parsing.
 
 **Converts:**
