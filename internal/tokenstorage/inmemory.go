@@ -102,9 +102,7 @@ func (s *InMemory) Get(_ context.Context, client string) (string, error) {
 	}
 
 	if data.Expires.Before(now) {
-		s.mu.Lock()
-		delete(s.data, client)
-		s.mu.Unlock()
+		s.deleteExpired(client, now)
 
 		return "", ErrNotExists
 	}
@@ -140,6 +138,19 @@ func (s *InMemory) Close() error {
 	s.gcWg.Wait()
 
 	return nil
+}
+
+// deleteExpired removes the current entry only if it was already expired when
+// the caller observed an expired token. A concurrent refresh has a later
+// expiration and must not be removed based on the caller's stale observation.
+func (s *InMemory) deleteExpired(client string, observedAt time.Time) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	data, ok := s.data[client]
+	if ok && data.Expires.Before(observedAt) {
+		delete(s.data, client)
+	}
 }
 
 // startGC starts the background garbage collection goroutine.
