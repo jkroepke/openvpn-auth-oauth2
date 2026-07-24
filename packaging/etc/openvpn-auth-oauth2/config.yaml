@@ -60,18 +60,20 @@
 #      - "wildcard.*"
 #  client-config:
 #    enabled: false
+#    expression: ""
+#    ignore-not-found: true
 #    path: "/etc/openvpn-auth-oauth2/client-config/"
-#    token-claim: ""
+#    strategy: merge
 #  common-name:
 #    environment-variable-name: common_name
 #    mode: plain
 #  password: ""
 #  enforce-unique-user: false # (requires OpenVPN 2.7 server and override-username)
 #  override-username: false # (requires OpenVPN 2.7 server)
+#  pass-through:
+#    address: "unix:///run/openvpn/pass-through.sock"
+#    enabled: false
+#    password: ""
+#    socket-group: ""
+#    socket-mode: 660
 #  reauthentication: true
-#pass-through:
-#  enabled: false
-#  address: "unix:///run/openvpn/pass-through.sock"
-#  password: ""
-#  socket-group: ""
-#  socket-mode: 660
