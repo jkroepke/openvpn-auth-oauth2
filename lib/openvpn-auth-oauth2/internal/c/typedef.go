@@ -3,7 +3,7 @@
 package c
 
 /*
-#cgo CFLAGS: -I../include
+#cgo CFLAGS: -I../../include
 #include <openvpn-plugin.h>
 #include <stdint.h>
 #include <stdlib.h>
