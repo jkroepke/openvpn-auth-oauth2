@@ -232,8 +232,9 @@ func (c *Client) Shutdown(ctx context.Context) {
 
 // SendCommand sends a command to the management interface and waits for its
 // response. When passthrough is true the raw response is returned without any
-// validation.
-func (c *Client) SendCommand(ctx context.Context, cmd string, passthrough bool) (string, error) {
+// validation. A rejected command returns the raw response together with a
+// [ManagementCommandError].
+func (c *Client) SendCommand(_ context.Context, cmd string, passthrough bool) (string, error) {
 	c.commandMu.Lock()
 	defer c.commandMu.Unlock()
 
@@ -258,11 +259,10 @@ func (c *Client) SendCommand(ctx context.Context, cmd string, passthrough bool) 
 		}
 
 		if strings.HasPrefix(resp, "ERROR:") {
-			c.logger.LogAttrs(
-				ctx, slog.LevelWarn, "command error",
-				slog.String("command", managementCommandForError(cmd, passthrough)),
-				slog.String("response", resp),
-			)
+			return resp, &ManagementCommandError{
+				Command:  managementCommandForError(cmd, passthrough),
+				Response: strings.TrimSpace(resp),
+			}
 		}
 
 		return resp, nil

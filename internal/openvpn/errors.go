@@ -2,6 +2,7 @@ package openvpn
 
 import (
 	"errors"
+	"fmt"
 )
 
 var (
@@ -23,3 +24,17 @@ var (
 const (
 	ReasonStateExpiredOrInvalid = "client session state invalid or expired"
 )
+
+// ManagementCommandError reports a rejected OpenVPN management command.
+type ManagementCommandError struct {
+	Command  string
+	Response string
+}
+
+func (e *ManagementCommandError) Error() string {
+	return fmt.Sprintf("command error %q: %s", e.Command, e.Response)
+}
+
+func (e *ManagementCommandError) Unwrap() error {
+	return ErrErrorResponse
+}

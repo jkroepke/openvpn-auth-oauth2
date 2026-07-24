@@ -513,6 +513,55 @@ func TestCommandTimeout(t *testing.T) {
 	require.ErrorIs(t, err, openvpn.ErrTimeout)
 }
 
+func TestCommandErrorResponse(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	t.Cleanup(cancel)
+
+	conf := config.Defaults
+	suite := testsuite.New(&conf)
+	errOpenVPNClientCh := suite.SetupManagementEnvironment(ctx, t, nil)
+	openVPNClient := suite.GetOpenVPNClient()
+
+	t.Cleanup(func() {
+		openVPNClient.Shutdown(t.Context())
+
+		select {
+		case err := <-errOpenVPNClientCh:
+			require.NoError(t, err, suite.Logs())
+		case <-time.After(time.Second):
+			t.Fatal("timeout waiting for connection to close")
+		}
+	})
+
+	suite.ExpectVersionAndReleaseHold(t)
+
+	type commandResult struct {
+		err      error
+		response string
+	}
+
+	resultCh := make(chan commandResult, 1)
+
+	go func() {
+		response, err := openVPNClient.SendCommandf(t.Context(), "help")
+		resultCh <- commandResult{response: response, err: err}
+	}()
+
+	suite.ExpectMessage(t, "help")
+	suite.SendMessagef(t, "ERROR: help command failed")
+
+	result := <-resultCh
+	require.Equal(t, "ERROR: help command failed\r\n", result.response)
+	require.ErrorIs(t, result.err, openvpn.ErrErrorResponse)
+
+	commandErr, ok := errors.AsType[*openvpn.ManagementCommandError](result.err)
+	require.True(t, ok)
+	require.Equal(t, "help", commandErr.Command)
+	require.Equal(t, "ERROR: help command failed", commandErr.Response)
+}
+
 func TestSendCommandSerializesConcurrentCallers(t *testing.T) {
 	t.Parallel()
 
