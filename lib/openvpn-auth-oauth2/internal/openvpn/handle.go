@@ -178,6 +178,11 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 
 			switch resp.ClientAuth {
 			case management.ClientAuthAccept:
+				// Publish the client config before signaling authentication success.
+				// OpenVPN may invoke CLIENT_CONNECT_V2 as soon as it observes the
+				// auth control file change.
+				perClientContext.setClientConfig(resp.ClientConfig)
+
 				if err := openVPNClient.WriteToAuthFile("1"); err != nil {
 					logger.ErrorContext(
 						p.ctx, "write to auth file",
@@ -188,8 +193,6 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 				}
 
 				logger.InfoContext(p.ctx, "authentication accepted")
-
-				perClientContext.setClientConfig(resp.ClientConfig)
 			case management.ClientAuthDeny:
 				handleAuthDenied(p.ctx, logger, openVPNClient, resp)
 
