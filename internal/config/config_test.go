@@ -299,6 +299,27 @@ func TestConfigHelpFlag(t *testing.T) {
 	_, err := config.New([]string{"openvpn-auth-oauth2", "--help"}, &buf)
 
 	require.ErrorIs(t, err, flag.ErrHelp)
+	assert.Contains(t, buf.String(), "--config string")
+	assert.Contains(t, buf.String(), "(env: OPENVPN_AUTH_OAUTH2_CONFIG_FILE)")
+	assert.Contains(t, buf.String(), "(env: OPENVPN_AUTH_OAUTH2_HTTP_LISTEN)")
+	assert.NotContains(t, buf.String(), "(env: CONFIG_HTTP_LISTEN)")
+}
+
+func TestConfigFileEnvironmentVariable(t *testing.T) {
+	var buf bytes.Buffer
+
+	configFile, err := os.CreateTemp(t.TempDir(), "openvpn-auth-oauth2-*")
+	require.NoError(t, err)
+
+	_, err = configFile.WriteString("http:\n  listen: \":9100\"\n")
+	require.NoError(t, err)
+	require.NoError(t, configFile.Close())
+
+	t.Setenv("OPENVPN_AUTH_OAUTH2_CONFIG_FILE", configFile.Name())
+
+	conf, err := config.New([]string{"openvpn-auth-oauth2"}, &buf)
+	require.NoError(t, err)
+	assert.Equal(t, ":9100", conf.HTTP.Listen)
 }
 
 func TestConfigVersionFlag(t *testing.T) {

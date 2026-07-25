@@ -46,7 +46,7 @@ When setting up `username-as-common-name` on the OpenVPN server, you **must** al
 Or via environment variable:
 
 ```dotenv
-CONFIG_OPENVPN_COMMON__NAME_ENVIRONMENT__VARIABLE__NAME=username
+OPENVPN_AUTH_OAUTH2_OPENVPN_COMMON__NAME_ENVIRONMENT__VARIABLE__NAME=username
 ```
 
 ### Why This Configuration Is Required
@@ -86,7 +86,7 @@ Enable this feature using:
 Or via environment variable:
 
 ```bash
-CONFIG_OPENVPN_OVERRIDE__USERNAME=true
+OPENVPN_AUTH_OAUTH2_OPENVPN_OVERRIDE__USERNAME=true
 ```
 
 #### Username source

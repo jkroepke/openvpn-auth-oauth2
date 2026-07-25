@@ -15,6 +15,11 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
+const (
+	configArgument            = "--config"
+	environmentVariablePrefix = "OPENVPN_AUTH_OAUTH2_"
+)
+
 var ErrVersion = errors.New("flag: version requested")
 
 // New loads the configuration from configuration files, command line arguments and environment variables in that order.
@@ -116,30 +121,25 @@ func (c *Config) ReadFromFlagAndEnvironment(args []string, writer io.Writer) err
 }
 
 func lookupConfigArgument(args []string) string {
-	var (
-		configFile string
-		ok         bool
-	)
+	readConfigPath := false
 
-	for i, arg := range args {
-		if !strings.HasPrefix(arg, "--config") {
-			continue
+	for _, arg := range args {
+		if readConfigPath {
+			return arg
 		}
 
-		configFile, ok = strings.CutPrefix(arg, "--config=")
-		if ok {
-			break
+		if configFile, ok := strings.CutPrefix(arg, configArgument+"="); ok {
+			return configFile
 		}
 
-		// check if the argument is --config without value and look for the next argument
-		if len(args) > i+1 {
-			configFile = args[i+1]
-
-			break
-		}
+		readConfigPath = arg == configArgument
 	}
 
-	return configFile
+	if readConfigPath {
+		return ""
+	}
+
+	return lookupEnvOrDefault("config", "")
 }
 
 // lookupEnvOrDefault looks up the environment variable by the flag name and returns the value.
@@ -232,5 +232,10 @@ func lookupEnvOrDefault[T any](key string, defaultValue T) T {
 // It replaces all dots with underscores and all dashes with double underscores.
 // It also converts the flag name to uppercase.
 func getEnvironmentVariableByFlagName(flagName string) string {
-	return "CONFIG_" + strings.ReplaceAll(strings.ReplaceAll(strings.ToUpper(flagName), ".", "_"), "-", "__")
+	if flagName == "config" {
+		return environmentVariablePrefix + "CONFIG_FILE"
+	}
+
+	return environmentVariablePrefix +
+		strings.ReplaceAll(strings.ReplaceAll(strings.ToUpper(flagName), ".", "_"), "-", "__")
 }

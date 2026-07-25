@@ -27,11 +27,11 @@ openvpn-auth-oauth2 \
 <tbody><tr><td>
 
 ```ini
-CONFIG_OPENVPN_PASS__THROUGH_ENABLED=true
-CONFIG_OPENVPN_PASS__THROUGH_ADDRESS=unix:///run/openvpn/pass-through.sock
-# CONFIG_OPENVPN_PASS__THROUGH_PASSWORD=secret # optional
-# CONFIG_OPENVPN_PASS__THROUGH_SOCKET__GROUP=openvpn-auth-oauth2 # optional
-# CONFIG_OPENVPN_PASS__THROUGH_SOCKET__MODE=0660 # optional
+OPENVPN_AUTH_OAUTH2_OPENVPN_PASS__THROUGH_ENABLED=true
+OPENVPN_AUTH_OAUTH2_OPENVPN_PASS__THROUGH_ADDRESS=unix:///run/openvpn/pass-through.sock
+# OPENVPN_AUTH_OAUTH2_OPENVPN_PASS__THROUGH_PASSWORD=secret # optional
+# OPENVPN_AUTH_OAUTH2_OPENVPN_PASS__THROUGH_SOCKET__GROUP=openvpn-auth-oauth2 # optional
+# OPENVPN_AUTH_OAUTH2_OPENVPN_PASS__THROUGH_SOCKET__MODE=0660 # optional
 ```
 </td></tr></tbody>
 <thead><tr><td>yaml configuration</td></tr></thead>

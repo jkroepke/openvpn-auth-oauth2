@@ -37,12 +37,12 @@ References:
 <tbody><tr><td>
 
 ```ini
-CONFIG_OAUTH2_ISSUER=https://login.microsoftonline.com/$TENANT_ID/v2.0
-CONFIG_OAUTH2_CLIENT_ID=<client_id>
-CONFIG_OAUTH2_CLIENT_SECRET=<client_secret>
+OPENVPN_AUTH_OAUTH2_OAUTH2_ISSUER=https://login.microsoftonline.com/$TENANT_ID/v2.0
+OPENVPN_AUTH_OAUTH2_OAUTH2_CLIENT_ID=<client_id>
+OPENVPN_AUTH_OAUTH2_OAUTH2_CLIENT_SECRET=<client_secret>
 # The scopes openid profile are required, but configured by default.
 # offline_access is required for non-interactive session refresh.
-# CONFIG_OAUTH2_SCOPES=openid profile offline_access
+# OPENVPN_AUTH_OAUTH2_OAUTH2_SCOPES=openid profile offline_access
 ```
 </td></tr></tbody>
 <thead><tr><td>yaml configuration</td></tr></thead>
@@ -74,7 +74,7 @@ Users get the notice from Azure that they aren’t part of the group, and the lo
 
 Reference: https://learn.microsoft.com/en-us/entra/identity-platform/howto-restrict-your-app-to-a-set-of-users#assign-the-app-to-users-and-groups-to-restrict-access
 
-To require multiple groups, define `CONFIG_OAUTH2_VALIDATE_GROUPS`.
+To require multiple groups, define `OPENVPN_AUTH_OAUTH2_OAUTH2_VALIDATE_GROUPS`.
 
 </details>
 
@@ -110,7 +110,7 @@ To require multiple groups, define `CONFIG_OAUTH2_VALIDATE_GROUPS`.
 1. Navigate to the [Google Cloud Identity API](https://console.cloud.google.com/apis/api/cloudidentity.googleapis.com/) page and click on the "Enable API" button.
 2. Access the [Google Admin Portal](https://admin.google.com/ac/groups) and locate the group that is required for the `openvpn-auth-oauth2` authorization.
 3. The URL of the group page should follow this pattern: `https://admin.google.com/ac/groups/<ID>`. Replace `<ID>` with the ID of the group. Make sure to copy this ID for future use. If there are multiple groups, repeat this step for each one.
-4. Insert the copied IDs into the `CONFIG_OAUTH2_VALIDATE_GROUPS` configuration setting in your `openvpn-auth-oauth2` setup.
+4. Insert the copied IDs into the `OPENVPN_AUTH_OAUTH2_OAUTH2_VALIDATE_GROUPS` configuration setting in your `openvpn-auth-oauth2` setup.
 5. **Optional**: If oauth2 scopes are set in the configuration, the `https://www.googleapis.com/auth/cloud-identity.groups.readonly` scope is required for group validation.
 
 ### Configuration
@@ -122,17 +122,17 @@ Set the following variables in your openvpn-auth-oauth2 configuration file:
 <tbody><tr><td>
 
 ```ini
-CONFIG_OAUTH2_PROVIDER=google
-CONFIG_OAUTH2_ISSUER=https://accounts.google.com
-CONFIG_OAUTH2_CLIENT_ID=162738495-xxxxx.apps.googleusercontent.com
-CONFIG_OAUTH2_CLIENT_SECRET=GOCSPX-xxxxxxxx
-CONFIG_OAUTH2_OPENVPN__USERNAME=user.email
+OPENVPN_AUTH_OAUTH2_OAUTH2_PROVIDER=google
+OPENVPN_AUTH_OAUTH2_OAUTH2_ISSUER=https://accounts.google.com
+OPENVPN_AUTH_OAUTH2_OAUTH2_CLIENT_ID=162738495-xxxxx.apps.googleusercontent.com
+OPENVPN_AUTH_OAUTH2_OAUTH2_CLIENT_SECRET=GOCSPX-xxxxxxxx
+OPENVPN_AUTH_OAUTH2_OAUTH2_OPENVPN__USERNAME=user.email
 
 # The scopes openid profile email are required, but configured by default.
 # https://www.googleapis.com/auth/cloud-identity.groups.readonly is mandatory for group validation.
 # Enabled by default, if scopes aren't set in the config.
-#CONFIG_OAUTH2_SCOPES=openid profile email https://www.googleapis.com/auth/cloud-identity.groups.readonly
-#CONFIG_OAUTH2_VALIDATE_GROUPS=03x8tuzt3hqdv5v
+#OPENVPN_AUTH_OAUTH2_OAUTH2_SCOPES=openid profile email https://www.googleapis.com/auth/cloud-identity.groups.readonly
+#OPENVPN_AUTH_OAUTH2_OAUTH2_VALIDATE_GROUPS=03x8tuzt3hqdv5v
 ```
 </td></tr></tbody>
 <thead><tr><td>yaml configuration</td></tr></thead>
@@ -173,7 +173,7 @@ of nested sub-groups are accepted as well:
 <tbody><tr><td>
 
 ```ini
-CONFIG_PROVIDER_GOOGLE_VALIDATE_GROUPS__TRANSITIVE=true
+OPENVPN_AUTH_OAUTH2_PROVIDER_GOOGLE_VALIDATE_GROUPS__TRANSITIVE=true
 ```
 </td></tr></tbody>
 <thead><tr><td>yaml configuration</td></tr></thead>
@@ -238,12 +238,12 @@ Set the following variables in your `openvpn-auth-oauth2` configuration file:
 <tbody><tr><td>
 
 ```ini
-CONFIG_OAUTH2_ISSUER=https://<keycloak-domain>/auth/realms/<realm-name>
-CONFIG_OAUTH2_CLIENT_ID=<client_id>
-CONFIG_OAUTH2_CLIENT_SECRET=<client_secret>
+OPENVPN_AUTH_OAUTH2_OAUTH2_ISSUER=https://<keycloak-domain>/auth/realms/<realm-name>
+OPENVPN_AUTH_OAUTH2_OAUTH2_CLIENT_ID=<client_id>
+OPENVPN_AUTH_OAUTH2_OAUTH2_CLIENT_SECRET=<client_secret>
 # The scopes openid profile are required, but configured by default.
 # offline_access is required for non-interactive session refresh.
-# CONFIG_OAUTH2_SCOPES=openid profile offline_access
+# OPENVPN_AUTH_OAUTH2_OAUTH2_SCOPES=openid profile offline_access
 ```
 </td></tr></tbody>
 <thead><tr><td>yaml configuration</td></tr></thead>
@@ -318,11 +318,11 @@ After registering the app, you will receive an OAuth2 client ID and secret. Thes
 <tbody><tr><td>
 
 ```ini
-CONFIG_OAUTH2_PROVIDER=github
-CONFIG_OAUTH2_ISSUER=https://github.com
-CONFIG_OAUTH2_CLIENT_ID=<client_id>
-CONFIG_OAUTH2_CLIENT_SECRET=<client_secret>
-CONFIG_OAUTH2_VALIDATE_GROUPS=your_github_org_name
+OPENVPN_AUTH_OAUTH2_OAUTH2_PROVIDER=github
+OPENVPN_AUTH_OAUTH2_OAUTH2_ISSUER=https://github.com
+OPENVPN_AUTH_OAUTH2_OAUTH2_CLIENT_ID=<client_id>
+OPENVPN_AUTH_OAUTH2_OAUTH2_CLIENT_SECRET=<client_secret>
+OPENVPN_AUTH_OAUTH2_OAUTH2_VALIDATE_GROUPS=your_github_org_name
 ```
 </td></tr></tbody>
 <thead><tr><td>yaml configuration</td></tr></thead>
@@ -370,11 +370,11 @@ If you are using Self-Managed GitLab, your instance must have enabled HTTPS.
 <tbody><tr><td>
 
 ```ini
-CONFIG_OAUTH2_ISSUER=https://gitlab.com/
-CONFIG_OAUTH2_SCOPES=openid profile email
-CONFIG_OAUTH2_USER__INFO=true
-CONFIG_OAUTH2_CLIENT_ID=<client_id>
-CONFIG_OAUTH2_CLIENT_SECRET=<client_secret>
+OPENVPN_AUTH_OAUTH2_OAUTH2_ISSUER=https://gitlab.com/
+OPENVPN_AUTH_OAUTH2_OAUTH2_SCOPES=openid profile email
+OPENVPN_AUTH_OAUTH2_OAUTH2_USER__INFO=true
+OPENVPN_AUTH_OAUTH2_OAUTH2_CLIENT_ID=<client_id>
+OPENVPN_AUTH_OAUTH2_OAUTH2_CLIENT_SECRET=<client_secret>
 ```
 </td></tr></tbody>
 <thead><tr><td>yaml configuration</td></tr></thead>
@@ -417,12 +417,12 @@ and only used between the application and the DigitalOcean authorization server 
 <tbody><tr><td>
 
 ```ini
-CONFIG_OAUTH2_ISSUER=https://cloud.digitalocean.com/
-CONFIG_OAUTH2_SCOPES=read
-CONFIG_OAUTH2_CLIENT_ID=<client_id>
-CONFIG_OAUTH2_CLIENT_SECRET=<client_secret>
-CONFIG_OAUTH2_ENDPOINT_TOKEN=https://cloud.digitalocean.com/v1/oauth/token
-CONFIG_OAUTH2_ENDPOINT_AUTH=https://cloud.digitalocean.com/v1/oauth/authorize
+OPENVPN_AUTH_OAUTH2_OAUTH2_ISSUER=https://cloud.digitalocean.com/
+OPENVPN_AUTH_OAUTH2_OAUTH2_SCOPES=read
+OPENVPN_AUTH_OAUTH2_OAUTH2_CLIENT_ID=<client_id>
+OPENVPN_AUTH_OAUTH2_OAUTH2_CLIENT_SECRET=<client_secret>
+OPENVPN_AUTH_OAUTH2_OAUTH2_ENDPOINT_TOKEN=https://cloud.digitalocean.com/v1/oauth/token
+OPENVPN_AUTH_OAUTH2_OAUTH2_ENDPOINT_AUTH=https://cloud.digitalocean.com/v1/oauth/authorize
 ```
 </td></tr></tbody>
 <thead><tr><td>yaml configuration</td></tr></thead>
@@ -468,12 +468,12 @@ After creating application, on page URLs you can find all links that you need.
 <tbody><tr><td>
 
 ```ini
-CONFIG_OAUTH2_ISSUER=https://company.zitadel.cloud
-CONFIG_OAUTH2_CLIENT_ID=<client_id>
-CONFIG_OAUTH2_CLIENT_SECRET=<client_secret>
+OPENVPN_AUTH_OAUTH2_OAUTH2_ISSUER=https://company.zitadel.cloud
+OPENVPN_AUTH_OAUTH2_OAUTH2_CLIENT_ID=<client_id>
+OPENVPN_AUTH_OAUTH2_OAUTH2_CLIENT_SECRET=<client_secret>
 # The scopes openid profile email are required, but configured by default.
 # offline_access is required for non-interactive session refresh.
-#CONFIG_OAUTH2_SCOPES=openid profile email offline_access
+#OPENVPN_AUTH_OAUTH2_OAUTH2_SCOPES=openid profile email offline_access
 ```
 </td></tr></tbody>
 <thead><tr><td>yaml configuration</td></tr></thead>
@@ -532,10 +532,10 @@ oauth2:
 <tbody><tr><td>
 
 ```ini
-CONFIG_OAUTH2_ISSUER=https://auth.example.com/application/o/openvpn-oauth2/
-CONFIG_OAUTH2_CLIENT_ID=<client_id>
-CONFIG_OAUTH2_CLIENT_SECRET=<client_secret>
-CONFIG_OAUTH2_REFRESH__NONCE=empty
+OPENVPN_AUTH_OAUTH2_OAUTH2_ISSUER=https://auth.example.com/application/o/openvpn-oauth2/
+OPENVPN_AUTH_OAUTH2_OAUTH2_CLIENT_ID=<client_id>
+OPENVPN_AUTH_OAUTH2_OAUTH2_CLIENT_SECRET=<client_secret>
+OPENVPN_AUTH_OAUTH2_OAUTH2_REFRESH__NONCE=empty
 ```
 </td></tr></tbody>
 <thead><tr><td>yaml configuration</td></tr></thead>

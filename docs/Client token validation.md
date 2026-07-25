@@ -28,7 +28,7 @@ oauth2:
 ### Environment Variable
 
 ```bash
-CONFIG_OAUTH2_VALIDATE_EXPRESSION='openvpn.commonName == user.username'
+OPENVPN_AUTH_OAUTH2_OAUTH2_VALIDATE_EXPRESSION='openvpn.commonName == user.username'
 ```
 
 > [!IMPORTANT]

@@ -1,7 +1,7 @@
 # HTTPS Listener
 
 > [!IMPORTANT]
-> Remember to set `CONFIG_HTTP_BASEURL` correctly. It should start with `https://` following your public domain name plus port.
+> Remember to set `OPENVPN_AUTH_OAUTH2_HTTP_BASEURL` correctly. It should start with `https://` following your public domain name plus port.
 
 Some SSO Provider like Entra ID requires `https://` based redirect URL.
 In the default configuration, openvpn-auth-oauth2 listen on `http://`.
@@ -25,9 +25,9 @@ the owner `root` and the group `openvpn-auth-oauth2`. See [Filesystem Permission
 <tbody><tr><td>
 
 ```ini
-CONFIG_HTTP_TLS=true
-CONFIG_HTTP_KEY=/etc/openvpn-auth-oauth2/server.key
-CONFIG_HTTP_CERT=/etc/openvpn-auth-oauth2/server.crt
+OPENVPN_AUTH_OAUTH2_HTTP_TLS=true
+OPENVPN_AUTH_OAUTH2_HTTP_KEY=/etc/openvpn-auth-oauth2/server.key
+OPENVPN_AUTH_OAUTH2_HTTP_CERT=/etc/openvpn-auth-oauth2/server.crt
 ```
 </td></tr></tbody>
 <thead><tr><td>yaml configuration</td></tr></thead>
