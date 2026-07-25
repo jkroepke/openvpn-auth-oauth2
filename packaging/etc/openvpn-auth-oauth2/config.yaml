@@ -8,6 +8,8 @@
 #  check:
 #    ipaddr: false
 #  enable-proxy-headers: true
+#  trusted-proxies:
+#    - "127.0.0.1/32"
 #  key: ""
 #  listen: ":9000"
 #  secret: ""
@@ -28,7 +30,7 @@
 #    discovery: "https://idp/.well-known/openid-configuration"
 #    auth: "https://idp/oauth/auth"
 #    token: "https://idp/oauth/token"
-#  group-claim: "groups"
+#  groups-claim: "groups"
 #  issuer: "https://idp"
 #  provider: "generic"
 #  scopes:

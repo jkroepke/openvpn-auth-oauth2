@@ -27,9 +27,9 @@ builds:
     ldflags:
       - >-
         -s -w
-        -X internal/version.Version={{.Version}}
-        -X internal/version.Commit={{.Commit}}
-        -X internal/version.Date={{.Date}}
+        -X github.com/jkroepke/openvpn-auth-oauth2/v2/internal/version.Version={{.Version}}
+        -X github.com/jkroepke/openvpn-auth-oauth2/v2/internal/version.Commit={{.Commit}}
+        -X github.com/jkroepke/openvpn-auth-oauth2/v2/internal/version.Date={{.Date}}
 
   - id: "openvpn-auth-oauth2.so"
     binary: openvpn-auth-oauth2-{{ .Os }}-{{ .Arch }}
@@ -57,9 +57,9 @@ builds:
     ldflags:
       - >-
         -s -w
-        -X internal/version.Version={{.Version}}
-        -X internal/version.Commit={{.Commit}}
-        -X internal/version.Date={{.Date}}
+        -X github.com/jkroepke/openvpn-auth-oauth2/v2/internal/version.Version={{.Version}}
+        -X github.com/jkroepke/openvpn-auth-oauth2/v2/internal/version.Commit={{.Commit}}
+        -X github.com/jkroepke/openvpn-auth-oauth2/v2/internal/version.Date={{.Date}}
 
 archives:
   - id: openvpn-auth-oauth2

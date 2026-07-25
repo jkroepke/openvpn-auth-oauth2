@@ -51,23 +51,25 @@ The encrypted data is structured as follows:
 
 ## Secret Key Derivation
 
-User-provided secret keys of any length are automatically derived to 32 bytes using **SHA256**:
+Encryption secrets must contain exactly 16, 24, or 32 bytes. Use ASCII secrets
+with the same number of characters because validation checks the UTF-8 byte
+length.
 
-```go
-key := sha256.Sum256([]byte(userProvidedSecret))
-```
+Each secret is passed to **HKDF-SHA256** twice to derive independent 32-byte
+keys:
 
-This means:
-- ✅ Secrets can be any length (short or long)
-- ✅ Consistent 32-byte key for Salsa20
-- ✅ No weak key sizes possible
+- `salsa20-encryption` derives the Salsa20 encryption key
+- `hmac-authentication` derives the HMAC-SHA256 authentication key
+
+The distinct HKDF context strings provide domain separation between encryption
+and authentication.
 
 ## Security Properties
 
 ### Confidentiality
 - **Salsa20** provides stream cipher encryption
 - Each encryption uses a fresh random 8-byte nonce
-- Key derivation using SHA256 ensures uniform key distribution
+- HKDF-SHA256 derives a dedicated 32-byte encryption key
 
 ### Integrity & Authenticity
 - **HMAC-SHA256** protects against tampering
@@ -75,9 +77,9 @@ This means:
 - Combines with encryption to protect entire message
 
 ### Protection Against Attacks
-- ✅ **Replay attacks**: Fresh nonce prevents duplicate ciphertexts
+- ✅ **Nonce reuse**: Fresh random nonces prevent Salsa20 keystream reuse
 - ✅ **Tampering**: HMAC-SHA256 detects any bit modifications
-- ✅ **Key derivation**: SHA256 prevents weak key attacks
+- ✅ **Key separation**: HKDF-SHA256 derives independent encryption and authentication keys
 - ✅ **Timing attacks**: Constant-time HMAC verification
 
 ## Where Encryption is Used
@@ -94,7 +96,7 @@ When OAuth2 refresh is enabled (`--oauth2.refresh.enabled`), tokens are stored i
 oauth2:
   refresh:
     enabled: true
-    secret: "your-secret-key-here"
+    secret: "file:///etc/openvpn-auth-oauth2/secrets/oauth2-refresh.secret"
     expires: 8h
 ```
 
@@ -108,33 +110,35 @@ State parameters passed through OAuth2 flows are encrypted:
 **Configuration:**
 ```yaml
 http:
-  secret: "your-secret-key-here"
+  secret: "file:///etc/openvpn-auth-oauth2/secrets/http.secret"
 ```
 
 ## Configuration Guidelines
 
 ### Secret Key Requirements
 
-- **Minimum length**: Any length is supported (internally derived to 32 bytes)
-- **Recommended length**: 32 characters or longer
-- **Format**: Must be a valid string (no special length restrictions like AES)
+- **Accepted length**: Exactly 16, 24, or 32 bytes
+- **Recommended length**: 32 randomly generated ASCII characters
+- **Format**: Use ASCII; non-ASCII characters can occupy multiple UTF-8 bytes
 - **Storage**: Use environment variables or secure file references
+- **Secret files**: Do not include a trailing newline because it counts toward the validated length
 
 ### Examples
 
 **Using environment variable:**
 ```bash
-export CONFIG_HTTP_SECRET="your-random-secret-here"
+# Example only: replace this value with a generated secret.
+export CONFIG_HTTP_SECRET="0123456789abcdef0123456789abcdef"
 ```
 
 **Using config file:**
 ```yaml
 http:
-  secret: "your-random-secret-here"
+  secret: "file:///etc/openvpn-auth-oauth2/secrets/http.secret"
 
 oauth2:
   refresh:
-    secret: "another-random-secret-here"
+    secret: "file:///etc/openvpn-auth-oauth2/secrets/oauth2-refresh.secret"
 ```
 
 **Reading from secure file:**
@@ -148,14 +152,11 @@ http:
 Generate cryptographically secure secrets using:
 
 ```bash
-# Using OpenSSL
-openssl rand -base64 32
+# Generates 16 random bytes encoded as 32 ASCII characters.
+openssl rand -hex 16
 
-# Using /dev/urandom
-head -c 32 /dev/urandom | base64
-
-# Using Go
-go run -c "fmt.Println(base64.StdEncoding.EncodeToString(make([]byte, 32)))"
+# Generates the same format using /dev/urandom.
+od -An -N16 -tx1 /dev/urandom | tr -d ' \n'
 ```
 
 ## Migration from Previous Encryption
@@ -170,7 +171,7 @@ Earlier versions used **AES-CFB** for encryption:
 ### Migration to Salsa20
 
 The migration from AES-CFB to Salsa20+HMAC is **transparent** to users:
-- All existing secrets continue to work
+- Existing secrets with an accepted length continue to work
 - New encryptions use Salsa20+HMAC
 - Old AES-CFB encrypted data cannot be read (expected behavior)
 - Refresh tokens will need to be re-issued on first use after migration
