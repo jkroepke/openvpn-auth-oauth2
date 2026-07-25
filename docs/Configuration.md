@@ -235,6 +235,7 @@ auth-gen-token 28800 external-auth
 # openvpn-auth-oauth2 config file
 CONFIG_OPENVPN_ADDR=unix:///run/openvpn/server.sock
 CONFIG_OPENVPN_PASSWORD=<password>
+CONFIG_OPENVPN_OVERRIDE__USERNAME=true # For OpenVPN 2.7+ servers
 ```
 </td></tr></tbody>
 <thead><tr><td>yaml configuration</td></tr></thead>
@@ -244,6 +245,7 @@ CONFIG_OPENVPN_PASSWORD=<password>
 openvpn:
   addr: "unix:///run/openvpn/server.sock"
   password: "<password>"
+  override-username: true # For OpenVPN 2.7+ servers
 ```
 </td></tr></tbody>
 </table>
