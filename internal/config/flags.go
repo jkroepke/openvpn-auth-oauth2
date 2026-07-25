@@ -9,13 +9,13 @@ func (c *Config) flagSetDebug(flagSet *flag.FlagSet) {
 	flagSet.BoolVar(
 		&c.Debug.Pprof,
 		"debug.pprof",
-		lookupEnvOrDefault("debug.pprof", c.Debug.Pprof),
+		c.Debug.Pprof,
 		"Enables go profiling endpoint. This should be never exposed.",
 	)
 	flagSet.StringVar(
 		&c.Debug.Listen,
 		"debug.listen",
-		lookupEnvOrDefault("debug.listen", c.Debug.Listen),
+		c.Debug.Listen,
 		"listen address for go profiling endpoint",
 	)
 }
@@ -25,19 +25,19 @@ func (c *Config) flagSetLog(flagSet *flag.FlagSet) {
 	flagSet.BoolVar(
 		&c.Log.VPNClientIP,
 		"log.vpn-client-ip",
-		lookupEnvOrDefault("log.vpn-client-ip", c.Log.VPNClientIP),
+		c.Log.VPNClientIP,
 		"log IP of VPN client. Useful to have an identifier between OpenVPN and openvpn-auth-oauth2.",
 	)
 	flagSet.StringVar(
 		&c.Log.Format,
 		"log.format",
-		lookupEnvOrDefault("log.format", c.Log.Format),
+		c.Log.Format,
 		"log format. json or console",
 	)
 	flagSet.TextVar(
 		&c.Log.Level,
 		"log.level",
-		lookupEnvOrDefault("log.level", c.Log.Level),
+		c.Log.Level,
 		"log level. Can be one of: debug, info, warn, error",
 	)
 }
@@ -47,75 +47,75 @@ func (c *Config) flagSetHTTP(flagSet *flag.FlagSet) {
 	flagSet.StringVar(
 		&c.HTTP.Listen,
 		"http.listen",
-		lookupEnvOrDefault("http.listen", c.HTTP.Listen),
+		c.HTTP.Listen,
 		"listen addr for client listener",
 	)
 	flagSet.BoolVar(
 		&c.HTTP.TLS,
 		"http.tls",
-		lookupEnvOrDefault("http.tls", c.HTTP.TLS),
+		c.HTTP.TLS,
 		"enable TLS listener",
 	)
 	flagSet.TextVar(
 		&c.HTTP.BaseURL,
 		"http.baseurl",
-		lookupEnvOrDefault("http.baseurl", c.HTTP.BaseURL),
+		c.HTTP.BaseURL,
 		"listen addr for client listener",
 	)
 	flagSet.TextVar(
 		&c.HTTP.Secret,
 		"http.secret",
-		lookupEnvOrDefault("http.secret", c.HTTP.Secret),
+		c.HTTP.Secret,
 		"Random generated secret for cookie encryption. Must be 16, 24 or 32 characters. "+
 			"If argument starts with file:// it reads the secret from a file.",
 	)
 	flagSet.StringVar(
 		&c.HTTP.KeyFile,
 		"http.key",
-		lookupEnvOrDefault("http.key", c.HTTP.KeyFile),
+		c.HTTP.KeyFile,
 		"Path to tls server key used for TLS listener.",
 	)
 	flagSet.StringVar(
 		&c.HTTP.CertFile,
 		"http.cert",
-		lookupEnvOrDefault("http.cert", c.HTTP.CertFile),
+		c.HTTP.CertFile,
 		"Path to tls server certificate used for TLS listener.",
 	)
 	flagSet.TextVar(
 		&c.HTTP.Template,
 		"http.template",
-		lookupEnvOrDefault("http.template", c.HTTP.Template),
+		c.HTTP.Template,
 		"Path to a HTML file which is displayed at the end of the screen. "+
 			"See https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Layout-Customization for more information.",
 	)
 	flagSet.BoolVar(
 		&c.HTTP.Check.IPAddr,
 		"http.check.ipaddr",
-		lookupEnvOrDefault("http.check.ipaddr", c.HTTP.Check.IPAddr),
+		c.HTTP.Check.IPAddr,
 		"Check if client IP in http and VPN is equal",
 	)
 	flagSet.BoolVar(
 		&c.HTTP.EnableProxyHeaders,
 		"http.enable-proxy-headers",
-		lookupEnvOrDefault("http.enable-proxy-headers", c.HTTP.EnableProxyHeaders),
+		c.HTTP.EnableProxyHeaders,
 		"Use X-Forwarded-For http header for client ips",
 	)
 	flagSet.TextVar(
 		&c.HTTP.TrustedProxies,
 		"http.trusted-proxies",
-		lookupEnvOrDefault("http.trusted-proxies", c.HTTP.TrustedProxies),
+		c.HTTP.TrustedProxies,
 		"Trusted reverse proxy CIDRs allowed to set X-Forwarded-For. Multiple values can be provided as a comma-separated list.",
 	)
 	flagSet.BoolVar(
 		&c.HTTP.ShortURL,
 		"http.short-url",
-		lookupEnvOrDefault("http.short-url", c.HTTP.ShortURL),
+		c.HTTP.ShortURL,
 		"Enable short URL. The URL which is used for initial authentication will be reduced to /?s=... instead of /oauth2/start?state=...",
 	)
 	flagSet.TextVar(
 		&c.HTTP.AssetPath,
 		"http.assets-path",
-		lookupEnvOrDefault("http.assets-path", c.HTTP.AssetPath),
+		c.HTTP.AssetPath,
 		"Custom path to the assets directory. Files in this directory will be served under /assets/ and having an higher priority than the embedded assets.",
 	)
 }
@@ -125,31 +125,37 @@ func (c *Config) flagSetOpenVPN(flagSet *flag.FlagSet) {
 	flagSet.TextVar(
 		&c.OpenVPN.Addr,
 		"openvpn.addr",
-		lookupEnvOrDefault("openvpn.addr", c.OpenVPN.Addr),
+		c.OpenVPN.Addr,
 		"openvpn management interface addr. Must start with unix:// or tcp://",
 	)
 	flagSet.TextVar(
 		&c.OpenVPN.Password,
 		"openvpn.password",
-		lookupEnvOrDefault("openvpn.password", c.OpenVPN.Password),
+		c.OpenVPN.Password,
 		"openvpn management interface password. If argument starts with file:// it reads the secret from a file.",
 	)
 	flagSet.BoolVar(
 		&c.OpenVPN.AuthTokenUser,
 		"openvpn.auth-token-user",
-		lookupEnvOrDefault("openvpn.auth-token-user", c.OpenVPN.AuthTokenUser),
+		c.OpenVPN.AuthTokenUser,
 		"Override the username of a session with the username from the token by using auth-token-user, if the client username is empty",
 	)
 	flagSet.DurationVar(
 		&c.OpenVPN.AuthPendingTimeout,
 		"openvpn.auth-pending-timeout",
-		lookupEnvOrDefault("openvpn.auth-pending-timeout", c.OpenVPN.AuthPendingTimeout),
+		c.OpenVPN.AuthPendingTimeout,
 		"How long OpenVPN server wait until user is authenticated",
+	)
+	flagSet.DurationVar(
+		&c.OpenVPN.CommandTimeout,
+		"openvpn.command-timeout",
+		c.OpenVPN.CommandTimeout,
+		"Maximum time to wait for a response to an OpenVPN management command.",
 	)
 	flagSet.TextVar(
 		&c.OpenVPN.Bypass.CommonNames,
 		"openvpn.bypass.common-names",
-		lookupEnvOrDefault("openvpn.bypass.common-names", c.OpenVPN.Bypass.CommonNames),
+		c.OpenVPN.Bypass.CommonNames,
 		"Skip OAuth authentication for client certificate common names (CNs) matching any of the given regular expressions. "+
 			"Multiple expressions can be provided as a comma-separated list. "+
 			"Regular expressions are automatically anchored (^…$) by default, so \"client\" matches only \"client\". "+
@@ -158,37 +164,37 @@ func (c *Config) flagSetOpenVPN(flagSet *flag.FlagSet) {
 	flagSet.BoolVar(
 		&c.OpenVPN.ClientConfig.Enabled,
 		"openvpn.client-config.enabled",
-		lookupEnvOrDefault("openvpn.client-config.enabled", c.OpenVPN.ClientConfig.Enabled),
+		c.OpenVPN.ClientConfig.Enabled,
 		"If true, openvpn-auth-oauth2 will read the CCD directory for additional configuration. This function mimic the client-config-dir directive in OpenVPN.",
 	)
 	flagSet.TextVar(
 		&c.OpenVPN.ClientConfig.Path,
 		"openvpn.client-config.path",
-		lookupEnvOrDefault("openvpn.client-config.path", c.OpenVPN.ClientConfig.Path),
+		c.OpenVPN.ClientConfig.Path,
 		"Path to the CCD directory. openvpn-auth-oauth2 will look for an file with an .conf suffix and returns the content back.",
 	)
 	flagSet.BoolVar(
 		&c.OpenVPN.ClientConfig.IgnoreNotFound,
 		"openvpn.client-config.ignore-not-found",
-		lookupEnvOrDefault("openvpn.client-config.ignore-not-found", c.OpenVPN.ClientConfig.IgnoreNotFound),
+		c.OpenVPN.ClientConfig.IgnoreNotFound,
 		"Ignore missing client configuration files.",
 	)
 	flagSet.TextVar(
 		&c.OpenVPN.ClientConfig.Strategy,
 		"openvpn.client-config.strategy",
-		lookupEnvOrDefault("openvpn.client-config.strategy", c.OpenVPN.ClientConfig.Strategy),
+		c.OpenVPN.ClientConfig.Strategy,
 		"Client config selection strategy. Values: [merge,user-selector].",
 	)
 	flagSet.StringVar(
 		&c.OpenVPN.ClientConfig.Expression,
 		"openvpn.client-config.expression",
-		lookupEnvOrDefault("openvpn.client-config.expression", c.OpenVPN.ClientConfig.Expression),
+		c.OpenVPN.ClientConfig.Expression,
 		"CEL expression that returns an ordered list of client configuration names.",
 	)
 	flagSet.StringVar(
 		&c.OpenVPN.CommonName.EnvironmentVariableName,
 		"openvpn.common-name.environment-variable-name",
-		lookupEnvOrDefault("openvpn.common-name.environment-variable-name", c.OpenVPN.CommonName.EnvironmentVariableName),
+		c.OpenVPN.CommonName.EnvironmentVariableName,
 		"Name of the environment variable in the OpenVPN management interface which contains the common name. "+
 			"If username-as-common-name is enabled, this should be set to 'username' to use the username as common name. "+
 			"Other values like 'X509_0_emailAddress' are supported. "+
@@ -197,13 +203,13 @@ func (c *Config) flagSetOpenVPN(flagSet *flag.FlagSet) {
 	flagSet.TextVar(
 		&c.OpenVPN.CommonName.Mode,
 		"openvpn.common-name.mode",
-		lookupEnvOrDefault("openvpn.common-name.mode", c.OpenVPN.CommonName.Mode),
+		c.OpenVPN.CommonName.Mode,
 		"If common names are too long, use md5/sha1 to hash them or omit to skip them. Values: [plain,omit]",
 	)
 	flagSet.BoolVar(
 		&c.OpenVPN.OverrideUsername,
 		"openvpn.override-username",
-		lookupEnvOrDefault("openvpn.override-username", c.OpenVPN.OverrideUsername),
+		c.OpenVPN.OverrideUsername,
 		"Requires OpenVPN Server 2.7! "+
 			"If true, openvpn-auth-oauth2 use the override-username command to set the username in OpenVPN connection. "+
 			"This is useful to use real usernames in OpenVPN statistics. The username will be set after client configs are read. "+
@@ -212,45 +218,45 @@ func (c *Config) flagSetOpenVPN(flagSet *flag.FlagSet) {
 	flagSet.BoolVar(
 		&c.OpenVPN.EnforceUniqueUser,
 		"openvpn.enforce-unique-user",
-		lookupEnvOrDefault("openvpn.enforce-unique-user", c.OpenVPN.EnforceUniqueUser),
+		c.OpenVPN.EnforceUniqueUser,
 		"Requires OpenVPN Server 2.7 and openvpn.override-username=true. "+
 			"If true, openvpn-auth-oauth2 enforces one active OpenVPN session per username.",
 	)
 	flagSet.BoolVar(
 		&c.OpenVPN.Passthrough.Enabled,
 		"openvpn.pass-through.enabled",
-		lookupEnvOrDefault("openvpn.pass-through.enabled", c.OpenVPN.Passthrough.Enabled),
+		c.OpenVPN.Passthrough.Enabled,
 		"If true, openvpn-auth-oauth2 will setup a pass-through socket for the OpenVPN management interface.",
 	)
 	flagSet.TextVar(
 		&c.OpenVPN.Passthrough.Address,
 		"openvpn.pass-through.address",
-		lookupEnvOrDefault("openvpn.pass-through.address", c.OpenVPN.Passthrough.Address),
+		c.OpenVPN.Passthrough.Address,
 		"The address of the pass-through socket. Must start with unix:// or tcp://",
 	)
 	flagSet.TextVar(
 		&c.OpenVPN.Passthrough.Password,
 		"openvpn.pass-through.password",
-		lookupEnvOrDefault("openvpn.pass-through.password", c.OpenVPN.Passthrough.Password),
+		c.OpenVPN.Passthrough.Password,
 		"The password for the pass-through socket. If argument starts with file:// it reads the secret from a file.",
 	)
 	flagSet.StringVar(
 		&c.OpenVPN.Passthrough.SocketGroup,
 		"openvpn.pass-through.socket-group",
-		lookupEnvOrDefault("openvpn.pass-through.socket-group", c.OpenVPN.Passthrough.SocketGroup),
+		c.OpenVPN.Passthrough.SocketGroup,
 		"The group for the pass-through socket. Used only, if openvpn.pass-through.address starts with unix:// "+
 			"If empty, the group of the process is used.",
 	)
 	flagSet.UintVar(
 		&c.OpenVPN.Passthrough.SocketMode,
 		"openvpn.pass-through.socket-mode",
-		lookupEnvOrDefault("openvpn.pass-through.socket-mode", c.OpenVPN.Passthrough.SocketMode),
+		c.OpenVPN.Passthrough.SocketMode,
 		"The unix file permission mode for the pass-through socket. Used only, if openvpn.pass-through.address starts with unix://",
 	)
 	flagSet.BoolVar(
 		&c.OpenVPN.ReAuthentication,
 		"openvpn.reauthentication",
-		lookupEnvOrDefault("openvpn.reauthentication", c.OpenVPN.ReAuthentication),
+		c.OpenVPN.ReAuthentication,
 		"If set to false, openvpn-auth-oauth2 rejects all re-authentication requests.",
 	)
 }
@@ -260,91 +266,91 @@ func (c *Config) flagSetOAuth2(flagSet *flag.FlagSet) {
 	flagSet.TextVar(
 		&c.OAuth2.Issuer,
 		"oauth2.issuer",
-		lookupEnvOrDefault("oauth2.issuer", c.OAuth2.Issuer),
+		c.OAuth2.Issuer,
 		"oauth2 issuer",
 	)
 	flagSet.StringVar(
 		&c.OAuth2.Provider,
 		"oauth2.provider",
-		lookupEnvOrDefault("oauth2.provider", c.OAuth2.Provider),
+		c.OAuth2.Provider,
 		"oauth2 provider",
 	)
 	flagSet.StringVar(
 		&c.OAuth2.AuthorizeParams,
 		"oauth2.authorize-params",
-		lookupEnvOrDefault("oauth2.authorize-params", c.OAuth2.AuthorizeParams),
+		c.OAuth2.AuthorizeParams,
 		"additional url query parameter to authorize endpoint",
 	)
 	flagSet.TextVar(
 		&c.OAuth2.Endpoints.Discovery,
 		"oauth2.endpoint.discovery",
-		lookupEnvOrDefault("oauth2.endpoint.discovery", c.OAuth2.Endpoints.Discovery),
+		c.OAuth2.Endpoints.Discovery,
 		"The flag is used to set a custom OAuth2 discovery URL. This URL retrieves the provider's configuration details.",
 	)
 	flagSet.TextVar(
 		&c.OAuth2.Endpoints.Auth,
 		"oauth2.endpoint.auth",
-		lookupEnvOrDefault("oauth2.endpoint.auth", c.OAuth2.Endpoints.Auth),
+		c.OAuth2.Endpoints.Auth,
 		"The flag is used to specify a custom OAuth2 authorization endpoint.",
 	)
 	flagSet.TextVar(
 		&c.OAuth2.Endpoints.Token,
 		"oauth2.endpoint.token",
-		lookupEnvOrDefault("oauth2.endpoint.token", c.OAuth2.Endpoints.Token),
+		c.OAuth2.Endpoints.Token,
 		"The flag is used to specify a custom OAuth2 token endpoint.",
 	)
 	flagSet.StringVar(
 		&c.OAuth2.Client.ID,
 		"oauth2.client.id",
-		lookupEnvOrDefault("oauth2.client.id", c.OAuth2.Client.ID),
+		c.OAuth2.Client.ID,
 		"oauth2 client id",
 	)
 	flagSet.TextVar(
 		&c.OAuth2.Client.PrivateKey,
 		"oauth2.client.private-key",
-		lookupEnvOrDefault("oauth2.client.private-key", c.OAuth2.Client.PrivateKey),
+		c.OAuth2.Client.PrivateKey,
 		"oauth2 client private key. Secure alternative to oauth2.client.secret. If argument starts with file:// it reads the secret from a file.",
 	)
 	flagSet.StringVar(
 		&c.OAuth2.Client.PrivateKeyID,
 		"oauth2.client.private-key-id",
-		lookupEnvOrDefault("oauth2.client.private-key-id", c.OAuth2.Client.PrivateKeyID),
+		c.OAuth2.Client.PrivateKeyID,
 		"oauth2 client private key id. If specified, JWT assertions will be generated with the specific kid header.",
 	)
 	flagSet.TextVar(
 		&c.OAuth2.Client.Secret,
 		"oauth2.client.secret",
-		lookupEnvOrDefault("oauth2.client.secret", c.OAuth2.Client.Secret),
+		c.OAuth2.Client.Secret,
 		"oauth2 client secret. If argument starts with file:// it reads the secret from a file.",
 	)
 	flagSet.BoolVar(
 		&c.OAuth2.PKCE,
 		"oauth2.pkce",
-		lookupEnvOrDefault("oauth2.pkce", c.OAuth2.PKCE),
+		c.OAuth2.PKCE,
 		"If true, Proof Key for Code Exchange (PKCE) RFC 7636 is used for token exchange.",
 	)
 	flagSet.BoolVar(
 		&c.OAuth2.UserInfo,
 		"oauth2.user-info",
-		lookupEnvOrDefault("oauth2.user-info", c.OAuth2.UserInfo),
+		c.OAuth2.UserInfo,
 		"If true, openvpn-auth-oauth2 uses the OIDC UserInfo endpoint to fetch additional information about the user (e.g. groups).",
 	)
 	flagSet.StringVar(
 		&c.OAuth2.GroupsClaim,
 		"oauth2.groups-claim",
-		lookupEnvOrDefault("oauth2.groups-claim", c.OAuth2.GroupsClaim),
+		c.OAuth2.GroupsClaim,
 		"Defines the claim name in the ID Token which contains the user groups.",
 	)
 	flagSet.BoolVar(
 		&c.OAuth2.Nonce,
 		"oauth2.nonce",
-		lookupEnvOrDefault("oauth2.nonce", c.OAuth2.Nonce),
+		c.OAuth2.Nonce,
 		"If true, a nonce will be defined on the auth URL which is expected inside the token.",
 	)
 	flagSet.TextVar(
 		&c.OAuth2.RefreshNonce,
 		"oauth2.refresh-nonce",
-		lookupEnvOrDefault("oauth2.refresh-nonce", c.OAuth2.RefreshNonce),
+		c.OAuth2.RefreshNonce,
 		"Controls nonce behavior on refresh token requests. "+
 			"Options: auto (try with nonce, retry without on error), "+
 			"empty (always use empty nonce), "+
@@ -353,7 +359,7 @@ func (c *Config) flagSetOAuth2(flagSet *flag.FlagSet) {
 	flagSet.TextVar(
 		&c.OAuth2.AuthStyle,
 		"oauth2.auth-style",
-		lookupEnvOrDefault("oauth2.auth-style", c.OAuth2.AuthStyle),
+		c.OAuth2.AuthStyle,
 		"Auth style represents how requests for tokens are authenticated to the server. "+
 			"Possible values: AuthStyleAutoDetect, AuthStyleInParams, AuthStyleInHeader. "+
 			"See https://pkg.go.dev/golang.org/x/oauth2#AuthStyle",
@@ -361,47 +367,47 @@ func (c *Config) flagSetOAuth2(flagSet *flag.FlagSet) {
 	flagSet.BoolVar(
 		&c.OAuth2.Refresh.Enabled,
 		"oauth2.refresh.enabled",
-		lookupEnvOrDefault("oauth2.refresh.enabled", c.OAuth2.Refresh.Enabled),
+		c.OAuth2.Refresh.Enabled,
 		"If true, openvpn-auth-oauth2 stores refresh tokens and will use it do an non-interaction reauth.",
 	)
 	flagSet.DurationVar(
 		&c.OAuth2.Refresh.Expires,
 		"oauth2.refresh.expires",
-		lookupEnvOrDefault("oauth2.refresh.expires", c.OAuth2.Refresh.Expires),
+		c.OAuth2.Refresh.Expires,
 		"TTL of stored oauth2 token.",
 	)
 	flagSet.TextVar(
 		&c.OAuth2.Refresh.Secret,
 		"oauth2.refresh.secret",
-		lookupEnvOrDefault("oauth2.refresh.secret", c.OAuth2.Refresh.Secret),
+		c.OAuth2.Refresh.Secret,
 		"Required, if oauth2.refresh.enabled=true. Random generated secret for token encryption. "+
 			"Must be 16, 24 or 32 characters. If argument starts with file:// it reads the secret from a file.",
 	)
 	flagSet.BoolVar(
 		&c.OAuth2.Refresh.UseSessionID,
 		"oauth2.refresh.use-session-id",
-		lookupEnvOrDefault("oauth2.refresh.use-session-id", c.OAuth2.Refresh.UseSessionID),
+		c.OAuth2.Refresh.UseSessionID,
 		"If true, openvpn-auth-oauth2 will use the session_id to refresh sessions on initial auth. "+
 			"Requires 'auth-token-gen [lifetime] external-auth' on OpenVPN server.",
 	)
 	flagSet.BoolVar(
 		&c.OAuth2.Refresh.ValidateUser,
 		"oauth2.refresh.validate-user",
-		lookupEnvOrDefault("oauth2.refresh.validate-user", c.OAuth2.Refresh.ValidateUser),
+		c.OAuth2.Refresh.ValidateUser,
 		"If true, openvpn-auth-oauth2 will validate the user against the OIDC provider on each refresh. "+
 			"Usefully, if API limits are exceeded or OIDC provider can't deliver an refresh token.",
 	)
 	flagSet.TextVar(
 		&c.OAuth2.Validate.Groups,
 		"oauth2.validate.groups",
-		lookupEnvOrDefault("oauth2.validate.groups", c.OAuth2.Validate.Groups),
+		c.OAuth2.Validate.Groups,
 		"oauth2 required user groups. If multiple groups are configured, the user needs to be least in one group. "+
 			"Comma separated list. Example: group1,group2,group3",
 	)
 	flagSet.StringVar(
 		&c.OAuth2.Validate.Expression,
 		"oauth2.validate.expression",
-		lookupEnvOrDefault("oauth2.validate.expression", c.OAuth2.Validate.Expression),
+		c.OAuth2.Validate.Expression,
 		"CEL expression for custom identity validation. "+
 			"The expression must evaluate to a boolean value. "+
 			"Example: openvpn.commonName == user.username",
@@ -409,7 +415,7 @@ func (c *Config) flagSetOAuth2(flagSet *flag.FlagSet) {
 	flagSet.TextVar(
 		&c.OAuth2.Scopes,
 		"oauth2.scopes",
-		lookupEnvOrDefault("oauth2.scopes", c.OAuth2.Scopes),
+		c.OAuth2.Scopes,
 		"oauth2 token scopes. Defaults depends on oauth2.provider. Comma separated list. "+
 			"Example: openid,profile,email",
 	)
@@ -417,7 +423,7 @@ func (c *Config) flagSetOAuth2(flagSet *flag.FlagSet) {
 	flagSet.StringVar(
 		&c.OAuth2.OpenVPNUsername,
 		"oauth2.openvpn-username",
-		lookupEnvOrDefault("oauth2.openvpn-username", c.OAuth2.OpenVPNUsername),
+		c.OAuth2.OpenVPNUsername,
 		"CEL expression to resolve the username from the normalized identity. The expression must evaluate to a string value. "+
 			"Example: string(token.claims.sub). If empty, the common name is used.",
 	)
@@ -427,7 +433,7 @@ func (c *Config) flagSetProvider(flagSet *flag.FlagSet) {
 	flagSet.BoolVar(
 		&c.Provider.Google.Validate.GroupsTransitive,
 		"provider.google.validate.groups-transitive",
-		lookupEnvOrDefault("provider.google.validate.groups-transitive", c.Provider.Google.Validate.GroupsTransitive),
+		c.Provider.Google.Validate.GroupsTransitive,
 		"If true, required group membership for the Google provider is matched transitively: "+
 			"nested sub-groups of a configured group in oauth2.validate.groups are accepted. "+
 			"Requires the cloud-identity.groups.readonly scope and a Google Workspace/Cloud Identity plan "+

@@ -148,8 +148,8 @@ For providers like Authentik that return empty nonces on refresh (per OIDC spec)
 OPENVPN_AUTH_OAUTH2_OAUTH2_REFRESH_ENABLED=true
 OPENVPN_AUTH_OAUTH2_OAUTH2_REFRESH_EXPIRES=8h
 OPENVPN_AUTH_OAUTH2_OAUTH2_REFRESH_SECRET= # a static secret to encrypt token. Must be 16, 24 or 32
-OPENVPN_AUTH_OAUTH2_OAUTH2_REFRESH_USE__SESSION__ID=true
-OPENVPN_AUTH_OAUTH2_OPENVPN_AUTH__TOKEN__USER=true
+OPENVPN_AUTH_OAUTH2_OAUTH2_REFRESH_USE_SESSION_ID=true
+OPENVPN_AUTH_OAUTH2_OPENVPN_AUTH_TOKEN_USER=true
 ```
 </td></tr></tbody>
 <thead><tr><td>yaml configuration</td></tr></thead>

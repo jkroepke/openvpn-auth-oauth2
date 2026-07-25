@@ -1,136 +1,120 @@
 package config //nolint:testpackage
 
 import (
-	"net/url"
+	"flag"
+	"io"
 	"testing"
 	"time"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config/types"
-	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/ui/assets"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestLookupEnvOrDefault(t *testing.T) {
+func TestReadFromFlagAndEnvironment(t *testing.T) {
+	t.Setenv("OPENVPN_AUTH_OAUTH2_HTTP_TLS", "true")
+	t.Setenv("OPENVPN_AUTH_OAUTH2_OAUTH2_NONCE", "false")
+	t.Setenv("OPENVPN_AUTH_OAUTH2_OPENVPN_COMMAND_TIMEOUT", "17s")
+	t.Setenv("OPENVPN_AUTH_OAUTH2_OPENVPN_PASS_THROUGH_SOCKET_MODE", "0660")
+
+	conf := Defaults
+	require.NoError(t, conf.ReadFromFlagAndEnvironment([]string{"openvpn-auth-oauth2"}, io.Discard))
+
+	assert.True(t, conf.HTTP.TLS)
+	assert.False(t, conf.OAuth2.Nonce)
+	assert.Equal(t, 17*time.Second, conf.OpenVPN.CommandTimeout)
+	assert.Equal(t, uint(0o660), conf.OpenVPN.Passthrough.SocketMode)
+}
+
+func TestReadFromFlagAndEnvironmentRejectsNonBooleanEnvironmentValues(t *testing.T) {
+	for _, value := range []string{"", "0", "1", "FALSE", "TRUE", "f", "t", "yes"} {
+		t.Run(value, func(t *testing.T) {
+			const environmentVariable = "OPENVPN_AUTH_OAUTH2_HTTP_TLS"
+
+			t.Setenv(environmentVariable, value)
+
+			conf := Defaults
+			err := conf.ReadFromFlagAndEnvironment([]string{"openvpn-auth-oauth2"}, io.Discard)
+
+			require.Error(t, err)
+			require.ErrorContains(t, err, environmentVariable)
+			require.ErrorContains(t, err, "true or false")
+		})
+	}
+}
+
+func TestReadFromFlagAndEnvironmentRejectsInvalidEnvironmentValues(t *testing.T) {
 	for _, tc := range []struct {
-		name         string
-		input        string
-		badInput     string
-		defaultValue any
-		expected     any
-		panic        bool
+		name                string
+		environmentVariable string
+		value               string
 	}{
 		{
-			name:         "string",
-			defaultValue: "test",
-			input:        "test2",
-			expected:     "test2",
+			name:                "duration",
+			environmentVariable: "OPENVPN_AUTH_OAUTH2_OPENVPN_COMMAND_TIMEOUT",
+			value:               "eventually",
 		},
 		{
-			name:         "bool",
-			defaultValue: false,
-			input:        "true",
-			badInput:     "A",
-			expected:     true,
+			name:                "log level",
+			environmentVariable: "OPENVPN_AUTH_OAUTH2_LOG_LEVEL",
+			value:               "verbose",
 		},
 		{
-			name:         "int",
-			defaultValue: 1336,
-			input:        "1337",
-			badInput:     "A",
-			expected:     1337,
-		},
-		{
-			name:         "uint",
-			defaultValue: uint(1336),
-			input:        "1337",
-			badInput:     "A",
-			expected:     uint(1337),
-		},
-		{
-			name:         "time.Duration",
-			defaultValue: time.Minute,
-			input:        "5s",
-			badInput:     "A",
-			expected:     5 * time.Second,
-		},
-		{
-			name:         "TextUnmarshaler/FS",
-			defaultValue: &types.FS{FS: assets.FS},
-			input:        ".",
-			badInput:     "...",
-			expected: func() *types.FS {
-				f, err := types.NewFS(".")
-				require.NoError(t, err)
-
-				return &f
-			}(),
-		},
-		{
-			name:         "TextUnmarshaler/Secret",
-			defaultValue: types.Secret("hello world"),
-			input:        "hello world",
-			badInput:     "file://",
-			expected:     types.Secret("hello world"),
-		},
-		{
-			name:         "TextUnmarshaler/URL",
-			defaultValue: types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}},
-			input:        "http://google.com",
-			badInput:     "://google.com",
-			expected:     types.URL{URL: &url.URL{Scheme: "http", Host: "google.com"}},
-		},
-		{
-			name:         "TextUnmarshaler/StringSlice",
-			defaultValue: types.StringSlice{},
-			input:        "a,b",
-			badInput:     "",
-			expected:     types.StringSlice{"a", "b"},
-		},
-		{
-			name:         "TextUnmarshaler/types.Template",
-			defaultValue: types.Template{},
-			input:        "../../README.md",
-			badInput:     "....",
-			expected: func() types.Template {
-				tmpl, err := types.NewTemplate("../../README.md")
-				require.NoError(t, err)
-
-				return tmpl
-			}(),
-		},
-		{
-			name:         "float64",
-			defaultValue: float64(1336),
-			input:        "1337",
-			expected:     float64(1337),
-		},
-		{
-			name:         "float32",
-			defaultValue: float32(1336),
-			input:        "1337",
-			expected:     float32(1337),
-			panic:        true,
+			name:                "unsigned integer",
+			environmentVariable: "OPENVPN_AUTH_OAUTH2_OPENVPN_PASS_THROUGH_SOCKET_MODE",
+			value:               "owner-read-write",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			testFn := func() {
-				require.Equal(t, tc.defaultValue, lookupEnvOrDefault("unset", tc.defaultValue))
+			t.Setenv(tc.environmentVariable, tc.value)
 
-				t.Setenv("OPENVPN_AUTH_OAUTH2_SET", tc.input)
-				require.Equal(t, tc.expected, lookupEnvOrDefault("set", tc.defaultValue))
+			conf := Defaults
+			err := conf.ReadFromFlagAndEnvironment([]string{"openvpn-auth-oauth2"}, io.Discard)
 
-				if tc.badInput != "" {
-					t.Setenv("OPENVPN_AUTH_OAUTH2_BAD", tc.badInput)
-					require.Equal(t, tc.defaultValue, lookupEnvOrDefault("bad", tc.defaultValue))
-				}
-			}
-
-			if tc.panic {
-				require.Panics(t, testFn)
-			} else {
-				require.NotPanics(t, testFn)
-			}
+			require.Error(t, err)
+			require.ErrorContains(t, err, tc.environmentVariable)
 		})
+	}
+}
+
+func TestReadFromFlagAndEnvironmentRejectsUnknownEnvironmentVariable(t *testing.T) {
+	const environmentVariable = "OPENVPN_AUTH_OAUTH2_HTTP_UNKNOWN"
+
+	t.Setenv(environmentVariable, "true")
+
+	conf := Defaults
+	err := conf.ReadFromFlagAndEnvironment([]string{"openvpn-auth-oauth2"}, io.Discard)
+
+	require.Error(t, err)
+	require.ErrorContains(t, err, environmentVariable)
+}
+
+func TestApplyEnvironmentRejectsAmbiguousFlagNames(t *testing.T) {
+	t.Parallel()
+
+	flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
+	flagSet.String("ambiguous-name", "", "")
+	flagSet.String("ambiguous.name", "", "")
+
+	err := applyEnvironment(flagSet)
+
+	require.Error(t, err)
+	require.ErrorContains(t, err, "OPENVPN_AUTH_OAUTH2_AMBIGUOUS_NAME")
+	require.ErrorContains(t, err, "ambiguous-name")
+	require.ErrorContains(t, err, "ambiguous.name")
+}
+
+func TestReadFromFlagAndEnvironmentRejectsPositionalArguments(t *testing.T) {
+	t.Parallel()
+
+	for _, args := range [][]string{
+		{"openvpn-auth-oauth2", "unexpected"},
+		{"openvpn-auth-oauth2", "unexpected", "--http.tls"},
+	} {
+		conf := Defaults
+		err := conf.ReadFromFlagAndEnvironment(args, io.Discard)
+
+		require.Error(t, err)
+		require.ErrorContains(t, err, "positional arguments")
 	}
 }
 
@@ -139,14 +123,16 @@ func TestGetEnvironmentVariableByFlagName(t *testing.T) {
 
 	require.Equal(t, "OPENVPN_AUTH_OAUTH2_CONFIG_FILE", getEnvironmentVariableByFlagName("config"))
 	require.Equal(t,
-		"OPENVPN_AUTH_OAUTH2_OPENVPN_PASS__THROUGH_SOCKET__MODE",
+		"OPENVPN_AUTH_OAUTH2_OPENVPN_PASS_THROUGH_SOCKET_MODE",
 		getEnvironmentVariableByFlagName("openvpn.pass-through.socket-mode"))
 }
 
-func TestLookupEnvOrDefaultIgnoresLegacyPrefix(t *testing.T) {
-	t.Setenv("CONFIG_LEGACY__PREFIX__TEST", "legacy")
+func TestReadFromFlagAndEnvironmentIgnoresLegacyPrefix(t *testing.T) {
+	t.Setenv("CONFIG_HTTP_LISTEN", ":9999")
 
-	require.Equal(t, "default", lookupEnvOrDefault("legacy-prefix-test", "default"))
+	conf := Defaults
+	require.NoError(t, conf.ReadFromFlagAndEnvironment([]string{"openvpn-auth-oauth2"}, io.Discard))
+	assert.Equal(t, Defaults.HTTP.Listen, conf.HTTP.Listen)
 }
 
 func TestLookupConfigArgument(t *testing.T) {

@@ -26,6 +26,7 @@
 #OPENVPN_AUTH_OAUTH2_CONFIG_FILE=/etc/openvpn-auth-oauth2/config.yaml
 
 OPENVPN_AUTH_OAUTH2_OPENVPN_ADDR=unix:///run/openvpn/server.sock
+#OPENVPN_AUTH_OAUTH2_OPENVPN_COMMAND_TIMEOUT=10s
 
 ## Define OIDC related settings
 #OPENVPN_AUTH_OAUTH2_OAUTH2_ISSUER=https://login.microsoftonline.com/<tenant-id>/v2.0

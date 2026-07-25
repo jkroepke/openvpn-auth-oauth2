@@ -3,9 +3,6 @@ package config //nolint:testpackage
 import (
 	"io"
 	"testing"
-	"time"
-
-	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config/types"
 )
 
 func BenchmarkLookupConfigArgument(b *testing.B) {
@@ -39,72 +36,6 @@ func BenchmarkLookupConfigArgument(b *testing.B) {
 			_ = configFile
 		})
 	}
-}
-
-func BenchmarkLookupEnvOrDefault(b *testing.B) {
-	b.Run("string", func(b *testing.B) {
-		const key = "benchmark-string"
-		b.Setenv(getEnvironmentVariableByFlagName(key), "benchmark-value")
-
-		var actual string
-
-		b.ReportAllocs()
-		b.ResetTimer()
-
-		for b.Loop() {
-			actual = lookupEnvOrDefault(key, "default-value")
-		}
-
-		_ = actual
-	})
-
-	b.Run("duration", func(b *testing.B) {
-		const key = "benchmark-duration"
-		b.Setenv(getEnvironmentVariableByFlagName(key), "5m")
-
-		var actual time.Duration
-
-		b.ReportAllocs()
-		b.ResetTimer()
-
-		for b.Loop() {
-			actual = lookupEnvOrDefault(key, time.Minute)
-		}
-
-		_ = actual
-	})
-
-	b.Run("url", func(b *testing.B) {
-		const key = "benchmark-url"
-		b.Setenv(getEnvironmentVariableByFlagName(key), "http://localhost:9000")
-
-		var actual types.URL
-
-		b.ReportAllocs()
-		b.ResetTimer()
-
-		for b.Loop() {
-			actual = lookupEnvOrDefault(key, types.URL{})
-		}
-
-		_ = actual
-	})
-
-	b.Run("string-slice", func(b *testing.B) {
-		const key = "benchmark-string-slice"
-		b.Setenv(getEnvironmentVariableByFlagName(key), "alpha,beta,gamma,delta")
-
-		var actual types.StringSlice
-
-		b.ReportAllocs()
-		b.ResetTimer()
-
-		for b.Loop() {
-			actual = lookupEnvOrDefault(key, types.StringSlice{})
-		}
-
-		_ = actual
-	})
 }
 
 func BenchmarkReadFromFlagAndEnvironment(b *testing.B) {

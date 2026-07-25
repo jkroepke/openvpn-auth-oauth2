@@ -1,16 +1,13 @@
 package config
 
 import (
-	"encoding"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"os"
-	"reflect"
-	"strconv"
+	"slices"
 	"strings"
-	"time"
 
 	"go.yaml.in/yaml/v3"
 )
@@ -22,7 +19,7 @@ const (
 
 var ErrVersion = errors.New("flag: version requested")
 
-// New loads the configuration from configuration files, command line arguments and environment variables in that order.
+// New loads the configuration from defaults, a configuration file, environment variables, and command-line arguments.
 //
 //goland:noinspection GoMixedReceiverTypes
 func New(args []string, writer io.Writer) (*Config, error) {
@@ -41,7 +38,7 @@ func New(args []string, writer io.Writer) (*Config, error) {
 	return &config, nil
 }
 
-// ReadFromConfigFile reads the configuration from a configuration file and command line arguments.
+// ReadFromConfigFile reads the configuration from a configuration file.
 //
 //goland:noinspection GoMixedReceiverTypes
 func (c *Config) ReadFromConfigFile(configFilePath string) error {
@@ -109,8 +106,16 @@ func (c *Config) ReadFromFlagAndEnvironment(args []string, writer io.Writer) err
 		flag.Usage += fmt.Sprintf(" (env: %s)", getEnvironmentVariableByFlagName(flag.Name))
 	})
 
+	if err := applyEnvironment(flagSet); err != nil {
+		return fmt.Errorf("error parsing environment variables: %w", err)
+	}
+
 	if err := flagSet.Parse(args[1:]); err != nil {
 		return fmt.Errorf("error parsing command line arguments: %w", err)
+	}
+
+	if flagSet.NArg() != 0 {
+		return errors.New("error parsing command line arguments: positional arguments are not supported")
 	}
 
 	if flagSet.Lookup("version").Value.String() == "true" {
@@ -139,97 +144,121 @@ func lookupConfigArgument(args []string) string {
 		return ""
 	}
 
-	return lookupEnvOrDefault("config", "")
+	return os.Getenv(getEnvironmentVariableByFlagName("config"))
 }
 
-// lookupEnvOrDefault looks up the environment variable by the flag name and returns the value.
-// If the environment variable is not set, it returns the default value.
-// It supports the following types: string, bool, int, uint, time.Duration and types implementing [encoding.TextUnmarshaler].
-// If the type is not supported, it panics.
-//
-//nolint:cyclop
-func lookupEnvOrDefault[T any](key string, defaultValue T) T {
-	envValue, ok := os.LookupEnv(getEnvironmentVariableByFlagName(key))
-	if !ok {
-		return defaultValue
+func applyEnvironment(flagSet *flag.FlagSet) error {
+	flagsByEnvironmentVariable, err := getFlagsByEnvironmentVariable(flagSet)
+	if err != nil {
+		return err
 	}
 
-	ok = false
+	environmentValues, err := getEnvironmentValues(flagsByEnvironmentVariable)
+	if err != nil {
+		return err
+	}
 
-	var value T
+	environmentVariableNames := make([]string, 0, len(environmentValues))
+	for name := range environmentValues {
+		environmentVariableNames = append(environmentVariableNames, name)
+	}
 
-	switch any(defaultValue).(type) {
-	case string:
-		value, ok = any(envValue).(T)
-	case bool:
-		boolVal, err := strconv.ParseBool(envValue)
-		if err != nil {
-			return defaultValue
-		}
+	slices.Sort(environmentVariableNames)
 
-		value, ok = any(boolVal).(T)
-	case int:
-		intValue, err := strconv.Atoi(envValue)
-		if err != nil {
-			return defaultValue
-		}
-
-		value, ok = any(intValue).(T)
-	case uint:
-		intValue, err := strconv.ParseUint(envValue, 10, 0)
-		if err != nil {
-			return defaultValue
-		}
-
-		value, ok = any(uint(intValue)).(T)
-	case float64:
-		floatValue, err := strconv.ParseFloat(envValue, 64)
-		if err != nil {
-			return defaultValue
-		}
-
-		value, ok = any(floatValue).(T)
-	case time.Duration:
-		durationValue, err := time.ParseDuration(envValue)
-		if err != nil {
-			return defaultValue
-		}
-
-		value, ok = any(durationValue).(T)
-	default:
-		// Handle types implementing encoding.TextUnmarshaler via reflection
-		t := reflect.TypeOf(defaultValue)
-
-		var valPtr reflect.Value
-
-		if t.Kind() == reflect.Pointer {
-			valPtr = reflect.New(t.Elem())
-		} else {
-			valPtr = reflect.New(t)
-		}
-
-		if unmarshaler, okUnmarshal := valPtr.Interface().(encoding.TextUnmarshaler); okUnmarshal {
-			if err := unmarshaler.UnmarshalText([]byte(envValue)); err != nil {
-				return defaultValue
-			}
-
-			if t.Kind() == reflect.Pointer {
-				value, ok = valPtr.Convert(t).Interface().(T)
-			} else {
-				value, ok = valPtr.Elem().Interface().(T)
-			}
+	for _, name := range environmentVariableNames {
+		if err = setEnvironmentValue(
+			flagsByEnvironmentVariable[name],
+			name,
+			environmentValues[name],
+		); err != nil {
+			return err
 		}
 	}
 
-	if !ok {
-		panic(fmt.Sprintf("failed to convert environment variable %s to type %T", key, defaultValue))
+	return nil
+}
+
+func getFlagsByEnvironmentVariable(flagSet *flag.FlagSet) (map[string]*flag.Flag, error) {
+	flagsByEnvironmentVariable := make(map[string]*flag.Flag)
+
+	var mappingError error
+
+	flagSet.VisitAll(func(configurationFlag *flag.Flag) {
+		if configurationFlag.Name == "version" {
+			return
+		}
+
+		environmentVariable := getEnvironmentVariableByFlagName(configurationFlag.Name)
+		if existingFlag, ok := flagsByEnvironmentVariable[environmentVariable]; ok {
+			mappingError = fmt.Errorf(
+				"environment variable %s maps to both %s and %s",
+				environmentVariable,
+				existingFlag.Name,
+				configurationFlag.Name,
+			)
+
+			return
+		}
+
+		flagsByEnvironmentVariable[environmentVariable] = configurationFlag
+	})
+
+	if mappingError != nil {
+		return nil, mappingError
 	}
 
-	return value
+	return flagsByEnvironmentVariable, nil
+}
+
+func getEnvironmentValues(
+	flagsByEnvironmentVariable map[string]*flag.Flag,
+) (map[string]string, error) {
+	environmentValues := make(map[string]string)
+	unknownEnvironmentVariables := make([]string, 0)
+
+	for _, entry := range os.Environ() {
+		name, value, _ := strings.Cut(entry, "=")
+		if !strings.HasPrefix(name, environmentVariablePrefix) {
+			continue
+		}
+
+		if _, ok := flagsByEnvironmentVariable[name]; !ok {
+			unknownEnvironmentVariables = append(unknownEnvironmentVariables, name)
+
+			continue
+		}
+
+		environmentValues[name] = value
+	}
+
+	if len(unknownEnvironmentVariables) != 0 {
+		slices.Sort(unknownEnvironmentVariables)
+
+		return nil, fmt.Errorf(
+			"unknown environment variables: %s",
+			strings.Join(unknownEnvironmentVariables, ", "),
+		)
+	}
+
+	return environmentValues, nil
+}
+
+func setEnvironmentValue(configurationFlag *flag.Flag, name, value string) error {
+	if getter, ok := configurationFlag.Value.(flag.Getter); ok {
+		if _, isBoolean := getter.Get().(bool); isBoolean && value != "true" && value != "false" {
+			return fmt.Errorf("invalid value for environment variable %s: use true or false", name)
+		}
+	}
+
+	if err := configurationFlag.Value.Set(value); err != nil {
+		return fmt.Errorf("invalid value for environment variable %s: %w", name, err)
+	}
+
+	return nil
 }
 
 // getEnvironmentVariableByFlagName converts a flag name to an environment variable name.
-// It replaces all dots with underscores and all dashes with double underscores.
+// It replaces all dots and dashes with underscores.
 // It also converts the flag name to uppercase.
 func getEnvironmentVariableByFlagName(flagName string) string {
 	if flagName == "config" {
@@ -237,5 +266,5 @@ func getEnvironmentVariableByFlagName(flagName string) string {
 	}
 
 	return environmentVariablePrefix +
-		strings.ReplaceAll(strings.ReplaceAll(strings.ToUpper(flagName), ".", "_"), "-", "__")
+		strings.NewReplacer(".", "_", "-", "_").Replace(strings.ToUpper(flagName))
 }

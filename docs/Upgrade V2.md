@@ -6,18 +6,85 @@ configuration, token validation, and security hardening.
 ## Environment variable prefix
 
 Version 2 uses the project-specific `OPENVPN_AUTH_OAUTH2_` prefix for
-environment variables. The previous `CONFIG_` prefix is no longer supported.
-Rename every environment variable before upgrading:
+environment variables. The `CONFIG_` prefix used by version 1 and the version 2
+beta releases is no longer supported. Rename every environment variable before
+upgrading.
 
-| Version 1 | Version 2 |
+| Version 1 and version 2 beta | Version 2 |
 | --- | --- |
 | `CONFIG_FILE` | `OPENVPN_AUTH_OAUTH2_CONFIG_FILE` |
 | `CONFIG_HTTP_LISTEN` | `OPENVPN_AUTH_OAUTH2_HTTP_LISTEN` |
 | `CONFIG_OAUTH2_CLIENT_ID` | `OPENVPN_AUTH_OAUTH2_OAUTH2_CLIENT_ID` |
-| `CONFIG_OPENVPN_PASS__THROUGH_ENABLED` | `OPENVPN_AUTH_OAUTH2_OPENVPN_PASS__THROUGH_ENABLED` |
 
-The suffix conversion is unchanged: dots become single underscores and dashes
-become double underscores.
+### Double-underscore suffixes
+
+The suffix conversion also changes: dots and dashes both become single
+underscores. The earlier project-prefixed spelling used double underscores for
+dashes. Rename every affected variable as follows:
+
+| Previous project-prefixed name | Version 2 name |
+| --- | --- |
+| `OPENVPN_AUTH_OAUTH2_HTTP_ASSETS__PATH` | `OPENVPN_AUTH_OAUTH2_HTTP_ASSETS_PATH` |
+| `OPENVPN_AUTH_OAUTH2_HTTP_ENABLE__PROXY__HEADERS` | `OPENVPN_AUTH_OAUTH2_HTTP_ENABLE_PROXY_HEADERS` |
+| `OPENVPN_AUTH_OAUTH2_HTTP_SHORT__URL` | `OPENVPN_AUTH_OAUTH2_HTTP_SHORT_URL` |
+| `OPENVPN_AUTH_OAUTH2_HTTP_TRUSTED__PROXIES` | `OPENVPN_AUTH_OAUTH2_HTTP_TRUSTED_PROXIES` |
+| `OPENVPN_AUTH_OAUTH2_LOG_VPN__CLIENT__IP` | `OPENVPN_AUTH_OAUTH2_LOG_VPN_CLIENT_IP` |
+| `OPENVPN_AUTH_OAUTH2_OAUTH2_AUTHORIZE__PARAMS` | `OPENVPN_AUTH_OAUTH2_OAUTH2_AUTHORIZE_PARAMS` |
+| `OPENVPN_AUTH_OAUTH2_OAUTH2_AUTH__STYLE` | `OPENVPN_AUTH_OAUTH2_OAUTH2_AUTH_STYLE` |
+| `OPENVPN_AUTH_OAUTH2_OAUTH2_CLIENT_PRIVATE__KEY` | `OPENVPN_AUTH_OAUTH2_OAUTH2_CLIENT_PRIVATE_KEY` |
+| `OPENVPN_AUTH_OAUTH2_OAUTH2_CLIENT_PRIVATE__KEY__ID` | `OPENVPN_AUTH_OAUTH2_OAUTH2_CLIENT_PRIVATE_KEY_ID` |
+| `OPENVPN_AUTH_OAUTH2_OAUTH2_GROUPS__CLAIM` | `OPENVPN_AUTH_OAUTH2_OAUTH2_GROUPS_CLAIM` |
+| `OPENVPN_AUTH_OAUTH2_OAUTH2_OPENVPN__USERNAME` | `OPENVPN_AUTH_OAUTH2_OAUTH2_OPENVPN_USERNAME` |
+| `OPENVPN_AUTH_OAUTH2_OAUTH2_REFRESH_USE__SESSION__ID` | `OPENVPN_AUTH_OAUTH2_OAUTH2_REFRESH_USE_SESSION_ID` |
+| `OPENVPN_AUTH_OAUTH2_OAUTH2_REFRESH_VALIDATE__USER` | `OPENVPN_AUTH_OAUTH2_OAUTH2_REFRESH_VALIDATE_USER` |
+| `OPENVPN_AUTH_OAUTH2_OAUTH2_REFRESH__NONCE` | `OPENVPN_AUTH_OAUTH2_OAUTH2_REFRESH_NONCE` |
+| `OPENVPN_AUTH_OAUTH2_OAUTH2_USER__INFO` | `OPENVPN_AUTH_OAUTH2_OAUTH2_USER_INFO` |
+| `OPENVPN_AUTH_OAUTH2_OPENVPN_AUTH__PENDING__TIMEOUT` | `OPENVPN_AUTH_OAUTH2_OPENVPN_AUTH_PENDING_TIMEOUT` |
+| `OPENVPN_AUTH_OAUTH2_OPENVPN_AUTH__TOKEN__USER` | `OPENVPN_AUTH_OAUTH2_OPENVPN_AUTH_TOKEN_USER` |
+| `OPENVPN_AUTH_OAUTH2_OPENVPN_BYPASS_COMMON__NAMES` | `OPENVPN_AUTH_OAUTH2_OPENVPN_BYPASS_COMMON_NAMES` |
+| `OPENVPN_AUTH_OAUTH2_OPENVPN_CLIENT__CONFIG_ENABLED` | `OPENVPN_AUTH_OAUTH2_OPENVPN_CLIENT_CONFIG_ENABLED` |
+| `OPENVPN_AUTH_OAUTH2_OPENVPN_CLIENT__CONFIG_EXPRESSION` | `OPENVPN_AUTH_OAUTH2_OPENVPN_CLIENT_CONFIG_EXPRESSION` |
+| `OPENVPN_AUTH_OAUTH2_OPENVPN_CLIENT__CONFIG_IGNORE__NOT__FOUND` | `OPENVPN_AUTH_OAUTH2_OPENVPN_CLIENT_CONFIG_IGNORE_NOT_FOUND` |
+| `OPENVPN_AUTH_OAUTH2_OPENVPN_CLIENT__CONFIG_PATH` | `OPENVPN_AUTH_OAUTH2_OPENVPN_CLIENT_CONFIG_PATH` |
+| `OPENVPN_AUTH_OAUTH2_OPENVPN_CLIENT__CONFIG_STRATEGY` | `OPENVPN_AUTH_OAUTH2_OPENVPN_CLIENT_CONFIG_STRATEGY` |
+| `OPENVPN_AUTH_OAUTH2_OPENVPN_COMMON__NAME_ENVIRONMENT__VARIABLE__NAME` | `OPENVPN_AUTH_OAUTH2_OPENVPN_COMMON_NAME_ENVIRONMENT_VARIABLE_NAME` |
+| `OPENVPN_AUTH_OAUTH2_OPENVPN_COMMON__NAME_MODE` | `OPENVPN_AUTH_OAUTH2_OPENVPN_COMMON_NAME_MODE` |
+| `OPENVPN_AUTH_OAUTH2_OPENVPN_ENFORCE__UNIQUE__USER` | `OPENVPN_AUTH_OAUTH2_OPENVPN_ENFORCE_UNIQUE_USER` |
+| `OPENVPN_AUTH_OAUTH2_OPENVPN_OVERRIDE__USERNAME` | `OPENVPN_AUTH_OAUTH2_OPENVPN_OVERRIDE_USERNAME` |
+| `OPENVPN_AUTH_OAUTH2_OPENVPN_PASS__THROUGH_ADDRESS` | `OPENVPN_AUTH_OAUTH2_OPENVPN_PASS_THROUGH_ADDRESS` |
+| `OPENVPN_AUTH_OAUTH2_OPENVPN_PASS__THROUGH_ENABLED` | `OPENVPN_AUTH_OAUTH2_OPENVPN_PASS_THROUGH_ENABLED` |
+| `OPENVPN_AUTH_OAUTH2_OPENVPN_PASS__THROUGH_PASSWORD` | `OPENVPN_AUTH_OAUTH2_OPENVPN_PASS_THROUGH_PASSWORD` |
+| `OPENVPN_AUTH_OAUTH2_OPENVPN_PASS__THROUGH_SOCKET__GROUP` | `OPENVPN_AUTH_OAUTH2_OPENVPN_PASS_THROUGH_SOCKET_GROUP` |
+| `OPENVPN_AUTH_OAUTH2_OPENVPN_PASS__THROUGH_SOCKET__MODE` | `OPENVPN_AUTH_OAUTH2_OPENVPN_PASS_THROUGH_SOCKET_MODE` |
+| `OPENVPN_AUTH_OAUTH2_PROVIDER_GOOGLE_VALIDATE_GROUPS__TRANSITIVE` | `OPENVPN_AUTH_OAUTH2_PROVIDER_GOOGLE_VALIDATE_GROUPS_TRANSITIVE` |
+
+For `CONFIG_` variables, apply both the prefix and suffix changes. For example,
+rename `CONFIG_HTTP_SHORT__URL` to
+`OPENVPN_AUTH_OAUTH2_HTTP_SHORT_URL`. Variables not listed in the
+double-underscore table only require the prefix change.
+
+## Strict configuration parsing
+
+Version 2 rejects invalid configuration input instead of silently using a
+default:
+
+- Boolean environment values must be exactly `true` or `false`.
+- Malformed environment values, such as an invalid duration, stop startup with
+  an error.
+- Unknown variables with the `OPENVPN_AUTH_OAUTH2_` prefix stop startup with an
+  error.
+- Positional command-line arguments are rejected.
+
+The unused top-level YAML `config:` property has been removed. Select the
+configuration file with `--config` or `OPENVPN_AUTH_OAUTH2_CONFIG_FILE`.
+
+Configuration precedence remains, from lowest to highest priority: built-in
+defaults, YAML, environment variables, and command-line flags.
+
+`openvpn.command-timeout` is now a public option for the maximum time to wait
+for an OpenVPN management command response. Its default is `10s`. It can be
+configured through YAML, the `--openvpn.command-timeout` flag, or
+`OPENVPN_AUTH_OAUTH2_OPENVPN_COMMAND_TIMEOUT`.
 
 ## Security hardening
 
@@ -45,8 +112,8 @@ http:
 Environment variable configuration:
 
 ```ini
-OPENVPN_AUTH_OAUTH2_HTTP_ENABLE__PROXY__HEADERS=true
-OPENVPN_AUTH_OAUTH2_HTTP_TRUSTED__PROXIES=127.0.0.1/32,10.0.0.0/24
+OPENVPN_AUTH_OAUTH2_HTTP_ENABLE_PROXY_HEADERS=true
+OPENVPN_AUTH_OAUTH2_HTTP_TRUSTED_PROXIES=127.0.0.1/32,10.0.0.0/24
 ```
 
 If openvpn-auth-oauth2 is not behind a reverse proxy, keep
@@ -150,7 +217,7 @@ oauth2:
 ```
 
 The environment variable for the new option is
-`OPENVPN_AUTH_OAUTH2_OAUTH2_OPENVPN__USERNAME`.
+`OPENVPN_AUTH_OAUTH2_OAUTH2_OPENVPN_USERNAME`.
 Unlike version 1's provider-specific paths, the expression is applied
 consistently when identity comes from an ID token, UserInfo, or the GitHub API,
 and during validated refresh authentication.
