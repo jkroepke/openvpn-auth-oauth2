@@ -217,5 +217,7 @@ linters:
         text: "fieldalignment:"
       - path: lib/
         text: "missing cases in switch of type management.ClientAuth:"
+      - path: lib/
+        text: 'directive `//nolint:revive // HttpClient is required by the upstream rp.RelyingParty interface.` is unused for linter "revive"'
       - path: internal/
         text: 'SA1019: "github.com/zitadel/logging" is deprecated'
