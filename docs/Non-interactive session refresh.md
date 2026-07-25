@@ -13,7 +13,8 @@ When `oauth2.refresh.validate-user=true` is set, `openvpn-auth-oauth2`
 requests a [refresh token](https://auth0.com/blog/refresh-tokens-what-are-they-and-when-to-use-them/)
 during the initial connection and stores it.
 
-The refresh tokens are stored in an in-memory key-value store and [encrypted](Encryption%20and%20Cryptography).
+The refresh tokens are stored in an in-memory key-value store and
+[encrypted](Security%20considerations#encryption-of-sensitive-data).
 Each token is tied to either the OpenVPN client ID or OpenVPN session ID.
 
 If a non-interactive login attempt with the refresh token fails against the OIDC provider,
