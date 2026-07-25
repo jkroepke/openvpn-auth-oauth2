@@ -105,6 +105,7 @@ openvpn:
     addr: "unix:///run/openvpn/server2.sock"
     auth-token-user: true
     auth-pending-timeout: 2m
+    command-timeout: 15s
     enforce-unique-user: true
     override-username: true
     bypass:
@@ -215,7 +216,7 @@ http:
 						SocketMode:  0o666,
 						Password:    "password",
 					},
-					CommandTimeout:   10 * time.Second,
+					CommandTimeout:   15 * time.Second,
 					ReAuthentication: false,
 				},
 				OAuth2: config.OAuth2{
@@ -302,6 +303,8 @@ func TestConfigHelpFlag(t *testing.T) {
 	assert.Contains(t, buf.String(), "--config string")
 	assert.Contains(t, buf.String(), "(env: OPENVPN_AUTH_OAUTH2_CONFIG_FILE)")
 	assert.Contains(t, buf.String(), "(env: OPENVPN_AUTH_OAUTH2_HTTP_LISTEN)")
+	assert.Contains(t, buf.String(), "--openvpn.command-timeout duration")
+	assert.Contains(t, buf.String(), "(env: OPENVPN_AUTH_OAUTH2_OPENVPN_COMMAND_TIMEOUT)")
 	assert.NotContains(t, buf.String(), "(env: CONFIG_HTTP_LISTEN)")
 }
 
@@ -320,6 +323,49 @@ func TestConfigFileEnvironmentVariable(t *testing.T) {
 	conf, err := config.New([]string{"openvpn-auth-oauth2"}, &buf)
 	require.NoError(t, err)
 	assert.Equal(t, ":9100", conf.HTTP.Listen)
+}
+
+func TestConfigPrecedence(t *testing.T) {
+	var buf bytes.Buffer
+
+	configFile, err := os.CreateTemp(t.TempDir(), "openvpn-auth-oauth2-*")
+	require.NoError(t, err)
+
+	_, err = configFile.WriteString("openvpn:\n  command-timeout: 11s\n")
+	require.NoError(t, err)
+	require.NoError(t, configFile.Close())
+
+	t.Setenv("OPENVPN_AUTH_OAUTH2_OPENVPN_COMMAND_TIMEOUT", "12s")
+
+	conf, err := config.New(
+		[]string{
+			"openvpn-auth-oauth2",
+			"--config",
+			configFile.Name(),
+			"--openvpn.command-timeout=13s",
+		},
+		&buf,
+	)
+	require.NoError(t, err)
+	assert.Equal(t, 13*time.Second, conf.OpenVPN.CommandTimeout)
+}
+
+func TestConfigRejectsRemovedTopLevelConfigProperty(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+
+	configFile, err := os.CreateTemp(t.TempDir(), "openvpn-auth-oauth2-*")
+	require.NoError(t, err)
+
+	_, err = configFile.WriteString("config: other.yaml\n")
+	require.NoError(t, err)
+	require.NoError(t, configFile.Close())
+
+	_, err = config.New([]string{"openvpn-auth-oauth2", "--config", configFile.Name()}, &buf)
+
+	require.Error(t, err)
+	require.ErrorContains(t, err, "field config not found")
 }
 
 func TestConfigVersionFlag(t *testing.T) {
@@ -392,6 +438,16 @@ func TestConfigFlagSet(t *testing.T) {
 			func() config.Config {
 				conf := config.Defaults
 				conf.OpenVPN.EnforceUniqueUser = true
+
+				return conf
+			}(),
+		},
+		{
+			"--openvpn.command-timeout",
+			[]string{"--openvpn.command-timeout=42s"},
+			func() config.Config {
+				conf := config.Defaults
+				conf.OpenVPN.CommandTimeout = 42 * time.Second
 
 				return conf
 			}(),

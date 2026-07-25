@@ -55,6 +55,7 @@
 #  addr: "unix:///run/openvpn/server.sock"  # This is overridden by /etc/sysconfig/openvpn-auth-oauth2
 #  auth-token-user: true
 #  auth-pending-timeout: 2m
+#  command-timeout: 10s  # Maximum time to wait for an OpenVPN management command response
 #  bypass:
 #    common-names:
 #      - "test"

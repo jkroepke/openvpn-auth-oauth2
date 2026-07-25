@@ -126,7 +126,7 @@ OPENVPN_AUTH_OAUTH2_OAUTH2_PROVIDER=google
 OPENVPN_AUTH_OAUTH2_OAUTH2_ISSUER=https://accounts.google.com
 OPENVPN_AUTH_OAUTH2_OAUTH2_CLIENT_ID=162738495-xxxxx.apps.googleusercontent.com
 OPENVPN_AUTH_OAUTH2_OAUTH2_CLIENT_SECRET=GOCSPX-xxxxxxxx
-OPENVPN_AUTH_OAUTH2_OAUTH2_OPENVPN__USERNAME=user.email
+OPENVPN_AUTH_OAUTH2_OAUTH2_OPENVPN_USERNAME=user.email
 
 # The scopes openid profile email are required, but configured by default.
 # https://www.googleapis.com/auth/cloud-identity.groups.readonly is mandatory for group validation.
@@ -173,7 +173,7 @@ of nested sub-groups are accepted as well:
 <tbody><tr><td>
 
 ```ini
-OPENVPN_AUTH_OAUTH2_PROVIDER_GOOGLE_VALIDATE_GROUPS__TRANSITIVE=true
+OPENVPN_AUTH_OAUTH2_PROVIDER_GOOGLE_VALIDATE_GROUPS_TRANSITIVE=true
 ```
 </td></tr></tbody>
 <thead><tr><td>yaml configuration</td></tr></thead>
@@ -372,7 +372,7 @@ If you are using Self-Managed GitLab, your instance must have enabled HTTPS.
 ```ini
 OPENVPN_AUTH_OAUTH2_OAUTH2_ISSUER=https://gitlab.com/
 OPENVPN_AUTH_OAUTH2_OAUTH2_SCOPES=openid profile email
-OPENVPN_AUTH_OAUTH2_OAUTH2_USER__INFO=true
+OPENVPN_AUTH_OAUTH2_OAUTH2_USER_INFO=true
 OPENVPN_AUTH_OAUTH2_OAUTH2_CLIENT_ID=<client_id>
 OPENVPN_AUTH_OAUTH2_OAUTH2_CLIENT_SECRET=<client_secret>
 ```
@@ -535,7 +535,7 @@ oauth2:
 OPENVPN_AUTH_OAUTH2_OAUTH2_ISSUER=https://auth.example.com/application/o/openvpn-oauth2/
 OPENVPN_AUTH_OAUTH2_OAUTH2_CLIENT_ID=<client_id>
 OPENVPN_AUTH_OAUTH2_OAUTH2_CLIENT_SECRET=<client_secret>
-OPENVPN_AUTH_OAUTH2_OAUTH2_REFRESH__NONCE=empty
+OPENVPN_AUTH_OAUTH2_OAUTH2_REFRESH_NONCE=empty
 ```
 </td></tr></tbody>
 <thead><tr><td>yaml configuration</td></tr></thead>

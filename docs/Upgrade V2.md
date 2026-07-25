@@ -14,10 +14,34 @@ Rename every environment variable before upgrading:
 | `CONFIG_FILE` | `OPENVPN_AUTH_OAUTH2_CONFIG_FILE` |
 | `CONFIG_HTTP_LISTEN` | `OPENVPN_AUTH_OAUTH2_HTTP_LISTEN` |
 | `CONFIG_OAUTH2_CLIENT_ID` | `OPENVPN_AUTH_OAUTH2_OAUTH2_CLIENT_ID` |
-| `CONFIG_OPENVPN_PASS__THROUGH_ENABLED` | `OPENVPN_AUTH_OAUTH2_OPENVPN_PASS__THROUGH_ENABLED` |
+| `CONFIG_OPENVPN_PASS__THROUGH_ENABLED` | `OPENVPN_AUTH_OAUTH2_OPENVPN_PASS_THROUGH_ENABLED` |
 
-The suffix conversion is unchanged: dots become single underscores and dashes
-become double underscores.
+The suffix conversion also changes: dots and dashes both become single
+underscores. Rename existing `OPENVPN_AUTH_OAUTH2_` variables that contain
+double underscores.
+
+## Strict configuration parsing
+
+Version 2 rejects invalid configuration input instead of silently using a
+default:
+
+- Boolean environment values must be exactly `true` or `false`.
+- Malformed environment values, such as an invalid duration, stop startup with
+  an error.
+- Unknown variables with the `OPENVPN_AUTH_OAUTH2_` prefix stop startup with an
+  error.
+- Positional command-line arguments are rejected.
+
+The unused top-level YAML `config:` property has been removed. Select the
+configuration file with `--config` or `OPENVPN_AUTH_OAUTH2_CONFIG_FILE`.
+
+Configuration precedence remains, from lowest to highest priority: built-in
+defaults, YAML, environment variables, and command-line flags.
+
+`openvpn.command-timeout` is now a public option for the maximum time to wait
+for an OpenVPN management command response. Its default is `10s`. It can be
+configured through YAML, the `--openvpn.command-timeout` flag, or
+`OPENVPN_AUTH_OAUTH2_OPENVPN_COMMAND_TIMEOUT`.
 
 ## Security hardening
 
@@ -45,8 +69,8 @@ http:
 Environment variable configuration:
 
 ```ini
-OPENVPN_AUTH_OAUTH2_HTTP_ENABLE__PROXY__HEADERS=true
-OPENVPN_AUTH_OAUTH2_HTTP_TRUSTED__PROXIES=127.0.0.1/32,10.0.0.0/24
+OPENVPN_AUTH_OAUTH2_HTTP_ENABLE_PROXY_HEADERS=true
+OPENVPN_AUTH_OAUTH2_HTTP_TRUSTED_PROXIES=127.0.0.1/32,10.0.0.0/24
 ```
 
 If openvpn-auth-oauth2 is not behind a reverse proxy, keep
@@ -150,7 +174,7 @@ oauth2:
 ```
 
 The environment variable for the new option is
-`OPENVPN_AUTH_OAUTH2_OAUTH2_OPENVPN__USERNAME`.
+`OPENVPN_AUTH_OAUTH2_OAUTH2_OPENVPN_USERNAME`.
 Unlike version 1's provider-specific paths, the expression is applied
 consistently when identity comes from an ID token, UserInfo, or the GitHub API,
 and during validated refresh authentication.
