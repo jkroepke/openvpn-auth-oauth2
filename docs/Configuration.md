@@ -209,6 +209,7 @@ To connect openvpn-auth-oauth2 with OpenVPN server, add lines below:
 # /etc/openvpn/password.txt is a password file where the password must be on first line
 management /run/openvpn/server.sock unix /etc/openvpn/password.txt
 management-client-auth
+# For OpenVPN 2.7+ servers, enable openvpn.override-username in openvpn-auth-oauth2.
 # management-hold holds the OpenVPN server until openvpn-auth-oauth2 has been connected.
 # In some situation, there is a deadlock where systemd waits for OpenVPN server, not starting
 #management-hold
