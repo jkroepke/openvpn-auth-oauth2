@@ -164,8 +164,8 @@ Usage of openvpn-auth-oauth2:
         The password for the pass-through socket. If argument starts with file:// it reads the secret from a file. (env: OPENVPN_AUTH_OAUTH2_OPENVPN_PASS_THROUGH_PASSWORD)
   --openvpn.pass-through.socket-group string
         The group for the pass-through socket. Used only, if openvpn.pass-through.address starts with unix:// If empty, the group of the process is used. (env: OPENVPN_AUTH_OAUTH2_OPENVPN_PASS_THROUGH_SOCKET_GROUP)
-  --openvpn.pass-through.socket-mode uint
-        The unix file permission mode for the pass-through socket. Used only, if openvpn.pass-through.address starts with unix:// (env: OPENVPN_AUTH_OAUTH2_OPENVPN_PASS_THROUGH_SOCKET_MODE) (default 660)
+  --openvpn.pass-through.socket-mode value
+        The explicit four-digit octal unix file permission mode for the pass-through socket. Used only, if openvpn.pass-through.address starts with unix:// (env: OPENVPN_AUTH_OAUTH2_OPENVPN_PASS_THROUGH_SOCKET_MODE) (default 0660)
   --openvpn.password value
         openvpn management interface password. If argument starts with file:// it reads the secret from a file. (env: OPENVPN_AUTH_OAUTH2_OPENVPN_PASSWORD)
   --openvpn.reauthentication

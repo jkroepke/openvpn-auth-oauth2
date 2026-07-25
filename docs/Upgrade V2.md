@@ -86,6 +86,32 @@ for an OpenVPN management command response. Its default is `10s`. It can be
 configured through YAML, the `--openvpn.command-timeout` flag, or
 `OPENVPN_AUTH_OAUTH2_OPENVPN_COMMAND_TIMEOUT`.
 
+### Pass-through socket permissions
+
+`openvpn.pass-through.socket-mode` now requires explicit octal notation and
+accepts only permission values from `0000` through `0777`. Use either a leading
+zero, such as `0660`, or the `0o660` form. Unprefixed and decimal values are no
+longer accepted.
+
+For YAML configuration, quote the value so other YAML tools also preserve its
+octal notation:
+
+```yaml
+openvpn:
+  pass-through:
+    socket-mode: "0660"
+```
+
+For command-line or environment configuration, use `0660`:
+
+```shell
+--openvpn.pass-through.socket-mode=0660
+OPENVPN_AUTH_OAUTH2_OPENVPN_PASS_THROUGH_SOCKET_MODE=0660
+```
+
+If you previously used decimal `432` to obtain permissions `0660`, replace it
+with the explicit octal value `0660`.
+
 ## Security hardening
 
 Review the rest of this page even if these hardening items do not apply to your

@@ -78,5 +78,5 @@
 #    enabled: false
 #    password: ""
 #    socket-group: ""
-#    socket-mode: 660
+#    socket-mode: "0660"
 #  reauthentication: true

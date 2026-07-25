@@ -123,7 +123,6 @@ func TestPassThroughFull(t *testing.T) {
 			scheme: openvpn.SchemeUnix,
 			conf: func() config.Config {
 				conf := newPassThroughTestConfig(testsuite.Secret)
-				conf.OpenVPN.Passthrough.SocketMode = 0o0600
 				conf.OpenVPN.Passthrough.SocketGroup = strconv.Itoa(os.Getgid())
 
 				return conf
@@ -218,8 +217,7 @@ func TestPassThroughFull(t *testing.T) {
 				permission, err := testsuite.GetPermissionsOfFile(tc.conf.OpenVPN.Passthrough.Address.Path)
 				require.NoError(t, err)
 
-				//nolint:gosec
-				assert.Equal(t, os.FileMode(tc.conf.OpenVPN.Passthrough.SocketMode).String(), permission)
+				assert.Equal(t, os.FileMode(0o660).String(), permission)
 			} else {
 				passThroughConn.SendMessagef(t, " quit ")
 				require.NoError(t, passThroughNetConn.Close())

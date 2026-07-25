@@ -73,7 +73,7 @@ var Defaults = Config{
 				Path:     "/run/openvpn-auth-oauth2/server.sock",
 				OmitHost: true,
 			}},
-			SocketMode:  660,
+			SocketMode:  0o660,
 			SocketGroup: "",
 		},
 		CommandTimeout:   10 * time.Second,

@@ -143,11 +143,11 @@ type OAuth2Refresh struct {
 }
 
 type OpenVPNPassthrough struct {
-	Address     types.URL    `json:"address"      yaml:"address"`
-	Password    types.Secret `json:"password"     yaml:"password"`
-	SocketGroup string       `json:"socket-group" yaml:"socket-group"`
-	SocketMode  uint         `json:"socket-mode"  yaml:"socket-mode"`
-	Enabled     bool         `json:"enabled"      yaml:"enabled"`
+	Address     types.URL      `json:"address"      yaml:"address"`
+	Password    types.Secret   `json:"password"     yaml:"password"`
+	SocketGroup string         `json:"socket-group" yaml:"socket-group"`
+	SocketMode  types.FileMode `json:"socket-mode"  yaml:"socket-mode"`
+	Enabled     bool           `json:"enabled"      yaml:"enabled"`
 }
 
 type Debug struct {

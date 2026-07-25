@@ -44,7 +44,7 @@ openvpn:
     address: "unix:///run/openvpn/pass-through.sock"
     #password: "secret" # optional
     #socket-group: "openvpn-auth-oauth2" # optional
-    #socket-mode: 660 # optional
+    #socket-mode: "0660" # optional
 ```
 </td></tr></tbody>
 </table>

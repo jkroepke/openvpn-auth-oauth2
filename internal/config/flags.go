@@ -247,11 +247,12 @@ func (c *Config) flagSetOpenVPN(flagSet *flag.FlagSet) {
 		"The group for the pass-through socket. Used only, if openvpn.pass-through.address starts with unix:// "+
 			"If empty, the group of the process is used.",
 	)
-	flagSet.UintVar(
+	flagSet.TextVar(
 		&c.OpenVPN.Passthrough.SocketMode,
 		"openvpn.pass-through.socket-mode",
 		c.OpenVPN.Passthrough.SocketMode,
-		"The unix file permission mode for the pass-through socket. Used only, if openvpn.pass-through.address starts with unix://",
+		"The explicit four-digit octal unix file permission mode for the pass-through socket. "+
+			"Used only, if openvpn.pass-through.address starts with unix://",
 	)
 	flagSet.BoolVar(
 		&c.OpenVPN.ReAuthentication,
