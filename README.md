@@ -51,6 +51,10 @@ For information on the OpenVPN version requirements, please refer to the [OpenVP
 - [openvpn-oidc](https://github.com/vitaliy-sn/openvpn-oidc)
 - [openvpn-auth-azure-ad](https://github.com/jkroepke/openvpn-auth-azure-ad)
 
+## Contributing
+
+See the [contributing guide](CONTRIBUTING.md) to propose and submit changes.
+
 ## License
 
 This project is licensed under the [MIT License](LICENSE.txt).
