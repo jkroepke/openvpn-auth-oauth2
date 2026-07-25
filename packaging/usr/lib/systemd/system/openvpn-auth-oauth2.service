@@ -17,11 +17,11 @@ User=openvpn-auth-oauth2-dynamic
 Group=openvpn-auth-oauth2-dynamic
 SupplementaryGroups=openvpn-auth-oauth2
 
-ExecStart=/usr/bin/openvpn-auth-oauth2 --config ${CONFIG_FILE}
+ExecStart=/usr/bin/openvpn-auth-oauth2 --config ${OPENVPN_AUTH_OAUTH2_CONFIG_FILE}
 NoExecPaths=/
 ExecPaths=/usr/bin/openvpn-auth-oauth2 /usr/bin/env /usr/bin/kill
 ExecReload=/usr/bin/env kill -USR1 $MAINPID
-Environment=CONFIG_FILE=/etc/openvpn-auth-oauth2/config.yaml
+Environment=OPENVPN_AUTH_OAUTH2_CONFIG_FILE=/etc/openvpn-auth-oauth2/config.yaml
 EnvironmentFile=-/etc/sysconfig/openvpn-auth-oauth2
 #LoadCredential=openvpn-auth-oauth2:/etc/openvpn-auth-oauth2/
 #ConfigurationDirectory=openvpn-auth-oauth2

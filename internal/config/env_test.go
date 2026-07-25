@@ -116,11 +116,11 @@ func TestLookupEnvOrDefault(t *testing.T) {
 			testFn := func() {
 				require.Equal(t, tc.defaultValue, lookupEnvOrDefault("unset", tc.defaultValue))
 
-				t.Setenv("CONFIG_SET", tc.input)
+				t.Setenv("OPENVPN_AUTH_OAUTH2_SET", tc.input)
 				require.Equal(t, tc.expected, lookupEnvOrDefault("set", tc.defaultValue))
 
 				if tc.badInput != "" {
-					t.Setenv("CONFIG_BAD", tc.badInput)
+					t.Setenv("OPENVPN_AUTH_OAUTH2_BAD", tc.badInput)
 					require.Equal(t, tc.defaultValue, lookupEnvOrDefault("bad", tc.defaultValue))
 				}
 			}
@@ -132,4 +132,28 @@ func TestLookupEnvOrDefault(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetEnvironmentVariableByFlagName(t *testing.T) {
+	t.Parallel()
+
+	require.Equal(t, "OPENVPN_AUTH_OAUTH2_CONFIG_FILE", getEnvironmentVariableByFlagName("config"))
+	require.Equal(t,
+		"OPENVPN_AUTH_OAUTH2_OPENVPN_PASS__THROUGH_SOCKET__MODE",
+		getEnvironmentVariableByFlagName("openvpn.pass-through.socket-mode"))
+}
+
+func TestLookupEnvOrDefaultIgnoresLegacyPrefix(t *testing.T) {
+	t.Setenv("CONFIG_LEGACY__PREFIX__TEST", "legacy")
+
+	require.Equal(t, "default", lookupEnvOrDefault("legacy-prefix-test", "default"))
+}
+
+func TestLookupConfigArgument(t *testing.T) {
+	t.Setenv("OPENVPN_AUTH_OAUTH2_CONFIG_FILE", "environment.yaml")
+
+	require.Equal(t, "environment.yaml", lookupConfigArgument([]string{"openvpn-auth-oauth2"}))
+	require.Equal(t, "flag.yaml", lookupConfigArgument([]string{"openvpn-auth-oauth2", "--config", "flag.yaml"}))
+	require.Equal(t, "flag.yaml", lookupConfigArgument([]string{"openvpn-auth-oauth2", "--config=flag.yaml"}))
+	require.Empty(t, lookupConfigArgument([]string{"openvpn-auth-oauth2", "--config"}))
 }

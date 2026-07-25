@@ -57,7 +57,7 @@ You need to configure the `openvpn-auth-oauth2` plugin to validate group claims.
 In your `openvpn-auth-oauth2` configuration file, add the following lines:
 
 ```ini
-CONFIG_OAUTH2_VALIDATE_GROUPS=group1,group2
+OPENVPN_AUTH_OAUTH2_OAUTH2_VALIDATE_GROUPS=group1,group2
 ```
 
 Replace `group1,group2` with a comma-separated list of the groups that should have access to the VPN.
@@ -71,7 +71,7 @@ In the context of `openvpn-auth-oauth2`, the `acr` claim can be used to enforce 
 To configure `acr` validation, set a CEL validation expression in your `openvpn-auth-oauth2` configuration file. Here's an example:
 
 ```ini
-CONFIG_OAUTH2_VALIDATE_EXPRESSION="token.claims.acr == 'phr'"
+OPENVPN_AUTH_OAUTH2_OAUTH2_VALIDATE_EXPRESSION="token.claims.acr == 'phr'"
 ```
 
 In this example, `phr` is the `acr` value that represents a specific authentication method. `phr` stands for Phishing Resistant. It's a term used in the context of multi-factor authentication (MFA). Phishing-resistant mechanisms are designed to resist phishing and other fraudulent attempts to steal user credentials. This could be a hardware device that requires a user to physically interact with it, or a biometric authentication method. When used in the `acr` (Authentication Context Class Reference) in OpenID Connect, it indicates that the authentication process should involve a phishing-resistant method.

@@ -3,6 +3,22 @@
 Version 2 includes configuration changes for username resolution, client-specific
 configuration, token validation, and security hardening.
 
+## Environment variable prefix
+
+Version 2 uses the project-specific `OPENVPN_AUTH_OAUTH2_` prefix for
+environment variables. The previous `CONFIG_` prefix is no longer supported.
+Rename every environment variable before upgrading:
+
+| Version 1 | Version 2 |
+| --- | --- |
+| `CONFIG_FILE` | `OPENVPN_AUTH_OAUTH2_CONFIG_FILE` |
+| `CONFIG_HTTP_LISTEN` | `OPENVPN_AUTH_OAUTH2_HTTP_LISTEN` |
+| `CONFIG_OAUTH2_CLIENT_ID` | `OPENVPN_AUTH_OAUTH2_OAUTH2_CLIENT_ID` |
+| `CONFIG_OPENVPN_PASS__THROUGH_ENABLED` | `OPENVPN_AUTH_OAUTH2_OPENVPN_PASS__THROUGH_ENABLED` |
+
+The suffix conversion is unchanged: dots become single underscores and dashes
+become double underscores.
+
 ## Security hardening
 
 Review the rest of this page even if these hardening items do not apply to your
@@ -29,8 +45,8 @@ http:
 Environment variable configuration:
 
 ```ini
-CONFIG_HTTP_ENABLE__PROXY__HEADERS=true
-CONFIG_HTTP_TRUSTED__PROXIES=127.0.0.1/32,10.0.0.0/24
+OPENVPN_AUTH_OAUTH2_HTTP_ENABLE__PROXY__HEADERS=true
+OPENVPN_AUTH_OAUTH2_HTTP_TRUSTED__PROXIES=127.0.0.1/32,10.0.0.0/24
 ```
 
 If openvpn-auth-oauth2 is not behind a reverse proxy, keep
@@ -133,7 +149,8 @@ oauth2:
   openvpn-username: 'user.email.split("@")[0]'
 ```
 
-The environment variable for the new option is `CONFIG_OAUTH2_OPENVPN__USERNAME`.
+The environment variable for the new option is
+`OPENVPN_AUTH_OAUTH2_OAUTH2_OPENVPN__USERNAME`.
 Unlike version 1's provider-specific paths, the expression is applied
 consistently when identity comes from an ID token, UserInfo, or the GitHub API,
 and during validated refresh authentication.
