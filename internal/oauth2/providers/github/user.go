@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"strconv"
-	"strings"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
@@ -40,41 +39,19 @@ func (p Provider) GetUser(ctx context.Context, _ *slog.Logger, tokens *idtoken.I
 		Subject:  strconv.Itoa(user.ID),
 	}
 
-	if len(p.Conf.OAuth2.Validate.Groups) > 0 || p.usesUserField("groups") {
-		organizations, err := p.getOrganizations(ctx, tokens)
-		if err != nil {
-			return types.UserInfo{}, fmt.Errorf("error getting GitHub organizations: %w", err)
-		}
-
-		userInfo.Groups = organizations
+	organizations, err := p.getOrganizations(ctx, tokens)
+	if err != nil {
+		return types.UserInfo{}, fmt.Errorf("error getting GitHub organizations: %w", err)
 	}
 
-	if p.usesUserField("roles") {
-		teams, err := p.getTeams(ctx, tokens)
-		if err != nil {
-			return types.UserInfo{}, fmt.Errorf("error getting GitHub teams: %w", err)
-		}
+	userInfo.Groups = organizations
 
-		userInfo.Roles = teams
+	teams, err := p.getTeams(ctx, tokens)
+	if err != nil {
+		return types.UserInfo{}, fmt.Errorf("error getting GitHub teams: %w", err)
 	}
+
+	userInfo.Roles = teams
 
 	return userInfo, nil
-}
-
-func (p Provider) usesUserField(field string) bool {
-	expressions := [...]string{
-		p.Conf.OAuth2.OpenVPNUsername,
-		p.Conf.OAuth2.Validate.Expression,
-		p.Conf.OpenVPN.ClientConfig.Expression,
-	}
-
-	for _, expression := range expressions {
-		if strings.Contains(expression, "user."+field) ||
-			strings.Contains(expression, `user["`+field+`"]`) ||
-			strings.Contains(expression, `user['`+field+`']`) {
-			return true
-		}
-	}
-
-	return false
 }

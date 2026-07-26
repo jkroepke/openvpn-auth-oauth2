@@ -118,25 +118,32 @@ func TestGetUser(t *testing.T) {
 	}
 }
 
-func TestGetUserSkipsUnusedOrganizationAndTeamLookups(t *testing.T) {
+func TestGetUserFetchesOrganizationsAndTeamsWithoutExpressions(t *testing.T) {
 	t.Parallel()
 
 	token := &idtoken.IDToken{
 		Token: &oauth2.Token{AccessToken: "TOKEN"},
 	}
-	conf := types2.Config{
-		OAuth2: types2.OAuth2{OpenVPNUsername: "user.username"},
-	}
+	conf := types2.Config{}
 
 	var requests atomic.Int32
 
 	httpClient := &http.Client{
 		Transport: testsuite.NewRoundTripperFunc(nil, func(_ http.RoundTripper, req *http.Request) (*http.Response, error) {
 			requests.Add(1)
-			require.Equal(t, "/user", req.URL.Path)
 
 			resp := httptest.NewRecorder()
-			_, _ = resp.WriteString(`{"login": "login", "email": "email", "id": 10}`)
+
+			switch req.URL.Path {
+			case "/user":
+				_, _ = resp.WriteString(`{"login": "login", "email": "email", "id": 10}`)
+			case "/user/orgs":
+				_, _ = resp.WriteString(`[{"login": "apple"}]`)
+			case "/user/teams":
+				_, _ = resp.WriteString(`[{"slug": "justice-league", "organization": {"login": "apple"}}]`)
+			default:
+				require.Failf(t, "unexpected GitHub API request", "path: %s", req.URL.Path)
+			}
 
 			return resp.Result(), nil
 		}),
@@ -149,5 +156,7 @@ func TestGetUserSkipsUnusedOrganizationAndTeamLookups(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Equal(t, "login", user.Username)
-	require.EqualValues(t, 1, requests.Load())
+	require.Equal(t, []string{"apple"}, user.Groups)
+	require.Equal(t, []string{"apple:justice-league"}, user.Roles)
+	require.EqualValues(t, 3, requests.Load())
 }

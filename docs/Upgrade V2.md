@@ -193,6 +193,12 @@ client config resolution. Update every CEL expression to use the new names:
 | `oauth2TokenClaims` | `token.claims` |
 | `username` | `user.username` |
 
+The four context namespaces are typed objects in version 2. Field names and
+types are checked when the configuration loads. Unknown fixed fields now
+prevent startup instead of producing an evaluation error during
+authentication. `token.claims` remains a dynamic map, so use
+`has(token.claims.department)` for optional claims.
+
 Version 2 also exposes normalized `user.subject`, `user.email`, `user.groups`,
 and `user.roles` fields. Prefer these fields when an expression should work
 across generic OIDC, UserInfo, GitHub, and refresh authentication. Raw
@@ -536,8 +542,9 @@ oauth2:
 ```
 
 For GitHub provider configurations, team validation is also migrated to CEL.
-The GitHub provider fetches teams from the `/user/teams` API and exposes them
-through `user.roles` in the same `org:slug` format used by version 1:
+The GitHub provider always fetches organizations from `/user/orgs` and teams
+from `/user/teams`. It exposes organizations through `user.groups`. Teams are
+available through `user.roles` in the same `org:slug` format used by version 1:
 
 ```yaml
 # Version 1

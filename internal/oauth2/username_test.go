@@ -65,13 +65,6 @@ func TestResolveUsername(t *testing.T) {
 			authMode:   CELAuthModeInteractive,
 			expected:   "client-cn",
 		},
-		{
-			name:       "invalid result type",
-			expression: "user.groups",
-			authMode:   CELAuthModeInteractive,
-			user:       types.UserInfo{Groups: []string{"group"}},
-			err:        "did not evaluate to a string",
-		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -137,6 +130,11 @@ func TestInitializeUsernameResolverRejectsInvalidExpressions(t *testing.T) {
 			name:       "boolean result",
 			expression: "true",
 			err:        "cel expression must evaluate to string, got bool",
+		},
+		{
+			name:       "typed context result",
+			expression: "user.groups",
+			err:        "cel expression must evaluate to string, got list(string)",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
