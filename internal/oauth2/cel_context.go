@@ -2,11 +2,13 @@ package oauth2
 
 import (
 	"fmt"
+	"reflect"
 	"slices"
 
 	"github.com/google/cel-go/cel"
 	celtypes "github.com/google/cel-go/common/types"
 	"github.com/google/cel-go/common/types/ref"
+	"github.com/google/cel-go/common/types/traits"
 )
 
 const (
@@ -17,7 +19,9 @@ const (
 )
 
 type celContextSchema struct {
+	construct  func(map[string]ref.Val) (any, error)
 	fields     map[string]*celtypes.FieldType
+	objectType *celtypes.Type
 	fieldNames []string
 }
 
@@ -49,14 +53,18 @@ type celUserContext struct {
 	roles    []string
 }
 
-func newCELContextSchemas() map[string]celContextSchema {
-	return map[string]celContextSchema{
+func newCELContextSchemas() map[string]*celContextSchema {
+	return map[string]*celContextSchema{
 		celAuthContextTypeName: newCELContextSchema(
+			celAuthContextTypeName,
+			newCELAuthContext,
 			newCELContextField("mode", cel.StringType, func(context celAuthContext) string {
 				return context.mode
 			}),
 		),
 		celOpenVPNContextTypeName: newCELContextSchema(
+			celOpenVPNContextTypeName,
+			newCELOpenVPNContext,
 			newCELContextField("commonName", cel.StringType, func(context celOpenVPNContext) string {
 				return context.commonName
 			}),
@@ -68,6 +76,8 @@ func newCELContextSchemas() map[string]celContextSchema {
 			}),
 		),
 		celTokenContextTypeName: newCELContextSchema(
+			celTokenContextTypeName,
+			newCELTokenContext,
 			newCELContextField("claims", cel.MapType(cel.StringType, cel.DynType), func(context celTokenContext) map[string]any {
 				return context.claims
 			}),
@@ -76,6 +86,8 @@ func newCELContextSchemas() map[string]celContextSchema {
 			}),
 		),
 		celUserContextTypeName: newCELContextSchema(
+			celUserContextTypeName,
+			newCELUserContext,
 			newCELContextField("email", cel.StringType, func(context celUserContext) string {
 				return context.email
 			}),
@@ -100,10 +112,15 @@ func newCELContextSchemas() map[string]celContextSchema {
 // matching the previous map-key presence semantics for has().
 func celContextTypes() cel.EnvOption {
 	return func(env *cel.Env) (*cel.Env, error) {
-		contextAdapter := &celContextTypeAdapter{Adapter: env.CELTypeAdapter()}
+		schemas := newCELContextSchemas()
+		contextAdapter := &celContextTypeAdapter{
+			Adapter: env.CELTypeAdapter(),
+			schemas: schemas,
+		}
 		contextProvider := &celContextTypeProvider{
 			Provider: env.CELTypeProvider(),
-			schemas:  newCELContextSchemas(),
+			adapter:  contextAdapter,
+			schemas:  schemas,
 		}
 
 		env, err := cel.CustomTypeAdapter(contextAdapter)(env)
@@ -122,47 +139,151 @@ func celContextTypes() cel.EnvOption {
 
 type celContextTypeAdapter struct {
 	celtypes.Adapter
+
+	schemas map[string]*celContextSchema
 }
 
 func (a *celContextTypeAdapter) NativeToValue(value any) ref.Val {
-	switch context := value.(type) {
+	switch value.(type) {
 	case celAuthContext:
-		return celtypes.NewStringStringMap(a.Adapter, map[string]string{
-			"mode": context.mode,
-		})
+		return a.newContextValue(celAuthContextTypeName, value)
 	case celOpenVPNContext:
-		return celtypes.NewStringStringMap(a.Adapter, map[string]string{
-			"commonName":   context.commonName,
-			"ip":           context.ip,
-			"sessionState": context.sessionState,
-		})
+		return a.newContextValue(celOpenVPNContextTypeName, value)
 	case celTokenContext:
-		return celtypes.NewStringInterfaceMap(a.Adapter, map[string]any{
-			"claims": context.claims,
-			"ip":     context.ip,
-		})
+		return a.newContextValue(celTokenContextTypeName, value)
 	case celUserContext:
-		return celtypes.NewStringInterfaceMap(a.Adapter, map[string]any{
-			"email":    context.email,
-			"groups":   context.groups,
-			"roles":    context.roles,
-			"subject":  context.subject,
-			"username": context.username,
-		})
+		return a.newContextValue(celUserContextTypeName, value)
 	default:
 		return a.Adapter.NativeToValue(value)
 	}
 }
 
+func (a *celContextTypeAdapter) newContextValue(typeName string, value any) ref.Val {
+	schema, ok := a.schemas[typeName]
+	if !ok {
+		return celtypes.NewErr("unknown cel context type: %s", typeName)
+	}
+
+	return &celContextValue{
+		adapter: a,
+		schema:  schema,
+		value:   value,
+	}
+}
+
+type celContextValue struct {
+	adapter celtypes.Adapter
+	schema  *celContextSchema
+	value   any
+}
+
+var (
+	_ ref.Val            = (*celContextValue)(nil)
+	_ traits.FieldTester = (*celContextValue)(nil)
+	_ traits.Indexer     = (*celContextValue)(nil)
+)
+
+func (v *celContextValue) ConvertToNative(typeDesc reflect.Type) (any, error) {
+	valueType := reflect.TypeOf(v.value)
+	if valueType.AssignableTo(typeDesc) {
+		return v.value, nil
+	}
+
+	if typeDesc.Kind() == reflect.Pointer && valueType.AssignableTo(typeDesc.Elem()) {
+		valuePtr := reflect.New(typeDesc.Elem())
+		valuePtr.Elem().Set(reflect.ValueOf(v.value))
+
+		return valuePtr.Interface(), nil
+	}
+
+	return nil, fmt.Errorf("type conversion error from %q to %q", v.Type(), typeDesc)
+}
+
+func (v *celContextValue) ConvertToType(typeValue ref.Type) ref.Val {
+	if typeValue == celtypes.TypeType {
+		return v.schema.objectType
+	}
+
+	if typeValue.TypeName() == v.schema.objectType.TypeName() {
+		return v
+	}
+
+	return celtypes.NewErr("type conversion error from %q to %q", v.Type(), typeValue)
+}
+
+func (v *celContextValue) Equal(other ref.Val) ref.Val {
+	otherContext, ok := other.(*celContextValue)
+	if !ok || v.schema.objectType.TypeName() != otherContext.schema.objectType.TypeName() {
+		return celtypes.False
+	}
+
+	return celtypes.Bool(reflect.DeepEqual(v.value, otherContext.value))
+}
+
+func (v *celContextValue) Get(field ref.Val) ref.Val {
+	fieldType, errValue := v.findField(field)
+	if errValue != nil {
+		return errValue
+	}
+
+	value, err := fieldType.GetFrom(v.value)
+	if err != nil {
+		return celtypes.NewErrFromString(err.Error())
+	}
+
+	return v.adapter.NativeToValue(value)
+}
+
+func (v *celContextValue) IsSet(field ref.Val) ref.Val {
+	fieldType, errValue := v.findField(field)
+	if errValue != nil {
+		return errValue
+	}
+
+	return celtypes.Bool(fieldType.IsSet(v.value))
+}
+
+func (v *celContextValue) Type() ref.Type {
+	return v.schema.objectType
+}
+
+func (v *celContextValue) Value() any {
+	return v.value
+}
+
+func (v *celContextValue) findField(field ref.Val) (*celtypes.FieldType, ref.Val) {
+	fieldName, ok := field.(celtypes.String)
+	if !ok {
+		return nil, celtypes.MaybeNoSuchOverloadErr(field)
+	}
+
+	fieldType, ok := v.schema.fields[string(fieldName)]
+	if !ok {
+		return nil, celtypes.NewErr("no such field: %s", fieldName)
+	}
+
+	return fieldType, nil
+}
+
 type celContextTypeProvider struct {
 	celtypes.Provider
 
-	schemas map[string]celContextSchema
+	adapter *celContextTypeAdapter
+	schemas map[string]*celContextSchema
+}
+
+func (p *celContextTypeProvider) FindIdent(identName string) (ref.Val, bool) {
+	schema, ok := p.schemas[identName]
+	if ok {
+		return schema.objectType, true
+	}
+
+	return p.Provider.FindIdent(identName)
 }
 
 func (p *celContextTypeProvider) FindStructType(structType string) (*celtypes.Type, bool) {
-	if _, ok := p.schemas[structType]; ok {
-		return celtypes.NewTypeTypeWithParam(celtypes.NewObjectType(structType)), true
+	if schema, ok := p.schemas[structType]; ok {
+		return celtypes.NewTypeTypeWithParam(schema.objectType), true
 	}
 
 	return p.Provider.FindStructType(structType)
@@ -189,17 +310,29 @@ func (p *celContextTypeProvider) FindStructFieldType(structType, fieldName strin
 }
 
 func (p *celContextTypeProvider) NewValue(structType string, fields map[string]ref.Val) ref.Val {
-	if _, ok := p.schemas[structType]; ok {
-		return celtypes.NewErr("%s is a read-only context type", structType)
+	schema, ok := p.schemas[structType]
+	if !ok {
+		return p.Provider.NewValue(structType, fields)
 	}
 
-	return p.Provider.NewValue(structType, fields)
+	value, err := schema.construct(fields)
+	if err != nil {
+		return celtypes.NewErr("construct %s: %v", structType, err)
+	}
+
+	return p.adapter.NativeToValue(value)
 }
 
-func newCELContextSchema(fields ...celContextField) celContextSchema {
-	schema := celContextSchema{
+func newCELContextSchema(
+	typeName string,
+	construct func(map[string]ref.Val) (any, error),
+	fields ...celContextField,
+) *celContextSchema {
+	schema := &celContextSchema{
+		construct:  construct,
 		fields:     make(map[string]*celtypes.FieldType, len(fields)),
 		fieldNames: make([]string, 0, len(fields)),
+		objectType: celtypes.NewObjectType(typeName),
 	}
 
 	for _, field := range fields {
@@ -208,6 +341,98 @@ func newCELContextSchema(fields ...celContextField) celContextSchema {
 	}
 
 	return schema
+}
+
+func newCELAuthContext(fields map[string]ref.Val) (any, error) {
+	context := celAuthContext{}
+
+	if err := setCELContextField(fields, "mode", &context.mode); err != nil {
+		return nil, err
+	}
+
+	return context, nil
+}
+
+func newCELOpenVPNContext(fields map[string]ref.Val) (any, error) {
+	context := celOpenVPNContext{}
+
+	if err := setCELContextField(fields, "commonName", &context.commonName); err != nil {
+		return nil, err
+	}
+
+	if err := setCELContextField(fields, "ip", &context.ip); err != nil {
+		return nil, err
+	}
+
+	if err := setCELContextField(fields, "sessionState", &context.sessionState); err != nil {
+		return nil, err
+	}
+
+	return context, nil
+}
+
+func newCELTokenContext(fields map[string]ref.Val) (any, error) {
+	context := celTokenContext{}
+
+	if err := setCELContextField(fields, "claims", &context.claims); err != nil {
+		return nil, err
+	}
+
+	if err := setCELContextField(fields, "ip", &context.ip); err != nil {
+		return nil, err
+	}
+
+	return context, nil
+}
+
+func newCELUserContext(fields map[string]ref.Val) (any, error) {
+	context := celUserContext{
+		groups: make([]string, 0),
+		roles:  make([]string, 0),
+	}
+
+	if err := setCELContextField(fields, "email", &context.email); err != nil {
+		return nil, err
+	}
+
+	if err := setCELContextField(fields, "groups", &context.groups); err != nil {
+		return nil, err
+	}
+
+	if err := setCELContextField(fields, "roles", &context.roles); err != nil {
+		return nil, err
+	}
+
+	if err := setCELContextField(fields, "subject", &context.subject); err != nil {
+		return nil, err
+	}
+
+	if err := setCELContextField(fields, "username", &context.username); err != nil {
+		return nil, err
+	}
+
+	return context, nil
+}
+
+func setCELContextField[Value any](fields map[string]ref.Val, fieldName string, target *Value) error {
+	value, ok := fields[fieldName]
+	if !ok {
+		return nil
+	}
+
+	nativeValue, err := value.ConvertToNative(reflect.TypeFor[Value]())
+	if err != nil {
+		return fmt.Errorf("convert field %q: %w", fieldName, err)
+	}
+
+	typedValue, ok := nativeValue.(Value)
+	if !ok {
+		return fmt.Errorf("convert field %q: expected %T, got %T", fieldName, *target, nativeValue)
+	}
+
+	*target = typedValue
+
+	return nil
 }
 
 func newCELContextField[Context, Value any](fieldName string, fieldType *cel.Type, getValue func(Context) Value) celContextField {

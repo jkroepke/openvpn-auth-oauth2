@@ -150,6 +150,15 @@ func TestCELContextEvaluation(t *testing.T) {
 		openvpn == openvpn &&
 		token == token &&
 		user == user &&
+		type(auth) == openvpn_auth_oauth2.AuthContext &&
+		type(openvpn) == openvpn_auth_oauth2.OpenVPNContext &&
+		type(token) == openvpn_auth_oauth2.TokenContext &&
+		type(user) == openvpn_auth_oauth2.UserContext &&
+		[auth][0].mode == "interactive" &&
+		[openvpn][0].commonName == "alice" &&
+		[token][0].claims.department == "engineering" &&
+		[user].map(context, context.username) == ["alice"] &&
+		dyn(user).username == "alice" &&
 		auth.mode == "interactive" &&
 		openvpn.commonName == user.username &&
 		openvpn.ip == "192.0.2.10" &&
@@ -182,6 +191,38 @@ func TestCELContextEvaluation(t *testing.T) {
 			Username: "alice",
 		},
 	))
+	require.NoError(t, err)
+	assert.Equal(t, true, out.Value())
+}
+
+func TestCELContextConstruction(t *testing.T) {
+	t.Parallel()
+
+	program, err := compileCELProgram(`
+		openvpn_auth_oauth2.AuthContext{mode: "interactive"}.mode == "interactive" &&
+		openvpn_auth_oauth2.OpenVPNContext{
+			commonName: "alice",
+			ip: "192.0.2.10",
+			sessionState: "authenticated"
+		}.commonName == "alice" &&
+		openvpn_auth_oauth2.TokenContext{
+			claims: {"department": "engineering"},
+			ip: "192.0.2.20"
+		}.claims.department == "engineering" &&
+		openvpn_auth_oauth2.UserContext{
+			email: "alice@example.com",
+			groups: ["vpn-users"],
+			roles: ["vpn-admin"],
+			subject: "user-123",
+			username: "alice"
+		}.username == "alice" &&
+		type(openvpn_auth_oauth2.UserContext{username: "alice"}) == openvpn_auth_oauth2.UserContext &&
+		has(openvpn_auth_oauth2.UserContext{username: "alice"}.groups) &&
+		openvpn_auth_oauth2.UserContext{username: "alice"}.groups == []
+	`, cel.BoolType)
+	require.NoError(t, err)
+
+	out, _, err := program.Eval(map[string]any{})
 	require.NoError(t, err)
 	assert.Equal(t, true, out.Value())
 }
