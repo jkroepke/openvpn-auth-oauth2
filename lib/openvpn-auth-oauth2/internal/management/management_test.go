@@ -4,6 +4,7 @@ package management_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
@@ -310,6 +311,7 @@ func TestServer_PendingPoller(t *testing.T) {
 		name    string
 		command string
 		resp    string
+		ackErr  error
 		testFn  func(t *testing.T, response *management.Response)
 	}{
 		{
@@ -324,8 +326,25 @@ func TestServer_PendingPoller(t *testing.T) {
 			},
 		},
 		{
+			name:    "client-auth-nt handler error",
+			command: "client-auth-nt 5 0",
+			resp:    "ERROR: client-auth command failed",
+			ackErr:  errors.New("unable to write auth control file"),
+			testFn: func(t *testing.T, response *management.Response) {
+				t.Helper()
+
+				require.Equal(t, uint32(5), response.ClientID)
+				require.Equal(t, management.ClientAuthAccept, response.ClientAuth)
+			},
+		},
+		{
 			name:    "client-auth-nt invalid",
 			command: "client-auth-nt A B",
+			resp:    "ERROR: client-auth command failed",
+		},
+		{
+			name:    "client-auth-nt without poller invalid",
+			command: "client-auth-nt 6 0",
 			resp:    "ERROR: client-auth command failed",
 		},
 		{
@@ -446,9 +465,9 @@ func TestServer_PendingPoller(t *testing.T) {
 			clientConn.ExpectMessage(t, openvpn.WelcomeBanner)
 			clientConn.SendMessagef(t, tc.command)
 
-			clientConn.ExpectMessage(t, tc.resp)
-
 			if strings.HasSuffix(tc.name, "invalid") {
+				clientConn.ExpectMessage(t, tc.resp)
+
 				return
 			}
 
@@ -457,11 +476,23 @@ func TestServer_PendingPoller(t *testing.T) {
 			response := <-responseCh
 			require.NotNil(t, response)
 
-			if tc.testFn == nil {
+			if tc.testFn != nil {
+				tc.testFn(t, response)
+			}
+
+			if strings.HasPrefix(tc.resp, "ERROR:") && tc.ackErr == nil {
+				clientConn.ExpectMessage(t, tc.resp)
+
 				return
 			}
 
-			tc.testFn(t, response)
+			require.NoError(t, client.SetReadDeadline(time.Now().Add(50*time.Millisecond)))
+
+			_, err = clientConn.Reader().ReadString('\n')
+			require.ErrorIs(t, err, os.ErrDeadlineExceeded)
+
+			response.Acknowledge(tc.ackErr)
+			clientConn.ExpectMessage(t, tc.resp)
 		})
 	}
 }
@@ -592,7 +623,11 @@ func TestServer_ReconnectDuringPendingAuth(t *testing.T) {
 
 	// Register a pending poller that will wait for a response
 	go func() {
-		_, err := managementServer.WaitPendingPoller(ctx, 99, time.Second*3, pendingRespCh)
+		response, err := managementServer.WaitPendingPoller(ctx, 99, time.Second*3, pendingRespCh)
+		if err == nil {
+			response.Acknowledge(nil)
+		}
+
 		errCh <- err
 	}()
 

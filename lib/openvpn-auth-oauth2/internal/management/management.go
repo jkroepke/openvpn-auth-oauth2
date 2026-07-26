@@ -39,11 +39,20 @@ type Server struct {
 }
 
 type Response struct {
+	acknowledge  func(error)
 	Message      string
 	Timeout      string
 	ClientConfig string
 	ClientAuth   ClientAuth
 	ClientID     uint32
+}
+
+// Acknowledge reports whether the plugin applied the response successfully.
+// Every response delivered by the server must be acknowledged exactly once.
+func (r *Response) Acknowledge(err error) {
+	if r.acknowledge != nil {
+		r.acknowledge(err)
+	}
 }
 
 type ClientAuth int
@@ -354,31 +363,7 @@ scan:
 		}
 
 		s.logger.DebugContext(ctx, line)
-
-		resp, err := s.parseResponse(line)
-		if err != nil {
-			s.logger.ErrorContext(
-				ctx, "unable to parse client response",
-				slog.Any("err", err),
-				slog.String("response", line),
-			)
-			_ = s.writeToClient(fmt.Sprintf("ERROR: %s command failed", cmd))
-		} else {
-			_ = s.writeToClient(fmt.Sprintf("SUCCESS: %s command succeeded", cmd))
-		}
-
-		if resp == nil {
-			continue
-		}
-
-		s.respChMu.Lock()
-		respCh, exists := s.respChs[uint64(resp.ClientID)]
-		delete(s.respChs, uint64(resp.ClientID))
-		s.respChMu.Unlock()
-
-		if exists {
-			respCh <- resp
-		}
+		s.handleClientResponse(ctx, line, cmd)
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -390,6 +375,61 @@ scan:
 	}
 
 	return nil
+}
+
+func (s *Server) handleClientResponse(ctx context.Context, line, command string) {
+	resp, parseErr := s.parseResponse(line)
+	if parseErr != nil {
+		s.logger.ErrorContext(
+			ctx, "unable to parse client response",
+			slog.Any("err", parseErr),
+			slog.String("response", line),
+		)
+	}
+
+	if resp == nil {
+		s.writeCommandResult(command, parseErr)
+
+		return
+	}
+
+	s.respChMu.Lock()
+	respCh, exists := s.respChs[uint64(resp.ClientID)]
+	delete(s.respChs, uint64(resp.ClientID))
+	s.respChMu.Unlock()
+
+	if !exists {
+		if parseErr == nil {
+			parseErr = fmt.Errorf("no response poller for client ID %d", resp.ClientID)
+			s.logger.ErrorContext(ctx, "unable to handle client response", slog.Any("err", parseErr))
+		}
+
+		s.writeCommandResult(command, parseErr)
+
+		return
+	}
+
+	if parseErr != nil {
+		s.writeCommandResult(command, parseErr)
+
+		respCh <- resp
+
+		return
+	}
+
+	var acknowledgeOnce sync.Once
+
+	resp.acknowledge = func(err error) {
+		acknowledgeOnce.Do(func() {
+			if err != nil {
+				s.logger.ErrorContext(ctx, "unable to handle client response", slog.Any("err", err))
+			}
+
+			s.writeCommandResult(command, err)
+		})
+	}
+
+	respCh <- resp
 }
 
 func (s *Server) handleManagementClientAuth(_ context.Context, conn net.Conn, scanner *bufio.Scanner) error {
@@ -486,4 +526,14 @@ func (s *Server) writeToClient(message string) error {
 	}
 
 	return nil
+}
+
+func (s *Server) writeCommandResult(command string, err error) {
+	if err != nil {
+		_ = s.writeToClient(fmt.Sprintf("ERROR: %s command failed", command))
+
+		return
+	}
+
+	_ = s.writeToClient(fmt.Sprintf("SUCCESS: %s command succeeded", command))
 }

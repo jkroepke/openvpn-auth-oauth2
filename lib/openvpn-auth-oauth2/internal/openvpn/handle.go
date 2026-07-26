@@ -127,13 +127,15 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 
 	switch resp.ClientAuth {
 	case management.ClientAuthAccept:
-		logger.InfoContext(p.ctx, "authentication accepted")
-
 		perClientContext.setClientConfig(resp.ClientConfig)
+		resp.Acknowledge(nil)
+
+		logger.InfoContext(p.ctx, "authentication accepted")
 
 		return c.OpenVPNPluginFuncSuccess
 	case management.ClientAuthDeny:
 		handleAuthDenied(p.ctx, logger, openVPNClient, resp)
+		resp.Acknowledge(nil)
 
 		return c.OpenVPNPluginFuncError
 	case management.ClientAuthPending:
@@ -141,6 +143,7 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 
 		pendingRespCh, err := p.managementClient.RegisterPendingPoller(currentClientID)
 		if err != nil {
+			resp.Acknowledge(err)
 			logger.ErrorContext(
 				p.ctx, "register deferred auth poller",
 				slog.Any("err", err),
@@ -152,6 +155,7 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 		// Write "2" to auth control file to indicate deferred auth
 		if err := openVPNClient.WriteAuthPending(resp); err != nil {
 			p.managementClient.CancelPendingPoller(currentClientID)
+			resp.Acknowledge(err)
 			logger.ErrorContext(
 				p.ctx, "write to auth file",
 				slog.Any("err", err),
@@ -184,6 +188,7 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 				perClientContext.setClientConfig(resp.ClientConfig)
 
 				if err := openVPNClient.WriteToAuthFile("1"); err != nil {
+					resp.Acknowledge(err)
 					logger.ErrorContext(
 						p.ctx, "write to auth file",
 						slog.Any("err", err),
@@ -192,11 +197,13 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 					return
 				}
 
+				resp.Acknowledge(nil)
 				logger.InfoContext(p.ctx, "authentication accepted")
 			case management.ClientAuthDeny:
 				handleAuthDenied(p.ctx, logger, openVPNClient, resp)
 
 				if err := openVPNClient.WriteToAuthFile("0"); err != nil {
+					resp.Acknowledge(err)
 					logger.ErrorContext(
 						p.ctx, "write to auth file",
 						slog.Any("err", err),
@@ -204,14 +211,22 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 
 					return
 				}
+
+				resp.Acknowledge(nil)
 			default:
-				logger.ErrorContext(p.ctx, "unknown auth state")
+				err := fmt.Errorf("unknown auth state: %s", resp.ClientAuth)
+				resp.Acknowledge(err)
+				logger.ErrorContext(p.ctx, "unknown auth state", slog.Any("err", err))
 			}
 		}(pendingRespCh)
 
+		resp.Acknowledge(nil)
+
 		return c.OpenVPNPluginFuncDeferred
 	default:
-		p.logger.ErrorContext(p.ctx, "unknown client auth response from management interface")
+		err := fmt.Errorf("unknown client auth response from management interface: %s", resp.ClientAuth)
+		resp.Acknowledge(err)
+		p.logger.ErrorContext(p.ctx, "unknown client auth response from management interface", slog.Any("err", err))
 
 		return c.OpenVPNPluginFuncError
 	}
