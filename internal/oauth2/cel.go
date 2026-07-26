@@ -21,10 +21,11 @@ const (
 // newCELEnvironment returns the common CEL environment used by all configurable expressions.
 func newCELEnvironment() (*cel.Env, error) {
 	env, err := cel.NewEnv(
-		cel.VariableWithDoc("auth", cel.MapType(cel.StringType, cel.StringType), "Authentication context"),
-		cel.VariableWithDoc("openvpn", cel.MapType(cel.StringType, cel.StringType), "OpenVPN session context"),
-		cel.VariableWithDoc("token", cel.MapType(cel.StringType, cel.DynType), "OAuth2 token context"),
-		cel.VariableWithDoc("user", cel.MapType(cel.StringType, cel.DynType), "Normalized user context"),
+		celContextTypes(),
+		cel.VariableWithDoc("auth", cel.ObjectType(celAuthContextTypeName), "Authentication context"),
+		cel.VariableWithDoc("openvpn", cel.ObjectType(celOpenVPNContextTypeName), "OpenVPN session context"),
+		cel.VariableWithDoc("token", cel.ObjectType(celTokenContextTypeName), "OAuth2 token context"),
+		cel.VariableWithDoc("user", cel.ObjectType(celUserContextTypeName), "Normalized user context"),
 		ext.Strings(ext.StringsVersion(5)),
 		ext.Lists(ext.ListsVersion(4)),
 	)
@@ -172,7 +173,8 @@ func newCELActivation(
 	tokens *idtoken.IDToken,
 	userInfo types.UserInfo,
 ) map[string]any {
-	claims := make(map[string]any)
+	var claims map[string]any
+
 	tokenIP := ""
 
 	if tokens != nil && tokens.IDTokenClaims != nil {
@@ -194,24 +196,24 @@ func newCELActivation(
 	}
 
 	return map[string]any{
-		"auth": map[string]string{
-			"mode": string(authMode),
+		"auth": celAuthContext{
+			mode: string(authMode),
 		},
-		"openvpn": map[string]string{
-			"commonName":   session.Client.CommonName,
-			"ip":           session.IPAddr,
-			"sessionState": session.SessionState,
+		"openvpn": celOpenVPNContext{
+			commonName:   session.Client.CommonName,
+			ip:           session.IPAddr,
+			sessionState: session.SessionState,
 		},
-		"token": map[string]any{
-			"claims": claims,
-			"ip":     tokenIP,
+		"token": celTokenContext{
+			claims: claims,
+			ip:     tokenIP,
 		},
-		"user": map[string]any{
-			"email":    userInfo.Email,
-			"groups":   groups,
-			"roles":    roles,
-			"subject":  userInfo.Subject,
-			"username": userInfo.Username,
+		"user": celUserContext{
+			email:    userInfo.Email,
+			groups:   groups,
+			roles:    roles,
+			subject:  userInfo.Subject,
+			username: userInfo.Username,
 		},
 	}
 }

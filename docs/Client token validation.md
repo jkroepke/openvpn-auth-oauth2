@@ -52,6 +52,11 @@ The following variables are available in your CEL expressions:
 | `user.groups` | `list<string>` | The normalized groups |
 | `user.roles` | `list<string>` | The normalized roles |
 
+The `auth`, `openvpn`, `token`, and `user` variables are typed objects. Unknown
+fields and incompatible operations are rejected when the configuration loads.
+Only `token.claims` remains a dynamic map because its keys depend on the OAuth2
+provider.
+
 Prefer `user.*` for rules that should work with generic OIDC, UserInfo, GitHub,
 and refresh authentication. Use `token.claims.*` for provider-specific claims.
 See [CEL Language Features](CEL%20Language%20Features.md) for the normalization

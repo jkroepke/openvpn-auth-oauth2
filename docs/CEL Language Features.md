@@ -39,6 +39,16 @@ The same namespaced context is available to `oauth2.openvpn-username`,
 | `user.groups` | `list<string>` | Provider-independent list of groups |
 | `user.roles` | `list<string>` | Provider-independent list of roles |
 
+`auth`, `openvpn`, `token`, and `user` are typed objects. Use the field names
+listed above with dot notation. openvpn-auth-oauth2 validates these names and
+their types when it loads the configuration, so an unknown field prevents
+startup instead of failing during authentication. Every listed field is
+present; unavailable strings and lists use empty values.
+
+`token.claims` remains a `map<string, dynamic>` because OAuth2 providers can
+return arbitrary claims. Use `has(token.claims.department)` before reading an
+optional claim.
+
 Provider data is normalized before CEL runs. For a generic OIDC provider,
 `user.groups` comes from `oauth2.groups-claim` and `user.roles` comes from the
 `roles` claim. For GitHub, organizations populate `user.groups` and teams
@@ -213,7 +223,8 @@ expression: 'has(token.claims.department) && token.claims.department == "enginee
 
 ### Invalid Expressions
 
-If your CEL expression has syntax errors, openvpn-auth-oauth2 will fail to start and log an error message indicating the compilation failure.
+If a CEL expression has syntax errors, unknown context fields, or incompatible
+types, openvpn-auth-oauth2 fails to start and logs the compilation error.
 
 ### Non-Boolean Results
 
@@ -229,7 +240,7 @@ expression: 'openvpn.commonName != ""'
 
 ## Best Practices
 
-1. **Always use `has()` to check for optional claims** before accessing them to avoid validation failures
+1. **Always use `has()` to check for optional token claims** before accessing them to avoid validation failures
 2. **Keep expressions simple and readable** - complex logic can be hard to debug
 3. **Test your CEL expressions** with different token scenarios during development
 4. **Log validation failures** to help troubleshoot issues

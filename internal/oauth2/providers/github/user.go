@@ -69,9 +69,7 @@ func (p Provider) usesUserField(field string) bool {
 	}
 
 	for _, expression := range expressions {
-		if strings.Contains(expression, "user."+field) ||
-			strings.Contains(expression, `user["`+field+`"]`) ||
-			strings.Contains(expression, `user['`+field+`']`) {
+		if strings.Contains(expression, "user."+field) {
 			return true
 		}
 	}
