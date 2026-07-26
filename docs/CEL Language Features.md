@@ -51,8 +51,8 @@ optional claim.
 
 Provider data is normalized before CEL runs. For a generic OIDC provider,
 `user.groups` comes from `oauth2.groups-claim` and `user.roles` comes from the
-`roles` claim. For GitHub, organizations populate `user.groups` and teams
-populate `user.roles` in `org:slug` format when those fields are used. Google
+`roles` claim. For GitHub, organizations populate `user.groups` when that field
+is used, and teams always populate `user.roles` in `org:slug` format. Google
 group validation populates `user.groups` with the configured groups that match
 the user.
 

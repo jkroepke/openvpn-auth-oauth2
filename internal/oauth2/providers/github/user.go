@@ -49,14 +49,12 @@ func (p Provider) GetUser(ctx context.Context, _ *slog.Logger, tokens *idtoken.I
 		userInfo.Groups = organizations
 	}
 
-	if p.usesUserField("roles") {
-		teams, err := p.getTeams(ctx, tokens)
-		if err != nil {
-			return types.UserInfo{}, fmt.Errorf("error getting GitHub teams: %w", err)
-		}
-
-		userInfo.Roles = teams
+	teams, err := p.getTeams(ctx, tokens)
+	if err != nil {
+		return types.UserInfo{}, fmt.Errorf("error getting GitHub teams: %w", err)
 	}
+
+	userInfo.Roles = teams
 
 	return userInfo, nil
 }
