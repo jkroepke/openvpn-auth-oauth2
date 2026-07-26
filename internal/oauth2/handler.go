@@ -23,8 +23,9 @@ import (
 )
 
 const (
-	title   = "title"
-	message = "message"
+	profileSelectorEmptyUsername = "-"
+	title                        = "title"
+	message                      = "message"
 )
 
 type openvpnManagementClient interface {
@@ -200,7 +201,7 @@ func (c *Client) OAuth2ProfileSubmit() http.Handler {
 		}
 
 		username := token.Username
-		if username == config.CommonNameModeOmitValue {
+		if username == profileSelectorEmptyUsername {
 			username = ""
 		}
 
@@ -658,7 +659,7 @@ func (c *Client) storeProfileSelectorToken(ctx context.Context, encryptedToken, 
 // createProfileSelectorToken creates an encrypted token containing the available client configuration profiles.
 func (c *Client) createProfileSelectorToken(encryptedState state.EncryptedState, username string, profiles []string) (string, error) {
 	if username == "" {
-		username = config.CommonNameModeOmitValue
+		username = profileSelectorEmptyUsername
 	}
 
 	tokenContent := clientConfigToken{

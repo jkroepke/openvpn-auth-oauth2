@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/utils"
 )
 
@@ -60,33 +59,4 @@ func BenchmarkLookupGroupNumeric(b *testing.B) {
 	}
 
 	_ = gid
-}
-
-func BenchmarkTransformCommonName(b *testing.B) {
-	for _, tc := range []struct {
-		name string
-		mode config.OpenVPNCommonNameMode
-	}{
-		{
-			name: "plain",
-			mode: config.CommonNameModePlain,
-		},
-		{
-			name: "omit",
-			mode: config.CommonNameModeOmit,
-		},
-	} {
-		b.Run(tc.name, func(b *testing.B) {
-			var commonName string
-
-			b.ReportAllocs()
-			b.ResetTimer()
-
-			for b.Loop() {
-				commonName = utils.TransformCommonName(tc.mode, "test-client@example.com")
-			}
-
-			_ = commonName
-		})
-	}
 }

@@ -13,7 +13,6 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn/connection"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
-	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/utils"
 )
 
 func (c *Client) processClient(ctx context.Context, client connection.Client) error {
@@ -165,12 +164,10 @@ func stateClientIdentifier(client connection.Client) state.ClientIdentifier {
 // startClientAuth initiates the authentication process for the client.
 // The openvpn-auth-oauth2 plugin will send a client-pending-auth command to the OpenVPN management interface.
 func (c *Client) startClientAuth(ctx context.Context, logger *slog.Logger, client connection.Client) error {
-	commonName := utils.TransformCommonName(c.conf.OpenVPN.CommonName.Mode, client.CommonName)
-
 	clientIdentifier := state.ClientIdentifier{
 		CID:        client.CID,
 		KID:        client.KID,
-		CommonName: commonName,
+		CommonName: client.CommonName,
 	}
 
 	if c.conf.OAuth2.Refresh.UseSessionID {
@@ -209,7 +206,7 @@ func (c *Client) startClientAuth(ctx context.Context, logger *slog.Logger, clien
 
 	if len(startURL) >= 245 {
 		return fmt.Errorf("url %s (%d chars) too long! OpenVPN support up to 245 chars. "+
-			"Try --openvpn.common-name.mode=omit or --log.vpn-client-ip=false to avoid this error",
+			"Try --http.short-url=true to avoid this error",
 			startURL, len(startURL))
 	}
 

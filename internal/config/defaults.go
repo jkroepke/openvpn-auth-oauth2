@@ -59,7 +59,6 @@ var Defaults = Config{
 		},
 		CommonName: OpenVPNCommonName{
 			EnvironmentVariableName: "common_name",
-			Mode:                    CommonNameModePlain,
 		},
 		EnforceUniqueUser: false,
 		OverrideUsername:  false,
