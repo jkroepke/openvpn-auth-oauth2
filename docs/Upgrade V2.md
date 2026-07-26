@@ -94,7 +94,6 @@ unchanged in the OAuth2 state. Remove every configured form of the option:
 | YAML | `openvpn.common-name.mode` |
 | Command line | `--openvpn.common-name.mode` |
 | Version 1 environment | `CONFIG_OPENVPN_COMMON__NAME_MODE` |
-| Project-prefixed environment | `OPENVPN_AUTH_OAUTH2_OPENVPN_COMMON__NAME_MODE` or `OPENVPN_AUTH_OAUTH2_OPENVPN_COMMON_NAME_MODE` |
 
 If you previously used `mode: omit` to keep the web authentication URL below
 OpenVPN's length limit, enable `http.short-url` instead:
