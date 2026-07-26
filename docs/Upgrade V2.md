@@ -542,8 +542,9 @@ oauth2:
 ```
 
 For GitHub provider configurations, team validation is also migrated to CEL.
-The GitHub provider fetches teams from the `/user/teams` API and exposes them
-through `user.roles` in the same `org:slug` format used by version 1:
+The GitHub provider always fetches organizations from `/user/orgs` and teams
+from `/user/teams`. It exposes organizations through `user.groups`. Teams are
+available through `user.roles` in the same `org:slug` format used by version 1:
 
 ```yaml
 # Version 1
