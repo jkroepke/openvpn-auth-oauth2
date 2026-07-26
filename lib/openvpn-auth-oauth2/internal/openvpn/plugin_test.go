@@ -12,6 +12,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -33,8 +34,11 @@ func TestPlugin(t *testing.T) {
 	t.Parallel()
 
 	for _, tc := range []struct {
-		name string
-		conf config.Config
+		name                string
+		conf                config.Config
+		directAccept        bool
+		denyAfterPending    bool
+		testInvalidCommands bool
 	}{
 		{
 			name: "default config",
@@ -60,6 +64,23 @@ func TestPlugin(t *testing.T) {
 
 				return conf
 			}(),
+		},
+		{
+			name: "direct accept",
+			conf: func() config.Config {
+				conf := config.Defaults
+				conf.OpenVPN.AuthTokenUser = false
+				conf.OpenVPN.Bypass.CommonNames = types.RegexpSlice{regexp.MustCompile(`^user@example\.com$`)}
+
+				return conf
+			}(),
+			directAccept: true,
+		},
+		{
+			name:                "deny after pending",
+			conf:                config.Defaults,
+			denyAfterPending:    true,
+			testInvalidCommands: true,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -152,6 +173,9 @@ func TestPlugin(t *testing.T) {
 
 			clientContextPtr := PluginClientConstructorV1(openRet.Handle)
 			require.NotNil(t, clientContextPtr)
+			t.Cleanup(func() {
+				PluginClientDestructorV1(openRet.Handle, clientContextPtr)
+			})
 
 			authControlFile, err := os.CreateTemp(t.TempDir(), "auth_control_file")
 			require.NoError(t, err)
@@ -163,6 +187,12 @@ func TestPlugin(t *testing.T) {
 			require.NoError(t, err)
 			t.Cleanup(func() {
 				require.NoError(t, authPendingFile.Close())
+			})
+
+			authFailedReasonFile, err := os.CreateTemp(t.TempDir(), "auth_failed_reason_file")
+			require.NoError(t, err)
+			t.Cleanup(func() {
+				require.NoError(t, authFailedReasonFile.Close())
 			})
 
 			// PluginFuncV3 - OpenVPNPluginAuthUserPassVerify
@@ -178,6 +208,7 @@ func TestPlugin(t *testing.T) {
 				"session_state=Initial",
 				"auth_pending_file=" + authPendingFile.Name(),
 				"auth_control_file=" + authControlFile.Name(),
+				"auth_failed_reason_file=" + authFailedReasonFile.Name(),
 			})
 
 			t.Cleanup(func() {
@@ -193,39 +224,84 @@ func TestPlugin(t *testing.T) {
 			}
 			ret = &c.OpenVPNPluginArgsFuncReturn{}
 
-			status = PluginFuncV3(PluginStructVerMin, args, ret)
-			require.Equal(t, c.OpenVPNPluginFuncDeferred, status)
-
-			data, err := os.ReadFile(authPendingFile.Name())
-			require.NoError(t, err)
-			require.Contains(t, string(data), "180\nwebauth\nWEB_AUTH::http://")
-
-			authURL := strings.TrimSpace(strings.SplitN(string(data), "\n", 3)[2][10:])
-
-			jar, err := cookiejar.New(nil)
-			require.NoError(t, err)
-
-			httpClient := &http.Client{
-				Timeout: 5 * time.Second,
-				Jar:     jar,
+			sendInvalidCommand := func() {
+				response, err := openVPNClient.SendCommand(t.Context(), "client-invalid 0 0", false)
+				require.Error(t, err)
+				require.Equal(t, "ERROR: unknown command, enter 'help' for more options", strings.TrimSpace(response))
 			}
 
-			var resp *http.Response
+			if tc.testInvalidCommands {
+				sendInvalidCommand()
+			}
 
-			wg := sync.WaitGroup{}
-			wg.Go(func() {
-				resp, _, err = testsuite.DoHTTPRequest(t, httpClient, "", http.MethodGet, authURL, nil, http.NoBody) //nolint:bodyclose
-			})
+			status = PluginFuncV3(PluginStructVerMin, args, ret)
+			if tc.directAccept {
+				require.Equal(t, c.OpenVPNPluginFuncSuccess, status)
 
-			wg.Wait()
+				data, err := os.ReadFile(authPendingFile.Name())
+				require.NoError(t, err)
+				require.Empty(t, data)
+			} else {
+				require.Equal(t, c.OpenVPNPluginFuncDeferred, status)
 
-			require.NoError(t, err)
+				data, err := os.ReadFile(authPendingFile.Name())
+				require.NoError(t, err)
+				require.Contains(t, string(data), "180\nwebauth\nWEB_AUTH::http://")
 
-			require.Equal(t, http.StatusOK, resp.StatusCode, suite.Logs())
+				if tc.testInvalidCommands {
+					sendInvalidCommand()
+				}
 
-			data, err = os.ReadFile(authControlFile.Name())
-			require.NoError(t, err)
-			require.Equal(t, "1", string(data))
+				if tc.denyAfterPending {
+					clientContext := clientContextFromPointer(clientContextPtr)
+					require.NotNil(t, clientContext)
+
+					clientContext.mu.Lock()
+					clientID := clientContext.clientID
+					clientContext.mu.Unlock()
+
+					response, err := openVPNClient.SendCommandf(t.Context(), `client-deny %d 0 "access denied"`, clientID)
+					require.NoError(t, err)
+					require.Equal(t, "SUCCESS: client-deny command succeeded", strings.TrimSpace(response))
+
+					data, err = os.ReadFile(authControlFile.Name())
+					require.NoError(t, err)
+					require.Equal(t, "0", string(data))
+
+					data, err = os.ReadFile(authFailedReasonFile.Name())
+					require.NoError(t, err)
+					require.Equal(t, "access denied", string(data))
+
+					return
+				}
+
+				authURL := strings.TrimSpace(strings.SplitN(string(data), "\n", 3)[2][10:])
+
+				jar, err := cookiejar.New(nil)
+				require.NoError(t, err)
+
+				httpClient := &http.Client{
+					Timeout: 5 * time.Second,
+					Jar:     jar,
+				}
+
+				var resp *http.Response
+
+				wg := sync.WaitGroup{}
+				wg.Go(func() {
+					resp, _, err = testsuite.DoHTTPRequest(t, httpClient, "", http.MethodGet, authURL, nil, http.NoBody) //nolint:bodyclose
+				})
+
+				wg.Wait()
+
+				require.NoError(t, err)
+
+				require.Equal(t, http.StatusOK, resp.StatusCode, suite.Logs())
+
+				data, err = os.ReadFile(authControlFile.Name())
+				require.NoError(t, err)
+				require.Equal(t, "1", string(data))
+			}
 
 			// PluginFuncV3 - OpenVPNPluginClientConnectV2
 			args.Type = c.OpenVPNPluginClientConnectV2
@@ -250,9 +326,6 @@ func TestPlugin(t *testing.T) {
 
 			status = PluginFuncV3(PluginStructVerMin, args, ret)
 			require.Equal(t, c.OpenVPNPluginFuncSuccess, status)
-
-			// PluginClientDestructorV1
-			PluginClientDestructorV1(args.Handle, clientContextPtr)
 		})
 	}
 }
