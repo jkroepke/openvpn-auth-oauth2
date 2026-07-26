@@ -223,8 +223,6 @@ func (c *Client) Shutdown(ctx context.Context) {
 
 	if c.conn != nil {
 		_ = c.conn.Close()
-
-		c.conn = nil
 	}
 
 	close(c.commandsCh)
