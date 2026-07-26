@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"log/slog"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
@@ -22,7 +21,7 @@ func (p Provider) GetRefreshToken(tokens *idtoken.IDToken) (string, error) {
 
 // Refresh use the [oauth2.Token.AccessToken] from initial authentication and call the REST API if the user is still present
 // inside the required groups.
-func (p Provider) Refresh(_ context.Context, _ *slog.Logger, _ rp.RelyingParty, refreshToken string) (*idtoken.IDToken, error) {
+func (p Provider) Refresh(_ context.Context, _ rp.RelyingParty, refreshToken string) (*idtoken.IDToken, error) {
 	return &idtoken.IDToken{
 		Token:         &gooauth2.Token{AccessToken: refreshToken},
 		IDTokenClaims: &idtoken.Claims{},
@@ -30,7 +29,7 @@ func (p Provider) Refresh(_ context.Context, _ *slog.Logger, _ rp.RelyingParty, 
 }
 
 // RevokeRefreshToken is a no-op because GitHub OAuth apps do not support token revocation here.
-func (p Provider) RevokeRefreshToken(_ context.Context, _ *slog.Logger, _ rp.RelyingParty, _ string) error {
+func (p Provider) RevokeRefreshToken(_ context.Context, _ rp.RelyingParty, _ string) error {
 	// GitHub doesn't support revoke token
 	return nil
 }

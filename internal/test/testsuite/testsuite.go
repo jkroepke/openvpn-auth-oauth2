@@ -153,11 +153,7 @@ func (s *Suite) SetupOIDCServer(tb testing.TB, clientListener net.Listener, opCo
 		}
 	}
 
-	opOpts := make([]op.Option, 0, 2)
-	opOpts = append(opOpts, op.WithAllowInsecure())
-	opOpts = append(opOpts, op.WithLogger(s.logger.Logger()))
-
-	opProvider, err := op.NewProvider(opConfig, opStorage, op.IssuerFromHost(""), opOpts...)
+	opProvider, err := op.NewProvider(opConfig, opStorage, op.IssuerFromHost(""), op.WithAllowInsecure())
 	require.NoError(tb, err, s.Logs())
 
 	httpHandler := http.NewServeMux()

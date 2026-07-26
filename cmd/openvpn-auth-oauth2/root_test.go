@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log/slog"
 	"os"
 	"testing"
 
@@ -123,4 +124,37 @@ func TestExecuteConfigInvalid(t *testing.T) {
 			assert.Contains(t, output, tc.err)
 		})
 	}
+}
+
+//nolint:paralleltest // slog.SetDefault changes process-wide state.
+func TestInitializeConfigAndLoggerSetsDefault(t *testing.T) {
+	previousLogger := slog.Default()
+
+	t.Cleanup(func() {
+		slog.SetDefault(previousLogger)
+	})
+
+	args := []string{
+		"openvpn-auth-oauth2",
+		"--config=../../config.example.yaml",
+		"--log.format=json",
+		"--log.level=debug",
+		"--http.secret=" + testsuite.Secret,
+		"--http.listen=127.0.0.1:0",
+	}
+
+	firstOutput := testlogger.New()
+	_, firstLogger, returnCode := initializeConfigAndLogger(args, firstOutput)
+	require.Equal(t, ReturnCodeNoError, returnCode, firstOutput.String())
+	require.Same(t, firstLogger, slog.Default())
+
+	secondOutput := testlogger.New()
+	_, secondLogger, returnCode := initializeConfigAndLogger(args, secondOutput)
+	require.Equal(t, ReturnCodeNoError, returnCode, secondOutput.String())
+	require.Same(t, secondLogger, slog.Default())
+
+	slog.Debug("default logger reconfigured") //nolint:sloglint // Verify package-level logging uses the reconfigured default.
+
+	assert.NotContains(t, firstOutput.String(), "default logger reconfigured")
+	assert.Contains(t, secondOutput.String(), "default logger reconfigured")
 }

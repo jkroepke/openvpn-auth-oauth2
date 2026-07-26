@@ -19,7 +19,6 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
-	"github.com/zitadel/logging"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
 )
 
@@ -113,8 +112,6 @@ func (c *Client) OAuth2Callback() http.Handler {
 		}
 
 		logger := c.createSessionLoggerWithState(oAuth2State)
-
-		ctx = logging.ToContext(ctx, logger)
 
 		clientID := c.getClientID(oAuth2State)
 

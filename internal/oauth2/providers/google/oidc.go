@@ -2,7 +2,6 @@ package google
 
 import (
 	"context"
-	"log/slog"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
@@ -14,11 +13,11 @@ func (p Provider) GetRefreshToken(tokens *idtoken.IDToken) (string, error) {
 }
 
 // Refresh delegates refresh-token authentication to the embedded generic provider.
-func (p Provider) Refresh(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, refreshToken string) (*idtoken.IDToken, error) {
-	return p.Provider.Refresh(ctx, logger, relyingParty, refreshToken) //nolint:wrapcheck
+func (p Provider) Refresh(ctx context.Context, relyingParty rp.RelyingParty, refreshToken string) (*idtoken.IDToken, error) {
+	return p.Provider.Refresh(ctx, relyingParty, refreshToken) //nolint:wrapcheck
 }
 
 // RevokeRefreshToken delegates refresh token revocation to the embedded generic provider.
-func (p Provider) RevokeRefreshToken(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, refreshToken string) error {
-	return p.Provider.RevokeRefreshToken(ctx, logger, relyingParty, refreshToken) //nolint:wrapcheck
+func (p Provider) RevokeRefreshToken(ctx context.Context, relyingParty rp.RelyingParty, refreshToken string) error {
+	return p.Provider.RevokeRefreshToken(ctx, relyingParty, refreshToken) //nolint:wrapcheck
 }

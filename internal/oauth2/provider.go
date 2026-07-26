@@ -12,7 +12,6 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/crypto"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/tokenstorage"
-	"github.com/zitadel/logging"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
 	httphelper "github.com/zitadel/oidc/v3/pkg/http"
 	"golang.org/x/oauth2"
@@ -99,7 +98,7 @@ func newOIDCRelyingParty(
 	}
 
 	replyingParty, err := rp.NewRelyingPartyOIDC(
-		logging.ToContext(ctx, logger),
+		ctx,
 		conf.OAuth2.Issuer.String(),
 		conf.OAuth2.Client.ID,
 		conf.OAuth2.Client.Secret.String(),
@@ -174,12 +173,11 @@ func (c *Client) getRelyingPartyOptions(httpClient *http.Client) []rp.Option {
 		}))
 	}
 
-	options := make([]rp.Option, 0, 10)
+	options := make([]rp.Option, 0, 9)
 	options = append(
 		options,
 		rp.WithAuthStyle(c.conf.OAuth2.AuthStyle.AuthStyle()),
 		rp.WithSigningAlgsFromDiscovery(),
-		rp.WithLogger(c.logger),
 		rp.WithCookieHandler(cookieHandler),
 		rp.WithVerifierOpts(verifierOpts...),
 		rp.WithHTTPClient(httpClient),
