@@ -26,7 +26,7 @@ func newCELEnvironment() (*cel.Env, error) {
 		cel.VariableWithDoc("token", cel.MapType(cel.StringType, cel.DynType), "OAuth2 token context"),
 		cel.VariableWithDoc("user", cel.MapType(cel.StringType, cel.DynType), "Normalized user context"),
 		ext.Strings(ext.StringsVersion(5)),
-		ext.Lists(ext.ListsVersion(3)),
+		ext.Lists(ext.ListsVersion(4)),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("create CEL environment: %w", err)
