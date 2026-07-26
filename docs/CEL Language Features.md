@@ -51,10 +51,9 @@ optional claim.
 
 Provider data is normalized before CEL runs. For a generic OIDC provider,
 `user.groups` comes from `oauth2.groups-claim` and `user.roles` comes from the
-`roles` claim. For GitHub, organizations populate `user.groups` when that field
-is used, and teams always populate `user.roles` in `org:slug` format. Google
-group validation populates `user.groups` with the configured groups that match
-the user.
+`roles` claim. For GitHub, organizations always populate `user.groups`, and
+teams always populate `user.roles` in `org:slug` format. Google group validation
+populates `user.groups` with the configured groups that match the user.
 
 During `oauth2.openvpn-username`, `user.username` is the provider's username
 candidate, such as `preferred_username` from an ID token or UserInfo response,

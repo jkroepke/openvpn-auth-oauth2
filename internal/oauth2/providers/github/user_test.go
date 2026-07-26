@@ -118,15 +118,13 @@ func TestGetUser(t *testing.T) {
 	}
 }
 
-func TestGetUserFetchesTeamsWithoutRoleExpression(t *testing.T) {
+func TestGetUserFetchesOrganizationsAndTeamsWithoutExpressions(t *testing.T) {
 	t.Parallel()
 
 	token := &idtoken.IDToken{
 		Token: &oauth2.Token{AccessToken: "TOKEN"},
 	}
-	conf := types2.Config{
-		OAuth2: types2.OAuth2{OpenVPNUsername: "user.username"},
-	}
+	conf := types2.Config{}
 
 	var requests atomic.Int32
 
@@ -139,6 +137,8 @@ func TestGetUserFetchesTeamsWithoutRoleExpression(t *testing.T) {
 			switch req.URL.Path {
 			case "/user":
 				_, _ = resp.WriteString(`{"login": "login", "email": "email", "id": 10}`)
+			case "/user/orgs":
+				_, _ = resp.WriteString(`[{"login": "apple"}]`)
 			case "/user/teams":
 				_, _ = resp.WriteString(`[{"slug": "justice-league", "organization": {"login": "apple"}}]`)
 			default:
@@ -156,6 +156,7 @@ func TestGetUserFetchesTeamsWithoutRoleExpression(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Equal(t, "login", user.Username)
+	require.Equal(t, []string{"apple"}, user.Groups)
 	require.Equal(t, []string{"apple:justice-league"}, user.Roles)
-	require.EqualValues(t, 2, requests.Load())
+	require.EqualValues(t, 3, requests.Load())
 }
