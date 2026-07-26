@@ -4,14 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
-	"github.com/zitadel/logging"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
@@ -30,9 +28,7 @@ func (p Provider) GetRefreshToken(tokens *idtoken.IDToken) (string, error) {
 }
 
 // Refresh initiates a non-interactive authentication against the sso provider.
-func (p Provider) Refresh(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, refreshToken string) (*idtoken.IDToken, error) {
-	ctx = logging.ToContext(ctx, logger)
-
+func (p Provider) Refresh(ctx context.Context, relyingParty rp.RelyingParty, refreshToken string) (*idtoken.IDToken, error) {
 	// Apply refresh nonce control based on configuration
 	if p.Conf.OAuth2.RefreshNonce == config.OAuth2RefreshNonceEmpty {
 		ctx = context.WithValue(ctx, types.CtxNonce{}, "")
@@ -60,9 +56,7 @@ func (p Provider) Refresh(ctx context.Context, logger *slog.Logger, relyingParty
 }
 
 // RevokeRefreshToken revokes a refresh token when the relying party supports token revocation.
-func (p Provider) RevokeRefreshToken(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, refreshToken string) error {
-	ctx = logging.ToContext(ctx, logger)
-
+func (p Provider) RevokeRefreshToken(ctx context.Context, relyingParty rp.RelyingParty, refreshToken string) error {
 	err := rp.RevokeToken(ctx, revokeHTTPClientRelyingParty{RelyingParty: relyingParty}, refreshToken, "refresh_token")
 	if err != nil && !errors.Is(err, rp.ErrRelyingPartyNotSupportRevokeCaller) {
 		return fmt.Errorf("error revoke refresh token: %w", err)

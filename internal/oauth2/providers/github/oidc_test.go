@@ -1,7 +1,6 @@
 package github_test
 
 import (
-	"log/slog"
 	"testing"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2"
@@ -65,7 +64,7 @@ func TestRefresh(t *testing.T) {
 
 	var provider github.Provider
 
-	tokens, err := provider.Refresh(t.Context(), slog.New(slog.DiscardHandler), nil, "github-access-token")
+	tokens, err := provider.Refresh(t.Context(), nil, "github-access-token")
 
 	require.NoError(t, err)
 	require.Equal(t, "github-access-token", tokens.AccessToken)
@@ -77,5 +76,5 @@ func TestRevokeRefreshToken(t *testing.T) {
 
 	var provider github.Provider
 
-	require.NoError(t, provider.RevokeRefreshToken(t.Context(), slog.New(slog.DiscardHandler), nil, "github-access-token"))
+	require.NoError(t, provider.RevokeRefreshToken(t.Context(), nil, "github-access-token"))
 }

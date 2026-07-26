@@ -36,8 +36,8 @@ type Provider interface {
 	GetUser(ctx context.Context, logger *slog.Logger, tokens *idtoken.IDToken, userinfo *types.UserInfo) (types.UserInfo, error)
 
 	// Refresh initiates a non-interactive authentication against the sso provider.
-	Refresh(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, refreshToken string) (*idtoken.IDToken, error)
-	RevokeRefreshToken(ctx context.Context, logger *slog.Logger, relyingParty rp.RelyingParty, refreshToken string) error
+	Refresh(ctx context.Context, relyingParty rp.RelyingParty, refreshToken string) (*idtoken.IDToken, error)
+	RevokeRefreshToken(ctx context.Context, relyingParty rp.RelyingParty, refreshToken string) error
 }
 
 // clientConfigToken is used to store additional information on the client side.

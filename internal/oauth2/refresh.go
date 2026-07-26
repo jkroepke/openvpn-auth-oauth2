@@ -203,7 +203,7 @@ func (c *Client) withRefreshNonce(ctx context.Context, clientID string) context.
 func (c *Client) refreshTokens(ctx context.Context, logger *slog.Logger, refreshToken string) (*idtoken.IDToken, error) {
 	logger.LogAttrs(ctx, slog.LevelInfo, "initiate non-interactive authentication via refresh token")
 
-	tokens, err := c.provider.Refresh(ctx, logger, c.relyingParty, refreshToken)
+	tokens, err := c.provider.Refresh(ctx, c.relyingParty, refreshToken)
 	if err != nil {
 		return nil, fmt.Errorf("error from non-interactive authentication via refresh token: %w", err)
 	}
@@ -358,7 +358,7 @@ func (c *Client) ClientDisconnect(ctx context.Context, logger *slog.Logger, clie
 
 	logger.LogAttrs(ctx, slog.LevelDebug, "revoke refresh token")
 
-	if err = c.provider.RevokeRefreshToken(ctx, logger, c.relyingParty, refreshToken); err != nil {
+	if err = c.provider.RevokeRefreshToken(ctx, c.relyingParty, refreshToken); err != nil {
 		logger.LogAttrs(ctx, slog.LevelWarn, err.Error())
 	}
 }

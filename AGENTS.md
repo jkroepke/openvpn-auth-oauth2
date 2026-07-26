@@ -29,6 +29,25 @@ dependency risk.
 
 Summarize your changes and cite relevant lines in the repository. Mention the output of the programmatic checks.
 
+Pull request titles and changelog labels are published in user-facing release
+notes. Write each title as a concise description of the user-visible change and
+start it with `feat:`, `fix:`, `docs:`, or `chore:` as required by CI. Use the
+`!` form, such as `feat!:`, when the title describes a breaking change.
+
+Before merging, apply at least one changelog label defined in
+[`.github/release.yml`](.github/release.yml):
+
+- `💥 breaking-change` for breaking changes
+- `✨ enhancement` for new functionality
+- `🐞 bug` for fixes
+- `🛠️ dependencies` for dependency updates
+- `📖 docs` for documentation
+- `chore` only for changes that should be excluded from the user-facing
+  changelog
+
+Add `💥 breaking-change` whenever a change is breaking, even if another label
+also applies.
+
 ## Documentation
 
 If you write documentation, please respect the [textlint-rule-terminology](https://github.com/sapegin/textlint-rule-terminology) rule.

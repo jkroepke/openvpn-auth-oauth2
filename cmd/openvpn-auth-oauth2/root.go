@@ -179,6 +179,9 @@ func initializeConfigAndLogger(args []string, stdout io.Writer) (*config.Config,
 		return nil, nil, ReturnCodeError
 	}
 
+	// Use the configured logger for dependencies that log through package-level slog functions.
+	slog.SetDefault(logger)
+
 	return conf, logger, ReturnCodeNoError
 }
 
