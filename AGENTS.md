@@ -76,3 +76,70 @@ Configuration is usually done through a YAML file or environment variables. The
 project's `docs/` directory contains detailed guides such as
 [`docs/Configuration.md`](docs/Configuration.md) and
 [`docs/Home.md`](docs/Home.md).
+
+## OpenVPN management command size
+
+When changing the URL-length validation for `client-pending-auth`, distinguish
+the project's conservative limit from OpenVPN's actual management-interface
+limit. OpenVPN allocates a 1024-byte command accumulator:
+
+```c
+man->connection.in = command_line_new(1024);
+```
+
+It stores only printable bytes and line feeds. If another stored byte does not
+fit, it clears the accumulated command:
+
+```c
+if (buf[i] && char_class(buf[i], (CC_PRINT | CC_NEWLINE)))
+{
+    if (!buf_write_u8(&cl->buf, buf[i]))
+    {
+        buf_clear(&cl->buf);
+    }
+}
+```
+
+Therefore, a management command may contain at most **1023 bytes before the
+terminating LF**. This is a byte limit, not a character limit. This project
+writes CRLF in `internal/openvpn/main.go`, but OpenVPN discards CR because the
+accepted character classes above include `CC_NEWLINE` and not `CC_CR`; CR does
+not reduce the 1023-byte command-body allowance.
+
+For the exact template in `internal/openvpn/client.go`:
+
+```text
+client-pending-auth <CID> <KID> "WEB_AUTH::<URL>" <TIMEOUT>
+```
+
+the body size is:
+
+```text
+35 + digits(CID) + digits(KID) + bytes(URL) + digits(TIMEOUT)
+```
+
+Consequently:
+
+```text
+maximum URL bytes = 988 - digits(CID) - digits(KID) - digits(TIMEOUT)
+```
+
+For example, CID `1`, KID `0`, and timeout `300` permit a URL of at most
+**983 bytes**. Quoting or escaping additional characters consumes more bytes.
+The existing `len(startURL) >= 245` validation is therefore a conservative
+project policy (maximum 244 bytes), not OpenVPN's management command limit.
+
+There is also a later TLS-control-message guard. OpenVPN defines
+`PUSH_BUNDLE_SIZE` as 1024 and accepts the parsed `EXTRA` only when
+`strlen(extra) + 1 + sizeof("INFO_PRE,") <= 1024`, giving a maximum parsed
+`EXTRA` size of 1013 bytes. For this project's command template, the 1023-byte
+management command limit is tighter.
+
+Source proof, pinned to OpenVPN commit
+[`a6537f7549f70f16bb2efd5c0683e0e94a236f0c`](https://github.com/OpenVPN/openvpn/commit/a6537f7549f70f16bb2efd5c0683e0e94a236f0c):
+
+- [the 1024-byte command accumulator](https://github.com/OpenVPN/openvpn/blob/a6537f7549f70f16bb2efd5c0683e0e94a236f0c/src/openvpn/manage.c#L2743-L2748)
+- [input filtering, overflow clearing, and LF detection](https://github.com/OpenVPN/openvpn/blob/a6537f7549f70f16bb2efd5c0683e0e94a236f0c/src/openvpn/manage.c#L4017-L4041)
+- [`CC_NEWLINE` and `CC_CR` are separate classes](https://github.com/OpenVPN/openvpn/blob/a6537f7549f70f16bb2efd5c0683e0e94a236f0c/src/openvpn/buffer.h#L918-L947)
+- [`PUSH_BUNDLE_SIZE` is 1024](https://github.com/OpenVPN/openvpn/blob/a6537f7549f70f16bb2efd5c0683e0e94a236f0c/src/openvpn/common.h#L84-L89)
+- [the `INFO_PRE`/`EXTRA` length check](https://github.com/OpenVPN/openvpn/blob/a6537f7549f70f16bb2efd5c0683e0e94a236f0c/src/openvpn/push.c#L438-L476)
