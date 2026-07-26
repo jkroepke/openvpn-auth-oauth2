@@ -150,8 +150,6 @@ Usage of openvpn-auth-oauth2:
         Maximum time to wait for a response to an OpenVPN management command. (env: OPENVPN_AUTH_OAUTH2_OPENVPN_COMMAND_TIMEOUT) (default 10s)
   --openvpn.common-name.environment-variable-name string
         Name of the environment variable in the OpenVPN management interface which contains the common name. If username-as-common-name is enabled, this should be set to 'username' to use the username as common name. Other values like 'X509_0_emailAddress' are supported. See https://openvpn.net/community-resources/reference-manual-for-openvpn-2-6/#environmental-variables for more information. (env: OPENVPN_AUTH_OAUTH2_OPENVPN_COMMON_NAME_ENVIRONMENT_VARIABLE_NAME) (default "common_name")
-  --openvpn.common-name.mode value
-        If common names are too long, use md5/sha1 to hash them or omit to skip them. Values: [plain,omit] (env: OPENVPN_AUTH_OAUTH2_OPENVPN_COMMON_NAME_MODE) (default plain)
   --openvpn.enforce-unique-user
         Requires OpenVPN Server 2.7 and openvpn.override-username=true. If true, openvpn-auth-oauth2 enforces one active OpenVPN session per username. (env: OPENVPN_AUTH_OAUTH2_OPENVPN_ENFORCE_UNIQUE_USER)
   --openvpn.override-username

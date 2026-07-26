@@ -295,19 +295,6 @@ func TestValidate(t *testing.T) {
 			"openvpn.client-config.expression is required when openvpn.client-config.enabled is true",
 		},
 		{
-			"valid client config with omitted common name",
-			func() config.Config {
-				conf := validConfig()
-				conf.OpenVPN.CommonName.Mode = config.CommonNameModeOmit
-				conf.OpenVPN.ClientConfig.Enabled = true
-				conf.OpenVPN.ClientConfig.Path = types.FS{FS: fstest.MapFS{}}
-				conf.OpenVPN.ClientConfig.Expression = `["base"]`
-
-				return conf
-			}(),
-			"",
-		},
-		{
 			"single active session requires override username",
 			func() config.Config {
 				conf := validConfig()

@@ -121,7 +121,6 @@ openvpn:
             ["default", string(token.claims.sub)]
     common-name:
         environment-variable-name: X509_0_emailAddress
-        mode: omit
     password: "1jd93h5b6s82lf03jh5b2hf9"
     pass-through:
         address: "unix:///run/openvpn/pass-through.sock"
@@ -203,7 +202,6 @@ http:
 					OverrideUsername:   true,
 					CommonName: config.OpenVPNCommonName{
 						EnvironmentVariableName: "X509_0_emailAddress",
-						Mode:                    config.CommonNameModeOmit,
 					},
 					Passthrough: config.OpenVPNPassthrough{
 						Enabled: true,
@@ -307,6 +305,7 @@ func TestConfigHelpFlag(t *testing.T) {
 	assert.Contains(t, buf.String(), "(env: OPENVPN_AUTH_OAUTH2_OPENVPN_COMMAND_TIMEOUT)")
 	assert.Contains(t, buf.String(), "--openvpn.pass-through.socket-mode value")
 	assert.Contains(t, buf.String(), "(default 0660)")
+	assert.NotContains(t, buf.String(), "--openvpn.common-name.mode")
 	assert.NotContains(t, buf.String(), "(env: CONFIG_HTTP_LISTEN)")
 }
 
@@ -448,16 +447,6 @@ func TestConfigFlagSet(t *testing.T) {
 			func() config.Config {
 				conf := config.Defaults
 				conf.OAuth2.Validate.Expression = "openvpn.commonName == token.claims.preferred_username"
-
-				return conf
-			}(),
-		},
-		{
-			"--openvpn.common-name.mode",
-			[]string{"--openvpn.common-name.mode=plain"},
-			func() config.Config {
-				conf := config.Defaults
-				conf.OpenVPN.CommonName.Mode = config.CommonNameModePlain
 
 				return conf
 			}(),

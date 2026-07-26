@@ -200,12 +200,6 @@ func (c *Config) flagSetOpenVPN(flagSet *flag.FlagSet) {
 			"Other values like 'X509_0_emailAddress' are supported. "+
 			"See https://openvpn.net/community-resources/reference-manual-for-openvpn-2-6/#environmental-variables for more information.",
 	)
-	flagSet.TextVar(
-		&c.OpenVPN.CommonName.Mode,
-		"openvpn.common-name.mode",
-		c.OpenVPN.CommonName.Mode,
-		"If common names are too long, use md5/sha1 to hash them or omit to skip them. Values: [plain,omit]",
-	)
 	flagSet.BoolVar(
 		&c.OpenVPN.OverrideUsername,
 		"openvpn.override-username",

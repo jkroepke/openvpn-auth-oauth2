@@ -6,11 +6,10 @@ configuration, token validation, and security hardening.
 ## Environment variable prefix
 
 Version 2 uses the project-specific `OPENVPN_AUTH_OAUTH2_` prefix for
-environment variables. The `CONFIG_` prefix used by version 1 and the version 2
-beta releases is no longer supported. Rename every environment variable before
-upgrading.
+environment variables. The `CONFIG_` prefix used by version 1 is no longer
+supported. Rename every environment variable before upgrading.
 
-| Version 1 and version 2 beta | Version 2 |
+| Version 1 | Version 2 |
 | --- | --- |
 | `CONFIG_FILE` | `OPENVPN_AUTH_OAUTH2_CONFIG_FILE` |
 | `CONFIG_HTTP_LISTEN` | `OPENVPN_AUTH_OAUTH2_HTTP_LISTEN` |
@@ -48,7 +47,6 @@ dashes. Rename every affected variable as follows:
 | `OPENVPN_AUTH_OAUTH2_OPENVPN_CLIENT__CONFIG_PATH` | `OPENVPN_AUTH_OAUTH2_OPENVPN_CLIENT_CONFIG_PATH` |
 | `OPENVPN_AUTH_OAUTH2_OPENVPN_CLIENT__CONFIG_STRATEGY` | `OPENVPN_AUTH_OAUTH2_OPENVPN_CLIENT_CONFIG_STRATEGY` |
 | `OPENVPN_AUTH_OAUTH2_OPENVPN_COMMON__NAME_ENVIRONMENT__VARIABLE__NAME` | `OPENVPN_AUTH_OAUTH2_OPENVPN_COMMON_NAME_ENVIRONMENT_VARIABLE_NAME` |
-| `OPENVPN_AUTH_OAUTH2_OPENVPN_COMMON__NAME_MODE` | `OPENVPN_AUTH_OAUTH2_OPENVPN_COMMON_NAME_MODE` |
 | `OPENVPN_AUTH_OAUTH2_OPENVPN_ENFORCE__UNIQUE__USER` | `OPENVPN_AUTH_OAUTH2_OPENVPN_ENFORCE_UNIQUE_USER` |
 | `OPENVPN_AUTH_OAUTH2_OPENVPN_OVERRIDE__USERNAME` | `OPENVPN_AUTH_OAUTH2_OPENVPN_OVERRIDE_USERNAME` |
 | `OPENVPN_AUTH_OAUTH2_OPENVPN_PASS__THROUGH_ADDRESS` | `OPENVPN_AUTH_OAUTH2_OPENVPN_PASS_THROUGH_ADDRESS` |
@@ -85,6 +83,25 @@ defaults, YAML, environment variables, and command-line flags.
 for an OpenVPN management command response. Its default is `10s`. It can be
 configured through YAML, the `--openvpn.command-timeout` flag, or
 `OPENVPN_AUTH_OAUTH2_OPENVPN_COMMAND_TIMEOUT`.
+
+### Common name mode
+
+The common name mode has been removed. Version 2 always keeps the common name
+unchanged in the OAuth2 state. Remove every configured form of the option:
+
+| Source | Removed setting |
+| --- | --- |
+| YAML | `openvpn.common-name.mode` |
+| Command line | `--openvpn.common-name.mode` |
+| Version 1 environment | `CONFIG_OPENVPN_COMMON__NAME_MODE` |
+
+If you previously used `mode: omit` to keep the web authentication URL below
+OpenVPN's length limit, enable `http.short-url` instead:
+
+```yaml
+http:
+  short-url: true
+```
 
 ### Pass-through socket permissions
 
