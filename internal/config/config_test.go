@@ -128,7 +128,7 @@ openvpn:
         enabled: true
         password: "password"
         socket-group: "group"
-        socket-mode: 0666
+        socket-mode: "0666"
     reauthentication: false
 http:
     listen: ":9001"
@@ -213,7 +213,7 @@ http:
 							OmitHost: false,
 						}},
 						SocketGroup: "group",
-						SocketMode:  0o666,
+						SocketMode:  types.FileMode(0o666),
 						Password:    "password",
 					},
 					CommandTimeout:   15 * time.Second,
@@ -305,6 +305,8 @@ func TestConfigHelpFlag(t *testing.T) {
 	assert.Contains(t, buf.String(), "(env: OPENVPN_AUTH_OAUTH2_HTTP_LISTEN)")
 	assert.Contains(t, buf.String(), "--openvpn.command-timeout duration")
 	assert.Contains(t, buf.String(), "(env: OPENVPN_AUTH_OAUTH2_OPENVPN_COMMAND_TIMEOUT)")
+	assert.Contains(t, buf.String(), "--openvpn.pass-through.socket-mode value")
+	assert.Contains(t, buf.String(), "(default 0660)")
 	assert.NotContains(t, buf.String(), "(env: CONFIG_HTTP_LISTEN)")
 }
 
@@ -366,6 +368,47 @@ func TestConfigRejectsRemovedTopLevelConfigProperty(t *testing.T) {
 
 	require.Error(t, err)
 	require.ErrorContains(t, err, "field config not found")
+}
+
+func TestConfigRejectsAmbiguousSocketMode(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		name       string
+		configFile string
+		args       []string
+	}{
+		{
+			name:       "yaml",
+			configFile: "openvpn:\n  pass-through:\n    socket-mode: 660\n",
+		},
+		{
+			name: "command line",
+			args: []string{"--openvpn.pass-through.socket-mode=660"},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			var buf bytes.Buffer
+
+			args := slices.Concat([]string{"openvpn-auth-oauth2"}, tc.args)
+			if tc.configFile != "" {
+				configFile, err := os.CreateTemp(t.TempDir(), "openvpn-auth-oauth2-*")
+				require.NoError(t, err)
+
+				_, err = configFile.WriteString(tc.configFile)
+				require.NoError(t, err)
+				require.NoError(t, configFile.Close())
+
+				args = append(args, "--config", configFile.Name())
+			}
+
+			_, err := config.New(args, &buf)
+
+			require.ErrorContains(t, err, "invalid file mode")
+		})
+	}
 }
 
 func TestConfigVersionFlag(t *testing.T) {
@@ -448,6 +491,16 @@ func TestConfigFlagSet(t *testing.T) {
 			func() config.Config {
 				conf := config.Defaults
 				conf.OpenVPN.CommandTimeout = 42 * time.Second
+
+				return conf
+			}(),
+		},
+		{
+			"--openvpn.pass-through.socket-mode",
+			[]string{"--openvpn.pass-through.socket-mode=0640"},
+			func() config.Config {
+				conf := config.Defaults
+				conf.OpenVPN.Passthrough.SocketMode = 0o640
 
 				return conf
 			}(),

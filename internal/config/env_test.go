@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -22,7 +23,7 @@ func TestReadFromFlagAndEnvironment(t *testing.T) {
 	assert.True(t, conf.HTTP.TLS)
 	assert.False(t, conf.OAuth2.Nonce)
 	assert.Equal(t, 17*time.Second, conf.OpenVPN.CommandTimeout)
-	assert.Equal(t, uint(0o660), conf.OpenVPN.Passthrough.SocketMode)
+	assert.Equal(t, types.FileMode(0o660), conf.OpenVPN.Passthrough.SocketMode)
 }
 
 func TestReadFromFlagAndEnvironmentRejectsNonBooleanEnvironmentValues(t *testing.T) {
@@ -59,9 +60,9 @@ func TestReadFromFlagAndEnvironmentRejectsInvalidEnvironmentValues(t *testing.T)
 			value:               "verbose",
 		},
 		{
-			name:                "unsigned integer",
+			name:                "file mode",
 			environmentVariable: "OPENVPN_AUTH_OAUTH2_OPENVPN_PASS_THROUGH_SOCKET_MODE",
-			value:               "owner-read-write",
+			value:               "660",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
