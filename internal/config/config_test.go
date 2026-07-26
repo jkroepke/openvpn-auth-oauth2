@@ -133,7 +133,6 @@ http:
     listen: ":9001"
     secret: "1jd93h5b6s82lf03jh5b2hf9"
     enable-proxy-headers: false
-    short-url: false
     assets-path: "."
     template: "../../README.md"
     check:
@@ -165,7 +164,6 @@ http:
 					},
 					EnableProxyHeaders: false,
 					TrustedProxies:     types.StringSlice{},
-					ShortURL:           false,
 					Listen:             ":9001",
 					Secret:             "1jd93h5b6s82lf03jh5b2hf9",
 					Template: func() types.Template {
@@ -305,6 +303,7 @@ func TestConfigHelpFlag(t *testing.T) {
 	assert.Contains(t, buf.String(), "(env: OPENVPN_AUTH_OAUTH2_OPENVPN_COMMAND_TIMEOUT)")
 	assert.Contains(t, buf.String(), "--openvpn.pass-through.socket-mode value")
 	assert.Contains(t, buf.String(), "(default 0660)")
+	assert.NotContains(t, buf.String(), "--http.short-url")
 	assert.NotContains(t, buf.String(), "--openvpn.common-name.mode")
 	assert.NotContains(t, buf.String(), "(env: CONFIG_HTTP_LISTEN)")
 }

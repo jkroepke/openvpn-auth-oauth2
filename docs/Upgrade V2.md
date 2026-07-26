@@ -25,7 +25,6 @@ dashes. Rename every affected variable as follows:
 | --- | --- |
 | `OPENVPN_AUTH_OAUTH2_HTTP_ASSETS__PATH` | `OPENVPN_AUTH_OAUTH2_HTTP_ASSETS_PATH` |
 | `OPENVPN_AUTH_OAUTH2_HTTP_ENABLE__PROXY__HEADERS` | `OPENVPN_AUTH_OAUTH2_HTTP_ENABLE_PROXY_HEADERS` |
-| `OPENVPN_AUTH_OAUTH2_HTTP_SHORT__URL` | `OPENVPN_AUTH_OAUTH2_HTTP_SHORT_URL` |
 | `OPENVPN_AUTH_OAUTH2_HTTP_TRUSTED__PROXIES` | `OPENVPN_AUTH_OAUTH2_HTTP_TRUSTED_PROXIES` |
 | `OPENVPN_AUTH_OAUTH2_LOG_VPN__CLIENT__IP` | `OPENVPN_AUTH_OAUTH2_LOG_VPN_CLIENT_IP` |
 | `OPENVPN_AUTH_OAUTH2_OAUTH2_AUTHORIZE__PARAMS` | `OPENVPN_AUTH_OAUTH2_OAUTH2_AUTHORIZE_PARAMS` |
@@ -57,8 +56,8 @@ dashes. Rename every affected variable as follows:
 | `OPENVPN_AUTH_OAUTH2_PROVIDER_GOOGLE_VALIDATE_GROUPS__TRANSITIVE` | `OPENVPN_AUTH_OAUTH2_PROVIDER_GOOGLE_VALIDATE_GROUPS_TRANSITIVE` |
 
 For `CONFIG_` variables, apply both the prefix and suffix changes. For example,
-rename `CONFIG_HTTP_SHORT__URL` to
-`OPENVPN_AUTH_OAUTH2_HTTP_SHORT_URL`. Variables not listed in the
+rename `CONFIG_HTTP_ASSETS__PATH` to
+`OPENVPN_AUTH_OAUTH2_HTTP_ASSETS_PATH`. Variables not listed in the
 double-underscore table only require the prefix change.
 
 ## Strict configuration parsing
@@ -95,13 +94,23 @@ unchanged in the OAuth2 state. Remove every configured form of the option:
 | Command line | `--openvpn.common-name.mode` |
 | Version 1 environment | `CONFIG_OPENVPN_COMMON__NAME_MODE` |
 
-If you previously used `mode: omit` to keep the web authentication URL below
-OpenVPN's length limit, enable `http.short-url` instead:
+If you previously used `mode: omit` to keep the web authentication URL short,
+verify that the complete `client-pending-auth` command remains within OpenVPN's
+1023-byte management command limit.
 
-```yaml
-http:
-  short-url: true
-```
+### Short URL
+
+The `http.short-url` option and the `/?s=` redirect endpoint have been removed.
+Version 2 always uses `/oauth2/start?state=` for the authentication URL. Remove
+every configured form of the option. The complete `client-pending-auth` command,
+including the URL and client identifiers, must fit within OpenVPN's 1023-byte
+management command limit.
+
+| Source | Removed setting |
+| --- | --- |
+| YAML | `http.short-url` |
+| Command line | `--http.short-url` |
+| Version 1 environment | `CONFIG_HTTP_SHORT__URL` |
 
 ### Pass-through socket permissions
 

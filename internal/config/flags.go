@@ -106,12 +106,6 @@ func (c *Config) flagSetHTTP(flagSet *flag.FlagSet) {
 		c.HTTP.TrustedProxies,
 		"Trusted reverse proxy CIDRs allowed to set X-Forwarded-For. Multiple values can be provided as a comma-separated list.",
 	)
-	flagSet.BoolVar(
-		&c.HTTP.ShortURL,
-		"http.short-url",
-		c.HTTP.ShortURL,
-		"Enable short URL. The URL which is used for initial authentication will be reduced to /?s=... instead of /oauth2/start?state=...",
-	)
 	flagSet.TextVar(
 		&c.HTTP.AssetPath,
 		"http.assets-path",

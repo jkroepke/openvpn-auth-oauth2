@@ -64,8 +64,6 @@ Usage of openvpn-auth-oauth2:
         listen addr for client listener (env: OPENVPN_AUTH_OAUTH2_HTTP_LISTEN) (default ":9000")
   --http.secret value
         Random generated secret for cookie encryption. Must be 16, 24 or 32 characters. If argument starts with file:// it reads the secret from a file. (env: OPENVPN_AUTH_OAUTH2_HTTP_SECRET)
-  --http.short-url
-        Enable short URL. The URL which is used for initial authentication will be reduced to /?s=... instead of /oauth2/start?state=... (env: OPENVPN_AUTH_OAUTH2_HTTP_SHORT_URL)
   --http.template value
         Path to a HTML file which is displayed at the end of the screen. See https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Layout-Customization for more information. (env: OPENVPN_AUTH_OAUTH2_HTTP_TEMPLATE)
   --http.tls

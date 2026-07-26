@@ -187,26 +187,6 @@ func TestHandler(t *testing.T) {
 			true,
 		},
 		{
-			"with short-url",
-			func() config.Config {
-				conf := config.Defaults
-				conf.HTTP.Secret = testsuite.Secret
-				conf.HTTP.ShortURL = true
-				conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
-				conf.OAuth2.Scopes = []string{oauth2types.ScopeOpenID, oauth2types.ScopeProfile}
-				conf.OpenVPN.Bypass.CommonNames = make(types.RegexpSlice, 0)
-				conf.OpenVPN.AuthTokenUser = true
-				conf.OAuth2.OpenVPNUsername = "token.claims." + testsuite.SubjectClaim
-
-				return conf
-			}(),
-			state.State{Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"}, IPAddr: "127.0.0.1", IPPort: "12345"},
-			false,
-			"",
-			true,
-			true,
-		},
-		{
 			"with ipaddr + forwarded-for",
 			func() config.Config {
 				conf := config.Defaults
@@ -674,15 +654,6 @@ func TestHandler(t *testing.T) {
 			}
 
 			urlPath := "/oauth2/start?state=" + session
-
-			if tc.conf.HTTP.ShortURL {
-				resp, _, err = suite.DoHTTPRequest(t, http.MethodGet, "/?s="+session, nil, http.NoBody) //nolint:bodyclose
-				require.NoError(t, err)
-
-				require.Equal(t, http.StatusFound, resp.StatusCode)
-
-				urlPath = resp.Header.Get("Location")
-			}
 
 			header := make(http.Header)
 
