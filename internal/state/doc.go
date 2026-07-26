@@ -8,14 +8,13 @@
 // which protects the OpenVPN client identifiers, client address, and session
 // state from undetected manipulation.
 //
-// The representation is intentionally compact. OpenVPN documents the WEB_AUTH
-// control message as space constrained and recommends using short URLs; this
-// project also enforces a conservative 245-character limit for the full
-// authentication URL passed to client-pending-auth. The encrypted state must
-// share that budget with the configured base URL and callback path. Encrypt
-// therefore uses a versioned binary payload with varint client identifiers,
-// flag-controlled optional fields, compact session-state codes, binary IP
-// address fields, unpadded URL-safe base64, and a low-overhead Salsa20 plus
-// HMAC envelope. The extra complexity keeps the value inside the OpenVPN URL
-// constraints while preserving integrity and expiry checks for untrusted input.
+// The representation is intentionally compact. OpenVPN accepts at most 1023
+// bytes for the complete client-pending-auth management command. The encrypted
+// state shares that budget with command metadata, the configured base URL, and
+// the callback path. Encrypt therefore uses a versioned binary payload with
+// varint client identifiers, flag-controlled optional fields, compact
+// session-state codes, binary IP address fields, unpadded URL-safe base64, and
+// a low-overhead Salsa20 plus HMAC envelope. The extra complexity keeps the
+// command inside the OpenVPN management interface constraint while preserving
+// integrity and expiry checks for untrusted input.
 package state

@@ -155,7 +155,7 @@ func TestClientFull(t *testing.T) {
 			"to long base url",
 			func() config.Config {
 				conf := config.Defaults
-				conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost", Path: strings.Repeat("a", 255)}}
+				conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost", Path: strings.Repeat("a", 1024)}}
 				conf.HTTP.Secret = testsuite.Secret
 				conf.OpenVPN.CommonName.EnvironmentVariableName = config.CommonName
 				conf.OpenVPN.Bypass = config.OpenVPNBypass{CommonNames: make(types.RegexpSlice, 0)}

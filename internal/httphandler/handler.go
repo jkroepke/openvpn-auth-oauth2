@@ -3,7 +3,6 @@ package httphandler
 import (
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
@@ -29,15 +28,7 @@ func New(conf *config.Config, oAuth2Client *oauth2.Client) *http.ServeMux {
 		mux.Handle("/", http.NotFoundHandler())
 	}
 
-	mux.Handle(fmt.Sprintf("GET %s/", basePath), noCacheHeaders(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if conf.HTTP.ShortURL && r.URL.Query().Has("s") {
-			http.Redirect(w, r, fmt.Sprintf("%s/oauth2/start?state=%s", basePath, url.PathEscape(r.URL.Query().Get("s"))), http.StatusFound)
-
-			return
-		}
-
-		http.NotFound(w, r)
-	})))
+	mux.Handle(fmt.Sprintf("GET %s/", basePath), noCacheHeaders(http.NotFoundHandler()))
 	mux.Handle(fmt.Sprintf("GET %s/ready", basePath), http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("OK"))

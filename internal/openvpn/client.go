@@ -15,6 +15,8 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
 )
 
+const openVPNManagementCommandBodyLimit = 1023
+
 func (c *Client) processClient(ctx context.Context, client connection.Client) error {
 	logger := c.logger.With(
 		slog.String("ip", fmt.Sprintf("%s:%s", client.IPAddr, client.IPPort)),
@@ -197,27 +199,45 @@ func (c *Client) startClientAuth(ctx context.Context, logger *slog.Logger, clien
 		return fmt.Errorf("error encoding state: %w", err)
 	}
 
-	urlPath := "/?s="
-	if !c.conf.HTTP.ShortURL {
-		urlPath = "/oauth2/start?state="
-	}
+	startURL := fmt.Sprintf(
+		"%s/oauth2/start?state=%s",
+		strings.TrimSuffix(c.conf.HTTP.BaseURL.String(), "/"),
+		encryptedOIDCState,
+	)
 
-	startURL := fmt.Sprintf("%s%s%s", strings.TrimSuffix(c.conf.HTTP.BaseURL.String(), "/"), urlPath, encryptedOIDCState)
-
-	if len(startURL) >= 245 {
-		return fmt.Errorf("url %s (%d chars) too long! OpenVPN support up to 245 chars. "+
-			"Try --http.short-url=true to avoid this error",
-			startURL, len(startURL))
+	command, err := buildClientPendingAuthCommand(client, startURL, c.conf.OpenVPN.AuthPendingTimeout)
+	if err != nil {
+		return err
 	}
 
 	logger.LogAttrs(ctx, slog.LevelInfo, "sent client-pending-auth command")
 
-	_, err = c.SendCommandf(ctx, `client-pending-auth %d %d "WEB_AUTH::%s" %.0f`, client.CID, client.KID, startURL, c.conf.OpenVPN.AuthPendingTimeout.Seconds())
+	_, err = c.SendCommand(ctx, command, false)
 	if err != nil {
 		return fmt.Errorf("error sending client-pending-auth command: %w", err)
 	}
 
 	return nil
+}
+
+func buildClientPendingAuthCommand(client connection.Client, startURL string, timeout time.Duration) (string, error) {
+	command := fmt.Sprintf(
+		`client-pending-auth %d %d "WEB_AUTH::%s" %.0f`,
+		client.CID,
+		client.KID,
+		startURL,
+		timeout.Seconds(),
+	)
+
+	if len(command) > openVPNManagementCommandBodyLimit {
+		return "", fmt.Errorf(
+			"client-pending-auth command is %d bytes; OpenVPN accepts at most %d bytes",
+			len(command),
+			openVPNManagementCommandBodyLimit,
+		)
+	}
+
+	return command, nil
 }
 
 // checkAuthBypass checks if the client is allowed to bypass authentication based on its common name.
