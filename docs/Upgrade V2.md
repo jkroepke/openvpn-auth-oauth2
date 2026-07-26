@@ -422,6 +422,16 @@ openvpn:
 
 ## Token validation
 
+Version 2 renames the general CEL validation option and its environment
+variable:
+
+| Version 1 | Version 2 |
+| --- | --- |
+| `oauth2.validate.cel` | `oauth2.validate.expression` |
+| `CONFIG_OAUTH2_VALIDATE_CEL` | `OPENVPN_AUTH_OAUTH2_OAUTH2_VALIDATE_EXPRESSION` |
+
+Update the fields used by the expression as described in [CEL context](#cel-context).
+
 Version 2 removes the following dedicated validation options:
 
 | Version 1 option | Version 2 replacement |
