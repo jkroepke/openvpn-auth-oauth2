@@ -32,15 +32,6 @@ jobs:
 
       - name: go test
         run: go test ./... -short -shuffle=on -timeout 20s -race -covermode=atomic -coverprofile=coverage.out -coverpkg=./...
-        id: test
-        shell: bash
-        continue-on-error: true
-
-      - name: go test (retry)
-        if: steps.test.outcome == 'failure'
-        shell: bash
-        run: go test ./... -short -shuffle=on -timeout 20s -race -covermode=atomic -coverprofile=coverage.out -coverpkg=./...
-
       - name: go test -bench
         run: go test ./... -timeout 20s -run='^$' -bench=. -benchmem
 
