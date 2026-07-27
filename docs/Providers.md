@@ -557,7 +557,68 @@ oauth2:
 
 ## Okta
 
-Contributions for Okta are welcome. Please open an issue, or a pull request if you want to add documentation for Okta.
+<details>
+<summary>Expand</summary>
+
+### Register an app with Okta
+
+1. Sign in to your Okta Admin Console.
+2. Navigate to **Applications** → **Applications** and click **Create App Integration**.
+3. Select **OIDC - OpenID Connect** as the sign-in method and **Web Application** as the application type, then click **Next**.
+4. Enter a name for the application, for example `openvpn-auth-oauth2`.
+5. In the **Grant type** section, keep **Authorization Code** enabled.
+   Additionally enable **Refresh Token** if you plan to use non-interactive session refresh, see below.
+6. Set the **Sign-in redirect URI** to the public endpoint of your `openvpn-auth-oauth2` instance,
+   for example `https://openvpn-auth-oauth2.example.com/oauth2/callback`.
+7. Under **Assignments**, limit the application to the groups that are allowed to connect to the VPN.
+8. Click **Save**, then note the **Client ID** and **Client secret** from the **General** tab.
+
+References:
+
+- https://help.okta.com/en-us/content/topics/apps/apps_app_integration_wizard_oidc.htm
+- https://developer.okta.com/docs/concepts/auth-servers/
+- https://developer.okta.com/docs/guides/refresh-tokens/main/
+
+### Configuration
+
+<table>
+<thead><tr><td>env/sysconfig configuration</td></tr></thead>
+<tbody><tr><td>
+
+```ini
+OPENVPN_AUTH_OAUTH2_OAUTH2_ISSUER=https://<your-org>.okta.com
+OPENVPN_AUTH_OAUTH2_OAUTH2_CLIENT_ID=<client_id>
+OPENVPN_AUTH_OAUTH2_OAUTH2_CLIENT_SECRET=<client_secret>
+```
+</td></tr></tbody>
+<thead><tr><td>yaml configuration</td></tr></thead>
+<tbody><tr><td>
+
+```yaml
+oauth2:
+  issuer: "https://<your-org>.okta.com"
+  client:
+    id: "<client_id>"
+    secret: "<client_secret>"
+```
+</td></tr></tbody>
+</table>
+
+### Restrict auth to specific groups in your directory. (optional)
+
+Restricting access through the **Assignments** tab of the Okta application is preferred.
+Okta denies the login itself, and users get a notice from Okta that the application isn't assigned to them.
+
+Reference: https://help.okta.com/en-us/content/topics/provisioning/lcm/lcm-assign-app-groups.htm
+
+### Non-interactive session refresh (optional)
+
+The refresh token grant enabled during the registration above is required for
+[non-interactive session refresh](Non-interactive%20session%20refresh.md).
+
+Keep `oauth2.refresh.expires` aligned with the `auth-gen-token` lifetime of your OpenVPN server configuration.
+
+</details>
 
 ## Ping Identity
 
