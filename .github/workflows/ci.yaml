@@ -32,7 +32,6 @@ jobs:
 
       - name: go test
         run: go test ./... -short -shuffle=on -timeout 20s -race -covermode=atomic -coverprofile=coverage.out -coverpkg=./...
-       
       - name: go test -bench
         run: go test ./... -timeout 20s -run='^$' -bench=. -benchmem
 
