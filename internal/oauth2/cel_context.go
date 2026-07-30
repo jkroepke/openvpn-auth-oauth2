@@ -145,13 +145,13 @@ type celContextTypeAdapter struct {
 
 func (a *celContextTypeAdapter) NativeToValue(value any) ref.Val {
 	switch value.(type) {
-	case celAuthContext:
+	case celAuthContext, *celAuthContext:
 		return a.newContextValue(celAuthContextTypeName, value)
-	case celOpenVPNContext:
+	case celOpenVPNContext, *celOpenVPNContext:
 		return a.newContextValue(celOpenVPNContextTypeName, value)
-	case celTokenContext:
+	case celTokenContext, *celTokenContext:
 		return a.newContextValue(celTokenContextTypeName, value)
-	case celUserContext:
+	case celUserContext, *celUserContext:
 		return a.newContextValue(celUserContextTypeName, value)
 	default:
 		return a.Adapter.NativeToValue(value)
@@ -189,6 +189,11 @@ func (v *celContextValue) ConvertToNative(typeDesc reflect.Type) (any, error) {
 		return v.value, nil
 	}
 
+	valueReflection := reflect.ValueOf(v.value)
+	if valueType.Kind() == reflect.Pointer && !valueReflection.IsNil() && valueType.Elem().AssignableTo(typeDesc) {
+		return valueReflection.Elem().Interface(), nil
+	}
+
 	if typeDesc.Kind() == reflect.Pointer && valueType.AssignableTo(typeDesc.Elem()) {
 		valuePtr := reflect.New(typeDesc.Elem())
 		valuePtr.Elem().Set(reflect.ValueOf(v.value))
@@ -217,7 +222,7 @@ func (v *celContextValue) Equal(other ref.Val) ref.Val {
 		return celtypes.False
 	}
 
-	return celtypes.Bool(reflect.DeepEqual(v.value, otherContext.value))
+	return celtypes.Bool(reflect.DeepEqual(dereferenceCELContext(v.value), dereferenceCELContext(otherContext.value)))
 }
 
 func (v *celContextValue) Get(field ref.Val) ref.Val {
@@ -248,7 +253,7 @@ func (v *celContextValue) Type() ref.Type {
 }
 
 func (v *celContextValue) Value() any {
-	return v.value
+	return dereferenceCELContext(v.value)
 }
 
 func (v *celContextValue) findField(field ref.Val) (*celtypes.FieldType, ref.Val) {
@@ -441,12 +446,12 @@ func newCELContextField[Context, Value any](fieldName string, fieldType *cel.Typ
 		fieldType: &celtypes.FieldType{
 			Type: fieldType,
 			IsSet: func(target any) bool {
-				_, ok := target.(Context)
+				_, ok := asCELContext[Context](target)
 
 				return ok
 			},
 			GetFrom: func(target any) (any, error) {
-				context, ok := target.(Context)
+				context, ok := asCELContext[Context](target)
 				if !ok {
 					return nil, fmt.Errorf("invalid cel context for field %q: %T", fieldName, target)
 				}
@@ -455,4 +460,29 @@ func newCELContextField[Context, Value any](fieldName string, fieldType *cel.Typ
 			},
 		},
 	}
+}
+
+func asCELContext[Context any](target any) (Context, bool) {
+	context, ok := target.(Context)
+	if ok {
+		return context, true
+	}
+
+	contextPtr, ok := target.(*Context)
+	if ok && contextPtr != nil {
+		return *contextPtr, true
+	}
+
+	var zero Context
+
+	return zero, false
+}
+
+func dereferenceCELContext(value any) any {
+	valueReflection := reflect.ValueOf(value)
+	if valueReflection.Kind() == reflect.Pointer && !valueReflection.IsNil() {
+		return valueReflection.Elem().Interface()
+	}
+
+	return value
 }

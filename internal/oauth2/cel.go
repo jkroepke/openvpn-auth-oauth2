@@ -18,6 +18,36 @@ const (
 	CELAuthModeNonInteractive = types.AuthModeNonInteractive
 )
 
+// celActivation keeps the fixed CEL variables inline and resolves pointers to them,
+// avoiding the map allocation and interface boxing required by map-based activations.
+type celActivation struct {
+	auth    celAuthContext
+	openvpn celOpenVPNContext
+	token   celTokenContext
+	user    celUserContext
+}
+
+var _ cel.Activation = (*celActivation)(nil)
+
+func (a *celActivation) ResolveName(name string) (any, bool) {
+	switch name {
+	case "auth":
+		return &a.auth, true
+	case "openvpn":
+		return &a.openvpn, true
+	case "token":
+		return &a.token, true
+	case "user":
+		return &a.user, true
+	default:
+		return nil, false
+	}
+}
+
+func (a *celActivation) Parent() cel.Activation {
+	return nil
+}
+
 // newCELEnvironment returns the common CEL environment used by all configurable expressions.
 func newCELEnvironment() (*cel.Env, error) {
 	env, err := cel.NewEnv(
@@ -172,7 +202,7 @@ func newCELActivation(
 	session state.State,
 	tokens *idtoken.IDToken,
 	userInfo types.UserInfo,
-) map[string]any {
+) *celActivation {
 	var claims map[string]any
 
 	tokenIP := ""
@@ -195,20 +225,20 @@ func newCELActivation(
 		roles = make([]string, 0)
 	}
 
-	return map[string]any{
-		"auth": celAuthContext{
+	return &celActivation{
+		auth: celAuthContext{
 			mode: string(authMode),
 		},
-		"openvpn": celOpenVPNContext{
+		openvpn: celOpenVPNContext{
 			commonName:   session.Client.CommonName,
 			ip:           session.IPAddr,
 			sessionState: session.SessionState,
 		},
-		"token": celTokenContext{
+		token: celTokenContext{
 			claims: claims,
 			ip:     tokenIP,
 		},
-		"user": celUserContext{
+		user: celUserContext{
 			email:    userInfo.Email,
 			groups:   groups,
 			roles:    roles,
