@@ -157,7 +157,7 @@ func (c *Client) OAuth2ProfileSubmit() http.Handler {
 			return
 		}
 
-		tokenBytes, err := c.stateCrypto.DecryptBytesWithTime([]byte(encryptedToken))
+		tokenBytes, err := c.stateCrypto.DecryptStringWithTime(encryptedToken)
 		if err != nil {
 			c.writeHTTPError(ctx, w, c.logger, http.StatusBadRequest, "Invalid token", err.Error())
 

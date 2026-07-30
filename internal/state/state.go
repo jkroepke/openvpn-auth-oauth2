@@ -72,7 +72,7 @@ func Decrypt(cipher *crypto.Cipher, encryptedState EncryptedState) (State, error
 		return State{}, errors.New("cipher is required")
 	}
 
-	data, err := cipher.DecryptBytesWithTime([]byte(encryptedState))
+	data, err := cipher.DecryptStringWithTime(encryptedState)
 	if err != nil {
 		return State{}, fmt.Errorf("decrypt state: %w", err)
 	}

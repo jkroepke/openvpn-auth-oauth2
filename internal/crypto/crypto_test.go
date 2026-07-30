@@ -269,6 +269,19 @@ func TestDecryptBytesWithTimeMaxAge(t *testing.T) {
 	require.Equal(t, []byte("payload"), decrypted)
 }
 
+func TestDecryptStringWithTime(t *testing.T) {
+	t.Parallel()
+
+	cipher := crypto.New("test-key")
+
+	encrypted, err := cipher.EncryptBytesWithTime([]byte("hello world"))
+	require.NoError(t, err)
+
+	decrypted, err := cipher.DecryptStringWithTime(string(encrypted))
+	require.NoError(t, err)
+	require.Equal(t, []byte("hello world"), decrypted)
+}
+
 func TestCipherConsistency(t *testing.T) {
 	t.Parallel()
 
