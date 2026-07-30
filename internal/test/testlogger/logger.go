@@ -21,10 +21,18 @@ type Logger struct {
 // New returns a logger that stores all logs in memory so tests can inspect them.
 func New() *Logger {
 	syncBuffer := NewSyncBuffer()
-	syncBuffer.buffer.Grow(16 << 20)
 
+	return newLogger(syncBuffer, syncBuffer)
+}
+
+// NewDiscard returns a logger that formats logs but discards the output.
+func NewDiscard() *Logger {
+	return newLogger(io.Discard, NewSyncBuffer())
+}
+
+func newLogger(writer io.Writer, syncBuffer *SyncBuffer) *Logger {
 	return &Logger{
-		logger: slog.New(slog.NewTextHandler(syncBuffer, &slog.HandlerOptions{
+		logger: slog.New(slog.NewTextHandler(writer, &slog.HandlerOptions{
 			Level: slog.LevelDebug,
 		})),
 		buffer: syncBuffer,
