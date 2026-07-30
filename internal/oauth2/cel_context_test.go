@@ -147,6 +147,7 @@ func TestCELContextEvaluation(t *testing.T) {
 		has(user.username) &&
 		!has(token.claims.missing) &&
 		auth == auth &&
+		auth == openvpn_auth_oauth2.AuthContext{mode: "interactive"} &&
 		openvpn == openvpn &&
 		token == token &&
 		user == user &&
