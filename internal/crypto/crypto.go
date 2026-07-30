@@ -183,7 +183,7 @@ func (c *Cipher) EncryptBytesWithTime(plainText []byte) ([]byte, error) {
 
 // DecryptBytesWithTime decodes, authenticates, decrypts, and validates the timestamp on raw URL-base64 input.
 func (c *Cipher) DecryptBytesWithTime(encryptedBase64 []byte) ([]byte, error) {
-	if err := checkTokenSize(encryptedBase64); err != nil {
+	if err := checkTokenSize(len(encryptedBase64)); err != nil {
 		return nil, err
 	}
 
@@ -194,7 +194,28 @@ func (c *Cipher) DecryptBytesWithTime(encryptedBase64 []byte) ([]byte, error) {
 		return nil, fmt.Errorf("base64 decode %q: %w", encryptedBase64, err)
 	}
 
-	data, err := c.DecryptBytes(encrypted[:decodedLen])
+	return c.decryptTimedPayload(encrypted[:decodedLen])
+}
+
+// DecryptStringWithTime decodes, authenticates, decrypts, and validates
+// the timestamp on raw URL-base64 string input.
+func (c *Cipher) DecryptStringWithTime(encryptedBase64 string) ([]byte, error) {
+	if err := checkTokenSize(len(encryptedBase64)); err != nil {
+		return nil, err
+	}
+
+	encrypted, err := base64.RawURLEncoding.DecodeString(encryptedBase64)
+	if err != nil {
+		return nil, fmt.Errorf("base64 decode %q: %w", encryptedBase64, err)
+	}
+
+	return c.decryptTimedPayload(encrypted)
+}
+
+// decryptTimedPayload authenticates, decrypts, and validates
+// an already base64-decoded timestamped payload.
+func (c *Cipher) decryptTimedPayload(encrypted []byte) ([]byte, error) {
+	data, err := c.DecryptBytes(encrypted)
 	if err != nil {
 		return nil, err
 	}
@@ -230,8 +251,8 @@ func (c *Cipher) putMAC(macHash *pooledMAC) {
 }
 
 // checkTokenSize rejects unreasonably large encoded payloads before allocating decode buffers.
-func checkTokenSize(encodedState []byte) error {
-	if len(encodedState) > 4096 {
+func checkTokenSize(encodedLength int) error {
+	if encodedLength > 4096 {
 		return fmt.Errorf("%w: token too large", ErrInvalid)
 	}
 
