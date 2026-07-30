@@ -19,6 +19,15 @@ import (
 	"golang.org/x/net/nettest"
 )
 
+func TestHandlePluginUpListenFailure(t *testing.T) {
+	t.Parallel()
+
+	handle := newTestPluginHandle(t)
+	handle.listenSocketAddr = "unsupported://management"
+
+	require.Equal(t, c.OpenVPNPluginFuncError, handle.handlePluginUp())
+}
+
 //nolint:paralleltest // handleAuthUserPassVerify increments the package-level clientIDCounter.
 func TestHandleAuthUserPassVerifyPendingFileWriteFailure(t *testing.T) {
 	clientIDCounter.Store(0)
