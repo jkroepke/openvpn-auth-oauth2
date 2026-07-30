@@ -7,9 +7,12 @@ import (
 	"fmt"
 	"net"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
 	internalopenvpn "github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/test/testlogger"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/test/testsuite"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/lib/openvpn-auth-oauth2/internal/c"
 	"github.com/stretchr/testify/require"
@@ -90,6 +93,44 @@ func TestHandleAuthUserPassVerifyFinalAuthFileWriteFailure(t *testing.T) {
 			require.NoFileExists(t, authControlFile)
 		})
 	}
+}
+
+//nolint:paralleltest // handleAuthUserPassVerify increments the package-level clientIDCounter.
+func TestHandleAuthUserPassVerifyCancelsPendingPoller(t *testing.T) {
+	clientIDCounter.Store(0)
+	t.Cleanup(func() {
+		clientIDCounter.Store(0)
+	})
+
+	const clientID = uint64(1)
+
+	authPendingFile := filepath.Join(t.TempDir(), "auth-pending")
+	env := append(validAuthUserPassVerifyEnv(), "auth_pending_file="+authPendingFile)
+
+	handle, managementConn := newConnectedTestPluginHandle(t)
+	logger := testlogger.New()
+	handle.logger = logger.Logger()
+
+	clientContext := &ClientContext{}
+	statusCh := startTestClientAuth(t, handle, managementConn, clientID, env, clientContext)
+
+	managementConn.SendMessagef(t, `client-pending-auth %d 0 "WEB_AUTH::https://example.com/auth" 300`, clientID)
+	managementConn.ExpectMessage(t, "SUCCESS: client-pending-auth command succeeded")
+
+	require.Equal(t, c.OpenVPNPluginFuncDeferred, <-statusCh)
+
+	handle.cancel()
+
+	require.Eventually(t, func() bool {
+		return strings.Contains(logger.String(), "poll deferred auth state")
+	}, time.Second, 10*time.Millisecond)
+	require.Contains(t, logger.String(), "context canceled")
+
+	pendingRespCh, err := handle.managementClient.RegisterPendingPoller(clientID)
+	require.NoError(t, err)
+	require.NotNil(t, pendingRespCh)
+
+	handle.managementClient.CancelPendingPoller(clientID)
 }
 
 func newConnectedTestPluginHandle(t *testing.T) (*PluginHandle, *testsuite.Conn) {
