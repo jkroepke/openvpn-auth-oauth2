@@ -12,6 +12,9 @@ import (
 const (
 	binaryStateVersion = 2
 
+	// stateEncodingScratchSize covers typical states while retaining a heap fallback for larger values.
+	stateEncodingScratchSize = 128
+
 	flagSessionID         = 1 << 0
 	flagCommonName        = 1 << 1
 	flagIPAddrV4          = 1 << 2
@@ -56,7 +59,9 @@ func Encrypt(cipher *crypto.Cipher, state State) (EncryptedState, error) {
 		return "", errors.New("cipher is required")
 	}
 
-	data := encodeState(state)
+	var scratch [stateEncodingScratchSize]byte
+
+	data := encodeState(scratch[:0], state)
 
 	encrypted, err := cipher.EncryptBytesWithTime(data)
 	if err != nil {
@@ -85,15 +90,8 @@ func Decrypt(cipher *crypto.Cipher, encryptedState EncryptedState) (State, error
 	return state, nil
 }
 
-// encodeState serializes State into the compact binary payload protected by Encrypt.
-func encodeState(state State) []byte {
-	data := make([]byte, 0, 4+
-		binary.MaxVarintLen64*2+
-		len(state.Client.SessionID)+
-		len(state.Client.CommonName)+
-		len(state.IPAddr)+
-		len(state.IPPort))
-
+// encodeState appends State as the compact binary payload protected by Encrypt.
+func encodeState(data []byte, state State) []byte {
 	flags, ipAddr := encodeStateFlags(state)
 
 	data = append(data, binaryStateVersion, flags, encodeSessionState(state.SessionState)[0])
