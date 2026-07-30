@@ -69,6 +69,7 @@ lint: golangci  ## Run linter
 .PHONY: fmt  ## Format code
 fmt:
 	@go mod tidy
+	# ignoring exit codes from linter, because they exited non zero, if they format code.
 	@-go fmt ./...
 	@-go run github.com/daixiang0/gci@v0.14.0 write .
 	@-go run mvdan.cc/gofumpt@v0.10.0 -l -w .
