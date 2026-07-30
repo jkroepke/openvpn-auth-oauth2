@@ -38,21 +38,28 @@ func checkClientIPAddr(r *http.Request, conf *config.Config, session state.State
 }
 
 func clientIPFromForwardedChain(remoteAddr string, forwardedForHeaders, trustedProxies []string) string {
-	forwardedFor := strings.Join(forwardedForHeaders, ",")
-	forwardedAddrs := strings.Split(forwardedFor, ",")
 	currentAddr := remoteAddr
 
-	for _, forwardedAddr := range slices.Backward(forwardedAddrs) {
-		if !addrTrustedProxy(currentAddr, trustedProxies) {
-			return currentAddr
-		}
+	for _, forwardedFor := range slices.Backward(forwardedForHeaders) {
+		for {
+			if !addrTrustedProxy(currentAddr, trustedProxies) {
+				return currentAddr
+			}
 
-		forwardedAddr = strings.TrimSpace(forwardedAddr)
-		if forwardedAddr == "" {
-			continue
-		}
+			comma := strings.LastIndexByte(forwardedFor, ',')
+			forwardedAddr := forwardedFor[comma+1:]
+			forwardedAddr = strings.TrimSpace(forwardedAddr)
 
-		currentAddr = forwardedAddr
+			if forwardedAddr != "" {
+				currentAddr = forwardedAddr
+			}
+
+			if comma < 0 {
+				break
+			}
+
+			forwardedFor = forwardedFor[:comma]
+		}
 	}
 
 	return currentAddr
