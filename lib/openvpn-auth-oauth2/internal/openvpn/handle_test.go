@@ -6,6 +6,7 @@ package openvpn
 import (
 	"fmt"
 	"net"
+	"path/filepath"
 	"testing"
 
 	internalopenvpn "github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn"
@@ -38,6 +39,57 @@ func TestHandleAuthUserPassVerifyPendingFileWriteFailure(t *testing.T) {
 	require.NotNil(t, pendingRespCh)
 
 	handle.managementClient.CancelPendingPoller(clientID)
+}
+
+//nolint:paralleltest // handleAuthUserPassVerify increments the package-level clientIDCounter.
+func TestHandleAuthUserPassVerifyFinalAuthFileWriteFailure(t *testing.T) {
+	for _, testCase := range []struct {
+		name            string
+		command         string
+		expectedCommand string
+	}{
+		{
+			name:            "accept",
+			command:         "client-auth-nt %d 0",
+			expectedCommand: "ERROR: client-auth command failed",
+		},
+		{
+			name:            "deny",
+			command:         `client-deny %d 0 "access denied"`,
+			expectedCommand: "ERROR: client-deny command failed",
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			clientIDCounter.Store(0)
+			t.Cleanup(func() {
+				clientIDCounter.Store(0)
+			})
+
+			const clientID = uint64(1)
+
+			testDir := t.TempDir()
+			authPendingFile := filepath.Join(testDir, "auth-pending")
+			authControlFile := filepath.Join(testDir, "missing", "auth-control")
+			env := append(
+				validAuthUserPassVerifyEnv(),
+				"auth_pending_file="+authPendingFile,
+				"auth_control_file="+authControlFile,
+			)
+
+			handle, managementConn := newConnectedTestPluginHandle(t)
+			clientContext := &ClientContext{}
+			statusCh := startTestClientAuth(t, handle, managementConn, clientID, env, clientContext)
+
+			managementConn.SendMessagef(t, `client-pending-auth %d 0 "WEB_AUTH::https://example.com/auth" 300`, clientID)
+			managementConn.ExpectMessage(t, "SUCCESS: client-pending-auth command succeeded")
+
+			require.Equal(t, c.OpenVPNPluginFuncDeferred, <-statusCh)
+
+			managementConn.SendMessagef(t, testCase.command, clientID)
+			managementConn.ExpectMessage(t, testCase.expectedCommand)
+			require.NoFileExists(t, authControlFile)
+		})
+	}
 }
 
 func newConnectedTestPluginHandle(t *testing.T) (*PluginHandle, *testsuite.Conn) {
