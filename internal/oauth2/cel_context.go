@@ -58,21 +58,21 @@ func newCELContextSchemas() map[string]*celContextSchema {
 		celAuthContextTypeName: newCELContextSchema(
 			celAuthContextTypeName,
 			newCELAuthContext,
-			newCELContextField("mode", cel.StringType, func(context celAuthContext) string {
-				return context.mode
+			newCELStringContextField("mode", func(context *celAuthContext) *string {
+				return &context.mode
 			}),
 		),
 		celOpenVPNContextTypeName: newCELContextSchema(
 			celOpenVPNContextTypeName,
 			newCELOpenVPNContext,
-			newCELContextField("commonName", cel.StringType, func(context celOpenVPNContext) string {
-				return context.commonName
+			newCELStringContextField("commonName", func(context *celOpenVPNContext) *string {
+				return &context.commonName
 			}),
-			newCELContextField("ip", cel.StringType, func(context celOpenVPNContext) string {
-				return context.ip
+			newCELStringContextField("ip", func(context *celOpenVPNContext) *string {
+				return &context.ip
 			}),
-			newCELContextField("sessionState", cel.StringType, func(context celOpenVPNContext) string {
-				return context.sessionState
+			newCELStringContextField("sessionState", func(context *celOpenVPNContext) *string {
+				return &context.sessionState
 			}),
 		),
 		celTokenContextTypeName: newCELContextSchema(
@@ -81,15 +81,15 @@ func newCELContextSchemas() map[string]*celContextSchema {
 			newCELContextField("claims", cel.MapType(cel.StringType, cel.DynType), func(context celTokenContext) map[string]any {
 				return context.claims
 			}),
-			newCELContextField("ip", cel.StringType, func(context celTokenContext) string {
-				return context.ip
+			newCELStringContextField("ip", func(context *celTokenContext) *string {
+				return &context.ip
 			}),
 		),
 		celUserContextTypeName: newCELContextSchema(
 			celUserContextTypeName,
 			newCELUserContext,
-			newCELContextField("email", cel.StringType, func(context celUserContext) string {
-				return context.email
+			newCELStringContextField("email", func(context *celUserContext) *string {
+				return &context.email
 			}),
 			newCELContextField("groups", cel.ListType(cel.StringType), func(context celUserContext) []string {
 				return context.groups
@@ -97,11 +97,11 @@ func newCELContextSchemas() map[string]*celContextSchema {
 			newCELContextField("roles", cel.ListType(cel.StringType), func(context celUserContext) []string {
 				return context.roles
 			}),
-			newCELContextField("subject", cel.StringType, func(context celUserContext) string {
-				return context.subject
+			newCELStringContextField("subject", func(context *celUserContext) *string {
+				return &context.subject
 			}),
-			newCELContextField("username", cel.StringType, func(context celUserContext) string {
-				return context.username
+			newCELStringContextField("username", func(context *celUserContext) *string {
+				return &context.username
 			}),
 		),
 	}
@@ -460,6 +460,43 @@ func newCELContextField[Context, Value any](fieldName string, fieldType *cel.Typ
 			},
 		},
 	}
+}
+
+// newCELStringContextField returns pointers to activation-owned strings so the
+// CEL adapter can convert them without first allocating an interface-boxed copy.
+func newCELStringContextField[Context any](fieldName string, getValue func(*Context) *string) celContextField {
+	return celContextField{
+		name: fieldName,
+		fieldType: &celtypes.FieldType{
+			Type: cel.StringType,
+			IsSet: func(target any) bool {
+				_, ok := asCELContext[Context](target)
+
+				return ok
+			},
+			GetFrom: func(target any) (any, error) {
+				context, ok := target.(*Context)
+				if ok && context != nil {
+					return getValue(context), nil
+				}
+
+				return getCELStringContextFieldFromValue(fieldName, target, getValue)
+			},
+		},
+	}
+}
+
+func getCELStringContextFieldFromValue[Context any](
+	fieldName string,
+	target any,
+	getValue func(*Context) *string,
+) (any, error) {
+	context, ok := target.(Context)
+	if !ok {
+		return nil, fmt.Errorf("invalid cel context for field %q: %T", fieldName, target)
+	}
+
+	return getValue(&context), nil
 }
 
 func asCELContext[Context any](target any) (Context, bool) {
