@@ -26,6 +26,7 @@ func TestState(t *testing.T) {
 		{name: "ipv6 address", commonName: "foobar", ipAddr: "2001:db8::1", ipPort: "12345", sessionState: "Authenticated"},
 		{name: "with special characters", commonName: "foo bar/baz@qux", ipAddr: "127.0.0.1", ipPort: "12345", sessionState: "AuthenticatedEmptyUser"},
 		{name: "with unicode characters", commonName: "foo bar/baz@qux 你好", ipAddr: "127.0.0.1", ipPort: "12345", sessionState: "ExpiredEmptyUser"},
+		{name: "larger than encoding scratch", commonName: strings.Repeat("a", 512), ipAddr: "::", ipPort: "12345", sessionState: "Authenticated"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

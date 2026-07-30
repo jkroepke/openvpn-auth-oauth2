@@ -10,7 +10,7 @@ import (
 func TestEncodeStateUsesCompactBinaryPayload(t *testing.T) {
 	t.Parallel()
 
-	payload := encodeState(State{
+	payload := encodeState(nil, State{
 		Client: ClientIdentifier{
 			CID:        1,
 			KID:        2,
