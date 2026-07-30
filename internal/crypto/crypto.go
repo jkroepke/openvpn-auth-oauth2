@@ -39,6 +39,14 @@ type Cipher struct {
 	maxAge  time.Duration
 }
 
+// pooledMAC keeps the hash and Sum destination together. A local Sum scratch
+// array escapes because hash.Hash is an interface, causing an allocation per call.
+type pooledMAC struct {
+	hash.Hash
+
+	sum [sha256.Size]byte
+}
+
 // New creates a new Cipher instance with the given encryption key.
 // Both the encryption key and the MAC key are independently derived from the
 // input using HKDF-SHA256 with distinct info strings ("salsa20-encryption" and
@@ -65,7 +73,9 @@ func NewWithMaxAge(encryptionKey string, maxAge time.Duration) *Cipher {
 		maxAge: maxAge,
 	}
 	cipher.macPool.New = func() any {
-		return hmac.New(sha256.New, cipher.macKey)
+		return &pooledMAC{
+			Hash: hmac.New(sha256.New, cipher.macKey),
+		}
 	}
 
 	return cipher
@@ -113,9 +123,7 @@ func (c *Cipher) EncryptBytes(plainText []byte) ([]byte, error) {
 	macHash.Write(nonce)
 	macHash.Write(cipherText)
 
-	var tagScratch [sha256.Size]byte
-
-	tag := macHash.Sum(tagScratch[:0])
+	tag := macHash.Sum(macHash.sum[:0])
 	copy(result[len(result)-hmacTagSize:], tag[:hmacTagSize])
 
 	return result, nil
@@ -141,9 +149,7 @@ func (c *Cipher) DecryptBytes(encryptedData []byte) ([]byte, error) {
 	macHash.Write(nonce)
 	macHash.Write(cipherText)
 
-	var tagScratch [sha256.Size]byte
-
-	expectedTag := macHash.Sum(tagScratch[:0])
+	expectedTag := macHash.Sum(macHash.sum[:0])
 
 	if !hmac.Equal(tag, expectedTag[:hmacTagSize]) {
 		return nil, ErrHMACVerificationFailed
@@ -206,17 +212,19 @@ func (c *Cipher) DecryptBytesWithTime(encryptedBase64 []byte) ([]byte, error) {
 }
 
 // getMAC returns a reset HMAC-SHA256 instance from the cipher-local pool.
-func (c *Cipher) getMAC() hash.Hash {
-	macHash, ok := c.macPool.Get().(hash.Hash)
+func (c *Cipher) getMAC() *pooledMAC {
+	macHash, ok := c.macPool.Get().(*pooledMAC)
 	if !ok {
-		return hmac.New(sha256.New, c.macKey)
+		return &pooledMAC{
+			Hash: hmac.New(sha256.New, c.macKey),
+		}
 	}
 
 	return macHash
 }
 
 // putMAC resets and returns an HMAC-SHA256 instance to the cipher-local pool.
-func (c *Cipher) putMAC(macHash hash.Hash) {
+func (c *Cipher) putMAC(macHash *pooledMAC) {
 	macHash.Reset()
 	c.macPool.Put(macHash)
 }
