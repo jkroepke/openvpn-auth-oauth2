@@ -14,7 +14,7 @@ func BenchmarkFull(b *testing.B) {
 	b.StopTimer()
 
 	conf := config.Config{}
-	suite := testsuite.New(&conf)
+	suite := testsuite.New(&conf, testsuite.WithDiscardLogger())
 	suite.SetupMockEnvironment(b.Context(), b, nil)
 	suite.ExpectVersionAndReleaseHold(b)
 

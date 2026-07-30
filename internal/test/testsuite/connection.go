@@ -72,7 +72,10 @@ func (c *Conn) Reader() *bufio.Reader {
 func sendMessagef(tb testing.TB, conn net.Conn, logs func() string, sendMessage string, args ...any) {
 	tb.Helper()
 
-	require.NotNil(tb, conn, "connection is nil\n\n%s", logOutput(logs))
+	if conn == nil {
+		require.NotNil(tb, conn, "connection is nil\n\n%s", logOutput(logs))
+	}
+
 	require.NoError(tb, conn.SetWriteDeadline(time.Now().Add(time.Second*5)))
 
 	if sendMessage != "ENTER PASSWORD:" {
@@ -80,7 +83,9 @@ func sendMessagef(tb testing.TB, conn net.Conn, logs func() string, sendMessage 
 	}
 
 	_, err := fmt.Fprintf(conn, sendMessage, args...)
-	require.NoError(tb, err, "error sending message to management interface\n\n%s", logOutput(logs))
+	if err != nil {
+		require.NoError(tb, err, "error sending message to management interface\n\n%s", logOutput(logs))
+	}
 }
 
 func expectConnMessage(tb testing.TB, conn net.Conn, reader *bufio.Reader, logs func() string, expectMessage string) {
@@ -92,14 +97,21 @@ func expectConnMessage(tb testing.TB, conn net.Conn, reader *bufio.Reader, logs 
 	)
 	for expected := range strings.SplitSeq(strings.TrimSpace(expectMessage), "\n") {
 		err = conn.SetReadDeadline(time.Now().Add(time.Second * 5))
-		require.NoError(tb, err, "expected line: %s\nexpected message:\n%s\n\n%s", expected, expectMessage, logOutput(logs))
+		if err != nil {
+			require.NoError(tb, err, "expected line: %s\nexpected message:\n%s\n\n%s", expected, expectMessage, logOutput(logs))
+		}
 
 		line, err = reader.ReadString('\n')
 		if err != nil && !errors.Is(err, io.EOF) {
 			require.NoError(tb, err, "expected line: %s\nexpected message:\n%s\n\n%s", expected, expectMessage, logOutput(logs))
 		}
 
-		require.Equal(tb, strings.TrimRightFunc(expected, unicode.IsSpace), strings.TrimRightFunc(line, unicode.IsSpace), logOutput(logs))
+		expected = strings.TrimRightFunc(expected, unicode.IsSpace)
+		line = strings.TrimRightFunc(line, unicode.IsSpace)
+
+		if expected != line {
+			require.Equal(tb, expected, line, logOutput(logs))
+		}
 	}
 }
 
