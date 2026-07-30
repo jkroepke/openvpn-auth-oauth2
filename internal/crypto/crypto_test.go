@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -304,6 +305,45 @@ func TestMultipleEncryptionRounds(t *testing.T) {
 		require.NoError(t, err, "round %d DecryptBytes failed", i+1)
 		require.Equal(t, plainText, decrypted, "round %d failed", i+1)
 	}
+}
+
+func TestCipherConcurrentUse(t *testing.T) {
+	t.Parallel()
+
+	const workerCount = 16
+
+	cipher := crypto.New("test-key")
+	plainText := []byte("concurrent message")
+
+	var wg sync.WaitGroup
+
+	for range workerCount {
+		wg.Go(func() {
+			for range 100 {
+				encrypted, err := cipher.EncryptBytes(plainText)
+				if err != nil {
+					t.Errorf("EncryptBytes failed: %v", err)
+
+					return
+				}
+
+				decrypted, err := cipher.DecryptBytes(encrypted)
+				if err != nil {
+					t.Errorf("DecryptBytes failed: %v", err)
+
+					return
+				}
+
+				if !bytes.Equal(plainText, decrypted) {
+					t.Errorf("decrypted text %q does not match %q", decrypted, plainText)
+
+					return
+				}
+			}
+		})
+	}
+
+	wg.Wait()
 }
 
 func BenchmarkDeriveKey(b *testing.B) {
