@@ -127,29 +127,7 @@ func (c *Cipher) DecryptBytes(encryptedData []byte) ([]byte, error) {
 		return nil, ErrCipherTextBlockSize
 	}
 
-	// Extract components
-	nonce := encryptedData[:salsa20NonceSize]
-	cipherText := encryptedData[salsa20NonceSize : len(encryptedData)-hmacTagSize]
-	tag := encryptedData[len(encryptedData)-hmacTagSize:]
-
-	// Verify HMAC before decryption (constant-time comparison)
-	macHash := c.getMAC()
-	defer c.putMAC(macHash)
-
-	macHash.Write(nonce)
-	macHash.Write(cipherText)
-
-	expectedTag := macHash.Sum(macHash.sum[:0])
-
-	if !hmac.Equal(tag, expectedTag[:hmacTagSize]) {
-		return nil, ErrHMACVerificationFailed
-	}
-
-	// Decrypt using Salsa20
-	plainText := make([]byte, len(cipherText))
-	salsa20.XORKeyStream(plainText, cipherText, nonce, c.encKey)
-
-	return plainText, nil
+	return c.decryptBytesInto(nil, encryptedData)
 }
 
 // EncryptBytesWithTime prefixes plaintext with the current Unix timestamp, encrypts it, and returns raw URL-base64 bytes.
@@ -237,10 +215,44 @@ func (c *Cipher) encryptBytesInto(dst, plainText []byte, macHash *pooledMAC) ([]
 	return result, nil
 }
 
+// decryptBytesInto authenticates encryptedData and decrypts it into dst.
+// Callers must reject ciphertext shorter than the nonce and authentication tag.
+func (c *Cipher) decryptBytesInto(dst, encryptedData []byte) ([]byte, error) {
+	nonce := encryptedData[:salsa20NonceSize]
+	cipherText := encryptedData[salsa20NonceSize : len(encryptedData)-hmacTagSize]
+	tag := encryptedData[len(encryptedData)-hmacTagSize:]
+
+	macHash := c.getMAC()
+	defer c.putMAC(macHash)
+
+	macHash.Write(nonce)
+	macHash.Write(cipherText)
+
+	expectedTag := macHash.Sum(macHash.sum[:0])
+	if !hmac.Equal(tag, expectedTag[:hmacTagSize]) {
+		return nil, ErrHMACVerificationFailed
+	}
+
+	var plainText []byte
+	if dst == nil || cap(dst) < len(cipherText) {
+		plainText = make([]byte, len(cipherText))
+	} else {
+		plainText = dst[:len(cipherText):len(cipherText)]
+	}
+
+	salsa20.XORKeyStream(plainText, cipherText, nonce, c.encKey)
+
+	return plainText, nil
+}
+
 // decryptTimedPayload authenticates, decrypts, and validates
 // an already base64-decoded timestamped payload.
 func (c *Cipher) decryptTimedPayload(encrypted []byte) ([]byte, error) {
-	data, err := c.DecryptBytes(encrypted)
+	if len(encrypted) < salsa20NonceSize+hmacTagSize {
+		return nil, ErrCipherTextBlockSize
+	}
+
+	data, err := c.decryptBytesInto(encrypted[salsa20NonceSize:salsa20NonceSize], encrypted)
 	if err != nil {
 		return nil, err
 	}

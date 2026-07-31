@@ -136,9 +136,12 @@ func TestDecryptBytesBasic(t *testing.T) {
 	encrypted, err := cipher.EncryptBytes(plainText)
 	require.NoError(t, err, "EncryptBytes failed")
 
+	encryptedCopy := bytes.Clone(encrypted)
+
 	decrypted, err := cipher.DecryptBytes(encrypted)
 	require.NoError(t, err, "DecryptBytes failed")
 	require.Equal(t, plainText, decrypted, "decrypted text does not match original")
+	require.Equal(t, encryptedCopy, encrypted, "DecryptBytes must not modify ciphertext")
 }
 
 func TestDecryptBytesTampered(t *testing.T) {
