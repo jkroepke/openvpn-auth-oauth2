@@ -3,6 +3,7 @@ package crypto_test
 import (
 	"bytes"
 	"encoding/base64"
+	"io"
 	"strconv"
 	"sync"
 	"testing"
@@ -322,6 +323,25 @@ func TestDecryptStringWithTime(t *testing.T) {
 	decrypted, err := cipher.DecryptStringWithTime(string(encrypted))
 	require.NoError(t, err)
 	require.Equal(t, []byte("hello world"), decrypted)
+}
+
+func TestDecryptStringWithTimeInto(t *testing.T) {
+	t.Parallel()
+
+	cipher := crypto.New("test-key")
+
+	encrypted, err := cipher.EncryptStringWithTime([]byte("hello world"))
+	require.NoError(t, err)
+
+	var scratch [128]byte
+
+	decryptedLen, err := cipher.DecryptStringWithTimeInto(scratch[:], encrypted)
+	require.NoError(t, err)
+	require.Equal(t, []byte("hello world"), scratch[:decryptedLen])
+
+	requiredLen, err := cipher.DecryptStringWithTimeInto(scratch[:1], encrypted)
+	require.ErrorIs(t, err, io.ErrShortBuffer)
+	require.Equal(t, base64.RawURLEncoding.DecodedLen(len(encrypted)), requiredLen)
 }
 
 func TestCipherConsistency(t *testing.T) {
