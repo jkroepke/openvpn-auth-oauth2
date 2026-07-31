@@ -12,9 +12,9 @@ import (
 	"hash"
 	"io"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
-	"unsafe"
 
 	"golang.org/x/crypto/salsa20"
 )
@@ -28,6 +28,8 @@ const (
 	// timedPlainTextScratchSize covers typical authentication payloads while append retains a heap fallback.
 	timedPlainTextScratchSize = 128
 	timedEncryptedScratchSize = timedPlainTextScratchSize + salsa20NonceSize + hmacTagSize
+	base64SourceChunkSize     = timedEncryptedScratchSize - timedEncryptedScratchSize%3
+	base64EncodedChunkSize    = base64SourceChunkSize / 3 * 4
 )
 
 // ErrCipherTextBlockSize is returned when the ciphertext block size is too short.
@@ -133,18 +135,10 @@ func (c *Cipher) DecryptBytes(encryptedData []byte) ([]byte, error) {
 
 // EncryptBytesWithTime prefixes plaintext with the current Unix timestamp, encrypts it, and returns raw URL-base64 bytes.
 func (c *Cipher) EncryptBytesWithTime(plainText []byte) ([]byte, error) {
-	issued := time.Now().Round(time.Second).Unix()
-
-	var scratch [timedPlainTextScratchSize]byte
-
-	timedPlainText := strconv.AppendInt(scratch[:0], issued, 10)
-	timedPlainText = append(timedPlainText, ' ')
-	timedPlainText = append(timedPlainText, plainText...)
-
 	macHash := c.getMAC()
 	defer c.putMAC(macHash)
 
-	encrypted, err := c.encryptBytesInto(macHash.encrypted[:0], timedPlainText, macHash)
+	encrypted, err := c.encryptTimedBytes(plainText, macHash)
 	if err != nil {
 		return nil, err
 	}
@@ -159,14 +153,15 @@ func (c *Cipher) EncryptBytesWithTime(plainText []byte) ([]byte, error) {
 // EncryptStringWithTime prefixes plaintext with the current Unix timestamp,
 // encrypts it, and returns a raw URL-base64 string.
 func (c *Cipher) EncryptStringWithTime(plainText []byte) (string, error) {
-	encrypted, err := c.EncryptBytesWithTime(plainText)
+	macHash := c.getMAC()
+	defer c.putMAC(macHash)
+
+	encrypted, err := c.encryptTimedBytes(plainText, macHash)
 	if err != nil {
 		return "", err
 	}
 
-	// EncryptBytesWithTime returns uniquely owned bytes. No mutable alias remains,
-	// so the backing array can safely become the immutable result without a copy.
-	return unsafe.String(unsafe.SliceData(encrypted), len(encrypted)), nil
+	return encodeRawURLBase64String(encrypted), nil
 }
 
 // DecryptBytesWithTime decodes, authenticates, decrypts, and validates the timestamp on raw URL-base64 input.
@@ -198,6 +193,40 @@ func (c *Cipher) DecryptStringWithTime(encryptedBase64 string) ([]byte, error) {
 	}
 
 	return c.decryptTimedPayload(encrypted)
+}
+
+// encryptTimedBytes prefixes plaintext with a timestamp and encrypts it into pooled scratch.
+// The returned bytes are valid only until macHash is returned to the pool.
+func (c *Cipher) encryptTimedBytes(plainText []byte, macHash *pooledMAC) ([]byte, error) {
+	issued := time.Now().Round(time.Second).Unix()
+
+	var scratch [timedPlainTextScratchSize]byte
+
+	timedPlainText := strconv.AppendInt(scratch[:0], issued, 10)
+	timedPlainText = append(timedPlainText, ' ')
+	timedPlainText = append(timedPlainText, plainText...)
+
+	return c.encryptBytesInto(macHash.encrypted[:0], timedPlainText, macHash)
+}
+
+func encodeRawURLBase64String(src []byte) string {
+	var encoded strings.Builder
+	encoded.Grow(base64.RawURLEncoding.EncodedLen(len(src)))
+
+	var scratch [base64EncodedChunkSize]byte
+
+	for len(src) > base64SourceChunkSize {
+		base64.RawURLEncoding.Encode(scratch[:], src[:base64SourceChunkSize])
+		_, _ = encoded.Write(scratch[:])
+
+		src = src[base64SourceChunkSize:]
+	}
+
+	encodedLen := base64.RawURLEncoding.EncodedLen(len(src))
+	base64.RawURLEncoding.Encode(scratch[:encodedLen], src)
+	_, _ = encoded.Write(scratch[:encodedLen])
+
+	return encoded.String()
 }
 
 // encryptBytesInto encrypts plainText into dst, allocating only when its capacity is insufficient.
