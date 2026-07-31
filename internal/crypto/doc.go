@@ -17,4 +17,5 @@
 // DecryptStringWithTime only accept that raw URL-base64 form, reject oversized
 // input, verify integrity, and reject data older than the cipher's configured
 // maximum age or issued more than five seconds in the future.
+// DecryptStringWithTimeInto lets callers provide reusable destination storage.
 package crypto

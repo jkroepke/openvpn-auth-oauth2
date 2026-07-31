@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
 	"net/netip"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/crypto"
@@ -14,6 +15,8 @@ const (
 
 	// stateEncodingScratchSize covers typical states while retaining a heap fallback for larger values.
 	stateEncodingScratchSize = 128
+	// stateDecryptionScratchSize covers the encoded ciphertext for typical states.
+	stateDecryptionScratchSize = stateEncodingScratchSize + 64
 
 	// ipAddrTextScratchSize holds any canonical IP address without a zone.
 	ipAddrTextScratchSize = len("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")
@@ -80,12 +83,21 @@ func Decrypt(cipher *crypto.Cipher, encryptedState EncryptedState) (State, error
 		return State{}, errors.New("cipher is required")
 	}
 
-	data, err := cipher.DecryptStringWithTime(encryptedState)
+	var scratch [stateDecryptionScratchSize]byte
+
+	data := scratch[:]
+
+	dataLen, err := cipher.DecryptStringWithTimeInto(data, encryptedState)
+	if errors.Is(err, io.ErrShortBuffer) {
+		data = make([]byte, dataLen)
+		dataLen, err = cipher.DecryptStringWithTimeInto(data, encryptedState)
+	}
+
 	if err != nil {
 		return State{}, fmt.Errorf("decrypt state: %w", err)
 	}
 
-	state, err := decodeState(data)
+	state, err := decodeState(data[:dataLen])
 	if err != nil {
 		return State{}, fmt.Errorf("decode state: %w", err)
 	}

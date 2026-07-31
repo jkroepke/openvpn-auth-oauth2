@@ -46,7 +46,7 @@ type Cipher struct {
 	maxAge  time.Duration
 }
 
-// pooledMAC keeps reusable HMAC state and timed-encryption scratch together.
+// pooledMAC keeps reusable HMAC state and timed-encryption/decryption scratch together.
 // A local Sum scratch escapes through hash.Hash, while encrypted is consumed
 // before the object returns to the pool and is never returned to callers.
 type pooledMAC struct {
@@ -195,6 +195,42 @@ func (c *Cipher) DecryptStringWithTime(encryptedBase64 string) ([]byte, error) {
 	return c.decryptTimedPayload(encrypted)
 }
 
+// DecryptStringWithTimeInto decodes, authenticates, decrypts, and validates
+// raw URL-base64 input into dst. On success, it returns the plaintext length.
+// If dst is too short, it returns the required decoded capacity with io.ErrShortBuffer.
+func (c *Cipher) DecryptStringWithTimeInto(dst []byte, encryptedBase64 string) (int, error) {
+	if err := checkTokenSize(len(encryptedBase64)); err != nil {
+		return 0, err
+	}
+
+	decodedLen := base64.RawURLEncoding.DecodedLen(len(encryptedBase64))
+	if len(dst) < decodedLen {
+		return decodedLen, io.ErrShortBuffer
+	}
+
+	macHash := c.getMAC()
+	defer c.putMAC(macHash)
+
+	var encrypted []byte
+	if decodedLen > cap(macHash.encrypted) {
+		encrypted = make([]byte, decodedLen)
+	} else {
+		encrypted = macHash.encrypted[:decodedLen]
+	}
+
+	decodedLen, err := base64.RawURLEncoding.Decode(encrypted, []byte(encryptedBase64))
+	if err != nil {
+		return 0, fmt.Errorf("base64 decode %q: %w", encryptedBase64, err)
+	}
+
+	plainText, err := c.decryptTimedPayloadWithMAC(encrypted[:decodedLen], macHash)
+	if err != nil {
+		return 0, err
+	}
+
+	return copy(dst, plainText), nil
+}
+
 // encryptTimedBytes prefixes plaintext with a timestamp and encrypts it into pooled scratch.
 // The returned bytes are valid only until macHash is returned to the pool.
 func (c *Cipher) encryptTimedBytes(plainText []byte, macHash *pooledMAC) ([]byte, error) {
@@ -261,12 +297,16 @@ func (c *Cipher) encryptBytesInto(dst, plainText []byte, macHash *pooledMAC) ([]
 // decryptBytesInto authenticates encryptedData and decrypts it into dst.
 // Callers must reject ciphertext shorter than the nonce and authentication tag.
 func (c *Cipher) decryptBytesInto(dst, encryptedData []byte) ([]byte, error) {
+	macHash := c.getMAC()
+	defer c.putMAC(macHash)
+
+	return c.decryptBytesWithMACInto(dst, encryptedData, macHash)
+}
+
+func (c *Cipher) decryptBytesWithMACInto(dst, encryptedData []byte, macHash *pooledMAC) ([]byte, error) {
 	nonce := encryptedData[:salsa20NonceSize]
 	cipherText := encryptedData[salsa20NonceSize : len(encryptedData)-hmacTagSize]
 	tag := encryptedData[len(encryptedData)-hmacTagSize:]
-
-	macHash := c.getMAC()
-	defer c.putMAC(macHash)
 
 	macHash.Write(nonce)
 	macHash.Write(cipherText)
@@ -291,11 +331,18 @@ func (c *Cipher) decryptBytesInto(dst, encryptedData []byte) ([]byte, error) {
 // decryptTimedPayload authenticates, decrypts, and validates
 // an already base64-decoded timestamped payload.
 func (c *Cipher) decryptTimedPayload(encrypted []byte) ([]byte, error) {
+	macHash := c.getMAC()
+	defer c.putMAC(macHash)
+
+	return c.decryptTimedPayloadWithMAC(encrypted, macHash)
+}
+
+func (c *Cipher) decryptTimedPayloadWithMAC(encrypted []byte, macHash *pooledMAC) ([]byte, error) {
 	if len(encrypted) < salsa20NonceSize+hmacTagSize {
 		return nil, ErrCipherTextBlockSize
 	}
 
-	data, err := c.decryptBytesInto(encrypted[salsa20NonceSize:salsa20NonceSize], encrypted)
+	data, err := c.decryptBytesWithMACInto(encrypted[salsa20NonceSize:salsa20NonceSize], encrypted, macHash)
 	if err != nil {
 		return nil, err
 	}
