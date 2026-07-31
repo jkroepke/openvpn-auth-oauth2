@@ -15,6 +15,9 @@ const (
 	// stateEncodingScratchSize covers typical states while retaining a heap fallback for larger values.
 	stateEncodingScratchSize = 128
 
+	// ipAddrTextScratchSize holds any canonical IP address without a zone.
+	ipAddrTextScratchSize = len("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")
+
 	flagSessionID         = 1 << 0
 	flagCommonName        = 1 << 1
 	flagIPAddrV4          = 1 << 2
@@ -153,7 +156,15 @@ func encodeStateFlags(state State) (byte, netip.Addr) {
 	}
 
 	addr, err := netip.ParseAddr(state.IPAddr)
-	if err != nil || addr.String() != state.IPAddr {
+	if err != nil {
+		flags |= flagIPAddrText
+
+		return flags, ipAddr
+	}
+
+	var scratch [ipAddrTextScratchSize]byte
+
+	if string(addr.AppendTo(scratch[:0])) != state.IPAddr {
 		flags |= flagIPAddrText
 
 		return flags, ipAddr
