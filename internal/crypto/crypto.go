@@ -23,6 +23,9 @@ const (
 	hmacTagSize      = 16
 	derivedKeySize   = 32
 	defaultMaxAge    = 2 * time.Minute
+
+	// timedPlainTextScratchSize covers typical authentication payloads while append retains a heap fallback.
+	timedPlainTextScratchSize = 128
 )
 
 // ErrCipherTextBlockSize is returned when the ciphertext block size is too short.
@@ -165,7 +168,10 @@ func (c *Cipher) DecryptBytes(encryptedData []byte) ([]byte, error) {
 // EncryptBytesWithTime prefixes plaintext with the current Unix timestamp, encrypts it, and returns raw URL-base64 bytes.
 func (c *Cipher) EncryptBytesWithTime(plainText []byte) ([]byte, error) {
 	issued := time.Now().Round(time.Second).Unix()
-	timedPlainText := strconv.AppendInt(make([]byte, 0, len(plainText)+12), issued, 10)
+
+	var scratch [timedPlainTextScratchSize]byte
+
+	timedPlainText := strconv.AppendInt(scratch[:0], issued, 10)
 	timedPlainText = append(timedPlainText, ' ')
 	timedPlainText = append(timedPlainText, plainText...)
 
