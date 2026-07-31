@@ -26,7 +26,9 @@ type Server struct {
 	server           *http.Server
 	tlsCertificate   *tls.Certificate
 	name             string
-	conf             config.HTTP
+	certFile         string
+	keyFile          string
+	tlsEnabled       bool
 	tlsCertificateMu sync.RWMutex
 }
 
@@ -36,9 +38,11 @@ type Server struct {
 // the configuration.
 func NewHTTPServer(name string, logger *slog.Logger, conf config.HTTP, fnHandler *http.ServeMux) *Server {
 	return &Server{
-		name:   name,
-		conf:   conf,
-		logger: logger,
+		name:       name,
+		certFile:   conf.CertFile,
+		keyFile:    conf.KeyFile,
+		tlsEnabled: conf.TLS,
+		logger:     logger,
 		server: &http.Server{
 			Addr:              conf.Listen,
 			ReadHeaderTimeout: 3 * time.Second,
@@ -63,7 +67,7 @@ func (s *Server) Listen(ctx context.Context) error {
 
 	errCh := make(chan error, 1)
 
-	if s.conf.TLS {
+	if s.tlsEnabled {
 		if err := s.Reload(ctx); err != nil {
 			return err
 		}
@@ -118,11 +122,11 @@ func (s *Server) GetCertificateFunc() func(*tls.ClientHelloInfo) (*tls.Certifica
 // Reload loads the TLS certificate from disk and updates the server's
 // in-memory certificate. It does nothing if TLS support is disabled.
 func (s *Server) Reload(ctx context.Context) error {
-	if !s.conf.TLS {
+	if !s.tlsEnabled {
 		return nil
 	}
 
-	certs, err := tls.LoadX509KeyPair(s.conf.CertFile, s.conf.KeyFile)
+	certs, err := tls.LoadX509KeyPair(s.certFile, s.keyFile)
 	if err != nil {
 		return fmt.Errorf("tls.LoadX509KeyPair: %w", err)
 	}
@@ -161,13 +165,13 @@ func (s *Server) serve(ctx context.Context) error {
 	} else {
 		var listenConfig net.ListenConfig
 
-		listener, err = listenConfig.Listen(ctx, "tcp", s.conf.Listen)
+		listener, err = listenConfig.Listen(ctx, "tcp", s.server.Addr)
 		if err != nil {
 			return fmt.Errorf("net.Listen: %w", err)
 		}
 	}
 
-	if s.conf.TLS {
+	if s.tlsEnabled {
 		s.logger.LogAttrs(ctx, slog.LevelInfo, fmt.Sprintf(
 			"start HTTPS %s listener on %s", s.name, listener.Addr().String(),
 		))
