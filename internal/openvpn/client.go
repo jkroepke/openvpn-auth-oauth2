@@ -18,15 +18,15 @@ import (
 const openVPNManagementCommandBodyLimit = 1023
 
 func (c *Client) processClient(ctx context.Context, client connection.Client) error {
-	logger := c.logger.With(
-		slog.String("ip", fmt.Sprintf("%s:%s", client.IPAddr, client.IPPort)),
+	logger := slog.New(c.logger.Handler().WithAttrs([]slog.Attr{
+		slog.String("ip", client.IPAddr+":"+client.IPPort),
 		slog.Uint64("cid", client.CID),
 		slog.Uint64("kid", client.KID),
 		slog.String("common_name", client.CommonName),
 		slog.String("reason", client.Reason),
 		slog.String("session_id", client.SessionID),
 		slog.String("session_state", client.SessionState),
-	)
+	}))
 
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
