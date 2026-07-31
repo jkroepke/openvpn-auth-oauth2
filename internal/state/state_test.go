@@ -24,6 +24,8 @@ func TestState(t *testing.T) {
 		{name: "non-empty session state", commonName: "", ipAddr: "127.0.0.1", ipPort: "12345", sessionState: "Authenticated"},
 		{name: "empty ip address and port", commonName: "foobar", ipAddr: "", ipPort: "", sessionState: "Authenticated"},
 		{name: "ipv6 address", commonName: "foobar", ipAddr: "2001:db8::1", ipPort: "12345", sessionState: "Authenticated"},
+		{name: "maximum length ipv6 address", commonName: "foobar", ipAddr: "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", ipPort: "12345", sessionState: "Authenticated"},
+		{name: "noncanonical ipv6 address", commonName: "foobar", ipAddr: "2001:0DB8:0:0:0:0:0:1", ipPort: "12345", sessionState: "Authenticated"},
 		{name: "with special characters", commonName: "foo bar/baz@qux", ipAddr: "127.0.0.1", ipPort: "12345", sessionState: "AuthenticatedEmptyUser"},
 		{name: "with unicode characters", commonName: "foo bar/baz@qux 你好", ipAddr: "127.0.0.1", ipPort: "12345", sessionState: "ExpiredEmptyUser"},
 		{name: "larger than encoding scratch", commonName: strings.Repeat("a", 512), ipAddr: "::", ipPort: "12345", sessionState: "Authenticated"},
