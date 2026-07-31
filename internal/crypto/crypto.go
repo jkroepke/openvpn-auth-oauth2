@@ -26,6 +26,7 @@ const (
 
 	// timedPlainTextScratchSize covers typical authentication payloads while append retains a heap fallback.
 	timedPlainTextScratchSize = 128
+	timedEncryptedScratchSize = timedPlainTextScratchSize + salsa20NonceSize + hmacTagSize
 )
 
 // ErrCipherTextBlockSize is returned when the ciphertext block size is too short.
@@ -42,12 +43,14 @@ type Cipher struct {
 	maxAge  time.Duration
 }
 
-// pooledMAC keeps the hash and Sum destination together. A local Sum scratch
-// array escapes because hash.Hash is an interface, causing an allocation per call.
+// pooledMAC keeps reusable HMAC state and timed-encryption scratch together.
+// A local Sum scratch escapes through hash.Hash, while encrypted is consumed
+// before the object returns to the pool and is never returned to callers.
 type pooledMAC struct {
 	hash.Hash
 
-	sum [sha256.Size]byte
+	sum       [sha256.Size]byte
+	encrypted [timedEncryptedScratchSize]byte
 }
 
 // New creates a new Cipher instance with the given encryption key.
@@ -110,26 +113,10 @@ func deriveHKDFKey(secret []byte, info string) []byte {
 // Salsa20 provides stream cipher encryption with minimal overhead (8-byte nonce),
 // and HMAC-SHA256 provides authentication and tamper detection.
 func (c *Cipher) EncryptBytes(plainText []byte) ([]byte, error) {
-	result := make([]byte, salsa20NonceSize+len(plainText)+hmacTagSize)
-	nonce := result[:salsa20NonceSize]
-
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return nil, fmt.Errorf("failed to generate nonce: %w", err)
-	}
-
-	cipherText := result[salsa20NonceSize : len(result)-hmacTagSize]
-	salsa20.XORKeyStream(cipherText, plainText, nonce, c.encKey)
-
 	macHash := c.getMAC()
 	defer c.putMAC(macHash)
 
-	macHash.Write(nonce)
-	macHash.Write(cipherText)
-
-	tag := macHash.Sum(macHash.sum[:0])
-	copy(result[len(result)-hmacTagSize:], tag[:hmacTagSize])
-
-	return result, nil
+	return c.encryptBytesInto(nil, plainText, macHash)
 }
 
 // DecryptBytes decrypts data encrypted with EncryptBytes.
@@ -175,7 +162,10 @@ func (c *Cipher) EncryptBytesWithTime(plainText []byte) ([]byte, error) {
 	timedPlainText = append(timedPlainText, ' ')
 	timedPlainText = append(timedPlainText, plainText...)
 
-	encrypted, err := c.EncryptBytes(timedPlainText)
+	macHash := c.getMAC()
+	defer c.putMAC(macHash)
+
+	encrypted, err := c.encryptBytesInto(macHash.encrypted[:0], timedPlainText, macHash)
 	if err != nil {
 		return nil, err
 	}
@@ -216,6 +206,35 @@ func (c *Cipher) DecryptStringWithTime(encryptedBase64 string) ([]byte, error) {
 	}
 
 	return c.decryptTimedPayload(encrypted)
+}
+
+// encryptBytesInto encrypts plainText into dst, allocating only when its capacity is insufficient.
+func (c *Cipher) encryptBytesInto(dst, plainText []byte, macHash *pooledMAC) ([]byte, error) {
+	resultSize := salsa20NonceSize + len(plainText) + hmacTagSize
+
+	var result []byte
+	if cap(dst) < resultSize {
+		result = make([]byte, resultSize)
+	} else {
+		result = dst[:resultSize]
+	}
+
+	nonce := result[:salsa20NonceSize]
+
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		return nil, fmt.Errorf("failed to generate nonce: %w", err)
+	}
+
+	cipherText := result[salsa20NonceSize : len(result)-hmacTagSize]
+	salsa20.XORKeyStream(cipherText, plainText, nonce, c.encKey)
+
+	macHash.Write(nonce)
+	macHash.Write(cipherText)
+
+	tag := macHash.Sum(macHash.sum[:0])
+	copy(result[len(result)-hmacTagSize:], tag[:hmacTagSize])
+
+	return result, nil
 }
 
 // decryptTimedPayload authenticates, decrypts, and validates
