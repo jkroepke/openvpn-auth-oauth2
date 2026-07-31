@@ -673,12 +673,12 @@ func (c *Client) createProfileSelectorToken(encryptedState state.EncryptedState,
 		return "", fmt.Errorf("unable to marshal profile selector token: %w", err)
 	}
 
-	encryptedToken, err := c.stateCrypto.EncryptBytesWithTime(tokenBytes)
+	encryptedToken, err := c.stateCrypto.EncryptStringWithTime(tokenBytes)
 	if err != nil {
 		return "", fmt.Errorf("unable to encrypt profile selector token: %w", err)
 	}
 
-	return string(encryptedToken), nil
+	return encryptedToken, nil
 }
 
 // httpErrorHandler maps OAuth2 relying party errors to OpenVPN denial and an HTTP error page.

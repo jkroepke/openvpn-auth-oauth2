@@ -262,6 +262,33 @@ func TestEncryptBytesWithTimeUsesRawURLBase64(t *testing.T) {
 	}
 }
 
+func TestEncryptStringWithTimeUsesRawURLBase64(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		name      string
+		plainText []byte
+	}{
+		{name: "small payload", plainText: []byte("hello world")},
+		{name: "large payload", plainText: bytes.Repeat([]byte("a"), 512)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			cipher := crypto.New("test-key")
+
+			encrypted, err := cipher.EncryptStringWithTime(tc.plainText)
+			require.NoError(t, err)
+
+			require.NotContains(t, encrypted, "=")
+
+			decrypted, err := cipher.DecryptStringWithTime(encrypted)
+			require.NoError(t, err)
+			require.Equal(t, tc.plainText, decrypted)
+		})
+	}
+}
+
 func TestDecryptBytesWithTimeMaxAge(t *testing.T) {
 	t.Parallel()
 
