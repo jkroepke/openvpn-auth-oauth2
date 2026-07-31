@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"sync"
 	"time"
+	"unsafe"
 
 	"golang.org/x/crypto/salsa20"
 )
@@ -153,6 +154,19 @@ func (c *Cipher) EncryptBytesWithTime(plainText []byte) ([]byte, error) {
 	base64.RawURLEncoding.Encode(encryptedBase64, encrypted)
 
 	return encryptedBase64, nil
+}
+
+// EncryptStringWithTime prefixes plaintext with the current Unix timestamp,
+// encrypts it, and returns a raw URL-base64 string.
+func (c *Cipher) EncryptStringWithTime(plainText []byte) (string, error) {
+	encrypted, err := c.EncryptBytesWithTime(plainText)
+	if err != nil {
+		return "", err
+	}
+
+	// EncryptBytesWithTime returns uniquely owned bytes. No mutable alias remains,
+	// so the backing array can safely become the immutable result without a copy.
+	return unsafe.String(unsafe.SliceData(encrypted), len(encrypted)), nil
 }
 
 // DecryptBytesWithTime decodes, authenticates, decrypts, and validates the timestamp on raw URL-base64 input.

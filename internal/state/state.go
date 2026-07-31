@@ -66,12 +66,12 @@ func Encrypt(cipher *crypto.Cipher, state State) (EncryptedState, error) {
 
 	data := encodeState(scratch[:0], state)
 
-	encrypted, err := cipher.EncryptBytesWithTime(data)
+	encrypted, err := cipher.EncryptStringWithTime(data)
 	if err != nil {
 		return "", fmt.Errorf("encrypt state: %w", err)
 	}
 
-	return EncryptedState(encrypted), nil
+	return encrypted, nil
 }
 
 // Decrypt authenticates, decrypts, and deserializes an encrypted OAuth2 state value.

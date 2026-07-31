@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -260,6 +261,29 @@ func TestEncryptBytesWithTimeUsesRawURLBase64(t *testing.T) {
 			require.Equal(t, tc.plainText, decrypted)
 		})
 	}
+}
+
+func TestEncryptStringWithTimeRemainsStable(t *testing.T) {
+	t.Parallel()
+
+	cipher := crypto.New("test-key")
+	plainText := []byte("hello world")
+
+	encrypted, err := cipher.EncryptStringWithTime(plainText)
+	require.NoError(t, err)
+
+	expected := strings.Clone(encrypted)
+
+	for range 10 {
+		_, err = cipher.EncryptStringWithTime(plainText)
+		require.NoError(t, err)
+	}
+
+	require.Equal(t, expected, encrypted)
+
+	decrypted, err := cipher.DecryptStringWithTime(encrypted)
+	require.NoError(t, err)
+	require.Equal(t, plainText, decrypted)
 }
 
 func TestDecryptBytesWithTimeMaxAge(t *testing.T) {
