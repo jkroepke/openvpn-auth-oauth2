@@ -15,6 +15,7 @@ func TestState(t *testing.T) {
 
 	for _, tc := range []struct {
 		name         string
+		sessionID    string
 		commonName   string
 		ipAddr       string
 		ipPort       string
@@ -28,6 +29,7 @@ func TestState(t *testing.T) {
 		{name: "noncanonical ipv6 address", commonName: "foobar", ipAddr: "2001:0DB8:0:0:0:0:0:1", ipPort: "12345", sessionState: "Authenticated"},
 		{name: "with special characters", commonName: "foo bar/baz@qux", ipAddr: "127.0.0.1", ipPort: "12345", sessionState: "AuthenticatedEmptyUser"},
 		{name: "with unicode characters", commonName: "foo bar/baz@qux 你好", ipAddr: "127.0.0.1", ipPort: "12345", sessionState: "ExpiredEmptyUser"},
+		{name: "all packed strings", sessionID: "session-123", commonName: "foobar", ipAddr: "127.0.0.1", ipPort: "12345", sessionState: "Authenticated"},
 		{name: "larger than encoding scratch", commonName: strings.Repeat("a", 512), ipAddr: "::", ipPort: "12345", sessionState: "Authenticated"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -37,6 +39,7 @@ func TestState(t *testing.T) {
 				Client: state.ClientIdentifier{
 					CID:        9223372036854775807,
 					KID:        2,
+					SessionID:  tc.sessionID,
 					CommonName: tc.commonName,
 				},
 				IPAddr:       tc.ipAddr,

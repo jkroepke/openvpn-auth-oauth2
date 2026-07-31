@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/netip"
+	"strings"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/crypto"
 )
@@ -17,6 +18,8 @@ const (
 	stateEncodingScratchSize = 128
 	// stateDecryptionScratchSize covers the encoded ciphertext for typical states.
 	stateDecryptionScratchSize = stateEncodingScratchSize + 64
+	// stateStringScratchSize covers the decoded string fields for typical states.
+	stateStringScratchSize = 128
 
 	// ipAddrTextScratchSize holds any canonical IP address without a zone.
 	ipAddrTextScratchSize = len("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")
@@ -229,29 +232,36 @@ func decodeState(data []byte) (State, error) {
 
 // decodeStateFields reads the optional fields controlled by the state flags.
 func decodeStateFields(state State, flags byte, data []byte) (State, error) {
-	var err error
+	var (
+		sessionID  []byte
+		commonName []byte
+		ipPort     []byte
+		err        error
+	)
 
 	if flags&flagSessionID != 0 {
-		state.Client.SessionID, data, err = readString(data)
+		sessionID, data, err = readStringBytes(data)
 		if err != nil {
 			return State{}, fmt.Errorf("read SessionID: %w", err)
 		}
 	}
 
 	if flags&flagCommonName != 0 {
-		state.Client.CommonName, data, err = readString(data)
+		commonName, data, err = readStringBytes(data)
 		if err != nil {
 			return State{}, fmt.Errorf("read CommonName: %w", err)
 		}
 	}
 
-	state.IPAddr, data, err = readIPAddr(flags, data)
+	var ipAddrScratch [ipAddrTextScratchSize]byte
+
+	ipAddr, data, err := readIPAddr(flags, data, ipAddrScratch[:0])
 	if err != nil {
 		return State{}, fmt.Errorf("read IPAddr: %w", err)
 	}
 
 	if flags&flagIPPort != 0 {
-		state.IPPort, data, err = readString(data)
+		ipPort, data, err = readStringBytes(data)
 		if err != nil {
 			return State{}, fmt.Errorf("read IPPort: %w", err)
 		}
@@ -261,21 +271,60 @@ func decodeStateFields(state State, flags byte, data []byte) (State, error) {
 		return State{}, fmt.Errorf("unexpected trailing state data: %d bytes", len(data))
 	}
 
+	setStateStrings(&state, sessionID, commonName, ipAddr, ipPort)
+
 	return state, nil
 }
 
 // readIPAddr reads the IP address field indicated by the state flags.
-func readIPAddr(flags byte, data []byte) (string, []byte, error) {
+func readIPAddr(flags byte, data, scratch []byte) ([]byte, []byte, error) {
 	switch {
 	case flags&flagIPAddrV4 != 0:
-		return readIPAddrV4(data)
+		return readIPAddrV4(data, scratch)
 	case flags&flagIPAddrV6 != 0:
-		return readIPAddrV6(data)
+		return readIPAddrV6(data, scratch)
 	case flags&flagIPAddrText != 0:
-		return readString(data)
+		return readStringBytes(data)
 	default:
-		return "", data, nil
+		return nil, data, nil
 	}
+}
+
+// setStateStrings stores all decoded string fields in one immutable backing string.
+func setStateStrings(state *State, sessionID, commonName, ipAddr, ipPort []byte) {
+	sessionIDEnd := len(sessionID)
+	commonNameEnd := sessionIDEnd + len(commonName)
+	ipAddrEnd := commonNameEnd + len(ipAddr)
+	ipPortEnd := ipAddrEnd + len(ipPort)
+
+	var packedStrings string
+
+	if ipPortEnd <= stateStringScratchSize {
+		var scratch [stateStringScratchSize]byte
+
+		packed := scratch[:0]
+		packed = append(packed, sessionID...)
+		packed = append(packed, commonName...)
+		packed = append(packed, ipAddr...)
+		packed = append(packed, ipPort...)
+		packedStrings = string(packed)
+	} else {
+		var builder strings.Builder
+
+		builder.Grow(ipPortEnd)
+
+		_, _ = builder.Write(sessionID)
+		_, _ = builder.Write(commonName)
+		_, _ = builder.Write(ipAddr)
+		_, _ = builder.Write(ipPort)
+
+		packedStrings = builder.String()
+	}
+
+	state.Client.SessionID = packedStrings[:sessionIDEnd]
+	state.Client.CommonName = packedStrings[sessionIDEnd:commonNameEnd]
+	state.IPAddr = packedStrings[commonNameEnd:ipAddrEnd]
+	state.IPPort = packedStrings[ipAddrEnd:ipPortEnd]
 }
 
 // appendString appends a length-prefixed string to the binary state payload.
@@ -294,18 +343,18 @@ func appendUvarint(data []byte, value uint64) []byte {
 	return append(data, scratch[:n]...)
 }
 
-// readString reads a length-prefixed string from a binary state payload.
-func readString(data []byte) (string, []byte, error) {
+// readStringBytes reads a length-prefixed string from a binary state payload.
+func readStringBytes(data []byte) ([]byte, []byte, error) {
 	length, data, err := readUvarint(data)
 	if err != nil {
-		return "", nil, err
+		return nil, nil, err
 	}
 
 	if uint64(len(data)) < length {
-		return "", nil, fmt.Errorf("string length %d exceeds remaining data %d", length, len(data))
+		return nil, nil, fmt.Errorf("string length %d exceeds remaining data %d", length, len(data))
 	}
 
-	return string(data[:length]), data[length:], nil
+	return data[:length], data[length:], nil
 }
 
 // readUvarint reads an unsigned varint and returns the remaining payload.
@@ -319,27 +368,27 @@ func readUvarint(data []byte) (uint64, []byte, error) {
 }
 
 // readIPAddrV4 reads a raw four-byte IPv4 address from a binary state payload.
-func readIPAddrV4(data []byte) (string, []byte, error) {
+func readIPAddrV4(data, scratch []byte) ([]byte, []byte, error) {
 	if len(data) < 4 {
-		return "", nil, fmt.Errorf("ipv4 length exceeds remaining data %d", len(data))
+		return nil, nil, fmt.Errorf("ipv4 length exceeds remaining data %d", len(data))
 	}
 
 	var ipBytes [4]byte
 	copy(ipBytes[:], data[:4])
 
-	return netip.AddrFrom4(ipBytes).String(), data[4:], nil
+	return netip.AddrFrom4(ipBytes).AppendTo(scratch), data[4:], nil
 }
 
 // readIPAddrV6 reads a raw 16-byte IPv6 address from a binary state payload.
-func readIPAddrV6(data []byte) (string, []byte, error) {
+func readIPAddrV6(data, scratch []byte) ([]byte, []byte, error) {
 	if len(data) < 16 {
-		return "", nil, fmt.Errorf("ipv6 length exceeds remaining data %d", len(data))
+		return nil, nil, fmt.Errorf("ipv6 length exceeds remaining data %d", len(data))
 	}
 
 	var ipBytes [16]byte
 	copy(ipBytes[:], data[:16])
 
-	return netip.AddrFrom16(ipBytes).String(), data[16:], nil
+	return netip.AddrFrom16(ipBytes).AppendTo(scratch), data[16:], nil
 }
 
 // boolToInt converts a boolean flag to the integer representation used by ClientIdentifier.
