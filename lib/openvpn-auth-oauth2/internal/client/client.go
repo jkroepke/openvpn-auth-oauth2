@@ -67,16 +67,11 @@ func NewClient(clientID uint64, envArray util.List) (*Client, error) {
 }
 
 func (c *Client) GetConnectMessage() string {
-	clientID := strconv.FormatUint(c.ClientID, 10)
-	connectionID := strconv.FormatInt(time.Now().Unix(), 10)
-
-	return c.buildMessage(">CLIENT:CONNECT," + clientID + "," + connectionID)
+	return c.buildMessage(">CLIENT:CONNECT,", time.Now().Unix(), true)
 }
 
 func (c *Client) GetDisconnectMessage() string {
-	clientID := strconv.FormatUint(c.ClientID, 10)
-
-	return c.buildMessage(">CLIENT:DISCONNECT," + clientID)
+	return c.buildMessage(">CLIENT:DISCONNECT,", 0, false)
 }
 
 func (c *Client) WriteToAuthFile(auth string) error {
@@ -125,11 +120,26 @@ func (c *Client) WriteAuthPending(resp *management.Response) error {
 
 // buildMessage constructs a management-protocol message with the given header
 // and appends all non-internal environment variables as CLIENT:ENV lines.
-func (c *Client) buildMessage(header string) string {
+func (c *Client) buildMessage(header string, connectionID int64, includeConnectionID bool) string {
 	sb := strings.Builder{}
-	sb.Grow(len(header) + c.estimatedSize)
+
+	estimatedSize := len(header) + c.estimatedSize
+	if includeConnectionID {
+		estimatedSize += 21 // comma plus the longest base-10 int64
+	}
+
+	sb.Grow(estimatedSize)
 
 	sb.WriteString(header)
+
+	var numberBuffer [20]byte
+
+	_, _ = sb.Write(strconv.AppendUint(numberBuffer[:0], c.ClientID, 10))
+
+	if includeConnectionID {
+		sb.WriteByte(',')
+		_, _ = sb.Write(strconv.AppendInt(numberBuffer[:0], connectionID, 10))
+	}
 
 	for key, value := range c.env {
 		if key == AuthControlFileEnvKey || key == AuthPendingFileEnvKey || key == AuthFailedReasonFileEnvKey {
