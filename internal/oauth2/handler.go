@@ -280,8 +280,8 @@ func (c *Client) storeSelectedProfileRefreshState(
 
 // createSessionLogger creates a logger with common session information.
 func (c *Client) createSessionLogger(session state.State) *slog.Logger {
-	return c.logger.With(
-		slog.String("ip", fmt.Sprintf("%s:%s", session.IPAddr, session.IPPort)),
+	return loggerWithAttrs(c.logger,
+		slog.String("ip", session.IPAddr+":"+session.IPPort),
 		slog.Uint64("cid", session.Client.CID),
 		slog.Uint64("kid", session.Client.KID),
 		slog.String("common_name", session.Client.CommonName),
@@ -290,14 +290,19 @@ func (c *Client) createSessionLogger(session state.State) *slog.Logger {
 
 // createSessionLoggerWithState creates a logger with session information including session_id and session_state.
 func (c *Client) createSessionLoggerWithState(session state.State) *slog.Logger {
-	return c.logger.With(
-		slog.String("ip", fmt.Sprintf("%s:%s", session.IPAddr, session.IPPort)),
+	return loggerWithAttrs(c.logger,
+		slog.String("ip", session.IPAddr+":"+session.IPPort),
 		slog.Uint64("cid", session.Client.CID),
 		slog.Uint64("kid", session.Client.KID),
 		slog.String("common_name", session.Client.CommonName),
 		slog.String("session_id", session.Client.SessionID),
 		slog.String("session_state", session.SessionState),
 	)
+}
+
+// loggerWithAttrs retains typed attributes without converting them through Logger.With's []any arguments.
+func loggerWithAttrs(logger *slog.Logger, attrs ...slog.Attr) *slog.Logger {
+	return slog.New(logger.Handler().WithAttrs(attrs))
 }
 
 // postCodeExchangeHandler returns the callback that validates exchanged tokens and accepts or denies the OpenVPN client.
