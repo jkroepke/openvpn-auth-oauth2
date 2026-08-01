@@ -199,11 +199,7 @@ func (c *Client) startClientAuth(ctx context.Context, logger *slog.Logger, clien
 		return fmt.Errorf("error encoding state: %w", err)
 	}
 
-	startURL := fmt.Sprintf(
-		"%s/oauth2/start?state=%s",
-		strings.TrimSuffix(c.conf.HTTP.BaseURL.String(), "/"),
-		encryptedOIDCState,
-	)
+	startURL := buildOAuth2StartURL(c.conf.HTTP.BaseURL.String(), encryptedOIDCState)
 
 	command, err := buildClientPendingAuthCommand(client, startURL, c.conf.OpenVPN.AuthPendingTimeout)
 	if err != nil {
@@ -218,6 +214,10 @@ func (c *Client) startClientAuth(ctx context.Context, logger *slog.Logger, clien
 	}
 
 	return nil
+}
+
+func buildOAuth2StartURL(baseURL string, encryptedOIDCState state.EncryptedState) string {
+	return strings.TrimSuffix(baseURL, "/") + "/oauth2/start?state=" + encryptedOIDCState
 }
 
 func buildClientPendingAuthCommand(client connection.Client, startURL string, timeout time.Duration) (string, error) {

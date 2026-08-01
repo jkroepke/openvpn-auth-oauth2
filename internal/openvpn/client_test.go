@@ -9,6 +9,34 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestBuildOAuth2StartURL(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		name    string
+		baseURL string
+		want    string
+	}{
+		{
+			name:    "without trailing slash",
+			baseURL: "https://vpn.example.com",
+			want:    "https://vpn.example.com/oauth2/start?state=encrypted-state",
+		},
+		{
+			name:    "with trailing slash",
+			baseURL: "https://vpn.example.com/",
+			want:    "https://vpn.example.com/oauth2/start?state=encrypted-state",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := buildOAuth2StartURL(tc.baseURL, "encrypted-state")
+			require.Equal(t, tc.want, got)
+		})
+	}
+}
+
 func TestBuildClientPendingAuthCommandLimit(t *testing.T) {
 	t.Parallel()
 
