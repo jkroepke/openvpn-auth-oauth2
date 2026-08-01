@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -221,23 +222,46 @@ func buildOAuth2StartURL(baseURL string, encryptedOIDCState state.EncryptedState
 }
 
 func buildClientPendingAuthCommand(client connection.Client, startURL string, timeout time.Duration) (string, error) {
-	command := fmt.Sprintf(
-		`client-pending-auth %d %d "WEB_AUTH::%s" %.0f`,
-		client.CID,
-		client.KID,
-		startURL,
-		timeout.Seconds(),
+	const (
+		commandPrefix = "client-pending-auth "
+		webAuthPrefix = ` "WEB_AUTH::`
+		commandSuffix = `" `
 	)
 
-	if len(command) > openVPNManagementCommandBodyLimit {
+	// Keep the numeric fields in stack-backed scratch buffers so building a valid
+	// command requires only the returned string's allocation.
+	var (
+		cidBuffer     [20]byte
+		kidBuffer     [20]byte
+		timeoutBuffer [20]byte
+	)
+
+	cid := strconv.AppendUint(cidBuffer[:0], client.CID, 10)
+	kid := strconv.AppendUint(kidBuffer[:0], client.KID, 10)
+	timeoutSeconds := strconv.AppendFloat(timeoutBuffer[:0], timeout.Seconds(), 'f', 0, 64)
+	commandSize := len(commandPrefix) + len(cid) + 1 + len(kid) + len(webAuthPrefix) +
+		len(startURL) + len(commandSuffix) + len(timeoutSeconds)
+
+	if commandSize > openVPNManagementCommandBodyLimit {
 		return "", fmt.Errorf(
 			"client-pending-auth command is %d bytes; OpenVPN accepts at most %d bytes",
-			len(command),
+			commandSize,
 			openVPNManagementCommandBodyLimit,
 		)
 	}
 
-	return command, nil
+	var command strings.Builder
+	command.Grow(commandSize)
+	command.WriteString(commandPrefix)
+	_, _ = command.Write(cid)
+	_ = command.WriteByte(' ')
+	_, _ = command.Write(kid)
+	command.WriteString(webAuthPrefix)
+	command.WriteString(startURL)
+	command.WriteString(commandSuffix)
+	_, _ = command.Write(timeoutSeconds)
+
+	return command.String(), nil
 }
 
 // checkAuthBypass checks if the client is allowed to bypass authentication based on its common name.

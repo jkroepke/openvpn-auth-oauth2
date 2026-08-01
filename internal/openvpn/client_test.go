@@ -37,6 +37,42 @@ func TestBuildOAuth2StartURL(t *testing.T) {
 	}
 }
 
+func TestBuildClientPendingAuthCommand(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		name    string
+		client  connection.Client
+		timeout time.Duration
+		want    string
+	}{
+		{
+			name:    "whole-second timeout",
+			client:  connection.Client{CID: 12345, KID: 67890},
+			timeout: 300 * time.Second,
+			want:    `client-pending-auth 12345 67890 "WEB_AUTH::https://vpn.example.com/oauth2/start?state=encrypted-state" 300`,
+		},
+		{
+			name:    "fractional timeout",
+			client:  connection.Client{CID: 1, KID: 0},
+			timeout: 1500 * time.Millisecond,
+			want:    `client-pending-auth 1 0 "WEB_AUTH::https://vpn.example.com/oauth2/start?state=encrypted-state" 2`,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			command, err := buildClientPendingAuthCommand(
+				tc.client,
+				"https://vpn.example.com/oauth2/start?state=encrypted-state",
+				tc.timeout,
+			)
+			require.NoError(t, err)
+			require.Equal(t, tc.want, command)
+		})
+	}
+}
+
 func TestBuildClientPendingAuthCommandLimit(t *testing.T) {
 	t.Parallel()
 
