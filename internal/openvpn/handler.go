@@ -153,7 +153,9 @@ func (c *Client) handleMessage(ctx context.Context, message string) error {
 }
 
 func (c *Client) handleClientMessage(ctx context.Context, message string) error {
-	c.logger.LogAttrs(ctx, slog.LevelDebug, reMaskClientPassword.ReplaceAllLiteralString(message, "CLIENT:ENV,password=***\r\n"))
+	if c.logger.Enabled(ctx, slog.LevelDebug) {
+		c.logger.LogAttrs(ctx, slog.LevelDebug, reMaskClientPassword.ReplaceAllLiteralString(message, "CLIENT:ENV,password=***\r\n"))
+	}
 
 	client, err := connection.NewClient(c.conf, message)
 	if err != nil {
