@@ -8,6 +8,7 @@ import (
 	"net"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
@@ -25,6 +26,7 @@ type Client struct {
 	oauth2               oauth2Client
 	conn                 net.Conn
 	commandResponseCh    chan string
+	commandTimer         *time.Timer
 	commandsCh           chan string
 	logger               *slog.Logger
 	scanner              *bufio.Scanner

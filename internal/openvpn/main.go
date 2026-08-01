@@ -40,11 +40,13 @@ func New(logger *slog.Logger, conf *config.Config) *Client {
 
 		clientsCh:         make(chan connection.Client, 10),
 		commandResponseCh: make(chan string),
+		commandTimer:      time.NewTimer(conf.OpenVPN.CommandTimeout),
 		commandsCh:        make(chan string, 10),
 		passThroughCh:     make(chan string, 10),
 	}
 
 	client.commandsBuffer.Grow(512)
+	client.commandTimer.Stop()
 
 	return client
 }
@@ -241,6 +243,9 @@ func (c *Client) SendCommand(_ context.Context, cmd string, passthrough bool) (s
 	}
 
 	c.commandsCh <- cmd
+	// commandMu serializes resets and receives on the reusable timer.
+	c.commandTimer.Reset(c.conf.OpenVPN.CommandTimeout)
+	defer c.commandTimer.Stop()
 
 	select {
 	case resp, ok := <-c.commandResponseCh:
@@ -264,7 +269,7 @@ func (c *Client) SendCommand(_ context.Context, cmd string, passthrough bool) (s
 		}
 
 		return resp, nil
-	case <-time.After(c.conf.OpenVPN.CommandTimeout):
+	case <-c.commandTimer.C:
 		return "", fmt.Errorf("command error '%s': %w", managementCommandForError(cmd, passthrough), ErrTimeout)
 	}
 }
