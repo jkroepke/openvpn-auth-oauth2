@@ -71,3 +71,18 @@ func BenchmarkWithIDTokenClaimsLogger(b *testing.B) {
 
 	_ = loggerWithClaims
 }
+
+func BenchmarkWithUserLogger(b *testing.B) {
+	// Exercise a real handler that retains attributes; DiscardHandler intentionally drops them.
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil)) //nolint:sloglint
+
+	var loggerWithUser *slog.Logger
+
+	b.ReportAllocs()
+
+	for b.Loop() {
+		loggerWithUser = withUserLogger(logger, "subject", "user")
+	}
+
+	_ = loggerWithUser
+}
