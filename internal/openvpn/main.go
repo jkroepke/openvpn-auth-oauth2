@@ -304,14 +304,12 @@ func managementCommandForError(cmd string, passthrough bool) string {
 }
 
 func managementCommandName(cmd string) string {
-	cmdFirstLine := strings.SplitN(cmd, "\r\n", 2)[0]
-
-	fields := strings.Fields(cmdFirstLine)
-	if len(fields) == 0 {
-		return ""
+	cmdFirstLine, _, _ := strings.Cut(cmd, "\r\n")
+	for field := range strings.FieldsSeq(cmdFirstLine) {
+		return field
 	}
 
-	return fields[0]
+	return ""
 }
 
 // readMessage .
