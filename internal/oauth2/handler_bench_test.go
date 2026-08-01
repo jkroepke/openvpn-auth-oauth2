@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"testing"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
 )
 
@@ -46,4 +47,27 @@ func BenchmarkCreateSessionLogger(b *testing.B) {
 
 		_ = logger
 	})
+}
+
+func BenchmarkWithIDTokenClaimsLogger(b *testing.B) {
+	// Exercise a real handler that retains attributes while keeping the debug record disabled.
+	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelError})) //nolint:sloglint
+	claims := &idtoken.Claims{
+		Claims:            map[string]any{"sub": "subject"},
+		EMail:             "user@example.com",
+		PreferredUsername: "user",
+	}
+	claims.Subject = "subject"
+	tokens := &idtoken.IDToken{IDTokenClaims: claims}
+	ctx := b.Context()
+
+	var loggerWithClaims *slog.Logger
+
+	b.ReportAllocs()
+
+	for b.Loop() {
+		loggerWithClaims = withIDTokenClaimsLogger(ctx, logger, tokens)
+	}
+
+	_ = loggerWithClaims
 }

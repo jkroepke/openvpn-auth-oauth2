@@ -363,7 +363,7 @@ func withIDTokenClaimsLogger(ctx context.Context, logger *slog.Logger, tokens *i
 		return logger
 	}
 
-	logger = logger.With(
+	logger = loggerWithAttrs(logger,
 		slog.String("idtoken_subject", tokens.IDTokenClaims.Subject),
 		slog.String("idtoken_email", tokens.IDTokenClaims.EMail),
 		slog.String("idtoken_preferred_username", tokens.IDTokenClaims.PreferredUsername),
