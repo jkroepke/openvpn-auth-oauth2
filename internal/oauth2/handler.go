@@ -325,10 +325,7 @@ func (c *Client) postCodeExchangeHandler(
 			return
 		}
 
-		logger = logger.With(
-			slog.String("user_subject", user.Subject),
-			slog.String("user_username", user.Username),
-		)
+		logger = withUserLogger(logger, user.Subject, user.Username)
 
 		if err = c.validateInteractiveUser(ctx, session, user, tokens); err != nil {
 			c.openvpn.DenyClient(ctx, logger, session.Client, err.openvpnReason)
@@ -372,6 +369,14 @@ func withIDTokenClaimsLogger(ctx context.Context, logger *slog.Logger, tokens *i
 	logger.LogAttrs(ctx, slog.LevelDebug, "claims", slog.Any("claims", tokens.IDTokenClaims.Claims))
 
 	return logger
+}
+
+// withUserLogger enriches the logger with resolved user fields.
+func withUserLogger(logger *slog.Logger, subject, username string) *slog.Logger {
+	return loggerWithAttrs(logger,
+		slog.String("user_subject", subject),
+		slog.String("user_username", username),
+	)
 }
 
 type userValidationError struct {
