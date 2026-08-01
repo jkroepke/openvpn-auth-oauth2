@@ -3,11 +3,25 @@ package oauth2 //nolint:testpackage
 import (
 	"io"
 	"log/slog"
+	"net/http"
 	"testing"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
 )
+
+type benchmarkResponseWriter struct{}
+
+func (benchmarkResponseWriter) Header() http.Header {
+	return nil
+}
+
+func (benchmarkResponseWriter) Write(body []byte) (int, error) {
+	return len(body), nil
+}
+
+func (benchmarkResponseWriter) WriteHeader(_ int) {}
 
 func BenchmarkCreateSessionLogger(b *testing.B) {
 	// Exercise a real handler that retains attributes; DiscardHandler intentionally drops them.
@@ -85,4 +99,18 @@ func BenchmarkWithUserLogger(b *testing.B) {
 	}
 
 	_ = loggerWithUser
+}
+
+func BenchmarkWriteHTTPError(b *testing.B) {
+	conf := config.Defaults
+	client := Client{conf: &conf}
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil)) //nolint:sloglint
+	ctx := b.Context()
+	w := benchmarkResponseWriter{}
+
+	b.ReportAllocs()
+
+	for b.Loop() {
+		client.writeHTTPError(ctx, w, logger, http.StatusBadRequest, "Bad Request", "state is empty")
+	}
 }

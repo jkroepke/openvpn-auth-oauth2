@@ -713,12 +713,17 @@ func (c *Client) writeHTTPError(ctx context.Context, w http.ResponseWriter, logg
 		httpCode = http.StatusForbidden
 	}
 
-	h := sha256.New()
-	h.Write([]byte(time.Now().String()))
+	var timestamp [len(time.RFC3339Nano)]byte
 
-	errorID := hex.EncodeToString(h.Sum(nil))
+	formattedTimestamp := time.Now().AppendFormat(timestamp[:0], time.RFC3339Nano)
+	errorIDHash := sha256.Sum256(formattedTimestamp)
 
-	logger.LogAttrs(ctx, slog.LevelWarn, fmt.Sprintf("%s: %s", errorType, errorDesc), slog.String("error_id", errorID))
+	var errorIDBuffer [sha256.Size * 2]byte
+
+	hex.Encode(errorIDBuffer[:], errorIDHash[:])
+	errorID := string(errorIDBuffer[:])
+
+	logger.LogAttrs(ctx, slog.LevelWarn, errorType+": "+errorDesc, slog.String("error_id", errorID))
 	w.WriteHeader(httpCode)
 
 	err := c.conf.HTTP.Template.Execute(w, map[string]string{
