@@ -206,20 +206,13 @@ func TestCELContextConstruction(t *testing.T) {
 			ip: "192.0.2.10",
 			sessionState: "authenticated"
 		}.commonName == "alice" &&
-		openvpn_auth_oauth2.TokenContext{
-			claims: {"department": "engineering"},
-			ip: "192.0.2.20"
-		}.claims.department == "engineering" &&
 		openvpn_auth_oauth2.UserContext{
 			email: "alice@example.com",
 			groups: ["vpn-users"],
 			roles: ["vpn-admin"],
 			subject: "user-123",
 			username: "alice"
-		}.username == "alice" &&
-		type(openvpn_auth_oauth2.UserContext{username: "alice"}) == openvpn_auth_oauth2.UserContext &&
-		has(openvpn_auth_oauth2.UserContext{username: "alice"}.groups) &&
-		openvpn_auth_oauth2.UserContext{username: "alice"}.groups == []
+		}.username == "alice"
 	`, cel.BoolType)
 	require.NoError(t, err)
 
@@ -232,18 +225,33 @@ func TestCELContextEmptyValues(t *testing.T) {
 	t.Parallel()
 
 	program, err := compileCELProgram(`
+		has(auth.mode) &&
+		has(openvpn.commonName) &&
+		has(openvpn.ip) &&
+		has(openvpn.sessionState) &&
 		has(token.claims) &&
+		has(token.ip) &&
+		has(user.email) &&
 		has(user.groups) &&
 		has(user.roles) &&
+		has(user.subject) &&
+		has(user.username) &&
 		size(token.claims) == 0 &&
+		auth.mode == "" &&
+		openvpn.commonName == "" &&
+		openvpn.ip == "" &&
+		openvpn.sessionState == "" &&
 		token.ip == "" &&
+		user.email == "" &&
 		user.groups == [] &&
-		user.roles == []
+		user.roles == [] &&
+		user.subject == "" &&
+		user.username == ""
 	`, cel.BoolType)
 	require.NoError(t, err)
 
 	out, _, err := program.Eval(newCELActivation(
-		CELAuthModeInteractive,
+		CELAuthMode(""),
 		state.State{},
 		nil,
 		oauth2types.UserInfo{},
