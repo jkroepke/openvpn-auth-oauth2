@@ -374,6 +374,8 @@ func (c *Cipher) getMAC() *pooledMAC {
 // putMAC resets and returns an HMAC-SHA256 instance to the cipher-local pool.
 func (c *Cipher) putMAC(macHash *pooledMAC) {
 	macHash.Reset()
+	// In-place decryption may leave OAuth state plaintext in the pooled scratch.
+	clear(macHash.encrypted[:])
 	c.macPool.Put(macHash)
 }
 
