@@ -21,12 +21,13 @@ func TestCheckIdentityCEL(t *testing.T) {
 	t.Parallel()
 
 	for _, tc := range []struct {
-		name  string
-		conf  config.Config
-		state state.State
-		token *idtoken.IDToken
-		user  oauth2types.UserInfo
-		err   string
+		name    string
+		conf    config.Config
+		state   state.State
+		token   *idtoken.IDToken
+		user    oauth2types.UserInfo
+		initErr string
+		err     string
 	}{
 		{
 			name: "no CEL expression configured",
@@ -65,6 +66,7 @@ func TestCheckIdentityCEL(t *testing.T) {
 
 				return conf
 			}(),
+			initErr: "failed to compile CEL expression:",
 		},
 		{
 			name: "UserInfo identity without ID token claims",
@@ -192,7 +194,7 @@ func TestCheckIdentityCEL(t *testing.T) {
 			err:  oauth2.ErrCELValidationFailed.Error(),
 		},
 		{
-			name: "CEL expression evaluates to string",
+			name: "CEL expression statically evaluates to string",
 			conf: func() config.Config {
 				conf := config.Defaults
 				conf.OAuth2.Issuer = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
@@ -203,21 +205,28 @@ func TestCheckIdentityCEL(t *testing.T) {
 
 				return conf
 			}(),
-			state: state.State{
-				Client: state.ClientIdentifier{
-					CommonName: "test-client",
-				},
-				IPAddr: "127.0.0.1",
-			},
+			initErr: "cel expression must evaluate to bool, got string",
+		},
+		{
+			name: "dynamic CEL expression evaluates to string",
+			conf: func() config.Config {
+				conf := config.Defaults
+				conf.OAuth2.Issuer = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
+				conf.OAuth2.Endpoints.Discovery = conf.OAuth2.Issuer
+				conf.OAuth2.Endpoints.Auth = conf.OAuth2.Issuer
+				conf.OAuth2.Endpoints.Token = conf.OAuth2.Issuer
+				conf.OAuth2.Validate.Expression = "token.claims.result"
+
+				return conf
+			}(),
 			token: &idtoken.IDToken{
 				IDTokenClaims: &idtoken.Claims{
 					Claims: map[string]any{
-						"preferred_username": "test-client",
+						"result": "not-a-boolean",
 					},
 				},
 			},
-			user: oauth2types.UserInfo{Username: "test-client"},
-			err:  "cel expression did not evaluate to a boolean value",
+			err: "cel expression did not evaluate to a boolean value",
 		},
 		{
 			name: "CEL expression with lowerAscii",
@@ -281,8 +290,8 @@ func TestCheckIdentityCEL(t *testing.T) {
 			require.NoError(t, err)
 
 			oAuth2Client, err := oauth2.New(t.Context(), slog.New(slog.DiscardHandler), &tc.conf, http.DefaultClient, testsuite.NewFakeStorage(), testsuite.Cipher, provider, testsuite.NewFakeOpenVPNClient())
-			if tc.conf.OAuth2.Validate.Expression == "-" {
-				require.ErrorContains(t, err, "failed to compile CEL expression:")
+			if tc.initErr != "" {
+				require.ErrorContains(t, err, tc.initErr)
 
 				return
 			}
