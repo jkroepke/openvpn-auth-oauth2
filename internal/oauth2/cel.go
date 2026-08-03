@@ -100,7 +100,7 @@ func (c *Client) initializeCELValidation() error {
 		return nil
 	}
 
-	program, err := compileCELProgram(c.conf.OAuth2.Validate.Expression, nil)
+	program, err := compileCELProgram(c.conf.OAuth2.Validate.Expression, cel.BoolType)
 	if err != nil {
 		return fmt.Errorf("failed to initialize validation CEL expression: %w", err)
 	}
