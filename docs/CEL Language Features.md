@@ -45,6 +45,13 @@ their types when it loads the configuration, so an unknown field prevents
 startup instead of failing during authentication. Every listed field is
 present; unavailable strings and lists use empty values.
 
+Treat the context objects as read-only inputs. Do not construct replacement
+contexts with `openvpn_auth_oauth2.*Context{...}` object literals. In
+particular, a `TokenContext` literal cannot initialize `claims`: CEL-Go cannot
+convert a CEL `map<string, dynamic>` literal into the Go wrapper used to expose
+arbitrary token claim values. This limitation does not affect reading
+`token.claims` or constructing ordinary CEL map literals.
+
 `token.claims` remains a `map<string, dynamic>` because OAuth2 providers can
 return arbitrary claims. Use `has(token.claims.department)` before reading an
 optional claim.

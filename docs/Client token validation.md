@@ -65,9 +65,10 @@ rules and the context shared by all CEL settings.
 ## Expression Requirements
 
 - The CEL expression **must evaluate to a boolean** (`true` or `false`)
+- Syntax errors, unknown fields, and statically incompatible result types prevent startup
 - If the expression evaluates to `true`, the user is granted access
 - If the expression evaluates to `false`, the user is denied access
-- If the expression evaluation fails (e.g., syntax error, accessing a non-existent claim), the user is denied access
+- If evaluation fails during authentication (e.g., when accessing a non-existent claim), the user is denied access
 
 ## Safe Claim Access
 
