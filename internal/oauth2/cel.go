@@ -3,10 +3,12 @@ package oauth2
 import (
 	"errors"
 	"fmt"
+	"reflect"
 
 	"github.com/google/cel-go/cel"
 	"github.com/google/cel-go/ext"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
+	celcontext "github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/openvpn_auth_oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
 )
@@ -16,15 +18,29 @@ type CELAuthMode = types.AuthMode
 const (
 	CELAuthModeInteractive    = types.AuthModeInteractive
 	CELAuthModeNonInteractive = types.AuthModeNonInteractive
+
+	celAuthContextTypeName    = "openvpn_auth_oauth2.AuthContext"
+	celOpenVPNContextTypeName = "openvpn_auth_oauth2.OpenVPNContext"
+	celTokenContextTypeName   = "openvpn_auth_oauth2.TokenContext"
+	celUserContextTypeName    = "openvpn_auth_oauth2.UserContext"
 )
 
 // celActivation keeps the fixed CEL variables inline and resolves pointers to them,
 // avoiding the map allocation and interface boxing required by map-based activations.
 type celActivation struct {
-	auth    celAuthContext
-	openvpn celOpenVPNContext
-	token   celTokenContext
-	user    celUserContext
+	token             celcontext.TokenContext
+	openvpn           celcontext.OpenVPNContext
+	auth              celcontext.AuthContext
+	claims            map[string]any
+	userSubject       string
+	openVPNSession    string
+	userUsername      string
+	userEmail         string
+	tokenIP           string
+	authMode          string
+	openVPNIP         string
+	openVPNCommonName string
+	user              celcontext.UserContext
 }
 
 var _ cel.Activation = (*celActivation)(nil)
@@ -36,6 +52,10 @@ func (a *celActivation) ResolveName(name string) (any, bool) {
 	case "openvpn":
 		return &a.openvpn, true
 	case "token":
+		if a.token.Claims.Mapper == nil {
+			a.token.Claims = celcontext.NewClaims(a.claims)
+		}
+
 		return &a.token, true
 	case "user":
 		return &a.user, true
@@ -51,7 +71,13 @@ func (a *celActivation) Parent() cel.Activation {
 // newCELEnvironment returns the common CEL environment used by all configurable expressions.
 func newCELEnvironment() (*cel.Env, error) {
 	env, err := cel.NewEnv(
-		celContextTypes(),
+		ext.NativeTypes(
+			reflect.TypeFor[celcontext.AuthContext](),
+			reflect.TypeFor[celcontext.OpenVPNContext](),
+			reflect.TypeFor[celcontext.TokenContext](),
+			reflect.TypeFor[celcontext.UserContext](),
+			ext.ParseStructTag("cel"),
+		),
 		cel.VariableWithDoc("auth", cel.ObjectType(celAuthContextTypeName), "Authentication context"),
 		cel.VariableWithDoc("openvpn", cel.ObjectType(celOpenVPNContextTypeName), "OpenVPN session context"),
 		cel.VariableWithDoc("token", cel.ObjectType(celTokenContextTypeName), "OAuth2 token context"),
@@ -225,25 +251,35 @@ func newCELActivation(
 		roles = make([]string, 0)
 	}
 
-	return &celActivation{
-		auth: celAuthContext{
-			mode: string(authMode),
-		},
-		openvpn: celOpenVPNContext{
-			commonName:   session.Client.CommonName,
-			ip:           session.IPAddr,
-			sessionState: session.SessionState,
-		},
-		token: celTokenContext{
-			claims: claims,
-			ip:     tokenIP,
-		},
-		user: celUserContext{
-			email:    userInfo.Email,
-			groups:   groups,
-			roles:    roles,
-			subject:  userInfo.Subject,
-			username: userInfo.Username,
-		},
+	activation := &celActivation{
+		authMode:          string(authMode),
+		openVPNCommonName: session.Client.CommonName,
+		openVPNIP:         session.IPAddr,
+		openVPNSession:    session.SessionState,
+		tokenIP:           tokenIP,
+		userEmail:         userInfo.Email,
+		userSubject:       userInfo.Subject,
+		userUsername:      userInfo.Username,
+		claims:            claims,
 	}
+	activation.auth = celcontext.AuthContext{
+		Mode: &activation.authMode,
+	}
+	activation.openvpn = celcontext.OpenVPNContext{
+		CommonName:   &activation.openVPNCommonName,
+		IP:           &activation.openVPNIP,
+		SessionState: &activation.openVPNSession,
+	}
+	activation.token = celcontext.TokenContext{
+		IP: &activation.tokenIP,
+	}
+	activation.user = celcontext.UserContext{
+		Email:    &activation.userEmail,
+		Groups:   groups,
+		Roles:    roles,
+		Subject:  &activation.userSubject,
+		Username: &activation.userUsername,
+	}
+
+	return activation
 }
