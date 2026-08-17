@@ -54,7 +54,7 @@ var Defaults = Config{
 		AuthPendingTimeout: 3 * time.Minute,
 		ClientConfig: OpenVPNConfig{
 			Enabled:        false,
-			Path:           types.NewRootFS("/etc/openvpn-auth-oauth2/client-config-dir/"),
+			Path:           types.NewRootFS("/etc/openvpn-auth-oauth2/client-config/"),
 			IgnoreNotFound: true,
 		},
 		CommonName: OpenVPNCommonName{
