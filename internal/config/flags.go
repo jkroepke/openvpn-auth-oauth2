@@ -62,10 +62,9 @@ func (c *Config) flagSetHTTP(flagSet *flag.FlagSet) {
 		c.HTTP.BaseURL,
 		"listen addr for client listener",
 	)
-	flagSet.TextVar(
-		&c.HTTP.Secret,
+	flagSet.Var(
+		newSecretFlagValue(&c.HTTP.Secret),
 		"http.secret",
-		c.HTTP.Secret,
 		"Random generated secret for cookie encryption. Must be 16, 24 or 32 characters. "+
 			"If argument starts with file:// it reads the secret from a file.",
 	)
@@ -122,10 +121,9 @@ func (c *Config) flagSetOpenVPN(flagSet *flag.FlagSet) {
 		c.OpenVPN.Addr,
 		"openvpn management interface addr. Must start with unix:// or tcp://",
 	)
-	flagSet.TextVar(
-		&c.OpenVPN.Password,
+	flagSet.Var(
+		newSecretFlagValue(&c.OpenVPN.Password),
 		"openvpn.password",
-		c.OpenVPN.Password,
 		"openvpn management interface password. If argument starts with file:// it reads the secret from a file.",
 	)
 	flagSet.BoolVar(
@@ -222,10 +220,9 @@ func (c *Config) flagSetOpenVPN(flagSet *flag.FlagSet) {
 		c.OpenVPN.Passthrough.Address,
 		"The address of the pass-through socket. Must start with unix:// or tcp://",
 	)
-	flagSet.TextVar(
-		&c.OpenVPN.Passthrough.Password,
+	flagSet.Var(
+		newSecretFlagValue(&c.OpenVPN.Passthrough.Password),
 		"openvpn.pass-through.password",
-		c.OpenVPN.Passthrough.Password,
 		"The password for the pass-through socket. If argument starts with file:// it reads the secret from a file.",
 	)
 	flagSet.StringVar(
@@ -294,10 +291,9 @@ func (c *Config) flagSetOAuth2(flagSet *flag.FlagSet) {
 		c.OAuth2.Client.ID,
 		"oauth2 client id",
 	)
-	flagSet.TextVar(
-		&c.OAuth2.Client.PrivateKey,
+	flagSet.Var(
+		newSecretFlagValue(&c.OAuth2.Client.PrivateKey),
 		"oauth2.client.private-key",
-		c.OAuth2.Client.PrivateKey,
 		"oauth2 client private key. Secure alternative to oauth2.client.secret. If argument starts with file:// it reads the secret from a file.",
 	)
 	flagSet.StringVar(
@@ -306,10 +302,9 @@ func (c *Config) flagSetOAuth2(flagSet *flag.FlagSet) {
 		c.OAuth2.Client.PrivateKeyID,
 		"oauth2 client private key id. If specified, JWT assertions will be generated with the specific kid header.",
 	)
-	flagSet.TextVar(
-		&c.OAuth2.Client.Secret,
+	flagSet.Var(
+		newSecretFlagValue(&c.OAuth2.Client.Secret),
 		"oauth2.client.secret",
-		c.OAuth2.Client.Secret,
 		"oauth2 client secret. If argument starts with file:// it reads the secret from a file.",
 	)
 	flagSet.BoolVar(
@@ -365,10 +360,9 @@ func (c *Config) flagSetOAuth2(flagSet *flag.FlagSet) {
 		c.OAuth2.Refresh.Expires,
 		"TTL of stored oauth2 token.",
 	)
-	flagSet.TextVar(
-		&c.OAuth2.Refresh.Secret,
+	flagSet.Var(
+		newSecretFlagValue(&c.OAuth2.Refresh.Secret),
 		"oauth2.refresh.secret",
-		c.OAuth2.Refresh.Secret,
 		"Required, if oauth2.refresh.enabled=true. Random generated secret for token encryption. "+
 			"Must be 16, 24 or 32 characters. If argument starts with file:// it reads the secret from a file.",
 	)

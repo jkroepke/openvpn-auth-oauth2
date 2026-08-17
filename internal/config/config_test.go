@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/url"
 	"os"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"testing"
@@ -310,6 +311,58 @@ func TestConfigHelpFlag(t *testing.T) {
 	assert.NotContains(t, buf.String(), "(env: CONFIG_HTTP_LISTEN)")
 }
 
+func TestConfigHelpFlagDoesNotExposeSecrets(t *testing.T) {
+	const commandLineSecret = "command-line-secret-marker"
+
+	var buf bytes.Buffer
+
+	t.Setenv("OPENVPN_AUTH_OAUTH2_UNKNOWN", "value")
+
+	_, err := config.New(
+		[]string{
+			"openvpn-auth-oauth2",
+			"--config",
+			filepath.Join(t.TempDir(), "missing.yaml"),
+			"--oauth2.client.secret=" + commandLineSecret,
+			"--help",
+		},
+		&buf,
+	)
+
+	require.ErrorIs(t, err, flag.ErrHelp)
+	assert.Contains(t, buf.String(), "Usage of openvpn-auth-oauth2")
+	assert.NotContains(t, buf.String(), commandLineSecret)
+}
+
+func TestConfigHelpFlagRedactsLoadedSecrets(t *testing.T) {
+	conf := config.Defaults
+	conf.HTTP.Secret = "http-secret-marker"
+	conf.OpenVPN.Password = "openvpn-secret-marker"
+	conf.OpenVPN.Passthrough.Password = "pass-through-secret-marker"
+	conf.OAuth2.Client.PrivateKey = "private-key-marker"
+	conf.OAuth2.Client.Secret = "oauth2-secret-marker"
+	conf.OAuth2.Refresh.Secret = "refresh-secret-marker"
+
+	t.Setenv("OPENVPN_AUTH_OAUTH2_OAUTH2_CLIENT_SECRET", "environment-secret-marker")
+
+	var buf bytes.Buffer
+
+	err := conf.ReadFromFlagAndEnvironment([]string{"openvpn-auth-oauth2", "--help"}, &buf)
+
+	require.ErrorIs(t, err, flag.ErrHelp)
+
+	for _, secret := range []string{
+		conf.HTTP.Secret.String(),
+		conf.OpenVPN.Password.String(),
+		conf.OpenVPN.Passthrough.Password.String(),
+		conf.OAuth2.Client.PrivateKey.String(),
+		conf.OAuth2.Client.Secret.String(),
+		conf.OAuth2.Refresh.Secret.String(),
+	} {
+		assert.NotContains(t, buf.String(), secret)
+	}
+}
+
 func TestConfigFileEnvironmentVariable(t *testing.T) {
 	var buf bytes.Buffer
 
@@ -418,7 +471,15 @@ func TestConfigVersionFlag(t *testing.T) {
 
 	_ = io.Writer(&buf)
 
-	_, err := config.New([]string{"openvpn-auth-oauth2", "--version"}, &buf)
+	_, err := config.New(
+		[]string{
+			"openvpn-auth-oauth2",
+			"--config",
+			filepath.Join(t.TempDir(), "missing.yaml"),
+			"--version",
+		},
+		&buf,
+	)
 
 	require.ErrorIs(t, err, config.ErrVersion)
 }
