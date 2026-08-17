@@ -141,7 +141,7 @@ Usage of openvpn-auth-oauth2:
   --openvpn.client-config.ignore-not-found
         Ignore missing client configuration files. (env: OPENVPN_AUTH_OAUTH2_OPENVPN_CLIENT_CONFIG_IGNORE_NOT_FOUND) (default true)
   --openvpn.client-config.path value
-        Path to the CCD directory. openvpn-auth-oauth2 will look for an file with an .conf suffix and returns the content back. (env: OPENVPN_AUTH_OAUTH2_OPENVPN_CLIENT_CONFIG_PATH) (default /etc/openvpn-auth-oauth2/client-config-dir/)
+        Path to the CCD directory. openvpn-auth-oauth2 will look for an file with an .conf suffix and returns the content back. (env: OPENVPN_AUTH_OAUTH2_OPENVPN_CLIENT_CONFIG_PATH) (default /etc/openvpn-auth-oauth2/client-config/)
   --openvpn.client-config.strategy value
         Client config selection strategy. Values: [merge,user-selector]. (env: OPENVPN_AUTH_OAUTH2_OPENVPN_CLIENT_CONFIG_STRATEGY) (default merge)
   --openvpn.command-timeout duration

@@ -285,6 +285,13 @@ and during validated refresh authentication.
 Version 2 changes OpenVPN client-specific configuration from a single config
 name lookup to an expression-based resolver.
 
+The default client configuration directory changes from
+`/etc/openvpn-auth-oauth2/client-config-dir/` to
+`/etc/openvpn-auth-oauth2/client-config/`, matching the directory created by
+the installation packages. Deployments relying on the previous default must
+move their client configuration files or explicitly configure the previous
+path with `openvpn.client-config.path`.
+
 The following options are removed:
 
 | Version 1 option                                    | Version 2 replacement                           |
