@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
 
 	"go.yaml.in/yaml/v3"
@@ -15,6 +16,7 @@ import (
 const (
 	configArgument            = "--config"
 	environmentVariablePrefix = "OPENVPN_AUTH_OAUTH2_"
+	versionArgument           = "version"
 )
 
 var ErrVersion = errors.New("flag: version requested")
@@ -24,6 +26,14 @@ var ErrVersion = errors.New("flag: version requested")
 //goland:noinspection GoMixedReceiverTypes
 func New(args []string, writer io.Writer) (*Config, error) {
 	config := Defaults
+
+	if err := lookupInformationalArgument(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			config.newFlagSet(writer).Usage()
+		}
+
+		return nil, err
+	}
 
 	if configFilePath := lookupConfigArgument(args); configFilePath != "" {
 		if err := config.ReadFromConfigFile(configFilePath); err != nil && !errors.Is(err, io.EOF) {
@@ -67,6 +77,28 @@ func (c *Config) ReadFromConfigFile(configFilePath string) error {
 //goland:noinspection GoMixedReceiverTypes
 func (c *Config) ReadFromFlagAndEnvironment(args []string, writer io.Writer) error {
 	// Load the c from command line arguments
+	flagSet := c.newFlagSet(writer)
+
+	if err := applyEnvironment(flagSet); err != nil {
+		return fmt.Errorf("error parsing environment variables: %w", err)
+	}
+
+	if err := flagSet.Parse(args[1:]); err != nil {
+		return fmt.Errorf("error parsing command line arguments: %w", err)
+	}
+
+	if flagSet.NArg() != 0 {
+		return errors.New("error parsing command line arguments: positional arguments are not supported")
+	}
+
+	if flagSet.Lookup(versionArgument).Value.String() == "true" {
+		return ErrVersion
+	}
+
+	return nil
+}
+
+func (c *Config) newFlagSet(writer io.Writer) *flag.FlagSet {
 	flagSet := flag.NewFlagSet("openvpn-auth-oauth2", flag.ContinueOnError)
 	flagSet.SetOutput(writer)
 	flagSet.Usage = func() {
@@ -86,7 +118,7 @@ func (c *Config) ReadFromFlagAndEnvironment(args []string, writer io.Writer) err
 	)
 
 	flagSet.Bool(
-		"version",
+		versionArgument,
 		false,
 		"show version",
 	)
@@ -99,30 +131,64 @@ func (c *Config) ReadFromFlagAndEnvironment(args []string, writer io.Writer) err
 	c.flagSetProvider(flagSet)
 
 	flagSet.VisitAll(func(flag *flag.Flag) {
-		if flag.Name == "version" {
+		if flag.Name == versionArgument {
 			return
 		}
 
 		flag.Usage += fmt.Sprintf(" (env: %s)", getEnvironmentVariableByFlagName(flag.Name))
 	})
 
-	if err := applyEnvironment(flagSet); err != nil {
-		return fmt.Errorf("error parsing environment variables: %w", err)
+	return flagSet
+}
+
+func lookupInformationalArgument(args []string) error {
+	if len(args) < 2 {
+		return nil
 	}
 
-	if err := flagSet.Parse(args[1:]); err != nil {
-		return fmt.Errorf("error parsing command line arguments: %w", err)
+	versionRequested := false
+
+	for _, arg := range args[1:] {
+		if arg == "--" {
+			break
+		}
+
+		name, value, hasValue := splitFlagArgument(arg)
+
+		switch name {
+		case "h", "help":
+			return flag.ErrHelp
+		case versionArgument:
+			versionRequested = requestedBoolFlag(value, hasValue)
+		}
 	}
 
-	if flagSet.NArg() != 0 {
-		return errors.New("error parsing command line arguments: positional arguments are not supported")
-	}
-
-	if flagSet.Lookup("version").Value.String() == "true" {
+	if versionRequested {
 		return ErrVersion
 	}
 
 	return nil
+}
+
+func splitFlagArgument(arg string) (string, string, bool) {
+	if !strings.HasPrefix(arg, "-") || arg == "-" {
+		return "", "", false
+	}
+
+	nameValue := strings.TrimPrefix(arg, "-")
+	nameValue = strings.TrimPrefix(nameValue, "-")
+
+	return strings.Cut(nameValue, "=")
+}
+
+func requestedBoolFlag(value string, hasValue bool) bool {
+	if !hasValue {
+		return true
+	}
+
+	requested, _ := strconv.ParseBool(value)
+
+	return requested
 }
 
 func lookupConfigArgument(args []string) string {
@@ -184,7 +250,7 @@ func getFlagsByEnvironmentVariable(flagSet *flag.FlagSet) (map[string]*flag.Flag
 	var mappingError error
 
 	flagSet.VisitAll(func(configurationFlag *flag.Flag) {
-		if configurationFlag.Name == "version" {
+		if configurationFlag.Name == versionArgument {
 			return
 		}
 
