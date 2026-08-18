@@ -204,6 +204,21 @@ The two password files must contain the same password. They can be separate
 files so OpenVPN and openvpn-auth-oauth2 can each read a file from the path
 allowed by their service permissions.
 
+## OAuth2 client authentication style
+
+Version 2 replaces the Go-specific `oauth2.auth-style` values with concise
+configuration values:
+
+| Version 1 value | Version 2 value |
+| --- | --- |
+| `AuthStyleAutoDetect` | `auto` |
+| `AuthStyleInParams` | `params` |
+| `AuthStyleInHeader` | `header` |
+
+Update the value in YAML, the `--oauth2.auth-style` command-line flag, or the
+`OPENVPN_AUTH_OAUTH2_OAUTH2_AUTH_STYLE` environment variable. The version 1
+values are no longer accepted.
+
 ## CEL context
 
 Version 2 uses one namespaced context for username resolution, validation, and

@@ -77,7 +77,7 @@ Usage of openvpn-auth-oauth2:
   --log.vpn-client-ip
         log IP of VPN client. Useful to have an identifier between OpenVPN and openvpn-auth-oauth2. (env: OPENVPN_AUTH_OAUTH2_LOG_VPN_CLIENT_IP) (default true)
   --oauth2.auth-style value
-        Auth style represents how requests for tokens are authenticated to the server. Possible values: AuthStyleAutoDetect, AuthStyleInParams, AuthStyleInHeader. See https://pkg.go.dev/golang.org/x/oauth2#AuthStyle (env: OPENVPN_AUTH_OAUTH2_OAUTH2_AUTH_STYLE) (default AuthStyleInParams)
+        Auth style represents how requests for tokens are authenticated to the server. Possible values: auto, params, header. See https://pkg.go.dev/golang.org/x/oauth2#AuthStyle (env: OPENVPN_AUTH_OAUTH2_OAUTH2_AUTH_STYLE) (default params)
   --oauth2.authorize-params string
         additional url query parameter to authorize endpoint (env: OPENVPN_AUTH_OAUTH2_OAUTH2_AUTHORIZE_PARAMS)
   --oauth2.client.id string

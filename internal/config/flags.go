@@ -345,7 +345,7 @@ func (c *Config) flagSetOAuth2(flagSet *flag.FlagSet) {
 		"oauth2.auth-style",
 		c.OAuth2.AuthStyle,
 		"Auth style represents how requests for tokens are authenticated to the server. "+
-			"Possible values: AuthStyleAutoDetect, AuthStyleInParams, AuthStyleInHeader. "+
+			"Possible values: auto, params, header. "+
 			"See https://pkg.go.dev/golang.org/x/oauth2#AuthStyle",
 	)
 	flagSet.BoolVar(

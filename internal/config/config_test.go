@@ -87,7 +87,7 @@ oauth2:
         - "test2"
         expression: "openvpn.commonName == token.claims.preferred_username"
     authorize-params: "a=c"
-    auth-style: "AuthStyleInHeader"
+    auth-style: "header"
     scopes:
     - "openid"
     - "profile"
@@ -302,10 +302,13 @@ func TestConfigHelpFlag(t *testing.T) {
 	assert.Contains(t, buf.String(), "(env: OPENVPN_AUTH_OAUTH2_HTTP_LISTEN)")
 	assert.Contains(t, buf.String(), "--openvpn.command-timeout duration")
 	assert.Contains(t, buf.String(), "(env: OPENVPN_AUTH_OAUTH2_OPENVPN_COMMAND_TIMEOUT)")
+	assert.Contains(t, buf.String(), "Possible values: auto, params, header.")
+	assert.Contains(t, buf.String(), "(default params)")
 	assert.Contains(t, buf.String(), "(default /etc/openvpn-auth-oauth2/client-config/)")
 	assert.Contains(t, buf.String(), "--openvpn.pass-through.socket-mode value")
 	assert.Contains(t, buf.String(), "(default 0660)")
 	assert.NotContains(t, buf.String(), "/etc/openvpn-auth-oauth2/client-config-dir/")
+	assert.NotContains(t, buf.String(), "AuthStyleInParams")
 	assert.NotContains(t, buf.String(), "--http.short-url")
 	assert.NotContains(t, buf.String(), "--openvpn.common-name.mode")
 	assert.NotContains(t, buf.String(), "(env: CONFIG_HTTP_LISTEN)")

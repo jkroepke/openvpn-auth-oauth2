@@ -58,18 +58,37 @@ func TestOpenVPNConfigStrategyString(t *testing.T) {
 func TestOAuth2AuthStyleUnmarshalText(t *testing.T) {
 	t.Parallel()
 
-	var oAuth2AuthStyle config.OAuth2AuthStyle
+	for _, tc := range []struct {
+		name      string
+		value     string
+		expected  config.OAuth2AuthStyle
+		wantError bool
+	}{
+		{name: "auto", value: "auto", expected: config.OAuth2AuthStyle(oauth2.AuthStyleAutoDetect)},
+		{name: "params", value: "params", expected: config.OAuth2AuthStyle(oauth2.AuthStyleInParams)},
+		{name: "header", value: "header", expected: config.OAuth2AuthStyle(oauth2.AuthStyleInHeader)},
+		{name: "unknown", value: "unknown", wantError: true},
+		{name: "legacy auto", value: "AuthStyleAutoDetect", wantError: true},
+		{name: "legacy params", value: "AuthStyleInParams", wantError: true},
+		{name: "legacy header", value: "AuthStyleInHeader", wantError: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 
-	require.NoError(t, oAuth2AuthStyle.UnmarshalText([]byte("AuthStyleInHeader")))
-	assert.Equal(t, config.OAuth2AuthStyle(oauth2.AuthStyleInHeader), oAuth2AuthStyle)
+			var actual config.OAuth2AuthStyle
 
-	require.NoError(t, oAuth2AuthStyle.UnmarshalText([]byte("AuthStyleInParams")))
-	assert.Equal(t, config.OAuth2AuthStyle(oauth2.AuthStyleInParams), oAuth2AuthStyle)
+			err := actual.UnmarshalText([]byte(tc.value))
 
-	require.NoError(t, oAuth2AuthStyle.UnmarshalText([]byte("AuthStyleAutoDetect")))
-	assert.Equal(t, config.OAuth2AuthStyle(oauth2.AuthStyleAutoDetect), oAuth2AuthStyle)
+			if tc.wantError {
+				require.Error(t, err)
 
-	require.Error(t, oAuth2AuthStyle.UnmarshalText([]byte("unknown")))
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tc.expected, actual)
+		})
+	}
 }
 
 func TestOAuth2AuthStyleMarshalText(t *testing.T) {
@@ -78,17 +97,17 @@ func TestOAuth2AuthStyleMarshalText(t *testing.T) {
 	oAuth2AuthStyle, err := config.OAuth2AuthStyle(oauth2.AuthStyleInHeader).MarshalText()
 
 	require.NoError(t, err)
-	assert.Equal(t, []byte("AuthStyleInHeader"), oAuth2AuthStyle)
+	assert.Equal(t, []byte("header"), oAuth2AuthStyle)
 
 	oAuth2AuthStyle, err = config.OAuth2AuthStyle(oauth2.AuthStyleInParams).MarshalText()
 
 	require.NoError(t, err)
-	assert.Equal(t, []byte("AuthStyleInParams"), oAuth2AuthStyle)
+	assert.Equal(t, []byte("params"), oAuth2AuthStyle)
 
 	oAuth2AuthStyle, err = config.OAuth2AuthStyle(oauth2.AuthStyleAutoDetect).MarshalText()
 
 	require.NoError(t, err)
-	assert.Equal(t, []byte("AuthStyleAutoDetect"), oAuth2AuthStyle)
+	assert.Equal(t, []byte("auto"), oAuth2AuthStyle)
 
 	_, err = config.OAuth2AuthStyle(-1).MarshalText()
 
@@ -98,9 +117,9 @@ func TestOAuth2AuthStyleMarshalText(t *testing.T) {
 func TestOAuth2AuthStyleString(t *testing.T) {
 	t.Parallel()
 
-	assert.Equal(t, "AuthStyleInHeader", config.OAuth2AuthStyle(oauth2.AuthStyleInHeader).String())
-	assert.Equal(t, "AuthStyleInParams", config.OAuth2AuthStyle(oauth2.AuthStyleInParams).String())
-	assert.Equal(t, "AuthStyleAutoDetect", config.OAuth2AuthStyle(oauth2.AuthStyleAutoDetect).String())
+	assert.Equal(t, "header", config.OAuth2AuthStyle(oauth2.AuthStyleInHeader).String())
+	assert.Equal(t, "params", config.OAuth2AuthStyle(oauth2.AuthStyleInParams).String())
+	assert.Equal(t, "auto", config.OAuth2AuthStyle(oauth2.AuthStyleAutoDetect).String())
 
 	assert.Panics(t, func() { _ = config.OAuth2AuthStyle(-1).String() }, "The code did not panic")
 }
