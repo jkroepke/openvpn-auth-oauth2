@@ -1,4 +1,31 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>jkroepke/renovate-config"]
+  "extends": ["github>jkroepke/renovate-config"],
+  "packageRules": [
+    {
+      "matchManagers": ["gomod"],
+      "matchPackageNames": [
+        "github.com/containerd/errdefs",
+        "github.com/containerd/errdefs/pkg",
+        "github.com/docker/go-connections",
+        "github.com/ebitengine/purego",
+        "github.com/klauspost/compress",
+        "github.com/lufia/plan9stats",
+        "github.com/madflojo/testcerts",
+        "github.com/magiconair/properties",
+        "github.com/moby/go-archive",
+        "github.com/moby/moby/api",
+        "github.com/moby/moby/client",
+        "github.com/moby/sys/user",
+        "github.com/moby/sys/userns",
+        "github.com/power-devops/perfstat",
+        "github.com/shirou/gopsutil/v4",
+        "github.com/sirupsen/logrus",
+        "github.com/stretchr/testify",
+        "github.com/testcontainers/testcontainers-go",
+        "go.opentelemetry.io/**"
+      ],
+      "addLabels": ["chore"]
+    }
+  ]
 }
