@@ -140,9 +140,51 @@ with the explicit octal value `0660`.
 
 ## Security hardening
 
-Review the rest of this page even if these hardening items do not apply to your
-deployment. This section only requires action when you use reverse proxy headers
-or the OpenVPN plugin.
+Review each subsection and apply the migration steps for the features used by
+your deployment.
+
+### Debug listener
+
+The default `debug.listen` address changes from `:9001` to
+`127.0.0.1:9001`. When `debug.pprof` is enabled without an explicit listen
+address, the profiling endpoint is now available only from the local host.
+
+Existing configurations that set `debug.listen` keep their configured address.
+If remote profiling access is required, prefer a secure tunnel or explicitly
+set a protected listen address. The profiling endpoint exposes runtime details
+and must not be available on an untrusted network.
+
+### OAuth2 provider HTTP requests
+
+Version 2 accepts an HTTP redirect from an OAuth2 provider only when the target
+uses the same host as the original request. A request that starts with HTTPS
+also cannot redirect to HTTP. This prevents authorization data or tokens from
+being redirected to an unexpected host or an unencrypted connection.
+
+Provider requests now have an overall timeout of 30 seconds. A provider that
+relies on cross-host redirects or takes longer than 30 seconds will cause
+authentication to fail. Where possible, update the configured issuer,
+discovery URL, or custom endpoint to its final URL instead of relying on an HTTP
+redirect.
+
+### Custom HTML templates and client config names
+
+Version 2 renders `http.template` files with Go's `html/template` package
+instead of `text/template`. Dynamic values are contextually escaped for their
+location in HTML, including text, attributes, URLs, CSS, and JavaScript.
+Retest custom templates before upgrading. A template that relied on a dynamic
+value being inserted as raw HTML will now render that value as text or reject an
+unsafe context.
+
+Contextual escaping is required because template values can include profile
+names derived from identity provider claims or CEL expressions. Without
+escaping, a crafted value could become browser-rendered markup or script.
+
+Client config names containing `<`, `>`, `"`, `'`, `&`, `` ` ``, or control
+characters are also rejected. These names are used as both configuration file
+names and values in the browser-based profile selector. Rename affected
+`<name>.conf` files and update `openvpn.client-config.expression` to return the
+new names.
 
 ### Reverse proxy headers
 
