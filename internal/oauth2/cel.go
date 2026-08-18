@@ -6,6 +6,7 @@ import (
 	"reflect"
 
 	"github.com/google/cel-go/cel"
+	celtypes "github.com/google/cel-go/common/types"
 	"github.com/google/cel-go/ext"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
 	celcontext "github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/openvpn_auth_oauth2"
@@ -70,14 +71,13 @@ func (a *celActivation) Parent() cel.Activation {
 
 // newCELEnvironment returns the common CEL environment used by all configurable expressions.
 func newCELEnvironment() (*cel.Env, error) {
+	nativeTypes, err := newCELNativeTypes()
+	if err != nil {
+		return nil, fmt.Errorf("create CEL native context types: %w", err)
+	}
+
 	env, err := cel.NewEnv(
-		ext.NativeTypes(
-			reflect.TypeFor[celcontext.AuthContext](),
-			reflect.TypeFor[celcontext.OpenVPNContext](),
-			reflect.TypeFor[celcontext.TokenContext](),
-			reflect.TypeFor[celcontext.UserContext](),
-			ext.ParseStructTag("cel"),
-		),
+		nativeTypes,
 		cel.VariableWithDoc("auth", cel.ObjectType(celAuthContextTypeName), "Authentication context"),
 		cel.VariableWithDoc("openvpn", cel.ObjectType(celOpenVPNContextTypeName), "OpenVPN session context"),
 		cel.VariableWithDoc("token", cel.ObjectType(celTokenContextTypeName), "OAuth2 token context"),
@@ -90,6 +90,27 @@ func newCELEnvironment() (*cel.Env, error) {
 	}
 
 	return env, nil
+}
+
+func newCELNativeTypes() (cel.EnvOption, error) {
+	contextTypes := []reflect.Type{
+		reflect.TypeFor[celcontext.AuthContext](),
+		reflect.TypeFor[celcontext.OpenVPNContext](),
+		reflect.TypeFor[celcontext.TokenContext](),
+		reflect.TypeFor[celcontext.UserContext](),
+	}
+	descriptors := make([]any, 0, len(contextTypes))
+
+	for _, contextType := range contextTypes {
+		descriptor, err := celtypes.NewNativeType(contextType, celtypes.ParseStructTag("cel"))
+		if err != nil {
+			return nil, fmt.Errorf("create descriptor for %s: %w", contextType, err)
+		}
+
+		descriptors = append(descriptors, descriptor)
+	}
+
+	return cel.Types(descriptors...), nil
 }
 
 func (c *Client) initializeCELPrograms() error {
