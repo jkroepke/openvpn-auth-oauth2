@@ -70,7 +70,6 @@ duplicate-cn
 disable-dco
 explicit-exit-notify
 keepalive 10 60
-persist-key
 persist-tun
 reneg-sec 600
 verb 3
@@ -86,7 +85,6 @@ remote 127.0.0.1 1194 udp4
 remote-cert-tls server
 connect-retry-max 2
 tls-cert-profile preferred
-persist-key
 persist-tun
 disable-dco
 reneg-sec 0
@@ -152,7 +150,10 @@ func TestITEnforceUniqueUser(t *testing.T) {
 	authenticateUniqueUserITClient(t, client2, httpServer, server)
 
 	waitForOpenVPNITMessage(t, client1, server, func(line string) bool {
-		return strings.HasPrefix(line, ">HOLD:Waiting for hold release:")
+		return strings.HasPrefix(line, ">NOTIFY:info,server-pushed-halt,")
+	})
+	waitForOpenVPNITMessage(t, client1, server, func(line string) bool {
+		return strings.HasPrefix(line, ">STATE:") && strings.Contains(line, ",EXITING,server-pushed-halt,")
 	})
 }
 
