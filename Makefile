@@ -53,6 +53,27 @@ update:  ## Run dependency updates
 	@go get -u ./...
 	@go mod tidy
 
+.PHONY: renovate
+renovate: SHELL := /bin/bash
+renovate:  ## Update Renovate test-only Go dependencies
+	@set -euo pipefail; \
+		production="$$(mktemp)"; \
+		tests="$$(mktemp)"; \
+		direct="$$(mktemp)"; \
+		test_only="$$(mktemp)"; \
+		config="$$(mktemp)"; \
+		trap 'rm -f "$$production" "$$tests" "$$direct" "$$test_only" "$$config"' EXIT; \
+		go list -deps -f '{{with .Module}}{{.Path}}{{end}}' ./... | sort -u > "$$production"; \
+		go list -deps -test -f '{{with .Module}}{{.Path}}{{end}}' ./... | sort -u > "$$tests"; \
+		go list -m -f '{{if not .Indirect}}{{.Path}}{{end}}' all | sort -u > "$$direct"; \
+		comm -13 "$$production" "$$tests" > "$$test_only"; \
+		test_dependencies="$$(comm -12 "$$test_only" "$$direct")"; \
+		jq --arg dependencies "$$test_dependencies" \
+			'(.packageRules[] | select(.groupName == "Go test dependencies").matchPackageNames) = \
+			($$dependencies | split("\n") | map(select(length > 0)))' \
+			renovate.json > "$$config"; \
+		cp "$$config" renovate.json
+
 .PHONY: build  ## Build the project
 build: clean $(PROJECT_NAME)
 
