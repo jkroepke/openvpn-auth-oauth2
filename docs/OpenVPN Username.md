@@ -159,11 +159,18 @@ is also enabled.
 
 Before accepting a client, openvpn-auth-oauth2 requests `status 3`, finds every
 active client with an exactly matching `Username` field, and sends
-`client-kill <CID>` for each match except the CID currently authenticating. The
-status lookup and client acceptance are serialized so two concurrent logins
-cannot both pass the check. A status, parsing, or kill error prevents the new
-client from being accepted. If a matching CID disconnected after the status
-lookup, authentication continues because the old session is already gone.
+`client-kill <CID> HALT` for each match except the CID currently
+authenticating. `HALT` tells the displaced client to clear cached
+authentication and exit instead of automatically reconnecting with a cached
+authentication token. The status lookup and client acceptance are serialized
+so two concurrent logins cannot both pass the check. A status, parsing, or kill
+error prevents the new client from being accepted. If a matching CID
+disconnected after the status lookup, authentication continues because the old
+session is already gone.
+
+`HALT` does not revoke an `auth-gen-token` on the server. It prevents the
+displaced client from immediately reusing an in-memory token; a later manual
+connection starts a new authentication flow.
 
 The check applies to interactive authentication, silent reauthentication, and
 non-interactive reconnects. When `oauth2.refresh.validate-user=false`, the

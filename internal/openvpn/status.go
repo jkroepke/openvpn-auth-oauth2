@@ -10,7 +10,10 @@ import (
 	"strings"
 )
 
-const clientKillMissingResponse = "ERROR: client-kill command failed"
+const (
+	clientKillHaltMessage     = "HALT"
+	clientKillMissingResponse = "ERROR: client-kill command failed"
+)
 
 func (c *Client) enforceUniqueUser(ctx context.Context, logger *slog.Logger, currentCID uint64, username string) error {
 	if username == "" {
@@ -34,7 +37,7 @@ func (c *Client) enforceUniqueUser(ctx context.Context, logger *slog.Logger, cur
 			slog.Uint64("existing_cid", clientID),
 		)
 
-		response, err := c.SendCommandf(ctx, "client-kill %d", clientID)
+		response, err := c.SendCommandf(ctx, "client-kill %d %s", clientID, clientKillHaltMessage)
 
 		response = strings.TrimSpace(response)
 		if errors.Is(err, ErrErrorResponse) && response == clientKillMissingResponse {
