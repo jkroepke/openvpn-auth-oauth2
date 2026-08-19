@@ -23,6 +23,7 @@
         <method importPath="io" receiver="ReadCloser" name="Close" />
         <method importPath="io/fs" receiver="File" name="Close" />
         <method importPath="os" receiver="*Root" name="Close" />
+        <method importPath="github.com/jkroepke/openvpn-auth-oauth2/v2/internal/crypto" receiver="pooledMAC" name="Write" />
       </methods>
     </inspection_tool>
     <inspection_tool class="MarkdownUnresolvedFileReference" enabled="false" level="WARNING" enabled_by_default="false" />

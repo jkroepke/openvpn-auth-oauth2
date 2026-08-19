@@ -1,9 +1,13 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>jkroepke/renovate-config"],
+  "extends": [
+    "github>jkroepke/renovate-config"
+  ],
   "packageRules": [
     {
-      "matchManagers": ["gomod"],
+      "matchManagers": [
+        "gomod"
+      ],
       "matchPackageNames": [
         "github.com/containerd/errdefs",
         "github.com/containerd/errdefs/pkg",
@@ -25,7 +29,9 @@
         "github.com/testcontainers/testcontainers-go",
         "go.opentelemetry.io/**"
       ],
-      "addLabels": ["chore"]
+      "addLabels": [
+        "chore"
+      ]
     }
   ]
 }
