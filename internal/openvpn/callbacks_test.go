@@ -165,9 +165,9 @@ func TestAcceptClientEnforcesUniqueUser(t *testing.T) {
 			"CLIENT_LIST\tclient\t127.0.0.1:1194\t10.8.0.5\t\t1\t2\tnow\t1\talice\t12\t0\tAES-256-GCM\r\nEND",
 	)
 
-	suite.ExpectMessage(t, "client-kill 7")
+	suite.ExpectMessage(t, "client-kill 7 HALT")
 	suite.SendMessagef(t, "SUCCESS: client-kill command succeeded")
-	suite.ExpectMessage(t, "client-kill 12")
+	suite.ExpectMessage(t, "client-kill 12 HALT")
 	suite.SendMessagef(t, "ERROR: client-kill command failed")
 	suite.ExpectMessage(t, "client-auth 10 2\r\noverride-username \"alice\"\r\nEND")
 	suite.SendMessagef(t, "SUCCESS: client-auth command succeeded")
@@ -292,7 +292,7 @@ func TestAcceptClientSerializesSessionReplacement(t *testing.T) {
 		statusHeader+"\r\n"+
 			"CLIENT_LIST\tclient\t127.0.0.1:1194\t10.8.0.2\t\t1\t2\tnow\t1\talice\t1\t0\tAES-256-GCM\r\nEND",
 	)
-	suite.ExpectMessage(t, "client-kill 1")
+	suite.ExpectMessage(t, "client-kill 1 HALT")
 	suite.SendMessagef(t, "SUCCESS: client-kill command succeeded")
 	suite.ExpectMessage(t, "client-auth 2 1\r\noverride-username \"alice\"\r\nEND")
 	suite.SendMessagef(t, "SUCCESS: client-auth command succeeded")

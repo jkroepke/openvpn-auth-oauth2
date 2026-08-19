@@ -165,7 +165,7 @@ func TestSilentAuthenticationEnforcesUniqueUser(t *testing.T) {
 					"CLIENT_LIST\tclient\t127.0.0.1:1194\t10.8.0.2\t\t1\t2\tnow\t1\talice\t7\t0\tAES-256-GCM\r\n"+
 					"CLIENT_LIST\tclient\t127.0.0.1:1194\t10.8.0.3\t\t1\t2\tnow\t1\talice\t10\t0\tAES-256-GCM\r\nEND",
 			)
-			suite.ExpectMessage(t, "client-kill 7")
+			suite.ExpectMessage(t, "client-kill 7 HALT")
 			suite.SendMessagef(t, "SUCCESS: client-kill command succeeded")
 			suite.ExpectMessage(t, "client-auth 10 3\r\noverride-username \"alice\"\r\nEND")
 			suite.SendMessagef(t, "SUCCESS: client-auth command succeeded")

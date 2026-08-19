@@ -61,7 +61,6 @@ key /etc/openvpn/pki/private/server.key
 cert /etc/openvpn/pki/issued/server.crt
 dh none
 keepalive 10 60
-persist-key
 persist-tun
 explicit-exit-notify
 
