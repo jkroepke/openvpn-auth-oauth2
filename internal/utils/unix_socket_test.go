@@ -24,7 +24,7 @@ func TestPrepareUnixSocket(t *testing.T) {
 	t.Run("stale", func(t *testing.T) {
 		t.Parallel()
 
-		path := filepath.Join(t.TempDir(), "stale.sock")
+		path := unixSocketTestPath(t, "stale.sock")
 
 		var listenConfig net.ListenConfig
 
@@ -44,7 +44,7 @@ func TestPrepareUnixSocket(t *testing.T) {
 	t.Run("active", func(t *testing.T) {
 		t.Parallel()
 
-		path := filepath.Join(t.TempDir(), "active.sock")
+		path := unixSocketTestPath(t, "active.sock")
 
 		var listenConfig net.ListenConfig
 
@@ -67,4 +67,15 @@ func TestPrepareUnixSocket(t *testing.T) {
 		require.ErrorContains(t, err, "is not a socket")
 		require.FileExists(t, path)
 	})
+}
+
+func unixSocketTestPath(t *testing.T, name string) string {
+	t.Helper()
+
+	//nolint:usetesting // t.TempDir uses TMPDIR, which may exceed Unix socket path limits.
+	dir, err := os.MkdirTemp("/tmp", "openvpn-auth-oauth2-")
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, os.RemoveAll(dir)) })
+
+	return filepath.Join(dir, name)
 }
