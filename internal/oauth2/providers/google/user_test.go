@@ -10,7 +10,6 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/providers/google"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
 	"github.com/stretchr/testify/require"
-	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
 func TestGetUser(t *testing.T) {
@@ -24,7 +23,7 @@ func TestGetUser(t *testing.T) {
 		slog.New(slog.DiscardHandler),
 		&idtoken.IDToken{
 			IDTokenClaims: &idtoken.Claims{
-				TokenClaims: oidc.TokenClaims{Subject: "subject"},
+				Subject: "subject",
 				Claims: map[string]any{
 					"preferred_username": "username",
 				},

@@ -10,7 +10,6 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/providers/generic"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
 	"github.com/stretchr/testify/require"
-	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
 func TestGetUser(t *testing.T) {
@@ -30,7 +29,7 @@ func TestGetUser(t *testing.T) {
 			token: tokenWithClaims(
 				map[string]any{},
 				idtoken.Claims{
-					TokenClaims:       oidc.TokenClaims{Subject: "subject"},
+					Subject:           "subject",
 					PreferredUsername: "username",
 					EMail:             "user@example.com",
 				},
@@ -79,7 +78,7 @@ func TestGetUser(t *testing.T) {
 					"roles":  []string{"token-role"},
 				},
 				idtoken.Claims{
-					TokenClaims:       oidc.TokenClaims{Subject: "token-subject"},
+					Subject:           "token-subject",
 					PreferredUsername: "token-username",
 					EMail:             "token@example.com",
 				},

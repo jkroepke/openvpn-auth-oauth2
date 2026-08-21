@@ -11,7 +11,6 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/providers/generic"
 	oauth2types "github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
 	"github.com/stretchr/testify/require"
-	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
 func BenchmarkGetUser(b *testing.B) {
@@ -32,7 +31,7 @@ func BenchmarkGetUser(b *testing.B) {
 					Claims: map[string]any{
 						"preferred_username": "username",
 					},
-					TokenClaims: oidc.TokenClaims{Subject: "subject"},
+					Subject: "subject",
 				},
 			},
 		},
@@ -51,7 +50,7 @@ func BenchmarkGetUser(b *testing.B) {
 						"preferred_username": "username",
 						"groups":             []string{"group1", "group2"},
 					},
-					TokenClaims: oidc.TokenClaims{Subject: "subject"},
+					Subject: "subject",
 				},
 			},
 		},
@@ -70,7 +69,7 @@ func BenchmarkGetUser(b *testing.B) {
 						"preferred_username": "username",
 						"groups":             []any{"group1", "group2"},
 					},
-					TokenClaims: oidc.TokenClaims{Subject: "subject"},
+					Subject: "subject",
 				},
 			},
 		},
@@ -82,7 +81,7 @@ func BenchmarkGetUser(b *testing.B) {
 					Claims: map[string]any{
 						"roles": []any{"role1", "role2"},
 					},
-					TokenClaims: oidc.TokenClaims{Subject: "subject"},
+					Subject: "subject",
 				},
 			},
 		},
