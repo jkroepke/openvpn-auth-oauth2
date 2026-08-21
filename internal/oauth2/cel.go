@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/google/cel-go/cel"
-	celtypes "github.com/google/cel-go/common/types"
-	"github.com/google/cel-go/ext"
+	"cel.dev/cel-go/cel"
+	celtypes "cel.dev/cel-go/common/types"
+	"cel.dev/cel-go/ext"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
 	celcontext "github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/openvpn_auth_oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
