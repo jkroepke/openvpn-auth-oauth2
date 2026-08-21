@@ -68,12 +68,12 @@ refresh or when identity data comes from UserInfo.
 
 ### Extension Libraries
 
-All CEL expressions load the [CEL strings extension](https://pkg.go.dev/github.com/google/cel-go/ext#Strings)
-and [CEL lists extension](https://pkg.go.dev/github.com/google/cel-go/ext#Lists).
+All CEL expressions load the [CEL strings extension](https://pkg.go.dev/cel.dev/cel-go/ext#Strings)
+and [CEL lists extension](https://pkg.go.dev/cel.dev/cel-go/ext#Lists).
 
 ### String Functions
 
-The following string functions are available through the [CEL strings extension](https://pkg.go.dev/github.com/google/cel-go/ext#Strings):
+The following string functions are available through the [CEL strings extension](https://pkg.go.dev/cel.dev/cel-go/ext#Strings):
 
 #### Basic String Operations
 - `startsWith(<string>)` - Check if string starts with prefix
@@ -202,8 +202,8 @@ openvpn:
 For more details, see:
 - [CEL Specification](https://github.com/google/cel-spec/blob/master/doc/langdef.md)
 - [CEL Strings Extension](https://github.com/google/cel-spec/blob/master/doc/extensions/strings.md)
-- [cel-go Strings Documentation](https://pkg.go.dev/github.com/google/cel-go/ext#Strings)
-- [cel-go Lists Documentation](https://pkg.go.dev/github.com/google/cel-go/ext#Lists)
+- [cel-go Strings Documentation](https://pkg.go.dev/cel.dev/cel-go/ext#Strings)
+- [cel-go Lists Documentation](https://pkg.go.dev/cel.dev/cel-go/ext#Lists)
 
 ## Error Handling
 
