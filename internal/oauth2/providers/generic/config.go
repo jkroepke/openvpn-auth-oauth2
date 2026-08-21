@@ -3,7 +3,6 @@ package generic
 import (
 	oauth3 "github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
-	"golang.org/x/oauth2"
 )
 
 // GetProviderConfig implements the [github.com/jkroepke/openvpn-auth-oauth2/internal/oauth2.Provider] interface.
@@ -19,10 +18,8 @@ func (p Provider) GetProviderConfig() (types.ProviderConfig, error) {
 	}
 
 	return types.ProviderConfig{
-		Endpoint: oauth2.Endpoint{
-			AuthURL:  p.Conf.OAuth2.Endpoints.Auth.String(),
-			TokenURL: p.Conf.OAuth2.Endpoints.Token.String(),
-		},
-		Scopes: scopes,
+		AuthURL:  p.Conf.OAuth2.Endpoints.Auth.String(),
+		TokenURL: p.Conf.OAuth2.Endpoints.Token.String(),
+		Scopes:   scopes,
 	}, nil
 }

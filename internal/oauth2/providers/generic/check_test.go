@@ -13,7 +13,6 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
 func TestCheckUser(t *testing.T) {
@@ -35,9 +34,7 @@ func TestCheckUser(t *testing.T) {
 					Claims: map[string]any{
 						"preferred_username": "username",
 					},
-					TokenClaims: oidc.TokenClaims{
-						Subject: "subject",
-					},
+					Subject:           "subject",
 					PreferredUsername: "username",
 				},
 			},
@@ -56,9 +53,7 @@ func TestCheckUser(t *testing.T) {
 					Claims: map[string]any{
 						"preferred_username": "username",
 					},
-					TokenClaims: oidc.TokenClaims{
-						Subject: "subject",
-					},
+					Subject:           "subject",
 					PreferredUsername: "username",
 				},
 			},
