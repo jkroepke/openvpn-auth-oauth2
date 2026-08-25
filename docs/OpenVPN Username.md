@@ -143,7 +143,7 @@ profile from authenticating as the same OAuth2 user.
 
 Enable `openvpn.enforce-unique-user` to replace active sessions based on the
 resolved OAuth2 username. This applies the single-client behavior that OpenVPN
-normally bases on certificate common names, and that `duplicate-cn` disables,
+normally bases on a certificate common names, and that `duplicate-cn` disables,
 to the resolved user identity:
 
 ```yaml

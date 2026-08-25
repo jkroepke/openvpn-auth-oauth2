@@ -149,7 +149,7 @@ Usage of openvpn-auth-oauth2:
   --openvpn.common-name.environment-variable-name string
         Name of the environment variable in the OpenVPN management interface which contains the common name. If username-as-common-name is enabled, this should be set to 'username' to use the username as common name. Other values like 'X509_0_emailAddress' are supported. See https://openvpn.net/community-resources/reference-manual-for-openvpn-2-6/#environmental-variables for more information. (env: OPENVPN_AUTH_OAUTH2_OPENVPN_COMMON_NAME_ENVIRONMENT_VARIABLE_NAME) (default "common_name")
   --openvpn.enforce-unique-user
-        Requires OpenVPN Server 2.7 and openvpn.override-username=true. If true, openvpn-auth-oauth2 enforces one active OpenVPN session per username. (env: OPENVPN_AUTH_OAUTH2_OPENVPN_ENFORCE_UNIQUE_USER)
+        If true, openvpn-auth-oauth2 enforces one active OpenVPN session per username. (env: OPENVPN_AUTH_OAUTH2_OPENVPN_ENFORCE_UNIQUE_USER)
   --openvpn.override-username
         Requires OpenVPN Server 2.7! If true, openvpn-auth-oauth2 use the override-username command to set the username in OpenVPN connection. This is useful to use real usernames in OpenVPN statistics. The username will be set after client configs are read. Read OpenVPN man page for limitations of the override-username. (env: OPENVPN_AUTH_OAUTH2_OPENVPN_OVERRIDE_USERNAME)
   --openvpn.pass-through.address value
