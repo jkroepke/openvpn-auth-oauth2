@@ -25,10 +25,6 @@ func Validate(mode int, conf *Config) error {
 }
 
 func validateOpenVPNConfig(mode int, conf *Config) error {
-	if conf.OpenVPN.EnforceUniqueUser && !conf.OpenVPN.OverrideUsername {
-		return errors.New("openvpn.enforce-unique-user requires openvpn.override-username=true")
-	}
-
 	if conf.OpenVPN.EnforceUniqueUser && mode != ManagementClient {
 		return errors.New("openvpn.enforce-unique-user requires the OpenVPN management interface")
 	}

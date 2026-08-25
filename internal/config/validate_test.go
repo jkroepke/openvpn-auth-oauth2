@@ -295,16 +295,6 @@ func TestValidate(t *testing.T) {
 			"openvpn.client-config.expression is required when openvpn.client-config.enabled is true",
 		},
 		{
-			"single active session requires override username",
-			func() config.Config {
-				conf := validConfig()
-				conf.OpenVPN.EnforceUniqueUser = true
-
-				return conf
-			}(),
-			"openvpn.enforce-unique-user requires openvpn.override-username=true",
-		},
-		{
 			"valid single active session configuration",
 			func() config.Config {
 				conf := validConfig()
