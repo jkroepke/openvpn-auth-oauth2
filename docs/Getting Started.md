@@ -76,7 +76,7 @@ provider with its OIDC issuer URL.
 Both integration methods support browser authentication, token refresh,
 username overrides, and client-specific configuration.
 
-| Integration | Choose it when | Tradeoff |
+| Integration | Choose it when | Trade-off |
 | --- | --- | --- |
 | [OpenVPN plugin](OpenVPN%20Plugin) | Your OpenVPN server uses Linux AMD64 | Keeps OpenVPN's management interface available, but cannot enforce one active session per OIDC username |
 | Direct management interface | You need `openvpn.enforce-unique-user` or cannot use the plugin | Supports the full management command set, but occupies OpenVPN's single management client connection |

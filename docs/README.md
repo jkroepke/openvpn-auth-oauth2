@@ -18,8 +18,8 @@ published to the
 
 The publishing workflow removes the first line of each published Markdown file
 because GitHub Wiki displays the page name separately. Keep the page title on
-the first line of ordinary content pages so the source files are readable in
-the repository. The special `_Footer.md` file starts with a blank line instead.
+the first line of ordinary content pages, so the source files are readable in
+the repository. The special `_Footer.md` file starts with an empty line instead.
 
 When adding or renaming a page, update `Home.md` and `_Sidebar.md`. Use relative
 wiki links without a `.md` suffix, and replace spaces with `%20`, for example:

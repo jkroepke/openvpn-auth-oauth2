@@ -1,5 +1,38 @@
 # FAQ
 
+## Q: Why does the browser show `Access denied`?
+
+A: `Access denied` is the generic page for an unsuccessful authentication flow.
+It does not identify the cause and does not necessarily mean that the identity
+provider rejected the user or that an authorization policy denied access.
+
+The underlying failure can occur at different stages, including session and
+cookie handling, the OIDC callback, authorization-code exchange, token
+validation, user validation, or communication with the identity provider.
+Some upstream handlers also report several failure types through the same
+error path, so openvpn-auth-oauth2 cannot always classify them reliably.
+
+The browser response remains generic so authentication and infrastructure
+details are not exposed publicly.
+
+> [!IMPORTANT]
+> Ask the user for the unique **Error ID** displayed at the bottom of the page.
+> Search the openvpn-auth-oauth2 logs for the matching `error_id` value to find
+> the actual failure.
+
+For example, text-formatted logs contain a field similar to:
+
+```text
+error_id=<error-id-from-the-browser>
+```
+
+The Error ID is a unique correlation value for that individual failure, not a
+reusable error code or a description of the problem. Use the matching log entry
+to determine the cause and the appropriate troubleshooting steps.
+
+See [issue #1121](https://github.com/jkroepke/openvpn-auth-oauth2/issues/1121)
+for an example where the generic page represented an infrastructure failure.
+
 ## Q: openvpn-auth-oauth2 authenticates the user on every connection
 
 A: No, it isn’t possible to implement a Remember Me or a caching credential function directly within openvpn-auth-oauth2 or OpenVPN.
