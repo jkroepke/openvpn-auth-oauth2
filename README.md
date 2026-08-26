@@ -29,9 +29,24 @@ integrating OpenVPN with OIDC providers such as
 * Keycloak
 * [... any other OIDC compatible auth server](https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Providers)
 
+## Getting Started
+
+- Check the [OpenVPN server and client requirements](https://github.com/jkroepke/openvpn-auth-oauth2/wiki/OpenVPN).
+- Try the project locally with the [Docker Compose demo](https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Demo).
+- Follow [Getting Started](https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Getting-Started) for a first deployment.
+
+The complete wiki is organized by task and remains available from the
+[documentation home](https://github.com/jkroepke/openvpn-auth-oauth2/wiki).
+
+OpenVPN can connect through the stable Linux AMD64 plugin or directly through
+its management interface. The
+[Getting Started guide](https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Getting-Started#4-choose-the-openvpn-integration)
+compares both supported options.
+
 ## Installation
 
-For detailed installation instructions, please refer to the [Installation Guide](https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Installation).
+For package and source-build options, see the
+[Installation Guide](https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Installation).
 
 ### Downstream Packages
 

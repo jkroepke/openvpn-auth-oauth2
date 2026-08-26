@@ -38,7 +38,9 @@ To run the demo, follow these steps:
 
 After connecting, you should be able to see the `openvpn-auth-oauth2` application in action.
 
-Please note that this is a demo setup and is not suitable for production use.
+> [!WARNING]
+> This environment contains demonstration credentials and is not suitable for
+> production use.
 
 ## Accessing the Services
 

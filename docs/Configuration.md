@@ -1,5 +1,8 @@
 # Configuration
 
+For a first deployment, follow [Getting Started](Getting%20Started). This page
+is the complete configuration reference.
+
 To configure openvpn-auth-oauth2, the recommended approach uses a YAML file.
 If installed through a Linux package,
 the file `/etc/sysconfig/openvpn-auth-oauth2` allows configuration of openvpn-auth-oauth2 through environment variables.
@@ -35,6 +38,9 @@ Environment values are validated at startup. Boolean values must be exactly
 Command-line positional arguments are not supported.
 
 ## Supported configuration properties
+
+<details>
+<summary>Expand</summary>
 
 <!-- BEGIN USAGE -->
 ```
@@ -149,7 +155,7 @@ Usage of openvpn-auth-oauth2:
   --openvpn.common-name.environment-variable-name string
         Name of the environment variable in the OpenVPN management interface which contains the common name. If username-as-common-name is enabled, this should be set to 'username' to use the username as common name. Other values like 'X509_0_emailAddress' are supported. See https://openvpn.net/community-resources/reference-manual-for-openvpn-2-6/#environmental-variables for more information. (env: OPENVPN_AUTH_OAUTH2_OPENVPN_COMMON_NAME_ENVIRONMENT_VARIABLE_NAME) (default "common_name")
   --openvpn.enforce-unique-user
-        If true, openvpn-auth-oauth2 enforces one active OpenVPN session per username. (env: OPENVPN_AUTH_OAUTH2_OPENVPN_ENFORCE_UNIQUE_USER)
+        Enforces one active OpenVPN session for the username resolved by oauth2.openvpn-username. Requires a direct OpenVPN management-interface connection; the OpenVPN plugin is not supported. (env: OPENVPN_AUTH_OAUTH2_OPENVPN_ENFORCE_UNIQUE_USER)
   --openvpn.override-username
         Requires OpenVPN Server 2.7! If true, openvpn-auth-oauth2 use the override-username command to set the username in OpenVPN connection. This is useful to use real usernames in OpenVPN statistics. The username will be set after client configs are read. Read OpenVPN man page for limitations of the override-username. (env: OPENVPN_AUTH_OAUTH2_OPENVPN_OVERRIDE_USERNAME)
   --openvpn.pass-through.address value
@@ -172,6 +178,9 @@ Usage of openvpn-auth-oauth2:
         show version
 ```
 <!-- END USAGE -->
+
+</details>
+
 
 ## Read sensitive data from a file
 
@@ -219,9 +228,28 @@ http:
 
 See [Filesystem Permissions](Filesystem%20Permissions) for more information.
 
-## Setup OpenVPN server
+## Choose the OpenVPN integration
 
-To connect openvpn-auth-oauth2 with OpenVPN server, add lines below:
+`openvpn-auth-oauth2` supports two production integration methods:
+
+| Integration | Main benefit | Limitation |
+| --- | --- | --- |
+| [OpenVPN plugin](OpenVPN%20Plugin) | Leaves OpenVPN's management interface available for other tools | Distributed only for Linux AMD64; does not support `openvpn.enforce-unique-user` |
+| Direct management interface | Provides the full management command set and supports `openvpn.enforce-unique-user` | Occupies OpenVPN's single management client connection |
+
+> [!NOTE]
+> The OpenVPN plugin is stable and supported since openvpn-auth-oauth2 version
+> 2.0. Choose between the integrations based on their capabilities, not plugin
+> maturity.
+
+### OpenVPN plugin
+
+Follow [OpenVPN Plugin](OpenVPN%20Plugin) to install the shared library and
+configure its authentication-only TCP or Unix socket.
+
+### Direct management interface
+
+To connect `openvpn-auth-oauth2` directly to OpenVPN, add the following lines:
 
 ```ini
 # openvpn server.conf
@@ -245,11 +273,7 @@ auth-user-pass-optional
 auth-gen-token 28800 external-auth
 ```
 
-### openvpn-auth-oauth2 config
-
-<table>
-<thead><tr><td>env/sysconfig configuration</td></tr></thead>
-<tbody><tr><td>
+#### Environment configuration
 
 ```ini
 # openvpn-auth-oauth2 config file
@@ -257,9 +281,8 @@ OPENVPN_AUTH_OAUTH2_OPENVPN_ADDR=unix:///run/openvpn/server.sock
 OPENVPN_AUTH_OAUTH2_OPENVPN_PASSWORD=<password>
 OPENVPN_AUTH_OAUTH2_OPENVPN_OVERRIDE_USERNAME=true # For OpenVPN 2.7+ servers
 ```
-</td></tr></tbody>
-<thead><tr><td>yaml configuration</td></tr></thead>
-<tbody><tr><td>
+
+#### YAML configuration
 
 ```yaml
 openvpn:
@@ -267,8 +290,14 @@ openvpn:
   password: "<password>"
   override-username: true # For OpenVPN 2.7+ servers
 ```
-</td></tr></tbody>
-</table>
+
+> [!IMPORTANT]
+> `openvpn.enforce-unique-user` always requires this direct management
+> connection and is not compatible with the OpenVPN plugin. The setting does
+> not itself require OpenVPN 2.7 or `openvpn.override-username`; those are
+> required only when the resolved OIDC username must replace OpenVPN's existing
+> username. See
+> [Limiting a Username to One Active Session](OpenVPN%20Username#limiting-a-username-to-one-active-session).
 
 ## Setup OIDC Provider
 

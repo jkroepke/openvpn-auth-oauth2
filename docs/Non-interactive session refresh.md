@@ -53,10 +53,9 @@ you must enable `auth-gen-token [lifetime] external-auth` on the OpenVPN server.
 If `auth-gen-token-secret [keyfile]` is configured, OpenVPN access server restarts can verify auth-tokens.
 To generate a new secret, utilize `openvpn --genkey auth-token [keyfile]`.
 
-**Note**:
-Keep the keyfile secret
-as anyone with access to it can generate auth tokens that the OpenVPN server will recognize as valid.
-It's crucial to safeguard this file on the server.
+> [!WARNING]
+> Keep the key file secret. Anyone with access to it can generate authentication
+> tokens that the OpenVPN server accepts as valid.
 
 References:
 

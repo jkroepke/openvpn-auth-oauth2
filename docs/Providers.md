@@ -2,6 +2,9 @@
 
 This page documents the setup at the OIDC provider.
 
+If this is your first deployment, start with [Getting Started](Getting%20Started)
+and return here when prompted to register the OIDC application.
+
 ## Microsoft Entra ID (formerly known as Azure AD)
 
 <details>
