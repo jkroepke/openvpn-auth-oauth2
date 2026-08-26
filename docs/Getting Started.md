@@ -85,6 +85,12 @@ username overrides, and client-specific configuration.
 > The OpenVPN plugin is stable and supported since openvpn-auth-oauth2 version
 > 2.0. It is not an experimental integration.
 
+## 5. Configure the OpenVPN server
+
+Add the configuration for the integration selected in step 4 to the existing
+OpenVPN server configuration. Keep the server's current network, TLS, and PKI
+settings.
+
 Create a password for the connection between OpenVPN and
 `openvpn-auth-oauth2`. Both processes must use the same value.
 
@@ -131,16 +137,31 @@ management-client-auth
 auth-user-pass-optional
 ```
 
-Restart the applicable OpenVPN server unit and confirm that
-`/run/openvpn/server.sock` exists. Unit names vary by distribution and instance,
-so use the name for your existing server.
-
 > [!WARNING]
 > The management interface accepts only one client. If another tool needs that
 > connection, use the [OpenVPN plugin](OpenVPN%20Plugin) or
 > [management interface pass-through](Management%20Interface%20pass-through).
 
-## 5. Configure openvpn-auth-oauth2
+By default, OpenVPN continues to require the client certificates from the
+existing server configuration. If browser-based OIDC authentication should
+replace client-certificate authentication, add this directive for either
+integration:
+
+```ini
+verify-client-cert none
+```
+
+> [!TIP]
+> To avoid another browser login during TLS reauthentication or reconnects,
+> configure both the OpenVPN `auth-gen-token` directive and
+> [non-interactive session refresh](Non-interactive%20session%20refresh).
+
+Restart the applicable OpenVPN server unit after changing its configuration.
+Unit names vary by distribution and instance, so use the name for your existing
+server. With the direct management integration, confirm that
+`/run/openvpn/server.sock` exists after the restart.
+
+## 6. Configure openvpn-auth-oauth2
 
 Generate a cookie-encryption secret. The value must contain exactly 16, 24, or
 32 characters; this command generates 32:
@@ -182,7 +203,7 @@ The package also reads `/etc/sysconfig/openvpn-auth-oauth2`; values there
 override the YAML file. The [Configuration](Configuration) reference explains
 all settings, precedence, and how to read secrets from files.
 
-## 6. Add HTTPS
+## 7. Add HTTPS
 
 Configure your reverse proxy to serve `https://vpn-login.example.com` and
 forward requests to `http://127.0.0.1:9000`. The public URL must match
@@ -192,7 +213,7 @@ See [HTTPS Listener](HTTPS%20Listener) for reverse-proxy guidance or for using
 the service's native TLS listener. Do not expose the plain HTTP listener to an
 untrusted network.
 
-## 7. Start and verify the service
+## 8. Start and verify the service
 
 Enable the service and inspect its startup logs:
 
@@ -206,7 +227,7 @@ Startup must complete without configuration, OIDC discovery, socket, or
 permission errors. If the service cannot read a secret or connect to the Unix
 socket, see [Filesystem Permissions](Filesystem%20Permissions).
 
-## 8. Test a VPN login
+## 9. Test a VPN login
 
 1. Import the OpenVPN profile into a [supported client](OpenVPN).
 2. Connect to the VPN.
