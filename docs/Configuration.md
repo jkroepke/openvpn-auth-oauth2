@@ -291,14 +291,6 @@ openvpn:
   override-username: true # For OpenVPN 2.7+ servers
 ```
 
-> [!IMPORTANT]
-> `openvpn.enforce-unique-user` always requires this direct management
-> connection and is not compatible with the OpenVPN plugin. The setting does
-> not itself require OpenVPN 2.7 or `openvpn.override-username`; those are
-> required only when the resolved OIDC username must replace OpenVPN's existing
-> username. See
-> [Limiting a Username to One Active Session](OpenVPN%20Username#limiting-a-username-to-one-active-session).
-
 ## Setup OIDC Provider
 
 See [Providers](Providers) for more information.
