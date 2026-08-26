@@ -205,8 +205,8 @@ func (c *Config) flagSetOpenVPN(flagSet *flag.FlagSet) {
 		&c.OpenVPN.EnforceUniqueUser,
 		"openvpn.enforce-unique-user",
 		c.OpenVPN.EnforceUniqueUser,
-		"Requires OpenVPN Server 2.7 and openvpn.override-username=true. "+
-			"If true, openvpn-auth-oauth2 enforces one active OpenVPN session per username.",
+		"Enforces one active OpenVPN session for the username resolved by oauth2.openvpn-username. "+
+			"Requires a direct OpenVPN management-interface connection; the OpenVPN plugin is not supported.",
 	)
 	flagSet.BoolVar(
 		&c.OpenVPN.Passthrough.Enabled,

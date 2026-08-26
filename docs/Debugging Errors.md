@@ -8,14 +8,15 @@ I assume you are using a Chrome-based Browser.
 
 ### Requirements
 
-- Before connecting to OpenVPN server, open a browser locally. On the new tab page, do right-click, inspect.
-  The browser console appears. Important: click on the Network tab and ensure that "preserve log" is enabled.
+- Before connecting to OpenVPN server, open a browser locally. On the new tab
+  page, right-click and select **Inspect**. Open the **Network** tab and enable
+  **Preserve log** before continuing.
   ![](./img/debugging-error-cookie-network-tab.png)
 
 - Ideally, you aren't logged on Azure with your main browser, otherwise you are not intercept the flow.
 
-- Ensure, you have access to OpenVPN server logs in real-time. Tip: If you are using `journalctl`, use the option `--no-pager`.
-  This prevents that large links are truncated.
+- Ensure that you have access to OpenVPN server logs in real time. If you use
+  `journalctl`, add `--no-pager` so long links are not truncated.
 
 ### Debugging Steps
 

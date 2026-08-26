@@ -16,8 +16,17 @@ sudo apt update
 sudo apt install openvpn-auth-oauth2
 ```
 
-Note: The apt repository exclusively locates to the latest release.
-To pin a specific version, use `https://github.com/jkroepke/openvpn-auth-oauth2/releases/download/vX.Y.Z` as URIs in the sources file.
+> [!NOTE]
+> The APT repository tracks the latest release. To pin a specific version, use
+> `https://github.com/jkroepke/openvpn-auth-oauth2/releases/download/vX.Y.Z` as
+> the URI in the sources file.
+
+> [!NOTE]
+> Linux AMD64 DEB and RPM packages include the stable
+> [OpenVPN plugin](OpenVPN%20Plugin). Packages for other operating systems and
+> architectures contain only the `openvpn-auth-oauth2` service because the
+> release pipeline does not cross-compile the CGO shared library for those
+> targets.
 
 **Alternatively, you can install the DEB package manually:**
 
@@ -68,4 +77,7 @@ If you prefer to build the binary yourself, follow these steps:
     openvpn-auth-oauth2 --version
     ```
 
-Continue with the [Configuration Guide](./Configuration.md) to set up your provider details.
+For a first deployment, continue with
+[Getting Started](Getting%20Started#3-register-the-oidc-application).
+Use the [Configuration](Configuration) page when you need the complete settings
+reference.

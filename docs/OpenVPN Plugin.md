@@ -1,93 +1,189 @@
 # OpenVPN Plugin
 
-This plugin acts as a shim between OpenVPN Server and openvpn-auth-oauth2, allowing the authentication service to connect via a management interface socket instead of directly to OpenVPN's management interface. This prevents blocking the management interface for other purposes.
+> [!NOTE]
+> The OpenVPN plugin is stable and supported since openvpn-auth-oauth2 version
+> 2.0. It is a production deployment option, not an experimental feature.
 
-Due limitation on Go site, this plugin runs only under Linux.
+The plugin connects OpenVPN Server to the `openvpn-auth-oauth2` service through
+OpenVPN's plugin API. It exposes the authentication events that
+`openvpn-auth-oauth2` needs without occupying OpenVPN's management interface.
+Monitoring, administration, or other management clients can continue using the
+real management interface.
+
+## When to use the plugin
+
+Use the plugin when:
+
+- the OpenVPN server runs on Linux AMD64;
+- another tool needs OpenVPN's management interface; or
+- you prefer to isolate authentication from general management commands.
+
+Use the [direct management interface](Configuration#direct-management-interface)
+instead when `openvpn.enforce-unique-user` is required.
+
+| Capability | Plugin |
+| --- | --- |
+| Browser-based OIDC authentication | Supported |
+| Non-interactive session refresh | Supported |
+| `openvpn.override-username` | Supported on OpenVPN 2.7 or later |
+| Built-in client-specific configuration | Supported |
+| `openvpn.enforce-unique-user` | Not supported; use the direct management interface |
+| General OpenVPN management commands | Use OpenVPN's separate, real management interface |
+
+> [!IMPORTANT]
+> `openvpn.enforce-unique-user` does not work through the plugin. The setting
+> queries `status 3` and sends `client-kill` before accepting a connection. The
+> plugin socket deliberately implements only the authentication-related
+> management protocol, so `openvpn-auth-oauth2` rejects this combination during
+> startup.
 
 ## Architecture
 
-```
-┌─────────────────┐
-│  OpenVPN Server │
-└────────┬────────┘
-         │ (plugin interface)
-         │
-┌────────▼────────────────────┐
-│  openvpn-auth-oauth2.so     │  <-- This Plugin
-│  (Plugin Shim)              │
-└────────┬────────────────────┘
-         │ (management socket)
-         │
-┌────────▼────────────────────┐
-│  openvpn-auth-oauth2        │  <-- Main Auth Service
-│  (OAuth2 Authentication)    │
-└─────────────────────────────┘
+```text
+┌─────────────────────────┐
+│ OpenVPN Server          │
+│                         │
+│ Real management socket  │<── monitoring or administration tools
+└────────────┬────────────┘
+             │ OpenVPN plugin API
+┌────────────▼────────────┐
+│ openvpn-auth-oauth2.so  │
+└────────────┬────────────┘
+             │ Auth-only TCP or Unix socket
+┌────────────▼────────────┐
+│ openvpn-auth-oauth2     │
+└─────────────────────────┘
 ```
 
-## Configuration
+## Requirements
 
-### OpenVPN Server Configuration
-
-Add the plugin to your OpenVPN server configuration:
-
-```
-# Load the plugin with listen socket address and password file
-plugin /path/to/openvpn-auth-oauth2.so "tcp://127.0.0.1:9000" "/etc/openvpn/oauth2-plugin-password.txt"
-
-# Or use Unix socket
-plugin /path/to/openvpn-auth-oauth2.so "unix:///var/run/openvpn-oauth2.sock" "/etc/openvpn/oauth2-plugin-password.txt"
-```
-
-Plugin arguments:
-1. **Listen socket** (required): The address where the management interface will listen
-  - TCP: `tcp://host:port` (e.g., `tcp://127.0.0.1:9000`)
-  - Unix: `unix:///path/to/socket` (e.g., `unix:///var/run/openvpn-oauth2.sock`)
-2. **Password file** (required): File containing the management interface password
-
-For package installations, the shipped AppArmor profile allows
-`openvpn-auth-oauth2` to read `/etc/openvpn-auth-oauth2/**`, while OpenVPN
-installations commonly keep plugin-readable files below `/etc/openvpn/`.
-Use two dedicated password files with identical contents instead of making one
-file readable across both confined contexts:
-
-- `/etc/openvpn/oauth2-plugin-password.txt` for the OpenVPN plugin argument.
-- `/etc/openvpn-auth-oauth2/oauth2-plugin-password.txt` for
+- OpenVPN Community Server 2.6.2 or later.
+- Linux AMD64 for the prebuilt plugin artifact.
+- The `openvpn-auth-oauth2` binary and plugin from the same release.
+- A dedicated password shared by the OpenVPN plugin and
   `openvpn-auth-oauth2`.
 
-Create each file with restrictive ownership and permissions for the process that
-must read it, for example mode `0640` with the appropriate service group.
+> [!NOTE]
+> Release archives and DEB/RPM packages contain the plugin only for Linux AMD64.
+> The plugin uses CGO's `c-shared` build mode, and the GitHub Actions release
+> pipeline does not currently cross-compile that shared library for BSD or other
+> architectures. The `openvpn-auth-oauth2` service itself is released for more
+> operating systems and architectures; those artifacts do not include the
+> plugin.
 
-### openvpn-auth-oauth2 Configuration
+## 1. Install the plugin
 
-Configure openvpn-auth-oauth2 to connect to the plugin's management socket instead of OpenVPN's:
+The Linux AMD64 DEB and RPM packages install the shared library at:
 
-<table>
-<thead><tr><td>env/sysconfig configuration</td></tr></thead>
-<tbody><tr><td>
+```text
+/usr/lib/openvpn/openvpn-auth-oauth2-linux-amd64.so
+```
+
+If you use the release archive, extract the matching `.so` file and place it in
+a directory that OpenVPN can read. Keep the plugin and service versions aligned.
+
+## 2. Create the connection password
+
+Package installations confine OpenVPN and `openvpn-auth-oauth2` differently.
+Use two files with identical contents so each process can read its own file
+without broadening filesystem access:
+
+```bash
+sudo install -m 0600 -o root -g root /dev/null \
+  /etc/openvpn/management-password.txt
+sudo install -m 0640 -o root -g openvpn-auth-oauth2 /dev/null \
+  /etc/openvpn-auth-oauth2/management-password.txt
+plugin_password="$(openssl rand -hex 32)"
+printf '%s\n' "$plugin_password" \
+  | sudo tee /etc/openvpn/management-password.txt \
+    /etc/openvpn-auth-oauth2/management-password.txt >/dev/null
+unset plugin_password
+```
+
+> [!WARNING]
+> The plugin socket controls authentication decisions. Do not expose it to an
+> untrusted network, and do not make either password file readable by unrelated
+> users.
+
+## 3. Configure OpenVPN
+
+### TCP loopback socket
+
+TCP loopback avoids Unix socket ownership differences between OpenVPN packages:
 
 ```ini
-OPENVPN_AUTH_OAUTH2_OPENVPN_ADDR=unix:///var/run/openvpn-oauth2.sock
-OPENVPN_AUTH_OAUTH2_OPENVPN_PASSWORD=file:///etc/openvpn-auth-oauth2/oauth2-plugin-password.txt
-OPENVPN_AUTH_OAUTH2_OAUTH2_REFRESH_ENABLED=true
-OPENVPN_AUTH_OAUTH2_OAUTH2_REFRESH_EXPIRES=8h
-OPENVPN_AUTH_OAUTH2_OAUTH2_REFRESH_SECRET= # a static secret to encrypt token. Must be 16, 24 or 32
-OPENVPN_AUTH_OAUTH2_OAUTH2_REFRESH_USE_SESSION_ID=true
-OPENVPN_AUTH_OAUTH2_OPENVPN_AUTH_TOKEN_USER=true
+plugin /usr/lib/openvpn/openvpn-auth-oauth2-linux-amd64.so "tcp://127.0.0.1:9002" "/etc/openvpn/management-password.txt"
+auth-user-pass-optional
 ```
-</td></tr></tbody>
-<thead><tr><td>yaml configuration</td></tr></thead>
-<tbody><tr><td>
+
+### Unix socket
+
+A Unix socket avoids allocating a TCP port:
+
+```ini
+plugin /usr/lib/openvpn/openvpn-auth-oauth2-linux-amd64.so "unix:///run/openvpn/openvpn-auth-oauth2.sock" "/etc/openvpn/management-password.txt"
+auth-user-pass-optional
+```
+
+> [!IMPORTANT]
+> For a Unix socket, OpenVPN must be able to create the socket before dropping
+> privileges and remove it during shutdown. The runtime user therefore needs
+> write and search permissions on the parent directory.
+
+The plugin directive accepts three values:
+
+1. Path to the shared library.
+2. TCP or Unix address on which the plugin listens for
+   `openvpn-auth-oauth2`.
+3. Path to the password file that OpenVPN can read.
+
+Restart the applicable OpenVPN server unit after changing its configuration.
+
+## 4. Configure openvpn-auth-oauth2
+
+Set `openvpn.addr` to the same address as the plugin and read the matching
+password copy.
+
+### YAML configuration
 
 ```yaml
 openvpn:
-  addr: unix:///var/run/openvpn-oauth2.sock
-  password: "file:///etc/openvpn-auth-oauth2/oauth2-plugin-password.txt"
-oauth2:
-  refresh:
-    enabled: true
-    expires: 8h
-    secret: "..." # 16 or 24 characters
-    use-session-id: true
+  addr: "tcp://127.0.0.1:9002"
+  password: "file:///etc/openvpn-auth-oauth2/management-password.txt"
 ```
-</td></tr></tbody>
-</table>
+
+### Environment configuration
+
+```ini
+OPENVPN_AUTH_OAUTH2_OPENVPN_ADDR=tcp://127.0.0.1:9002
+OPENVPN_AUTH_OAUTH2_OPENVPN_PASSWORD=file:///etc/openvpn-auth-oauth2/management-password.txt
+```
+
+For a Unix socket, replace the address in both configurations with the same
+`unix://` value.
+
+> [!TIP]
+> To avoid browser logins during TLS reauthentication and reconnects, configure
+> [non-interactive session refresh](Non-interactive%20session%20refresh). The
+> plugin supports refresh tokens and OpenVPN session IDs.
+
+## 5. Verify the connection
+
+Start or restart `openvpn-auth-oauth2`, then inspect both services:
+
+```bash
+sudo systemctl restart openvpn-auth-oauth2
+sudo systemctl status openvpn-auth-oauth2
+sudo journalctl -u openvpn-auth-oauth2 --no-pager -n 100
+```
+
+The `openvpn-auth-oauth2` log should report a connection to the configured
+address. The OpenVPN log should show that the plugin loaded without an address,
+password-file, or permission error.
+
+If the connection fails, verify that:
+
+- OpenVPN loaded the `.so` from the expected path;
+- both configurations use the same TCP or Unix address;
+- the two password files contain the same value; and
+- each process can read its password file and access every parent directory.
