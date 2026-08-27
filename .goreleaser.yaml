@@ -38,17 +38,19 @@ builds:
     env:
       - CGO_ENABLED=1
       - >-
-        {{- if eq .Arch "amd64"}}CC=x86_64-linux-gnu-gcc{{- end }}
-        {{- if eq .Arch "arm64"}}CC=aarch64-linux-gnu-gcc{{- end }}
-      - >-
-        {{- if eq .Arch "amd64"}}CXX=x86_64-linux-gnu-g++{{- end }}
-        {{- if eq .Arch "arm64"}}CXX=aarch64-linux-gnu-g++{{- end }}
+        {{- if and (eq .Os "linux") (eq .Arch "amd64")}}CC=zig cc -target x86_64-linux-gnu.2.17{{- end }}
+        {{- if and (eq .Os "linux") (eq .Arch "arm64")}}CC=zig cc -target aarch64-linux-gnu.2.17{{- end }}
+        {{- if and (eq .Os "freebsd") (eq .Arch "amd64")}}CC=zig cc -target x86_64-freebsd.14.0{{- end }}
     goos:
       - linux
-    #  - freebsd
+      - freebsd
     goarch:
       - amd64
-    #  - arm64
+      - arm64
+    ignore:
+      # Go does not support -buildmode=c-shared for freebsd/arm64.
+      - goos: freebsd
+        goarch: arm64
     mod_timestamp: '{{ .CommitTimestamp }}'
     tags:
       - no_otel

@@ -60,6 +60,10 @@ jobs:
           go-version-file: 'go.mod'
           cache: "${{ github.actor != 'renovate[bot]' }}"
 
+      - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2.2.1
+        with:
+          version: 0.15.2
+
       - uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
 
       - name: Write gpg sign key
@@ -174,6 +178,10 @@ jobs:
         with:
           go-version-file: 'go.mod'
           cache: true
+
+      - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2.2.1
+        with:
+          version: 0.15.2
 
       - uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
 
