@@ -30,8 +30,9 @@ Choose the path that matches what you want to do:
   supported identity providers.
 - [HTTPS Listener](HTTPS%20Listener) explains reverse-proxy and native TLS
   options.
-- [OpenVPN Plugin](OpenVPN%20Plugin) is a stable Linux AMD64 integration that
-  keeps OpenVPN's management interface available for other tools.
+- [OpenVPN Plugin](OpenVPN%20Plugin) is a stable integration for Linux AMD64,
+  Linux ARM64, and FreeBSD AMD64 that keeps OpenVPN's management interface
+  available for other tools.
 
 ### Control access and identity
 

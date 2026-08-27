@@ -78,7 +78,7 @@ username overrides, and client-specific configuration.
 
 | Integration | Choose it when | Trade-off |
 | --- | --- | --- |
-| [OpenVPN plugin](OpenVPN%20Plugin) | Your OpenVPN server uses Linux AMD64 | Keeps OpenVPN's management interface available, but cannot enforce one active session per OIDC username |
+| [OpenVPN plugin](OpenVPN%20Plugin) | Your OpenVPN server uses Linux AMD64, Linux ARM64, or FreeBSD AMD64 | Keeps OpenVPN's management interface available, but cannot enforce one active session per OIDC username |
 | Direct management interface | You need `openvpn.enforce-unique-user` or cannot use the plugin | Supports the full management command set, but occupies OpenVPN's single management client connection |
 
 > [!NOTE]
@@ -108,12 +108,12 @@ unset management_password
 
 ### Option A: OpenVPN plugin
 
-Linux AMD64 DEB and RPM packages install the plugin at
-`/usr/lib/openvpn/openvpn-auth-oauth2-linux-amd64.so`. Add it to the OpenVPN
-server configuration:
+Linux AMD64 and ARM64 DEB and RPM packages install the plugin at
+`/usr/lib/openvpn/openvpn-auth-oauth2.so`. Add it to the OpenVPN server
+configuration:
 
 ```ini
-plugin /usr/lib/openvpn/openvpn-auth-oauth2-linux-amd64.so "tcp://127.0.0.1:9002" "/etc/openvpn/management-password.txt"
+plugin /usr/lib/openvpn/openvpn-auth-oauth2.so "tcp://127.0.0.1:9002" "/etc/openvpn/management-password.txt"
 auth-user-pass-optional
 ```
 

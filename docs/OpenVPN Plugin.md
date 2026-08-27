@@ -14,7 +14,7 @@ real management interface.
 
 Use the plugin when:
 
-- the OpenVPN server runs on Linux AMD64;
+- the OpenVPN server runs on Linux AMD64, Linux ARM64, or FreeBSD AMD64;
 - another tool needs OpenVPN's management interface; or
 - you prefer to isolate authentication from general management commands.
 
@@ -58,25 +58,26 @@ instead when `openvpn.enforce-unique-user` is required.
 ## Requirements
 
 - OpenVPN Community Server 2.6.2 or later.
-- Linux AMD64 for the prebuilt plugin artifact.
+- Linux AMD64, Linux ARM64, or FreeBSD AMD64 for a prebuilt plugin artifact.
 - The `openvpn-auth-oauth2` binary and plugin from the same release.
 - A dedicated password shared by the OpenVPN plugin and
   `openvpn-auth-oauth2`.
 
 > [!NOTE]
-> Release archives and DEB/RPM packages contain the plugin only for Linux AMD64.
-> The plugin uses CGO's `c-shared` build mode, and the GitHub Actions release
-> pipeline does not currently cross-compile that shared library for BSD or other
-> architectures. The `openvpn-auth-oauth2` service itself is released for more
-> operating systems and architectures; those artifacts do not include the
-> plugin.
+> Release archives contain the plugin for Linux AMD64, Linux ARM64, and FreeBSD
+> AMD64. Linux AMD64 and ARM64 DEB/RPM packages also contain the matching
+> plugin. The `openvpn-auth-oauth2` service itself is released for more operating
+> systems and architectures; those other artifacts do not include the plugin.
 
 ## 1. Install the plugin
 
-The Linux AMD64 DEB and RPM packages install the shared library at:
+Linux DEB and RPM packages install the shared library that matches the package
+architecture. On every supported platform, the shared library is named
+`openvpn-auth-oauth2.so`. Release archives contain the plugin beside the service
+binary, and Linux packages install it at:
 
 ```text
-/usr/lib/openvpn/openvpn-auth-oauth2-linux-amd64.so
+/usr/lib/openvpn/openvpn-auth-oauth2.so
 ```
 
 If you use the release archive, extract the matching `.so` file and place it in
@@ -112,7 +113,7 @@ unset plugin_password
 TCP loopback avoids Unix socket ownership differences between OpenVPN packages:
 
 ```ini
-plugin /usr/lib/openvpn/openvpn-auth-oauth2-linux-amd64.so "tcp://127.0.0.1:9002" "/etc/openvpn/management-password.txt"
+plugin /usr/lib/openvpn/openvpn-auth-oauth2.so "tcp://127.0.0.1:9002" "/etc/openvpn/management-password.txt"
 auth-user-pass-optional
 ```
 
@@ -121,7 +122,7 @@ auth-user-pass-optional
 A Unix socket avoids allocating a TCP port:
 
 ```ini
-plugin /usr/lib/openvpn/openvpn-auth-oauth2-linux-amd64.so "unix:///run/openvpn/openvpn-auth-oauth2.sock" "/etc/openvpn/management-password.txt"
+plugin /usr/lib/openvpn/openvpn-auth-oauth2.so "unix:///run/openvpn/openvpn-auth-oauth2.sock" "/etc/openvpn/management-password.txt"
 auth-user-pass-optional
 ```
 

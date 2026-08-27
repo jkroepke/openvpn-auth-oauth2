@@ -22,11 +22,10 @@ sudo apt install openvpn-auth-oauth2
 > the URI in the sources file.
 
 > [!NOTE]
-> Linux AMD64 DEB and RPM packages include the stable
-> [OpenVPN plugin](OpenVPN%20Plugin). Packages for other operating systems and
-> architectures contain only the `openvpn-auth-oauth2` service because the
-> release pipeline does not cross-compile the CGO shared library for those
-> targets.
+> Linux AMD64 and ARM64 DEB and RPM packages include the matching stable
+> [OpenVPN plugin](OpenVPN%20Plugin). The FreeBSD AMD64 plugin is available in
+> the release archive. Packages and archives for other operating systems and
+> architectures contain only the `openvpn-auth-oauth2` service.
 
 **Alternatively, you can install the DEB package manually:**
 

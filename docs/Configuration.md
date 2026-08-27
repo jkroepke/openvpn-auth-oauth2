@@ -234,7 +234,7 @@ See [Filesystem Permissions](Filesystem%20Permissions) for more information.
 
 | Integration | Main benefit | Limitation |
 | --- | --- | --- |
-| [OpenVPN plugin](OpenVPN%20Plugin) | Leaves OpenVPN's management interface available for other tools | Distributed only for Linux AMD64; does not support `openvpn.enforce-unique-user` |
+| [OpenVPN plugin](OpenVPN%20Plugin) | Leaves OpenVPN's management interface available for other tools | Distributed for Linux AMD64, Linux ARM64, and FreeBSD AMD64; does not support `openvpn.enforce-unique-user` |
 | Direct management interface | Provides the full management command set and supports `openvpn.enforce-unique-user` | Occupies OpenVPN's single management client connection |
 
 > [!NOTE]
