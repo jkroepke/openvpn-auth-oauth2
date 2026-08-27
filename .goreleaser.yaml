@@ -32,7 +32,7 @@ builds:
         -X github.com/jkroepke/openvpn-auth-oauth2/v2/internal/version.Date={{.Date}}
 
   - id: "openvpn-auth-oauth2.so"
-    binary: openvpn-auth-oauth2-{{ .Os }}-{{ .Arch }}
+    binary: openvpn-auth-oauth2
     main: ./lib/openvpn-auth-oauth2
     buildmode: c-shared
     env:

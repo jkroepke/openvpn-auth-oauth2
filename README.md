@@ -38,8 +38,8 @@ integrating OpenVPN with OIDC providers such as
 The complete wiki is organized by task and remains available from the
 [documentation home](https://github.com/jkroepke/openvpn-auth-oauth2/wiki).
 
-OpenVPN can connect through the stable Linux AMD64 plugin or directly through
-its management interface. The
+OpenVPN can connect through the stable plugin on Linux AMD64, Linux ARM64, and
+FreeBSD AMD64, or directly through its management interface. The
 [Getting Started guide](https://github.com/jkroepke/openvpn-auth-oauth2/wiki/Getting-Started#4-choose-the-openvpn-integration)
 compares both supported options.
 
