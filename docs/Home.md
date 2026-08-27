@@ -73,7 +73,30 @@ sequenceDiagram
     Server-->>Client: WEB_AUTH URL
     Client->>Browser: Open URL
     Browser->>IdP: Sign in
-    IdP-->>Auth: OAuth2 callback
+    IdP-->>Browser: Redirect with authorization code
+    Browser->>Auth: OAuth2 callback
+    Auth->>IdP: Exchange authorization code
+    IdP-->>Auth: ID and access tokens
     Auth->>Server: Accept or deny client
     Server-->>Client: Connection established
+
+    Server->>Auth: CLIENT:REAUTH
+    alt Non-interactive reauthentication
+        Auth->>IdP: Refresh token
+        IdP-->>Auth: New ID and access tokens
+        Auth->>Server: Accept or deny client
+    else Internal refresh authentication
+        Auth->>Auth: Validate stored authentication state
+        Auth->>Server: Accept or deny client
+    else Interactive reauthentication required
+        Auth-->>Server: WEB_AUTH URL
+        Server-->>Client: WEB_AUTH URL
+        Client->>Browser: Open URL
+        Browser->>IdP: Sign in
+        IdP-->>Browser: Redirect with authorization code
+        Browser->>Auth: OAuth2 callback
+        Auth->>IdP: Exchange authorization code
+        IdP-->>Auth: ID and access tokens
+        Auth->>Server: Accept or deny client
+    end
 ```
