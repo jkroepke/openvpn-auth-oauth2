@@ -73,7 +73,10 @@ sequenceDiagram
     Server-->>Client: WEB_AUTH URL
     Client->>Browser: Open URL
     Browser->>IdP: Sign in
-    IdP-->>Auth: OAuth2 callback
+    IdP-->>Browser: Redirect with authorization code
+    Browser->>Auth: OAuth2 callback
+    Auth->>IdP: Exchange authorization code
+    IdP-->>Auth: ID and access tokens
     Auth->>Server: Accept or deny client
     Server-->>Client: Connection established
 ```
