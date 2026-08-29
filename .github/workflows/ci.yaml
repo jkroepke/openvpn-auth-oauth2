@@ -39,6 +39,9 @@ jobs:
       - name: go test
         run: go test ./... -short -shuffle=on -timeout 20s -race -covermode=atomic -coverprofile=coverage.out -coverpkg=./...
 
+      - name: docker pull integration test image
+        run: docker pull ghcr.io/jkroepke/openvpn-auth-oauth2/it:latest
+
       - name: go test (Integration Tests)
         run: go test -race -count=1 -timeout=15m -run '^TestIT(EnforceUniqueUser)?$' ./internal ./lib/openvpn-auth-oauth2
         env:
@@ -49,9 +52,9 @@ jobs:
       - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-  benchmark:
+  bench:
     runs-on: ubuntu-24.04
-    name: benchmark
+    name: go bench
     permissions:
       contents: read
     steps:
