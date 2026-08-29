@@ -321,8 +321,14 @@ func (p *PluginHandle) handleClientConnect(perClientContext *ClientContext, ret 
 		return c.OpenVPNPluginFuncError
 	}
 
-	returnList.Name = c.CString("config")
-	returnList.Value = c.CString(perClientContext.clientConfig)
+	if err := returnList.Add("config", perClientContext.clientConfig); err != nil {
+		p.logger.ErrorContext(
+			p.ctx, "add return list item",
+			slog.Any("err", err),
+		)
+
+		return c.OpenVPNPluginFuncError
+	}
 
 	*ret.ReturnList = returnList
 
