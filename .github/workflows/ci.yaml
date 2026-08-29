@@ -29,8 +29,11 @@ jobs:
           go-version-file: 'go.mod'
           cache: "${{ github.actor != 'renovate[bot]' }}"
 
-      - name: go build
+      - name: go build openvpn-auth-oauth2
         run: go build ./cmd/openvpn-auth-oauth2
+
+      - name: go build openvpn-auth-oauth2.so
+        run: go build -buildvcs=false -buildmode=c-shared -o "${RUNNER_TEMP}/openvpn-auth-oauth2.so" ./lib/openvpn-auth-oauth2
 
       - name: go test
         run: go test ./... -short -shuffle=on -timeout 20s -race -covermode=atomic -coverprofile=coverage.out -coverpkg=./...
@@ -40,13 +43,14 @@ jobs:
         env:
           OPENVPN_IT_TEST: '1'
           PLUGIN_IT_TEST: '1'
+          PLUGIN_IT_PLUGIN_PATH: "${{ runner.temp }}/openvpn-auth-oauth2.so"
 
       - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-  benckmark:
+  benchmark:
     runs-on: ubuntu-24.04
-    name: benckmark
+    name: benchmark
     permissions:
       contents: read
     steps:

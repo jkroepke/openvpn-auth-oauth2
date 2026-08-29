@@ -33,7 +33,7 @@ import (
 )
 
 const (
-	uniqueUserITImage = "testcontainers/openvpn-auth-oauth2-unique-user-it:latest"
+	uniqueUserITImage = "ghcr.io/jkroepke/openvpn-auth-oauth2/it:latest"
 
 	uniqueUserServerEntrypoint = `#!/bin/sh
 set -eu
@@ -182,14 +182,7 @@ func startUniqueUserITServer(t *testing.T, volumeName string) testcontainers.Con
 
 	server, err := testcontainers.Run(
 		t.Context(),
-		"",
-		testcontainers.WithDockerfile(testcontainers.FromDockerfile{
-			Context:    "../",
-			Dockerfile: "./tests/Dockerfile",
-			Repo:       "testcontainers/openvpn-auth-oauth2-unique-user-it",
-			Tag:        "latest",
-			KeepImage:  true,
-		}),
+		uniqueUserITImage,
 		testcontainers.WithExposedPorts("8081/tcp", "8082/tcp", "8083/tcp"),
 		testcontainers.WithWaitStrategy(
 			wait.ForLog("MANAGEMENT: TCP Socket listening").WithStartupTimeout(2*time.Minute),
