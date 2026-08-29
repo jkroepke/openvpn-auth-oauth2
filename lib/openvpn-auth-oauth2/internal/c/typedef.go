@@ -92,6 +92,36 @@ func NewOpenVPNPluginStringList() (*OpenVPNPluginStringList, error) {
 	return returnList, nil
 }
 
+// Add appends a name-value pair to the list.
+func (l *OpenVPNPluginStringList) Add(name, value string) error {
+	if l == nil {
+		return errors.New("openvpn plugin string list is nil")
+	}
+
+	tail := l
+	for tail.Next != nil {
+		tail = tail.Next
+	}
+
+	if tail.Name == nil && tail.Value == nil {
+		tail.Name = C.CString(name)
+		tail.Value = C.CString(value)
+
+		return nil
+	}
+
+	next, err := NewOpenVPNPluginStringList()
+	if err != nil {
+		return err
+	}
+
+	next.Name = C.CString(name)
+	next.Value = C.CString(value)
+	tail.Next = next
+
+	return nil
+}
+
 type OpenVPNPluginHandle Uintptr
 
 func NewOpenVPNPluginHandle(value any) OpenVPNPluginHandle {
