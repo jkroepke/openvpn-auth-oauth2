@@ -9,4 +9,4 @@ ENV EASYRSA=/usr/share/easy-rsa/ \
     EASYRSA_CURVE="ed25519" \
     EASYRSA_DN="cn_only"
 
-RUN apk add --no-cache easy-rsa gcompat openvpn socat
+RUN apk add --no-cache easy-rsa openvpn socat libc6-compat
