@@ -13,10 +13,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestPluginHandler_Handle(t *testing.T) {
-	t.Parallel()
-
-	handler := NewOpenVPNPluginLogger(testutil.Callbacks()).WithAttrs([]slog.Attr{
+func TestPluginHandler_Handle(t *testing.T) { //nolint:paralleltest // RecordingCallbacks uses process-wide state.
+	handler := NewOpenVPNPluginLogger(testutil.RecordingCallbacks()).WithAttrs([]slog.Attr{
 		slog.String("component", "plugin"),
 	})
 
@@ -31,6 +29,11 @@ func TestPluginHandler_Handle(t *testing.T) {
 	)
 
 	require.NoError(t, handler.Handle(t.Context(), record))
+	require.Equal(
+		t,
+		`INFO: client connected component="plugin" user="alice" cid=7 ok=true wait=1.5ms at=2026-07-02T10:11:12.000000013Z session={ id="sid-1"}`,
+		testutil.RecordedLog(),
+	)
 }
 
 func TestPluginHandler_WithAttrs(t *testing.T) {

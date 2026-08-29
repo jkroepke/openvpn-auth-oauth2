@@ -2,18 +2,12 @@
 
 package pluginlog
 
-/*
-#include <stdlib.h>
-*/
-import "C"
-
 import (
 	"context"
 	"fmt"
 	"log/slog"
 	"sync"
 	"time"
-	"unsafe"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/lib/openvpn-auth-oauth2/internal/c"
 )
@@ -22,11 +16,11 @@ import (
 // OpenVPN's plugin logging system. It forwards log messages to OpenVPN using the
 // plugin_log callback function.
 type PluginHandler struct {
+	opts         Options
 	mu           *sync.Mutex
 	cb           *c.OpenVPNPluginCallbacks
-	opts         Options
-	preformatted []byte
 	bufPool      *sync.Pool
+	preformatted []byte
 }
 
 // Options configures the behavior of the PluginHandler.
@@ -102,13 +96,11 @@ func (h *PluginHandler) Handle(_ context.Context, record slog.Record) error {
 		return true
 	})
 
+	buf = append(buf, 0)
+
 	h.mu.Lock()
 
-	msg := c.CString(string(buf))
-
-	c.PluginLog(h.cb, h.pluginLogLevel(record.Level), msg)
-
-	C.free(unsafe.Pointer(msg))
+	c.PluginLog(h.cb, h.pluginLogLevel(record.Level), buf)
 
 	h.mu.Unlock()
 
