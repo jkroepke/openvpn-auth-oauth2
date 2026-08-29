@@ -17,6 +17,7 @@ jobs:
     name: Build & Test
     permissions:
       contents: read
+      packages: read
     env:
       GOEXPERIMENT: 'cgocheck2'
     steps:
