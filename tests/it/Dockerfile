@@ -1,4 +1,4 @@
-FROM alpine
+FROM debian:trixie-slim
 
 ENV EASYRSA=/usr/share/easy-rsa/ \
     EASYRSA_PKI=/etc/openvpn/pki \
@@ -9,4 +9,9 @@ ENV EASYRSA=/usr/share/easy-rsa/ \
     EASYRSA_CURVE="ed25519" \
     EASYRSA_DN="cn_only"
 
-RUN apk add --no-cache easy-rsa openvpn socat libc6-compat
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update  \
+    && apt-get install socat easy-rsa openvpn -y --no-install-recommends \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*

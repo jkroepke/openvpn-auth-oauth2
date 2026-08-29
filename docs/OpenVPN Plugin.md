@@ -59,9 +59,21 @@ instead when `openvpn.enforce-unique-user` is required.
 
 - OpenVPN Community Server 2.6.2 or later.
 - Linux AMD64, Linux ARM64, or FreeBSD AMD64 for a prebuilt plugin artifact.
+- glibc 2.17 or later on Linux. The prebuilt Linux plugin dynamically links to
+  `libc.so.6`, `libresolv.so.2`, and `libpthread.so.0`.
 - The `openvpn-auth-oauth2` binary and plugin from the same release.
 - A dedicated password shared by the OpenVPN plugin and
   `openvpn-auth-oauth2`.
+
+> [!IMPORTANT]
+> The prebuilt Linux plugin does not support musl-based distributions such as
+> Alpine Linux. Alpine's `gcompat` and `libc6-compat` packages do not provide
+> all glibc ABI and thread-local storage behavior required by Go shared
+> libraries loaded with `dlopen`. This is a known
+> [Go runtime limitation](https://github.com/golang/go/issues/54805). Run
+> OpenVPN on a glibc-based distribution or use the
+> [direct management interface](Configuration#direct-management-interface)
+> instead.
 
 > [!NOTE]
 > Release archives contain the plugin for Linux AMD64, Linux ARM64, and FreeBSD
