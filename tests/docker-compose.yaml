@@ -70,7 +70,6 @@ services:
         proto tcp
         port 1194
 
-        fast-io
         user nobody
         group nogroup
 

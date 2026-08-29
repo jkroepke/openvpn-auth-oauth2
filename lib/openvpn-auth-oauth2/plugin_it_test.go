@@ -74,7 +74,6 @@ topology subnet
 proto udp
 port 1194
 
-fast-io
 user nobody
 group nogroup
 
