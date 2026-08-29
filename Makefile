@@ -17,6 +17,9 @@ PROJECT_NAME := $(notdir $(CURRENT_DIR))
 PLUGIN_PATH := $(CURRENT_DIR)/$(PROJECT_NAME).so
 PLUGIN_HEADER_PATH := $(CURRENT_DIR)/$(PROJECT_NAME).h
 
+# Set the integration test image
+IT_IMAGE := ghcr.io/jkroepke/openvpn-auth-oauth2/it:latest
+
 # Get the GOOS value
 GOOS := $(shell go env GOOS)
 
@@ -102,6 +105,7 @@ test:  ## Test the project
 
 .PHONY: test-it
 test-it:  ## Run integration tests
+	@docker pull "$(IT_IMAGE)"
 	@$(PLUGIN_BUILD_ENV) go build -buildvcs=false -buildmode=c-shared -o "$(PLUGIN_PATH)" ./lib/openvpn-auth-oauth2
 	@GOEXPERIMENT=cgocheck2 OPENVPN_IT_TEST=1 PLUGIN_IT_TEST=1 PLUGIN_IT_PLUGIN_PATH="$(PLUGIN_PATH)" \
 		go test -race -count=1 -timeout=15m -run '^TestIT(EnforceUniqueUser)?$$' ./internal ./lib/openvpn-auth-oauth2
