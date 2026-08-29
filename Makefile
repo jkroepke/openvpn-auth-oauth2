@@ -87,6 +87,10 @@ test:  ## Test the project
 .PHONY: lint
 lint: golangci  ## Run linter
 
+.PHONY: textlint
+textlint:  ## Run textlint
+	npx textlint --rule terminology .
+
 .PHONY: fmt  ## Format code
 fmt:
 	@go mod tidy

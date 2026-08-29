@@ -25,6 +25,12 @@ make lint
 make test
 ```
 
+If Markdown files are changed, also run:
+
+```shell
+make textlint
+```
+
 If a check cannot run because of missing dependencies or network restrictions,
 state that limitation in the pull request's testing notes.
 
