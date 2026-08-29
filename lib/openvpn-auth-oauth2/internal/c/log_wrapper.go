@@ -9,18 +9,26 @@ static char *MODULE = "openvpn-auth-oauth2";
 
 // A wrapper function is needed because go is not able to call C pointer functions
 // https://stackoverflow.com/questions/37157379/passing-function-pointer-to-the-c-code-using-cgo
-int plugin_log(struct openvpn_plugin_callbacks* cb, int flags, char *msg) {
+int plugin_log(struct openvpn_plugin_callbacks* cb, int flags, const char *msg) {
 	cb->plugin_log(flags, MODULE, "%s", msg);
 	return 0;
 }
 */
 import "C"
 
-import (
-	"unsafe"
-)
+import "unsafe"
 
-func PluginLog(cb *OpenVPNPluginCallbacks, flags PLogLevel, msg *Char) {
-	//nolint:nlreturn,unconvert // false positive
-	C.plugin_log((*C.struct_openvpn_plugin_callbacks)(unsafe.Pointer(cb)), C.int(flags), (*C.char)(msg))
+// PluginLog synchronously forwards a NUL-terminated message. The callback must
+// not retain a pointer to msg after it returns.
+func PluginLog(callbacks *OpenVPNPluginCallbacks, flags PLogLevel, msg []byte) {
+	if len(msg) == 0 || msg[len(msg)-1] != 0 {
+		panic("plugin log message must be NUL-terminated")
+	}
+
+	//nolint:nlreturn // false positive
+	C.plugin_log(
+		(*C.struct_openvpn_plugin_callbacks)(unsafe.Pointer(callbacks)),
+		C.int(flags),
+		(*C.char)(unsafe.Pointer(unsafe.SliceData(msg))),
+	)
 }

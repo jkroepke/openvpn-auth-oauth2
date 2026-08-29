@@ -82,7 +82,7 @@ $(PROJECT_NAME):
 
 .PHONY: test
 test:  ## Test the project
-	@go test -race ./...
+	@GOEXPERIMENT=cgocheck2 go test -race ./...
 
 .PHONY: lint
 lint: golangci  ## Run linter

@@ -18,7 +18,11 @@ Before merging, apply at least one changelog label defined in
 - `🐞 bug` for fixes
 - `🛠️ dependencies` for dependency updates
 - `📖 docs` for documentation
-- `chore` only for changes excluded from the user-facing changelog
+- `chore` for internal technical changes excluded from the user-facing changelog
+
+Use `chore` for implementation-only performance improvements, tests, CI, and
+maintenance that do not change user-facing behavior. Use `✨ enhancement` only
+when a change adds functionality that users can observe or use.
 
 Add `💥 breaking-change` whenever a change is breaking, even if another label
 also applies.
@@ -45,6 +49,17 @@ Configuration is usually done through a YAML file or environment variables. The
 project's `docs/` directory contains detailed guides such as
 [`docs/Configuration.md`](docs/Configuration.md) and
 [`docs/Home.md`](docs/Home.md).
+
+## Plugin cgo pointer checks
+
+All tests must be compiled with `GOEXPERIMENT=cgocheck2` so the plugin's Go/C
+boundary receives the complete, expensive cgo pointer checks. The `test` target
+in `Makefile` and the build-and-test job in `.github/workflows/ci.yaml` set the
+experiment at build time.
+
+Do not try to enable the experiment with `//go:debug cgocheck2=1`,
+`//go:debug cgocheck=2`, `GODEBUG=cgocheck=2`, or `t.Setenv`. The first is not a
+`GODEBUG` setting, while the others cannot enable the build-time instrumentation.
 
 ## OpenVPN management command size
 
