@@ -50,6 +50,57 @@ func TestStorageInMemory(t *testing.T) {
 	require.ErrorIs(t, err, tokenstorage.ErrNotExists)
 }
 
+func TestStorageInMemory_Consume(t *testing.T) {
+	t.Parallel()
+
+	const consumers = 32
+
+	ctx := t.Context()
+	tokenStorage := tokenstorage.NewInMemory(testsuite.Secret, time.Hour)
+
+	t.Cleanup(func() {
+		require.NoError(t, tokenStorage.Close())
+	})
+
+	require.NoError(t, tokenStorage.Set(ctx, "client", "token"))
+
+	type result struct {
+		token string
+		err   error
+	}
+
+	start := make(chan struct{})
+	results := make(chan result, consumers)
+
+	for range consumers {
+		go func() {
+			<-start
+
+			token, err := tokenStorage.Consume(ctx, "client")
+			results <- result{token: token, err: err}
+		}()
+	}
+
+	close(start)
+
+	consumed := 0
+
+	for range consumers {
+		outcome := <-results
+		if outcome.err != nil {
+			require.ErrorIs(t, outcome.err, tokenstorage.ErrNotExists)
+
+			continue
+		}
+
+		consumed++
+
+		require.Equal(t, "token", outcome.token)
+	}
+
+	require.Equal(t, 1, consumed)
+}
+
 func TestStorageInMemory_Expire(t *testing.T) {
 	t.Parallel()
 

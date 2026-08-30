@@ -18,6 +18,11 @@ func (FakeStorage) Get(_ context.Context, _ string) (string, error) {
 	return "", nil
 }
 
+// Consume returns an empty token.
+func (FakeStorage) Consume(_ context.Context, _ string) (string, error) {
+	return "", nil
+}
+
 // Close is a no-op for FakeStorage.
 func (FakeStorage) Close() error {
 	return nil

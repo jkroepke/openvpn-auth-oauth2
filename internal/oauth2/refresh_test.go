@@ -57,6 +57,10 @@ func (s *disconnectTokenStorage) Get(_ context.Context, _ string) (string, error
 	return "", tokenstorage.ErrNotExists
 }
 
+func (s *disconnectTokenStorage) Consume(_ context.Context, _ string) (string, error) {
+	return "", tokenstorage.ErrNotExists
+}
+
 func (s *disconnectTokenStorage) Set(_ context.Context, _, _ string) error {
 	return nil
 }
