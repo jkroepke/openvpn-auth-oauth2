@@ -115,6 +115,27 @@ func (s *InMemory) Get(_ context.Context, client string) (string, error) {
 	return string(token), nil
 }
 
+// Consume atomically retrieves and removes the token for a given client.
+// If the token is expired or does not exist, ErrNotExists is returned.
+func (s *InMemory) Consume(_ context.Context, client string) (string, error) {
+	s.mu.Lock()
+	data, ok := s.data[client]
+	expired := ok && data.Expires.Before(time.Now())
+	delete(s.data, client)
+	s.mu.Unlock()
+
+	if !ok || expired {
+		return "", ErrNotExists
+	}
+
+	token, err := s.cipher.DecryptBytes(data.Data)
+	if err != nil {
+		return "", fmt.Errorf("decrypt error: %w", err)
+	}
+
+	return string(token), nil
+}
+
 // Delete removes the token data for a given client from storage.
 func (s *InMemory) Delete(_ context.Context, client string) error {
 	s.mu.Lock()

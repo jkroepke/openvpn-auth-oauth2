@@ -150,6 +150,17 @@ func (s *profileRefreshStorage) Get(context.Context, string) (string, error) {
 	return s.getToken, nil
 }
 
+func (s *profileRefreshStorage) Consume(ctx context.Context, client string) (string, error) {
+	token, err := s.Get(ctx, client)
+	if err != nil {
+		return "", err
+	}
+
+	s.getToken = ""
+
+	return token, nil
+}
+
 func (s *profileRefreshStorage) Set(_ context.Context, _, token string) error {
 	s.setCalled = true
 	s.setToken = token

@@ -185,14 +185,12 @@ func (c *Client) OAuth2ProfileSubmit() http.Handler {
 		stateHash := sha256.Sum256([]byte(encryptedToken))
 		storageKey := fmt.Sprintf("%s-token-%x", clientID, stateHash[:8])
 
-		encryptedStoredToken, err := c.storage.Get(ctx, storageKey)
+		encryptedStoredToken, err := c.storage.Consume(ctx, storageKey)
 		if err != nil {
 			c.writeHTTPError(ctx, w, logger, http.StatusBadRequest, "unable to retrieve refresh token from storage", err.Error())
 
 			return
 		}
-
-		_ = c.storage.Delete(ctx, storageKey)
 
 		if encryptedStoredToken != encryptedToken {
 			c.writeHTTPError(ctx, w, logger, http.StatusBadRequest, "Bad Request", "token mismatch from profile selector")

@@ -821,6 +821,15 @@ func TestHandler(t *testing.T) {
 
 				require.Equal(t, http.StatusOK, resp.StatusCode, suite.Logs())
 				require.Contains(t, string(body), "Access granted")
+
+				//nolint:bodyclose
+				replayResp, replayBody, err := suite.DoHTTPRequest(t, http.MethodPost, "/oauth2/profile-submit", header, strings.NewReader(fmt.Sprintf(
+					"token=%s&profile=%s",
+					url.QueryEscape(fields["token"]),
+					url.QueryEscape(fields["profile"]),
+				)))
+				require.NoError(t, err)
+				require.Equal(t, http.StatusBadRequest, replayResp.StatusCode, suite.Logs(), string(replayBody))
 			case tc.conf.HTTP.Template != config.Defaults.HTTP.Template:
 				require.Contains(t, string(body), "Permission is hereby granted")
 			default:

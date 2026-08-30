@@ -12,6 +12,10 @@ type Storage interface {
 	// Returns ErrNotExists if the token does not exist or has expired.
 	Get(ctx context.Context, client string) (string, error)
 
+	// Consume atomically retrieves and removes a token for the given client identifier.
+	// Returns ErrNotExists if the token does not exist or has expired.
+	Consume(ctx context.Context, client string) (string, error)
+
 	// Set stores a token for the given client identifier.
 	Set(ctx context.Context, client string, token string) error
 
