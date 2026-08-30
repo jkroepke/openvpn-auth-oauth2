@@ -33,7 +33,7 @@ import (
 )
 
 const (
-	uniqueUserITImage = "testcontainers/openvpn-auth-oauth2-unique-user-it:latest"
+	uniqueUserITImage = "ghcr.io/jkroepke/openvpn-auth-oauth2/it:latest"
 
 	uniqueUserServerEntrypoint = `#!/bin/sh
 set -eu
@@ -182,14 +182,7 @@ func startUniqueUserITServer(t *testing.T, volumeName string) testcontainers.Con
 
 	server, err := testcontainers.Run(
 		t.Context(),
-		"",
-		testcontainers.WithDockerfile(testcontainers.FromDockerfile{
-			Context:    "../",
-			Dockerfile: "./tests/Dockerfile",
-			Repo:       "testcontainers/openvpn-auth-oauth2-unique-user-it",
-			Tag:        "latest",
-			KeepImage:  true,
-		}),
+		uniqueUserITImage,
 		testcontainers.WithExposedPorts("8081/tcp", "8082/tcp", "8083/tcp"),
 		testcontainers.WithWaitStrategy(
 			wait.ForLog("MANAGEMENT: TCP Socket listening").WithStartupTimeout(2*time.Minute),
@@ -272,7 +265,7 @@ func startUniqueUserITClient(
 	})
 	require.Regexp(
 		t,
-		`^>INFO:OpenVPN Management Interface Version [5-9][0-9]* -- type 'help' for more info$`,
+		`^>INFO:OpenVPN Management Interface Version ([5-9]|[1-9][0-9]+) -- type 'help' for more info$`,
 		management.ReadLine(t),
 	)
 	management.ExpectMessage(t, ">HOLD:Waiting for hold release:0")

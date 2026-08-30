@@ -13,8 +13,27 @@ CURRENT_DIR := $(CURDIR)
 # Get the directory name of the current working directory
 PROJECT_NAME := $(notdir $(CURRENT_DIR))
 
+# Set the local OpenVPN plugin output path
+PLUGIN_PATH := $(CURRENT_DIR)/$(PROJECT_NAME).so
+PLUGIN_HEADER_PATH := $(CURRENT_DIR)/$(PROJECT_NAME).h
+
+# Set the integration test image
+IT_IMAGE := ghcr.io/jkroepke/openvpn-auth-oauth2/it:latest
+
 # Get the GOOS value
 GOOS := $(shell go env GOOS)
+
+# Get the GOARCH value
+GOARCH := $(shell go env GOARCH)
+
+# Build a Linux plugin for the Linux integration test container
+ifeq ($(GOOS),linux)
+	PLUGIN_BUILD_ENV := CGO_ENABLED=1
+else ifeq ($(GOARCH),amd64)
+	PLUGIN_BUILD_ENV := GOOS=linux GOARCH=amd64 CGO_ENABLED=1 CC="zig cc -target x86_64-linux-gnu.2.17"
+else ifeq ($(GOARCH),arm64)
+	PLUGIN_BUILD_ENV := GOOS=linux GOARCH=arm64 CGO_ENABLED=1 CC="zig cc -target aarch64-linux-gnu.2.17"
+endif
 
 # Disable CGO for static binaries
 CGO_ENABLED := 0
@@ -43,7 +62,7 @@ help: ## show this help.
 
 .PHONY: clean
 clean: ## clean builds dir
-	@rm -rf "$(PROJECT_NAME)" "$(PROJECT_NAME).exe" dist/
+	@rm -rf "$(PROJECT_NAME)" "$(PROJECT_NAME).exe" "$(PLUGIN_PATH)" "$(PLUGIN_HEADER_PATH)" dist/
 
 .PHONY: check
 check: test lint golangci ## Run all checks locally
@@ -83,6 +102,12 @@ $(PROJECT_NAME):
 .PHONY: test
 test:  ## Test the project
 	@GOEXPERIMENT=cgocheck2 go test -race ./...
+
+.PHONY: test-it
+test-it:  ## Run integration tests
+	@$(PLUGIN_BUILD_ENV) go build -buildvcs=false -buildmode=c-shared -o "$(PLUGIN_PATH)" ./lib/openvpn-auth-oauth2
+	@GOEXPERIMENT=cgocheck2 OPENVPN_IT_TEST=1 PLUGIN_IT_TEST=1 PLUGIN_IT_PLUGIN_PATH="$(PLUGIN_PATH)" \
+		go test -race -count=1 -timeout=15m -run '^TestIT(EnforceUniqueUser)?$$' ./internal ./lib/openvpn-auth-oauth2
 
 .PHONY: lint
 lint: golangci  ## Run linter

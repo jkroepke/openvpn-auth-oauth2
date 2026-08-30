@@ -17,6 +17,8 @@
 
 tests/*
 !tests/docker-compose.yaml
+!tests/it/
+!tests/it/Dockerfile
 !tests/Dockerfile
 !tests/.dockerignore
 !tests/systemd/
@@ -83,6 +85,7 @@ $RECYCLE.BIN/
 
 /openvpn-auth-oauth2
 /openvpn-auth-oauth2.exe
+/openvpn-auth-oauth2.h
 /3rdpartylicenses/
 /local/
 /tests/**/*.sysconfig
@@ -90,5 +93,6 @@ Test*.te*
 *.test.exe
 *.test
 *.c
+*.so
 .gocache/
 tmp/

@@ -17,6 +17,7 @@ jobs:
     name: Build & Test
     permissions:
       contents: read
+      packages: read
     env:
       GOEXPERIMENT: 'cgocheck2'
     steps:
@@ -29,23 +30,45 @@ jobs:
           go-version-file: 'go.mod'
           cache: "${{ github.actor != 'renovate[bot]' }}"
 
-      - name: go build
+      - name: go build openvpn-auth-oauth2
         run: go build ./cmd/openvpn-auth-oauth2
+
+      - name: go build openvpn-auth-oauth2.so
+        run: go build -buildvcs=false -buildmode=c-shared -o "${RUNNER_TEMP}/openvpn-auth-oauth2.so" ./lib/openvpn-auth-oauth2
 
       - name: go test
         run: go test ./... -short -shuffle=on -timeout 20s -race -covermode=atomic -coverprofile=coverage.out -coverpkg=./...
-      - name: go test -bench
-        run: go test ./... -timeout 20s -run='^$' -bench=. -benchmem
+
+      - name: docker pull integration test image
+        run: docker pull ghcr.io/jkroepke/openvpn-auth-oauth2/it:latest
 
       - name: go test (Integration Tests)
         run: go test -race -count=1 -timeout=15m -run '^TestIT(EnforceUniqueUser)?$' ./internal ./lib/openvpn-auth-oauth2
         env:
           OPENVPN_IT_TEST: '1'
           PLUGIN_IT_TEST: '1'
+          PLUGIN_IT_PLUGIN_PATH: "${{ runner.temp }}/openvpn-auth-oauth2.so"
 
       - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+  bench:
+    runs-on: ubuntu-24.04
+    name: go bench
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: 'false'
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: 'go.mod'
+          cache: "${{ github.actor != 'renovate[bot]' }}"
+
+      - name: go test -bench
+        run: go test ./... -timeout 20s -run='^$' -bench=. -benchmem
   goreleaser:
     runs-on: ubuntu-24.04
     name: Test goreleaser

@@ -20,7 +20,6 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/httphandler"
-	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/test/testsuite"
 	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/client"
@@ -38,7 +37,7 @@ PLUGIN_SOCKET=/run/openvpn/openvpn-oauth2.sock
 install -d -o nobody -g nogroup -m 0750 "$(dirname "${PLUGIN_SOCKET}")"
 
 if [ ! -f /etc/openvpn/pki/ca.crt ]; then
-  /usr/share/easy-rsa/easyrsa init-pki nopass
+  /usr/share/easy-rsa/easyrsa init-pki
   /usr/share/easy-rsa/easyrsa build-ca nopass
   /usr/share/easy-rsa/easyrsa build-server-full server nopass
   /usr/share/easy-rsa/easyrsa build-client-full ${UPN} nopass
@@ -74,7 +73,6 @@ topology subnet
 proto udp
 port 1194
 
-fast-io
 user nobody
 group nogroup
 
@@ -120,8 +118,9 @@ exec openvpn --config "/etc/openvpn/openvpn.conf" --tmp-dir /tmp/
 `
 
 const (
-	pluginITImage    = "testcontainers/openvpn-auth-oauth2:latest"
-	pluginSocketPath = "/run/openvpn/openvpn-oauth2.sock"
+	pluginITImage         = "ghcr.io/jkroepke/openvpn-auth-oauth2/it:latest"
+	pluginITPluginPathEnv = "PLUGIN_IT_PLUGIN_PATH"
+	pluginSocketPath      = "/run/openvpn/openvpn-oauth2.sock"
 )
 
 func TestIT(t *testing.T) {
@@ -136,6 +135,10 @@ func TestIT(t *testing.T) {
 	}
 
 	testcontainers.SkipIfProviderIsNotHealthy(t)
+
+	pluginPath := os.Getenv(pluginITPluginPathEnv)
+	require.NotEmpty(t, pluginPath, pluginITPluginPathEnv+" is not set")
+	require.FileExists(t, pluginPath)
 
 	dockerClient, err := testcontainers.NewDockerClientWithOpts(t.Context())
 	require.NoError(t, err)
@@ -154,14 +157,7 @@ func TestIT(t *testing.T) {
 	})
 
 	containerServer, err := testcontainers.Run(
-		t.Context(), "",
-		testcontainers.WithDockerfile(testcontainers.FromDockerfile{
-			Context:    `../../`,
-			Dockerfile: `./tests/plugin/Dockerfile`,
-			Repo:       "testcontainers/openvpn-auth-oauth2",
-			Tag:        "latest",
-			KeepImage:  true,
-		}),
+		t.Context(), pluginITImage,
 		testcontainers.WithExposedPorts("8081/tcp", "8082/tcp"),
 		testcontainers.WithWaitStrategy(wait.ForLog("POST /plugin/openvpn-auth-oauth2.so/PLUGIN_UP status=0").WithPollInterval(1*time.Second)),
 		testcontainers.WithLabels(map[string]string{
@@ -174,11 +170,18 @@ func TestIT(t *testing.T) {
 			Source: testcontainers.GenericVolumeMountSource{Name: volumeName},
 			Target: "/etc/openvpn",
 		}),
-		testcontainers.WithFiles(testcontainers.ContainerFile{
-			Reader:            strings.NewReader(entrypointScript),
-			ContainerFilePath: "/entrypoint.sh",
-			FileMode:          0o755,
-		}),
+		testcontainers.WithFiles(
+			testcontainers.ContainerFile{
+				HostFilePath:      pluginPath,
+				ContainerFilePath: "/plugin/openvpn-auth-oauth2.so",
+				FileMode:          0o755,
+			},
+			testcontainers.ContainerFile{
+				Reader:            strings.NewReader(entrypointScript),
+				ContainerFilePath: "/entrypoint.sh",
+				FileMode:          0o755,
+			},
+		),
 		testcontainers.WithHostConfigModifier(func(hostConfig *container.HostConfig) {
 			hostConfig.Binds = []string{"/dev/net/tun:/dev/net/tun"}
 			hostConfig.CapAdd = []string{"NET_ADMIN"}
@@ -280,7 +283,11 @@ func TestIT(t *testing.T) {
 	require.NoError(t, err)
 
 	tcpClientConn := testsuite.NewConn(tcpClient)
-	tcpClientConn.ExpectMessage(t, openvpn.WelcomeBanner)
+	require.Regexp(
+		t,
+		`^>INFO:OpenVPN Management Interface Version ([5-9]|[1-9][0-9]+) -- type 'help' for more info$`,
+		tcpClientConn.ReadLine(t),
+	)
 	tcpClientConn.ExpectMessage(t, ">HOLD:Waiting for hold release:0")
 	tcpClientConn.SendAndExpectMessage(t, "hold release", "SUCCESS: hold release succeeded")
 
