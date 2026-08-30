@@ -260,6 +260,10 @@ func (c *Client) refreshedUserInfo(ctx context.Context, tokens *idtoken.IDToken)
 		return nil, nil //nolint:nilnil // UserInfo is optional and absent when disabled.
 	}
 
+	if tokens.IDTokenClaims == nil {
+		return nil, fmt.Errorf("user info subject unavailable: %w", rp.ErrMissingIDToken)
+	}
+
 	userInfo, err := rp.Userinfo[*types.UserInfo](ctx, tokens.AccessToken, tokens.TokenType, tokens.IDTokenClaims.GetSubject(), c.relyingParty)
 	if err != nil {
 		return nil,
