@@ -7,10 +7,12 @@ import (
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn/connection"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/tokenstorage"
 	"github.com/stretchr/testify/require"
+	"github.com/zitadel/oidc/v3/pkg/client/rp"
 )
 
 func TestRefreshClientAuthInternalTokenRestoresClientConfigNames(t *testing.T) {
@@ -113,6 +115,19 @@ func TestRefreshClientAuthInternalTokenWithoutUsernameFallsBackToInteractiveAuth
 	require.Equal(t, types.UserInfo{}, user)
 	require.Nil(t, tokens)
 	require.Nil(t, clientConfigNames)
+}
+
+func TestRefreshedUserInfoMissingIDTokenClaimsReturnsError(t *testing.T) {
+	t.Parallel()
+
+	conf := config.Defaults
+	conf.OAuth2.UserInfo = true
+
+	client := Client{conf: &conf}
+	userInfo, err := client.refreshedUserInfo(t.Context(), &idtoken.IDToken{})
+
+	require.ErrorIs(t, err, rp.ErrMissingIDToken)
+	require.Nil(t, userInfo)
 }
 
 func TestProviderRefreshTokenStoresClientConfigNames(t *testing.T) {
