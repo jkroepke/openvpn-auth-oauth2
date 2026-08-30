@@ -265,7 +265,7 @@ func startUniqueUserITClient(
 	})
 	require.Regexp(
 		t,
-		`^>INFO:OpenVPN Management Interface Version [5-9][0-9]* -- type 'help' for more info$`,
+		`^>INFO:OpenVPN Management Interface Version ([5-9]|[1-9][0-9]+) -- type 'help' for more info$`,
 		management.ReadLine(t),
 	)
 	management.ExpectMessage(t, ">HOLD:Waiting for hold release:0")

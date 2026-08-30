@@ -20,7 +20,6 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/httphandler"
-	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/test/testsuite"
 	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/client"
@@ -284,7 +283,11 @@ func TestIT(t *testing.T) {
 	require.NoError(t, err)
 
 	tcpClientConn := testsuite.NewConn(tcpClient)
-	tcpClientConn.ExpectMessage(t, openvpn.WelcomeBanner)
+	require.Regexp(
+		t,
+		`^>INFO:OpenVPN Management Interface Version ([5-9]|[1-9][0-9]+) -- type 'help' for more info$`,
+		tcpClientConn.ReadLine(t),
+	)
 	tcpClientConn.ExpectMessage(t, ">HOLD:Waiting for hold release:0")
 	tcpClientConn.SendAndExpectMessage(t, "hold release", "SUCCESS: hold release succeeded")
 

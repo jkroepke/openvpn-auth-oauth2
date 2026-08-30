@@ -11,7 +11,11 @@ ENV EASYRSA=/usr/share/easy-rsa/ \
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update  \
-    && apt-get install socat easy-rsa openvpn -y --no-install-recommends \
+RUN printf 'deb http://deb.debian.org/debian trixie-backports main\n' > /etc/apt/sources.list.d/backports.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+        easy-rsa \
+        openvpn/trixie-backports \
+        socat \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
