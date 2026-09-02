@@ -73,14 +73,13 @@ func BenchmarkWithIDTokenClaimsLogger(b *testing.B) {
 	}
 	claims.Subject = "subject"
 	tokens := &idtoken.IDToken{IDTokenClaims: claims}
-	ctx := b.Context()
 
 	var loggerWithClaims *slog.Logger
 
 	b.ReportAllocs()
 
 	for b.Loop() {
-		loggerWithClaims = withIDTokenClaimsLogger(ctx, logger, tokens)
+		loggerWithClaims = withIDTokenClaimsLogger(logger, tokens)
 	}
 
 	_ = loggerWithClaims

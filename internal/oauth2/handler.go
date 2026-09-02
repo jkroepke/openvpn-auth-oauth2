@@ -313,7 +313,7 @@ func (c *Client) postCodeExchangeHandler(
 	) {
 		ctx := r.Context()
 
-		logger = withIDTokenClaimsLogger(ctx, logger, tokens)
+		logger = withIDTokenClaimsLogger(logger, tokens)
 
 		user, err := c.fetchUser(ctx, logger, session, tokens, userInfo)
 		if err != nil {
@@ -353,20 +353,16 @@ func (c *Client) postCodeExchangeHandler(
 }
 
 // withIDTokenClaimsLogger enriches the logger with ID token claim fields when claims are available.
-func withIDTokenClaimsLogger(ctx context.Context, logger *slog.Logger, tokens *idtoken.IDToken) *slog.Logger {
+func withIDTokenClaimsLogger(logger *slog.Logger, tokens *idtoken.IDToken) *slog.Logger {
 	if tokens.IDTokenClaims == nil {
 		return logger
 	}
 
-	logger = loggerWithAttrs(logger,
+	return loggerWithAttrs(logger,
 		slog.String("idtoken_subject", tokens.IDTokenClaims.Subject),
 		slog.String("idtoken_email", tokens.IDTokenClaims.EMail),
 		slog.String("idtoken_preferred_username", tokens.IDTokenClaims.PreferredUsername),
 	)
-
-	logger.LogAttrs(ctx, slog.LevelDebug, "claims", slog.Any("claims", tokens.IDTokenClaims.Claims))
-
-	return logger
 }
 
 // withUserLogger enriches the logger with resolved user fields.
