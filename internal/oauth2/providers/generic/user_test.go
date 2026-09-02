@@ -9,6 +9,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/providers/generic"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/test/testlogger"
 	"github.com/stretchr/testify/require"
 )
 
@@ -151,6 +152,23 @@ func TestGetUser(t *testing.T) {
 			require.Equal(t, tc.expected, userData)
 		})
 	}
+}
+
+func TestGetUserDoesNotLogRawIDToken(t *testing.T) {
+	t.Parallel()
+
+	conf := config.Defaults
+	provider, err := generic.NewProvider(t.Context(), &conf, http.DefaultClient)
+	require.NoError(t, err)
+
+	logger := testlogger.New()
+
+	const rawIDToken = "secret-raw-id-token"
+
+	_, err = provider.GetUser(t.Context(), logger.Logger(), &idtoken.IDToken{IDToken: rawIDToken}, nil)
+	require.NoError(t, err)
+	require.Contains(t, logger.String(), "provider returned an ID token, but it was not parsed correctly")
+	require.NotContains(t, logger.String(), rawIDToken)
 }
 
 func tokenWithClaims(rawClaims map[string]any, claims idtoken.Claims) *idtoken.IDToken {
