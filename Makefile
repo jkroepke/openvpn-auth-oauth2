@@ -114,7 +114,7 @@ lint: golangci  ## Run linter
 
 .PHONY: textlint
 textlint:  ## Run textlint
-	npx textlint --rule terminology .
+	npx --yes --package textlint --package textlint-rule-terminology textlint --rule terminology .
 
 .PHONY: fmt  ## Format code
 fmt:
