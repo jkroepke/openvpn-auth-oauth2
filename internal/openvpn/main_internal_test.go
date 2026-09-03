@@ -5,11 +5,67 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"strconv"
 	"testing"
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
 )
+
+func TestParseManagementInterfaceVersion(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		name        string
+		versionLine string
+		expect      int
+		err         error
+	}{
+		{
+			name:        "minimum supported version",
+			versionLine: "Management Version: 5",
+			expect:      5,
+		},
+		{
+			name:        "multi-digit version",
+			versionLine: "Management Version: 10",
+			expect:      10,
+		},
+		{
+			name:        "empty line",
+			versionLine: "",
+			err:         ErrUnexpectedResponseFromVersionCommand,
+		},
+		{
+			name:        "missing numeric field",
+			versionLine: managementVersionPrefix,
+			err:         strconv.ErrSyntax,
+		},
+		{
+			name:        "malformed numeric field",
+			versionLine: "Management Version: invalid",
+			err:         strconv.ErrSyntax,
+		},
+		{
+			name:        "unexpected prefix",
+			versionLine: "Unexpected Management Version: 5",
+			err:         ErrUnexpectedResponseFromVersionCommand,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			actual, err := parseManagementInterfaceVersion(tc.versionLine)
+			if !errors.Is(err, tc.err) {
+				t.Fatalf("parseManagementInterfaceVersion(%q) error = %v, want %v", tc.versionLine, err, tc.err)
+			}
+
+			if actual != tc.expect {
+				t.Errorf("parseManagementInterfaceVersion(%q) = %d, want %d", tc.versionLine, actual, tc.expect)
+			}
+		})
+	}
+}
 
 func TestManagementCommandName(t *testing.T) {
 	t.Parallel()

@@ -188,7 +188,7 @@ func TestPassThroughFull(t *testing.T) {
 				require.NotContains(t, suite.Logs(), "super-secret-value")
 
 				// version
-				forwardPassThroughCommand(t, suite, passThroughConn, "version", "OpenVPN Version: openvpn-auth-oauth2\r\nManagement Interface Version: 5\r\nEND")
+				forwardPassThroughCommand(t, suite, passThroughConn, "version", "OpenVPN Version: openvpn-auth-oauth2\r\nManagement Version: 5\r\nEND")
 
 				// status
 				forwardPassThroughCommand(t, suite, passThroughConn, "status", OpenVPNManagementInterfaceCommandResultStatus)

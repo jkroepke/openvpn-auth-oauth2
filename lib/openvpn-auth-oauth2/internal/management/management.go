@@ -302,6 +302,7 @@ func (s *Server) handleManagementClient(ctx context.Context, conn net.Conn) erro
 	s.connected.Store(1)
 	s.connectionMu.Unlock()
 
+	// https://github.com/OpenVPN/openvpn/blame/d988ef4508e63b28c8e3efcb9f62eb8c836907fe/src/openvpn/manage.c#L208
 	_ = s.writeToClient(">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info")
 
 scan:
@@ -325,7 +326,7 @@ scan:
 
 			continue
 		case strings.HasPrefix(line, "version"):
-			_ = s.writeToClient(fmt.Sprintf("OpenVPN Version: openvpn-auth-oauth2 %s\nManagement Interface Version: 5\nEND", version.Version))
+			_ = s.writeToClient(fmt.Sprintf("OpenVPN Version: openvpn-auth-oauth2 %s\nManagement Version: 5\nEND", version.Version))
 
 			continue
 		case strings.HasPrefix(line, "help"):

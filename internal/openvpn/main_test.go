@@ -371,19 +371,24 @@ func TestClientInvalidVersion(t *testing.T) {
 		err     error
 	}{
 		{
-			"invalid parts",
-			"OpenVPN Version: OpenVPN Mock\r\nEND\r\n",
-			openvpn.ErrUnexpectedResponseFromVersionCommand,
+			name:    "invalid parts",
+			version: "OpenVPN Version: OpenVPN Mock\r\nEND\r\n",
+			err:     openvpn.ErrUnexpectedResponseFromVersionCommand,
 		},
 		{
-			"invalid version",
-			"OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version:\r\nEND\r\n",
-			strconv.ErrSyntax,
+			name:    "empty version line",
+			version: "OpenVPN Version: OpenVPN Mock\r\n\r\nEND\r\n",
+			err:     openvpn.ErrUnexpectedResponseFromVersionCommand,
 		},
 		{
-			"version to low",
-			"OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 4\r\nEND\r\n",
-			openvpn.ErrRequireManagementInterfaceVersion5,
+			name:    "invalid version",
+			version: "OpenVPN Version: OpenVPN Mock\r\nManagement Version: invalid\r\nEND\r\n",
+			err:     strconv.ErrSyntax,
+		},
+		{
+			name:    "version too low",
+			version: "OpenVPN Version: OpenVPN Mock\r\nManagement Version: 4\r\nEND\r\n",
+			err:     openvpn.ErrRequireManagementInterfaceVersion5,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -408,6 +413,30 @@ func TestClientInvalidVersion(t *testing.T) {
 	}
 }
 
+func TestClientMultiDigitManagementVersion(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	t.Cleanup(cancel)
+
+	suite := testsuite.New(new(config.Defaults))
+	errOpenVPNClientCh := suite.SetupMockEnvironment(ctx, t, nil)
+	suite.SendMessagef(t, openvpn.WelcomeBanner)
+	suite.ExpectMessage(t, "version")
+	suite.SendMessagef(
+		t,
+		"OpenVPN Version: OpenVPN Mock\r\nManagement Version: 10\r\nEND\r\n",
+	)
+	require.NoError(t, suite.GetManagementInterfaceConn().Close())
+
+	select {
+	case err := <-errOpenVPNClientCh:
+		require.NoError(t, err)
+	case <-time.After(time.Second):
+		t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", suite.Logs())
+	}
+}
+
 func TestClientEnforceUniqueUserRejectsPluginShim(t *testing.T) {
 	t.Parallel()
 
@@ -424,7 +453,7 @@ func TestClientEnforceUniqueUserRejectsPluginShim(t *testing.T) {
 	suite.ExpectMessage(t, "version")
 	suite.SendMessagef(
 		t,
-		"OpenVPN Version: openvpn-auth-oauth2 2.0.0\r\nManagement Interface Version: 5\r\nEND",
+		"OpenVPN Version: openvpn-auth-oauth2 2.0.0\r\nManagement Version: 5\r\nEND",
 	)
 
 	select {
