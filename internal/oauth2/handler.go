@@ -549,20 +549,21 @@ func (c *Client) renderClientConfigProfileSelector(
 		"clientConfigProfiles": clientConfigProfiles,
 	})
 	if err != nil {
-		req.logger.LogAttrs(ctx, slog.LevelError, "template error", slog.Any(
-			"err", fmt.Errorf("executing template: %w", err),
-		))
-		w.WriteHeader(http.StatusInternalServerError)
-
-		return nil
+		return &profileSelectorError{
+			err:           fmt.Errorf("executing profile selector template: %w", err),
+			errorType:     "profile selector template",
+			openvpnReason: "internal error",
+		}
 	}
 
 	w.WriteHeader(http.StatusOK)
 
 	if _, err = response.WriteTo(w); err != nil {
-		req.logger.LogAttrs(ctx, slog.LevelError, "response write error", slog.Any("err", err))
-
-		return nil
+		return &profileSelectorError{
+			err:           fmt.Errorf("writing profile selector response: %w", err),
+			errorType:     "profile selector response",
+			openvpnReason: "internal error",
+		}
 	}
 
 	req.logger.LogAttrs(

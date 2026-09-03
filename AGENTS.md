@@ -50,6 +50,26 @@ project's `docs/` directory contains detailed guides such as
 [`docs/Configuration.md`](docs/Configuration.md) and
 [`docs/Home.md`](docs/Home.md).
 
+## Client-visible error classification
+
+Keep client-visible errors non-specific, but preserve their broad failure
+class whenever the code can determine it reliably from structured context:
+
+- Use `client rejected` for authentication or authorization failures.
+- Use `internal error` for infrastructure and internal processing failures,
+  such as network, storage, or template-rendering errors.
+
+Never expose the underlying provider, network, storage, template, token, or
+other implementation error in an HTTP response or OpenVPN denial reason. Log
+the technical error instead. Browser error pages should show an opaque error ID
+that an administrator can correlate with the logs.
+
+Do not classify errors by matching their message strings. If an upstream API
+does not provide a structured distinction, retain its generic classification
+instead of introducing fragile string matching. See
+[issue #1121](https://github.com/jkroepke/openvpn-auth-oauth2/issues/1121) for
+the rationale.
+
 ## Plugin cgo pointer checks
 
 All tests must be compiled with `GOEXPERIMENT=cgocheck2` so the plugin's Go/C
