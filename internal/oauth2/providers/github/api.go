@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
 const (
+	githubAPIHost = "api.github.com"
 	// Successful API responses are limited to 1 MiB.
 	maxResponseBodySize = 1 << 20
 	// Error responses are retained only as a 4 KiB diagnostic excerpt.
@@ -18,6 +20,10 @@ const (
 
 // get performs an authenticated GitHub API request and decodes the JSON response.
 func get[T any](ctx context.Context, httpClient *http.Client, accessToken, apiURL string, data *T) (string, error) {
+	if err := validateAPIURL(apiURL); err != nil {
+		return "", err
+	}
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
 	if err != nil {
 		return "", fmt.Errorf("error creating request context with URL %s: %w", apiURL, err)
@@ -66,7 +72,20 @@ func get[T any](ctx context.Context, httpClient *http.Client, accessToken, apiUR
 		return "", fmt.Errorf("unable to decode JSON from GitHub API %s: '%s': %w", apiURL, respBody, err)
 	}
 
-	return getPagination(apiURL, resp), nil
+	return getPagination(apiURL, resp)
+}
+
+func validateAPIURL(apiURL string) error {
+	parsedURL, err := url.Parse(apiURL)
+	if err != nil {
+		return fmt.Errorf("unable to parse GitHub API URL %q: %w", apiURL, err)
+	}
+
+	if parsedURL.Scheme != "https" || parsedURL.Host != githubAPIHost {
+		return fmt.Errorf("untrusted GitHub API URL %q", apiURL)
+	}
+
+	return nil
 }
 
 func readResponseBody(body io.Reader, limit int) ([]byte, bool, error) {
@@ -83,23 +102,33 @@ func readResponseBody(body io.Reader, limit int) ([]byte, bool, error) {
 }
 
 // getPagination returns the next GitHub pagination URL when more pages are available.
-func getPagination(apiURL string, resp *http.Response) string {
+func getPagination(apiURL string, resp *http.Response) (string, error) {
 	if resp == nil {
-		return ""
+		return "", nil
 	}
 
 	links := resp.Header.Get("Link")
 
 	nextPageURL, lastPageURL := parsePaginationLinks(links)
 	if lastPageURL == "" {
-		return ""
+		return "", nil
+	}
+
+	for _, paginationURL := range []string{nextPageURL, lastPageURL} {
+		if paginationURL == "" {
+			continue
+		}
+
+		if err := validateAPIURL(paginationURL); err != nil {
+			return "", fmt.Errorf("invalid GitHub pagination URL: %w", err)
+		}
 	}
 
 	if apiURL == lastPageURL {
-		return ""
+		return "", nil
 	}
 
-	return nextPageURL
+	return nextPageURL, nil
 }
 
 func parsePaginationLinks(links string) (string, string) {

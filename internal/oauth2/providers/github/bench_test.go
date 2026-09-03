@@ -39,13 +39,19 @@ func BenchmarkGetPagination(b *testing.B) {
 		b.Run(tc.name, func(b *testing.B) {
 			resp := &http.Response{Header: http.Header{"Link": []string{tc.link}}}
 
-			var nextURL string
+			var (
+				nextURL string
+				err     error
+			)
 
 			b.ReportAllocs()
 			b.ResetTimer()
 
 			for b.Loop() {
-				nextURL = getPagination(tc.apiURL, resp)
+				nextURL, err = getPagination(tc.apiURL, resp)
+				if err != nil {
+					b.Fatal(err)
+				}
 			}
 
 			_ = nextURL
