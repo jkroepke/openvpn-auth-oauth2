@@ -163,22 +163,18 @@ func (c *Client) readSingleClientConfig(ctx context.Context, logger *slog.Logger
 }
 
 func (c *Client) handleClientConfigReadError(ctx context.Context, logger *slog.Logger, clientConfigName string, err error) (bool, error) {
-	if !errors.Is(err, fs.ErrNotExist) {
-		c.logClientConfigRead(ctx, logger, clientConfigName, nil, err)
+	if errors.Is(err, fs.ErrNotExist) {
+		logger.LogAttrs(
+			ctx, slog.LevelDebug, "client config file not found",
+			slog.String("config", clientConfigName),
+		)
 
-		return true, nil
+		if c.conf.OpenVPN.ClientConfig.IgnoreNotFound {
+			return true, nil
+		}
 	}
 
-	logger.LogAttrs(
-		ctx, slog.LevelDebug, "client config file not found",
-		slog.String("config", clientConfigName),
-	)
-
-	if !c.conf.OpenVPN.ClientConfig.IgnoreNotFound {
-		return false, err
-	}
-
-	return true, nil
+	return false, fmt.Errorf("read client config %q: %w", clientConfigName, err)
 }
 
 func (c *Client) logClientConfigRead(ctx context.Context, logger *slog.Logger, clientConfigName string, clientConfig []string, err error) {
