@@ -85,6 +85,7 @@ func (c *Client) sendPassword(ctx context.Context) error {
 
 // handleMessages handles all incoming messages and route messages to different channels.
 func (c *Client) handleMessages(ctx context.Context, errCh chan<- error) {
+	// This handler is the sole producer and owns closing both channels.
 	defer close(c.commandResponseCh)
 	defer close(c.clientsCh)
 
@@ -111,6 +112,18 @@ func (c *Client) handleMessages(ctx context.Context, errCh chan<- error) {
 		}
 
 		if err = c.handleMessage(ctx, buf.String()); err != nil {
+			if ctxErr := ctx.Err(); ctxErr != nil && errors.Is(err, ctxErr) {
+				errCh <- nil
+
+				return
+			}
+
+			if c.closed.Load() == 1 && errors.Is(err, ErrConnectionTerminated) {
+				errCh <- nil
+
+				return
+			}
+
 			errCh <- err
 
 			return
@@ -126,14 +139,26 @@ func (c *Client) handleMessage(ctx context.Context, message string) error {
 		case strings.HasPrefix(message, ">CLIEN"):
 			return c.handleClientMessage(ctx, message)
 		case strings.HasPrefix(message, ">HOLD:"):
-			c.commandsCh <- "hold release"
+			select {
+			case c.commandsCh <- "hold release":
+			case <-ctx.Done():
+				return fmt.Errorf("enqueue hold release: %w", ctx.Err())
+			case <-c.shutdownCh:
+				return ErrConnectionTerminated
+			}
 		case strings.HasPrefix(message, ">INFO:"):
 			// welcome message
 			if strings.HasPrefix(message, ">INFO:OpenVPN Management Interface Version") {
 				return nil
 			}
 
-			c.commandResponseCh <- message
+			select {
+			case c.commandResponseCh <- message:
+			case <-ctx.Done():
+				return fmt.Errorf("dispatch info response: %w", ctx.Err())
+			case <-c.shutdownCh:
+				return ErrConnectionTerminated
+			}
 		default:
 			c.writeToPassThroughClient(message)
 		}
@@ -144,6 +169,10 @@ func (c *Client) handleMessage(ctx context.Context, message string) error {
 	default:
 		select {
 		case c.commandResponseCh <- message:
+		case <-ctx.Done():
+			return fmt.Errorf("dispatch command response: %w", ctx.Err())
+		case <-c.shutdownCh:
+			return ErrConnectionTerminated
 		case <-time.After(2 * time.Second):
 			c.logger.LogAttrs(ctx, slog.LevelWarn, "command response not accepted. Was there a timeout before? Dropping message", slog.String("message", message))
 		}
@@ -162,7 +191,13 @@ func (c *Client) handleClientMessage(ctx context.Context, message string) error 
 		return fmt.Errorf("error parsing client message: %w", err)
 	}
 
-	c.clientsCh <- client
+	select {
+	case c.clientsCh <- client:
+	case <-ctx.Done():
+		return fmt.Errorf("enqueue client event: %w", ctx.Err())
+	case <-c.shutdownCh:
+		return ErrConnectionTerminated
+	}
 
 	return nil
 }
@@ -248,12 +283,18 @@ func (c *Client) handleCommands(ctx context.Context, errCh chan<- error) {
 		select {
 		case <-ctx.Done():
 			return // Error somewhere, terminate
+		case <-c.shutdownCh:
+			return
 		case command, ok = <-c.commandsCh:
 			if !ok {
 				return
 			}
 
 			if err := c.rawCommand(ctx, command, managementCommandName(command)); err != nil {
+				if c.closed.Load() == 1 {
+					return
+				}
+
 				errCh <- err
 
 				return
