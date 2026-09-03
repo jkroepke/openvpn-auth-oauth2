@@ -33,19 +33,23 @@ func New(logger *slog.Logger, conf *config.Config) *Client {
 		conf:   conf,
 		logger: logger,
 
-		connMu:    sync.Mutex{},
-		commandMu: sync.Mutex{},
+		connMu: sync.Mutex{},
 
 		commandsBuffer: bytes.Buffer{},
 
 		clientsCh:         make(chan connection.Client, 10),
+		commandLock:       make(chan struct{}, 1),
 		commandResponseCh: make(chan string),
 		commandTimer:      time.NewTimer(conf.OpenVPN.CommandTimeout),
 		commandsCh:        make(chan string, 10),
 		passThroughCh:     make(chan string, 10),
+		shutdownCh:        make(chan struct{}),
 	}
 
 	client.commandsBuffer.Grow(512)
+
+	client.commandLock <- struct{}{}
+
 	client.commandTimer.Stop()
 
 	return client
@@ -211,12 +215,13 @@ func (c *Client) checkClientSsoCapabilities(client connection.Client) bool {
 
 // Shutdown closes the management connection and stops command processing.
 func (c *Client) Shutdown(ctx context.Context) {
-	c.commandMu.Lock()
-	defer c.commandMu.Unlock()
-
 	if !c.closed.CompareAndSwap(0, 1) {
 		return
 	}
+
+	// commandsCh has multiple producers and is intentionally left open;
+	// shutdownCh owns lifecycle signaling.
+	close(c.shutdownCh)
 
 	c.logger.LogAttrs(ctx, slog.LevelInfo, "shutdown OpenVPN management connection")
 
@@ -226,51 +231,142 @@ func (c *Client) Shutdown(ctx context.Context) {
 	if c.conn != nil {
 		_ = c.conn.Close()
 	}
-
-	close(c.commandsCh)
 }
 
 // SendCommand sends a command to the management interface and waits for its
 // response. When passthrough is true the raw response is returned without any
 // validation. A rejected command returns the raw response together with a
 // [ManagementCommandError].
-func (c *Client) SendCommand(_ context.Context, cmd string, passthrough bool) (string, error) {
-	c.commandMu.Lock()
-	defer c.commandMu.Unlock()
-
+func (c *Client) SendCommand(ctx context.Context, cmd string, passthrough bool) (string, error) {
 	if cmd == "\x00" || c.closed.Load() == 1 {
 		return "", nil
 	}
 
-	c.commandsCh <- cmd
-	// commandMu serializes resets and receives on the reusable timer.
-	c.commandTimer.Reset(c.conf.OpenVPN.CommandTimeout)
-	defer c.commandTimer.Stop()
+	commandName := managementCommandForError(cmd, passthrough)
 
+	if err := c.waitForCommandLock(ctx); err != nil {
+		return "", fmt.Errorf("command error '%s': %w", commandName, err)
+	}
+
+	releaseCommandLock := true
+	defer func() {
+		if releaseCommandLock {
+			c.commandLock <- struct{}{}
+		}
+	}()
+
+	if c.closed.Load() == 1 {
+		return "", ErrConnectionTerminated
+	}
+
+	if err := c.enqueueCommand(ctx, cmd); err != nil {
+		return "", fmt.Errorf("command error '%s': %w", commandName, err)
+	}
+
+	// commandLock serializes resets and receives on the reusable timer.
+	c.commandTimer.Reset(c.conf.OpenVPN.CommandTimeout)
+
+	stopCommandTimer := true
+	defer func() {
+		if stopCommandTimer {
+			c.commandTimer.Stop()
+		}
+	}()
+
+	resp, canceled, err := c.waitForCommandResponse(ctx, commandName, passthrough)
+	if canceled {
+		releaseCommandLock = false
+		stopCommandTimer = false
+
+		go c.discardCommandResponse()
+	}
+
+	return resp, err
+}
+
+func (c *Client) waitForCommandLock(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("wait for command lock: %w", err)
+	}
+
+	select {
+	case <-ctx.Done():
+		return fmt.Errorf("wait for command lock: %w", ctx.Err())
+	case <-c.shutdownCh:
+		return ErrConnectionTerminated
+	case <-c.commandLock:
+		return nil
+	}
+}
+
+func (c *Client) enqueueCommand(ctx context.Context, cmd string) error {
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("enqueue command: %w", err)
+	}
+
+	select {
+	case <-ctx.Done():
+		return fmt.Errorf("enqueue command: %w", ctx.Err())
+	case <-c.shutdownCh:
+		return ErrConnectionTerminated
+	case c.commandsCh <- cmd:
+		return nil
+	}
+}
+
+func (c *Client) waitForCommandResponse(
+	ctx context.Context, commandName string, passthrough bool,
+) (string, bool, error) {
 	select {
 	case resp, ok := <-c.commandResponseCh:
 		if !ok {
-			return "", ErrConnectionTerminated
+			return "", false, ErrConnectionTerminated
 		}
 
-		if passthrough {
-			return resp, nil
-		}
+		response, err := validateCommandResponse(commandName, resp, passthrough)
 
-		if resp == "" {
-			return "", fmt.Errorf("command error '%s': %w", managementCommandForError(cmd, passthrough), ErrEmptyResponse)
-		}
-
-		if strings.HasPrefix(resp, "ERROR:") {
-			return resp, &ManagementCommandError{
-				Command:  managementCommandForError(cmd, passthrough),
-				Response: strings.TrimSpace(resp),
-			}
-		}
-
-		return resp, nil
+		return response, false, err
+	case <-ctx.Done():
+		return "", true, fmt.Errorf("command error '%s': %w", commandName, ctx.Err())
+	case <-c.shutdownCh:
+		return "", false, ErrConnectionTerminated
 	case <-c.commandTimer.C:
-		return "", fmt.Errorf("command error '%s': %w", managementCommandForError(cmd, passthrough), ErrTimeout)
+		return "", false, fmt.Errorf("command error '%s': %w", commandName, ErrTimeout)
+	}
+}
+
+func validateCommandResponse(commandName, resp string, passthrough bool) (string, error) {
+	if passthrough {
+		return resp, nil
+	}
+
+	if resp == "" {
+		return "", fmt.Errorf("command error '%s': %w", commandName, ErrEmptyResponse)
+	}
+
+	if strings.HasPrefix(resp, "ERROR:") {
+		return resp, &ManagementCommandError{
+			Command:  commandName,
+			Response: strings.TrimSpace(resp),
+		}
+	}
+
+	return resp, nil
+}
+
+// discardCommandResponse preserves command-response ordering after the caller
+// stops waiting for a command that was already sent.
+func (c *Client) discardCommandResponse() {
+	defer func() {
+		c.commandTimer.Stop()
+
+		c.commandLock <- struct{}{}
+	}()
+
+	select {
+	case <-c.commandResponseCh:
+	case <-c.shutdownCh:
+	case <-c.commandTimer.C:
 	}
 }
 

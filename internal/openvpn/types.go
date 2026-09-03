@@ -26,6 +26,7 @@ type Client struct {
 	oauth2               oauth2Client
 	conn                 net.Conn
 	commandResponseCh    chan string
+	commandLock          chan struct{}
 	commandTimer         *time.Timer
 	commandsCh           chan string
 	logger               *slog.Logger
@@ -33,10 +34,10 @@ type Client struct {
 	ctxCancel            context.CancelFunc
 	clientsCh            chan connection.Client
 	passThroughCh        chan string
+	shutdownCh           chan struct{}
 	conf                 *config.Config
 	commandsBuffer       bytes.Buffer
 	acceptMu             sync.Mutex
-	commandMu            sync.Mutex
 	connMu               sync.Mutex
 	closed               atomic.Uint32
 	passThroughConnected atomic.Uint32

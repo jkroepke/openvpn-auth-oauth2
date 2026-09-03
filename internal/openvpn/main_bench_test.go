@@ -32,8 +32,17 @@ func BenchmarkSendCommand(b *testing.B) {
 	go func() {
 		defer close(doneCh)
 
-		for range client.commandsCh {
-			client.commandResponseCh <- "SUCCESS: command succeeded"
+		for {
+			select {
+			case <-client.shutdownCh:
+				return
+			case <-client.commandsCh:
+				select {
+				case client.commandResponseCh <- "SUCCESS: command succeeded":
+				case <-client.shutdownCh:
+					return
+				}
+			}
 		}
 	}()
 
