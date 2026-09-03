@@ -22,7 +22,10 @@ import (
 // OpenVPN management interface.
 const minManagementInterfaceVersion = 5
 
-const managementPluginVersionPrefix = "OpenVPN Version: openvpn-auth-oauth2"
+const (
+	managementVersionPrefix       = "Management Version: "
+	managementPluginVersionPrefix = "OpenVPN Version: openvpn-auth-oauth2"
+)
 
 const WelcomeBanner = ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info"
 
@@ -193,9 +196,9 @@ func (c *Client) checkManagementInterfaceVersion(ctx context.Context) error {
 		return ErrEnforceUniqueUserUnsupported
 	}
 
-	managementInterfaceVersion, err := strconv.Atoi(versionParts[1][len(versionParts[1])-1:])
+	managementInterfaceVersion, err := parseManagementInterfaceVersion(versionParts[1])
 	if err != nil {
-		return fmt.Errorf("unable to parse openvpn management interface version: %w", err)
+		return err
 	}
 
 	// Management Interface Version 5 is required at minimum
@@ -205,6 +208,20 @@ func (c *Client) checkManagementInterfaceVersion(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func parseManagementInterfaceVersion(versionLine string) (int, error) {
+	prefix, version, found := strings.Cut(versionLine, managementVersionPrefix)
+	if !found || prefix != "" {
+		return 0, fmt.Errorf("%w: %s", ErrUnexpectedResponseFromVersionCommand, versionLine)
+	}
+
+	managementInterfaceVersion, err := strconv.Atoi(version)
+	if err != nil {
+		return 0, fmt.Errorf("unable to parse openvpn management interface version: %w", err)
+	}
+
+	return managementInterfaceVersion, nil
 }
 
 // checkClientSsoCapabilities reports whether the given client supports SSO via

@@ -65,7 +65,7 @@ func TestServer_Listen(t *testing.T) {
 			clientConn.ExpectMessage(t, openvpn.WelcomeBanner)
 			clientConn.SendMessagef(t, "")
 			clientConn.SendAndExpectMessage(t, "hold release", "SUCCESS: hold released")
-			clientConn.SendAndExpectMessage(t, "version", fmt.Sprintf("OpenVPN Version: openvpn-auth-oauth2 %s\nManagement Interface Version: 5\nEND", version.Version))
+			clientConn.SendAndExpectMessage(t, "version", fmt.Sprintf("OpenVPN Version: openvpn-auth-oauth2 %s\nManagement Version: 5\nEND", version.Version))
 			clientConn.SendAndExpectMessage(t, "help", "SUCCESS: help")
 			clientConn.SendAndExpectMessage(t, "unknown", "ERROR: unknown command, enter 'help' for more options")
 

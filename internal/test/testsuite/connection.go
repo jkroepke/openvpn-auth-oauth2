@@ -131,7 +131,7 @@ func expectVersionAndReleaseHold(tb testing.TB, conn net.Conn, reader *bufio.Rea
 
 			expectedCommand++
 		case ManagementCommandVersion:
-			sendMessagef(tb, conn, logs, "OpenVPN Version: OpenVPN Mock\r\nManagement Interface Version: 5\r\nEND")
+			sendMessagef(tb, conn, logs, "OpenVPN Version: OpenVPN Mock\r\nManagement Version: 5\r\nEND")
 
 			expectedCommand++
 		default:
