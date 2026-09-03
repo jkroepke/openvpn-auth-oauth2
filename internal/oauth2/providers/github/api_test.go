@@ -1,6 +1,7 @@
 package github //nolint:testpackage
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -79,6 +80,54 @@ func TestGetResponseBodyLimits(t *testing.T) {
 	}
 }
 
+func TestGetRejectsUntrustedAPIURL(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		apiURL string
+	}{
+		{
+			name:   "insecure scheme",
+			apiURL: "http://api.github.com/user/orgs",
+		},
+		{
+			name:   "different host",
+			apiURL: "https://example.com/user/orgs",
+		},
+		{
+			name:   "host suffix",
+			apiURL: "https://api.github.com.example.com/user/orgs",
+		},
+		{
+			name:   "explicit port",
+			apiURL: "https://api.github.com:443/user/orgs",
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			requestSent := false
+			httpClient := &http.Client{
+				Transport: apiRoundTripper(func(_ *http.Request) (*http.Response, error) {
+					requestSent = true
+
+					return nil, errors.New("unexpected request")
+				}),
+			}
+
+			var data any
+
+			_, err := get[any](t.Context(), httpClient, "token", testCase.apiURL, &data)
+
+			require.ErrorContains(t, err, "untrusted GitHub API URL")
+			require.False(t, requestSent)
+		})
+	}
+}
+
 func TestGetPagination(t *testing.T) {
 	t.Parallel()
 
@@ -87,6 +136,7 @@ func TestGetPagination(t *testing.T) {
 		apiURL   string
 		link     string
 		expected string
+		wantErr  string
 	}{
 		{
 			name:   "nil response",
@@ -129,6 +179,18 @@ func TestGetPagination(t *testing.T) {
 			link:     `<https://api.github.com/user/orgs?affiliation=owner,collaborator;admin&page=2>; rel="next", <https://api.github.com/user/orgs?affiliation=owner,collaborator;admin&page=3>; rel="last"`,
 			expected: "https://api.github.com/user/orgs?affiliation=owner,collaborator;admin&page=2",
 		},
+		{
+			name:    "untrusted next url",
+			apiURL:  "https://api.github.com/user/orgs?page=1",
+			link:    `<https://example.com/user/orgs?page=2>; rel="next", <https://api.github.com/user/orgs?page=3>; rel="last"`,
+			wantErr: "invalid GitHub pagination URL: untrusted GitHub API URL \"https://example.com/user/orgs?page=2\"",
+		},
+		{
+			name:    "untrusted last url",
+			apiURL:  "https://api.github.com/user/orgs?page=1",
+			link:    `<https://api.github.com/user/orgs?page=2>; rel="next", <http://api.github.com/user/orgs?page=3>; rel="last"`,
+			wantErr: "invalid GitHub pagination URL: untrusted GitHub API URL \"http://api.github.com/user/orgs?page=3\"",
+		},
 	}
 
 	for _, testCase := range tests {
@@ -143,8 +205,15 @@ func TestGetPagination(t *testing.T) {
 				}
 			}
 
-			nextURL := getPagination(testCase.apiURL, response)
+			nextURL, err := getPagination(testCase.apiURL, response)
+			if testCase.wantErr != "" {
+				require.EqualError(t, err, testCase.wantErr)
+				require.Empty(t, nextURL)
 
+				return
+			}
+
+			require.NoError(t, err)
 			require.Equal(t, testCase.expected, nextURL)
 		})
 	}
