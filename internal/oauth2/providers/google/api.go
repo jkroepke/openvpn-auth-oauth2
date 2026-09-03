@@ -14,6 +14,13 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
 )
 
+const (
+	// Successful API responses are limited to 1 MiB.
+	maxResponseBodySize = 1 << 20
+	// Error responses are retained only as a 4 KiB diagnostic excerpt.
+	maxErrorResponseBodySize = 4 << 10
+)
+
 //nolint:tagliatelle // The API response is a JSON object with a dynamic structure.
 type groupMembershipPage struct {
 	NextPageToken string `json:"nextPageToken"`
@@ -113,29 +120,22 @@ func get[T any](ctx context.Context, httpClient *http.Client, accessToken string
 
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(resp.Body)
+	bodyLimit := maxResponseBodySize
+	if resp.StatusCode != http.StatusOK {
+		bodyLimit = maxErrorResponseBodySize
+	}
+
+	respBody, truncated, err := readResponseBody(resp.Body, bodyLimit)
 	if err != nil {
 		return fmt.Errorf("unable to read body from Google API %s: http status code: %d; error: %w", apiURL, resp.StatusCode, err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		var apiErr apiError
+		return handleErrorResponse(apiURL, resp.StatusCode, respBody, truncated, data)
+	}
 
-		if bytes.HasPrefix(respBody, []byte("{")) {
-			_ = json.Unmarshal(respBody, &apiErr)
-		}
-
-		if strings.HasPrefix(apiErr.Error.Message, "Error(4001):") {
-			// This error indicates that the current user does not have the required permissions to access the group.
-			// Clear the data by setting it to zero value
-			var zero T
-
-			*data = zero
-
-			return nil
-		}
-
-		return fmt.Errorf("error from Google API %s: http status code: %d; message: %s", apiURL, resp.StatusCode, apiErr.Error.Message)
+	if truncated {
+		return fmt.Errorf("response body from Google API %s exceeds the %d byte limit", apiURL, maxResponseBodySize)
 	}
 
 	if err = json.Unmarshal(respBody, data); err != nil {
@@ -143,4 +143,46 @@ func get[T any](ctx context.Context, httpClient *http.Client, accessToken string
 	}
 
 	return nil
+}
+
+func handleErrorResponse[T any](apiURL *url.URL, statusCode int, responseBody []byte, truncated bool, data *T) error {
+	var apiErr apiError
+
+	if bytes.HasPrefix(responseBody, []byte("{")) {
+		_ = json.Unmarshal(responseBody, &apiErr)
+	}
+
+	if strings.HasPrefix(apiErr.Error.Message, "Error(4001):") {
+		// This error indicates that the current user does not have the required permissions to access the group.
+		// Clear the data by setting it to zero value
+		var zero T
+
+		*data = zero
+
+		return nil
+	}
+
+	message := apiErr.Error.Message
+	if message == "" {
+		message = string(responseBody)
+	}
+
+	if truncated {
+		message += " [truncated]"
+	}
+
+	return fmt.Errorf("error from Google API %s: http status code: %d; message: %s", apiURL, statusCode, message)
+}
+
+func readResponseBody(body io.Reader, limit int) ([]byte, bool, error) {
+	responseBody, err := io.ReadAll(io.LimitReader(body, int64(limit+1)))
+	if err != nil {
+		return nil, false, fmt.Errorf("read limited response body: %w", err)
+	}
+
+	if len(responseBody) <= limit {
+		return responseBody, false, nil
+	}
+
+	return responseBody[:limit], true, nil
 }
