@@ -128,8 +128,8 @@ github.com/tklauser/numcpus v0.12.0 h1:NR85qdvHA9pFse3x3weVZ0r0ST8R6l5RHbZrlRaqo
 github.com/tklauser/numcpus v0.12.0/go.mod h1:ABHeXzJnr/qqwguhClkZKT1/8VABcYrsyUiUGobwWJg=
 github.com/yusufpapurcu/wmi v1.2.4 h1:zFUKzehAFReQwLys1b/iSMl+JQGSCSjtVqQn9bBrPo0=
 github.com/yusufpapurcu/wmi v1.2.4/go.mod h1:SBZ9tNy3G9/m5Oi98Zks0QjeHVDvuK0qfxQmPyzfmi0=
-github.com/zitadel/oidc/v3 v3.49.4 h1:ROW+QObjcVMLK+z8he4psMMTm73pvycY2qFWQ+DTaLg=
-github.com/zitadel/oidc/v3 v3.49.4/go.mod h1:KQmYte+zOePAeVwR3LM153dxWBC9orWZAIa4w9r1ZhU=
+github.com/zitadel/oidc/v3 v3.49.5 h1:L8V163s+T1tNem+Mf5DzSNeGBCwD5it9n5inXUFAScg=
+github.com/zitadel/oidc/v3 v3.49.5/go.mod h1:KQmYte+zOePAeVwR3LM153dxWBC9orWZAIa4w9r1ZhU=
 github.com/zitadel/schema v1.3.2 h1:gfJvt7dOMfTmxzhscZ9KkapKo3Nei3B6cAxjav+lyjI=
 github.com/zitadel/schema v1.3.2/go.mod h1:IZmdfF9Wu62Zu6tJJTH3UsArevs3Y4smfJIj3L8fzxw=
 go.opentelemetry.io/auto/sdk v1.2.1 h1:jXsnJ4Lmnqd11kwkBV2LgLoFMZKizbCi5fNZ/ipaZ64=
