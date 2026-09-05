@@ -2,7 +2,7 @@
 
 ## Encryption of Sensitive Data
 
-openvpn-auth-oauth2 uses **XChaCha20-Poly1305 authenticated encryption** to protect:
+openvpn-auth-oauth2 uses **AES-256-GCM authenticated encryption** to protect:
 - OAuth2 refresh tokens (when enabled)
 - State parameters in authentication flows
 - User session information
@@ -10,8 +10,10 @@ openvpn-auth-oauth2 uses **XChaCha20-Poly1305 authenticated encryption** to prot
 This approach provides:
 - ✅ **Confidentiality**: Sensitive values are encrypted
 - ✅ **Integrity and authentication**: Modified values are rejected
-- ✅ **Wide nonces**: The 192-bit nonce makes accidental reuse impractical
-- ✅ **Bounded overhead**: The nonce and authentication tag add 40 bytes
+- ✅ **Random nonces**: Go generates and prepends a fresh 96-bit nonce
+- ✅ **Bounded overhead**: The nonce and authentication tag add 28 bytes
+
+An encryption key must not protect more than `2^32` messages.
 
 ## Potential Risks Caused by State Reuse
 

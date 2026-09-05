@@ -2,9 +2,9 @@ package crypto
 
 import (
 	"bytes"
+	"crypto/aes"
 	"crypto/cipher"
 	"crypto/hkdf"
-	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"errors"
@@ -14,17 +14,18 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"golang.org/x/crypto/chacha20poly1305"
 )
 
 const (
-	keyDerivationInfo = "xchacha20-poly1305"
+	aes256KeySize     = 32
+	aesGCMNonceSize   = 12
+	aesGCMTagSize     = 16
+	keyDerivationInfo = "aes-256-gcm"
 	defaultMaxAge     = 2 * time.Minute
 
 	// timedPlainTextScratchSize covers typical authentication payloads while append retains a heap fallback.
 	timedPlainTextScratchSize = 128
-	timedEncryptedScratchSize = timedPlainTextScratchSize + chacha20poly1305.NonceSizeX + chacha20poly1305.Overhead
+	timedEncryptedScratchSize = timedPlainTextScratchSize + aesGCMNonceSize + aesGCMTagSize
 	base64SourceChunkSize     = timedEncryptedScratchSize - timedEncryptedScratchSize%3
 	base64EncodedChunkSize    = base64SourceChunkSize / 3 * 4
 )
@@ -35,7 +36,7 @@ var ErrCipherTextBlockSize = errors.New("ciphertext block size is too short")
 // ErrAuthenticationFailed is returned when ciphertext authentication fails.
 var ErrAuthenticationFailed = errors.New("ciphertext authentication failed")
 
-// Cipher provides authenticated encryption using XChaCha20-Poly1305.
+// Cipher provides authenticated encryption using AES-256-GCM.
 type Cipher struct {
 	scratchPool sync.Pool
 	aead        cipher.AEAD
@@ -60,10 +61,14 @@ func NewWithMaxAge(encryptionKey string, maxAge time.Duration) *Cipher {
 	key := DeriveKey(encryptionKey)
 	defer clear(key[:])
 
-	aead, err := chacha20poly1305.NewX(key[:])
+	block, err := aes.NewCipher(key[:])
 	if err != nil {
-		// XChaCha20-Poly1305 is required by this package and is unavailable in FIPS-only mode.
-		panic(fmt.Sprintf("chacha20poly1305.NewX: unexpected error: %v", err))
+		panic(fmt.Sprintf("aes.NewCipher: unexpected error: %v", err))
+	}
+
+	aead, err := cipher.NewGCMWithRandomNonce(block)
+	if err != nil {
+		panic(fmt.Sprintf("cipher.NewGCMWithRandomNonce: unexpected error: %v", err))
 	}
 
 	result := &Cipher{
@@ -77,9 +82,9 @@ func NewWithMaxAge(encryptionKey string, maxAge time.Duration) *Cipher {
 	return result
 }
 
-// DeriveKey derives a 32-byte XChaCha20-Poly1305 key using HKDF-SHA256.
+// DeriveKey derives a 32-byte AES-256 key using HKDF-SHA256.
 func DeriveKey(key string) *[32]byte {
-	derivedKey, err := hkdf.Key(sha256.New, []byte(key), nil, keyDerivationInfo, chacha20poly1305.KeySize)
+	derivedKey, err := hkdf.Key(sha256.New, []byte(key), nil, keyDerivationInfo, aes256KeySize)
 	if err != nil {
 		// hkdf.Key only errors when keyLength exceeds 255 times the hash size.
 		panic(fmt.Sprintf("hkdf.Key: unexpected error: %v", err))
@@ -92,14 +97,14 @@ func DeriveKey(key string) *[32]byte {
 	return &result
 }
 
-// EncryptBytes encrypts and authenticates data using XChaCha20-Poly1305.
+// EncryptBytes encrypts and authenticates data using AES-256-GCM.
 func (c *Cipher) EncryptBytes(plainText []byte) ([]byte, error) {
 	return c.encryptBytesInto(nil, plainText)
 }
 
 // DecryptBytes decrypts data encrypted with EncryptBytes.
 func (c *Cipher) DecryptBytes(encryptedData []byte) ([]byte, error) {
-	if len(encryptedData) < chacha20poly1305.NonceSizeX+chacha20poly1305.Overhead {
+	if len(encryptedData) < c.aead.Overhead() {
 		return nil, ErrCipherTextBlockSize
 	}
 
@@ -240,31 +245,21 @@ func encodeRawURLBase64String(src []byte) string {
 
 // encryptBytesInto encrypts plainText into dst, allocating only when its capacity is insufficient.
 func (c *Cipher) encryptBytesInto(dst, plainText []byte) ([]byte, error) {
-	resultSize := chacha20poly1305.NonceSizeX + len(plainText) + chacha20poly1305.Overhead
+	resultSize := len(plainText) + c.aead.Overhead()
 
-	var result []byte
 	if cap(dst) < resultSize {
-		result = make([]byte, chacha20poly1305.NonceSizeX, resultSize)
+		dst = make([]byte, 0, resultSize)
 	} else {
-		result = dst[:chacha20poly1305.NonceSizeX]
+		dst = dst[:0]
 	}
 
-	nonce := result[:chacha20poly1305.NonceSizeX]
-
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return nil, fmt.Errorf("failed to generate nonce: %w", err)
-	}
-
-	return c.aead.Seal(result, nonce, plainText, nil), nil
+	return c.aead.Seal(dst, nil, plainText, nil), nil
 }
 
 // decryptBytesInto authenticates encryptedData and decrypts it into dst.
 // Callers must reject ciphertext shorter than the nonce and authentication tag.
 func (c *Cipher) decryptBytesInto(dst, encryptedData []byte) ([]byte, error) {
-	nonce := encryptedData[:chacha20poly1305.NonceSizeX]
-	cipherText := encryptedData[chacha20poly1305.NonceSizeX:]
-
-	plainText, err := c.aead.Open(dst, nonce, cipherText, nil)
+	plainText, err := c.aead.Open(dst, nil, encryptedData, nil)
 	if err != nil {
 		return nil, ErrAuthenticationFailed
 	}
@@ -275,12 +270,12 @@ func (c *Cipher) decryptBytesInto(dst, encryptedData []byte) ([]byte, error) {
 // decryptTimedPayload authenticates, decrypts, and validates
 // an already base64-decoded timestamped payload.
 func (c *Cipher) decryptTimedPayload(encrypted []byte) ([]byte, error) {
-	if len(encrypted) < chacha20poly1305.NonceSizeX+chacha20poly1305.Overhead {
+	if len(encrypted) < c.aead.Overhead() {
 		return nil, ErrCipherTextBlockSize
 	}
 
 	data, err := c.decryptBytesInto(
-		encrypted[chacha20poly1305.NonceSizeX:chacha20poly1305.NonceSizeX],
+		encrypted[:0],
 		encrypted,
 	)
 	if err != nil {

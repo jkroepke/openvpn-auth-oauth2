@@ -2,6 +2,8 @@ package crypto_test
 
 import (
 	"bytes"
+	"crypto/aes"
+	stdcipher "crypto/cipher"
 	"encoding/base64"
 	"io"
 	"strconv"
@@ -11,7 +13,12 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/crypto"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/crypto/chacha20poly1305"
+)
+
+const (
+	aesGCMNonceSize = 12
+	aesGCMTagSize   = 16
+	aesGCMOverhead  = aesGCMNonceSize + aesGCMTagSize
 )
 
 func TestDeriveKey(t *testing.T) {
@@ -91,19 +98,16 @@ func TestEncryptBytesBasic(t *testing.T) {
 	encrypted, err := cipher.EncryptBytes(plainText)
 	require.NoError(t, err, "EncryptBytes failed")
 
-	expectedSize := chacha20poly1305.NonceSizeX + len(plainText) + chacha20poly1305.Overhead
+	expectedSize := len(plainText) + aesGCMOverhead
 	require.Len(t, encrypted, expectedSize)
 
 	key := crypto.DeriveKey("test-key")
-	aead, err := chacha20poly1305.NewX(key[:])
+	block, err := aes.NewCipher(key[:])
+	require.NoError(t, err)
+	aead, err := stdcipher.NewGCMWithRandomNonce(block)
 	require.NoError(t, err)
 
-	decrypted, err := aead.Open(
-		nil,
-		encrypted[:chacha20poly1305.NonceSizeX],
-		encrypted[chacha20poly1305.NonceSizeX:],
-		nil,
-	)
+	decrypted, err := aead.Open(nil, nil, encrypted, nil)
 	require.NoError(t, err)
 	require.Equal(t, plainText, decrypted)
 }
@@ -117,8 +121,7 @@ func TestEncryptBytesEmpty(t *testing.T) {
 	encrypted, err := cipher.EncryptBytes(plainText)
 	require.NoError(t, err, "EncryptBytes failed")
 
-	expectedSize := chacha20poly1305.NonceSizeX + chacha20poly1305.Overhead
-	require.Len(t, encrypted, expectedSize)
+	require.Len(t, encrypted, aesGCMOverhead)
 }
 
 func TestEncryptBytesRandomNonce(t *testing.T) {
@@ -163,7 +166,7 @@ func TestDecryptBytesTampered(t *testing.T) {
 	encrypted, err := cipher.EncryptBytes(plainText)
 	require.NoError(t, err, "EncryptBytes failed")
 
-	encrypted[chacha20poly1305.NonceSizeX] ^= 0xFF
+	encrypted[len(encrypted)/2] ^= 0xFF
 
 	_, err = cipher.DecryptBytes(encrypted)
 	require.ErrorIs(t, err, crypto.ErrAuthenticationFailed)
@@ -196,11 +199,11 @@ func TestDecryptBytesShortData(t *testing.T) {
 	}{
 		{name: "empty", data: []byte("")},
 		{name: "too short", data: []byte("short")},
-		{name: "just nonce size", data: make([]byte, chacha20poly1305.NonceSizeX)},
-		{name: "nonce + 1 byte", data: make([]byte, chacha20poly1305.NonceSizeX+1)},
+		{name: "just nonce size", data: make([]byte, aesGCMNonceSize)},
+		{name: "nonce + 1 byte", data: make([]byte, aesGCMNonceSize+1)},
 		{
 			name: "nonce + tag - 1 byte",
-			data: make([]byte, chacha20poly1305.NonceSizeX+chacha20poly1305.Overhead-1),
+			data: make([]byte, aesGCMOverhead-1),
 		},
 	}
 

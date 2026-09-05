@@ -14,7 +14,7 @@
 // the callback path. Encrypt therefore uses a versioned binary payload with
 // varint client identifiers, flag-controlled optional fields, compact
 // session-state codes, binary IP address fields, unpadded URL-safe base64, and
-// an XChaCha20-Poly1305 envelope. This keeps the command inside the OpenVPN
+// an AES-256-GCM envelope. This keeps the command inside the OpenVPN
 // management interface constraint while preserving integrity and expiry checks
 // for untrusted input.
 package state

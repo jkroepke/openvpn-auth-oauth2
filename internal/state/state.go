@@ -40,7 +40,7 @@ const (
 // thus preventing CSRF (Cross-Site Request Forgery) attacks. The `State` value is returned
 // by the OAuth2 Identity Provider (IDP) in the redirect URL.
 //
-// To prevent tampering, the State is protected using XChaCha20-Poly1305.
+// To prevent tampering, the State is protected using AES-256-GCM.
 type State struct {
 	IPAddr       string
 	IPPort       string
