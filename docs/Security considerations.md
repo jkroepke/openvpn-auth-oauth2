@@ -2,16 +2,18 @@
 
 ## Encryption of Sensitive Data
 
-openvpn-auth-oauth2 uses **Salsa20 stream cipher with HMAC-SHA256 authentication** to encrypt:
+openvpn-auth-oauth2 uses **AES-256-GCM authenticated encryption** to protect:
 - OAuth2 refresh tokens (when enabled)
 - State parameters in authentication flows
 - User session information
 
 This approach provides:
-- ✅ **Confidentiality**: Strong encryption with stream cipher
-- ✅ **Integrity**: HMAC-SHA256 detects any tampering
-- ✅ **Authentication**: Verifies data wasn't modified by attackers
-- ✅ **Minimal overhead**: Only 24 bytes extra per encrypted message
+- ✅ **Confidentiality**: Sensitive values are encrypted
+- ✅ **Integrity and authentication**: Modified values are rejected
+- ✅ **Random nonces**: Go generates and prepends a fresh 96-bit nonce
+- ✅ **Bounded overhead**: The nonce and authentication tag add 28 bytes
+
+An encryption key must not protect more than `2^32` messages.
 
 ## Potential Risks Caused by State Reuse
 

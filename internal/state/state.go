@@ -40,7 +40,7 @@ const (
 // thus preventing CSRF (Cross-Site Request Forgery) attacks. The `State` value is returned
 // by the OAuth2 Identity Provider (IDP) in the redirect URL.
 //
-// To prevent tampering, the `State` is protected using Salsa20 + HMAC encryption.
+// To prevent tampering, the State is protected using AES-256-GCM.
 type State struct {
 	IPAddr       string
 	IPPort       string
@@ -61,7 +61,7 @@ type ClientIdentifier struct {
 	UsernameIsDefined int    // 1 if username is defined, 0 otherwise
 }
 
-// Encrypt serializes the state into a compact binary, Salsa20-encrypted, base64-URL-safe string.
+// Encrypt serializes the state into a compact binary, authenticated, base64-URL-safe string.
 // The result is safe for use in URL parameters and has a ~1-second resolution timestamp.
 func Encrypt(cipher *crypto.Cipher, state State) (EncryptedState, error) {
 	if cipher == nil {

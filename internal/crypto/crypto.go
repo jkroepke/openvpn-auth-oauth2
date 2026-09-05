@@ -2,32 +2,30 @@ package crypto
 
 import (
 	"bytes"
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/hkdf"
-	"crypto/hmac"
-	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"hash"
 	"io"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
-
-	"golang.org/x/crypto/salsa20"
 )
 
 const (
-	salsa20NonceSize = 8
-	hmacTagSize      = 16
-	derivedKeySize   = 32
-	defaultMaxAge    = 2 * time.Minute
+	aes256KeySize     = 32
+	aesGCMNonceSize   = 12
+	aesGCMTagSize     = 16
+	keyDerivationInfo = "aes-256-gcm"
+	defaultMaxAge     = 2 * time.Minute
 
 	// timedPlainTextScratchSize covers typical authentication payloads while append retains a heap fallback.
 	timedPlainTextScratchSize = 128
-	timedEncryptedScratchSize = timedPlainTextScratchSize + salsa20NonceSize + hmacTagSize
+	timedEncryptedScratchSize = timedPlainTextScratchSize + aesGCMNonceSize + aesGCMTagSize
 	base64SourceChunkSize     = timedEncryptedScratchSize - timedEncryptedScratchSize%3
 	base64EncodedChunkSize    = base64SourceChunkSize / 3 * 4
 )
@@ -35,32 +33,24 @@ const (
 // ErrCipherTextBlockSize is returned when the ciphertext block size is too short.
 var ErrCipherTextBlockSize = errors.New("ciphertext block size is too short")
 
-// ErrHMACVerificationFailed is returned when HMAC verification fails.
-var ErrHMACVerificationFailed = errors.New("hmac verification failed")
+// ErrAuthenticationFailed is returned when ciphertext authentication fails.
+var ErrAuthenticationFailed = errors.New("ciphertext authentication failed")
 
-// Cipher provides encryption and decryption operations using Salsa20 + HMAC-SHA256.
+// Cipher provides authenticated encryption using AES-256-GCM.
 type Cipher struct {
-	macPool sync.Pool
-	encKey  *[32]byte
-	macKey  []byte
-	maxAge  time.Duration
+	scratchPool sync.Pool
+	aead        cipher.AEAD
+	maxAge      time.Duration
 }
 
-// pooledMAC keeps reusable HMAC state and timed-encryption/decryption scratch together.
-// A local Sum scratch escapes through hash.Hash, while encrypted is consumed
-// before the object returns to the pool and is never returned to callers.
-type pooledMAC struct {
-	hash.Hash
-
-	sum       [sha256.Size]byte
+// pooledScratch keeps timed-encryption and decryption scratch between calls.
+type pooledScratch struct {
 	encrypted [timedEncryptedScratchSize]byte
 }
 
 // New creates a new Cipher instance with the given encryption key.
-// Both the encryption key and the MAC key are independently derived from the
-// input using HKDF-SHA256 with distinct info strings ("salsa20-encryption" and
-// "hmac-authentication") to ensure domain separation. The raw key string is not
-// retained in memory after construction.
+// The AEAD key is derived from the input with HKDF-SHA256. The raw key string is
+// not retained in the Cipher after construction.
 func New(encryptionKey string) *Cipher {
 	return NewWithMaxAge(encryptionKey, defaultMaxAge)
 }
@@ -68,77 +58,66 @@ func New(encryptionKey string) *Cipher {
 // NewWithMaxAge creates a new Cipher instance with the given encryption key and
 // maximum age for timestamped payloads.
 func NewWithMaxAge(encryptionKey string, maxAge time.Duration) *Cipher {
-	secret := []byte(encryptionKey)
+	key := DeriveKey(encryptionKey)
+	defer clear(key[:])
 
-	encKeyBytes := deriveHKDFKey(secret, "salsa20-encryption")
-	macKeyBytes := deriveHKDFKey(secret, "hmac-authentication")
+	block, err := aes.NewCipher(key[:])
+	if err != nil {
+		panic(fmt.Sprintf("aes.NewCipher: unexpected error: %v", err))
+	}
 
-	var encKey [32]byte
-	copy(encKey[:], encKeyBytes)
+	aead, err := cipher.NewGCMWithRandomNonce(block)
+	if err != nil {
+		panic(fmt.Sprintf("cipher.NewGCMWithRandomNonce: unexpected error: %v", err))
+	}
 
-	cipher := &Cipher{
-		encKey: &encKey,
-		macKey: macKeyBytes,
+	result := &Cipher{
+		aead:   aead,
 		maxAge: maxAge,
 	}
-	cipher.macPool.New = func() any {
-		return &pooledMAC{
-			Hash: hmac.New(sha256.New, cipher.macKey),
-		}
+	result.scratchPool.New = func() any {
+		return new(pooledScratch)
 	}
 
-	return cipher
+	return result
 }
 
-// DeriveKey derives a 32-byte key from the input key string using HKDF-SHA256
-// with the "salsa20-encryption" info string.
+// DeriveKey derives a 32-byte AES-256 key using HKDF-SHA256.
 func DeriveKey(key string) *[32]byte {
-	b := deriveHKDFKey([]byte(key), "salsa20-encryption")
+	derivedKey, err := hkdf.Key(sha256.New, []byte(key), nil, keyDerivationInfo, aes256KeySize)
+	if err != nil {
+		// hkdf.Key only errors when keyLength exceeds 255 times the hash size.
+		panic(fmt.Sprintf("hkdf.Key: unexpected error: %v", err))
+	}
+	defer clear(derivedKey)
 
 	var result [32]byte
-	copy(result[:], b)
+	copy(result[:], derivedKey)
 
 	return &result
 }
 
-// deriveHKDFKey derives a 32-byte key using HKDF-SHA256 with the given secret and info string.
-func deriveHKDFKey(secret []byte, info string) []byte {
-	key, err := hkdf.Key(sha256.New, secret, nil, info, derivedKeySize)
-	if err != nil {
-		// hkdf.Key only errors when keyLength > 255*hashLen (where hashLen=32 for SHA-256); 32 bytes is always safe.
-		panic(fmt.Sprintf("hkdf.Key: unexpected error: %v", err))
-	}
-
-	return key
-}
-
-// EncryptBytes encrypts data using Salsa20 + HMAC-SHA256 (Encrypt-then-MAC).
-// Salsa20 provides stream cipher encryption with minimal overhead (8-byte nonce),
-// and HMAC-SHA256 provides authentication and tamper detection.
+// EncryptBytes encrypts and authenticates data using AES-256-GCM.
 func (c *Cipher) EncryptBytes(plainText []byte) ([]byte, error) {
-	macHash := c.getMAC()
-	defer c.putMAC(macHash)
-
-	return c.encryptBytesInto(nil, plainText, macHash)
+	return c.encryptBytesInto(nil, plainText)
 }
 
 // DecryptBytes decrypts data encrypted with EncryptBytes.
-// Verifies HMAC-SHA256 tag before decryption to ensure data integrity (Encrypt-then-MAC).
 func (c *Cipher) DecryptBytes(encryptedData []byte) ([]byte, error) {
-	// Minimum size: nonce (8) + optional ciphertext (0+) + HMAC tag (16)
-	if len(encryptedData) < salsa20NonceSize+hmacTagSize {
+	if len(encryptedData) < c.aead.Overhead() {
 		return nil, ErrCipherTextBlockSize
 	}
 
 	return c.decryptBytesInto(nil, encryptedData)
 }
 
-// EncryptBytesWithTime prefixes plaintext with the current Unix timestamp, encrypts it, and returns raw URL-base64 bytes.
+// EncryptBytesWithTime prefixes plaintext with the current Unix timestamp,
+// encrypts it, and returns raw URL-base64 bytes.
 func (c *Cipher) EncryptBytesWithTime(plainText []byte) ([]byte, error) {
-	macHash := c.getMAC()
-	defer c.putMAC(macHash)
+	scratch := c.getScratch()
+	defer c.putScratch(scratch)
 
-	encrypted, err := c.encryptTimedBytes(plainText, macHash)
+	encrypted, err := c.encryptTimedBytes(scratch.encrypted[:0], plainText)
 	if err != nil {
 		return nil, err
 	}
@@ -153,10 +132,10 @@ func (c *Cipher) EncryptBytesWithTime(plainText []byte) ([]byte, error) {
 // EncryptStringWithTime prefixes plaintext with the current Unix timestamp,
 // encrypts it, and returns a raw URL-base64 string.
 func (c *Cipher) EncryptStringWithTime(plainText []byte) (string, error) {
-	macHash := c.getMAC()
-	defer c.putMAC(macHash)
+	scratch := c.getScratch()
+	defer c.putScratch(scratch)
 
-	encrypted, err := c.encryptTimedBytes(plainText, macHash)
+	encrypted, err := c.encryptTimedBytes(scratch.encrypted[:0], plainText)
 	if err != nil {
 		return "", err
 	}
@@ -208,14 +187,14 @@ func (c *Cipher) DecryptStringWithTimeInto(dst []byte, encryptedBase64 string) (
 		return decodedLen, io.ErrShortBuffer
 	}
 
-	macHash := c.getMAC()
-	defer c.putMAC(macHash)
+	scratch := c.getScratch()
+	defer c.putScratch(scratch)
 
 	var encrypted []byte
-	if decodedLen > cap(macHash.encrypted) {
+	if decodedLen > cap(scratch.encrypted) {
 		encrypted = make([]byte, decodedLen)
 	} else {
-		encrypted = macHash.encrypted[:decodedLen]
+		encrypted = scratch.encrypted[:decodedLen]
 	}
 
 	decodedLen, err := base64.RawURLEncoding.Decode(encrypted, []byte(encryptedBase64))
@@ -223,7 +202,7 @@ func (c *Cipher) DecryptStringWithTimeInto(dst []byte, encryptedBase64 string) (
 		return 0, fmt.Errorf("base64 decode %q: %w", encryptedBase64, err)
 	}
 
-	plainText, err := c.decryptTimedPayloadWithMAC(encrypted[:decodedLen], macHash)
+	plainText, err := c.decryptTimedPayload(encrypted[:decodedLen])
 	if err != nil {
 		return 0, err
 	}
@@ -231,9 +210,8 @@ func (c *Cipher) DecryptStringWithTimeInto(dst []byte, encryptedBase64 string) (
 	return copy(dst, plainText), nil
 }
 
-// encryptTimedBytes prefixes plaintext with a timestamp and encrypts it into pooled scratch.
-// The returned bytes are valid only until macHash is returned to the pool.
-func (c *Cipher) encryptTimedBytes(plainText []byte, macHash *pooledMAC) ([]byte, error) {
+// encryptTimedBytes prefixes plaintext with a timestamp and encrypts it into dst.
+func (c *Cipher) encryptTimedBytes(dst, plainText []byte) ([]byte, error) {
 	issued := time.Now().Round(time.Second).Unix()
 
 	var scratch [timedPlainTextScratchSize]byte
@@ -242,7 +220,7 @@ func (c *Cipher) encryptTimedBytes(plainText []byte, macHash *pooledMAC) ([]byte
 	timedPlainText = append(timedPlainText, ' ')
 	timedPlainText = append(timedPlainText, plainText...)
 
-	return c.encryptBytesInto(macHash.encrypted[:0], timedPlainText, macHash)
+	return c.encryptBytesInto(dst, timedPlainText)
 }
 
 func encodeRawURLBase64String(src []byte) string {
@@ -266,64 +244,25 @@ func encodeRawURLBase64String(src []byte) string {
 }
 
 // encryptBytesInto encrypts plainText into dst, allocating only when its capacity is insufficient.
-func (c *Cipher) encryptBytesInto(dst, plainText []byte, macHash *pooledMAC) ([]byte, error) {
-	resultSize := salsa20NonceSize + len(plainText) + hmacTagSize
+func (c *Cipher) encryptBytesInto(dst, plainText []byte) ([]byte, error) {
+	resultSize := len(plainText) + c.aead.Overhead()
 
-	var result []byte
 	if cap(dst) < resultSize {
-		result = make([]byte, resultSize)
+		dst = make([]byte, 0, resultSize)
 	} else {
-		result = dst[:resultSize]
+		dst = dst[:0]
 	}
 
-	nonce := result[:salsa20NonceSize]
-
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return nil, fmt.Errorf("failed to generate nonce: %w", err)
-	}
-
-	cipherText := result[salsa20NonceSize : len(result)-hmacTagSize]
-	salsa20.XORKeyStream(cipherText, plainText, nonce, c.encKey)
-
-	macHash.Write(nonce)
-	macHash.Write(cipherText)
-
-	tag := macHash.Sum(macHash.sum[:0])
-	copy(result[len(result)-hmacTagSize:], tag[:hmacTagSize])
-
-	return result, nil
+	return c.aead.Seal(dst, nil, plainText, nil), nil
 }
 
 // decryptBytesInto authenticates encryptedData and decrypts it into dst.
 // Callers must reject ciphertext shorter than the nonce and authentication tag.
 func (c *Cipher) decryptBytesInto(dst, encryptedData []byte) ([]byte, error) {
-	macHash := c.getMAC()
-	defer c.putMAC(macHash)
-
-	return c.decryptBytesWithMACInto(dst, encryptedData, macHash)
-}
-
-func (c *Cipher) decryptBytesWithMACInto(dst, encryptedData []byte, macHash *pooledMAC) ([]byte, error) {
-	nonce := encryptedData[:salsa20NonceSize]
-	cipherText := encryptedData[salsa20NonceSize : len(encryptedData)-hmacTagSize]
-	tag := encryptedData[len(encryptedData)-hmacTagSize:]
-
-	macHash.Write(nonce)
-	macHash.Write(cipherText)
-
-	expectedTag := macHash.Sum(macHash.sum[:0])
-	if !hmac.Equal(tag, expectedTag[:hmacTagSize]) {
-		return nil, ErrHMACVerificationFailed
+	plainText, err := c.aead.Open(dst, nil, encryptedData, nil)
+	if err != nil {
+		return nil, ErrAuthenticationFailed
 	}
-
-	var plainText []byte
-	if dst == nil || cap(dst) < len(cipherText) {
-		plainText = make([]byte, len(cipherText))
-	} else {
-		plainText = dst[:len(cipherText):len(cipherText)]
-	}
-
-	salsa20.XORKeyStream(plainText, cipherText, nonce, c.encKey)
 
 	return plainText, nil
 }
@@ -331,18 +270,14 @@ func (c *Cipher) decryptBytesWithMACInto(dst, encryptedData []byte, macHash *poo
 // decryptTimedPayload authenticates, decrypts, and validates
 // an already base64-decoded timestamped payload.
 func (c *Cipher) decryptTimedPayload(encrypted []byte) ([]byte, error) {
-	macHash := c.getMAC()
-	defer c.putMAC(macHash)
-
-	return c.decryptTimedPayloadWithMAC(encrypted, macHash)
-}
-
-func (c *Cipher) decryptTimedPayloadWithMAC(encrypted []byte, macHash *pooledMAC) ([]byte, error) {
-	if len(encrypted) < salsa20NonceSize+hmacTagSize {
+	if len(encrypted) < c.aead.Overhead() {
 		return nil, ErrCipherTextBlockSize
 	}
 
-	data, err := c.decryptBytesWithMACInto(encrypted[salsa20NonceSize:salsa20NonceSize], encrypted, macHash)
+	data, err := c.decryptBytesInto(
+		encrypted[:0],
+		encrypted,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -359,24 +294,20 @@ func (c *Cipher) decryptTimedPayloadWithMAC(encrypted []byte, macHash *pooledMAC
 	return data, nil
 }
 
-// getMAC returns a reset HMAC-SHA256 instance from the cipher-local pool.
-func (c *Cipher) getMAC() *pooledMAC {
-	macHash, ok := c.macPool.Get().(*pooledMAC)
+// getScratch returns reusable scratch for timed encryption and decryption.
+func (c *Cipher) getScratch() *pooledScratch {
+	scratch, ok := c.scratchPool.Get().(*pooledScratch)
 	if !ok {
-		return &pooledMAC{
-			Hash: hmac.New(sha256.New, c.macKey),
-		}
+		return new(pooledScratch)
 	}
 
-	return macHash
+	return scratch
 }
 
-// putMAC resets and returns an HMAC-SHA256 instance to the cipher-local pool.
-func (c *Cipher) putMAC(macHash *pooledMAC) {
-	macHash.Reset()
-	// In-place decryption may leave OAuth state plaintext in the pooled scratch.
-	clear(macHash.encrypted[:])
-	c.macPool.Put(macHash)
+// putScratch clears plaintext before returning scratch to the pool.
+func (c *Cipher) putScratch(scratch *pooledScratch) {
+	clear(scratch.encrypted[:])
+	c.scratchPool.Put(scratch)
 }
 
 // checkTokenSize rejects unreasonably large encoded payloads before allocating decode buffers.

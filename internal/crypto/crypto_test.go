@@ -2,6 +2,8 @@ package crypto_test
 
 import (
 	"bytes"
+	"crypto/aes"
+	stdcipher "crypto/cipher"
 	"encoding/base64"
 	"io"
 	"strconv"
@@ -11,6 +13,12 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/crypto"
 	"github.com/stretchr/testify/require"
+)
+
+const (
+	aesGCMNonceSize = 12
+	aesGCMTagSize   = 16
+	aesGCMOverhead  = aesGCMNonceSize + aesGCMTagSize
 )
 
 func TestDeriveKey(t *testing.T) {
@@ -90,12 +98,18 @@ func TestEncryptBytesBasic(t *testing.T) {
 	encrypted, err := cipher.EncryptBytes(plainText)
 	require.NoError(t, err, "EncryptBytes failed")
 
-	// Check that encrypted data is longer than plaintext (nonce + tag overhead)
-	require.Greater(t, len(encrypted), len(plainText), "encrypted data should be longer than plaintext")
+	expectedSize := len(plainText) + aesGCMOverhead
+	require.Len(t, encrypted, expectedSize)
 
-	// Minimum size: nonce (8) + ciphertext (at least 1) + HMAC tag (16)
-	expectedMinSize := 8 + 1 + 16
-	require.GreaterOrEqual(t, len(encrypted), expectedMinSize, "encrypted data is too short")
+	key := crypto.DeriveKey("test-key")
+	block, err := aes.NewCipher(key[:])
+	require.NoError(t, err)
+	aead, err := stdcipher.NewGCMWithRandomNonce(block)
+	require.NoError(t, err)
+
+	decrypted, err := aead.Open(nil, nil, encrypted, nil)
+	require.NoError(t, err)
+	require.Equal(t, plainText, decrypted)
 }
 
 func TestEncryptBytesEmpty(t *testing.T) {
@@ -107,9 +121,7 @@ func TestEncryptBytesEmpty(t *testing.T) {
 	encrypted, err := cipher.EncryptBytes(plainText)
 	require.NoError(t, err, "EncryptBytes failed")
 
-	// Empty plaintext produces: nonce (8 bytes) + empty ciphertext (0 bytes) + HMAC tag (16 bytes) = 24 bytes
-	expectedSize := 8 + 16
-	require.Len(t, encrypted, expectedSize)
+	require.Len(t, encrypted, aesGCMOverhead)
 }
 
 func TestEncryptBytesRandomNonce(t *testing.T) {
@@ -154,13 +166,10 @@ func TestDecryptBytesTampered(t *testing.T) {
 	encrypted, err := cipher.EncryptBytes(plainText)
 	require.NoError(t, err, "EncryptBytes failed")
 
-	// Tamper with the encrypted data (modify one byte in the middle)
-	if len(encrypted) > 8+1 {
-		encrypted[8] ^= 0xFF
-	}
+	encrypted[len(encrypted)/2] ^= 0xFF
 
 	_, err = cipher.DecryptBytes(encrypted)
-	require.Equal(t, crypto.ErrHMACVerificationFailed, err, "expected ErrHMACVerificationFailed for tampered data")
+	require.ErrorIs(t, err, crypto.ErrAuthenticationFailed)
 }
 
 func TestDecryptBytesWrongKey(t *testing.T) {
@@ -176,7 +185,7 @@ func TestDecryptBytesWrongKey(t *testing.T) {
 
 	// Try to decrypt with different key
 	_, err = cipher2.DecryptBytes(encrypted)
-	require.Equal(t, crypto.ErrHMACVerificationFailed, err, "expected ErrHMACVerificationFailed when decrypting with wrong key")
+	require.ErrorIs(t, err, crypto.ErrAuthenticationFailed)
 }
 
 func TestDecryptBytesShortData(t *testing.T) {
@@ -188,11 +197,14 @@ func TestDecryptBytesShortData(t *testing.T) {
 		name string
 		data []byte
 	}{
-		{"empty", []byte("")},
-		{"too short", []byte("short")},
-		{"just nonce size", make([]byte, 8)},
-		{"nonce + 1 byte", make([]byte, 8+1)},
-		{"nonce + tag - 1 byte", make([]byte, 8+16-1)},
+		{name: "empty", data: []byte("")},
+		{name: "too short", data: []byte("short")},
+		{name: "just nonce size", data: make([]byte, aesGCMNonceSize)},
+		{name: "nonce + 1 byte", data: make([]byte, aesGCMNonceSize+1)},
+		{
+			name: "nonce + tag - 1 byte",
+			data: make([]byte, aesGCMOverhead-1),
+		},
 	}
 
 	for _, tt := range tests {
@@ -200,7 +212,7 @@ func TestDecryptBytesShortData(t *testing.T) {
 			t.Parallel()
 
 			_, err := cipher.DecryptBytes(tt.data)
-			require.Equal(t, crypto.ErrCipherTextBlockSize, err, "expected ErrCipherTextBlockSize")
+			require.ErrorIs(t, err, crypto.ErrCipherTextBlockSize)
 		})
 	}
 }

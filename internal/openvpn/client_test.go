@@ -76,12 +76,12 @@ func TestBuildClientPendingAuthCommand(t *testing.T) {
 func TestBuildClientPendingAuthCommandLimit(t *testing.T) {
 	t.Parallel()
 
-	client := connection.Client{CID: 1, KID: 0}
+	client := connection.Client{CID: 12345, KID: 0}
 
-	command, err := buildClientPendingAuthCommand(client, strings.Repeat("a", 983), 300*time.Second)
+	command, err := buildClientPendingAuthCommand(client, strings.Repeat("a", 979), 300*time.Second)
 	require.NoError(t, err)
 	require.Len(t, command, openVPNManagementCommandBodyLimit)
 
-	_, err = buildClientPendingAuthCommand(client, strings.Repeat("a", 984), 300*time.Second)
+	_, err = buildClientPendingAuthCommand(client, strings.Repeat("a", 980), 300*time.Second)
 	require.EqualError(t, err, "client-pending-auth command is 1024 bytes; OpenVPN accepts at most 1023 bytes")
 }

@@ -70,7 +70,7 @@ func (s *InMemory) SetStorage(data DataMap) error {
 }
 
 // Set stores an encrypted token for a given client, with an expiration time.
-// The token is encrypted using Salsa20 before storage.
+// The token is encrypted using AES-256-GCM before storage.
 func (s *InMemory) Set(_ context.Context, client, token string) error {
 	encryptedBytes, err := s.cipher.EncryptBytes([]byte(token))
 	if err != nil {
