@@ -2,19 +2,19 @@ package crypto
 
 import "testing"
 
-func TestPutMACClearsEncryptedScratch(t *testing.T) {
+func TestPutScratchClearsEncryptedScratch(t *testing.T) {
 	t.Parallel()
 
 	cipher := New("test-key")
-	macHash := cipher.getMAC()
+	scratch := cipher.getScratch()
 
-	for index := range macHash.encrypted {
-		macHash.encrypted[index] = 0xff
+	for index := range scratch.encrypted {
+		scratch.encrypted[index] = 0xff
 	}
 
-	cipher.putMAC(macHash)
+	cipher.putScratch(scratch)
 
-	for index, value := range macHash.encrypted {
+	for index, value := range scratch.encrypted {
 		if value != 0 {
 			t.Fatalf("encrypted scratch byte %d was not cleared", index)
 		}

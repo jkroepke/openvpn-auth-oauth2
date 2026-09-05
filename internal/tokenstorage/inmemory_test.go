@@ -133,7 +133,7 @@ func TestStorageInMemory_InvalidSecret(t *testing.T) {
 		require.NoError(t, tokenStorage.Close())
 	})
 
-	// Salsa20 with SHA256-derived keys accepts any key length.
+	// HKDF derives the fixed-size AEAD key from any input length.
 	// Test that encryption/decryption works even with short keys.
 	require.NoError(t, tokenStorage.Set(ctx, "0", "TEST0"))
 	token, err := tokenStorage.Get(ctx, "0")
