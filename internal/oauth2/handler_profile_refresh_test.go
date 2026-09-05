@@ -5,7 +5,6 @@ import (
 	"errors"
 	"log/slog"
 	"testing"
-	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
@@ -25,7 +24,7 @@ func TestStoreSelectedProfileRefreshState(t *testing.T) {
 
 		conf := config.Defaults
 		conf.OAuth2.Refresh.Enabled = false
-		storage := tokenstorage.NewInMemoryWithGC("1234567890123456", time.Hour, 0)
+		storage := newInMemoryStorage(t)
 		client := Client{conf: &conf, storage: storage}
 
 		client.storeSelectedProfileRefreshState(ctx, logger, session, "7", "alice", "selected")
@@ -40,7 +39,7 @@ func TestStoreSelectedProfileRefreshState(t *testing.T) {
 		conf := config.Defaults
 		conf.OAuth2.Refresh.Enabled = true
 		conf.OAuth2.Refresh.ValidateUser = false
-		storage := tokenstorage.NewInMemoryWithGC("1234567890123456", time.Hour, 0)
+		storage := newInMemoryStorage(t)
 		client := Client{conf: &conf, storage: storage}
 
 		client.storeSelectedProfileRefreshState(ctx, logger, session, "7", "alice", "selected")
@@ -60,7 +59,7 @@ func TestStoreSelectedProfileRefreshState(t *testing.T) {
 		conf := config.Defaults
 		conf.OAuth2.Refresh.Enabled = true
 		conf.OAuth2.Refresh.ValidateUser = true
-		storage := tokenstorage.NewInMemoryWithGC("1234567890123456", time.Hour, 0)
+		storage := newInMemoryStorage(t)
 		storedToken, err := encodeProviderRefreshToken("provider-refresh-token", []string{"previous"})
 		require.NoError(t, err)
 		require.NoError(t, storage.Set(ctx, "7", storedToken))
@@ -97,7 +96,7 @@ func TestStoreSelectedProfileRefreshState(t *testing.T) {
 		conf := config.Defaults
 		conf.OAuth2.Refresh.Enabled = true
 		conf.OAuth2.Refresh.ValidateUser = true
-		storage := tokenstorage.NewInMemoryWithGC("1234567890123456", time.Hour, 0)
+		storage := newInMemoryStorage(t)
 		require.NoError(t, storage.Set(ctx, "7", providerRefreshTokenPrefix+"{"))
 
 		client := Client{conf: &conf, storage: storage}

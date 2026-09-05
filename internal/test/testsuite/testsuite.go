@@ -16,6 +16,7 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/crypto"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/httphandler"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/providers/generic"
@@ -43,6 +44,15 @@ type Suite struct {
 	oAuth2Client                  *oauth2.Client
 	errOpenVPNClientCh            chan error
 	conf                          *config.Config
+}
+
+func NewCipher(tb testing.TB) *crypto.Cipher {
+	tb.Helper()
+
+	cipher, err := crypto.New(Secret)
+	require.NoError(tb, err)
+
+	return cipher
 }
 
 func New(conf *config.Config, opts ...Options) *Suite {
@@ -90,7 +100,8 @@ func (s *Suite) SetupMockEnvironment(ctx context.Context, tb testing.TB, opConf 
 		s.conf.OpenVPN.ClientConfig.Path = config.Defaults.OpenVPN.ClientConfig.Path
 	}
 
-	tokenStorage := tokenstorage.NewInMemory(Secret, s.conf.OAuth2.Refresh.Expires)
+	tokenStorage, err := tokenstorage.NewInMemory(Secret, s.conf.OAuth2.Refresh.Expires)
+	require.NoError(tb, err)
 
 	s.oAuth2Client, s.openVPNClient = s.SetupOpenVPNOAuth2Clients(ctx, tb, tokenStorage)
 
@@ -239,7 +250,8 @@ func (s *Suite) SetupOpenVPNOAuth2Clients(ctx context.Context, tb testing.TB, to
 			refreshExpires = time.Hour
 		}
 
-		tokenStorage = tokenstorage.NewInMemory(Secret, refreshExpires)
+		tokenStorage, err = tokenstorage.NewInMemory(Secret, refreshExpires)
+		require.NoError(tb, err)
 	}
 
 	switch s.conf.OAuth2.Provider {
@@ -256,7 +268,16 @@ func (s *Suite) SetupOpenVPNOAuth2Clients(ctx context.Context, tb testing.TB, to
 	require.NoError(tb, err)
 
 	openVPNClient := openvpn.New(s.logger.Logger(), s.conf)
-	oAuth2Client, err := oauth2.New(ctx, s.logger.Logger(), s.conf, s.httpClient, tokenStorage, Cipher, provider, openVPNClient)
+	oAuth2Client, err := oauth2.New(
+		ctx,
+		s.logger.Logger(),
+		s.conf,
+		s.httpClient,
+		tokenStorage,
+		NewCipher(tb),
+		provider,
+		openVPNClient,
+	)
 	require.NoError(tb, err)
 
 	openVPNClient.SetOAuth2Client(oAuth2Client)

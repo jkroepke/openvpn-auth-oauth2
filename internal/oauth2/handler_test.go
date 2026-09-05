@@ -649,7 +649,7 @@ func TestHandler(t *testing.T) {
 			case tc.state == (state.State{}):
 				session = ""
 			default:
-				session, err = state.Encrypt(testsuite.Cipher, tc.state)
+				session, err = state.Encrypt(testsuite.NewCipher(t), tc.state)
 				require.NoError(t, err)
 			}
 
@@ -888,7 +888,7 @@ func TestOAuth2ProfileSubmit(t *testing.T) {
 
 				token := fmt.Sprintf("%d -", time.Now().Unix())
 
-				encryptedToken, err := testsuite.Cipher.EncryptBytes([]byte(token))
+				encryptedToken, err := testsuite.NewCipher(t).EncryptBytes([]byte(token))
 				require.NoError(t, err)
 
 				req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth2/profile-submit",
@@ -909,7 +909,7 @@ func TestOAuth2ProfileSubmit(t *testing.T) {
 
 				token := fmt.Sprintf(`%d {}`, time.Now().Unix())
 
-				encryptedToken, err := testsuite.Cipher.EncryptBytes([]byte(token))
+				encryptedToken, err := testsuite.NewCipher(t).EncryptBytes([]byte(token))
 				require.NoError(t, err)
 
 				req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth2/profile-submit",
@@ -931,12 +931,12 @@ func TestOAuth2ProfileSubmit(t *testing.T) {
 
 				sessionState := state.State{Client: state.ClientIdentifier{CID: 1, KID: 2}, IPAddr: "127.0.0.1", IPPort: "12345"}
 
-				encryptedState, err := state.Encrypt(testsuite.Cipher, sessionState)
+				encryptedState, err := state.Encrypt(testsuite.NewCipher(t), sessionState)
 				require.NoError(t, err)
 
 				token := fmt.Sprintf(`%d {"state": %q}`, time.Now().Unix(), encryptedState)
 
-				encryptedToken, err := testsuite.Cipher.EncryptBytes([]byte(token))
+				encryptedToken, err := testsuite.NewCipher(t).EncryptBytes([]byte(token))
 				require.NoError(t, err)
 
 				req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth2/profile-submit",

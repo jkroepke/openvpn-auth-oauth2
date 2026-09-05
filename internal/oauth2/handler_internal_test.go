@@ -20,6 +20,24 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func newStateCipher(t *testing.T) *crypto.Cipher {
+	t.Helper()
+
+	cipher, err := crypto.New("1234567890123456")
+	require.NoError(t, err)
+
+	return cipher
+}
+
+func newInMemoryStorage(t *testing.T) *tokenstorage.InMemory {
+	t.Helper()
+
+	storage, err := tokenstorage.NewInMemoryWithGC("1234567890123456", time.Hour, 0)
+	require.NoError(t, err)
+
+	return storage
+}
+
 func TestWithIDTokenClaimsLoggerOmitsUnrestrictedClaims(t *testing.T) {
 	t.Parallel()
 
@@ -73,12 +91,8 @@ func TestHandleClientConfigSelectorDeniesClientOnRenderError(t *testing.T) {
 				conf:        &conf,
 				logger:      slog.New(slog.DiscardHandler),
 				openvpn:     openVPNClient,
-				stateCrypto: crypto.New("1234567890123456"),
-				storage: tokenstorage.NewInMemoryWithGC(
-					"1234567890123456",
-					time.Hour,
-					0,
-				),
+				stateCrypto: newStateCipher(t),
+				storage:     newInMemoryStorage(t),
 			}
 			session := state.State{Client: state.ClientIdentifier{CID: 1, KID: 2}}
 

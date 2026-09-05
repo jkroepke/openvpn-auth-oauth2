@@ -32,16 +32,21 @@ type InMemory struct {
 
 // NewInMemory creates a new in-memory token storage with the given encryption key and expiration duration.
 // It starts a background goroutine for garbage collection of expired tokens.
-func NewInMemory(encryptionKey string, expires time.Duration) *InMemory {
+func NewInMemory(encryptionKey string, expires time.Duration) (*InMemory, error) {
 	return NewInMemoryWithGC(encryptionKey, expires, DefaultGCInterval)
 }
 
 // NewInMemoryWithGC creates a new in-memory token storage with custom GC interval.
 // If gcInterval is 0 or negative, garbage collection is disabled.
-func NewInMemoryWithGC(encryptionKey string, expires, gcInterval time.Duration) *InMemory {
+func NewInMemoryWithGC(encryptionKey string, expires, gcInterval time.Duration) (*InMemory, error) {
+	encryptionCipher, err := crypto.New(encryptionKey)
+	if err != nil {
+		return nil, fmt.Errorf("create token cipher: %w", err)
+	}
+
 	storage := &InMemory{
 		data:       DataMap{},
-		cipher:     crypto.New(encryptionKey),
+		cipher:     encryptionCipher,
 		expires:    expires,
 		gcInterval: gcInterval,
 		gcStop:     make(chan struct{}),
@@ -51,7 +56,7 @@ func NewInMemoryWithGC(encryptionKey string, expires, gcInterval time.Duration) 
 		storage.startGC()
 	}
 
-	return storage
+	return storage, nil
 }
 
 // SetStorage replaces the current storage data with the provided DataMap.

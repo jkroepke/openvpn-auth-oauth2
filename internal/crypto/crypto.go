@@ -51,24 +51,27 @@ type pooledScratch struct {
 // New creates a new Cipher instance with the given encryption key.
 // The AEAD key is derived from the input with HKDF-SHA256. The raw key string is
 // not retained in the Cipher after construction.
-func New(encryptionKey string) *Cipher {
+func New(encryptionKey string) (*Cipher, error) {
 	return NewWithMaxAge(encryptionKey, defaultMaxAge)
 }
 
 // NewWithMaxAge creates a new Cipher instance with the given encryption key and
 // maximum age for timestamped payloads.
-func NewWithMaxAge(encryptionKey string, maxAge time.Duration) *Cipher {
-	key := DeriveKey(encryptionKey)
+func NewWithMaxAge(encryptionKey string, maxAge time.Duration) (*Cipher, error) {
+	key, err := DeriveKey(encryptionKey)
+	if err != nil {
+		return nil, fmt.Errorf("derive aes-256 key: %w", err)
+	}
 	defer clear(key[:])
 
 	block, err := aes.NewCipher(key[:])
 	if err != nil {
-		panic(fmt.Sprintf("aes.NewCipher: unexpected error: %v", err))
+		return nil, fmt.Errorf("create aes cipher: %w", err)
 	}
 
 	aead, err := cipher.NewGCMWithRandomNonce(block)
 	if err != nil {
-		panic(fmt.Sprintf("cipher.NewGCMWithRandomNonce: unexpected error: %v", err))
+		return nil, fmt.Errorf("create aes-gcm: %w", err)
 	}
 
 	result := &Cipher{
@@ -79,22 +82,21 @@ func NewWithMaxAge(encryptionKey string, maxAge time.Duration) *Cipher {
 		return new(pooledScratch)
 	}
 
-	return result
+	return result, nil
 }
 
 // DeriveKey derives a 32-byte AES-256 key using HKDF-SHA256.
-func DeriveKey(key string) *[32]byte {
+func DeriveKey(key string) (*[32]byte, error) {
 	derivedKey, err := hkdf.Key(sha256.New, []byte(key), nil, keyDerivationInfo, aes256KeySize)
 	if err != nil {
-		// hkdf.Key only errors when keyLength exceeds 255 times the hash size.
-		panic(fmt.Sprintf("hkdf.Key: unexpected error: %v", err))
+		return nil, fmt.Errorf("hkdf-sha256: %w", err)
 	}
 	defer clear(derivedKey)
 
 	var result [32]byte
 	copy(result[:], derivedKey)
 
-	return &result
+	return &result, nil
 }
 
 // EncryptBytes encrypts and authenticates data using AES-256-GCM.

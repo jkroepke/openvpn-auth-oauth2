@@ -22,6 +22,7 @@ func benchmarkSessionState() state.State {
 }
 
 func BenchmarkStateEncrypt(b *testing.B) {
+	cipher := testsuite.NewCipher(b)
 	sessionState := benchmarkSessionState()
 
 	var encryptedState state.EncryptedState
@@ -32,7 +33,7 @@ func BenchmarkStateEncrypt(b *testing.B) {
 	for b.Loop() {
 		var err error
 
-		encryptedState, err = state.Encrypt(testsuite.Cipher, sessionState)
+		encryptedState, err = state.Encrypt(cipher, sessionState)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -42,7 +43,8 @@ func BenchmarkStateEncrypt(b *testing.B) {
 }
 
 func BenchmarkStateDecrypt(b *testing.B) {
-	encodedTokenString, err := state.Encrypt(testsuite.Cipher, benchmarkSessionState())
+	cipher := testsuite.NewCipher(b)
+	encodedTokenString, err := state.Encrypt(cipher, benchmarkSessionState())
 	require.NoError(b, err)
 
 	var decryptedState state.State
@@ -53,7 +55,7 @@ func BenchmarkStateDecrypt(b *testing.B) {
 	for b.Loop() {
 		var decryptErr error
 
-		decryptedState, decryptErr = state.Decrypt(testsuite.Cipher, encodedTokenString)
+		decryptedState, decryptErr = state.Decrypt(cipher, encodedTokenString)
 		if decryptErr != nil {
 			b.Fatal(decryptErr)
 		}

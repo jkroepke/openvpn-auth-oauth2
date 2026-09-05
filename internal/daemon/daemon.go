@@ -71,7 +71,11 @@ func setupOpenVPNClient(
 	}
 
 	openvpnClient := openvpn.New(logger, conf)
-	stateCrypto := crypto.NewWithMaxAge(conf.HTTP.Secret.String(), conf.OpenVPN.AuthPendingTimeout)
+
+	stateCrypto, err := crypto.NewWithMaxAge(conf.HTTP.Secret.String(), conf.OpenVPN.AuthPendingTimeout)
+	if err != nil {
+		return nil, nil, fmt.Errorf("create state cipher: %w", err)
+	}
 
 	oAuth2Client, err := oauth2.New(ctx, logger, conf, httpClient, tokenStorage, stateCrypto, provider, openvpnClient)
 	if err != nil {

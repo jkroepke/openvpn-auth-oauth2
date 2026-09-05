@@ -289,7 +289,16 @@ func TestCheckIdentityCEL(t *testing.T) {
 			provider, err := generic.NewProvider(t.Context(), &tc.conf, http.DefaultClient)
 			require.NoError(t, err)
 
-			oAuth2Client, err := oauth2.New(t.Context(), slog.New(slog.DiscardHandler), &tc.conf, http.DefaultClient, testsuite.NewFakeStorage(), testsuite.Cipher, provider, testsuite.NewFakeOpenVPNClient())
+			oAuth2Client, err := oauth2.New(
+				t.Context(),
+				slog.New(slog.DiscardHandler),
+				&tc.conf,
+				http.DefaultClient,
+				testsuite.NewFakeStorage(),
+				testsuite.NewCipher(t),
+				provider,
+				testsuite.NewFakeOpenVPNClient(),
+			)
 			if tc.initErr != "" {
 				require.ErrorContains(t, err, tc.initErr)
 

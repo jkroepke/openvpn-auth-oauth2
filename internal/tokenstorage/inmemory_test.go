@@ -11,11 +11,32 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func newInMemory(tb testing.TB, encryptionKey string, expires time.Duration) *tokenstorage.InMemory {
+	tb.Helper()
+
+	storage, err := tokenstorage.NewInMemory(encryptionKey, expires)
+	require.NoError(tb, err)
+
+	return storage
+}
+
+func newInMemoryWithGC(
+	tb testing.TB,
+	expires, gcInterval time.Duration,
+) *tokenstorage.InMemory {
+	tb.Helper()
+
+	storage, err := tokenstorage.NewInMemoryWithGC(testsuite.Secret, expires, gcInterval)
+	require.NoError(tb, err)
+
+	return storage
+}
+
 func TestStorageInMemory(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	tokenStorage := tokenstorage.NewInMemory(testsuite.Secret, time.Millisecond*400)
+	tokenStorage := newInMemory(t, testsuite.Secret, time.Millisecond*400)
 
 	t.Cleanup(func() {
 		require.NoError(t, tokenStorage.Close())
@@ -56,7 +77,7 @@ func TestStorageInMemory_Consume(t *testing.T) {
 	const consumers = 32
 
 	ctx := t.Context()
-	tokenStorage := tokenstorage.NewInMemory(testsuite.Secret, time.Hour)
+	tokenStorage := newInMemory(t, testsuite.Secret, time.Hour)
 
 	t.Cleanup(func() {
 		require.NoError(t, tokenStorage.Close())
@@ -105,7 +126,7 @@ func TestStorageInMemory_Expire(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	tokenStorage := tokenstorage.NewInMemory(testsuite.Secret, 0)
+	tokenStorage := newInMemory(t, testsuite.Secret, 0)
 
 	t.Cleanup(func() {
 		require.NoError(t, tokenStorage.Close())
@@ -127,7 +148,7 @@ func TestStorageInMemory_InvalidSecret(t *testing.T) {
 	ctx := context.Background()
 	key := "invalid"
 
-	tokenStorage := tokenstorage.NewInMemory(key, time.Second)
+	tokenStorage := newInMemory(t, key, time.Second)
 
 	t.Cleanup(func() {
 		require.NoError(t, tokenStorage.Close())
@@ -144,7 +165,7 @@ func TestStorageInMemory_InvalidSecret(t *testing.T) {
 func TestStorageInMemory_InvalidData(t *testing.T) {
 	t.Parallel()
 
-	tokenStorage := tokenstorage.NewInMemory(testsuite.Secret, 0)
+	tokenStorage := newInMemory(t, testsuite.Secret, 0)
 
 	t.Cleanup(func() {
 		require.NoError(t, tokenStorage.Close())
@@ -158,7 +179,7 @@ func TestStorageInMemory_GarbageCollection(t *testing.T) {
 
 	ctx := context.Background()
 	// Use short expiration and GC interval for testing
-	tokenStorage := tokenstorage.NewInMemoryWithGC(testsuite.Secret, 50*time.Millisecond, 100*time.Millisecond)
+	tokenStorage := newInMemoryWithGC(t, 50*time.Millisecond, 100*time.Millisecond)
 
 	t.Cleanup(func() {
 		require.NoError(t, tokenStorage.Close())
@@ -183,7 +204,7 @@ func TestStorageInMemory_NoGC(t *testing.T) {
 
 	ctx := context.Background()
 	// Disable GC by passing 0 interval
-	tokenStorage := tokenstorage.NewInMemoryWithGC(testsuite.Secret, 50*time.Millisecond, 0)
+	tokenStorage := newInMemoryWithGC(t, 50*time.Millisecond, 0)
 
 	t.Cleanup(func() {
 		require.NoError(t, tokenStorage.Close())
