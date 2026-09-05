@@ -32,7 +32,18 @@ func TestAssets(t *testing.T) {
 	provider, err := generic.NewProvider(t.Context(), &conf, http.DefaultClient)
 	require.NoError(t, err)
 
-	oAuth2Client, err := oauth2.New(t.Context(), logger.Logger(), &conf, http.DefaultClient, testsuite.NewFakeStorage(), crypto.New(conf.HTTP.Secret.String()), provider, testsuite.NewFakeOpenVPNClient())
+	stateCrypto, err := crypto.New(conf.HTTP.Secret.String())
+	require.NoError(t, err)
+	oAuth2Client, err := oauth2.New(
+		t.Context(),
+		logger.Logger(),
+		&conf,
+		http.DefaultClient,
+		testsuite.NewFakeStorage(),
+		stateCrypto,
+		provider,
+		testsuite.NewFakeOpenVPNClient(),
+	)
 	require.NoError(t, err)
 
 	handler := httphandler.New(&conf, oAuth2Client)
@@ -58,7 +69,18 @@ func TestCustomAssets(t *testing.T) {
 	provider, err := generic.NewProvider(t.Context(), &conf, http.DefaultClient)
 	require.NoError(t, err)
 
-	oAuth2Client, err := oauth2.New(t.Context(), logger.Logger(), &conf, http.DefaultClient, testsuite.NewFakeStorage(), crypto.New(conf.HTTP.Secret.String()), provider, testsuite.NewFakeOpenVPNClient())
+	stateCrypto, err := crypto.New(conf.HTTP.Secret.String())
+	require.NoError(t, err)
+	oAuth2Client, err := oauth2.New(
+		t.Context(),
+		logger.Logger(),
+		&conf,
+		http.DefaultClient,
+		testsuite.NewFakeStorage(),
+		stateCrypto,
+		provider,
+		testsuite.NewFakeOpenVPNClient(),
+	)
 	require.NoError(t, err)
 
 	conf.HTTP.AssetPath = types.FS{

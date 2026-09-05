@@ -72,7 +72,13 @@ func run(ctx context.Context, args []string, stdout io.Writer, tokenDataStorage 
 		slog.String("config", conf.String()),
 	)
 
-	tokenStorage := tokenstorage.NewInMemory(conf.OAuth2.Refresh.Secret.String(), conf.OAuth2.Refresh.Expires)
+	tokenStorage, err := tokenstorage.NewInMemory(conf.OAuth2.Refresh.Secret.String(), conf.OAuth2.Refresh.Expires)
+	if err != nil {
+		logger.LogAttrs(ctx, slog.LevelError, "error creating token storage", slog.Any("err", err))
+
+		return ReturnCodeError
+	}
+
 	defer func() {
 		if err := tokenStorage.Close(); err != nil {
 			logger.LogAttrs(ctx, slog.LevelError, "error closing token storage", slog.Any("err", err))

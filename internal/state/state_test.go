@@ -12,6 +12,7 @@ import (
 
 func TestState(t *testing.T) {
 	t.Parallel()
+	cipher := testsuite.NewCipher(t)
 
 	for _, tc := range []struct {
 		name         string
@@ -47,10 +48,10 @@ func TestState(t *testing.T) {
 				SessionState: tc.sessionState,
 			}
 
-			encryptedToken, err := state.Encrypt(testsuite.Cipher, sessionState)
+			encryptedToken, err := state.Encrypt(cipher, sessionState)
 			require.NoError(t, err)
 
-			token, err := state.Decrypt(testsuite.Cipher, encryptedToken)
+			token, err := state.Decrypt(cipher, encryptedToken)
 			require.NoError(t, err)
 
 			require.Equal(t, token, sessionState)
@@ -60,6 +61,7 @@ func TestState(t *testing.T) {
 
 func TestStateInvalid(t *testing.T) {
 	t.Parallel()
+	cipher := testsuite.NewCipher(t)
 
 	for _, tc := range []struct {
 		name         string
@@ -90,7 +92,7 @@ func TestStateInvalid(t *testing.T) {
 		{
 			name: "state too short",
 			encodedToken: func() (state.EncryptedState, error) {
-				encrypted, err := testsuite.Cipher.EncryptBytesWithTime([]byte{2, 0})
+				encrypted, err := cipher.EncryptBytesWithTime([]byte{2, 0})
 				if err != nil {
 					return "", err
 				}
@@ -102,7 +104,7 @@ func TestStateInvalid(t *testing.T) {
 		{
 			name: "unsupported state version",
 			encodedToken: func() (state.EncryptedState, error) {
-				encrypted, err := testsuite.Cipher.EncryptBytesWithTime([]byte{1, 0, '0', 1, 1})
+				encrypted, err := cipher.EncryptBytesWithTime([]byte{1, 0, '0', 1, 1})
 				if err != nil {
 					return "", err
 				}
@@ -114,7 +116,7 @@ func TestStateInvalid(t *testing.T) {
 		{
 			name: "invalid CID",
 			encodedToken: func() (state.EncryptedState, error) {
-				encrypted, err := testsuite.Cipher.EncryptBytesWithTime([]byte{2, 0, '0'})
+				encrypted, err := cipher.EncryptBytesWithTime([]byte{2, 0, '0'})
 				if err != nil {
 					return "", err
 				}
@@ -126,7 +128,7 @@ func TestStateInvalid(t *testing.T) {
 		{
 			name: "invalid KID",
 			encodedToken: func() (state.EncryptedState, error) {
-				encrypted, err := testsuite.Cipher.EncryptBytesWithTime([]byte{2, 0, '0', 1})
+				encrypted, err := cipher.EncryptBytesWithTime([]byte{2, 0, '0', 1})
 				if err != nil {
 					return "", err
 				}
@@ -138,7 +140,7 @@ func TestStateInvalid(t *testing.T) {
 		{
 			name: "truncated common name",
 			encodedToken: func() (state.EncryptedState, error) {
-				encrypted, err := testsuite.Cipher.EncryptBytesWithTime([]byte{2, 2, '0', 1, 1, 5, 'a'})
+				encrypted, err := cipher.EncryptBytesWithTime([]byte{2, 2, '0', 1, 1, 5, 'a'})
 				if err != nil {
 					return "", err
 				}
@@ -150,7 +152,7 @@ func TestStateInvalid(t *testing.T) {
 		{
 			name: "trailing data",
 			encodedToken: func() (state.EncryptedState, error) {
-				encrypted, err := testsuite.Cipher.EncryptBytesWithTime([]byte{2, 0, '0', 1, 1, 'x'})
+				encrypted, err := cipher.EncryptBytesWithTime([]byte{2, 0, '0', 1, 1, 'x'})
 				if err != nil {
 					return "", err
 				}
@@ -166,7 +168,7 @@ func TestStateInvalid(t *testing.T) {
 			encodedTokenString, err := tc.encodedToken()
 			require.NoError(t, err)
 
-			_, err = state.Decrypt(testsuite.Cipher, encodedTokenString)
+			_, err = state.Decrypt(cipher, encodedTokenString)
 
 			require.ErrorContains(t, err, tc.expectedErr)
 		})

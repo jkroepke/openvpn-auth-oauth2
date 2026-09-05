@@ -5,7 +5,11 @@ import "testing"
 func TestPutScratchClearsEncryptedScratch(t *testing.T) {
 	t.Parallel()
 
-	cipher := New("test-key")
+	cipher, err := New("test-key")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	scratch := cipher.getScratch()
 
 	for index := range scratch.encrypted {

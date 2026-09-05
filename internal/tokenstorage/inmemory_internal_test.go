@@ -13,7 +13,8 @@ func TestInMemoryExpiredLookupPreservesConcurrentRefresh(t *testing.T) {
 	const clientID = "client"
 
 	ctx := t.Context()
-	tokenStorage := NewInMemory("test-secret", time.Hour)
+	tokenStorage, err := NewInMemory("test-secret", time.Hour)
+	require.NoError(t, err)
 
 	t.Cleanup(func() {
 		require.NoError(t, tokenStorage.Close())

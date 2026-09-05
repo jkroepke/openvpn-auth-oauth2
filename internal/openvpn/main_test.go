@@ -327,7 +327,7 @@ func TestClientFull(t *testing.T) {
 				matches := regexp.MustCompile(`state=(.+)"`).FindStringSubmatch(auth)
 				require.Len(t, matches, 2)
 
-				sessionState, err := state.Decrypt(testsuite.Cipher, matches[1])
+				sessionState, err := state.Decrypt(testsuite.NewCipher(t), matches[1])
 				require.NoError(t, err)
 
 				require.Equal(t, uint64(1), sessionState.Client.CID)

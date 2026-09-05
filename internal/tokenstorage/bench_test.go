@@ -6,8 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/test/testsuite"
-	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/tokenstorage"
 	"github.com/stretchr/testify/require"
 )
 
@@ -20,7 +18,7 @@ func BenchmarkStorageInMemory(b *testing.B) {
 	ctx := context.Background()
 
 	b.Run("set", func(b *testing.B) {
-		storage := tokenstorage.NewInMemoryWithGC(testsuite.Secret, time.Hour, 0)
+		storage := newInMemoryWithGC(b, time.Hour, 0)
 
 		b.Cleanup(func() {
 			require.NoError(b, storage.Close())
@@ -37,7 +35,7 @@ func BenchmarkStorageInMemory(b *testing.B) {
 	})
 
 	b.Run("get", func(b *testing.B) {
-		storage := tokenstorage.NewInMemoryWithGC(testsuite.Secret, time.Hour, 0)
+		storage := newInMemoryWithGC(b, time.Hour, 0)
 		require.NoError(b, storage.Set(ctx, benchmarkClientID, benchmarkToken))
 
 		var tokenValue string
@@ -62,7 +60,7 @@ func BenchmarkStorageInMemory(b *testing.B) {
 	})
 
 	b.Run("delete", func(b *testing.B) {
-		storage := tokenstorage.NewInMemoryWithGC(testsuite.Secret, time.Hour, 0)
+		storage := newInMemoryWithGC(b, time.Hour, 0)
 		clientIDs := make([]string, b.N)
 
 		for idx := range b.N {
@@ -88,7 +86,7 @@ func BenchmarkStorageInMemory(b *testing.B) {
 	})
 
 	b.Run("lifecycle", func(b *testing.B) {
-		storage := tokenstorage.NewInMemoryWithGC(testsuite.Secret, time.Hour, 0)
+		storage := newInMemoryWithGC(b, time.Hour, 0)
 
 		var tokenValue string
 

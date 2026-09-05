@@ -4,13 +4,11 @@ import (
 	"context"
 	"log/slog"
 	"testing"
-	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn/connection"
-	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/tokenstorage"
 	"github.com/stretchr/testify/require"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
 )
@@ -23,7 +21,7 @@ func TestRefreshClientAuthInternalTokenRestoresClientConfigNames(t *testing.T) {
 	conf.OAuth2.Refresh.Enabled = true
 	conf.OAuth2.Refresh.ValidateUser = false
 
-	storage := tokenstorage.NewInMemoryWithGC("1234567890123456", time.Hour, 0)
+	storage := newInMemoryStorage(t)
 	internalToken, err := encodeInternalRefreshToken("alice", []string{"profile", "base"})
 	require.NoError(t, err)
 	require.NoError(t, storage.Set(ctx, "7", internalToken))
@@ -46,7 +44,7 @@ func TestRefreshClientAuthInternalTokenKeepsLegacyEmptyToken(t *testing.T) {
 	conf.OAuth2.Refresh.Enabled = true
 	conf.OAuth2.Refresh.ValidateUser = false
 
-	storage := tokenstorage.NewInMemoryWithGC("1234567890123456", time.Hour, 0)
+	storage := newInMemoryStorage(t)
 	require.NoError(t, storage.Set(ctx, "7", types.EmptyToken))
 
 	client := Client{conf: &conf, storage: storage}
@@ -66,7 +64,7 @@ func TestRefreshClientAuthInternalTokenKeepsLegacyClientConfigToken(t *testing.T
 	conf.OAuth2.Refresh.Enabled = true
 	conf.OAuth2.Refresh.ValidateUser = false
 
-	storage := tokenstorage.NewInMemoryWithGC("1234567890123456", time.Hour, 0)
+	storage := newInMemoryStorage(t)
 	require.NoError(t, storage.Set(
 		ctx,
 		"7",
@@ -96,7 +94,7 @@ func TestRefreshClientAuthInternalTokenWithoutUsernameFallsBackToInteractiveAuth
 	conf.OAuth2.Refresh.ValidateUser = false
 	conf.OpenVPN.EnforceUniqueUser = true
 
-	storage := tokenstorage.NewInMemoryWithGC("1234567890123456", time.Hour, 0)
+	storage := newInMemoryStorage(t)
 	require.NoError(t, storage.Set(
 		ctx,
 		"7",
