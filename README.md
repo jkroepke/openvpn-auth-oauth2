@@ -13,6 +13,16 @@
 
 ⭐ Don't forget to star this repository! ⭐
 
+## Adopters and Users
+
+**Are you using openvpn-auth-oauth2 in production or as part of your infrastructure?**
+
+Share your experience and help others understand how openvpn-auth-oauth2 is used in real-world environments.
+
+You can find existing users and success stories in [ADOPTERS.md](https://github.com/jkroepke/helm-secrets/blob/main/ADOPTERS.md).
+
+If you are using openvpn-auth-oauth2, feel free to add your organization or a short success story through a pull request.
+
 ## About
 
 [`openvpn-auth-oauth2`](https://github.com/jkroepke/openvpn-auth-oauth2) is a management client for OpenVPN that handles
