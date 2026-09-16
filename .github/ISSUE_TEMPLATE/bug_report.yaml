@@ -10,6 +10,8 @@ body:
         Before you submit this issue, please make sure you have read the documentation and searched for similar issues.
         If you have done that, please fill out the template below.
 
+        If you use openvpn-auth-oauth2 in your company or organization, consider adding yourself to our **[ADOPTERS.md](https://github.com/jkroepke/openvpn-auth-oauth2/blob/main/ADOPTERS.md)**.
+
   - type: textarea
     attributes:
       label: Current Behavior

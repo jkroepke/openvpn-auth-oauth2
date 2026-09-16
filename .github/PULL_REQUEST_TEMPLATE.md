@@ -1,3 +1,9 @@
+
+<!--
+If you are using openvpn-auth-oauth2 in your company or organization, we would like to invite you to add your information to this file.
+https://github.com/jkroepke/openvpn-auth-oauth2/blob/main/ADOPTERS.md
+-->
+
 #### What this PR does / why we need it
 
 #### Which issue this PR fixes
