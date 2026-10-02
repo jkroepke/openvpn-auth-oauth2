@@ -255,6 +255,7 @@ func (c *Cipher) encryptBytesInto(dst, plainText []byte) ([]byte, error) {
 		dst = dst[:0]
 	}
 
+	// #nosec G407 -- NewGCMWithRandomNonce generates a random nonce internally.
 	return c.aead.Seal(dst, nil, plainText, nil), nil
 }
 
