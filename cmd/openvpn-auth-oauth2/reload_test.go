@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"sync"
 	"syscall"
 	"testing"
+	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/test/testlogger"
@@ -42,9 +44,11 @@ func TestReload(t *testing.T) {
 	httpClient := &http.Client{Transport: utils.NewUserAgentTransport(httpTransport)}
 	httpClient.Jar = jar
 
-	termCh := make(chan os.Signal, 1)
+	// Use an unbuffered channel so each signal is received before sending the next.
+	termCh := make(chan os.Signal)
+	runDone := make(chan struct{})
 
-	returnCodeCh := make(chan int, 1)
+	var returnCode int
 
 	go func() {
 		args := []string{
@@ -66,13 +70,40 @@ func TestReload(t *testing.T) {
 			"--oauth2.nonce=false",
 		}
 
-		returnCodeCh <- runLoop(args, buf, termCh)
+		returnCode = runLoop(args, buf, termCh)
+
+		close(runDone)
 	}()
 
-	t.Cleanup(func() {
-		termCh <- syscall.SIGTERM
+	// Fail with the daemon logs instead of blocking if it exits before receiving a signal.
+	sendSignal := func(sig os.Signal) {
+		t.Helper()
 
-		require.Equal(t, ReturnCodeOK, <-returnCodeCh, buf.String())
+		select {
+		case <-runDone:
+			t.Fatalf("daemon exited before receiving %s (code %d):\n%s", sig, returnCode, buf.String())
+		case termCh <- sig:
+		case <-time.After(5 * time.Second):
+			t.Fatalf("daemon did not receive %s:\n%s", sig, buf.String())
+		}
+	}
+
+	t.Cleanup(func() {
+		select {
+		case <-runDone:
+		case termCh <- syscall.SIGTERM:
+		case <-time.After(5 * time.Second):
+			t.Errorf("daemon did not receive SIGTERM:\n%s", buf.String())
+
+			return
+		}
+
+		select {
+		case <-runDone:
+			require.Equal(t, ReturnCodeOK, returnCode, buf.String())
+		case <-time.After(5 * time.Second):
+			t.Errorf("daemon did not terminate after SIGTERM:\n%s", buf.String())
+		}
 	})
 
 	managementInterfaceConn, err := managementInterface.Accept()
@@ -82,8 +113,9 @@ func TestReload(t *testing.T) {
 
 	managementConn.ExpectVersionAndReleaseHold(t)
 
-	_, err = testsuite.WaitUntilListening(t.Context(), t, httpListener.Addr().Network(), httpListener.Addr().String())
+	httpReadyConn, err := testsuite.WaitUntilListening(t.Context(), t, httpListener.Addr().Network(), httpListener.Addr().String())
 	require.NoError(t, err)
+	require.NoError(t, httpReadyConn.Close())
 
 	msg := strings.Join([]string{
 		">CLIENT:CONNECT,0,1",
@@ -159,19 +191,24 @@ func TestReload(t *testing.T) {
 	require.NoError(t, err, buf.String())
 	require.Equal(t, http.StatusOK, resp.StatusCode, buf.String())
 
-	termCh <- syscall.SIGHUP
+	sendSignal(syscall.SIGHUP)
+	sendSignal(SIGUSR1)
 
-	termCh <- SIGUSR1
+	// An unexpected restart failure must report the daemon logs, not hang in Accept.
+	tcpListener, ok := managementInterface.(*net.TCPListener)
+	require.True(t, ok, "expected TCP listener")
+	require.NoError(t, tcpListener.SetDeadline(time.Now().Add(5*time.Second)))
 
 	managementInterfaceConn, err = managementInterface.Accept()
-	require.NoError(t, err)
+	require.NoError(t, err, buf.String())
 
 	managementConn = testsuite.NewConn(managementInterfaceConn)
 
 	managementConn.ExpectVersionAndReleaseHold(t)
 
-	_, err = testsuite.WaitUntilListening(t.Context(), t, httpListener.Addr().Network(), httpListener.Addr().String())
+	httpReadyConn, err = testsuite.WaitUntilListening(t.Context(), t, httpListener.Addr().Network(), httpListener.Addr().String())
 	require.NoError(t, err, buf.String())
+	require.NoError(t, httpReadyConn.Close())
 
 	msg = strings.Join([]string{
 		">CLIENT:CONNECT,0,2",
