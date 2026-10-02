@@ -198,6 +198,7 @@ func TestReload(t *testing.T) {
 	tcpListener, ok := managementInterface.(*net.TCPListener)
 	require.True(t, ok, "expected TCP listener")
 	require.NoError(t, tcpListener.SetDeadline(time.Now().Add(5*time.Second)))
+
 	managementInterfaceConn, err = managementInterface.Accept()
 	require.NoError(t, err, buf.String())
 
