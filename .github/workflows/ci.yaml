@@ -49,7 +49,7 @@ jobs:
           PLUGIN_IT_TEST: '1'
           PLUGIN_IT_PLUGIN_PATH: "${{ runner.temp }}/openvpn-auth-oauth2.so"
 
-      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+      - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
   bench:
@@ -133,7 +133,7 @@ jobs:
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
           # renovate: github=golangci/golangci-lint
-          version: v2.13.2
+          version: v2.14.0
           args: "--max-same-issues=0"
 
   super-lint:
