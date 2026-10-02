@@ -47,6 +47,7 @@ func TestReload(t *testing.T) {
 	// Use an unbuffered channel so each signal is received before sending the next.
 	termCh := make(chan os.Signal)
 	runDone := make(chan struct{})
+
 	var returnCode int
 
 	go func() {
@@ -70,6 +71,7 @@ func TestReload(t *testing.T) {
 		}
 
 		returnCode = runLoop(args, buf, termCh)
+
 		close(runDone)
 	}()
 
@@ -193,7 +195,9 @@ func TestReload(t *testing.T) {
 	sendSignal(SIGUSR1)
 
 	// An unexpected restart failure must report the daemon logs, not hang in Accept.
-	require.NoError(t, managementInterface.(*net.TCPListener).SetDeadline(time.Now().Add(5*time.Second)))
+	tcpListener, ok := managementInterface.(*net.TCPListener)
+	require.True(t, ok, "expected TCP listener")
+	require.NoError(t, tcpListener.SetDeadline(time.Now().Add(5*time.Second)))
 	managementInterfaceConn, err = managementInterface.Accept()
 	require.NoError(t, err, buf.String())
 
