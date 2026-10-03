@@ -296,3 +296,29 @@ func TestReadyIsClearedOnShutdown(t *testing.T) {
 		t.Fatal("management client still reports ready after shutdown")
 	}
 }
+
+func TestSendCommandTimeoutClosesDesynchronizedConnection(t *testing.T) {
+	t.Parallel()
+
+	client := newCommandTestClient()
+	client.conf.OpenVPN.CommandTimeout = 20 * time.Millisecond
+	errCh := make(chan error, 1)
+
+	go func() {
+		_, err := client.SendCommand(t.Context(), "first", false)
+		errCh <- err
+	}()
+
+	requireCommand(t, client, "first")
+	requireErrorIs(t, errCh, ErrTimeout)
+
+	if client.closed.Load() != 1 {
+		t.Fatal("timed-out management connection was not closed")
+	}
+
+	select {
+	case client.commandResponseCh <- "SUCCESS: late first response":
+		t.Fatal("a late response was accepted after protocol synchronization was lost")
+	case <-client.shutdownCh:
+	}
+}

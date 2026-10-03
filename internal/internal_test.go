@@ -1,6 +1,7 @@
 package internal_test
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"testing"
@@ -14,6 +15,7 @@ func BenchmarkFull(b *testing.B) {
 	b.StopTimer()
 
 	conf := config.Config{}
+	conf.OpenVPN.CommandTimeout = config.Defaults.OpenVPN.CommandTimeout
 	suite := testsuite.New(&conf, testsuite.WithDiscardLogger())
 	suite.SetupMockEnvironment(b.Context(), b, nil)
 	suite.ExpectVersionAndReleaseHold(b)
@@ -79,11 +81,30 @@ func BenchmarkFull(b *testing.B) {
 		authURL = testsuite.GetAuthURLFromMessage(suite.ReadLine(b))
 		suite.SendMessagef(b, "SUCCESS: client-pending-auth command succeeded")
 
-		_, _, err := suite.DoHTTPRequest(b, http.MethodGet, authURL, nil, http.NoBody) //nolint:bodyclose
-		require.NoError(b, err)
+		// The browser callback waits for the management decision. Acknowledge
+		// it concurrently instead of forcing the callback into a timeout.
+		requestDone := make(chan error, 1)
+
+		go func() {
+			resp, _, err := suite.DoHTTPRequest(b, http.MethodGet, authURL, nil, http.NoBody) //nolint:bodyclose
+			if err != nil {
+				requestDone <- err
+
+				return
+			}
+
+			if resp.StatusCode != http.StatusOK {
+				requestDone <- fmt.Errorf("unexpected callback status: %d", resp.StatusCode)
+
+				return
+			}
+
+			requestDone <- nil
+		}()
 
 		suite.ExpectMessage(b, "client-auth-nt 0 1")
 		suite.SendMessagef(b, "SUCCESS: client-auth command succeeded")
+		require.NoError(b, <-requestDone)
 	}
 
 	b.StopTimer()

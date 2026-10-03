@@ -299,7 +299,11 @@ func setupPassThroughConnection(
 
 		select {
 		case err := <-errOpenVPNClientCh:
-			require.NoError(t, err, suite.Logs())
+			if conf.OpenVPN.CommandTimeout == 100*time.Millisecond {
+				require.ErrorIs(t, err, openvpn.ErrTimeout, suite.Logs())
+			} else {
+				require.NoError(t, err, suite.Logs())
+			}
 		case <-time.After(1 * time.Second):
 			t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", suite.Logs())
 		}

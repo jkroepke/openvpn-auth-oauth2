@@ -525,7 +525,7 @@ func TestCommandTimeout(t *testing.T) {
 
 		select {
 		case err := <-errOpenVPNClientCh:
-			require.NoError(t, err, suite.Logs())
+			require.ErrorIs(t, err, openvpn.ErrTimeout, suite.Logs())
 		case <-time.After(1 * time.Second):
 			t.Fatal("timeout waiting for connection to close")
 		}
@@ -533,13 +533,15 @@ func TestCommandTimeout(t *testing.T) {
 
 	suite.ExpectVersionAndReleaseHold(t)
 
-	defer func() {
-		suite.ExpectMessage(t, "help")
-		suite.SendMessagef(t, "")
+	errCh := make(chan error, 1)
+
+	go func() {
+		_, err := openVPNClient.SendCommandf(t.Context(), "help")
+		errCh <- err
 	}()
 
-	_, err := openVPNClient.SendCommandf(t.Context(), "help")
-	require.ErrorIs(t, err, openvpn.ErrTimeout)
+	suite.ExpectMessage(t, "help")
+	require.ErrorIs(t, <-errCh, openvpn.ErrTimeout)
 }
 
 func TestCommandErrorResponse(t *testing.T) {
