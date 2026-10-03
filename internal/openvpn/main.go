@@ -111,7 +111,7 @@ func (c *Client) Connect(ctx context.Context) error {
 	}
 
 	if err := c.checkManagementInterfaceVersion(ctx); err != nil {
-		if errors.Is(err, ErrConnectionTerminated) {
+		if errors.Is(err, ErrConnectionTerminated) && ctx.Err() != nil {
 			return nil
 		}
 
@@ -122,6 +122,10 @@ func (c *Client) Connect(ctx context.Context) error {
 	case <-ctx.Done():
 		c.Shutdown(ctx)
 	case err = <-errChMessages:
+		if err == nil && ctx.Err() == nil && c.closed.Load() == 0 {
+			err = io.ErrUnexpectedEOF
+		}
+
 		if err != nil {
 			err = fmt.Errorf("error handling messages: %w", err)
 		}

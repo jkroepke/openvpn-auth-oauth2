@@ -279,7 +279,7 @@ func TestClientFull(t *testing.T) {
 
 				select {
 				case err := <-errOpenVPNClientCh:
-					if err != nil && !errors.Is(err, io.EOF) {
+					if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrUnexpectedEOF) {
 						if tc.err != nil {
 							require.ErrorIs(t, err, tc.err)
 						} else {
@@ -785,5 +785,26 @@ func TestInvalidCommandResponses(t *testing.T) {
 				t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", suite.Logs())
 			}
 		})
+	}
+}
+
+func TestUnexpectedManagementDisconnectReturnsError(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	conf := config.Defaults
+	suite := testsuite.New(&conf)
+	connectErrCh := suite.SetupManagementEnvironment(ctx, t, nil)
+	suite.ExpectVersionAndReleaseHold(t)
+
+	require.NoError(t, suite.GetManagementInterfaceConn().Close())
+
+	select {
+	case err := <-connectErrCh:
+		require.ErrorIs(t, err, io.ErrUnexpectedEOF)
+	case <-time.After(time.Second):
+		t.Fatal("management client did not report unexpected disconnect")
 	}
 }
