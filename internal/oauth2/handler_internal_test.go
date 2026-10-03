@@ -194,17 +194,19 @@ func TestRequestAuthorizeParamsIsIndependentAcrossConcurrentRequests(t *testing.
 	}
 
 	var wg sync.WaitGroup
-	for i := range 64 {
+	for i := uint64(0); i < 64; i++ {
 		wg.Go(func() {
 			params := client.requestAuthorizeParams(state.State{Client: state.ClientIdentifier{CID: uint64(i)}})
 			if len(params) != 2 {
 				t.Errorf("got %d parameters, want 2", len(params))
 			}
+
 			if &params[0] == &base[0] {
 				t.Error("request reuses shared authorization parameter backing array")
 			}
 		})
 	}
+
 	wg.Wait()
 
 	if base[:cap(base)][1] != nil {
