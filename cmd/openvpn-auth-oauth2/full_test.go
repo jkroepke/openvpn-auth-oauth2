@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"os"
@@ -112,18 +113,26 @@ func TestFull(t *testing.T) {
 				returnCodeCh <- runLoop(args, buf, termCh)
 			}()
 
+			var managementInterfaceConn net.Conn
+
 			t.Cleanup(func() {
+				// The management connection must stay open until the daemon
+				// finishes its intentional shutdown. Closing it first is now
+				// correctly reported as an unexpected disconnect.
 				termCh <- syscall.SIGTERM
 
-				require.Equal(t, ReturnCodeOK, <-returnCodeCh, buf.String())
+				returnCode := <-returnCodeCh
+
+				if managementInterfaceConn != nil {
+					require.NoError(t, managementInterfaceConn.Close())
+				}
+
+				require.Equal(t, ReturnCodeOK, returnCode, buf.String())
+				require.Contains(t, buf.String(), "receiving signal: "+syscall.SIGTERM.String())
 			})
 
-			managementInterfaceConn, err := managementInterface.Accept()
+			managementInterfaceConn, err = managementInterface.Accept()
 			require.NoError(t, err)
-
-			defer func() {
-				_ = managementInterfaceConn.Close()
-			}()
 
 			managementConn := testsuite.NewConn(managementInterfaceConn)
 
