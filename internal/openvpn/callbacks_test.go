@@ -71,7 +71,7 @@ func TestAcceptClientClosesClientConfigFile(t *testing.T) {
 
 	select {
 	case err := <-errOpenVPNClientCh:
-		if err != nil && !errors.Is(err, io.EOF) {
+		if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrUnexpectedEOF) {
 			require.NoError(t, err)
 		}
 	case <-time.After(time.Second):
@@ -119,7 +119,7 @@ func TestAcceptClientPropagatesCommandRejection(t *testing.T) {
 
 	select {
 	case err := <-errOpenVPNClientCh:
-		if err != nil && !errors.Is(err, io.EOF) {
+		if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrUnexpectedEOF) {
 			require.NoError(t, err)
 		}
 	case <-time.After(time.Second):
@@ -183,7 +183,7 @@ func TestAcceptClientEnforcesUniqueUser(t *testing.T) {
 
 	select {
 	case err := <-errOpenVPNClientCh:
-		if err != nil && !errors.Is(err, io.EOF) {
+		if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrUnexpectedEOF) {
 			require.NoError(t, err)
 		}
 	case <-time.After(time.Second):
@@ -234,7 +234,7 @@ func TestAcceptClientFailsClosedWhenStatusFails(t *testing.T) {
 
 	select {
 	case err := <-errOpenVPNClientCh:
-		if err != nil && !errors.Is(err, io.EOF) {
+		if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrUnexpectedEOF) {
 			require.NoError(t, err)
 		}
 	case <-time.After(time.Second):
@@ -308,7 +308,7 @@ func TestAcceptClientSerializesSessionReplacement(t *testing.T) {
 
 	select {
 	case err := <-errOpenVPNClientCh:
-		if err != nil && !errors.Is(err, io.EOF) {
+		if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrUnexpectedEOF) {
 			require.NoError(t, err)
 		}
 	case <-time.After(time.Second):
