@@ -14,6 +14,7 @@ func BenchmarkFull(b *testing.B) {
 	b.StopTimer()
 
 	conf := config.Config{}
+	conf.OpenVPN.CommandTimeout = config.Defaults.OpenVPN.CommandTimeout
 	suite := testsuite.New(&conf, testsuite.WithDiscardLogger())
 	suite.SetupMockEnvironment(b.Context(), b, nil)
 	suite.ExpectVersionAndReleaseHold(b)
