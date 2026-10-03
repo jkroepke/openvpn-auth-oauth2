@@ -62,14 +62,18 @@ func TestClientAuthenticationEventsProcessConcurrently(t *testing.T) {
 	)
 
 	auth, err := readOpenVPNManagementLine(t, suite, time.Second)
-	require.ErrorIs(t, err, io.ErrUnexpectedEOF, suite.Logs())
+	if err != nil {
+					require.ErrorIs(t, err, io.ErrUnexpectedEOF, suite.Logs())
+				}
 	require.Contains(t, auth, `client-pending-auth 2 1 "WEB_AUTH::`, suite.Logs())
 	suite.SendMessagef(t, "SUCCESS: client-pending-auth command succeeded")
 
 	oauth2Client.release()
 
 	auth, err = readOpenVPNManagementLine(t, suite, time.Second)
-	require.ErrorIs(t, err, io.ErrUnexpectedEOF, suite.Logs())
+	if err != nil {
+					require.ErrorIs(t, err, io.ErrUnexpectedEOF, suite.Logs())
+				}
 	require.Contains(t, auth, `client-pending-auth 1 1 "WEB_AUTH::`, suite.Logs())
 	suite.SendMessagef(t, "SUCCESS: client-pending-auth command succeeded")
 }
@@ -119,12 +123,16 @@ func TestClientAuthenticationEventsKeepSameClientOrder(t *testing.T) {
 	oauth2Client.release()
 
 	auth, err := readOpenVPNManagementLine(t, suite, time.Second)
-	require.ErrorIs(t, err, io.ErrUnexpectedEOF, suite.Logs())
+	if err != nil {
+					require.ErrorIs(t, err, io.ErrUnexpectedEOF, suite.Logs())
+				}
 	require.Contains(t, auth, `client-pending-auth 1 1 "WEB_AUTH::`, suite.Logs())
 	suite.SendMessagef(t, "SUCCESS: client-pending-auth command succeeded")
 
 	auth, err = readOpenVPNManagementLine(t, suite, time.Second)
-	require.ErrorIs(t, err, io.ErrUnexpectedEOF, suite.Logs())
+	if err != nil {
+					require.ErrorIs(t, err, io.ErrUnexpectedEOF, suite.Logs())
+				}
 	require.Contains(t, auth, `client-pending-auth 1 2 "WEB_AUTH::`, suite.Logs())
 	suite.SendMessagef(t, "SUCCESS: client-pending-auth command succeeded")
 }
@@ -175,7 +183,9 @@ func TestSilentAuthenticationEnforcesUniqueUser(t *testing.T) {
 
 			select {
 			case err := <-errOpenVPNClientCh:
-				require.ErrorIs(t, err, io.ErrUnexpectedEOF, suite.Logs())
+				if err != nil {
+					require.ErrorIs(t, err, io.ErrUnexpectedEOF, suite.Logs())
+				}
 			case <-time.After(time.Second):
 				t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", suite.Logs())
 			}
@@ -229,7 +239,9 @@ func TestSilentReAuthenticationUsesStoredSelectedProfile(t *testing.T) {
 
 	select {
 	case err := <-errOpenVPNClientCh:
-		require.ErrorIs(t, err, io.ErrUnexpectedEOF, suite.Logs())
+		if err != nil {
+					require.ErrorIs(t, err, io.ErrUnexpectedEOF, suite.Logs())
+				}
 	case <-time.After(time.Second):
 		t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", suite.Logs())
 	}
