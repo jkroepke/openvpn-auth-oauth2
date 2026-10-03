@@ -1,8 +1,10 @@
-package management
+package management_test
 
 import (
 	"testing"
 	"time"
+
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/lib/openvpn-auth-oauth2/internal/management"
 )
 
 // The plugin must not reject an initial authentication attempt before the
@@ -10,7 +12,7 @@ import (
 func TestInitialAuthResponseTimeoutCoversOAuth2Request(t *testing.T) {
 	t.Parallel()
 
-	if initialAuthResponseTimeout <= 30*time.Second {
-		t.Fatalf("initial auth response timeout %s must exceed the outbound OAuth2 request timeout", initialAuthResponseTimeout)
+	if management.DefaultInitialResponseTimeout <= 30*time.Second {
+		t.Fatalf("initial auth response timeout %s must exceed the outbound OAuth2 request timeout", management.DefaultInitialResponseTimeout)
 	}
 }
