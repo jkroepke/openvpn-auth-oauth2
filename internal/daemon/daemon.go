@@ -84,5 +84,5 @@ func setupOpenVPNClient(
 
 	openvpnClient.SetOAuth2Client(oAuth2Client)
 
-	return openvpnClient, httphandler.New(conf, oAuth2Client), nil
+	return openvpnClient, httphandler.New(conf, oAuth2Client, openvpnClient.Ready), nil
 }

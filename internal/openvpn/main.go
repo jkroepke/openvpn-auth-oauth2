@@ -74,6 +74,7 @@ func (c *Client) Connect(ctx context.Context) error {
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
+	defer c.ready.Store(false)
 
 	c.ctxCancel = cancel
 
@@ -117,6 +118,8 @@ func (c *Client) Connect(ctx context.Context) error {
 
 		return fmt.Errorf("unable to check OpenVPN management interface version: %w", err)
 	}
+
+	c.ready.Store(true)
 
 	select {
 	case <-ctx.Done():
@@ -230,11 +233,18 @@ func (c *Client) checkClientSsoCapabilities(client connection.Client) bool {
 	return strings.Contains(client.IvSSO, "webauth")
 }
 
+// Ready reports whether OpenVPN management negotiation completed successfully.
+func (c *Client) Ready() bool {
+	return c.ready.Load() && c.closed.Load() == 0
+}
+
 // Shutdown closes the management connection and stops command processing.
 func (c *Client) Shutdown(ctx context.Context) {
 	if !c.closed.CompareAndSwap(0, 1) {
 		return
 	}
+
+	c.ready.Store(false)
 
 	// commandsCh has multiple producers and is intentionally left open;
 	// shutdownCh owns lifecycle signaling.

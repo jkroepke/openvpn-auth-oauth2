@@ -275,3 +275,22 @@ func requireErrorIs(t *testing.T, errCh <-chan error, target error) {
 		t.Fatalf("timeout waiting for error %v", target)
 	}
 }
+
+func TestReadyIsClearedOnShutdown(t *testing.T) {
+	t.Parallel()
+
+	client := newCommandTestClient()
+	if client.Ready() {
+		t.Fatal("management client is ready before connecting")
+	}
+
+	client.ready.Store(true)
+	if !client.Ready() {
+		t.Fatal("management client should be ready after negotiation")
+	}
+
+	client.Shutdown(t.Context())
+	if client.Ready() {
+		t.Fatal("management client still reports ready after shutdown")
+	}
+}

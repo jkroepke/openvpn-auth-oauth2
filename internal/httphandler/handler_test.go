@@ -46,8 +46,12 @@ func TestAssets(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	handler := httphandler.New(&conf, oAuth2Client)
+	ready := false
+	handler := httphandler.New(&conf, oAuth2Client, func() bool { return ready })
 
+	require.HTTPStatusCode(t, handler.ServeHTTP, http.MethodGet, "/ready", nil, http.StatusServiceUnavailable)
+	ready = true
+	require.HTTPSuccess(t, handler.ServeHTTP, http.MethodGet, "/ready", nil)
 	require.HTTPStatusCode(t, handler.ServeHTTP, http.MethodGet, "/", nil, http.StatusNotFound)
 	require.HTTPSuccess(t, handler.ServeHTTP, http.MethodGet, "/assets/favicon.svg", nil)
 	require.HTTPSuccess(t, handler.ServeHTTP, http.MethodGet, "/assets/i18n/de.json", nil)
