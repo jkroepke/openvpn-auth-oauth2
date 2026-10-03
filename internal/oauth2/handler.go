@@ -97,6 +97,7 @@ func (c *Client) OAuth2Callback() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 		defer cancel()
+
 		r = r.WithContext(ctx)
 
 		encryptedOAuth2State := r.URL.Query().Get("state")
