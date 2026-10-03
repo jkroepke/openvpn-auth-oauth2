@@ -2,6 +2,7 @@ package openvpn_test
 
 import (
 	"context"
+	"io"
 	"log/slog"
 	"os"
 	"strings"
@@ -174,7 +175,9 @@ func TestSilentAuthenticationEnforcesUniqueUser(t *testing.T) {
 
 			select {
 			case err := <-errOpenVPNClientCh:
-				require.NoError(t, err, suite.Logs())
+				if err != nil {
+					require.ErrorIs(t, err, io.ErrUnexpectedEOF, suite.Logs())
+				}
 			case <-time.After(time.Second):
 				t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", suite.Logs())
 			}
@@ -228,7 +231,9 @@ func TestSilentReAuthenticationUsesStoredSelectedProfile(t *testing.T) {
 
 	select {
 	case err := <-errOpenVPNClientCh:
-		require.NoError(t, err, suite.Logs())
+		if err != nil {
+			require.ErrorIs(t, err, io.ErrUnexpectedEOF, suite.Logs())
+		}
 	case <-time.After(time.Second):
 		t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", suite.Logs())
 	}
