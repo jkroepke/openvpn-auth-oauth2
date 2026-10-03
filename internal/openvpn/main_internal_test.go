@@ -285,11 +285,13 @@ func TestReadyIsClearedOnShutdown(t *testing.T) {
 	}
 
 	client.ready.Store(true)
+
 	if !client.Ready() {
 		t.Fatal("management client should be ready after negotiation")
 	}
 
 	client.Shutdown(t.Context())
+
 	if client.Ready() {
 		t.Fatal("management client still reports ready after shutdown")
 	}
