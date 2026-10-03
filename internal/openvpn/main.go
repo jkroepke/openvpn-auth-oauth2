@@ -112,6 +112,10 @@ func (c *Client) Connect(ctx context.Context) error {
 	}
 
 	if err := c.checkManagementInterfaceVersion(ctx); err != nil {
+		if c.commandTimedOut.Load() {
+			return ErrTimeout
+		}
+
 		if errors.Is(err, ErrConnectionTerminated) && ctx.Err() != nil {
 			return nil
 		}
@@ -144,6 +148,10 @@ func (c *Client) Connect(ctx context.Context) error {
 		if err != nil {
 			err = fmt.Errorf("error handling passthrough: %w", err)
 		}
+	}
+
+	if c.commandTimedOut.Load() {
+		return fmt.Errorf("openvpn management error: %w", ErrTimeout)
 	}
 
 	if err != nil {
@@ -362,6 +370,11 @@ func (c *Client) waitForCommandResponse(
 	case <-c.shutdownCh:
 		return "", false, ErrConnectionTerminated
 	case <-c.commandTimer.C:
+		// The late reply cannot be matched reliably to future commands.
+		// Drop this management connection instead of releasing it for reuse.
+		c.commandTimedOut.Store(true)
+		c.Shutdown(ctx)
+
 		return "", false, fmt.Errorf("command error '%s': %w", commandName, ErrTimeout)
 	}
 }
