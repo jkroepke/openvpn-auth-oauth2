@@ -194,9 +194,9 @@ func TestRequestAuthorizeParamsIsIndependentAcrossConcurrentRequests(t *testing.
 	}
 
 	var wg sync.WaitGroup
-	for i := uint64(0); i < 64; i++ {
+	for i := range 64 {
 		wg.Go(func() {
-			params := client.requestAuthorizeParams(state.State{Client: state.ClientIdentifier{CID: uint64(i)}})
+			params := client.requestAuthorizeParams(state.State{Client: state.ClientIdentifier{CID: uint64(i)}}) //nolint:gosec // bounded to the nonnegative range [0, 63]
 			if len(params) != 2 {
 				t.Errorf("got %d parameters, want 2", len(params))
 			}
