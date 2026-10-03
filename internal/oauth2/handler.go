@@ -97,6 +97,7 @@ func (c *Client) OAuth2Callback() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 		defer cancel()
+		r = r.WithContext(ctx)
 
 		encryptedOAuth2State := r.URL.Query().Get("state")
 		if encryptedOAuth2State == "" {
@@ -117,8 +118,7 @@ func (c *Client) OAuth2Callback() http.Handler {
 		clientID := c.getClientID(oAuth2State)
 
 		if c.conf.OAuth2.Nonce {
-			ctx = context.WithValue(ctx, types.CtxNonce{}, c.getNonce(clientID))
-			r = r.WithContext(ctx)
+			r = r.WithContext(context.WithValue(ctx, types.CtxNonce{}, c.getNonce(clientID)))
 		}
 
 		var codeExchangeHandler rp.CodeExchangeCallback[*idtoken.Claims]
