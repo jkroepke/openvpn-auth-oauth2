@@ -431,7 +431,7 @@ func TestClientMultiDigitManagementVersion(t *testing.T) {
 
 	select {
 	case err := <-errOpenVPNClientCh:
-		require.NoError(t, err)
+		require.ErrorIs(t, err, io.ErrUnexpectedEOF)
 	case <-time.After(time.Second):
 		t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", suite.Logs())
 	}
@@ -493,7 +493,7 @@ func TestHoldRelease(t *testing.T) {
 
 	select {
 	case err := <-errOpenVPNClientCh:
-		require.NoError(t, err)
+		require.ErrorIs(t, err, io.ErrUnexpectedEOF)
 	case <-time.After(1 * time.Second):
 		t.Fatal("timeout waiting for connection to close")
 	}
@@ -727,7 +727,7 @@ func TestDeadLocks(t *testing.T) {
 
 			select {
 			case err := <-errOpenVPNClientCh:
-				require.NoError(t, err)
+				require.ErrorIs(t, err, io.ErrUnexpectedEOF)
 			case <-time.After(1 * time.Second):
 				t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", suite.Logs())
 			}
@@ -779,7 +779,7 @@ func TestInvalidCommandResponses(t *testing.T) {
 
 			select {
 			case err := <-errOpenVPNClientCh:
-				require.NoError(t, err)
+				require.ErrorIs(t, err, io.ErrUnexpectedEOF)
 				require.Contains(t, suite.Logs(), "command response not accepted")
 			case <-time.After(3 * time.Second):
 				t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", suite.Logs())
