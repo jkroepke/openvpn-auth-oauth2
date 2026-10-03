@@ -98,6 +98,8 @@ func (c *Client) OAuth2Callback() http.Handler {
 		ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 		defer cancel()
 
+		r = r.WithContext(ctx)
+
 		encryptedOAuth2State := r.URL.Query().Get("state")
 		if encryptedOAuth2State == "" {
 			c.writeHTTPError(ctx, w, c.logger, http.StatusBadRequest, "Bad Request", "state is empty")
@@ -117,8 +119,7 @@ func (c *Client) OAuth2Callback() http.Handler {
 		clientID := c.getClientID(oAuth2State)
 
 		if c.conf.OAuth2.Nonce {
-			ctx = context.WithValue(ctx, types.CtxNonce{}, c.getNonce(clientID))
-			r = r.WithContext(ctx)
+			r = r.WithContext(context.WithValue(ctx, types.CtxNonce{}, c.getNonce(clientID)))
 		}
 
 		var codeExchangeHandler rp.CodeExchangeCallback[*idtoken.Claims]
