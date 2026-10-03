@@ -240,8 +240,8 @@ func TestSilentReAuthenticationUsesStoredSelectedProfile(t *testing.T) {
 	select {
 	case err := <-errOpenVPNClientCh:
 		if err != nil {
-					require.ErrorIs(t, err, io.ErrUnexpectedEOF, suite.Logs())
-				}
+			require.ErrorIs(t, err, io.ErrUnexpectedEOF, suite.Logs())
+		}
 	case <-time.After(time.Second):
 		t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", suite.Logs())
 	}
