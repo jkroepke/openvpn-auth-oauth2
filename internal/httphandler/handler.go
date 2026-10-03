@@ -23,6 +23,7 @@ import (
 // OpenVPN client readiness callback.
 func New(conf *config.Config, oAuth2Client *oauth2.Client, readyCheck ...func() bool) *http.ServeMux {
 	basePath := strings.TrimSuffix(conf.HTTP.BaseURL.Path, "/")
+
 	isReady := func() bool { return true }
 	if len(readyCheck) != 0 && readyCheck[0] != nil {
 		isReady = readyCheck[0]
@@ -37,6 +38,7 @@ func New(conf *config.Config, oAuth2Client *oauth2.Client, readyCheck ...func() 
 	mux.Handle(fmt.Sprintf("GET %s/ready", basePath), http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		if !isReady() {
 			http.Error(w, "OpenVPN management connection is not ready", http.StatusServiceUnavailable)
+
 			return
 		}
 
