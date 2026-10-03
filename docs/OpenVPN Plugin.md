@@ -150,6 +150,12 @@ The plugin directive accepts three values:
    `openvpn-auth-oauth2`.
 3. Path to the password file that OpenVPN can read.
 
+The plugin allows 35 seconds for the initial authentication response, covering
+its daemon's 30-second outbound OAuth2 request timeout plus local processing.
+This is a bounded mitigation for slow identity providers; queued requests or
+multiple sequential provider calls may still exceed this limit. A longer
+synchronous wait also delays failure when the daemon does not respond.
+
 Restart the applicable OpenVPN server unit after changing its configuration.
 
 ## 4. Configure openvpn-auth-oauth2

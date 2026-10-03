@@ -24,6 +24,9 @@ import (
 
 const (
 	writeTimeout = 1000 * time.Millisecond
+	// DefaultInitialResponseTimeout covers the daemon's 30-second OAuth2 request
+	// budget plus local processing.
+	DefaultInitialResponseTimeout = 35 * time.Second
 	newline      = "\r\n"
 )
 
@@ -119,7 +122,7 @@ func (s *Server) ClientAuth(ctx context.Context, clientID uint64, message string
 		return nil, err
 	}
 
-	return s.waitForResponse(ctx, clientID, 5*time.Second, respCh)
+	return s.waitForResponse(ctx, clientID, DefaultInitialResponseTimeout, respCh)
 }
 
 func (s *Server) ClientDisconnect(message string) error {
