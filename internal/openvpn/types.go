@@ -40,6 +40,7 @@ type Client struct {
 	acceptMu             sync.Mutex
 	connMu               sync.Mutex
 	closed               atomic.Uint32
+	ready                atomic.Bool
 	passThroughConnected atomic.Uint32
 }
 

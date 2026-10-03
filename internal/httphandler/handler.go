@@ -19,9 +19,15 @@ import (
 //   - GET <basePath>/oauth2/callback handles the OAuth2 redirect.
 // All other paths respond with 404 via http.NotFoundHandler.
 // The returned mux can be passed to an HTTP server directly.
-
-func New(conf *config.Config, oAuth2Client *oauth2.Client) *http.ServeMux {
+// readyCheck is optional for existing test harnesses; production passes the
+// OpenVPN client readiness callback.
+func New(conf *config.Config, oAuth2Client *oauth2.Client, readyCheck ...func() bool) *http.ServeMux {
 	basePath := strings.TrimSuffix(conf.HTTP.BaseURL.Path, "/")
+
+	isReady := func() bool { return true }
+	if len(readyCheck) != 0 && readyCheck[0] != nil {
+		isReady = readyCheck[0]
+	}
 
 	mux := http.NewServeMux()
 	if basePath != "" {
@@ -30,6 +36,12 @@ func New(conf *config.Config, oAuth2Client *oauth2.Client) *http.ServeMux {
 
 	mux.Handle(fmt.Sprintf("GET %s/", basePath), noCacheHeaders(http.NotFoundHandler()))
 	mux.Handle(fmt.Sprintf("GET %s/ready", basePath), http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		if !isReady() {
+			http.Error(w, "OpenVPN management connection is not ready", http.StatusServiceUnavailable)
+
+			return
+		}
+
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("OK"))
 	}))
