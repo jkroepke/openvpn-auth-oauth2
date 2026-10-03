@@ -534,6 +534,7 @@ func TestCommandTimeout(t *testing.T) {
 	suite.ExpectVersionAndReleaseHold(t)
 
 	errCh := make(chan error, 1)
+
 	go func() {
 		_, err := openVPNClient.SendCommandf(t.Context(), "help")
 		errCh <- err
