@@ -80,16 +80,23 @@ func (c *Client) OAuth2Start() http.Handler {
 
 		logger.LogAttrs(ctx, slog.LevelInfo, "initialize authorization via oauth2")
 
-		authorizeParams := c.authorizeParams
-
-		if c.conf.OAuth2.Nonce {
-			authorizeParams = append(authorizeParams, rp.WithURLParam("nonce", c.getNonce(c.getClientID(session))))
-		}
+		authorizeParams := c.requestAuthorizeParams(session)
 
 		rp.AuthURLHandler(func() string {
 			return encryptedOIDCState
 		}, c.relyingParty, authorizeParams...).ServeHTTP(w, r)
 	})
+}
+
+// requestAuthorizeParams clones configured parameters before adding request-specific values.
+func (c *Client) requestAuthorizeParams(session state.State) []rp.URLParamOpt {
+	authorizeParams := slices.Clone(c.authorizeParams)
+
+	if c.conf.OAuth2.Nonce {
+		authorizeParams = append(authorizeParams, rp.WithURLParam("nonce", c.getNonce(c.getClientID(session))))
+	}
+
+	return authorizeParams
 }
 
 // OAuth2Callback returns an http.Handler that handles the OAuth2 callback.
