@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/test/testlogger"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/tokenstorage"
 	"github.com/stretchr/testify/require"
+	"github.com/zitadel/oidc/v3/pkg/client/rp"
 )
 
 func newStateCipher(t *testing.T) *crypto.Cipher {
@@ -176,4 +178,36 @@ func TestWriteHTTPErrorDoesNotExposeTechnicalDetails(t *testing.T) {
 	require.Contains(t, recorder.Body.String(), "Please contact your administrator")
 	require.NotContains(t, recorder.Body.String(), "profile selector template")
 	require.NotContains(t, recorder.Body.String(), "sensitive render detail")
+}
+
+func TestRequestAuthorizeParamsIsIndependentAcrossConcurrentRequests(t *testing.T) {
+	t.Parallel()
+
+	base := make([]rp.URLParamOpt, 1, 2)
+	base[0] = rp.WithURLParam("prompt", "login")
+	client := &Client{
+		conf: &config.Config{
+			HTTP: config.HTTP{Secret: "1234567890123456"},
+			OAuth2: config.OAuth2{Nonce: true},
+		},
+		authorizeParams: base,
+	}
+
+	var wg sync.WaitGroup
+	for i := range 64 {
+		wg.Go(func() {
+			params := client.requestAuthorizeParams(state.State{Client: state.ClientIdentifier{CID: uint64(i)}})
+			if len(params) != 2 {
+				t.Errorf("got %d parameters, want 2", len(params))
+			}
+			if &params[0] == &base[0] {
+				t.Error("request reuses shared authorization parameter backing array")
+			}
+		})
+	}
+	wg.Wait()
+
+	if base[:cap(base)][1] != nil {
+		t.Error("concurrent requests modified shared authorization parameters")
+	}
 }
