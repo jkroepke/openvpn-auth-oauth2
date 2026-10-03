@@ -63,7 +63,8 @@ func (s *Server) Listen(ctx context.Context) error {
 		return nil
 	}
 
-	s.server.BaseContext = func(_ net.Listener) context.Context { return ctx }
+	// Keep active request contexts alive during the HTTP shutdown drain.
+	s.server.BaseContext = func(_ net.Listener) context.Context { return context.WithoutCancel(ctx) }
 
 	errCh := make(chan error, 1)
 
@@ -223,10 +224,12 @@ func (s *Server) shutdown() error {
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	// Cancel the shutdown context once Shutdown starts closing listeners.
-	// Some tests and clients can leave keep-alive connections open; waiting for
-	// those connections would delay process shutdown until the full timeout.
-	s.server.RegisterOnShutdown(cancel)
+	defer cancel()
 
-	return s.server.Shutdown(ctx) //nolint:wrapcheck
+	if err := s.server.Shutdown(ctx); err != nil {
+		// If a request does not drain within the deadline, release its resources.
+		return errors.Join(err, s.server.Close())
+	}
+
+	return nil
 }
