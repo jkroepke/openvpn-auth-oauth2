@@ -54,7 +54,7 @@ services:
       #language=shell script
       - |-
         if [ ! -f /etc/openvpn/server/pki/ca.crt ]; then
-          /usr/share/easy-rsa/easyrsa init-pki nopass
+          /usr/share/easy-rsa/easyrsa init-pki
           /usr/share/easy-rsa/easyrsa build-ca nopass
           /usr/share/easy-rsa/easyrsa build-server-full server nopass
           /usr/share/easy-rsa/easyrsa build-server-full client nopass
@@ -63,6 +63,7 @@ services:
           openvpn --genkey tls-crypt-v2-server /etc/openvpn/server/ta.key
           openvpn --tls-crypt-v2 /etc/openvpn/server/ta.key --genkey tls-crypt-v2-client /etc/openvpn/server/ta-client.key
         fi
+        chown nobody:nogroup /etc/openvpn/server/ta.key
 
         if [ ! -f /etc/openvpn/server/password.txt ]; then
           printf password > /etc/openvpn/server/password.txt
@@ -125,7 +126,7 @@ services:
         # renovate: docker=golang
         FROM golang:1.27-alpine
 
-        RUN go install github.com/jkroepke/openvpn-auth-oauth2@latest
+        RUN go install github.com/jkroepke/openvpn-auth-oauth2/v2/cmd/openvpn-auth-oauth2@latest
     restart: unless-stopped
     depends_on:
       openvpn:
@@ -158,7 +159,8 @@ services:
     environment:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: insecure
-      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME: "http://localhost:8080"
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
       KC_FILE: "/openvpn-auth-oauth2-realm.json"
     networks:
       openvpn-auth-oauth2:
