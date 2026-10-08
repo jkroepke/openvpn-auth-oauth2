@@ -1,6 +1,5 @@
 # This Dockerfile is used by goreleaser (dockers_v2). The binaries are built by goreleaser.
-# renovate: docker=gcr.io/distroless/static-debian12
-FROM gcr.io/distroless/static-debian12:nonroot
+FROM gcr.io/distroless/static-debian13:nonroot
 
 ARG TARGETPLATFORM
 
