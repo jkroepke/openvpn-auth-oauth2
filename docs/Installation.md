@@ -54,6 +54,16 @@ sudo yum localinstall <package_file>.rpm
 
 Replace `<package_file>` with the name of the downloaded file.
 
+## Installing via Container Image
+
+Multi-arch (`linux/amd64`, `linux/arm64`) images are published to the GitHub Container Registry for each release:
+
+```bash
+docker pull ghcr.io/jkroepke/openvpn-auth-oauth2:latest
+```
+
+Configuration is passed via environment variables, command-line flags, or a mounted configuration file.
+
 ## Manual Installation
 
 If you prefer to build the binary yourself, follow these steps:
