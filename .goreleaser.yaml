@@ -154,10 +154,7 @@ dockers_v2:
     images:
       - ghcr.io/jkroepke/openvpn-auth-oauth2
     tags:
-      - "{{ .Tag }}"
       - "{{ .Version }}"
-      - "{{ .Major }}"
-      - "{{ .Major }}.{{ .Minor }}"
       - latest
     platforms:
       - linux/amd64
