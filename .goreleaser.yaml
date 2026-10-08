@@ -147,6 +147,28 @@ nfpms:
       signature:
         key_file: "{{ .Env.GPG_KEY_PATH }}"
 
+dockers_v2:
+  - id: openvpn-auth-oauth2
+    ids:
+      - openvpn-auth-oauth2
+    images:
+      - ghcr.io/jkroepke/openvpn-auth-oauth2
+    tags:
+      - "{{ .Version }}"
+      - latest
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    extra_files:
+      - LICENSE.txt
+      - 3rdpartylicenses
+    labels:
+      org.opencontainers.image.title: openvpn-auth-oauth2
+      org.opencontainers.image.source: https://github.com/jkroepke/openvpn-auth-oauth2
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+      org.opencontainers.image.licenses: MIT
+
 sboms:
   - artifacts: archive
 

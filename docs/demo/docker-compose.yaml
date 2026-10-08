@@ -116,17 +116,7 @@ services:
         exec openvpn --config "/etc/openvpn/openvpn.conf"
   openvpn-auth-oauth2:
     container_name: openvpn-auth-oauth2
-    image: openvpn-auth-oauth2/openvpn-auth-oauth2
-    build:
-      context: .
-      args:
-        GIT_BRANCH: release/2.6
-      #language=dockerfile
-      dockerfile_inline: |
-        # renovate: docker=golang
-        FROM golang:1.27-alpine
-
-        RUN go install github.com/jkroepke/openvpn-auth-oauth2/v2/cmd/openvpn-auth-oauth2@latest
+    image: ghcr.io/jkroepke/openvpn-auth-oauth2:latest
     restart: unless-stopped
     depends_on:
       openvpn:
@@ -152,8 +142,6 @@ services:
     ports:
       - "9000:9000/tcp"
       - "9092:9092/tcp"
-    command:
-      - /go/bin/openvpn-auth-oauth2
   keycloak:
     image: quay.io/keycloak/keycloak:latest
     environment:
