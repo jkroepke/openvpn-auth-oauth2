@@ -16,6 +16,21 @@ a Keycloak server for authentication, and an OpenVPN server.
 The configuration for this environment is provided in the `docker-compose.yaml` file.
 This file includes the necessary services, networks, and volumes to run the demo.
 
+The `openvpn-auth-oauth2` service loads its environment variables from the included `.env` file.
+This file contains the demo settings and credentials.
+An empty `config.yaml` is mounted read-only at `/etc/openvpn-auth-oauth2/config.yaml` inside the container.
+The `OPENVPN_AUTH_OAUTH2_CONFIG_FILE` variable in `.env` tells the application to load this file.
+
+To configure additional options, edit `config.yaml` using the
+[configuration reference](Configuration#configuration-file).
+Environment variables take precedence over YAML settings. To configure an option in YAML instead,
+remove the corresponding variable from `.env`.
+After changing either file, recreate the application container:
+
+```bash
+docker compose up -d --force-recreate openvpn-auth-oauth2
+```
+
 ## Running the Demo
 
 To run the demo, follow these steps:
