@@ -5,26 +5,33 @@ services:
     image: openvpn-auth-oauth2/openvpn
     build:
       context: .
-      args:
-        GIT_BRANCH: release/2.6
       #language=dockerfile
       dockerfile_inline: |
-        # renovate: docker=ubuntu
-        FROM ubuntu:26.04
-        ARG GIT_BRANCH
+        FROM debian:trixie-slim
+
+        ENV EASYRSA=/usr/share/easy-rsa/ \
+            EASYRSA_PKI=/etc/openvpn/pki \
+            EASYRSA_BATCH=1 \
+            EASYRSA_NO_VARS=1 \
+            EASYRSA_NO_PASS=1 \
+            EASYRSA_ALGO="ed" \
+            EASYRSA_CURVE="ed25519" \
+            EASYRSA_DN="cn_only"
+
         ARG DEBIAN_FRONTEND=noninteractive
-        RUN apt update -qqy \
-            && apt install -qqy curl gnupg ifupdown iproute2 iptables iputils-ping net-tools git \
-                build-essential autoconf automake libtool pkg-config libnl-genl-3-dev libcap-ng-dev \
-                libssl-dev liblz4-dev liblzo2-dev libpam0g-dev python3-docutils easy-rsa
 
-        WORKDIR /build/
-
-        RUN git clone --depth 1 https://github.com/OpenVPN/openvpn.git --branch $${GIT_BRANCH} --single-branch .
-        RUN autoreconf -i -v -f
-        RUN ./configure
-        RUN make
-        RUN make install
+        RUN printf 'deb http://deb.debian.org/debian trixie-backports main\n' > /etc/apt/sources.list.d/backports.list \
+            && apt-get update \
+            && apt-get install -y --no-install-recommends \
+                easy-rsa \
+                openvpn/trixie-backports \
+                socat \
+                iproute2 \
+                iptables \
+                net-tools \
+                openssl \
+            && apt-get clean \
+            && rm -rf /var/lib/apt/lists/*
     cap_add:
       - NET_ADMIN
     networks:
@@ -127,18 +134,10 @@ services:
       openvpn-auth-oauth2:
         aliases:
           - openvpn-auth-oauth2
-    environment:
-      OPENVPN_AUTH_OAUTH2_HTTP_LISTEN: ":9000"
-      OPENVPN_AUTH_OAUTH2_HTTP_BASEURL: "http://localhost:9000/"
-      OPENVPN_AUTH_OAUTH2_HTTP_SECRET: "1jd93h5b6s82lf03jh5b2hf9"
-      OPENVPN_AUTH_OAUTH2_OPENVPN_ADDR: "tcp://openvpn:8081"
-      OPENVPN_AUTH_OAUTH2_OPENVPN_PASSWORD: "password"
-      OPENVPN_AUTH_OAUTH2_OAUTH2_ISSUER: "http://localhost:8080/realms/openvpn-auth-oauth2"
-      OPENVPN_AUTH_OAUTH2_OAUTH2_ENDPOINT_DISCOVERY: "http://keycloak:8080/realms/openvpn-auth-oauth2/.well-known/openid-configuration"
-      OPENVPN_AUTH_OAUTH2_OAUTH2_REFRESH_ENABLED: "true"
-      OPENVPN_AUTH_OAUTH2_OAUTH2_REFRESH_SECRET: "1jd93h5b6s82lf03jh5b2hf9"
-      OPENVPN_AUTH_OAUTH2_OAUTH2_CLIENT_ID: "openvpn-auth-oauth2"
-      OPENVPN_AUTH_OAUTH2_OAUTH2_CLIENT_SECRET: "zSkHo6iq8AEZ9W725JqomqkZGhfOG8jL"
+    env_file:
+      - .env
+    volumes:
+      - ./config.yaml:/etc/openvpn-auth-oauth2/config.yaml:ro
     ports:
       - "9000:9000/tcp"
       - "9092:9092/tcp"
