@@ -32,6 +32,8 @@ func TestParseMessageType(t *testing.T) {
 		{">CLIENT:DISCONNECT,0", connection.MessageTypeClient},
 		{">CLIENT:CR_RESPONSE,0,1,YmFzZTY0", connection.MessageTypeClient},
 		{">CLIENT:ADDRESS,0,10.8.0.2,1", connection.MessageTypeClientAddress},
+		{">CLIENT:ADDRESS", connection.MessageTypeClientAddress},
+		{">CLIENT:ADDRESSX,0", connection.MessageTypeClient},
 		{">ECHO:1101519562,forget-passwords", connection.MessageTypeEcho},
 		{">FATAL:Cannot open TUN/TAP dev", connection.MessageTypeFatal},
 		{">HOLD:Waiting for hold release:0", connection.MessageTypeHold},
@@ -64,11 +66,28 @@ func TestParseMessageType(t *testing.T) {
 func TestMessageTypeString(t *testing.T) {
 	t.Parallel()
 
-	assert.Equal(t, "CLIENT", connection.MessageTypeClient.String())
+	for messageType, name := range map[connection.MessageType]string{
+		connection.MessageTypeSuccess:  "SUCCESS",
+		connection.MessageTypeError:    "ERROR",
+		connection.MessageTypeResponse: "RESPONSE",
+		connection.MessageTypeUnknown:  "UNKNOWN",
+		connection.MessageType(255):    "UNKNOWN",
+	} {
+		assert.Equal(t, name, messageType.String())
+	}
+
 	assert.Equal(t, "CLIENT:ADDRESS", connection.MessageTypeClientAddress.String())
-	assert.Equal(t, "NEED-OK", connection.MessageTypeNeedOk.String())
-	assert.Equal(t, "UNKNOWN", connection.MessageTypeUnknown.String())
-	assert.Equal(t, "UNKNOWN", connection.MessageType(255).String())
+	assert.Equal(t, connection.MessageTypeClientAddress, connection.ParseMessageType([]byte(">CLIENT:ADDRESS,0,10.8.0.2,1")))
+
+	// The name of every real-time notification type round-trips through ParseMessageType.
+	for messageType := connection.MessageTypeClient; messageType <= connection.MessageTypeState; messageType++ {
+		if messageType == connection.MessageTypeClientAddress {
+			continue
+		}
+
+		line := ">" + messageType.String() + ":"
+		assert.Equal(t, messageType, connection.ParseMessageType([]byte(line)), line)
+	}
 }
 
 func TestReadMessage(t *testing.T) {

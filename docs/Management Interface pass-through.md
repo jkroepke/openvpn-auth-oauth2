@@ -62,4 +62,6 @@ Authentication decision commands are reserved for openvpn-auth-oauth2 because th
 - `client-deny`
 - `client-pending-auth`
 
+The debug command `test` is also rejected. Its output has no terminating `END` line, so it would block the management connection.
+
 If a client sends a reserved command, openvpn-auth-oauth2 will respond with "ERROR: command not allowed" and log a warning message. Use a Unix socket with restrictive filesystem permissions, or otherwise restrict the listener to trusted administrator clients only. This is especially important when no pass-through password is configured.

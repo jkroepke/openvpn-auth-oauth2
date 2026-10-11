@@ -842,13 +842,19 @@ func TestManagementMessageFraming(t *testing.T) {
 	suite.ExpectVersionAndReleaseHold(t)
 
 	// Single-line notifications must not swallow the following client notification.
-	suite.SendMessagef(t, ">BYTECOUNT_CLI:1,1024,2048\r\n>FOO:bar")
+	suite.SendMessagef(t, ">BYTECOUNT_CLI:1,1024,2048\r\n>FOO:bar\r\n>CLIENT:ADDRESS,invalid")
 	suite.SendMessagef(t, ">CLIENT:CONNECT,0,1\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END")
 	suite.ExpectMessage(t, "client-auth-nt 0 1")
 	suite.SendMessagef(t, "SUCCESS: client-auth command succeeded")
 
-	// OpenVPN announces the primary VPN address right before ESTABLISHED.
-	suite.SendMessagef(t, ">CLIENT:ADDRESS,0,10.8.0.2,1\r\n>CLIENT:ESTABLISHED,0\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END")
+	// OpenVPN announces the primary VPN addresses (IPv4 first) and iroutes right before ESTABLISHED.
+	// An address of another client must not be attached.
+	suite.SendMessagef(t, ">CLIENT:ADDRESS,7,10.8.0.9,1\r\n>CLIENT:ADDRESS,0,10.8.0.2,1\r\n>CLIENT:ADDRESS,0,fd00::2,1\r\n"+
+		">CLIENT:ADDRESS,0,10.9.0.0/24,0\r\n>CLIENT:ESTABLISHED,0\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END")
+
+	// The plugin's management server answers hold release with "SUCCESS: hold released".
+	suite.SendAndExpectMessage(t, ">HOLD:Waiting for hold release:0", "hold release")
+	suite.SendMessagef(t, "SUCCESS: hold released")
 
 	for _, tc := range []struct {
 		command  string
@@ -896,9 +902,10 @@ func TestManagementMessageFraming(t *testing.T) {
 	}
 
 	require.Eventually(t, func() bool {
-		return strings.Contains(suite.Logs(), "client established") && strings.Contains(suite.Logs(), "vpn_ip=10.8.0.2")
+		return strings.Contains(suite.Logs(), `msg="client established" ip=: cid=0 kid=0 common_name=bypass reason=ESTABLISHED session_id="" session_state="" vpn_ip=10.8.0.2`)
 	}, time.Second, 10*time.Millisecond, suite.Logs())
 
 	require.Contains(t, suite.Logs(), "unknown message from OpenVPN management interface")
 	require.Contains(t, suite.Logs(), ">FOO:bar")
+	require.Contains(t, suite.Logs(), "unable to parse client address message")
 }

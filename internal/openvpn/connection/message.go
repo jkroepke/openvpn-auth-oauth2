@@ -31,6 +31,7 @@ const (
 	MessageTypeClientAddress
 	// MessageTypeUpDown is an ">UPDOWN:" notification terminated by ">UPDOWN:ENV,END".
 	MessageTypeUpDown
+	// MessageTypeBytecount and all following real-time notifications are single lines.
 	MessageTypeBytecount
 	MessageTypeBytecountCli
 	MessageTypeEcho
@@ -197,11 +198,17 @@ func ParseMessageType(line []byte) MessageType {
 	}
 
 	messageType := parseNotificationSource(source)
-	if messageType == MessageTypeClient && bytes.HasPrefix(line, []byte(">CLIENT:ADDRESS,")) {
+	if messageType == MessageTypeClient && isClientAddress(line) {
 		return MessageTypeClientAddress
 	}
 
 	return messageType
+}
+
+func isClientAddress(line []byte) bool {
+	rest, found := bytes.CutPrefix(line, []byte(">CLIENT:ADDRESS"))
+
+	return found && (len(rest) == 0 || rest[0] == ',')
 }
 
 // ReadMessage reads the next complete message from scanner into buf. Each line

@@ -176,6 +176,7 @@ func TestPassThroughFull(t *testing.T) {
 				passThroughConn.SendAndExpectMessage(t, "client-auth-nt 1", "ERROR: command not allowed")
 				passThroughConn.SendAndExpectMessage(t, "client-deny 1 2 reason", "ERROR: command not allowed")
 				passThroughConn.SendAndExpectMessage(t, "client-pending-auth 1 2 msg 10", "ERROR: command not allowed")
+				passThroughConn.SendAndExpectMessage(t, "test 5", "ERROR: command not allowed")
 
 				// client-kill 1
 				forwardPassThroughCommand(t, suite, passThroughConn, "client-kill 1", "ERROR: client-kill command failed")

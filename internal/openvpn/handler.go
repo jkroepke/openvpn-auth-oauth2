@@ -209,7 +209,8 @@ func (c *Client) handleClientAddressMessage(ctx context.Context, message string)
 		)
 	}
 
-	if primary {
+	// OpenVPN announces the IPv4 address before the IPv6 address. Keep the first one.
+	if primary && (c.pendingClientAddress.cid != cid || c.pendingClientAddress.addr == "") {
 		c.pendingClientAddress = clientAddress{cid: cid, addr: addr}
 	}
 }
