@@ -46,26 +46,52 @@ func main() {
 	os.Exit(runLoop(os.Args, os.Stdout, termCh)) //nolint:forbidigo // entry point
 }
 
+// loadedConfig is a parsed and validated configuration with its logger.
+type loadedConfig struct {
+	conf   *config.Config
+	logger *slog.Logger
+}
+
+// configLoader parses and validates the configuration again for a reload.
+type configLoader func() (loadedConfig, error)
+
 // runLoop is the main entry point for the openvpn-auth-oauth2 daemon.
 func runLoop(args []string, stdout io.Writer, termCh <-chan os.Signal) int {
 	tokenDataStorage := tokenstorage.DataMap{}
 	ctx := context.Background()
 
+	conf, logger, rc := initializeConfigAndLogger(args, stdout)
+	if rc != ReturnCodeNoError {
+		return rc
+	}
+
+	current := loadedConfig{conf: conf, logger: logger}
+	loadConfig := func() (loadedConfig, error) {
+		conf, logger, err := loadConfigAndLogger(args, stdout)
+
+		return loadedConfig{conf: conf, logger: logger}, err
+	}
+
 	for {
-		if returnCode := run(ctx, args, stdout, tokenDataStorage, termCh); returnCode != ReturnCodeReload {
+		returnCode, next := run(ctx, current, tokenDataStorage, termCh, loadConfig)
+		if returnCode != ReturnCodeReload {
 			return returnCode
 		}
+
+		current = next
+		// Use the reloaded logger for dependencies that log through package-level slog functions.
+		slog.SetDefault(current.logger)
 
 		time.Sleep(300 * time.Millisecond) // Wait before reloading configuration
 	}
 }
 
-// run runs the main program logic of openvpn-auth-oauth2.
-func run(ctx context.Context, args []string, stdout io.Writer, tokenDataStorage tokenstorage.DataMap, termCh <-chan os.Signal) ReturnCode {
-	conf, logger, rc := initializeConfigAndLogger(args, stdout)
-	if rc != ReturnCodeNoError {
-		return rc
-	}
+// run runs the main program logic of openvpn-auth-oauth2 for one loaded configuration.
+// On a configuration reload, it returns ReturnCodeReload and the already validated next configuration.
+func run(
+	ctx context.Context, current loadedConfig, tokenDataStorage tokenstorage.DataMap, termCh <-chan os.Signal, loadConfig configLoader,
+) (ReturnCode, loadedConfig) {
+	conf, logger := current.conf, current.logger
 
 	logger.LogAttrs(
 		ctx, slog.LevelDebug, "config",
@@ -76,7 +102,7 @@ func run(ctx context.Context, args []string, stdout io.Writer, tokenDataStorage 
 	if err != nil {
 		logger.LogAttrs(ctx, slog.LevelError, "error creating token storage", slog.Any("err", err))
 
-		return ReturnCodeError
+		return ReturnCodeError, loadedConfig{}
 	}
 
 	defer func() {
@@ -91,7 +117,7 @@ func run(ctx context.Context, args []string, stdout io.Writer, tokenDataStorage 
 			slog.Any("err", err),
 		)
 
-		return ReturnCodeError
+		return ReturnCodeError, loadedConfig{}
 	}
 
 	appRuntime, err := daemon.New(ctx, logger, conf, tokenStorage)
@@ -101,7 +127,7 @@ func run(ctx context.Context, args []string, stdout io.Writer, tokenDataStorage 
 			slog.Any("err", err),
 		)
 
-		return ReturnCodeError
+		return ReturnCodeError, loadedConfig{}
 	}
 
 	appRuntime.Start(ctx)
@@ -112,7 +138,7 @@ func run(ctx context.Context, args []string, stdout io.Writer, tokenDataStorage 
 		"openvpn-auth-oauth2 started with base url "+conf.HTTP.BaseURL.String(),
 	)
 
-	return handleSignalsAndShutdown(ctx, termCh, logger, appRuntime)
+	return handleSignalsAndShutdown(ctx, termCh, logger, appRuntime, loadConfig)
 }
 
 func printVersion(writer io.Writer) {
@@ -161,7 +187,7 @@ func setupLogger(conf *config.Config, writer io.Writer) (*slog.Logger, error) {
 
 // initializeConfigAndLogger handles configuration parsing and logger setup.
 func initializeConfigAndLogger(args []string, stdout io.Writer) (*config.Config, *slog.Logger, ReturnCode) {
-	conf, err := setupConfiguration(args, stdout)
+	conf, logger, err := loadConfigAndLogger(args, stdout)
 	if err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return nil, nil, ReturnCodeOK
@@ -178,17 +204,26 @@ func initializeConfigAndLogger(args []string, stdout io.Writer) (*config.Config,
 		return nil, nil, ReturnCodeError
 	}
 
-	logger, err := setupLogger(conf, stdout)
-	if err != nil {
-		_, _ = fmt.Fprintln(stdout, fmt.Errorf("error setupConfiguration logging: %w", err).Error())
-
-		return nil, nil, ReturnCodeError
-	}
-
 	// Use the configured logger for dependencies that log through package-level slog functions.
 	slog.SetDefault(logger)
 
 	return conf, logger, ReturnCodeNoError
+}
+
+// loadConfigAndLogger parses and validates the configuration and creates its logger
+// without changing any process-wide state.
+func loadConfigAndLogger(args []string, stdout io.Writer) (*config.Config, *slog.Logger, error) {
+	conf, err := setupConfiguration(args, stdout)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	logger, err := setupLogger(conf, stdout)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error setupConfiguration logging: %w", err)
+	}
+
+	return conf, logger, nil
 }
 
 // handleSignalsAndShutdown manages the main event loop for signals and shutdown.
@@ -197,13 +232,18 @@ func handleSignalsAndShutdown(
 	termCh <-chan os.Signal,
 	logger *slog.Logger,
 	appRuntime *daemon.Runtime,
-) ReturnCode {
+	loadConfig configLoader,
+) (ReturnCode, loadedConfig) {
+	var next loadedConfig
+
 	for {
 		select {
 		case <-appRuntime.Done():
-			return handleContextDone(ctx, logger, appRuntime.Err())
+			return handleContextDone(ctx, logger, appRuntime.Err()), next
 		case sig := <-termCh:
-			handleSignal(ctx, sig, logger, appRuntime)
+			if reloaded, ok := handleSignal(ctx, sig, logger, appRuntime, loadConfig); ok {
+				next = reloaded
+			}
 		}
 	}
 }
@@ -228,12 +268,14 @@ func handleContextDone(ctx context.Context, logger *slog.Logger, err error) Retu
 }
 
 // handleSignal processes incoming OS signals.
+// For SIGUSR1, it returns the validated next configuration and true if the runtime was stopped for a reload.
 func handleSignal(
 	ctx context.Context,
 	sig os.Signal,
 	logger *slog.Logger,
 	appRuntime *daemon.Runtime,
-) {
+	loadConfig configLoader,
+) (loadedConfig, bool) {
 	logger.LogAttrs(ctx, slog.LevelInfo, "receiving signal: "+sig.String())
 
 	switch sig {
@@ -243,8 +285,23 @@ func handleSignal(
 		}
 	case SIGUSR1:
 		logger.LogAttrs(ctx, slog.LevelInfo, "reloading configuration")
+
+		next, err := loadConfig()
+		if err != nil {
+			logger.LogAttrs(
+				ctx, slog.LevelError, "configuration reload failed, keeping current configuration",
+				slog.Any("err", err),
+			)
+
+			return loadedConfig{}, false
+		}
+
 		appRuntime.Stop(ErrReload)
+
+		return next, true
 	default:
 		appRuntime.Stop(nil)
 	}
+
+	return loadedConfig{}, false
 }
