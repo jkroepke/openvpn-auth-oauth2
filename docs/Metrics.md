@@ -32,14 +32,16 @@ All metrics use the `openvpn_auth_oauth2_` prefix.
 | `openvpn_auth_oauth2_openvpn_client_denied_total`           | counter   | `reason`                          | Clients denied on the OpenVPN management interface.                                                                              |
 | `openvpn_auth_oauth2_oauth2_silent_reauth_total`            | counter   | `result`                          | Silent re-authentication attempts with a stored refresh token.                                                                   |
 | `openvpn_auth_oauth2_oauth2_code_exchange_duration_seconds` | histogram |                                   | Time from the OAuth2 callback request until tokens, and user info if `oauth2.user-info` is enabled, have been received and validated. |
-| `openvpn_auth_oauth2_openvpn_command_duration_seconds`      | histogram | `command`                         | Round-trip time of commands sent to the OpenVPN management interface, for example `client-auth` or `client-deny`.               |
+| `openvpn_auth_oauth2_openvpn_command_duration_seconds`      | histogram | `command`                         | Round-trip time of answered commands sent to the OpenVPN management interface, for example `client-auth` or `client-deny`. Timed-out or canceled commands aren't recorded. |
 | `openvpn_auth_oauth2_openvpn_client_queue_length`           | gauge     |                                   | OpenVPN client events waiting for a worker.                                                                                      |
 
 ### Deny reasons
 
 The `reason` label is the reason sent to OpenVPN with `client-deny`, converted
 to lowercase with underscores, for example `client_rejected`,
-`invalid_client_config`, or `internal_error`. The set of reasons is fixed.
+`invalid_client_config`, or `internal_error`. The set of reasons is fixed. Hyphens also become
+underscores, so `client re-authentication not enabled` is reported as
+`client_re_authentication_not_enabled`.
 
 ### Silent re-authentication results
 
@@ -47,7 +49,7 @@ to lowercase with underscores, for example `client_rejected`,
 |------------|---------------------------------------------------------------------------------------------------------|
 | `success`  | The stored token was valid and the client was re-authenticated without a browser login.                 |
 | `fallback` | No usable stored token was found. The client continues with an interactive browser login.               |
-| `error`    | Loading or refreshing the stored token failed. The client continues with an interactive browser login.  |
+| `error`    | Loading or refreshing the stored token failed, or the refreshed identity failed validation. The client continues with an interactive browser login. |
 
 Commands that external management clients send through the
 [management interface pass-through](Management%20Interface%20pass-through)

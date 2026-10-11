@@ -76,8 +76,8 @@ func (m *Metrics) ClientAccepted() {
 
 // ClientDenied counts a client denied on the OpenVPN management interface.
 // The reason is the deny.Reason text sent with client-deny. Any text that is
-// not a plain phrase of ASCII letters and spaces is reported as "other" to keep
-// the label cardinality bounded.
+// not a plain phrase of ASCII letters, spaces and hyphens is reported as
+// "other" to keep the label cardinality bounded.
 func (m *Metrics) ClientDenied(reason string) {
 	if m == nil {
 		return
@@ -166,7 +166,7 @@ func (m *Metrics) Write(w io.Writer) error {
 		"Duration of successful OAuth2 authorization code exchanges, including token validation and userinfo requests.")
 	m.codeExchange.write(buf, "oauth2_code_exchange_duration_seconds", "")
 
-	writeHeader(buf, "openvpn_command_duration_seconds", "histogram", "Round-trip duration of commands sent to the OpenVPN management interface.")
+	writeHeader(buf, "openvpn_command_duration_seconds", "histogram", "Round-trip duration of answered commands sent to the OpenVPN management interface.")
 	m.commandDuration.write(buf, "openvpn_command_duration_seconds", "command")
 
 	writeHeader(buf, "openvpn_client_queue_length", "gauge", "Number of OpenVPN client events waiting for a worker.")
@@ -184,8 +184,8 @@ func writeHeader(w io.Writer, name, metricType, help string) {
 }
 
 // normalizeReason converts fixed deny phrases into a snake_case label value.
-// Any text with characters other than ASCII letters and spaces is treated as
-// dynamic and mapped to "other".
+// Any text with characters other than ASCII letters, spaces and hyphens is
+// treated as dynamic and mapped to "other".
 func normalizeReason(reason string) string {
 	reason = strings.TrimSpace(reason)
 	if reason == "" || len(reason) > maxReasonLength {
@@ -196,13 +196,11 @@ func normalizeReason(reason string) string {
 
 	sb.Grow(len(reason))
 
-	for _, char := range reason {
+	for _, char := range strings.ToLower(reason) {
 		switch {
 		case char >= 'a' && char <= 'z':
 			sb.WriteRune(char)
-		case char >= 'A' && char <= 'Z':
-			sb.WriteRune(char + ('a' - 'A'))
-		case char == ' ':
+		case char == ' ' || char == '-':
 			sb.WriteByte('_')
 		default:
 			return reasonOther

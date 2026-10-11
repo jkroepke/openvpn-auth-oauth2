@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/deny"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/metrics"
 	"github.com/stretchr/testify/require"
 )
@@ -133,4 +134,18 @@ func TestMetricsConcurrentUse(t *testing.T) {
 	require.Contains(t, buf.String(), "openvpn_auth_oauth2_openvpn_client_accepted_total 800\n")
 	require.Contains(t, buf.String(), `openvpn_auth_oauth2_openvpn_client_denied_total{reason="client_rejected"} 800`+"\n")
 	require.Contains(t, buf.String(), `openvpn_auth_oauth2_openvpn_command_duration_seconds_count{command="client-auth"} 800`+"\n")
+}
+
+func TestMetricsClientDeniedKnowsEveryDenyReason(t *testing.T) {
+	t.Parallel()
+
+	for reason := deny.ClientRejected; reason <= deny.AcceptFailed; reason++ {
+		appMetrics := metrics.New("dev", "none")
+		appMetrics.ClientDenied(reason.String())
+
+		var buf bytes.Buffer
+
+		require.NoError(t, appMetrics.Write(&buf))
+		require.NotContains(t, buf.String(), `reason="other"`, reason.String())
+	}
 }
