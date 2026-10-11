@@ -11,11 +11,14 @@ import (
 	"strings"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/deny"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
 )
 
 // AcceptClient accepts an OpenVPN client connection.
 // It reads the client configuration from the CCD path if enabled.
+// AcceptClient never denies the client; on error, the caller must deny it with
+// [deny.ReasonOf] applied to the returned error.
 func (c *Client) AcceptClient(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, username string, clientConfigNames ...string) error {
 	logger.LogAttrs(ctx, slog.LevelInfo, "client authentication")
 
@@ -25,9 +28,8 @@ func (c *Client) AcceptClient(ctx context.Context, logger *slog.Logger, client s
 			ctx, slog.LevelWarn, "failed to load client config",
 			slog.Any("error", err),
 		)
-		c.DenyClient(ctx, logger, client, "client configuration not found")
 
-		return err
+		return deny.Wrap(deny.ClientConfigUnavailable, err)
 	}
 
 	if c.conf.OpenVPN.EnforceUniqueUser {
@@ -226,10 +228,14 @@ func (c *Client) sendClientAuth(ctx context.Context, client state.ClientIdentifi
 	return err
 }
 
-func (c *Client) DenyClient(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, reason string) {
-	logger.LogAttrs(ctx, slog.LevelInfo, fmt.Sprintf("deny OpenVPN client cid %d, kid %d", client.CID, client.KID))
+// DenyClient denies an OpenVPN client connection with the text of reason.
+func (c *Client) DenyClient(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, reason deny.Reason) {
+	logger.LogAttrs(
+		ctx, slog.LevelInfo, fmt.Sprintf("deny OpenVPN client cid %d, kid %d", client.CID, client.KID),
+		slog.String("deny_reason", reason.String()),
+	)
 
-	_, err := c.SendCommandf(ctx, `client-deny %d %d "%s"`, client.CID, client.KID, reason)
+	_, err := c.SendCommandf(ctx, `client-deny %d %d "%s"`, client.CID, client.KID, reason.String())
 	if err != nil {
 		logger.LogAttrs(
 			ctx, slog.LevelWarn, "failed to deny client",
@@ -239,7 +245,7 @@ func (c *Client) DenyClient(ctx context.Context, logger *slog.Logger, client sta
 		return
 	}
 
-	c.metrics.ClientDenied(reason)
+	c.metrics.ClientDenied(reason.String())
 }
 
 func (c *Client) readClientConfig(username string) ([]string, error) {

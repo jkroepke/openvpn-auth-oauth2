@@ -3,6 +3,8 @@ package openvpn
 import (
 	"errors"
 	"fmt"
+
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/deny"
 )
 
 var (
@@ -18,11 +20,7 @@ var (
 	ErrEnforceUniqueUserUnsupported         = errors.New(
 		"openvpn.enforce-unique-user requires a direct OpenVPN management interface; the OpenVPN plugin shim is not supported",
 	)
-	ErrClientSessionStateInvalidOrExpired = errors.New(ReasonStateExpiredOrInvalid)
-)
-
-const (
-	ReasonStateExpiredOrInvalid = "client session state invalid or expired"
+	ErrClientSessionStateInvalidOrExpired = errors.New(deny.SessionStateInvalid.String())
 )
 
 // ManagementCommandError reports a rejected OpenVPN management command.

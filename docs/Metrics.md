@@ -38,9 +38,8 @@ All metrics use the `openvpn_auth_oauth2_` prefix.
 ### Deny reasons
 
 The `reason` label is the reason sent to OpenVPN with `client-deny`, converted
-to lowercase with underscores, for example `client_rejected` or
-`internal_error`. Reasons that contain dynamic values, such as IP addresses,
-are reported as `other` to keep the number of time series bounded.
+to lowercase with underscores, for example `client_rejected`,
+`invalid_client_config`, or `internal_error`. The set of reasons is fixed.
 
 ### Silent re-authentication results
 

@@ -37,6 +37,18 @@ Environment values are validated at startup. Boolean values must be exactly
 `OPENVPN_AUTH_OAUTH2_` environment variables stop startup with an error.
 Command-line positional arguments are not supported.
 
+## Reload the configuration
+
+Send `SIGUSR1` to reload the configuration without restarting the process. The
+packaged systemd unit does this on `systemctl reload openvpn-auth-oauth2`.
+
+openvpn-auth-oauth2 parses and validates the new configuration before it stops
+the running services. If the new configuration is invalid, it logs the error and
+keeps running with the current configuration. Refresh tokens stored in memory
+survive the reload.
+
+`SIGHUP` only reloads the TLS certificate of the [HTTPS listener](HTTPS%20Listener).
+
 ## Supported configuration properties
 
 <details>

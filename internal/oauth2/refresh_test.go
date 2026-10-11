@@ -16,11 +16,11 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
 	configtypes "github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/deny"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/providers/generic"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/providers/github"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/providers/google"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
-	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn/connection"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/test/testsuite"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/tokenstorage"
@@ -671,7 +671,7 @@ func TestRefreshReAuth(t *testing.T) {
 			auth = suite.ReadLine(t)
 
 			if conf.OAuth2.Refresh.UseSessionID {
-				assert.Equal(t, fmt.Sprintf(`client-deny 3 3 "%s"`, openvpn.ReasonStateExpiredOrInvalid), auth)
+				assert.Equal(t, fmt.Sprintf(`client-deny 3 3 "%s"`, deny.SessionStateInvalid), auth)
 			} else {
 				assert.Contains(t, auth, `client-pending-auth 3 3 "WEB_AUTH::`)
 			}

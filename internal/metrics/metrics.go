@@ -75,9 +75,9 @@ func (m *Metrics) ClientAccepted() {
 }
 
 // ClientDenied counts a client denied on the OpenVPN management interface.
-// The reason is the text sent with client-deny. Reasons that are not fixed
-// phrases, for example messages containing addresses, are reported as "other"
-// to keep the label cardinality bounded.
+// The reason is the deny.Reason text sent with client-deny. Any text that is
+// not a plain phrase of ASCII letters and spaces is reported as "other" to keep
+// the label cardinality bounded.
 func (m *Metrics) ClientDenied(reason string) {
 	if m == nil {
 		return

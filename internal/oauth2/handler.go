@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/deny"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
@@ -30,7 +31,7 @@ const (
 
 type openvpnManagementClient interface {
 	AcceptClient(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, username string, clientConfigNames ...string) error
-	DenyClient(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, reason string)
+	DenyClient(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, reason deny.Reason)
 }
 
 // OAuth2Start returns a http.Handler that starts the OAuth2 authorization flow.
@@ -62,17 +63,14 @@ func (c *Client) OAuth2Start() http.Handler {
 
 		if c.conf.HTTP.Check.IPAddr {
 			if err := checkClientIPAddr(r, c.conf, session); err != nil {
-				logger.LogAttrs(ctx, slog.LevelWarn, err.Error())
-
-				if !errors.Is(err, ErrClientRejected) {
-					c.openvpn.DenyClient(ctx, logger, session.Client, "client rejected")
-					w.WriteHeader(http.StatusInternalServerError)
-
-					return
+				reason := deny.InternalError
+				if errors.Is(err, ErrClientRejected) {
+					reason = deny.ClientRejected
 				}
 
-				c.openvpn.DenyClient(ctx, logger, session.Client, err.Error())
-				w.WriteHeader(http.StatusForbidden)
+				logger.LogAttrs(ctx, reason.LogLevel(), err.Error())
+				c.openvpn.DenyClient(ctx, logger, session.Client, reason)
+				w.WriteHeader(reason.HTTPStatus())
 
 				return
 			}
@@ -236,8 +234,7 @@ func (c *Client) OAuth2ProfileSubmit() http.Handler {
 
 		// Validate that the selected profile is in the allowed list
 		if !slices.Contains(token.Profiles, clientConfigName) {
-			c.openvpn.DenyClient(ctx, logger, oAuth2State.Client, "invalid profile selection")
-			c.writeHTTPError(ctx, w, logger, http.StatusForbidden, "Invalid Profile", "The selected profile is not allowed")
+			c.denyClient(ctx, w, logger, oAuth2State.Client, deny.InvalidProfileSelection, "Invalid Profile", "The selected profile is not allowed")
 
 			return
 		}
@@ -245,7 +242,7 @@ func (c *Client) OAuth2ProfileSubmit() http.Handler {
 		logger.LogAttrs(ctx, slog.LevelInfo, "successful authorization via oauth2 with profile selection")
 
 		if err = c.openvpn.AcceptClient(ctx, logger, oAuth2State.Client, username, clientConfigName); err != nil {
-			c.writeHTTPError(ctx, w, logger, http.StatusInternalServerError, "OpenVPN", err.Error())
+			c.denyClient(ctx, w, logger, oAuth2State.Client, deny.ReasonOf(err, deny.AcceptFailed), "OpenVPN", err.Error())
 
 			return
 		}
@@ -345,8 +342,7 @@ func (c *Client) postCodeExchangeHandler(
 
 		user, err := c.fetchUser(ctx, logger, session, tokens, userInfo)
 		if err != nil {
-			c.openvpn.DenyClient(ctx, logger, session.Client, err.openvpnReason)
-			c.writeHTTPError(ctx, w, logger, err.httpStatus, err.errorType, err.err.Error())
+			c.denyClient(ctx, w, logger, session.Client, err.reason, err.errorType, err.err.Error())
 
 			return
 		}
@@ -354,8 +350,7 @@ func (c *Client) postCodeExchangeHandler(
 		logger = withUserLogger(logger, user.Subject, user.Username)
 
 		if err = c.validateInteractiveUser(ctx, session, user, tokens); err != nil {
-			c.openvpn.DenyClient(ctx, logger, session.Client, err.openvpnReason)
-			c.writeHTTPError(ctx, w, logger, err.httpStatus, err.errorType, err.err.Error())
+			c.denyClient(ctx, w, logger, session.Client, err.reason, err.errorType, err.err.Error())
 
 			return
 		}
@@ -401,11 +396,11 @@ func withUserLogger(logger *slog.Logger, subject, username string) *slog.Logger 
 	)
 }
 
-type userValidationError struct {
-	err           error
-	errorType     string
-	openvpnReason string
-	httpStatus    int
+// denialError carries the technical error and the denial reason of a failed step.
+type denialError struct {
+	err       error
+	errorType string
+	reason    deny.Reason
 }
 
 // fetchUser resolves the authenticated user from token claims or UserInfo data.
@@ -415,14 +410,13 @@ func (c *Client) fetchUser(
 	session state.State,
 	tokens *idtoken.IDToken,
 	userInfo *types.UserInfo,
-) (types.UserInfo, *userValidationError) {
+) (types.UserInfo, *denialError) {
 	user, err := c.resolveUser(ctx, logger, CELAuthModeInteractive, session, tokens, userInfo)
 	if err != nil {
-		return types.UserInfo{}, &userValidationError{
-			err:           err,
-			httpStatus:    http.StatusInternalServerError,
-			errorType:     "fetchUser",
-			openvpnReason: "unable to fetch user data",
+		return types.UserInfo{}, &denialError{
+			err:       err,
+			errorType: "fetchUser",
+			reason:    deny.UserDataUnavailable,
 		}
 	}
 
@@ -457,7 +451,7 @@ func (c *Client) validateInteractiveUser(
 	session state.State,
 	user types.UserInfo,
 	tokens *idtoken.IDToken,
-) *userValidationError {
+) *denialError {
 	if err := c.provider.CheckUser(ctx, session, user, tokens); err != nil {
 		return failedUserValidation(err)
 	}
@@ -470,12 +464,11 @@ func (c *Client) validateInteractiveUser(
 }
 
 // failedUserValidation converts a validation error into the common denial response metadata.
-func failedUserValidation(err error) *userValidationError {
-	return &userValidationError{
-		err:           err,
-		httpStatus:    http.StatusForbidden,
-		errorType:     "user validation",
-		openvpnReason: "client rejected",
+func failedUserValidation(err error) *denialError {
+	return &denialError{
+		err:       err,
+		errorType: "user validation",
+		reason:    deny.ClientRejected,
 	}
 }
 
@@ -497,8 +490,7 @@ func (c *Client) handleClientConfig(ctx context.Context, w http.ResponseWriter, 
 
 	clientConfigProfiles, err := c.ResolveClientConfigNames(CELAuthModeInteractive, req.session, req.tokens, req.user)
 	if err != nil {
-		c.openvpn.DenyClient(ctx, req.logger, req.session.Client, "invalid client config")
-		c.writeHTTPError(ctx, w, req.logger, http.StatusForbidden, "client config", err.Error())
+		c.denyClient(ctx, w, req.logger, req.session.Client, deny.InvalidClientConfig, "client config", err.Error())
 
 		return true
 	}
@@ -529,18 +521,11 @@ func (c *Client) handleClientConfigSelector(ctx context.Context, w http.Response
 		}
 
 		if err := c.renderClientConfigProfileSelector(ctx, w, req, clientConfigProfiles); err != nil {
-			c.openvpn.DenyClient(ctx, req.logger, req.session.Client, err.openvpnReason)
-			c.writeHTTPError(ctx, w, req.logger, http.StatusInternalServerError, err.errorType, err.err.Error())
+			c.denyClient(ctx, w, req.logger, req.session.Client, err.reason, err.errorType, err.err.Error())
 		}
 
 		return true
 	}
-}
-
-type profileSelectorError struct {
-	err           error
-	errorType     string
-	openvpnReason string
 }
 
 // renderClientConfigProfileSelector stores a selector token and renders the profile selection page.
@@ -549,22 +534,22 @@ func (c *Client) renderClientConfigProfileSelector(
 	w http.ResponseWriter,
 	req codeExchangeRequest,
 	clientConfigProfiles []string,
-) *profileSelectorError {
+) *denialError {
 	clientConfigSelectorToken, err := c.createProfileSelectorToken(req.encryptedState, req.username, clientConfigProfiles)
 	if err != nil {
-		return &profileSelectorError{
-			err:           err,
-			errorType:     "profile selector token",
-			openvpnReason: "unable to create profile selector token",
+		return &denialError{
+			err:       err,
+			errorType: "profile selector token",
+			reason:    deny.ProfileSelectorUnavailable,
 		}
 	}
 
 	err = c.storeProfileSelectorToken(ctx, clientConfigSelectorToken, req.clientID)
 	if err != nil {
-		return &profileSelectorError{
-			err:           err,
-			errorType:     "store profile selector token",
-			openvpnReason: "unable to store profile selector token",
+		return &denialError{
+			err:       err,
+			errorType: "store profile selector token",
+			reason:    deny.ProfileSelectorUnavailable,
 		}
 	}
 
@@ -577,20 +562,20 @@ func (c *Client) renderClientConfigProfileSelector(
 		"clientConfigProfiles": clientConfigProfiles,
 	})
 	if err != nil {
-		return &profileSelectorError{
-			err:           fmt.Errorf("executing profile selector template: %w", err),
-			errorType:     "profile selector template",
-			openvpnReason: "internal error",
+		return &denialError{
+			err:       fmt.Errorf("executing profile selector template: %w", err),
+			errorType: "profile selector template",
+			reason:    deny.InternalError,
 		}
 	}
 
 	w.WriteHeader(http.StatusOK)
 
 	if _, err = response.WriteTo(w); err != nil {
-		return &profileSelectorError{
-			err:           fmt.Errorf("writing profile selector response: %w", err),
-			errorType:     "profile selector response",
-			openvpnReason: "internal error",
+		return &denialError{
+			err:       fmt.Errorf("writing profile selector response: %w", err),
+			errorType: "profile selector response",
+			reason:    deny.InternalError,
 		}
 	}
 
@@ -610,7 +595,7 @@ func (c *Client) acceptOAuth2Client(
 	clientConfigNames ...string,
 ) {
 	if err := c.openvpn.AcceptClient(ctx, req.logger, req.session.Client, req.username, clientConfigNames...); err != nil {
-		c.writeHTTPError(ctx, w, req.logger, http.StatusInternalServerError, "OpenVPN", err.Error())
+		c.denyClient(ctx, w, req.logger, req.session.Client, deny.ReasonOf(err, deny.AcceptFailed), "OpenVPN", err.Error())
 
 		return
 	}
@@ -722,7 +707,7 @@ func (c *Client) httpErrorHandler(ctx context.Context, w http.ResponseWriter, ht
 	if err == nil {
 		logger = c.createSessionLogger(session)
 
-		c.openvpn.DenyClient(ctx, logger, session.Client, "client rejected")
+		c.openvpn.DenyClient(ctx, logger, session.Client, deny.ClientRejected)
 	} else {
 		logger.LogAttrs(ctx, slog.LevelDebug, "httpErrorHandler: "+err.Error())
 	}
@@ -730,8 +715,25 @@ func (c *Client) httpErrorHandler(ctx context.Context, w http.ResponseWriter, ht
 	c.writeHTTPError(ctx, w, logger, httpStatus, errorType, errorDesc)
 }
 
+// denyClient denies the OpenVPN client and writes the access-denied page.
+// HTTP status and log level derive from reason.
+func (c *Client) denyClient(
+	ctx context.Context, w http.ResponseWriter, logger *slog.Logger, client state.ClientIdentifier,
+	reason deny.Reason, errorType, errorDesc string,
+) {
+	c.openvpn.DenyClient(ctx, logger, client, reason)
+	c.writeHTTPErrorWithLevel(ctx, w, logger, reason.HTTPStatus(), reason.LogLevel(), errorType, errorDesc)
+}
+
 // writeHTTPError writes the configured access-denied page and logs a generated error ID.
 func (c *Client) writeHTTPError(ctx context.Context, w http.ResponseWriter, logger *slog.Logger, httpCode int, errorType, errorDesc string) {
+	c.writeHTTPErrorWithLevel(ctx, w, logger, httpCode, slog.LevelWarn, errorType, errorDesc)
+}
+
+// writeHTTPErrorWithLevel writes the configured access-denied page and logs a generated error ID at level.
+func (c *Client) writeHTTPErrorWithLevel(
+	ctx context.Context, w http.ResponseWriter, logger *slog.Logger, httpCode int, level slog.Level, errorType, errorDesc string,
+) {
 	if httpCode == http.StatusUnauthorized {
 		httpCode = http.StatusForbidden
 	}
@@ -746,7 +748,7 @@ func (c *Client) writeHTTPError(ctx context.Context, w http.ResponseWriter, logg
 	hex.Encode(errorIDBuffer[:], errorIDHash[:])
 	errorID := string(errorIDBuffer[:])
 
-	logger.LogAttrs(ctx, slog.LevelWarn, errorType+": "+errorDesc, slog.String("error_id", errorID))
+	logger.LogAttrs(ctx, level, errorType+": "+errorDesc, slog.String("error_id", errorID))
 	w.WriteHeader(httpCode)
 
 	err := c.conf.HTTP.Template.Execute(w, map[string]string{

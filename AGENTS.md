@@ -32,7 +32,10 @@ Preserve broad failure classes without exposing implementation details:
 - `internal error`: infrastructure or internal processing failures
 
 Log the technical error. Browser error pages must show an opaque, log-correlated
-error ID. Never classify errors by matching message strings; if upstream provides
+error ID. Deny clients only with a `deny.Reason` from `internal/deny`; it derives
+the `client-deny` text, HTTP status and log level, so never pass an error
+message to OpenVPN. `openvpn.Client.AcceptClient` only reports errors; its
+caller denies the client with `deny.ReasonOf(err, deny.AcceptFailed)`. Never classify errors by matching message strings; if upstream provides
 no structured distinction, keep the generic classification. See
 [issue #1121](https://github.com/jkroepke/openvpn-auth-oauth2/issues/1121).
 

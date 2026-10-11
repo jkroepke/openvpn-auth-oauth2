@@ -14,6 +14,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
 	configtypes "github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/crypto"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/deny"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/test/testlogger"
@@ -109,7 +110,7 @@ func TestHandleClientConfigSelectorDeniesClientOnRenderError(t *testing.T) {
 			require.Zero(t, openVPNClient.acceptCount)
 			require.Equal(t, 1, openVPNClient.denyCount)
 			require.Equal(t, session.Client, openVPNClient.deniedClient)
-			require.Equal(t, "internal error", openVPNClient.denyReason)
+			require.Equal(t, deny.InternalError, openVPNClient.denyReason)
 		})
 	}
 }
@@ -131,7 +132,7 @@ func (errorResponseWriter) WriteHeader(int) {
 
 type recordingOpenVPNClient struct {
 	deniedClient state.ClientIdentifier
-	denyReason   string
+	denyReason   deny.Reason
 	acceptCount  int
 	denyCount    int
 }
@@ -152,7 +153,7 @@ func (c *recordingOpenVPNClient) DenyClient(
 	_ context.Context,
 	_ *slog.Logger,
 	client state.ClientIdentifier,
-	reason string,
+	reason deny.Reason,
 ) {
 	c.denyCount++
 	c.deniedClient = client
@@ -187,7 +188,7 @@ func TestRequestAuthorizeParamsIsIndependentAcrossConcurrentRequests(t *testing.
 	base[0] = rp.WithURLParam("prompt", "login")
 	client := &Client{
 		conf: &config.Config{
-			HTTP: config.HTTP{Secret: "1234567890123456"},
+			HTTP:   config.HTTP{Secret: "1234567890123456"},
 			OAuth2: config.OAuth2{Nonce: true},
 		},
 		authorizeParams: base,

@@ -675,7 +675,7 @@ func TestHandler(t *testing.T) {
 			}()
 
 			if !tc.preAllow {
-				suite.ExpectMessage(t, `client-deny 0 1 "client rejected: http client ip 127.0.0.1 and vpn ip 127.0.0.2 is different"`)
+				suite.ExpectMessage(t, `client-deny 0 1 "client rejected"`)
 				suite.SendMessagef(t, `SUCCESS: client-deny command succeeded`)
 			}
 

@@ -10,10 +10,12 @@ import (
 	"os"
 	"sync/atomic"
 	"testing"
+	"testing/fstest"
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/deny"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/metrics"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
@@ -115,6 +117,45 @@ func TestAcceptClientPropagatesCommandRejection(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatalf("timeout waiting for AcceptClient. Logs:\n\n%s", suite.Logs())
 	}
+
+	require.NoError(t, suite.GetManagementInterfaceConn().Close())
+
+	select {
+	case err := <-errOpenVPNClientCh:
+		if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrUnexpectedEOF) {
+			require.NoError(t, err)
+		}
+	case <-time.After(time.Second):
+		t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", suite.Logs())
+	}
+}
+
+func TestAcceptClientReportsClientConfigReasonWithoutDenying(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	t.Cleanup(cancel)
+
+	conf := config.Defaults
+	conf.OpenVPN.ClientConfig.Enabled = true
+	conf.OpenVPN.ClientConfig.IgnoreNotFound = false
+	conf.OpenVPN.ClientConfig.Path = types.FS{FS: fstest.MapFS{}}
+
+	suite := testsuite.New(&conf)
+	errOpenVPNClientCh := suite.SetupManagementEnvironment(ctx, t, nil)
+	openVPNClient := suite.GetOpenVPNClient()
+
+	suite.ExpectVersionAndReleaseHold(t)
+
+	err := openVPNClient.AcceptClient(ctx, suite.GetLogger(), state.ClientIdentifier{CID: 1, KID: 2}, "alice", "missing")
+	require.ErrorIs(t, err, fs.ErrNotExist)
+	require.Equal(t, deny.ClientConfigUnavailable, deny.ReasonOf(err, deny.AcceptFailed))
+
+	// AcceptClient must not deny on its own; the caller's deny is the next command.
+	go openVPNClient.DenyClient(ctx, suite.GetLogger(), state.ClientIdentifier{CID: 1, KID: 2}, deny.ReasonOf(err, deny.AcceptFailed))
+
+	suite.ExpectMessage(t, `client-deny 1 2 "client configuration not found"`)
+	suite.SendMessagef(t, "SUCCESS: client-deny command succeeded")
 
 	require.NoError(t, suite.GetManagementInterfaceConn().Close())
 
@@ -401,7 +442,7 @@ func TestAcceptAndDenyClientRecordMetrics(t *testing.T) {
 	denyDone := make(chan struct{})
 
 	go func() {
-		openVPNClient.DenyClient(ctx, suite.GetLogger(), state.ClientIdentifier{CID: 3, KID: 4}, "client rejected")
+		openVPNClient.DenyClient(ctx, suite.GetLogger(), state.ClientIdentifier{CID: 3, KID: 4}, deny.ClientRejected)
 		close(denyDone)
 	}()
 
