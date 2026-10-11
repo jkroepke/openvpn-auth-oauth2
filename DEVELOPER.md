@@ -28,7 +28,8 @@ For a step-by-step sequence diagram see `docs/Home.md`.
 5. **`internal/openvpn`** – Manages the connection to the OpenVPN management interface, parses events and sends commands to the server. It decides whether a client should be accepted or rejected.
 6. **`internal/state`** – Generates and validates the OAuth2 `state` parameter. It stores information such as IP address, ports and OpenVPN IDs using AES-256-GCM authenticated encryption and timestamp validation.
 7. **`internal/tokenstorage`** – Stores encrypted refresh tokens (for example in memory) so that a user can log in again without manual interaction.
-8. **`internal/utils`** – Helper functions including HTTP transport with custom user-agent and filesystem helpers.
+8. **`internal/deny`** – Defines `deny.Reason`, the single source for the OpenVPN `client-deny` text, the HTTP status of the browser error page, and the log level of a denied authentication.
+9. **`internal/utils`** – Helper functions including HTTP transport with custom user-agent and filesystem helpers.
 
 ## Documentation
 

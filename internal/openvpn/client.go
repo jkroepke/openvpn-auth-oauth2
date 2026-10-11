@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/deny"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn/connection"
@@ -36,7 +37,7 @@ func (c *Client) processClient(ctx context.Context, client connection.Client) er
 	case "REAUTH":
 		if !c.conf.OpenVPN.ReAuthentication {
 			logger.LogAttrs(ctx, slog.LevelInfo, "client re-authentication not enabled")
-			c.DenyClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, "client re-authentication not enabled")
+			c.DenyClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, deny.ReAuthenticationDisabled)
 
 			return nil
 		}
@@ -68,9 +69,8 @@ func (c *Client) handleClientAuthentication(ctx context.Context, logger *slog.Lo
 
 	// Check if the client supports SSO authentication via webauth.
 	if !c.checkClientSsoCapabilities(client) {
-		errorSsoNotSupported := "OpenVPN Client does not support SSO authentication via webauth"
-		logger.LogAttrs(ctx, slog.LevelWarn, errorSsoNotSupported)
-		c.DenyClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, errorSsoNotSupported)
+		logger.LogAttrs(ctx, deny.SSONotSupported.LogLevel(), deny.SSONotSupported.String())
+		c.DenyClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, deny.SSONotSupported)
 
 		return
 	}
@@ -79,10 +79,15 @@ func (c *Client) handleClientAuthentication(ctx context.Context, logger *slog.Lo
 	// If the client is successfully re-authenticated, accept the client.
 	user, tokens, clientConfigNames, ok, err := c.silentReAuthentication(ctx, logger, client)
 	if err != nil {
-		c.DenyClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, ReasonStateExpiredOrInvalid)
+		reason := deny.InternalError
+		if errors.Is(err, ErrClientSessionStateInvalidOrExpired) {
+			reason = deny.SessionStateInvalid
+		}
+
+		c.DenyClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, reason)
 
 		logger.LogAttrs(
-			ctx, slog.LevelError, "error refreshing client auth",
+			ctx, reason.LogLevel(), "error refreshing client auth",
 			slog.Any("err", err),
 		)
 
@@ -99,11 +104,11 @@ func (c *Client) handleClientAuthentication(ctx context.Context, logger *slog.Lo
 	if err := c.startClientAuth(ctx, logger, client); err != nil {
 		// Deny the client if an error occurred during the authentication process.
 		logger.LogAttrs(
-			ctx, slog.LevelError, "error starting client auth",
+			ctx, deny.InternalError.LogLevel(), "error starting client auth",
 			slog.Any("err", err),
 		)
 
-		c.DenyClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, "internal error")
+		c.DenyClient(ctx, logger, state.ClientIdentifier{CID: client.CID, KID: client.KID}, deny.InternalError)
 	}
 }
 
@@ -112,8 +117,9 @@ func (c *Client) acceptBypassedClient(ctx context.Context, logger *slog.Logger, 
 
 	clientIdentifier := stateClientIdentifier(client)
 	if err := c.AcceptClient(ctx, logger, clientIdentifier, client.CommonName, ""); err != nil {
-		logger.LogAttrs(ctx, slog.LevelWarn, "failed to accept bypassed client", slog.Any("err", err))
-		c.DenyClient(ctx, logger, clientIdentifier, "authentication acceptance failed")
+		reason := deny.ReasonOf(err, deny.AcceptFailed)
+		logger.LogAttrs(ctx, reason.LogLevel(), "failed to accept bypassed client", slog.Any("err", err))
+		c.DenyClient(ctx, logger, clientIdentifier, reason)
 	}
 }
 
@@ -140,8 +146,8 @@ func (c *Client) acceptSilentlyReAuthenticatedClient(
 			user,
 		)
 		if err != nil {
-			logger.LogAttrs(ctx, slog.LevelWarn, "failed to resolve client config", slog.Any("err", err))
-			c.DenyClient(ctx, logger, stateClientIdentifier(client), "invalid client config")
+			logger.LogAttrs(ctx, deny.InvalidClientConfig.LogLevel(), "failed to resolve client config", slog.Any("err", err))
+			c.DenyClient(ctx, logger, stateClientIdentifier(client), deny.InvalidClientConfig)
 
 			return
 		}
@@ -149,8 +155,9 @@ func (c *Client) acceptSilentlyReAuthenticatedClient(
 
 	clientIdentifier := stateClientIdentifier(client)
 	if err := c.AcceptClient(ctx, logger, clientIdentifier, user.Username, clientConfigNames...); err != nil {
-		logger.LogAttrs(ctx, slog.LevelWarn, "failed to accept silently re-authenticated client", slog.Any("err", err))
-		c.DenyClient(ctx, logger, clientIdentifier, "authentication acceptance failed")
+		reason := deny.ReasonOf(err, deny.AcceptFailed)
+		logger.LogAttrs(ctx, reason.LogLevel(), "failed to accept silently re-authenticated client", slog.Any("err", err))
+		c.DenyClient(ctx, logger, clientIdentifier, reason)
 	}
 }
 
