@@ -63,7 +63,9 @@ Usage of openvpn-auth-oauth2:
   --config string
         path to one .yaml config file (env: OPENVPN_AUTH_OAUTH2_CONFIG_FILE)
   --debug.listen string
-        listen address for go profiling endpoint (env: OPENVPN_AUTH_OAUTH2_DEBUG_LISTEN) (default "127.0.0.1:9001")
+        listen address for go profiling and metrics endpoints (env: OPENVPN_AUTH_OAUTH2_DEBUG_LISTEN) (default "127.0.0.1:9001")
+  --debug.metrics
+        Enables the Prometheus metrics endpoint /metrics on the debug listener. (env: OPENVPN_AUTH_OAUTH2_DEBUG_METRICS)
   --debug.pprof
         Enables go profiling endpoint. This should be never exposed. (env: OPENVPN_AUTH_OAUTH2_DEBUG_PPROF)
   --http.assets-path value

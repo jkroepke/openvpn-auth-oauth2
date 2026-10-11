@@ -1,6 +1,7 @@
 package oauth2_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"fmt"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/metrics"
 	oauth2types "github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/test/testsuite"
@@ -628,7 +630,8 @@ func TestHandler(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			t.Cleanup(cancel)
 
-			suite := testsuite.New(&tc.conf)
+			appMetrics := metrics.New("dev", "none")
+			suite := testsuite.New(&tc.conf, testsuite.WithMetrics(appMetrics))
 			suite.SetupMockEnvironment(ctx, t, nil)
 			suite.ExpectVersionAndReleaseHold(t)
 
@@ -760,6 +763,11 @@ func TestHandler(t *testing.T) {
 			}
 
 			require.Equal(t, http.StatusOK, resp.StatusCode, suite.Logs(), string(body))
+
+			var metricsOutput bytes.Buffer
+
+			require.NoError(t, appMetrics.Write(&metricsOutput))
+			require.Contains(t, metricsOutput.String(), "openvpn_auth_oauth2_oauth2_code_exchange_duration_seconds_count 1\n")
 
 			require.NotEmpty(t, resp.Header.Get("Set-Cookie"))
 			require.Contains(t, resp.Header.Get("Set-Cookie"), "state=")

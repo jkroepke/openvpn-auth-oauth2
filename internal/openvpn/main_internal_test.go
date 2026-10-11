@@ -222,7 +222,7 @@ func newCommandTestClient() *Client {
 	conf := config.Defaults
 	conf.OpenVPN.CommandTimeout = time.Hour
 
-	return New(slog.New(slog.NewTextHandler(io.Discard, nil)), &conf) //nolint:sloglint
+	return New(slog.New(slog.NewTextHandler(io.Discard, nil)), &conf, nil) //nolint:sloglint
 }
 
 func requireCommand(t *testing.T, client *Client, expected string) {

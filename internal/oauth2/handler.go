@@ -127,16 +127,18 @@ func (c *Client) OAuth2Callback() http.Handler {
 			r = r.WithContext(context.WithValue(ctx, types.CtxNonce{}, c.getNonce(clientID)))
 		}
 
+		postCodeExchangeHandler := c.observeCodeExchange(time.Now(), c.postCodeExchangeHandler(logger, encryptedOAuth2State, oAuth2State, clientID))
+
 		var codeExchangeHandler rp.CodeExchangeCallback[*idtoken.Claims]
 
 		if c.conf.OAuth2.UserInfo {
-			codeExchangeHandler = rp.UserinfoCallback(c.postCodeExchangeHandler(logger, encryptedOAuth2State, oAuth2State, clientID))
+			codeExchangeHandler = rp.UserinfoCallback(postCodeExchangeHandler)
 		} else {
 			codeExchangeHandler = func(
 				w http.ResponseWriter, r *http.Request,
 				tokens *idtoken.IDToken, encryptedOAuth2State state.EncryptedState, provider rp.RelyingParty,
 			) {
-				c.postCodeExchangeHandler(logger, encryptedOAuth2State, oAuth2State, clientID)(w, r, tokens, encryptedOAuth2State, provider, nil)
+				postCodeExchangeHandler(w, r, tokens, encryptedOAuth2State, provider, nil)
 			}
 		}
 
@@ -145,6 +147,24 @@ func (c *Client) OAuth2Callback() http.Handler {
 			c.relyingParty,
 		).ServeHTTP(w, r)
 	})
+}
+
+// observeCodeExchange records the time from the callback request until the
+// exchanged tokens, and userinfo if enabled, are available.
+func (c *Client) observeCodeExchange(
+	start time.Time, next rp.CodeExchangeUserinfoCallback[*idtoken.Claims, *types.UserInfo],
+) rp.CodeExchangeUserinfoCallback[*idtoken.Claims, *types.UserInfo] {
+	if c.metrics == nil {
+		return next
+	}
+
+	return func(
+		w http.ResponseWriter, r *http.Request,
+		tokens *idtoken.IDToken, encryptedOAuth2State state.EncryptedState, provider rp.RelyingParty, info *types.UserInfo,
+	) {
+		c.metrics.ObserveCodeExchange(time.Since(start))
+		next(w, r, tokens, encryptedOAuth2State, provider, info)
+	}
 }
 
 // OAuth2ProfileSubmit returns an http.Handler that handles the profile selection form submission.

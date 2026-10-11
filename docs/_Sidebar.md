@@ -32,6 +32,7 @@
 **Operate and troubleshoot**
 
 - [Security considerations](Security%20considerations)
+- [Metrics](Metrics)
 - [Troubleshooting](Debugging%20Errors)
 - [FAQ](FAQ)
 

@@ -149,8 +149,9 @@ type OpenVPNPassthrough struct {
 }
 
 type Debug struct {
-	Listen string `json:"listen" yaml:"listen"`
-	Pprof  bool   `json:"pprof"  yaml:"pprof"`
+	Listen  string `json:"listen"  yaml:"listen"`
+	Pprof   bool   `json:"pprof"   yaml:"pprof"`
+	Metrics bool   `json:"metrics" yaml:"metrics"`
 }
 
 type OpenVPNConfigStrategy int

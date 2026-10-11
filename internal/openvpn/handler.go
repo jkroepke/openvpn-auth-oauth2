@@ -244,9 +244,14 @@ func (c *Client) handleClients(ctx context.Context, errCh chan<- error) {
 
 			workerIndex := client.CID % uint64(len(clientJobs))
 
+			// Count before the send so a fast worker cannot dequeue first.
+			c.metrics.ClientQueued()
+
 			select {
 			case clientJobs[workerIndex] <- client:
 			case <-ctx.Done():
+				c.metrics.ClientDequeued()
+
 				return
 			}
 		}
@@ -262,6 +267,8 @@ func (c *Client) handleClientWorker(ctx context.Context, clients <-chan connecti
 			if !ok {
 				return
 			}
+
+			c.metrics.ClientDequeued()
 
 			if err := c.processClient(ctx, client); err != nil {
 				reportErr(err)

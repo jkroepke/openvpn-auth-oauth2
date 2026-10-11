@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/metrics"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn/connection"
 )
 
@@ -30,11 +31,12 @@ const (
 const WelcomeBanner = ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info"
 
 // New creates a new Client configured with the provided logger and
-// configuration.
-func New(logger *slog.Logger, conf *config.Config) *Client {
+// configuration. appMetrics may be nil to disable metrics.
+func New(logger *slog.Logger, conf *config.Config, appMetrics *metrics.Metrics) *Client {
 	client := &Client{
-		conf:   conf,
-		logger: logger,
+		conf:    conf,
+		logger:  logger,
+		metrics: appMetrics,
 
 		connMu: sync.Mutex{},
 
@@ -302,6 +304,8 @@ func (c *Client) SendCommand(ctx context.Context, cmd string, passthrough bool) 
 		return "", fmt.Errorf("command error '%s': %w", commandName, err)
 	}
 
+	commandStart := time.Now()
+
 	// commandLock serializes resets and receives on the reusable timer.
 	c.commandTimer.Reset(c.conf.OpenVPN.CommandTimeout)
 
@@ -313,6 +317,9 @@ func (c *Client) SendCommand(ctx context.Context, cmd string, passthrough bool) 
 	}()
 
 	resp, canceled, err := c.waitForCommandResponse(ctx, commandName, passthrough)
+
+	c.observeCommand(cmd, commandStart, passthrough || canceled, err)
+
 	if canceled {
 		releaseCommandLock = false
 		stopCommandTimer = false
@@ -321,6 +328,18 @@ func (c *Client) SendCommand(ctx context.Context, cmd string, passthrough bool) 
 	}
 
 	return resp, err
+}
+
+// observeCommand records the duration of a command that OpenVPN answered.
+// Passthrough commands come from external management clients and are not
+// observed, so the command label only holds names issued by this daemon.
+// skip is true for passthrough and canceled commands.
+func (c *Client) observeCommand(cmd string, start time.Time, skip bool, err error) {
+	if skip || errors.Is(err, ErrTimeout) || errors.Is(err, ErrConnectionTerminated) {
+		return
+	}
+
+	c.metrics.ObserveCommand(managementCommandName(cmd), time.Since(start))
 }
 
 func (c *Client) waitForCommandLock(ctx context.Context) error {

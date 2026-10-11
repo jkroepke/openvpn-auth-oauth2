@@ -166,6 +166,7 @@ func TestNewProvider(t *testing.T) {
 				testsuite.NewCipher(t),
 				provider,
 				testsuite.NewFakeOpenVPNClient(),
+				nil,
 			)
 			if tc.err != "" {
 				require.Error(t, err)

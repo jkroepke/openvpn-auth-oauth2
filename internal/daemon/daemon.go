@@ -11,16 +11,23 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/crypto"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/httphandler"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/httpserver"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/metrics"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/providers"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/tokenstorage"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/utils"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/version"
 )
 
 // New wires the daemon services for one loaded configuration.
 func New(ctx context.Context, logger *slog.Logger, conf *config.Config, tokenStorage tokenstorage.Storage) (*Runtime, error) {
-	openvpnClient, httpHandler, err := setupOpenVPNClient(ctx, logger, conf, tokenStorage)
+	var appMetrics *metrics.Metrics
+	if conf.Debug.Metrics {
+		appMetrics = metrics.New(version.Version, version.Commit)
+	}
+
+	openvpnClient, httpHandler, err := setupOpenVPNClient(ctx, logger, conf, tokenStorage, appMetrics)
 	if err != nil {
 		return nil, fmt.Errorf("error setting up openvpn client: %w", err)
 	}
@@ -37,8 +44,8 @@ func New(ctx context.Context, logger *slog.Logger, conf *config.Config, tokenSto
 		},
 	}
 
-	if conf.Debug.Pprof {
-		debugServer := newDebugServer(logger, conf)
+	if conf.Debug.Pprof || conf.Debug.Metrics {
+		debugServer := newDebugServer(logger, conf, appMetrics)
 		services = append(services, service{
 			errPrefix: "error debug http listener",
 			run:       debugServer.Listen,
@@ -48,20 +55,33 @@ func New(ctx context.Context, logger *slog.Logger, conf *config.Config, tokenSto
 	return newRuntime(logger, server, services), nil
 }
 
-func newDebugServer(logger *slog.Logger, conf *config.Config) *httpserver.Server {
-	mux := http.NewServeMux()
-	mux.Handle("GET /", http.RedirectHandler("/debug/pprof/", http.StatusTemporaryRedirect))
-	mux.HandleFunc("GET /debug/pprof/", pprof.Index)
-	mux.HandleFunc("GET /debug/pprof/cmdline", pprof.Cmdline)
-	mux.HandleFunc("GET /debug/pprof/profile", pprof.Profile)
-	mux.HandleFunc("GET /debug/pprof/symbol", pprof.Symbol)
-	mux.HandleFunc("GET /debug/pprof/trace", pprof.Trace)
+func newDebugServer(logger *slog.Logger, conf *config.Config, appMetrics *metrics.Metrics) *httpserver.Server {
+	return httpserver.NewHTTPServer(httpserver.ServerNameDebug, logger, config.HTTP{Listen: conf.Debug.Listen}, newDebugMux(conf, appMetrics))
+}
 
-	return httpserver.NewHTTPServer(httpserver.ServerNameDebug, logger, config.HTTP{Listen: conf.Debug.Listen}, mux)
+// newDebugMux serves the profiling endpoints when debug.pprof is enabled
+// and /metrics when appMetrics is not nil.
+func newDebugMux(conf *config.Config, appMetrics *metrics.Metrics) *http.ServeMux {
+	mux := http.NewServeMux()
+
+	if conf.Debug.Pprof {
+		mux.Handle("GET /", http.RedirectHandler("/debug/pprof/", http.StatusTemporaryRedirect))
+		mux.HandleFunc("GET /debug/pprof/", pprof.Index)
+		mux.HandleFunc("GET /debug/pprof/cmdline", pprof.Cmdline)
+		mux.HandleFunc("GET /debug/pprof/profile", pprof.Profile)
+		mux.HandleFunc("GET /debug/pprof/symbol", pprof.Symbol)
+		mux.HandleFunc("GET /debug/pprof/trace", pprof.Trace)
+	}
+
+	if appMetrics != nil {
+		mux.Handle("GET /metrics", appMetrics)
+	}
+
+	return mux
 }
 
 func setupOpenVPNClient(
-	ctx context.Context, logger *slog.Logger, conf *config.Config, tokenStorage tokenstorage.Storage,
+	ctx context.Context, logger *slog.Logger, conf *config.Config, tokenStorage tokenstorage.Storage, appMetrics *metrics.Metrics,
 ) (*openvpn.Client, *http.ServeMux, error) {
 	httpClient := utils.NewOAuth2HTTPClient(nil)
 
@@ -70,14 +90,14 @@ func setupOpenVPNClient(
 		return nil, nil, fmt.Errorf("error creating oauth2 provider: %w", err)
 	}
 
-	openvpnClient := openvpn.New(logger, conf)
+	openvpnClient := openvpn.New(logger, conf, appMetrics)
 
 	stateCrypto, err := crypto.NewWithMaxAge(conf.HTTP.Secret.String(), conf.OpenVPN.AuthPendingTimeout)
 	if err != nil {
 		return nil, nil, fmt.Errorf("create state cipher: %w", err)
 	}
 
-	oAuth2Client, err := oauth2.New(ctx, logger, conf, httpClient, tokenStorage, stateCrypto, provider, openvpnClient)
+	oAuth2Client, err := oauth2.New(ctx, logger, conf, httpClient, tokenStorage, stateCrypto, provider, openvpnClient, appMetrics)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error creating oauth2 client: %w", err)
 	}

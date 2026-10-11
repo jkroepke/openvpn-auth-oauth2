@@ -298,6 +298,7 @@ func TestCheckIdentityCEL(t *testing.T) {
 				testsuite.NewCipher(t),
 				provider,
 				testsuite.NewFakeOpenVPNClient(),
+				nil,
 			)
 			if tc.initErr != "" {
 				require.ErrorContains(t, err, tc.initErr)

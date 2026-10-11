@@ -10,6 +10,7 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/crypto"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/metrics"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/tokenstorage"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
@@ -23,7 +24,7 @@ import (
 func New(
 	ctx context.Context, logger *slog.Logger, conf *config.Config,
 	httpClient *http.Client, tokenStorage tokenstorage.Storage, stateCrypto *crypto.Cipher,
-	provider Provider, openvpn openvpnManagementClient,
+	provider Provider, openvpn openvpnManagementClient, appMetrics *metrics.Metrics,
 ) (*Client, error) {
 	providerConfig, err := provider.GetProviderConfig()
 	if err != nil {
@@ -37,6 +38,7 @@ func New(
 		logger:          logger,
 		provider:        provider,
 		stateCrypto:     stateCrypto,
+		metrics:         appMetrics,
 		authorizeParams: make([]rp.URLParamOpt, 0, len(conf.OAuth2.AuthorizeParams)+len(providerConfig.AuthCodeOptions)+1), // +1 for nonce
 	}
 

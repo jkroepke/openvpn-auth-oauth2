@@ -26,7 +26,7 @@ func BenchmarkManagementCommandName(b *testing.B) {
 
 func BenchmarkSendCommand(b *testing.B) {
 	conf := config.Defaults
-	client := New(slog.New(slog.NewTextHandler(io.Discard, nil)), &conf) //nolint:sloglint
+	client := New(slog.New(slog.NewTextHandler(io.Discard, nil)), &conf, nil) //nolint:sloglint
 	doneCh := make(chan struct{})
 
 	go func() {

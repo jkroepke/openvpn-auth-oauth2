@@ -18,6 +18,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/crypto"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/httphandler"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/metrics"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/providers/generic"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/providers/github"
@@ -44,6 +45,7 @@ type Suite struct {
 	oAuth2Client                  *oauth2.Client
 	errOpenVPNClientCh            chan error
 	conf                          *config.Config
+	metrics                       *metrics.Metrics
 }
 
 func NewCipher(tb testing.TB) *crypto.Cipher {
@@ -267,7 +269,7 @@ func (s *Suite) SetupOpenVPNOAuth2Clients(ctx context.Context, tb testing.TB, to
 
 	require.NoError(tb, err)
 
-	openVPNClient := openvpn.New(s.logger.Logger(), s.conf)
+	openVPNClient := openvpn.New(s.logger.Logger(), s.conf, s.metrics)
 	oAuth2Client, err := oauth2.New(
 		ctx,
 		s.logger.Logger(),
@@ -277,6 +279,7 @@ func (s *Suite) SetupOpenVPNOAuth2Clients(ctx context.Context, tb testing.TB, to
 		NewCipher(tb),
 		provider,
 		openVPNClient,
+		s.metrics,
 	)
 	require.NoError(tb, err)
 

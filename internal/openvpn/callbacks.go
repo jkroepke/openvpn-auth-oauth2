@@ -52,9 +52,13 @@ func (c *Client) AcceptClient(ctx context.Context, logger *slog.Logger, client s
 			ctx, slog.LevelWarn, "failed to accept client",
 			slog.Any("error", err),
 		)
+
+		return err
 	}
 
-	return err
+	c.metrics.ClientAccepted()
+
+	return nil
 }
 
 // loadClientConfig reads the client configuration from CCD and logs the result.
@@ -237,7 +241,11 @@ func (c *Client) DenyClient(ctx context.Context, logger *slog.Logger, client sta
 			ctx, slog.LevelWarn, "failed to deny client",
 			slog.Any("error", err),
 		)
+
+		return
 	}
+
+	c.metrics.ClientDenied(reason.String())
 }
 
 func (c *Client) readClientConfig(username string) ([]string, error) {

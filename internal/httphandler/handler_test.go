@@ -43,6 +43,7 @@ func TestAssets(t *testing.T) {
 		stateCrypto,
 		provider,
 		testsuite.NewFakeOpenVPNClient(),
+		nil,
 	)
 	require.NoError(t, err)
 
@@ -86,6 +87,7 @@ func TestCustomAssets(t *testing.T) {
 		stateCrypto,
 		provider,
 		testsuite.NewFakeOpenVPNClient(),
+		nil,
 	)
 	require.NoError(t, err)
 

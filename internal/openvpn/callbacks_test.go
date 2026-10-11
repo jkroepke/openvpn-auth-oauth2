@@ -16,6 +16,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/deny"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/metrics"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/test/testsuite"
@@ -405,4 +406,71 @@ func (fileInfo) IsDir() bool {
 
 func (fileInfo) Sys() any {
 	return nil
+}
+
+func TestAcceptAndDenyClientRecordMetrics(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	t.Cleanup(cancel)
+
+	conf := config.Defaults
+	conf.OAuth2.Refresh.ValidateUser = false
+
+	appMetrics := metrics.New("dev", "none")
+	suite := testsuite.New(&conf, testsuite.WithMetrics(appMetrics))
+	errOpenVPNClientCh := suite.SetupManagementEnvironment(ctx, t, nil)
+	openVPNClient := suite.GetOpenVPNClient()
+
+	suite.ExpectVersionAndReleaseHold(t)
+
+	acceptDone := make(chan error, 1)
+	go func() {
+		acceptDone <- openVPNClient.AcceptClient(ctx, suite.GetLogger(), state.ClientIdentifier{CID: 1, KID: 2}, "alice")
+	}()
+
+	suite.ExpectMessage(t, "client-auth-nt 1 2")
+	suite.SendMessagef(t, "SUCCESS: client-auth command succeeded")
+
+	select {
+	case err := <-acceptDone:
+		require.NoError(t, err)
+	case <-time.After(time.Second):
+		t.Fatalf("timeout waiting for AcceptClient. Logs:\n\n%s", suite.Logs())
+	}
+
+	denyDone := make(chan struct{})
+
+	go func() {
+		openVPNClient.DenyClient(ctx, suite.GetLogger(), state.ClientIdentifier{CID: 3, KID: 4}, deny.ClientRejected)
+		close(denyDone)
+	}()
+
+	suite.ExpectMessage(t, `client-deny 3 4 "client rejected"`)
+	suite.SendMessagef(t, "SUCCESS: client-deny command succeeded")
+
+	select {
+	case <-denyDone:
+	case <-time.After(time.Second):
+		t.Fatalf("timeout waiting for DenyClient. Logs:\n\n%s", suite.Logs())
+	}
+
+	var buf bytes.Buffer
+
+	require.NoError(t, appMetrics.Write(&buf))
+	require.Contains(t, buf.String(), "openvpn_auth_oauth2_openvpn_client_accepted_total 1\n")
+	require.Contains(t, buf.String(), `openvpn_auth_oauth2_openvpn_client_denied_total{reason="client_rejected"} 1`+"\n")
+	require.Contains(t, buf.String(), `openvpn_auth_oauth2_openvpn_command_duration_seconds_count{command="client-auth-nt"} 1`+"\n")
+	require.Contains(t, buf.String(), `openvpn_auth_oauth2_openvpn_command_duration_seconds_count{command="client-deny"} 1`+"\n")
+
+	require.NoError(t, suite.GetManagementInterfaceConn().Close())
+
+	select {
+	case err := <-errOpenVPNClientCh:
+		if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrUnexpectedEOF) {
+			require.NoError(t, err)
+		}
+	case <-time.After(time.Second):
+		t.Fatalf("timeout waiting for connection to close. Logs:\n\n%s", suite.Logs())
+	}
 }
