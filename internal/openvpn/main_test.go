@@ -810,3 +810,95 @@ func TestUnexpectedManagementDisconnectReturnsError(t *testing.T) {
 		t.Fatal("management client did not report unexpected disconnect")
 	}
 }
+
+func TestManagementMessageFraming(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	t.Cleanup(cancel)
+
+	conf := config.Defaults
+	conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
+	conf.HTTP.Secret = testsuite.Secret
+	conf.OpenVPN.CommonName.EnvironmentVariableName = config.CommonName
+	conf.OpenVPN.Bypass = config.OpenVPNBypass{CommonNames: types.RegexpSlice{regexp.MustCompile(`^bypass$`)}}
+	conf.OpenVPN.AuthTokenUser = false
+
+	suite := testsuite.New(&conf)
+	errOpenVPNClientCh := suite.SetupManagementEnvironment(ctx, t, nil)
+	openVPNClient := suite.GetOpenVPNClient()
+
+	t.Cleanup(func() {
+		openVPNClient.Shutdown(t.Context())
+
+		select {
+		case err := <-errOpenVPNClientCh:
+			require.NoError(t, err, suite.Logs())
+		case <-time.After(time.Second):
+			t.Fatal("timeout waiting for connection to close")
+		}
+	})
+
+	suite.ExpectVersionAndReleaseHold(t)
+
+	// Single-line notifications must not swallow the following client notification.
+	suite.SendMessagef(t, ">BYTECOUNT_CLI:1,1024,2048\r\n>FOO:bar")
+	suite.SendMessagef(t, ">CLIENT:CONNECT,0,1\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END")
+	suite.ExpectMessage(t, "client-auth-nt 0 1")
+	suite.SendMessagef(t, "SUCCESS: client-auth command succeeded")
+
+	// OpenVPN announces the primary VPN address right before ESTABLISHED.
+	suite.SendMessagef(t, ">CLIENT:ADDRESS,0,10.8.0.2,1\r\n>CLIENT:ESTABLISHED,0\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,END")
+
+	for _, tc := range []struct {
+		command  string
+		send     string
+		response string
+	}{
+		{
+			command:  "pid",
+			send:     ">CLIENT:ADDRESS,1,10.9.0.0/24,0\r\nSUCCESS: pid=7",
+			response: "SUCCESS: pid=7\r\n",
+		},
+		{
+			command:  "status",
+			send:     "OpenVPN CLIENT LIST\r\nCommon Name,Real Address\r\nENGINEERING,1.2.3.4:1194\r\nSUPPORT,1.2.3.5:1194\r\nEND",
+			response: "OpenVPN CLIENT LIST\r\nCommon Name,Real Address\r\nENGINEERING,1.2.3.4:1194\r\nSUPPORT,1.2.3.5:1194\r\nEND\r\n",
+		},
+		{
+			command:  "hold on",
+			send:     "SUCCESS: hold flag set to ON",
+			response: "SUCCESS: hold flag set to ON\r\n",
+		},
+	} {
+		type commandResult struct {
+			err      error
+			response string
+		}
+
+		resultCh := make(chan commandResult, 1)
+
+		go func() {
+			response, err := openVPNClient.SendCommand(t.Context(), tc.command, true)
+			resultCh <- commandResult{response: response, err: err}
+		}()
+
+		suite.ExpectMessage(t, tc.command)
+		suite.SendMessagef(t, tc.send)
+
+		select {
+		case result := <-resultCh:
+			require.NoError(t, result.err, suite.Logs())
+			require.Equal(t, tc.response, result.response, suite.Logs())
+		case <-time.After(time.Second):
+			t.Fatalf("timeout waiting for %q response. Logs:\n\n%s", tc.command, suite.Logs())
+		}
+	}
+
+	require.Eventually(t, func() bool {
+		return strings.Contains(suite.Logs(), "client established") && strings.Contains(suite.Logs(), "vpn_ip=10.8.0.2")
+	}, time.Second, 10*time.Millisecond, suite.Logs())
+
+	require.Contains(t, suite.Logs(), "unknown message from OpenVPN management interface")
+	require.Contains(t, suite.Logs(), ">FOO:bar")
+}

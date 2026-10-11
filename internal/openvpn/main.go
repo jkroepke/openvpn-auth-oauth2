@@ -476,50 +476,12 @@ func managementCommandName(cmd string) string {
 	return ""
 }
 
-// readMessage .
-func (c *Client) readMessage(buf *bytes.Buffer) error {
-	buf.Reset()
-
-	var line []byte
-
-	for c.scanner.Scan() {
-		line = c.scanner.Bytes()
-
-		if len(line) == 0 {
-			continue
-		}
-
-		if _, err := buf.Write(line); err != nil {
-			return fmt.Errorf("unable to write string to buffer: %w", err)
-		}
-
-		if _, err := buf.WriteString("\r\n"); err != nil {
-			return fmt.Errorf("unable to write newline to buffer: %w", err)
-		}
-
-		if c.isMessageLineEOF(line) {
-			return nil
-		}
+// readMessage reads the next complete message from the management interface.
+func (c *Client) readMessage(buf *bytes.Buffer) (connection.MessageType, error) {
+	messageType, err := connection.ReadMessage(c.scanner, buf)
+	if err != nil && !errors.Is(err, io.EOF) && c.closed.Load() == 1 {
+		return messageType, io.EOF
 	}
 
-	if c.closed.Load() == 0 && c.scanner.Err() != nil {
-		return fmt.Errorf("scanner error: %w", c.scanner.Err())
-	}
-
-	return io.EOF
-}
-
-func (c *Client) isMessageLineEOF(line []byte) bool {
-	switch {
-	// SUCCESS, ERROR, END, >HOLD, >INFO, >NOTIFY
-	case bytes.HasPrefix(line, []byte("SU")),
-		bytes.HasPrefix(line, []byte("ER")),
-		bytes.HasPrefix(line, []byte("EN")),
-		bytes.HasPrefix(line, []byte(">H")),
-		bytes.HasPrefix(line, []byte(">I")),
-		bytes.HasPrefix(line, []byte(">N")):
-		return true
-	default:
-		return bytes.Equal(line, []byte(">CLIENT:ENV,END"))
-	}
+	return messageType, err //nolint:wrapcheck // errors are wrapped by connection.ReadMessage
 }
