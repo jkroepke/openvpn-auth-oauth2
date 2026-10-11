@@ -12,11 +12,17 @@ func (c *Config) flagSetDebug(flagSet *flag.FlagSet) {
 		c.Debug.Pprof,
 		"Enables go profiling endpoint. This should be never exposed.",
 	)
+	flagSet.BoolVar(
+		&c.Debug.Metrics,
+		"debug.metrics",
+		c.Debug.Metrics,
+		"Enables the Prometheus metrics endpoint /metrics on the debug listener.",
+	)
 	flagSet.StringVar(
 		&c.Debug.Listen,
 		"debug.listen",
 		c.Debug.Listen,
-		"listen address for go profiling endpoint",
+		"listen address for go profiling and metrics endpoints",
 	)
 }
 

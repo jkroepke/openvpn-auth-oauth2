@@ -246,6 +246,7 @@ func (c *Client) handleClients(ctx context.Context, errCh chan<- error) {
 
 			select {
 			case clientJobs[workerIndex] <- client:
+				c.metrics.ClientQueued()
 			case <-ctx.Done():
 				return
 			}
@@ -262,6 +263,8 @@ func (c *Client) handleClientWorker(ctx context.Context, clients <-chan connecti
 			if !ok {
 				return
 			}
+
+			c.metrics.ClientDequeued()
 
 			if err := c.processClient(ctx, client); err != nil {
 				reportErr(err)

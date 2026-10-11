@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/metrics"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn/connection"
@@ -36,6 +37,7 @@ type Client struct {
 	passThroughCh        chan string
 	shutdownCh           chan struct{}
 	conf                 *config.Config
+	metrics              *metrics.Metrics
 	commandsBuffer       bytes.Buffer
 	acceptMu             sync.Mutex
 	connMu               sync.Mutex

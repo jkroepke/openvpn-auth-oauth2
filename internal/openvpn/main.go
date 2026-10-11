@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/metrics"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn/connection"
 )
 
@@ -30,11 +31,12 @@ const (
 const WelcomeBanner = ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info"
 
 // New creates a new Client configured with the provided logger and
-// configuration.
-func New(logger *slog.Logger, conf *config.Config) *Client {
+// configuration. appMetrics may be nil to disable metrics.
+func New(logger *slog.Logger, conf *config.Config, appMetrics *metrics.Metrics) *Client {
 	client := &Client{
-		conf:   conf,
-		logger: logger,
+		conf:    conf,
+		logger:  logger,
+		metrics: appMetrics,
 
 		connMu: sync.Mutex{},
 
@@ -302,6 +304,12 @@ func (c *Client) SendCommand(ctx context.Context, cmd string, passthrough bool) 
 		return "", fmt.Errorf("command error '%s': %w", commandName, err)
 	}
 
+	// Passthrough commands come from external management clients; only
+	// commands issued by this daemon have a bounded set of names.
+	if !passthrough {
+		defer c.observeCommand(cmd, time.Now())
+	}
+
 	// commandLock serializes resets and receives on the reusable timer.
 	c.commandTimer.Reset(c.conf.OpenVPN.CommandTimeout)
 
@@ -321,6 +329,10 @@ func (c *Client) SendCommand(ctx context.Context, cmd string, passthrough bool) 
 	}
 
 	return resp, err
+}
+
+func (c *Client) observeCommand(cmd string, start time.Time) {
+	c.metrics.ObserveCommand(managementCommandName(cmd), time.Since(start))
 }
 
 func (c *Client) waitForCommandLock(ctx context.Context) error {

@@ -7,6 +7,7 @@ import (
 	"cel.dev/cel-go/cel"
 	types2 "github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/crypto"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/metrics"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
@@ -24,6 +25,7 @@ type Client struct {
 	configsCELPrg    cel.Program
 	logger           *slog.Logger
 	stateCrypto      *crypto.Cipher
+	metrics          *metrics.Metrics
 	conf             *types2.Config
 	authorizeParams  []rp.URLParamOpt
 }

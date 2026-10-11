@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/metrics"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn/connection"
@@ -300,8 +301,15 @@ func (c *Client) silentReAuthentication(
 	}
 
 	user, token, clientConfigNames, ok, err := c.oauth2.RefreshClientAuth(ctx, logger, client)
-	if err != nil {
+
+	switch {
+	case err != nil:
 		logger.LogAttrs(ctx, slog.LevelWarn, "error refreshing client auth", slog.Any("err", err))
+		c.metrics.SilentReAuth(metrics.SilentReAuthError)
+	case ok:
+		c.metrics.SilentReAuth(metrics.SilentReAuthSuccess)
+	default:
+		c.metrics.SilentReAuth(metrics.SilentReAuthFallback)
 	}
 
 	logger.LogAttrs(ctx, slog.LevelDebug, "silent re-authentication", slog.Bool("result", ok))

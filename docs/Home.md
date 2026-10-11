@@ -49,6 +49,8 @@ Choose the path that matches what you want to do:
 
 - [Security considerations](Security%20considerations) describes threats and
   recommended mitigations.
+- [Metrics](Metrics) exposes login, refresh, and management interface
+  metrics in the Prometheus format.
 - [Filesystem Permissions](Filesystem%20Permissions) covers package and systemd
   file access.
 - [Management interface pass-through](Management%20Interface%20pass-through)
