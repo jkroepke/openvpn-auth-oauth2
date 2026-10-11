@@ -228,7 +228,9 @@ func (c *Client) handlePassThroughClientCommands(ctx context.Context, conn net.C
 
 func passThroughCommandReserved(line string) bool {
 	switch strings.ToLower(managementCommandName(line)) {
-	case "client-auth", "client-auth-nt", "client-deny", "client-pending-auth":
+	// OpenVPN's debug command "test" prints lines without a terminating END,
+	// which would block the management message stream.
+	case "client-auth", "client-auth-nt", "client-deny", "client-pending-auth", "test":
 		return true
 	default:
 		return false

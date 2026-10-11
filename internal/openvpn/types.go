@@ -24,20 +24,22 @@ const (
 )
 
 type Client struct {
-	oauth2               oauth2Client
-	conn                 net.Conn
-	commandResponseCh    chan string
-	commandLock          chan struct{}
-	commandTimer         *time.Timer
-	commandsCh           chan string
-	logger               *slog.Logger
-	scanner              *bufio.Scanner
-	ctxCancel            context.CancelFunc
-	clientsCh            chan connection.Client
-	passThroughCh        chan string
-	shutdownCh           chan struct{}
-	conf                 *config.Config
-	metrics              *metrics.Metrics
+	oauth2            oauth2Client
+	conn              net.Conn
+	commandResponseCh chan string
+	commandLock       chan struct{}
+	commandTimer      *time.Timer
+	commandsCh        chan string
+	logger            *slog.Logger
+	scanner           *bufio.Scanner
+	ctxCancel         context.CancelFunc
+	clientsCh         chan connection.Client
+	passThroughCh     chan string
+	shutdownCh        chan struct{}
+	conf              *config.Config
+	metrics           *metrics.Metrics
+	// pendingClientAddress is owned by the handleMessages goroutine.
+	pendingClientAddress clientAddress
 	commandsBuffer       bytes.Buffer
 	acceptMu             sync.Mutex
 	connMu               sync.Mutex
@@ -45,6 +47,12 @@ type Client struct {
 	commandTimedOut      atomic.Bool
 	ready                atomic.Bool
 	passThroughConnected atomic.Uint32
+}
+
+// clientAddress is the primary VPN address announced by >CLIENT:ADDRESS.
+type clientAddress struct {
+	addr string
+	cid  uint64
 }
 
 type oauth2Client interface {

@@ -89,15 +89,13 @@ func (c *Client) handleMessages(ctx context.Context, errCh chan<- error) {
 	defer close(c.commandResponseCh)
 	defer close(c.clientsCh)
 
-	var (
-		err error
-		buf bytes.Buffer
-	)
+	var buf bytes.Buffer
 
 	buf.Grow(4096)
 
 	for {
-		if err = c.readMessage(&buf); err != nil {
+		messageType, err := c.readMessage(&buf)
+		if err != nil {
 			if errors.Is(err, io.EOF) {
 				c.logger.LogAttrs(ctx, slog.LevelWarn, "OpenVPN management interface connection terminated")
 
@@ -111,7 +109,7 @@ func (c *Client) handleMessages(ctx context.Context, errCh chan<- error) {
 			return
 		}
 
-		if err = c.handleMessage(ctx, buf.String()); err != nil {
+		if err = c.handleMessage(ctx, messageType, buf.String()); err != nil {
 			if ctxErr := ctx.Err(); ctxErr != nil && errors.Is(err, ctxErr) {
 				errCh <- nil
 
@@ -132,53 +130,89 @@ func (c *Client) handleMessages(ctx context.Context, errCh chan<- error) {
 }
 
 //nolint:cyclop
-func (c *Client) handleMessage(ctx context.Context, message string) error {
-	switch {
-	case strings.HasPrefix(message, ">"):
-		switch {
-		case strings.HasPrefix(message, ">CLIEN"):
-			return c.handleClientMessage(ctx, message)
-		case strings.HasPrefix(message, ">HOLD:"):
-			select {
-			case c.commandsCh <- "hold release":
-			case <-ctx.Done():
-				return fmt.Errorf("enqueue hold release: %w", ctx.Err())
-			case <-c.shutdownCh:
-				return ErrConnectionTerminated
-			}
-		case strings.HasPrefix(message, ">INFO:"):
-			// welcome message
-			if strings.HasPrefix(message, ">INFO:OpenVPN Management Interface Version") {
-				return nil
-			}
-
-			select {
-			case c.commandResponseCh <- message:
-			case <-ctx.Done():
-				return fmt.Errorf("dispatch info response: %w", ctx.Err())
-			case <-c.shutdownCh:
-				return ErrConnectionTerminated
-			}
-		default:
-			c.writeToPassThroughClient(message)
+func (c *Client) handleMessage(ctx context.Context, messageType connection.MessageType, message string) error {
+	switch messageType { //nolint:exhaustive // other real-time notifications are forwarded to the pass-through client
+	case connection.MessageTypeClient:
+		return c.handleClientMessage(ctx, message)
+	case connection.MessageTypeClientAddress:
+		c.handleClientAddressMessage(ctx, message)
+	case connection.MessageTypeHold:
+		select {
+		case c.commandsCh <- "hold release":
+		case <-ctx.Done():
+			return fmt.Errorf("enqueue hold release: %w", ctx.Err())
+		case <-c.shutdownCh:
+			return ErrConnectionTerminated
+		}
+	case connection.MessageTypeInfo:
+		// welcome message
+		if strings.HasPrefix(message, ">INFO:OpenVPN Management Interface Version") {
+			return nil
 		}
 
-	// SUCCESS: hold release succeeded
-	case len(message) >= 13 && message[9:13] == "hold":
-		c.logger.LogAttrs(ctx, slog.LevelInfo, "hold release succeeded")
-	default:
 		select {
 		case c.commandResponseCh <- message:
 		case <-ctx.Done():
-			return fmt.Errorf("dispatch command response: %w", ctx.Err())
+			return fmt.Errorf("dispatch info response: %w", ctx.Err())
 		case <-c.shutdownCh:
 			return ErrConnectionTerminated
-		case <-time.After(2 * time.Second):
-			c.logger.LogAttrs(ctx, slog.LevelWarn, "command response not accepted. Was there a timeout before? Dropping message", slog.String("message", message))
 		}
+	case connection.MessageTypeSuccess, connection.MessageTypeError, connection.MessageTypeResponse:
+		return c.handleCommandResponse(ctx, messageType, message)
+	case connection.MessageTypeUnknown:
+		c.logger.LogAttrs(ctx, slog.LevelWarn, "unknown message from OpenVPN management interface", slog.String("message", strings.TrimSpace(message)))
+		c.writeToPassThroughClient(message)
+	default:
+		c.writeToPassThroughClient(message)
 	}
 
 	return nil
+}
+
+func (c *Client) handleCommandResponse(ctx context.Context, messageType connection.MessageType, message string) error {
+	// The hold release command is sent by handleMessage itself, nobody waits for its response.
+	// OpenVPN responds with "SUCCESS: hold release succeeded", the plugin with "SUCCESS: hold released".
+	if messageType == connection.MessageTypeSuccess && strings.HasPrefix(message, "SUCCESS: hold release") {
+		c.logger.LogAttrs(ctx, slog.LevelInfo, "hold release succeeded")
+
+		return nil
+	}
+
+	select {
+	case c.commandResponseCh <- message:
+	case <-ctx.Done():
+		return fmt.Errorf("dispatch command response: %w", ctx.Err())
+	case <-c.shutdownCh:
+		return ErrConnectionTerminated
+	case <-time.After(2 * time.Second):
+		c.logger.LogAttrs(ctx, slog.LevelWarn, "command response not accepted. Was there a timeout before? Dropping message", slog.String("message", message))
+	}
+
+	return nil
+}
+
+// handleClientAddressMessage remembers the primary VPN address of a client.
+// OpenVPN sends >CLIENT:ADDRESS right before >CLIENT:ESTABLISHED of the same client.
+func (c *Client) handleClientAddressMessage(ctx context.Context, message string) {
+	cid, addr, primary, err := connection.ParseClientAddress(message)
+	if err != nil {
+		c.logger.LogAttrs(ctx, slog.LevelWarn, "unable to parse client address message", slog.Any("err", err))
+
+		return
+	}
+
+	if c.logger.Enabled(ctx, slog.LevelDebug) {
+		c.logger.LogAttrs(ctx, slog.LevelDebug, "client address learned",
+			slog.Uint64("cid", cid),
+			slog.String("vpn_ip", addr),
+			slog.Bool("primary", primary),
+		)
+	}
+
+	// OpenVPN announces the IPv4 address before the IPv6 address. Keep the first one.
+	if primary && (c.pendingClientAddress.cid != cid || c.pendingClientAddress.addr == "") {
+		c.pendingClientAddress = clientAddress{cid: cid, addr: addr}
+	}
 }
 
 func (c *Client) handleClientMessage(ctx context.Context, message string) error {
@@ -190,6 +224,12 @@ func (c *Client) handleClientMessage(ctx context.Context, message string) error 
 	if err != nil {
 		return fmt.Errorf("error parsing client message: %w", err)
 	}
+
+	if client.Reason == "ESTABLISHED" && c.pendingClientAddress.cid == client.CID {
+		client.VPNAddress = c.pendingClientAddress.addr
+	}
+
+	c.pendingClientAddress = clientAddress{}
 
 	select {
 	case c.clientsCh <- client:
