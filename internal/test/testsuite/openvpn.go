@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/deny"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
 )
 
@@ -22,5 +23,5 @@ func (FakeOpenVPNClient) AcceptClient(_ context.Context, _ *slog.Logger, _ state
 }
 
 // DenyClient is a no-op implementation of the real method.
-func (FakeOpenVPNClient) DenyClient(_ context.Context, _ *slog.Logger, _ state.ClientIdentifier, _ string) {
+func (FakeOpenVPNClient) DenyClient(_ context.Context, _ *slog.Logger, _ state.ClientIdentifier, _ deny.Reason) {
 }
