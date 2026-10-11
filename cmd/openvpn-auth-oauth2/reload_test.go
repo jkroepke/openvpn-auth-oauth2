@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"syscall"
@@ -16,6 +17,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/test/testlogger"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/test/testsuite"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/utils"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/nettest"
 )
@@ -108,6 +110,7 @@ func TestReload(t *testing.T) {
 
 	managementInterfaceConn, err := managementInterface.Accept()
 	require.NoError(t, err)
+	closeOnCleanup(t, managementInterfaceConn)
 
 	managementConn := testsuite.NewConn(managementInterfaceConn)
 
@@ -201,6 +204,7 @@ func TestReload(t *testing.T) {
 
 	managementInterfaceConn, err = managementInterface.Accept()
 	require.NoError(t, err, buf.String())
+	closeOnCleanup(t, managementInterfaceConn)
 
 	managementConn = testsuite.NewConn(managementInterfaceConn)
 
@@ -265,4 +269,128 @@ func TestReload(t *testing.T) {
 	response := managementConn.ReadLine(t)
 	require.Equal(t, "client-auth 0 2", response, buf.String())
 	managementConn.SendMessagef(t, "SUCCESS: client-pending-auth command succeeded")
+}
+
+func TestReloadKeepsRunningOnInvalidConfig(t *testing.T) {
+	t.Parallel()
+
+	managementInterface, err := nettest.NewLocalListener("tcp")
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		require.NoError(t, managementInterface.Close())
+	})
+
+	configFile := filepath.Join(t.TempDir(), "config.yaml")
+	validConfig := []byte("log:\n  level: debug\n")
+	require.NoError(t, os.WriteFile(configFile, validConfig, 0o600))
+
+	buf := testlogger.NewSyncBuffer()
+
+	// Use an unbuffered channel so each signal is received before sending the next.
+	termCh := make(chan os.Signal)
+	runDone := make(chan struct{})
+
+	var returnCode int
+
+	go func() {
+		args := []string{
+			"openvpn-auth-oauth2",
+			"--config=" + configFile,
+			"--log.format=console",
+			"--http.baseurl=http://127.0.0.1:9000",
+			"--http.secret=" + testsuite.Secret,
+			"--http.listen=127.0.0.1:0",
+			"--http.assets-path=../../internal/ui/assets",
+			"--openvpn.addr=tcp://" + managementInterface.Addr().String(),
+			"--oauth2.issuer=http://127.0.0.1:10000",
+			"--oauth2.client.id=client",
+			"--oauth2.client.secret=" + testsuite.Secret,
+			"--oauth2.endpoint.auth=http://127.0.0.1:10000/auth",
+			"--oauth2.endpoint.token=http://127.0.0.1:10000/token",
+		}
+
+		returnCode = runLoop(args, buf, termCh)
+
+		close(runDone)
+	}()
+
+	sendSignal := func(sig os.Signal) {
+		t.Helper()
+
+		select {
+		case <-runDone:
+			t.Fatalf("daemon exited before receiving %s (code %d):\n%s", sig, returnCode, buf.String())
+		case termCh <- sig:
+		case <-time.After(5 * time.Second):
+			t.Fatalf("daemon did not receive %s:\n%s", sig, buf.String())
+		}
+	}
+
+	t.Cleanup(func() {
+		select {
+		case <-runDone:
+		case termCh <- syscall.SIGTERM:
+		case <-time.After(5 * time.Second):
+			t.Errorf("daemon did not receive SIGTERM:\n%s", buf.String())
+
+			return
+		}
+
+		select {
+		case <-runDone:
+			assert.Equal(t, ReturnCodeOK, returnCode, buf.String())
+		case <-time.After(5 * time.Second):
+			t.Errorf("daemon did not terminate after SIGTERM:\n%s", buf.String())
+		}
+	})
+
+	tcpListener, ok := managementInterface.(*net.TCPListener)
+	require.True(t, ok, "expected TCP listener")
+	require.NoError(t, tcpListener.SetDeadline(time.Now().Add(5*time.Second)))
+
+	managementInterfaceConn, err := managementInterface.Accept()
+	require.NoError(t, err, buf.String())
+	closeOnCleanup(t, managementInterfaceConn)
+
+	managementConn := testsuite.NewConn(managementInterfaceConn)
+	managementConn.ExpectVersionAndReleaseHold(t)
+
+	// A broken configuration must not stop the running daemon.
+	require.NoError(t, os.WriteFile(configFile, []byte("log: [\n"), 0o600))
+	sendSignal(SIGUSR1)
+
+	require.Eventually(t, func() bool {
+		return strings.Contains(buf.String(), "configuration reload failed, keeping current configuration")
+	}, 5*time.Second, 10*time.Millisecond, buf.String())
+
+	// The daemon still serves the existing management connection.
+	managementConn.SendMessagef(t, ">INFO:still connected")
+	require.NoError(t, tcpListener.SetDeadline(time.Now().Add(200*time.Millisecond)))
+
+	_, err = managementInterface.Accept()
+	require.Error(t, err, "daemon must not reconnect after a failed reload:\n%s", buf.String())
+
+	// Once the configuration is fixed, the reload is applied.
+	require.NoError(t, os.WriteFile(configFile, validConfig, 0o600))
+	sendSignal(SIGUSR1)
+
+	require.NoError(t, tcpListener.SetDeadline(time.Now().Add(5*time.Second)))
+
+	managementInterfaceConn, err = managementInterface.Accept()
+	require.NoError(t, err, buf.String())
+	closeOnCleanup(t, managementInterfaceConn)
+
+	managementConn = testsuite.NewConn(managementInterfaceConn)
+	managementConn.ExpectVersionAndReleaseHold(t)
+}
+
+// closeOnCleanup closes conn when the test ends. The cleanup keeps conn reachable,
+// so the garbage collector cannot close the socket while the daemon still uses it.
+func closeOnCleanup(tb testing.TB, conn net.Conn) {
+	tb.Helper()
+
+	tb.Cleanup(func() {
+		_ = conn.Close()
+	})
 }
