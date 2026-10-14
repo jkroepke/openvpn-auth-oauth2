@@ -193,7 +193,7 @@ Usage of openvpn-auth-oauth2:
   --ssf.enabled
         If true, openvpn-auth-oauth2 receives OpenID Shared Signals Framework (SSF) events and terminates OpenVPN sessions that the identity provider revoked. Requires a direct OpenVPN management-interface connection; the OpenVPN plugin is not supported. (env: OPENVPN_AUTH_OAUTH2_SSF_ENABLED)
   --ssf.issuer value
-        Issuer URL of the SSF transmitter. The transmitter configuration is read from <issuer>/.well-known/ssf-configuration. Must start with https:// (env: OPENVPN_AUTH_OAUTH2_SSF_ISSUER)
+        Issuer URL of the SSF transmitter. The transmitter configuration is read from <issuer>/.well-known/ssf-configuration. If empty, oauth2.issuer is used. Must start with https:// (env: OPENVPN_AUTH_OAUTH2_SSF_ISSUER)
   --ssf.max-age duration
         Rejects Security Event Tokens issued longer ago than this. Also bounds the replay protection window. (env: OPENVPN_AUTH_OAUTH2_SSF_MAX_AGE) (default 1h0m0s)
   --ssf.poll.interval duration

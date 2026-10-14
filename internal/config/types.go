@@ -340,6 +340,17 @@ func (s *OAuth2RefreshNonce) UnmarshalText(text []byte) error {
 	return nil
 }
 
+// SSFIssuer returns ssf.issuer, or oauth2.issuer if ssf.issuer is empty.
+//
+//goland:noinspection GoMixedReceiverTypes
+func (c Config) SSFIssuer() types.URL {
+	if c.SSF.Issuer.IsEmpty() {
+		return c.OAuth2.Issuer
+	}
+
+	return c.SSF.Issuer
+}
+
 //goland:noinspection GoMixedReceiverTypes
 func (c Config) String() string {
 	jsonString, err := json.Marshal(c)

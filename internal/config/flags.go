@@ -445,7 +445,7 @@ func (c *Config) flagSetSSF(flagSet *flag.FlagSet) {
 		"ssf.issuer",
 		c.SSF.Issuer,
 		"Issuer URL of the SSF transmitter. The transmitter configuration is read from "+
-			"<issuer>/.well-known/ssf-configuration. Must start with https://",
+			"<issuer>/.well-known/ssf-configuration. If empty, oauth2.issuer is used. Must start with https://",
 	)
 	flagSet.StringVar(
 		&c.SSF.Audience,

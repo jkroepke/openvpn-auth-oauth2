@@ -40,11 +40,11 @@ func validateSSFConfig(mode int, conf *Config) error {
 		return errors.New("ssf.enabled requires the OpenVPN management interface")
 	}
 
-	if conf.SSF.Issuer.IsEmpty() {
-		return fmt.Errorf("ssf.issuer is %w", ErrRequired)
-	}
+	if err := validateHTTPSURL(conf.SSFIssuer()); err != nil {
+		if conf.SSF.Issuer.IsEmpty() {
+			return fmt.Errorf("ssf.issuer is empty, falling back to oauth2.issuer: %w", err)
+		}
 
-	if err := validateHTTPSURL(conf.SSF.Issuer); err != nil {
 		return fmt.Errorf("ssf.issuer: %w", err)
 	}
 

@@ -81,7 +81,7 @@
 #  reauthentication: true
 #ssf:
 #  enabled: false  # Not implemented yet; the receiver follows in a later release.
-#  issuer: "https://idp/realms/vpn"  # Must start with https://. Discovery reads <issuer>/.well-known/ssf-configuration
+#  issuer: ""  # Defaults to oauth2.issuer. Must start with https://. Discovery reads <issuer>/.well-known/ssf-configuration
 #  audience: ""  # Defaults to the aud of the SSF stream
 #  poll:
 #    url: ""  # Defaults to the poll endpoint of the SSF stream. Must start with https://

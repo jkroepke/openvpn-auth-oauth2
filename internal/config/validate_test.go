@@ -404,11 +404,19 @@ func TestValidateSSF(t *testing.T) {
 			"",
 		},
 		{
-			"missing issuer",
+			"issuer falls back to oauth2.issuer",
+			func(conf *config.Config) {
+				conf.SSF.Issuer = types.URL{}
+				conf.OAuth2.Issuer = types.URL{URL: &url.URL{Scheme: "https", Host: "idp.example.com", Path: "/realms/vpn"}}
+			},
+			"",
+		},
+		{
+			"issuer falls back to http oauth2.issuer",
 			func(conf *config.Config) {
 				conf.SSF.Issuer = types.URL{}
 			},
-			"ssf.issuer is required",
+			"ssf.issuer is empty, falling back to oauth2.issuer: invalid URL. only https:// scheme supported",
 		},
 		{
 			"http issuer",
