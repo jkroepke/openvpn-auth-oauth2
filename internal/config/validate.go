@@ -21,7 +21,70 @@ func Validate(mode int, conf *Config) error {
 		return err
 	}
 
-	return validateOpenVPNConfig(mode, conf)
+	if err := validateOpenVPNConfig(mode, conf); err != nil {
+		return err
+	}
+
+	return validateSSFConfig(mode, conf)
+}
+
+// validateSSFConfig validates the OpenID Shared Signals Framework receiver configuration.
+//
+//nolint:cyclop
+func validateSSFConfig(mode int, conf *Config) error {
+	if !conf.SSF.Enabled {
+		return nil
+	}
+
+	if mode != ManagementClient {
+		return errors.New("ssf.enabled requires the OpenVPN management interface")
+	}
+
+	if conf.SSF.Issuer.IsEmpty() {
+		return fmt.Errorf("ssf.issuer is %w", ErrRequired)
+	}
+
+	if err := validateHTTPSURL(conf.SSF.Issuer); err != nil {
+		return fmt.Errorf("ssf.issuer: %w", err)
+	}
+
+	if err := validateHTTPSURL(conf.SSF.JWKSURI); err != nil {
+		return fmt.Errorf("ssf.jwks-uri: %w", err)
+	}
+
+	if conf.SSF.Audience == "" {
+		return fmt.Errorf("ssf.audience is %w", ErrRequired)
+	}
+
+	if conf.SSF.Poll.URL.IsEmpty() {
+		return fmt.Errorf("ssf.poll.url is %w", ErrRequired)
+	}
+
+	if err := validateHTTPSURL(conf.SSF.Poll.URL); err != nil {
+		return fmt.Errorf("ssf.poll.url: %w", err)
+	}
+
+	if conf.SSF.Poll.Token.String() == "" {
+		return fmt.Errorf("ssf.poll.token is %w", ErrRequired)
+	}
+
+	if conf.SSF.Poll.Interval <= 0 {
+		return errors.New("ssf.poll.interval must be greater than 0")
+	}
+
+	if conf.SSF.Poll.MaxEvents <= 0 {
+		return errors.New("ssf.poll.max-events must be greater than 0")
+	}
+
+	if conf.SSF.MaxAge <= 0 {
+		return errors.New("ssf.max-age must be greater than 0")
+	}
+
+	if conf.SSF.RevocationTTL <= 0 {
+		return errors.New("ssf.revocation-ttl must be greater than 0")
+	}
+
+	return nil
 }
 
 func validateOpenVPNConfig(mode int, conf *Config) error {
@@ -157,6 +220,23 @@ func validateURL(uri types.URL) error {
 
 	if !slices.Contains([]string{SchemeHTTP, SchemeHTTPS}, uri.Scheme) {
 		return errors.New("invalid URL. only http:// or https:// scheme supported")
+	}
+
+	return nil
+}
+
+// validateHTTPSURL accepts an empty URL or an absolute https:// URL with a host.
+func validateHTTPSURL(uri types.URL) error {
+	if uri.IsEmpty() {
+		return nil
+	}
+
+	if uri.Scheme != SchemeHTTPS {
+		return errors.New("invalid URL. only https:// scheme supported")
+	}
+
+	if uri.Host == "" {
+		return errors.New("invalid URL. host is missing")
 	}
 
 	return nil

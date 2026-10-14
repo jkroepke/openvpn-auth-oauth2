@@ -32,6 +32,10 @@ func New(ctx context.Context, logger *slog.Logger, conf *config.Config, tokenSto
 		return nil, fmt.Errorf("error setting up openvpn client: %w", err)
 	}
 
+	if conf.SSF.Enabled {
+		logger.LogAttrs(ctx, slog.LevelWarn, "ssf.enabled is set, but the SSF receiver is not implemented yet; no events are received")
+	}
+
 	server := httpserver.NewHTTPServer(httpserver.ServerNameDefault, logger, conf.HTTP, httpHandler)
 	services := []service{
 		{

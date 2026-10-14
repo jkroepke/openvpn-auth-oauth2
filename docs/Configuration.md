@@ -188,6 +188,30 @@ Usage of openvpn-auth-oauth2:
         If set to false, openvpn-auth-oauth2 rejects all re-authentication requests. (env: OPENVPN_AUTH_OAUTH2_OPENVPN_REAUTHENTICATION) (default true)
   --provider.google.validate.groups-transitive
         If true, required group membership for the Google provider is matched transitively: nested sub-groups of a configured group in oauth2.validate.groups are accepted. Requires the cloud-identity.groups.readonly scope and a Google Workspace/Cloud Identity plan that supports the Cloud Identity checkTransitiveMembership API. (env: OPENVPN_AUTH_OAUTH2_PROVIDER_GOOGLE_VALIDATE_GROUPS_TRANSITIVE)
+  --ssf.audience string
+        Expected aud claim of every Security Event Token. (env: OPENVPN_AUTH_OAUTH2_SSF_AUDIENCE)
+  --ssf.enabled
+        If true, openvpn-auth-oauth2 receives OpenID Shared Signals Framework (SSF) events and terminates OpenVPN sessions that the identity provider revoked. Requires a direct OpenVPN management-interface connection; the OpenVPN plugin is not supported. (env: OPENVPN_AUTH_OAUTH2_SSF_ENABLED)
+  --ssf.issuer value
+        Issuer URL of the SSF transmitter. The transmitter configuration is read from <issuer>/.well-known/ssf-configuration. Must start with https:// (env: OPENVPN_AUTH_OAUTH2_SSF_ISSUER)
+  --ssf.jwks-uri value
+        Overrides the JWKS URL used to verify Security Event Tokens. If empty, jwks_uri from the transmitter configuration is used. Must start with https:// (env: OPENVPN_AUTH_OAUTH2_SSF_JWKS_URI)
+  --ssf.max-age duration
+        Rejects Security Event Tokens issued longer ago than this. Also bounds the replay protection window. (env: OPENVPN_AUTH_OAUTH2_SSF_MAX_AGE) (default 1h0m0s)
+  --ssf.poll.interval duration
+        Time to wait between polls when the SSF transmitter returns without events. (env: OPENVPN_AUTH_OAUTH2_SSF_POLL_INTERVAL) (default 30s)
+  --ssf.poll.max-events int
+        Maximum number of Security Event Tokens requested per poll. (env: OPENVPN_AUTH_OAUTH2_SSF_POLL_MAX_EVENTS) (default 100)
+  --ssf.poll.token value
+        Bearer token for the SSF poll endpoint. If argument starts with file:// it reads the secret from a file. (env: OPENVPN_AUTH_OAUTH2_SSF_POLL_TOKEN)
+  --ssf.poll.url value
+        Poll endpoint (RFC 8936) of the SSF stream. Must start with https:// (env: OPENVPN_AUTH_OAUTH2_SSF_POLL_URL)
+  --ssf.revocation-ttl duration
+        How long a revoked session is remembered to deny reconnects and in-flight logins. (env: OPENVPN_AUTH_OAUTH2_SSF_REVOCATION_TTL) (default 8h0m0s)
+  --ssf.subject.allow-email
+        If true, events with an email subject identifier are accepted. Email addresses are not stable identifiers; prefer iss_sub subjects. (env: OPENVPN_AUTH_OAUTH2_SSF_SUBJECT_ALLOW_EMAIL)
+  --ssf.user-level-revocation
+        If true, events whose subject identifies a user without a session revoke all OpenVPN sessions of that user. If false, such events are logged and ignored. (env: OPENVPN_AUTH_OAUTH2_SSF_USER_LEVEL_REVOCATION) (default true)
   --version
         show version
 ```
@@ -204,6 +228,7 @@ The following parameter supports sensitive data from the file:
 * openvpn.password
 * oauth2.client.secret
 * oauth2.refresh.secret
+* ssf.poll.token
 
 To read the sensitive data from the file, use the `file://` prefix, e.g. `file://path/to/secret.txt`.
 

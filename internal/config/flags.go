@@ -429,3 +429,84 @@ func (c *Config) flagSetProvider(flagSet *flag.FlagSet) {
 			"that supports the Cloud Identity checkTransitiveMembership API.",
 	)
 }
+
+//goland:noinspection GoMixedReceiverTypes
+func (c *Config) flagSetSSF(flagSet *flag.FlagSet) {
+	flagSet.BoolVar(
+		&c.SSF.Enabled,
+		"ssf.enabled",
+		c.SSF.Enabled,
+		"If true, openvpn-auth-oauth2 receives OpenID Shared Signals Framework (SSF) events "+
+			"and terminates OpenVPN sessions that the identity provider revoked. "+
+			"Requires a direct OpenVPN management-interface connection; the OpenVPN plugin is not supported.",
+	)
+	flagSet.TextVar(
+		&c.SSF.Issuer,
+		"ssf.issuer",
+		c.SSF.Issuer,
+		"Issuer URL of the SSF transmitter. The transmitter configuration is read from "+
+			"<issuer>/.well-known/ssf-configuration. Must start with https://",
+	)
+	flagSet.TextVar(
+		&c.SSF.JWKSURI,
+		"ssf.jwks-uri",
+		c.SSF.JWKSURI,
+		"Overrides the JWKS URL used to verify Security Event Tokens. "+
+			"If empty, jwks_uri from the transmitter configuration is used. Must start with https://",
+	)
+	flagSet.StringVar(
+		&c.SSF.Audience,
+		"ssf.audience",
+		c.SSF.Audience,
+		"Expected aud claim of every Security Event Token.",
+	)
+	flagSet.TextVar(
+		&c.SSF.Poll.URL,
+		"ssf.poll.url",
+		c.SSF.Poll.URL,
+		"Poll endpoint (RFC 8936) of the SSF stream. Must start with https://",
+	)
+	flagSet.Var(
+		newSecretFlagValue(&c.SSF.Poll.Token),
+		"ssf.poll.token",
+		"Bearer token for the SSF poll endpoint. If argument starts with file:// it reads the secret from a file.",
+	)
+	flagSet.DurationVar(
+		&c.SSF.Poll.Interval,
+		"ssf.poll.interval",
+		c.SSF.Poll.Interval,
+		"Time to wait between polls when the SSF transmitter returns without events.",
+	)
+	flagSet.IntVar(
+		&c.SSF.Poll.MaxEvents,
+		"ssf.poll.max-events",
+		c.SSF.Poll.MaxEvents,
+		"Maximum number of Security Event Tokens requested per poll.",
+	)
+	flagSet.DurationVar(
+		&c.SSF.MaxAge,
+		"ssf.max-age",
+		c.SSF.MaxAge,
+		"Rejects Security Event Tokens issued longer ago than this. Also bounds the replay protection window.",
+	)
+	flagSet.DurationVar(
+		&c.SSF.RevocationTTL,
+		"ssf.revocation-ttl",
+		c.SSF.RevocationTTL,
+		"How long a revoked session is remembered to deny reconnects and in-flight logins.",
+	)
+	flagSet.BoolVar(
+		&c.SSF.UserLevelRevocation,
+		"ssf.user-level-revocation",
+		c.SSF.UserLevelRevocation,
+		"If true, events whose subject identifies a user without a session revoke all OpenVPN sessions of that user. "+
+			"If false, such events are logged and ignored.",
+	)
+	flagSet.BoolVar(
+		&c.SSF.Subject.AllowEmail,
+		"ssf.subject.allow-email",
+		c.SSF.Subject.AllowEmail,
+		"If true, events with an email subject identifier are accepted. "+
+			"Email addresses are not stable identifiers; prefer iss_sub subjects.",
+	)
+}

@@ -138,6 +138,21 @@ http:
     template: "../../README.md"
     check:
         ipaddr: true
+ssf:
+    enabled: true
+    issuer: "https://idp.example.com/realms/vpn"
+    jwks-uri: "https://idp.example.com/realms/vpn/keys"
+    audience: "https://vpn.example.com"
+    poll:
+        url: "https://idp.example.com/realms/vpn/ssf/poll"
+        token: "ssf-token"
+        interval: 45s
+        max-events: 25
+    max-age: 30m
+    revocation-ttl: 12h
+    user-level-revocation: false
+    subject:
+        allow-email: true
 `,
 			config.Config{
 				Debug: config.Debug{
@@ -252,6 +267,24 @@ http:
 						Groups:     []string{"test", "test2"},
 					},
 				},
+				SSF: config.SSF{
+					Enabled:  true,
+					Issuer:   types.URL{URL: &url.URL{Scheme: "https", Host: "idp.example.com", Path: "/realms/vpn"}},
+					JWKSURI:  types.URL{URL: &url.URL{Scheme: "https", Host: "idp.example.com", Path: "/realms/vpn/keys"}},
+					Audience: "https://vpn.example.com",
+					Poll: config.SSFPoll{
+						URL:       types.URL{URL: &url.URL{Scheme: "https", Host: "idp.example.com", Path: "/realms/vpn/ssf/poll"}},
+						Token:     "ssf-token",
+						Interval:  45 * time.Second,
+						MaxEvents: 25,
+					},
+					MaxAge:              30 * time.Minute,
+					RevocationTTL:       12 * time.Hour,
+					UserLevelRevocation: false,
+					Subject: config.SSFSubject{
+						AllowEmail: true,
+					},
+				},
 			},
 			nil,
 		},
@@ -307,6 +340,8 @@ func TestConfigHelpFlag(t *testing.T) {
 	assert.Contains(t, buf.String(), "(default /etc/openvpn-auth-oauth2/client-config/)")
 	assert.Contains(t, buf.String(), "--openvpn.pass-through.socket-mode value")
 	assert.Contains(t, buf.String(), "(default 0660)")
+	assert.Contains(t, buf.String(), "--ssf.poll.interval duration")
+	assert.Contains(t, buf.String(), "(env: OPENVPN_AUTH_OAUTH2_SSF_POLL_MAX_EVENTS)")
 	assert.NotContains(t, buf.String(), "/etc/openvpn-auth-oauth2/client-config-dir/")
 	assert.NotContains(t, buf.String(), "AuthStyleInParams")
 	assert.NotContains(t, buf.String(), "--http.short-url")
@@ -345,6 +380,7 @@ func TestConfigHelpFlagRedactsLoadedSecrets(t *testing.T) {
 	conf.OAuth2.Client.PrivateKey = "private-key-marker"
 	conf.OAuth2.Client.Secret = "oauth2-secret-marker"
 	conf.OAuth2.Refresh.Secret = "refresh-secret-marker"
+	conf.SSF.Poll.Token = "ssf-poll-token-marker"
 
 	t.Setenv("OPENVPN_AUTH_OAUTH2_OAUTH2_CLIENT_SECRET", "environment-secret-marker")
 
@@ -361,6 +397,7 @@ func TestConfigHelpFlagRedactsLoadedSecrets(t *testing.T) {
 		conf.OAuth2.Client.PrivateKey.String(),
 		conf.OAuth2.Client.Secret.String(),
 		conf.OAuth2.Refresh.Secret.String(),
+		conf.SSF.Poll.Token.String(),
 	} {
 		assert.NotContains(t, buf.String(), secret)
 	}
@@ -555,6 +592,32 @@ func TestConfigFlagSet(t *testing.T) {
 			func() config.Config {
 				conf := config.Defaults
 				conf.OpenVPN.Passthrough.SocketMode = 0o640
+
+				return conf
+			}(),
+		},
+		{
+			"--ssf",
+			[]string{
+				"--ssf.enabled",
+				"--ssf.issuer=https://idp.example.com",
+				"--ssf.audience=https://vpn.example.com",
+				"--ssf.poll.url=https://idp.example.com/ssf/poll",
+				"--ssf.poll.token=ssf-token",
+				"--ssf.poll.interval=1m",
+				"--ssf.poll.max-events=10",
+				"--ssf.user-level-revocation=false",
+			},
+			func() config.Config {
+				conf := config.Defaults
+				conf.SSF.Enabled = true
+				conf.SSF.Issuer = types.URL{URL: &url.URL{Scheme: "https", Host: "idp.example.com"}}
+				conf.SSF.Audience = "https://vpn.example.com"
+				conf.SSF.Poll.URL = types.URL{URL: &url.URL{Scheme: "https", Host: "idp.example.com", Path: "/ssf/poll"}}
+				conf.SSF.Poll.Token = "ssf-token"
+				conf.SSF.Poll.Interval = time.Minute
+				conf.SSF.Poll.MaxEvents = 10
+				conf.SSF.UserLevelRevocation = false
 
 				return conf
 			}(),

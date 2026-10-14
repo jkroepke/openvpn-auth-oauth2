@@ -16,6 +16,7 @@ func TestReadFromFlagAndEnvironment(t *testing.T) {
 	t.Setenv("OPENVPN_AUTH_OAUTH2_OAUTH2_NONCE", "false")
 	t.Setenv("OPENVPN_AUTH_OAUTH2_OPENVPN_COMMAND_TIMEOUT", "17s")
 	t.Setenv("OPENVPN_AUTH_OAUTH2_OPENVPN_PASS_THROUGH_SOCKET_MODE", "0660")
+	t.Setenv("OPENVPN_AUTH_OAUTH2_SSF_POLL_MAX_EVENTS", "7")
 
 	conf := Defaults
 	require.NoError(t, conf.ReadFromFlagAndEnvironment([]string{"openvpn-auth-oauth2"}, io.Discard))
@@ -24,6 +25,7 @@ func TestReadFromFlagAndEnvironment(t *testing.T) {
 	assert.False(t, conf.OAuth2.Nonce)
 	assert.Equal(t, 17*time.Second, conf.OpenVPN.CommandTimeout)
 	assert.Equal(t, types.FileMode(0o660), conf.OpenVPN.Passthrough.SocketMode)
+	assert.Equal(t, 7, conf.SSF.Poll.MaxEvents)
 }
 
 func TestReadFromFlagAndEnvironmentRejectsNonBooleanEnvironmentValues(t *testing.T) {

@@ -79,3 +79,18 @@
 #    socket-group: ""
 #    socket-mode: "0660"
 #  reauthentication: true
+#ssf:
+#  enabled: false  # Not implemented yet; the receiver follows in a later release.
+#  issuer: "https://idp/realms/vpn"  # Must start with https://
+#  jwks-uri: ""  # Defaults to jwks_uri from <issuer>/.well-known/ssf-configuration
+#  audience: "https://login.example.com"
+#  poll:
+#    url: "https://idp/realms/vpn/ssf/poll"  # Must start with https://
+#    token: "file:///etc/openvpn-auth-oauth2/ssf-token"
+#    interval: 30s
+#    max-events: 100
+#  max-age: 1h0m0s
+#  revocation-ttl: 8h0m0s
+#  user-level-revocation: true
+#  subject:
+#    allow-email: false

@@ -194,6 +194,7 @@ func TestConfigString(t *testing.T) {
 	conf.HTTP.Secret = "HTTP_SECRET"
 	conf.OpenVPN.Password = "OPENVPN_SECRET"
 	conf.OAuth2.Client.Secret = "OAUTH_SECRET"
+	conf.SSF.Poll.Token = "SSF_POLL_TOKEN"
 
 	body := conf.String()
 
@@ -202,7 +203,9 @@ func TestConfigString(t *testing.T) {
 	require.JSONEq(t, `"***"`, extractJSONValue(t, body, "oauth2", "client", "secret"))
 	require.NotContains(t, body, "HTTP_SECRET")
 	require.NotContains(t, body, "OPENVPN_SECRET")
+	require.JSONEq(t, `"***"`, extractJSONValue(t, body, "ssf", "poll", "token"))
 	require.NotContains(t, body, "OAUTH_SECRET")
+	require.NotContains(t, body, "SSF_POLL_TOKEN")
 }
 
 func TestHTTPMarshalJSON(t *testing.T) {

@@ -18,11 +18,12 @@ const (
 )
 
 type Config struct {
-	HTTP     HTTP     `json:"http"     yaml:"http"`
 	Debug    Debug    `json:"debug"    yaml:"debug"`
+	HTTP     HTTP     `json:"http"     yaml:"http"`
 	Log      Log      `json:"log"      yaml:"log"`
 	OAuth2   OAuth2   `json:"oauth2"   yaml:"oauth2"`
 	OpenVPN  OpenVPN  `json:"openvpn"  yaml:"openvpn"`
+	SSF      SSF      `json:"ssf"      yaml:"ssf"`
 	Provider Provider `json:"provider" yaml:"provider"`
 }
 
@@ -146,6 +147,32 @@ type OpenVPNPassthrough struct {
 	SocketGroup string         `json:"socket-group" yaml:"socket-group"`
 	SocketMode  types.FileMode `json:"socket-mode"  yaml:"socket-mode"`
 	Enabled     bool           `json:"enabled"      yaml:"enabled"`
+}
+
+// SSF configures the OpenID Shared Signals Framework (SSF) receiver.
+type SSF struct {
+	Issuer              types.URL     `json:"issuer"                yaml:"issuer"`
+	JWKSURI             types.URL     `json:"jwks-uri"              yaml:"jwks-uri"`
+	Audience            string        `json:"audience"              yaml:"audience"`
+	Poll                SSFPoll       `json:"poll"                  yaml:"poll"`
+	MaxAge              time.Duration `json:"max-age"               yaml:"max-age"`
+	RevocationTTL       time.Duration `json:"revocation-ttl"        yaml:"revocation-ttl"`
+	Subject             SSFSubject    `json:"subject"               yaml:"subject"`
+	Enabled             bool          `json:"enabled"               yaml:"enabled"`
+	UserLevelRevocation bool          `json:"user-level-revocation" yaml:"user-level-revocation"`
+}
+
+// SSFPoll configures RFC 8936 poll delivery from the SSF transmitter.
+type SSFPoll struct {
+	URL       types.URL     `json:"url"        yaml:"url"`
+	Token     types.Secret  `json:"token"      yaml:"token"`
+	Interval  time.Duration `json:"interval"   yaml:"interval"`
+	MaxEvents int           `json:"max-events" yaml:"max-events"`
+}
+
+// SSFSubject configures which subject identifier formats are accepted.
+type SSFSubject struct {
+	AllowEmail bool `json:"allow-email" yaml:"allow-email"`
 }
 
 type Debug struct {
