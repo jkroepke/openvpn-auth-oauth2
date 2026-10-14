@@ -152,7 +152,6 @@ type OpenVPNPassthrough struct {
 // SSF configures the OpenID Shared Signals Framework (SSF) receiver.
 type SSF struct {
 	Issuer              types.URL     `json:"issuer"                yaml:"issuer"`
-	Audience            string        `json:"audience"              yaml:"audience"`
 	Poll                SSFPoll       `json:"poll"                  yaml:"poll"`
 	MaxAge              time.Duration `json:"max-age"               yaml:"max-age"`
 	RevocationTTL       time.Duration `json:"revocation-ttl"        yaml:"revocation-ttl"`
@@ -163,7 +162,6 @@ type SSF struct {
 
 // SSFPoll configures RFC 8936 poll delivery from the SSF transmitter.
 type SSFPoll struct {
-	URL       types.URL     `json:"url"        yaml:"url"`
 	Token     types.Secret  `json:"token"      yaml:"token"`
 	Interval  time.Duration `json:"interval"   yaml:"interval"`
 	MaxEvents int           `json:"max-events" yaml:"max-events"`

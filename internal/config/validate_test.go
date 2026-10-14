@@ -368,8 +368,6 @@ func validSSFConfig() config.Config {
 	conf.SSF = config.Defaults.SSF
 	conf.SSF.Enabled = true
 	conf.SSF.Issuer = types.URL{URL: &url.URL{Scheme: "https", Host: "idp.example.com", Path: "/realms/vpn"}}
-	conf.SSF.Audience = "https://vpn.example.com"
-	conf.SSF.Poll.URL = types.URL{URL: &url.URL{Scheme: "https", Host: "idp.example.com", Path: "/ssf/poll"}}
 	conf.SSF.Poll.Token = "token"
 
 	return conf
@@ -392,14 +390,6 @@ func TestValidateSSF(t *testing.T) {
 			"disabled ignores missing settings",
 			func(conf *config.Config) {
 				conf.SSF = config.SSF{}
-			},
-			"",
-		},
-		{
-			"poll url and audience are discovered when empty",
-			func(conf *config.Config) {
-				conf.SSF.Audience = ""
-				conf.SSF.Poll.URL = types.URL{}
 			},
 			"",
 		},
@@ -431,13 +421,6 @@ func TestValidateSSF(t *testing.T) {
 				conf.SSF.Issuer = types.URL{URL: &url.URL{Scheme: "https", Path: "/realms/vpn"}}
 			},
 			"ssf.issuer: invalid URL. host is missing",
-		},
-		{
-			"http poll url",
-			func(conf *config.Config) {
-				conf.SSF.Poll.URL = types.URL{URL: &url.URL{Scheme: "http", Host: "idp.example.com"}}
-			},
-			"ssf.poll.url: invalid URL. only https:// scheme supported",
 		},
 		{
 			"missing poll token",

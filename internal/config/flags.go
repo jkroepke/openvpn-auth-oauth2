@@ -447,21 +447,6 @@ func (c *Config) flagSetSSF(flagSet *flag.FlagSet) {
 		"Issuer URL of the SSF transmitter. The transmitter configuration is read from "+
 			"<issuer>/.well-known/ssf-configuration. If empty, oauth2.issuer is used. Must start with https://",
 	)
-	flagSet.StringVar(
-		&c.SSF.Audience,
-		"ssf.audience",
-		c.SSF.Audience,
-		"Expected aud claim of every Security Event Token. "+
-			"If empty, the aud of the SSF stream read from the transmitter's configuration_endpoint is used.",
-	)
-	flagSet.TextVar(
-		&c.SSF.Poll.URL,
-		"ssf.poll.url",
-		c.SSF.Poll.URL,
-		"Poll endpoint (RFC 8936) of the SSF stream. "+
-			"If empty, the endpoint is read from the stream configuration at the transmitter's configuration_endpoint. "+
-			"Must start with https://",
-	)
 	flagSet.Var(
 		newSecretFlagValue(&c.SSF.Poll.Token),
 		"ssf.poll.token",

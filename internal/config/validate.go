@@ -29,8 +29,6 @@ func Validate(mode int, conf *Config) error {
 }
 
 // validateSSFConfig validates the OpenID Shared Signals Framework receiver configuration.
-//
-//nolint:cyclop
 func validateSSFConfig(mode int, conf *Config) error {
 	if !conf.SSF.Enabled {
 		return nil
@@ -46,10 +44,6 @@ func validateSSFConfig(mode int, conf *Config) error {
 		}
 
 		return fmt.Errorf("ssf.issuer: %w", err)
-	}
-
-	if err := validateHTTPSURL(conf.SSF.Poll.URL); err != nil {
-		return fmt.Errorf("ssf.poll.url: %w", err)
 	}
 
 	if conf.SSF.Poll.Token.String() == "" {

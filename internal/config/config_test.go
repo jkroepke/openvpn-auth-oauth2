@@ -141,9 +141,7 @@ http:
 ssf:
     enabled: true
     issuer: "https://idp.example.com/realms/vpn"
-    audience: "https://vpn.example.com"
     poll:
-        url: "https://idp.example.com/realms/vpn/ssf/poll"
         token: "ssf-token"
         interval: 45s
         max-events: 25
@@ -267,11 +265,9 @@ ssf:
 					},
 				},
 				SSF: config.SSF{
-					Enabled:  true,
-					Issuer:   types.URL{URL: &url.URL{Scheme: "https", Host: "idp.example.com", Path: "/realms/vpn"}},
-					Audience: "https://vpn.example.com",
+					Enabled: true,
+					Issuer:  types.URL{URL: &url.URL{Scheme: "https", Host: "idp.example.com", Path: "/realms/vpn"}},
 					Poll: config.SSFPoll{
-						URL:       types.URL{URL: &url.URL{Scheme: "https", Host: "idp.example.com", Path: "/realms/vpn/ssf/poll"}},
 						Token:     "ssf-token",
 						Interval:  45 * time.Second,
 						MaxEvents: 25,
