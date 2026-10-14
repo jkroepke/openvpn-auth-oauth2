@@ -152,7 +152,6 @@ type OpenVPNPassthrough struct {
 // SSF configures the OpenID Shared Signals Framework (SSF) receiver.
 type SSF struct {
 	Issuer              types.URL     `json:"issuer"                yaml:"issuer"`
-	JWKSURI             types.URL     `json:"jwks-uri"              yaml:"jwks-uri"`
 	Audience            string        `json:"audience"              yaml:"audience"`
 	Poll                SSFPoll       `json:"poll"                  yaml:"poll"`
 	MaxAge              time.Duration `json:"max-age"               yaml:"max-age"`

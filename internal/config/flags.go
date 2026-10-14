@@ -447,29 +447,26 @@ func (c *Config) flagSetSSF(flagSet *flag.FlagSet) {
 		"Issuer URL of the SSF transmitter. The transmitter configuration is read from "+
 			"<issuer>/.well-known/ssf-configuration. Must start with https://",
 	)
-	flagSet.TextVar(
-		&c.SSF.JWKSURI,
-		"ssf.jwks-uri",
-		c.SSF.JWKSURI,
-		"Overrides the JWKS URL used to verify Security Event Tokens. "+
-			"If empty, jwks_uri from the transmitter configuration is used. Must start with https://",
-	)
 	flagSet.StringVar(
 		&c.SSF.Audience,
 		"ssf.audience",
 		c.SSF.Audience,
-		"Expected aud claim of every Security Event Token.",
+		"Expected aud claim of every Security Event Token. "+
+			"If empty, the aud of the SSF stream read from the transmitter's configuration_endpoint is used.",
 	)
 	flagSet.TextVar(
 		&c.SSF.Poll.URL,
 		"ssf.poll.url",
 		c.SSF.Poll.URL,
-		"Poll endpoint (RFC 8936) of the SSF stream. Must start with https://",
+		"Poll endpoint (RFC 8936) of the SSF stream. "+
+			"If empty, the endpoint is read from the stream configuration at the transmitter's configuration_endpoint. "+
+			"Must start with https://",
 	)
 	flagSet.Var(
 		newSecretFlagValue(&c.SSF.Poll.Token),
 		"ssf.poll.token",
-		"Bearer token for the SSF poll endpoint. If argument starts with file:// it reads the secret from a file.",
+		"Bearer token for the SSF poll and stream configuration endpoints. "+
+			"If argument starts with file:// it reads the secret from a file.",
 	)
 	flagSet.DurationVar(
 		&c.SSF.Poll.Interval,

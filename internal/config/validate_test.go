@@ -396,9 +396,10 @@ func TestValidateSSF(t *testing.T) {
 			"",
 		},
 		{
-			"valid jwks uri override",
+			"poll url and audience are discovered when empty",
 			func(conf *config.Config) {
-				conf.SSF.JWKSURI = types.URL{URL: &url.URL{Scheme: "https", Host: "keys.example.com"}}
+				conf.SSF.Audience = ""
+				conf.SSF.Poll.URL = types.URL{}
 			},
 			"",
 		},
@@ -422,27 +423,6 @@ func TestValidateSSF(t *testing.T) {
 				conf.SSF.Issuer = types.URL{URL: &url.URL{Scheme: "https", Path: "/realms/vpn"}}
 			},
 			"ssf.issuer: invalid URL. host is missing",
-		},
-		{
-			"http jwks uri",
-			func(conf *config.Config) {
-				conf.SSF.JWKSURI = types.URL{URL: &url.URL{Scheme: "http", Host: "keys.example.com"}}
-			},
-			"ssf.jwks-uri: invalid URL. only https:// scheme supported",
-		},
-		{
-			"missing audience",
-			func(conf *config.Config) {
-				conf.SSF.Audience = ""
-			},
-			"ssf.audience is required",
-		},
-		{
-			"missing poll url",
-			func(conf *config.Config) {
-				conf.SSF.Poll.URL = types.URL{}
-			},
-			"ssf.poll.url is required",
 		},
 		{
 			"http poll url",

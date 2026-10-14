@@ -48,18 +48,6 @@ func validateSSFConfig(mode int, conf *Config) error {
 		return fmt.Errorf("ssf.issuer: %w", err)
 	}
 
-	if err := validateHTTPSURL(conf.SSF.JWKSURI); err != nil {
-		return fmt.Errorf("ssf.jwks-uri: %w", err)
-	}
-
-	if conf.SSF.Audience == "" {
-		return fmt.Errorf("ssf.audience is %w", ErrRequired)
-	}
-
-	if conf.SSF.Poll.URL.IsEmpty() {
-		return fmt.Errorf("ssf.poll.url is %w", ErrRequired)
-	}
-
 	if err := validateHTTPSURL(conf.SSF.Poll.URL); err != nil {
 		return fmt.Errorf("ssf.poll.url: %w", err)
 	}

@@ -141,7 +141,6 @@ http:
 ssf:
     enabled: true
     issuer: "https://idp.example.com/realms/vpn"
-    jwks-uri: "https://idp.example.com/realms/vpn/keys"
     audience: "https://vpn.example.com"
     poll:
         url: "https://idp.example.com/realms/vpn/ssf/poll"
@@ -270,7 +269,6 @@ ssf:
 				SSF: config.SSF{
 					Enabled:  true,
 					Issuer:   types.URL{URL: &url.URL{Scheme: "https", Host: "idp.example.com", Path: "/realms/vpn"}},
-					JWKSURI:  types.URL{URL: &url.URL{Scheme: "https", Host: "idp.example.com", Path: "/realms/vpn/keys"}},
 					Audience: "https://vpn.example.com",
 					Poll: config.SSFPoll{
 						URL:       types.URL{URL: &url.URL{Scheme: "https", Host: "idp.example.com", Path: "/realms/vpn/ssf/poll"}},
@@ -601,8 +599,6 @@ func TestConfigFlagSet(t *testing.T) {
 			[]string{
 				"--ssf.enabled",
 				"--ssf.issuer=https://idp.example.com",
-				"--ssf.audience=https://vpn.example.com",
-				"--ssf.poll.url=https://idp.example.com/ssf/poll",
 				"--ssf.poll.token=ssf-token",
 				"--ssf.poll.interval=1m",
 				"--ssf.poll.max-events=10",
@@ -612,8 +608,6 @@ func TestConfigFlagSet(t *testing.T) {
 				conf := config.Defaults
 				conf.SSF.Enabled = true
 				conf.SSF.Issuer = types.URL{URL: &url.URL{Scheme: "https", Host: "idp.example.com"}}
-				conf.SSF.Audience = "https://vpn.example.com"
-				conf.SSF.Poll.URL = types.URL{URL: &url.URL{Scheme: "https", Host: "idp.example.com", Path: "/ssf/poll"}}
 				conf.SSF.Poll.Token = "ssf-token"
 				conf.SSF.Poll.Interval = time.Minute
 				conf.SSF.Poll.MaxEvents = 10
