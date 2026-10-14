@@ -12,6 +12,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/crypto"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/metrics"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/sessionregistry"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/tokenstorage"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
 	httphelper "github.com/zitadel/oidc/v3/pkg/http"
@@ -39,6 +40,7 @@ func New(
 		provider:        provider,
 		stateCrypto:     stateCrypto,
 		metrics:         appMetrics,
+		sessions:        sessionregistry.New(),
 		authorizeParams: make([]rp.URLParamOpt, 0, len(conf.OAuth2.AuthorizeParams)+len(providerConfig.AuthCodeOptions)+1), // +1 for nonce
 	}
 

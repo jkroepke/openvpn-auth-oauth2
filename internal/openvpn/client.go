@@ -12,7 +12,6 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/deny"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/metrics"
-	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn/connection"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
@@ -78,7 +77,7 @@ func (c *Client) handleClientAuthentication(ctx context.Context, logger *slog.Lo
 
 	// Check if the client is already authenticated and refresh the client's authentication if enabled.
 	// If the client is successfully re-authenticated, accept the client.
-	user, tokens, clientConfigNames, ok, err := c.silentReAuthentication(ctx, logger, client)
+	result, ok, err := c.silentReAuthentication(ctx, logger, client)
 	if err != nil {
 		reason := deny.InternalError
 		if errors.Is(err, ErrClientSessionStateInvalidOrExpired) {
@@ -96,7 +95,7 @@ func (c *Client) handleClientAuthentication(ctx context.Context, logger *slog.Lo
 	}
 
 	if ok {
-		c.acceptSilentlyReAuthenticatedClient(ctx, logger, client, user, tokens, clientConfigNames)
+		c.acceptSilentlyReAuthenticatedClient(ctx, logger, client, result)
 
 		return
 	}
@@ -128,11 +127,11 @@ func (c *Client) acceptSilentlyReAuthenticatedClient(
 	ctx context.Context,
 	logger *slog.Logger,
 	client connection.Client,
-	user types.UserInfo,
-	tokens *idtoken.IDToken,
-	clientConfigNames []string,
+	result types.RefreshResult,
 ) {
-	if tokens != nil && len(clientConfigNames) == 0 {
+	clientConfigNames := result.ClientConfigNames
+
+	if result.Tokens != nil && len(clientConfigNames) == 0 {
 		var err error
 
 		clientConfigNames, err = c.oauth2.ResolveClientConfigNames(
@@ -143,8 +142,8 @@ func (c *Client) acceptSilentlyReAuthenticatedClient(
 				IPPort:       client.IPPort,
 				SessionState: client.SessionState,
 			},
-			tokens,
-			user,
+			result.Tokens,
+			result.User,
 		)
 		if err != nil {
 			logger.LogAttrs(ctx, deny.InvalidClientConfig.LogLevel(), "failed to resolve client config", slog.Any("err", err))
@@ -155,11 +154,15 @@ func (c *Client) acceptSilentlyReAuthenticatedClient(
 	}
 
 	clientIdentifier := stateClientIdentifier(client)
-	if err := c.AcceptClient(ctx, logger, clientIdentifier, user.Username, clientConfigNames...); err != nil {
+	if err := c.AcceptClient(ctx, logger, clientIdentifier, result.User.Username, clientConfigNames...); err != nil {
 		reason := deny.ReasonOf(err, deny.AcceptFailed)
 		logger.LogAttrs(ctx, reason.LogLevel(), "failed to accept silently re-authenticated client", slog.Any("err", err))
 		c.DenyClient(ctx, logger, clientIdentifier, reason)
+
+		return
 	}
+
+	c.oauth2.RegisterClient(ctx, logger, clientIdentifier, result.User.Username, result.Identity)
 }
 
 func stateClientIdentifier(client connection.Client) state.ClientIdentifier {
@@ -288,26 +291,26 @@ func (c *Client) checkAuthBypass(client connection.Client) bool {
 // It returns true if the client was successfully re-authenticated, false otherwise.
 func (c *Client) silentReAuthentication(
 	ctx context.Context, logger *slog.Logger, client connection.Client,
-) (types.UserInfo, *idtoken.IDToken, []string, bool, error) {
+) (types.RefreshResult, bool, error) {
 	if !c.conf.OAuth2.Refresh.Enabled {
 		logger.LogAttrs(ctx, slog.LevelDebug, "silent re-authentication disabled by configuration")
 
-		return types.UserInfo{}, nil, nil, false, nil
+		return types.RefreshResult{}, false, nil
 	}
 
 	if c.conf.OAuth2.Refresh.UseSessionID {
 		if client.SessionID == "" || !slices.Contains([]string{"Initial", "AuthenticatedEmptyUser", "Authenticated"}, client.SessionState) {
-			return types.UserInfo{}, nil, nil, false, ErrClientSessionStateInvalidOrExpired
+			return types.RefreshResult{}, false, ErrClientSessionStateInvalidOrExpired
 		}
 	} else if client.SessionID != "" {
 		logger.LogAttrs(ctx, slog.LevelWarn, "detected client session ID but not configured to use it. Please enable --oauth2.refresh.use-session-id")
 	}
 
 	if c.oauth2 == nil {
-		return types.UserInfo{}, nil, nil, false, errors.New("oauth2 client not set")
+		return types.RefreshResult{}, false, errors.New("oauth2 client not set")
 	}
 
-	user, token, clientConfigNames, ok, err := c.oauth2.RefreshClientAuth(ctx, logger, client)
+	result, ok, err := c.oauth2.RefreshClientAuth(ctx, logger, client)
 
 	switch {
 	case err != nil:
@@ -321,7 +324,7 @@ func (c *Client) silentReAuthentication(
 
 	logger.LogAttrs(ctx, slog.LevelDebug, "silent re-authentication", slog.Bool("result", ok))
 
-	return user, token, clientConfigNames, ok, nil
+	return result, ok, nil
 }
 
 func (c *Client) clientEstablished(ctx context.Context, logger *slog.Logger, client connection.Client) {

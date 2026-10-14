@@ -22,18 +22,18 @@ func TestRefreshClientAuthInternalTokenRestoresClientConfigNames(t *testing.T) {
 	conf.OAuth2.Refresh.ValidateUser = false
 
 	storage := newInMemoryStorage(t)
-	internalToken, err := encodeInternalRefreshToken("alice", []string{"profile", "base"})
+	internalToken, err := encodeInternalRefreshToken(internalRefreshToken{Username: "alice", ClientConfigNames: []string{"profile", "base"}})
 	require.NoError(t, err)
 	require.NoError(t, storage.Set(ctx, "7", internalToken))
 
 	client := Client{conf: &conf, storage: storage}
-	user, tokens, clientConfigNames, ok, err := client.RefreshClientAuth(ctx, slog.New(slog.DiscardHandler), connection.Client{CID: 7})
+	result, ok, err := client.RefreshClientAuth(ctx, slog.New(slog.DiscardHandler), connection.Client{CID: 7})
 
 	require.NoError(t, err)
 	require.True(t, ok)
-	require.Equal(t, types.UserInfo{Username: "alice"}, user)
-	require.Nil(t, tokens)
-	require.Equal(t, []string{"profile", "base"}, clientConfigNames)
+	require.Equal(t, types.UserInfo{Username: "alice"}, result.User)
+	require.Nil(t, result.Tokens)
+	require.Equal(t, []string{"profile", "base"}, result.ClientConfigNames)
 }
 
 func TestRefreshClientAuthInternalTokenKeepsLegacyEmptyToken(t *testing.T) {
@@ -48,12 +48,12 @@ func TestRefreshClientAuthInternalTokenKeepsLegacyEmptyToken(t *testing.T) {
 	require.NoError(t, storage.Set(ctx, "7", types.EmptyToken))
 
 	client := Client{conf: &conf, storage: storage}
-	_, tokens, clientConfigNames, ok, err := client.RefreshClientAuth(ctx, slog.New(slog.DiscardHandler), connection.Client{CID: 7})
+	result, ok, err := client.RefreshClientAuth(ctx, slog.New(slog.DiscardHandler), connection.Client{CID: 7})
 
 	require.NoError(t, err)
 	require.True(t, ok)
-	require.Nil(t, tokens)
-	require.Nil(t, clientConfigNames)
+	require.Nil(t, result.Tokens)
+	require.Nil(t, result.ClientConfigNames)
 }
 
 func TestRefreshClientAuthInternalTokenKeepsLegacyClientConfigToken(t *testing.T) {
@@ -72,7 +72,7 @@ func TestRefreshClientAuthInternalTokenKeepsLegacyClientConfigToken(t *testing.T
 	))
 
 	client := Client{conf: &conf, storage: storage}
-	user, tokens, clientConfigNames, ok, err := client.RefreshClientAuth(
+	result, ok, err := client.RefreshClientAuth(
 		ctx,
 		slog.New(slog.DiscardHandler),
 		connection.Client{CID: 7},
@@ -80,9 +80,9 @@ func TestRefreshClientAuthInternalTokenKeepsLegacyClientConfigToken(t *testing.T
 
 	require.NoError(t, err)
 	require.True(t, ok)
-	require.Equal(t, types.UserInfo{}, user)
-	require.Nil(t, tokens)
-	require.Equal(t, []string{"profile", "base"}, clientConfigNames)
+	require.Equal(t, types.UserInfo{}, result.User)
+	require.Nil(t, result.Tokens)
+	require.Equal(t, []string{"profile", "base"}, result.ClientConfigNames)
 }
 
 func TestRefreshClientAuthInternalTokenWithoutUsernameFallsBackToInteractiveAuthentication(t *testing.T) {
@@ -102,7 +102,7 @@ func TestRefreshClientAuthInternalTokenWithoutUsernameFallsBackToInteractiveAuth
 	))
 
 	client := Client{conf: &conf, storage: storage}
-	user, tokens, clientConfigNames, ok, err := client.RefreshClientAuth(
+	result, ok, err := client.RefreshClientAuth(
 		ctx,
 		slog.New(slog.DiscardHandler),
 		connection.Client{CID: 7},
@@ -110,9 +110,7 @@ func TestRefreshClientAuthInternalTokenWithoutUsernameFallsBackToInteractiveAuth
 
 	require.NoError(t, err)
 	require.False(t, ok)
-	require.Equal(t, types.UserInfo{}, user)
-	require.Nil(t, tokens)
-	require.Nil(t, clientConfigNames)
+	require.Equal(t, types.RefreshResult{}, result)
 }
 
 func TestRefreshedUserInfoMissingIDTokenClaimsReturnsError(t *testing.T) {
@@ -131,22 +129,22 @@ func TestRefreshedUserInfoMissingIDTokenClaimsReturnsError(t *testing.T) {
 func TestProviderRefreshTokenStoresClientConfigNames(t *testing.T) {
 	t.Parallel()
 
-	encoded, err := encodeProviderRefreshToken("provider-refresh-token", []string{"selected"})
+	token := providerRefreshToken{RefreshToken: "provider-refresh-token", ClientConfigNames: []string{"selected"}}
+
+	encoded, err := encodeProviderRefreshToken(token)
 	require.NoError(t, err)
 
-	refreshToken, clientConfigNames, err := decodeProviderRefreshToken(encoded)
+	decoded, err := decodeProviderRefreshToken(encoded)
 	require.NoError(t, err)
-	require.Equal(t, "provider-refresh-token", refreshToken)
-	require.Equal(t, []string{"selected"}, clientConfigNames)
+	require.Equal(t, token, decoded)
 }
 
 func TestProviderRefreshTokenKeepsLegacyRawToken(t *testing.T) {
 	t.Parallel()
 
-	refreshToken, clientConfigNames, err := decodeProviderRefreshToken("provider-refresh-token")
+	token, err := decodeProviderRefreshToken("provider-refresh-token")
 	require.NoError(t, err)
-	require.Equal(t, "provider-refresh-token", refreshToken)
-	require.Nil(t, clientConfigNames)
+	require.Equal(t, providerRefreshToken{RefreshToken: "provider-refresh-token"}, token)
 }
 
 func TestDecodeInternalRefreshTokenErrors(t *testing.T) {
@@ -178,11 +176,11 @@ func TestDecodeInternalRefreshTokenErrors(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			_, clientConfigNames, err := decodeInternalRefreshToken(testCase.refreshToken)
+			token, err := decodeInternalRefreshToken(testCase.refreshToken)
 
 			require.Error(t, err)
 			require.Contains(t, err.Error(), testCase.expectedErr)
-			require.Nil(t, clientConfigNames)
+			require.Equal(t, internalRefreshToken{}, token)
 		})
 	}
 }
@@ -221,12 +219,11 @@ func TestDecodeProviderRefreshTokenErrors(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			refreshToken, clientConfigNames, err := decodeProviderRefreshToken(testCase.refreshToken)
+			token, err := decodeProviderRefreshToken(testCase.refreshToken)
 
 			require.Error(t, err)
 			require.Contains(t, err.Error(), testCase.expectedErr)
-			require.Empty(t, refreshToken)
-			require.Nil(t, clientConfigNames)
+			require.Equal(t, providerRefreshToken{}, token)
 		})
 	}
 }
@@ -234,11 +231,11 @@ func TestDecodeProviderRefreshTokenErrors(t *testing.T) {
 func TestEncodeInternalRefreshToken(t *testing.T) {
 	t.Parallel()
 
-	emptyToken, err := encodeInternalRefreshToken("", nil)
+	emptyToken, err := encodeInternalRefreshToken(internalRefreshToken{})
 	require.NoError(t, err)
 	require.Equal(t, types.EmptyToken, emptyToken)
 
-	encodedToken, err := encodeInternalRefreshToken("alice", []string{"profile"})
+	encodedToken, err := encodeInternalRefreshToken(internalRefreshToken{Username: "alice", ClientConfigNames: []string{"profile"}})
 	require.NoError(t, err)
 	require.Contains(t, encodedToken, internalRefreshTokenPrefix)
 	require.Contains(t, encodedToken, `"username":"alice"`)
@@ -247,7 +244,7 @@ func TestEncodeInternalRefreshToken(t *testing.T) {
 func TestDecodeProviderRefreshTokenPreservesValidationError(t *testing.T) {
 	t.Parallel()
 
-	_, _, err := decodeProviderRefreshToken(providerRefreshTokenPrefix + `{"refresh-token":"provider-refresh-token","client-config-names":[""]}`)
+	_, err := decodeProviderRefreshToken(providerRefreshTokenPrefix + `{"refresh-token":"provider-refresh-token","client-config-names":[""]}`)
 
 	require.ErrorIs(t, err, types.ErrInvalidClaimType)
 }

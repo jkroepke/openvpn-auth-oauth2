@@ -24,6 +24,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/providers/github"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/providers/google"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/sessionregistry"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/test/testlogger"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/tokenstorage"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/utils"
@@ -43,6 +44,7 @@ type Suite struct {
 	managementInterfaceConnReader *bufio.Reader
 	openVPNClient                 *openvpn.Client
 	oAuth2Client                  *oauth2.Client
+	sessions                      *sessionregistry.Registry
 	errOpenVPNClientCh            chan error
 	conf                          *config.Config
 	metrics                       *metrics.Metrics
@@ -283,6 +285,7 @@ func (s *Suite) SetupOpenVPNOAuth2Clients(ctx context.Context, tb testing.TB, to
 	)
 	require.NoError(tb, err)
 
+	oAuth2Client.SetSessionRegistry(s.sessionRegistry())
 	openVPNClient.SetOAuth2Client(oAuth2Client)
 
 	tb.Cleanup(func() {
@@ -402,6 +405,12 @@ func (s *Suite) GetConfig() *config.Config {
 	return s.conf
 }
 
+// GetSessionRegistry returns the session registry of the clients created by
+// SetupOpenVPNOAuth2Clients.
+func (s *Suite) GetSessionRegistry() *sessionregistry.Registry {
+	return s.sessionRegistry()
+}
+
 func (s *Suite) GetOpenVPNClient() *openvpn.Client {
 	return s.openVPNClient
 }
@@ -422,6 +431,14 @@ func (s *Suite) DoHTTPRequest(tb testing.TB, method, requestURL string, header h
 	tb.Helper()
 
 	return DoHTTPRequest(tb, s.httpClient, s.httpClientListener.URL, method, requestURL, header, body)
+}
+
+func (s *Suite) sessionRegistry() *sessionregistry.Registry {
+	if s.sessions == nil {
+		s.sessions = sessionregistry.New()
+	}
+
+	return s.sessions
 }
 
 func (s *Suite) setupManagementInterface(tb testing.TB) {

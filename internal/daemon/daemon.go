@@ -15,19 +15,23 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/providers"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/sessionregistry"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/tokenstorage"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/utils"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/version"
 )
 
 // New wires the daemon services for one loaded configuration.
-func New(ctx context.Context, logger *slog.Logger, conf *config.Config, tokenStorage tokenstorage.Storage) (*Runtime, error) {
+// tokenStorage and sessions are shared across configuration reloads.
+func New(
+	ctx context.Context, logger *slog.Logger, conf *config.Config, tokenStorage tokenstorage.Storage, sessions *sessionregistry.Registry,
+) (*Runtime, error) {
 	var appMetrics *metrics.Metrics
 	if conf.Debug.Metrics {
 		appMetrics = metrics.New(version.Version, version.Commit)
 	}
 
-	openvpnClient, httpHandler, err := setupOpenVPNClient(ctx, logger, conf, tokenStorage, appMetrics)
+	openvpnClient, httpHandler, err := setupOpenVPNClient(ctx, logger, conf, tokenStorage, sessions, appMetrics)
 	if err != nil {
 		return nil, fmt.Errorf("error setting up openvpn client: %w", err)
 	}
@@ -85,7 +89,8 @@ func newDebugMux(conf *config.Config, appMetrics *metrics.Metrics) *http.ServeMu
 }
 
 func setupOpenVPNClient(
-	ctx context.Context, logger *slog.Logger, conf *config.Config, tokenStorage tokenstorage.Storage, appMetrics *metrics.Metrics,
+	ctx context.Context, logger *slog.Logger, conf *config.Config,
+	tokenStorage tokenstorage.Storage, sessions *sessionregistry.Registry, appMetrics *metrics.Metrics,
 ) (*openvpn.Client, *http.ServeMux, error) {
 	httpClient := utils.NewOAuth2HTTPClient(nil)
 
@@ -106,6 +111,7 @@ func setupOpenVPNClient(
 		return nil, nil, fmt.Errorf("error creating oauth2 client: %w", err)
 	}
 
+	oAuth2Client.SetSessionRegistry(sessions)
 	openvpnClient.SetOAuth2Client(oAuth2Client)
 
 	return openvpnClient, httphandler.New(conf, oAuth2Client, openvpnClient.Ready), nil

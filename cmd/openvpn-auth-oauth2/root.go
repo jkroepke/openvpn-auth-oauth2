@@ -20,6 +20,7 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/daemon"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/sessionregistry"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/tokenstorage"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/version"
 )
@@ -57,7 +58,10 @@ type configLoader func() (loadedConfig, error)
 
 // runLoop is the main entry point for the openvpn-auth-oauth2 daemon.
 func runLoop(args []string, stdout io.Writer, termCh <-chan os.Signal) int {
+	// Refresh tokens and the session registry describe OpenVPN clients,
+	// not the configuration, so they outlive configuration reloads.
 	tokenDataStorage := tokenstorage.DataMap{}
+	sessions := sessionregistry.New()
 	ctx := context.Background()
 
 	conf, logger, rc := initializeConfigAndLogger(args, stdout)
@@ -73,7 +77,7 @@ func runLoop(args []string, stdout io.Writer, termCh <-chan os.Signal) int {
 	}
 
 	for {
-		returnCode, next := run(ctx, current, tokenDataStorage, termCh, loadConfig)
+		returnCode, next := run(ctx, current, tokenDataStorage, sessions, termCh, loadConfig)
 		if returnCode != ReturnCodeReload {
 			return returnCode
 		}
@@ -89,7 +93,8 @@ func runLoop(args []string, stdout io.Writer, termCh <-chan os.Signal) int {
 // run runs the main program logic of openvpn-auth-oauth2 for one loaded configuration.
 // On a configuration reload, it returns ReturnCodeReload and the already validated next configuration.
 func run(
-	ctx context.Context, current loadedConfig, tokenDataStorage tokenstorage.DataMap, termCh <-chan os.Signal, loadConfig configLoader,
+	ctx context.Context, current loadedConfig, tokenDataStorage tokenstorage.DataMap, sessions *sessionregistry.Registry,
+	termCh <-chan os.Signal, loadConfig configLoader,
 ) (ReturnCode, loadedConfig) {
 	conf, logger := current.conf, current.logger
 
@@ -120,7 +125,7 @@ func run(
 		return ReturnCodeError, loadedConfig{}
 	}
 
-	appRuntime, err := daemon.New(ctx, logger, conf, tokenStorage)
+	appRuntime, err := daemon.New(ctx, logger, conf, tokenStorage, sessions)
 	if err != nil {
 		logger.LogAttrs(
 			ctx, slog.LevelError, err.Error(),
