@@ -227,3 +227,41 @@ func TestRevokeWithoutSubject(t *testing.T) {
 	require.Error(t, err)
 	assert.Empty(t, rec.recorded())
 }
+
+// disconnectingKiller disconnects another client while the first kill runs,
+// like a client that goes away during a user-level revocation.
+type disconnectingKiller struct {
+	*recorder
+
+	sessions *sessionregistry.Registry
+	once     sync.Once
+}
+
+func (k *disconnectingKiller) KillClient(ctx context.Context, logger *slog.Logger, clientID uint64) error {
+	k.once.Do(func() {
+		_, _ = k.sessions.Disconnect(2, time.Hour)
+	})
+
+	return k.recorder.KillClient(ctx, logger, clientID)
+}
+
+func TestRevokeFindsClientsThatDisconnectDuringRevocation(t *testing.T) {
+	t.Parallel()
+
+	conf := config.Defaults
+	conf.SSF.UserLevelRevocation = true
+
+	sessions := sessionregistry.New()
+	rec := &recorder{}
+	killer := &disconnectingKiller{recorder: rec, sessions: sessions}
+	enforcer := revocation.New(slog.New(slog.DiscardHandler), &conf, sessions, rec, killer, nil)
+
+	sessions.Add(sessionregistry.Entry{CID: 1, OpenVPNSessionID: "ovpn-1", Identity: identity("alice-sub", "sid-1")})
+	sessions.Add(sessionregistry.Entry{CID: 2, OpenVPNSessionID: "ovpn-2", Identity: identity("alice-sub", "sid-2")})
+
+	count, err := enforcer.Revoke(t.Context(), sessionregistry.Identity{Issuer: issuer, Subject: "alice-sub"})
+	require.NoError(t, err)
+	assert.Equal(t, 2, count)
+	assert.Equal(t, []string{"refresh 1", "kill 1", "refresh ovpn-2"}, rec.recorded())
+	assert.Equal(t, 0, sessions.Len())
+}
