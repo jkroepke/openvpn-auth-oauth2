@@ -55,20 +55,20 @@ underscores, so `client re-authentication not enabled` is reported as
 | `fallback` | No usable stored token was found. The client continues with an interactive browser login.               |
 | `error`    | Loading or refreshing the stored token failed, or the refreshed identity failed validation. The client continues with an interactive browser login. |
 
+Commands that external management clients send through the
+[management interface pass-through](Management%20Interface%20pass-through)
+aren't measured.
+
 ### Shared Signals event outcomes
 
 | Outcome    | Meaning                                                                                                   |
 |------------|-----------------------------------------------------------------------------------------------------------|
 | `revoked`  | A `session-revoked` event matched and ended at least one OpenVPN session.                                 |
-| `no_match` | A `session-revoked` event matched no OpenVPN session, or it revoked a whole user while `ssf.user-level-revocation` is disabled. |
+| `no_match` | A `session-revoked` event matched no OpenVPN session, or it names a whole user while `ssf.user-level-revocation` is disabled. |
 | `ignored`  | The event type or subject isn't supported. The event was acknowledged.                                    |
 | `invalid`  | The event failed verification and was reported to the transmitter as an error.                            |
 | `replay`   | The event was already processed.                                                                          |
-| `error`    | Ending a matched session failed. The event wasn't acknowledged, so the transmitter delivers it again.     |
-
-Commands that external management clients send through the
-[management interface pass-through](Management%20Interface%20pass-through)
-aren't measured.
+| `error`    | Ending a matched session failed, or the signing keys couldn't be fetched to verify the event. The event wasn't acknowledged, so the transmitter delivers it again. |
 
 ## Reset behavior
 

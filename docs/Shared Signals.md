@@ -14,7 +14,8 @@ events and terminates the matching OpenVPN sessions within one poll interval.
 > [!IMPORTANT]
 > SSF requires the [direct management interface](Configuration#direct-management-interface).
 > The [OpenVPN plugin](OpenVPN%20Plugin) can't terminate clients, so
-> `openvpn-auth-oauth2` refuses to start with `ssf.enabled` in plugin mode.
+> `openvpn-auth-oauth2` stops with an error when it connects to the plugin
+> with `ssf.enabled`.
 
 ## How it works
 
@@ -32,27 +33,37 @@ events and terminates the matching OpenVPN sessions within one poll interval.
    matched, are acknowledged and ignored.
 4. The subject of a `session-revoked` event is matched against the OIDC
    identity every client logged in with. For every match,
-   `openvpn-auth-oauth2` deletes the stored refresh token of the client and,
-   if the client is connected, sends `client-kill <cid> HALT` to OpenVPN.
+   `openvpn-auth-oauth2` deletes the stored refresh token of the client
+   (with `oauth2.refresh.validate-user`, it also revokes it at the provider)
+   and, if the client is connected, sends `client-kill <cid> HALT` to OpenVPN.
 5. The event is acknowledged only after the revocation succeeded. If it failed,
    the transmitter delivers the event again with a later poll.
 
-Discovery errors stop the startup, so a misconfigured transmitter is noticed
-immediately. Errors while polling are logged and retried with an increasing
-delay of up to 5 minutes.
+At the first start, a discovery error stops `openvpn-auth-oauth2`, so a
+misconfigured transmitter is noticed immediately. After a configuration reload
+with `SIGUSR1`, a failed discovery doesn't affect VPN logins; it is logged and
+retried in the background.
+
+Errors while polling are logged and retried with an increasing delay of up to
+5 minutes, or as long as the transmitter asks for with `Retry-After`, at most
+1 hour. An event that can't be verified because the transmitter's signing keys
+can't be fetched isn't acknowledged, so it is verified again with a later
+poll.
 
 ### Which sessions are revoked
 
 | Event subject                                           | Revoked OpenVPN sessions                                          |
 |---------------------------------------------------------|-------------------------------------------------------------------|
-| `complex` subject with a `session` member               | Sessions whose ID token had the same `sid` (and user, if present). |
+| `complex` subject with a `session` member               | Sessions whose ID token had the same `sid` (and user, if present and supported). |
 | `iss_sub` subject, or `complex` with only a `user` member | All sessions of the user, if `ssf.user-level-revocation` is true.  |
 | `email` subject                                         | All sessions with that email address, if `ssf.subject.allow-email` and `ssf.user-level-revocation` are true. |
 
 The issuer and subject of the event must equal the `iss` and `sub` claims of
 the ID token the client logged in with, and the session must equal its `sid`
-claim. Keep `ssf.user-level-revocation` enabled unless the transmitter always
-names a session.
+claim. A transmitter that names users with an issuer other than
+`oauth2.issuer` matches no session. Keep `ssf.user-level-revocation` enabled
+unless the transmitter always names a session. If the ID token has no `sid`
+claim, only events that name the user can match.
 
 Clients that connected without OIDC authentication, for example through
 `openvpn.bypass.common-names`, aren't tracked and never revoked.
@@ -108,20 +119,23 @@ ssf:
 | `ssf.issuer`                  | `oauth2.issuer`  | Issuer of the SSF transmitter. Must use `https://`. It must equal the `issuer` in the transmitter metadata and the `iss` of every event.      |
 | `ssf.poll.token`              |                  | Static bearer token for the transmitter. If empty, `openvpn-auth-oauth2` requests and renews an access token with the client credentials grant of `oauth2.client`. Supports `file://`. |
 | `ssf.poll.scopes`             | `ssf.read`       | Scopes of the client credentials access token. Ignored if `ssf.poll.token` is set.                                                          |
-| `ssf.poll.interval`           | `30s`            | Wait time between polls that return no events. Also the first retry delay after an error.                                                    |
+| `ssf.poll.interval`           | `30s`            | Wait time between polls that return no events. Also the first retry delay after an error. Must be at least `1s`.                             |
 | `ssf.poll.max-events`         | `100`            | Maximum number of events per poll.                                                                                                           |
 | `ssf.max-age`                 | `1h`             | Events issued longer ago are rejected. Also the replay protection window.                                                                    |
 | `ssf.user-level-revocation`   | `true`           | Revoke all sessions of a user for events without a session identifier.                                                                     |
 | `ssf.subject.allow-email`     | `false`          | Accept events whose subject is an email address. Email addresses can be reassigned; prefer `iss_sub`.                                         |
 
 The poll endpoint, the audience, and the signing keys aren't configurable; they
-come from the transmitter metadata and the stream configuration. All of them
+come from the transmitter metadata and the stream configuration. The URLs of
+the metadata, the signing keys, the stream configuration, and the poll endpoint
 must use `https://`.
 
 The client credentials grant authenticates like the login does: with
 `oauth2.client.secret`, or with a `private_key_jwt` assertion if
 `oauth2.client.private-key` is set. The OAuth2 client therefore needs the
-client credentials grant (a service account) enabled at the provider.
+client credentials grant (a service account) enabled at the provider. The
+access token is reused until shortly before it expires, or until the
+transmitter rejects it.
 
 ## Trust model
 
@@ -130,7 +144,8 @@ client credentials grant (a service account) enabled at the provider.
   fetched again when an unknown key ID appears.
 - Events must be addressed to the audience of the stream.
 - Every event ID (`jti`) is processed only once within `ssf.max-age`. The
-  replay protection is held in memory and starts empty after a restart.
+  replay protection is held in memory and starts empty after a restart or a
+  `SIGUSR1` reload.
 - `openvpn-auth-oauth2` only ends sessions; an SSF event can never start or
   extend one.
 
@@ -176,8 +191,9 @@ Keycloak allows one stream per receiver client.
 
 Keycloak sends `session-revoked` events with a `complex` subject that names the
 user and the Keycloak session, so they end exactly the VPN connection that
-logged in with that session. `openvpn-auth-oauth2` requests `offline_access`,
-so the session in the ID token is an offline session. Tested with the Keycloak
+logged in with that session. With the default `oauth2.scopes`,
+`openvpn-auth-oauth2` requests `offline_access`, so the session in the ID token
+is an offline session. Tested with the Keycloak
 nightly build of October 2026:
 
 | Action in Keycloak                                                    | Effect                                         |
@@ -206,7 +222,8 @@ delivery works. The transmitter must:
 
 ## Monitoring
 
-The following metrics are available on the [metrics endpoint](Metrics):
+With `debug.metrics` enabled, the following metrics are available on the
+[metrics endpoint](Metrics):
 
 - `openvpn_auth_oauth2_ssf_events_total{outcome}`
 - `openvpn_auth_oauth2_ssf_sessions_revoked_total{scope}`

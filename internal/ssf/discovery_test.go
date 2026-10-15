@@ -1,6 +1,7 @@
 package ssf_test
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"net/url"
@@ -14,8 +15,8 @@ import (
 	"golang.org/x/oauth2"
 )
 
-func staticToken(token string) oauth2.TokenSource {
-	return oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
+func staticToken(token string) ssf.TokenSource {
+	return ssf.StaticToken(token)
 }
 
 // failingTokens fails the first failures calls, then returns a token.
@@ -25,7 +26,9 @@ type failingTokens struct {
 	mu       sync.Mutex
 }
 
-func (f *failingTokens) Token() (*oauth2.Token, error) {
+func (f *failingTokens) Invalidate() {}
+
+func (f *failingTokens) Token(context.Context) (*oauth2.Token, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 

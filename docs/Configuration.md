@@ -195,7 +195,7 @@ Usage of openvpn-auth-oauth2:
   --ssf.max-age duration
         Rejects Security Event Tokens issued longer ago than this. Also bounds the replay protection window. (env: OPENVPN_AUTH_OAUTH2_SSF_MAX_AGE) (default 1h0m0s)
   --ssf.poll.interval duration
-        Time to wait between polls when the SSF transmitter returns without events. (env: OPENVPN_AUTH_OAUTH2_SSF_POLL_INTERVAL) (default 30s)
+        Time to wait between polls when the SSF transmitter returns without events. Must be at least 1s. (env: OPENVPN_AUTH_OAUTH2_SSF_POLL_INTERVAL) (default 30s)
   --ssf.poll.max-events int
         Maximum number of Security Event Tokens requested per poll. (env: OPENVPN_AUTH_OAUTH2_SSF_POLL_MAX_EVENTS) (default 100)
   --ssf.poll.scopes value

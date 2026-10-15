@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/pprof"
 	"slices"
+	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/crypto"
@@ -28,8 +29,10 @@ import (
 
 // New wires the daemon services for one loaded configuration.
 // tokenStorage and sessions are shared across configuration reloads.
+// reload is true for every configuration after the first one.
 func New(
 	ctx context.Context, logger *slog.Logger, conf *config.Config, tokenStorage tokenstorage.Storage, sessions *sessionregistry.Registry,
+	reload bool,
 ) (*Runtime, error) {
 	var appMetrics *metrics.Metrics
 	if conf.Debug.Metrics {
@@ -58,14 +61,18 @@ func New(
 	if conf.SSF.Enabled {
 		enforcer := revocation.New(logger, conf, sessions, oAuth2Client, openvpnClient, appMetrics)
 
-		receiver, err := NewSSFReceiver(ctx, logger, conf, httpClient, oAuth2Client, enforcer, appMetrics)
+		setup := func(ctx context.Context) (*ssf.Receiver, error) {
+			return NewSSFReceiver(ctx, logger, conf, httpClient, oAuth2Client, enforcer, appMetrics)
+		}
+
+		run, err := ssfReceiverService(ctx, logger, conf, appMetrics, reload, setup)
 		if err != nil {
 			return nil, fmt.Errorf("error setting up SSF receiver: %w", err)
 		}
 
 		services = append(services, service{
 			errPrefix: "ssf receiver",
-			run:       receiver.Run,
+			run:       run,
 		})
 	}
 
@@ -139,7 +146,59 @@ func NewSSFReceiver(
 	ctx context.Context, logger *slog.Logger, conf *config.Config, httpClient *http.Client,
 	oAuth2Client *oauth2.Client, handler ssf.Handler, appMetrics *metrics.Metrics,
 ) (*ssf.Receiver, error) {
-	return setupSSFReceiver(ctx, logger, conf, httpClient, ssfTokenSource(ctx, conf, oAuth2Client), handler, appMetrics)
+	return setupSSFReceiver(ctx, logger, conf, httpClient, ssfTokenSource(conf, oAuth2Client), handler, appMetrics)
+}
+
+// ssfReceiverService returns the run function of the SSF receiver.
+//
+// At the first start, a discovery error stops the startup, so a
+// misconfigured receiver is noticed at once. After a reload, a transmitter
+// that is unreachable for a moment must not end the VPN logins, so discovery
+// is retried in the background instead.
+func ssfReceiverService(
+	ctx context.Context, logger *slog.Logger, conf *config.Config, appMetrics *metrics.Metrics, reload bool,
+	setup func(ctx context.Context) (*ssf.Receiver, error),
+) (func(context.Context) error, error) {
+	if !reload {
+		receiver, err := setup(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		return receiver.Run, nil
+	}
+
+	return func(ctx context.Context) error {
+		wait := conf.SSF.Poll.Interval
+
+		for {
+			receiver, err := setup(ctx)
+			if err == nil {
+				return receiver.Run(ctx)
+			}
+
+			if ctx.Err() != nil {
+				return nil //nolint:nilerr // a discovery error after cancellation is the cancellation itself
+			}
+
+			if appMetrics != nil {
+				appMetrics.SSFPollError()
+			}
+
+			logger.LogAttrs(ctx, slog.LevelError, "unable to set up the SSF receiver after a reload; retrying",
+				slog.Any("err", err),
+				slog.Duration("retry_in", wait),
+			)
+
+			select {
+			case <-ctx.Done():
+				return nil
+			case <-time.After(wait):
+			}
+
+			wait = min(wait*2, ssf.MaxBackoff)
+		}
+	}, nil
 }
 
 // setupSSFReceiver discovers the SSF transmitter and its stream and returns
@@ -147,7 +206,7 @@ func NewSSFReceiver(
 // stop the startup, so a misconfigured receiver is noticed at once.
 func setupSSFReceiver(
 	ctx context.Context, logger *slog.Logger, conf *config.Config, httpClient *http.Client,
-	tokens xoauth2.TokenSource, handler ssf.Handler, appMetrics *metrics.Metrics,
+	tokens ssf.TokenSource, handler ssf.Handler, appMetrics *metrics.Metrics,
 ) (*ssf.Receiver, error) {
 	issuer := conf.SSFIssuer()
 
@@ -192,28 +251,23 @@ func setupSSFReceiver(
 	}), nil
 }
 
-// clientCredentialsTokenSource requests access tokens with the client
-// credentials grant of the OAuth2 client.
-type clientCredentialsTokenSource struct {
-	ctx    context.Context //nolint:containedctx // xoauth2.TokenSource has no context parameter
-	client interface {
-		ClientCredentialsToken(ctx context.Context, scopes ...string) (*xoauth2.Token, error)
-	}
-	scopes []string
-}
-
-// Token implements xoauth2.TokenSource.
-func (s clientCredentialsTokenSource) Token() (*xoauth2.Token, error) {
-	return s.client.ClientCredentialsToken(s.ctx, s.scopes...) //nolint:wrapcheck // wrapped by the SSF client
-}
-
 // ssfTokenSource returns the static ssf.poll.token, or access tokens from the
 // client credentials grant of the OAuth2 client with ssf.poll.scopes, reused
-// until shortly before they expire.
-func ssfTokenSource(ctx context.Context, conf *config.Config, client *oauth2.Client) xoauth2.TokenSource {
+// until shortly before they expire or until the transmitter rejects them.
+func ssfTokenSource(conf *config.Config, client clientCredentials) ssf.TokenSource {
 	if token := conf.SSF.Poll.Token.String(); token != "" {
-		return xoauth2.StaticTokenSource(&xoauth2.Token{AccessToken: token})
+		return ssf.StaticToken(token)
 	}
 
-	return xoauth2.ReuseTokenSource(nil, clientCredentialsTokenSource{ctx: ctx, client: client, scopes: conf.SSF.Poll.Scopes})
+	scopes := conf.SSF.Poll.Scopes
+
+	return ssf.CachedTokenSource(func(ctx context.Context) (*xoauth2.Token, error) {
+		return client.ClientCredentialsToken(ctx, scopes...)
+	})
+}
+
+// clientCredentials requests access tokens with the client credentials
+// grant. *oauth2.Client implements it.
+type clientCredentials interface {
+	ClientCredentialsToken(ctx context.Context, scopes ...string) (*xoauth2.Token, error)
 }
