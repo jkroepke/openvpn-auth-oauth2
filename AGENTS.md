@@ -89,9 +89,12 @@ code for `setErrs`. Signature checks go through zitadel/oidc
 
 Without `ssf.poll.token`, the receiver authenticates to the transmitter with an
 access token from the client credentials grant of `oauth2.client`
-(`oauth2.Client.ClientCredentialsToken`, wrapped in an `oauth2.ReuseTokenSource`
+(`oauth2.Client.ClientCredentialsToken`, wrapped in an `ssf.CachedTokenSource`
 in `daemon.ssfTokenSource`). Keycloak and Okta issue only short-lived tokens
 for their SSF endpoints, so a static token is the exception, not the default.
+`ssf.TokenSource` takes the context of each request, so a token request never
+outlives a shutdown, and a 401 or 403 from the transmitter invalidates the
+cached token.
 
 Keycloak sends the opaque session ID `ALL` when an administrator signs a user
 out of all sessions; the subject parser turns it into a user-level subject.
