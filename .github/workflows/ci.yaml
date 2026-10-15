@@ -294,9 +294,13 @@ jobs:
             if ! gh release view repodata > /dev/null 2>&1; then
               gh release create repodata --title repodata --notes "YUM/DNF repository metadata. See docs/Installation.md." --prerelease --latest=false
             fi
-            stale=$(gh release view repodata --json assets -q '.assets[].name' | grep -vxF -f <(ls) || true)
+            stale=$(gh release view repodata --json assets -q '.assets[].name' | grep -vxF -f <(printf '%s\n' *) || true)
+            metadata=()
+            for file in *; do
+              [[ "$file" == repomd.xml* ]] || metadata+=("$file")
+            done
             # Upload repomd.xml last, so it never references metadata that is not uploaded yet.
-            gh release upload repodata $(ls | grep -vx -e repomd.xml -e repomd.xml.asc) --clobber
+            gh release upload repodata "${metadata[@]}" --clobber
             gh release upload repodata repomd.xml repomd.xml.asc --clobber
             for asset in $stale; do
               gh release delete-asset repodata "$asset" --yes
