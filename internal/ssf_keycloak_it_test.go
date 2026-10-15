@@ -252,9 +252,11 @@ func expectSSFKeycloakITKill(t *testing.T, suite *testsuite.Suite, cid uint64) {
 	t.Helper()
 
 	// Keycloak queues events, so the revocation can take a few polls.
-	require.EventuallyWithT(t, func(collect *assert.CollectT) {
+	if !assert.EventuallyWithT(t, func(collect *assert.CollectT) {
 		assert.Equal(collect, 0, suite.GetSessionRegistry().Len())
-	}, 30*time.Second, 50*time.Millisecond, suite.Logs())
+	}, 30*time.Second, 50*time.Millisecond) {
+		t.Fatalf("client %d was not revoked. Logs:\n\n%s", cid, suite.Logs())
+	}
 
 	suite.ExpectMessage(t, fmt.Sprintf("client-kill %d HALT", cid))
 	suite.SendMessagef(t, "SUCCESS: client-kill command succeeded")
@@ -369,6 +371,9 @@ func (k *keycloakIT) setupRealm(t *testing.T, redirectURI string) {
 		"attributes": map[string]string{"ssf.transmitterEnabled": "true"},
 	}, http.StatusCreated)
 
+	// A Keycloak from KEYCLOAK_IT_URL outlives the test.
+	t.Cleanup(func() { k.deleteRealm(t) })
+
 	k.adminRequest(t, http.MethodPost, "/users", map[string]any{
 		"username":      keycloakITUser,
 		"enabled":       true,
@@ -454,6 +459,70 @@ func (k *keycloakIT) offlineSessions(t *testing.T) []string {
 	}
 
 	return ids
+}
+
+// deleteRealm deletes the realm of the test. It runs after the test context
+// is canceled, so it uses its own context and only logs errors.
+func (k *keycloakIT) deleteRealm(t *testing.T) {
+	t.Helper()
+
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(t.Context()), 30*time.Second)
+	defer cancel()
+
+	form := url.Values{
+		"grant_type": {"password"},
+		"client_id":  {"admin-cli"},
+		"username":   {keycloakITAdmin},
+		"password":   {keycloakITAdminSecret},
+	}
+
+	send := func(method, path, token string, body io.Reader) ([]byte, error) {
+		req, err := http.NewRequestWithContext(ctx, method, k.baseURL+path, body)
+		if err != nil {
+			return nil, err
+		}
+
+		if token != "" {
+			req.Header.Set("Authorization", "Bearer "+token)
+		} else {
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		}
+
+		resp, err := k.client.Do(req)
+		if err != nil {
+			return nil, err
+		}
+
+		defer func() { _ = resp.Body.Close() }()
+
+		data, err := io.ReadAll(resp.Body)
+		if err == nil && resp.StatusCode >= http.StatusMultipleChoices {
+			err = fmt.Errorf("%s %s: status %d: %s", method, path, resp.StatusCode, data)
+		}
+
+		return data, err
+	}
+
+	data, err := send(http.MethodPost, "/realms/master/protocol/openid-connect/token", "", strings.NewReader(form.Encode()))
+	if err != nil {
+		t.Logf("delete realm %s: %v", k.realm, err)
+
+		return
+	}
+
+	var token struct {
+		AccessToken string `json:"access_token"` //nolint:tagliatelle // OAuth 2.0 member name
+	}
+
+	if err = json.Unmarshal(data, &token); err != nil {
+		t.Logf("delete realm %s: %v", k.realm, err)
+
+		return
+	}
+
+	if _, err = send(http.MethodDelete, "/admin/realms/"+k.realm, token.AccessToken, http.NoBody); err != nil {
+		t.Logf("delete realm %s: %v", k.realm, err)
+	}
 }
 
 func (k *keycloakIT) adminToken(t *testing.T) string {

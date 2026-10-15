@@ -43,11 +43,17 @@ jobs:
         run: docker pull ghcr.io/jkroepke/openvpn-auth-oauth2/it:latest
 
       - name: go test (Integration Tests)
-        run: go test -race -count=1 -timeout=15m -run '^TestIT(EnforceUniqueUser|SSFKeycloak)?$' ./internal ./lib/openvpn-auth-oauth2
+        run: go test -race -count=1 -timeout=15m -run '^TestIT(EnforceUniqueUser)?$' ./internal ./lib/openvpn-auth-oauth2
         env:
           OPENVPN_IT_TEST: '1'
           PLUGIN_IT_TEST: '1'
           PLUGIN_IT_PLUGIN_PATH: "${{ runner.temp }}/openvpn-auth-oauth2.so"
+
+      # SSF is experimental and only in Keycloak nightly builds, which can
+      # change at any time, so this test doesn't block CI.
+      - name: go test (Keycloak SSF Integration Test)
+        continue-on-error: true
+        run: go test -race -count=1 -timeout=10m -run '^TestITSSFKeycloak$' -v ./internal
 
       - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         env:

@@ -96,7 +96,9 @@ for their SSF endpoints, so a static token is the exception, not the default.
 Keycloak sends the opaque session ID `ALL` when an administrator signs a user
 out of all sessions; the subject parser turns it into a user-level subject.
 `TestITSSFKeycloak` (`internal/ssf_keycloak_it_test.go`) runs the receiver
-against Keycloak nightly. Container registries may be unreachable in a
+against Keycloak nightly (`make test-it-ssf`). CI runs it in its own
+non-blocking step, because nightly builds can change the experimental SSF
+feature at any time. Container registries may be unreachable in a
 sandbox; run Keycloak from the nightly tarball with
 `kc.sh start-dev --features=ssf --https-certificate-file=... --https-certificate-key-file=...`
 and admin `admin`/`admin`, then set `OPENVPN_IT_TEST=1`, `KEYCLOAK_IT_URL` and
