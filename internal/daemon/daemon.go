@@ -61,9 +61,8 @@ func New(
 	if conf.SSF.Enabled {
 		enforcer := revocation.New(logger, conf, sessions, oAuth2Client, openvpnClient, appMetrics)
 
-		tokens := ssfTokenSource(conf, oAuth2Client)
 		setup := func(ctx context.Context) (*ssf.Receiver, error) {
-			return setupSSFReceiver(ctx, logger, conf, httpClient, tokens, enforcer, appMetrics)
+			return NewSSFReceiver(ctx, logger, conf, httpClient, oAuth2Client, enforcer, appMetrics)
 		}
 
 		run, err := ssfReceiverService(ctx, logger, conf, appMetrics, reload, setup)
@@ -138,6 +137,16 @@ func setupOpenVPNClient(
 	openvpnClient.SetOAuth2Client(oAuth2Client)
 
 	return openvpnClient, oAuth2Client, httphandler.New(conf, oAuth2Client, openvpnClient.Ready), nil
+}
+
+// NewSSFReceiver discovers the SSF transmitter of conf and returns a receiver
+// that authenticates with ssf.poll.token, or with access tokens from the
+// client credentials grant of oAuth2Client.
+func NewSSFReceiver(
+	ctx context.Context, logger *slog.Logger, conf *config.Config, httpClient *http.Client,
+	oAuth2Client *oauth2.Client, handler ssf.Handler, appMetrics *metrics.Metrics,
+) (*ssf.Receiver, error) {
+	return setupSSFReceiver(ctx, logger, conf, httpClient, ssfTokenSource(conf, oAuth2Client), handler, appMetrics)
 }
 
 // ssfReceiverService returns the run function of the SSF receiver.

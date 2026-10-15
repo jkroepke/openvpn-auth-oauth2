@@ -96,6 +96,18 @@ for their SSF endpoints, so a static token is the exception, not the default.
 outlives a shutdown, and a 401 or 403 from the transmitter invalidates the
 cached token.
 
+Keycloak sends the opaque session ID `ALL` when an administrator signs a user
+out of all sessions; the subject parser turns it into a user-level subject.
+`TestITSSFKeycloak` (`internal/ssf_keycloak_it_test.go`) runs the receiver
+against Keycloak nightly (`make test-it-ssf`). CI runs it in its own
+non-blocking step, because nightly builds can change the experimental SSF
+feature at any time. Container registries may be unreachable in a
+sandbox; run Keycloak from the nightly tarball with
+`kc.sh start-dev --features=ssf --https-certificate-file=... --https-certificate-key-file=...`
+and admin `admin`/`admin`, then set `OPENVPN_IT_TEST=1`, `KEYCLOAK_IT_URL` and
+`KEYCLOAK_IT_CA_FILE`. With `offline_access`, Keycloak creates only an offline
+session for the login, so the ID token `sid` names that offline session.
+
 ## OpenVPN management command size
 
 For `client-pending-auth` URL validation:

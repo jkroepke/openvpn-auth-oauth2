@@ -19,6 +19,11 @@ const (
 	MemberSession = "session"
 
 	memberFormat = "format"
+
+	// allSessions is the opaque session id Keycloak sends when an
+	// administrator signs a user out of all sessions. It names no session, so
+	// such an event is user level.
+	allSessions = "ALL"
 )
 
 // Subject is the principal of an event, reduced to the fields a session can be
@@ -110,6 +115,10 @@ func (p subjectParser) parseComplex(members map[string]json.RawMessage) (Subject
 
 	if !found {
 		return Subject{}, fmt.Errorf("%w: complex subject without a user or session member", ErrUnsupportedSubject)
+	}
+
+	if subject.SessionID == allSessions && (subject.Subject != "" || subject.Email != "") {
+		subject.SessionID = ""
 	}
 
 	return subject, nil

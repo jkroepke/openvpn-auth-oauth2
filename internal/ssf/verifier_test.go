@@ -84,6 +84,24 @@ func TestVerify(t *testing.T) {
 			subject: ssf.Subject{Issuer: "https://idp.example.com", Subject: "user-1", SessionID: "sid-1"},
 		},
 		{
+			name: "complex with user and all sessions",
+			token: func(t *testing.T) string {
+				t.Helper()
+
+				return transmitter.Sign(t, transmitter.NewSessionRevoked(ssftest.UserSession(user, ssftest.Opaque("ALL"))))
+			},
+			subject: ssf.Subject{Issuer: "https://idp.example.com", Subject: "user-1"},
+		},
+		{
+			name: "complex with all sessions only",
+			token: func(t *testing.T) string {
+				t.Helper()
+
+				return transmitter.Sign(t, transmitter.NewSessionRevoked(ssftest.Complex(map[string]ssftest.Subject{"session": ssftest.Opaque("ALL")})))
+			},
+			subject: ssf.Subject{SessionID: "ALL"},
+		},
+		{
 			name: "complex with session only",
 			token: func(t *testing.T) string {
 				t.Helper()

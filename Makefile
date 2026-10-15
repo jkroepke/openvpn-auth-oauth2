@@ -109,6 +109,10 @@ test-it:  ## Run integration tests
 	@GOEXPERIMENT=cgocheck2 OPENVPN_IT_TEST=1 PLUGIN_IT_TEST=1 PLUGIN_IT_PLUGIN_PATH="$(PLUGIN_PATH)" \
 		go test -race -count=1 -timeout=15m -run '^TestIT(EnforceUniqueUser)?$$' ./internal ./lib/openvpn-auth-oauth2
 
+.PHONY: test-it-ssf
+test-it-ssf:  ## Run the Keycloak SSF integration test
+	@GOEXPERIMENT=cgocheck2 OPENVPN_IT_TEST=1 go test -race -count=1 -timeout=10m -run '^TestITSSFKeycloak$$' -v ./internal
+
 .PHONY: lint
 lint: golangci  ## Run linter
 
