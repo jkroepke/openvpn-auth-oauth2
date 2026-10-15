@@ -450,13 +450,6 @@ func TestValidateSSF(t *testing.T) {
 			},
 			"ssf.max-age must be greater than 0",
 		},
-		{
-			"zero revocation ttl",
-			func(conf *config.Config) {
-				conf.SSF.RevocationTTL = 0
-			},
-			"ssf.revocation-ttl must be greater than 0",
-		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

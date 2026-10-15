@@ -471,12 +471,6 @@ func (c *Config) flagSetSSF(flagSet *flag.FlagSet) {
 		c.SSF.MaxAge,
 		"Rejects Security Event Tokens issued longer ago than this. Also bounds the replay protection window.",
 	)
-	flagSet.DurationVar(
-		&c.SSF.RevocationTTL,
-		"ssf.revocation-ttl",
-		c.SSF.RevocationTTL,
-		"How long a revoked session is remembered to deny reconnects and in-flight logins.",
-	)
 	flagSet.BoolVar(
 		&c.SSF.UserLevelRevocation,
 		"ssf.user-level-revocation",

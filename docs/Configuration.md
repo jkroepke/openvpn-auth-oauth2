@@ -200,8 +200,6 @@ Usage of openvpn-auth-oauth2:
         Maximum number of Security Event Tokens requested per poll. (env: OPENVPN_AUTH_OAUTH2_SSF_POLL_MAX_EVENTS) (default 100)
   --ssf.poll.token value
         Bearer token for the SSF poll and stream configuration endpoints. If argument starts with file:// it reads the secret from a file. (env: OPENVPN_AUTH_OAUTH2_SSF_POLL_TOKEN)
-  --ssf.revocation-ttl duration
-        How long a revoked session is remembered to deny reconnects and in-flight logins. (env: OPENVPN_AUTH_OAUTH2_SSF_REVOCATION_TTL) (default 8h0m0s)
   --ssf.subject.allow-email
         If true, events with an email subject identifier are accepted. Email addresses are not stable identifiers; prefer iss_sub subjects. (env: OPENVPN_AUTH_OAUTH2_SSF_SUBJECT_ALLOW_EMAIL)
   --ssf.user-level-revocation

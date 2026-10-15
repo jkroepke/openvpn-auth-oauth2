@@ -62,10 +62,6 @@ func validateSSFConfig(mode int, conf *Config) error {
 		return errors.New("ssf.max-age must be greater than 0")
 	}
 
-	if conf.SSF.RevocationTTL <= 0 {
-		return errors.New("ssf.revocation-ttl must be greater than 0")
-	}
-
 	return nil
 }
 

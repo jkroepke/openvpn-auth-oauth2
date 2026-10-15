@@ -110,7 +110,6 @@ var Defaults = Config{
 			MaxEvents: 100,
 		},
 		MaxAge:              time.Hour,
-		RevocationTTL:       8 * time.Hour,
 		UserLevelRevocation: true,
 		Subject: SSFSubject{
 			AllowEmail: false,
