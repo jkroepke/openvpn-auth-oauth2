@@ -12,6 +12,7 @@ package sessionregistry
 import (
 	"cmp"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 )
@@ -45,7 +46,7 @@ func (i Identity) Merge(fallback Identity) Identity {
 }
 
 // matches reports whether every non-empty field of query equals the field of i.
-// An empty query matches nothing.
+// Emails are compared case-insensitively. An empty query matches nothing.
 func (i Identity) matches(query Identity) bool {
 	if query.IsZero() {
 		return false
@@ -54,7 +55,7 @@ func (i Identity) matches(query Identity) bool {
 	return matchField(query.Issuer, i.Issuer) &&
 		matchField(query.Subject, i.Subject) &&
 		matchField(query.SessionID, i.SessionID) &&
-		matchField(query.Email, i.Email)
+		(query.Email == "" || strings.EqualFold(query.Email, i.Email))
 }
 
 func matchField(query, value string) bool {
@@ -144,6 +145,26 @@ func (r *Registry) Disconnect(cid uint64, retain time.Duration) (Entry, bool) {
 	}
 
 	return entry, true
+}
+
+// Remove removes an entry returned by [Registry.Lookup]: a connected entry
+// by its CID, a dormant entry by its OpenVPN session ID. It reports whether
+// the entry was still present.
+func (r *Registry) Remove(entry Entry) bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if entry.Connected {
+		_, ok := r.connected[entry.CID]
+		delete(r.connected, entry.CID)
+
+		return ok
+	}
+
+	_, ok := r.dormant[entry.OpenVPNSessionID]
+	delete(r.dormant, entry.OpenVPNSessionID)
+
+	return ok
 }
 
 // Lookup returns all connected and dormant entries whose identity matches

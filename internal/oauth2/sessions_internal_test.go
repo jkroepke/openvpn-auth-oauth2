@@ -13,6 +13,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn/connection"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/sessionregistry"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/tokenstorage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
@@ -312,4 +313,67 @@ func (p *refreshProvider) Refresh(context.Context, rp.RelyingParty, string) (*id
 
 func (p *refreshProvider) RevokeRefreshToken(context.Context, rp.RelyingParty, string) error {
 	return nil
+}
+
+func TestRevokeRefreshState(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		name         string
+		entry        sessionregistry.Entry
+		storedKey    string
+		expectErr    bool
+		refresh      bool
+		useSessionID bool
+	}{
+		{name: "refresh disabled", entry: sessionregistry.Entry{CID: 7, Connected: true}, storedKey: "7"},
+		{name: "by CID", refresh: true, entry: sessionregistry.Entry{CID: 7, Connected: true}, storedKey: "7"},
+		{
+			name: "by session ID", refresh: true, useSessionID: true,
+			entry: sessionregistry.Entry{CID: 7, OpenVPNSessionID: "ovpn-1", Connected: true}, storedKey: "ovpn-1",
+		},
+		{
+			name: "dormant by session ID", refresh: true, useSessionID: true,
+			entry: sessionregistry.Entry{OpenVPNSessionID: "ovpn-1"}, storedKey: "ovpn-1",
+		},
+		{
+			name: "dormant without session ID", refresh: true, useSessionID: true,
+			entry: sessionregistry.Entry{}, storedKey: "0", expectErr: true,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx := t.Context()
+			conf := config.Defaults
+			conf.OAuth2.Refresh.Enabled = tc.refresh
+			conf.OAuth2.Refresh.ValidateUser = false
+			conf.OAuth2.Refresh.UseSessionID = tc.useSessionID
+
+			storage := newInMemoryStorage(t)
+			require.NoError(t, storage.Set(ctx, tc.storedKey, types.EmptyToken))
+
+			client := Client{conf: &conf, storage: storage}
+			err := client.RevokeRefreshState(ctx, slog.New(slog.DiscardHandler), tc.entry)
+
+			_, getErr := storage.Get(ctx, tc.storedKey)
+
+			switch {
+			case tc.expectErr:
+				require.Error(t, err)
+				require.NoError(t, getErr)
+			case !tc.refresh:
+				require.NoError(t, err)
+				require.NoError(t, getErr, "refresh state is kept when refresh is disabled")
+			default:
+				require.NoError(t, err)
+				require.ErrorIs(t, getErr, tokenstorage.ErrNotExists)
+			}
+
+			// Deleting again is not an error.
+			if !tc.expectErr {
+				require.NoError(t, client.RevokeRefreshState(ctx, slog.New(slog.DiscardHandler), tc.entry))
+			}
+		})
+	}
 }

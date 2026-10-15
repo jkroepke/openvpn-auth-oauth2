@@ -37,21 +37,32 @@ func (c *Client) enforceUniqueUser(ctx context.Context, logger *slog.Logger, cur
 			slog.Uint64("existing_cid", clientID),
 		)
 
-		response, err := c.SendCommandf(ctx, "client-kill %d %s", clientID, clientKillHaltMessage)
-
-		response = strings.TrimSpace(response)
-		if errors.Is(err, ErrErrorResponse) && response == clientKillMissingResponse {
-			logger.LogAttrs(
-				ctx, slog.LevelDebug, "existing OpenVPN session already terminated",
-				slog.Uint64("existing_cid", clientID),
-			)
-
-			continue
+		if err := c.KillClient(ctx, logger, clientID); err != nil {
+			return err
 		}
+	}
 
-		if err != nil {
-			return fmt.Errorf("terminate OpenVPN client %d: %w", clientID, err)
-		}
+	return nil
+}
+
+// KillClient terminates the connection of an OpenVPN client with client-kill
+// and the HALT message, so the client does not reconnect on its own.
+// A client that is already gone is not an error.
+func (c *Client) KillClient(ctx context.Context, logger *slog.Logger, clientID uint64) error {
+	response, err := c.SendCommandf(ctx, "client-kill %d %s", clientID, clientKillHaltMessage)
+
+	response = strings.TrimSpace(response)
+	if errors.Is(err, ErrErrorResponse) && response == clientKillMissingResponse {
+		logger.LogAttrs(
+			ctx, slog.LevelDebug, "OpenVPN session already terminated",
+			slog.Uint64("existing_cid", clientID),
+		)
+
+		return nil
+	}
+
+	if err != nil {
+		return fmt.Errorf("terminate OpenVPN client %d: %w", clientID, err)
 	}
 
 	return nil

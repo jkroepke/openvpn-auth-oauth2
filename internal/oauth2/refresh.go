@@ -361,35 +361,48 @@ func (c *Client) ClientDisconnect(ctx context.Context, logger *slog.Logger, clie
 		return
 	}
 
-	clientID := strconv.FormatUint(client.CID, 10)
+	if err := c.deleteRefreshToken(ctx, logger, strconv.FormatUint(client.CID, 10)); err != nil {
+		logger.LogAttrs(ctx, slog.LevelWarn, err.Error())
+	}
+}
 
+// deleteRefreshToken deletes the refresh token stored under clientID and,
+// with oauth2.refresh.validate-user, revokes it at the provider.
+// A missing token is not an error. A failed provider revocation is logged,
+// because the token is gone locally either way.
+func (c *Client) deleteRefreshToken(ctx context.Context, logger *slog.Logger, clientID string) error {
 	refreshToken, err := c.storage.Get(ctx, clientID)
 	if err != nil {
-		logLevel := slog.LevelWarn
 		if errors.Is(err, tokenstorage.ErrNotExists) {
-			logLevel = slog.LevelDebug
+			logger.LogAttrs(ctx, slog.LevelDebug, fmt.Errorf("error from token store: %w", err).Error())
+
+			return nil
 		}
 
-		logger.LogAttrs(ctx, logLevel, fmt.Errorf("error from token store: %w", err).Error())
+		// The token can't be read or revoked at the provider, but it must
+		// not stay in the store either.
+		if deleteErr := c.storage.Delete(ctx, clientID); deleteErr != nil {
+			return errors.Join(fmt.Errorf("error from token store: %w", err), deleteErr)
+		}
 
-		return
+		logger.LogAttrs(ctx, slog.LevelWarn, fmt.Errorf("deleted unreadable refresh token: %w", err).Error())
+
+		return nil
 	}
 
 	if err = c.storage.Delete(ctx, clientID); err != nil {
-		logger.LogAttrs(ctx, slog.LevelWarn, fmt.Errorf("error delete refresh token from storage: %w", err).Error())
-
-		return
+		return fmt.Errorf("error delete refresh token from storage: %w", err)
 	}
 
 	if !c.conf.OAuth2.Refresh.ValidateUser {
-		return
+		return nil
 	}
 
 	storedToken, err := decodeProviderRefreshToken(refreshToken)
 	if err != nil {
 		logger.LogAttrs(ctx, slog.LevelWarn, err.Error())
 
-		return
+		return nil
 	}
 
 	logger.LogAttrs(ctx, slog.LevelDebug, "revoke refresh token")
@@ -397,4 +410,6 @@ func (c *Client) ClientDisconnect(ctx context.Context, logger *slog.Logger, clie
 	if err = c.provider.RevokeRefreshToken(ctx, c.relyingParty, storedToken.RefreshToken); err != nil {
 		logger.LogAttrs(ctx, slog.LevelWarn, err.Error())
 	}
+
+	return nil
 }

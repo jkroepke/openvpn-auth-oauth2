@@ -217,3 +217,31 @@ func TestConcurrentAccess(t *testing.T) {
 
 	assert.LessOrEqual(t, registry.Len(), 1)
 }
+
+func TestRemove(t *testing.T) {
+	t.Parallel()
+
+	registry := sessionregistry.New()
+	registry.Add(sessionregistry.Entry{CID: 1, Identity: alice()})
+	registry.Add(sessionregistry.Entry{CID: 2, OpenVPNSessionID: "ovpn-2", Identity: alice()})
+	_, _ = registry.Disconnect(2, time.Hour)
+
+	entries := registry.Lookup(alice())
+	require.Len(t, entries, 2)
+
+	for _, entry := range entries {
+		assert.True(t, registry.Remove(entry))
+		assert.False(t, registry.Remove(entry))
+	}
+
+	assert.Equal(t, 0, registry.Len())
+}
+
+func TestLookupEmailIsCaseInsensitive(t *testing.T) {
+	t.Parallel()
+
+	registry := sessionregistry.New()
+	registry.Add(sessionregistry.Entry{CID: 1, Identity: alice()})
+
+	assert.Len(t, registry.Lookup(sessionregistry.Identity{Email: "Alice@Example.COM"}), 1)
+}
