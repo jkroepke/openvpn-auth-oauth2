@@ -18,6 +18,9 @@ var (
 	ErrReplay = errors.New("security event token was already processed")
 	// ErrUnsupportedSubject reports a subject identifier the receiver cannot act on.
 	ErrUnsupportedSubject = errors.New("unsupported subject")
+	// ErrKeysUnavailable reports that the signing keys of the transmitter
+	// could not be fetched, so the SET could not be verified yet.
+	ErrKeysUnavailable = errors.New("signing keys of the SSF transmitter are unavailable")
 )
 
 // Error is a SET verification error. Code is the RFC 8935 error code to report

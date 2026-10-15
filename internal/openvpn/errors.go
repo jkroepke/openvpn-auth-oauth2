@@ -20,6 +20,9 @@ var (
 	ErrEnforceUniqueUserUnsupported         = errors.New(
 		"openvpn.enforce-unique-user requires a direct OpenVPN management interface; the OpenVPN plugin shim is not supported",
 	)
+	ErrSSFUnsupported = errors.New(
+		"ssf.enabled requires a direct OpenVPN management interface; the OpenVPN plugin shim is not supported",
+	)
 	ErrClientSessionStateInvalidOrExpired = errors.New(deny.SessionStateInvalid.String())
 )
 

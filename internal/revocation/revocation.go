@@ -96,36 +96,83 @@ func (e *Enforcer) Revoke(ctx context.Context, subject sessionregistry.Identity)
 		return 0, nil
 	}
 
-	entries := e.sessions.Lookup(subject)
-	if len(entries) == 0 {
+	matched, revoked, err := e.revokeMatching(ctx, logger, subject)
+	if matched == 0 {
 		logger.LogAttrs(ctx, slog.LevelDebug, "revocation matches no OpenVPN session")
 
 		return 0, nil
 	}
 
-	var (
-		errs    []error
-		revoked int
-	)
-
-	for _, entry := range entries {
-		if !e.sessions.Remove(entry) {
-			// A concurrent revocation or disconnect handled it.
-			continue
-		}
-
-		if err := e.revokeEntry(ctx, logger, entry); err != nil {
-			errs = append(errs, err)
-
-			continue
-		}
-
-		revoked++
-	}
-
 	e.metrics.SessionsRevoked(scope, revoked)
 
-	return revoked, errors.Join(errs...)
+	return revoked, err
+}
+
+// revokeMatching revokes every entry that matches subject and returns how
+// many entries matched and how many were revoked.
+func (e *Enforcer) revokeMatching(ctx context.Context, logger *slog.Logger, subject sessionregistry.Identity) (int, int, error) {
+	var (
+		errs      []error
+		revoked   int
+		attempted = make(map[entryKey]struct{})
+	)
+
+	// A client that disconnects while the revocation runs leaves a dormant
+	// entry instead of its connected one, so look up again until every
+	// matching entry was handled.
+	for range maxLookups {
+		var missed bool
+
+		for _, entry := range e.sessions.Lookup(subject) {
+			key := keyOf(entry)
+			if _, ok := attempted[key]; ok {
+				continue
+			}
+
+			attempted[key] = struct{}{}
+
+			if !e.sessions.Remove(entry) {
+				// A concurrent revocation handled it, or the client disconnected.
+				missed = true
+
+				continue
+			}
+
+			if err := e.revokeEntry(ctx, logger, entry); err != nil {
+				errs = append(errs, err)
+
+				continue
+			}
+
+			revoked++
+		}
+
+		if !missed {
+			break
+		}
+	}
+
+	return len(attempted), revoked, errors.Join(errs...)
+}
+
+// maxLookups bounds how often [Enforcer.Revoke] looks up entries that
+// changed while it ran.
+const maxLookups = 3
+
+// entryKey identifies a registry entry: a connected client by its CID, a
+// dormant one by its OpenVPN session ID.
+type entryKey struct {
+	sessionID string
+	cid       uint64
+	connected bool
+}
+
+func keyOf(entry sessionregistry.Entry) entryKey {
+	if entry.Connected {
+		return entryKey{connected: true, cid: entry.CID}
+	}
+
+	return entryKey{sessionID: entry.OpenVPNSessionID}
 }
 
 // HandleEvent applies a verified SSF session-revoked event. It implements
