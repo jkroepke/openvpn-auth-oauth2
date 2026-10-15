@@ -146,7 +146,6 @@ ssf:
         interval: 45s
         max-events: 25
     max-age: 30m
-    revocation-ttl: 12h
     user-level-revocation: false
     subject:
         allow-email: true
@@ -273,7 +272,6 @@ ssf:
 						MaxEvents: 25,
 					},
 					MaxAge:              30 * time.Minute,
-					RevocationTTL:       12 * time.Hour,
 					UserLevelRevocation: false,
 					Subject: config.SSFSubject{
 						AllowEmail: true,

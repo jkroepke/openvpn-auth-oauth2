@@ -87,7 +87,6 @@
 #    interval: 30s
 #    max-events: 100
 #  max-age: 1h0m0s
-#  revocation-ttl: 8h0m0s
 #  user-level-revocation: true
 #  subject:
 #    allow-email: false
