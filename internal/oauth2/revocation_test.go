@@ -212,11 +212,11 @@ func TestSSFSessionRevocation(t *testing.T) {
 			Audience: discovery.Stream.Audience,
 			MaxAge:   time.Hour,
 		}),
-		Handler:   suite.enforcer,
-		Endpoint:  discovery.Stream.Delivery.EndpointURL,
+		Handler:     suite.enforcer,
+		Endpoint:    discovery.Stream.Delivery.EndpointURL,
 		TokenSource: staticToken(transmitter.Token()),
-		Interval:  10 * time.Millisecond,
-		MaxEvents: 10,
+		Interval:    10 * time.Millisecond,
+		MaxEvents:   10,
 	})
 
 	ctx, cancel := context.WithCancel(t.Context())

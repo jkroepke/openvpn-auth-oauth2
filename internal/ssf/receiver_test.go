@@ -117,14 +117,14 @@ func startReceiver(t *testing.T, transmitter *ssftest.Transmitter, eventHandler 
 	}
 
 	receiver := ssf.NewReceiver(slog.New(slog.DiscardHandler), ssf.ReceiverConfig{
-		Client:    transmitter.Client(),
-		Verifier:  suite.verifier,
-		Handler:   eventHandler,
-		Metrics:   suite.metrics,
-		Endpoint:  transmitter.PollEndpoint(),
+		Client:      transmitter.Client(),
+		Verifier:    suite.verifier,
+		Handler:     eventHandler,
+		Metrics:     suite.metrics,
+		Endpoint:    transmitter.PollEndpoint(),
 		TokenSource: staticToken(transmitter.Token()),
-		Interval:  testInterval,
-		MaxEvents: maxEvents,
+		Interval:    testInterval,
+		MaxEvents:   maxEvents,
 	})
 
 	ctx, cancel := context.WithCancel(t.Context())
@@ -342,13 +342,13 @@ func TestReceiverStopsWhenCanceled(t *testing.T) {
 	transmitter := ssftest.New(t, ssftest.WithLongPollHold(time.Minute))
 	verifier := newVerifier(t, transmitter)
 	receiver := ssf.NewReceiver(slog.New(slog.DiscardHandler), ssf.ReceiverConfig{
-		Client:    transmitter.Client(),
-		Verifier:  verifier,
-		Handler:   &handler{},
-		Endpoint:  transmitter.PollEndpoint(),
+		Client:      transmitter.Client(),
+		Verifier:    verifier,
+		Handler:     &handler{},
+		Endpoint:    transmitter.PollEndpoint(),
 		TokenSource: staticToken(transmitter.Token()),
-		Interval:  time.Hour,
-		MaxEvents: 1,
+		Interval:    time.Hour,
+		MaxEvents:   1,
 	})
 
 	ctx, cancel := context.WithCancel(t.Context())
