@@ -7,6 +7,7 @@ import (
 	"net/netip"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config/types"
 )
@@ -50,8 +51,8 @@ func validateSSFConfig(mode int, conf *Config) error {
 		return fmt.Errorf("ssf.poll.token is %w", ErrRequired)
 	}
 
-	if conf.SSF.Poll.Interval <= 0 {
-		return errors.New("ssf.poll.interval must be greater than 0")
+	if conf.SSF.Poll.Interval < time.Second {
+		return errors.New("ssf.poll.interval must be at least 1s")
 	}
 
 	if conf.SSF.Poll.MaxEvents <= 0 {
