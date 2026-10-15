@@ -43,7 +43,7 @@ jobs:
         run: docker pull ghcr.io/jkroepke/openvpn-auth-oauth2/it:latest
 
       - name: go test (Integration Tests)
-        run: go test -race -count=1 -timeout=15m -run '^TestIT(EnforceUniqueUser)?$' ./internal ./lib/openvpn-auth-oauth2
+        run: go test -race -count=1 -timeout=15m -run '^TestIT(EnforceUniqueUser|SSFKeycloak)?$' ./internal ./lib/openvpn-auth-oauth2
         env:
           OPENVPN_IT_TEST: '1'
           PLUGIN_IT_TEST: '1'

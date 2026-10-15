@@ -107,7 +107,7 @@ test:  ## Test the project
 test-it:  ## Run integration tests
 	@$(PLUGIN_BUILD_ENV) go build -buildvcs=false -buildmode=c-shared -o "$(PLUGIN_PATH)" ./lib/openvpn-auth-oauth2
 	@GOEXPERIMENT=cgocheck2 OPENVPN_IT_TEST=1 PLUGIN_IT_TEST=1 PLUGIN_IT_PLUGIN_PATH="$(PLUGIN_PATH)" \
-		go test -race -count=1 -timeout=15m -run '^TestIT(EnforceUniqueUser)?$$' ./internal ./lib/openvpn-auth-oauth2
+		go test -race -count=1 -timeout=15m -run '^TestIT(EnforceUniqueUser|SSFKeycloak)?$$' ./internal ./lib/openvpn-auth-oauth2
 
 .PHONY: lint
 lint: golangci  ## Run linter
