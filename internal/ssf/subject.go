@@ -126,6 +126,11 @@ func (p subjectParser) parseMember(subject *Subject, name string, raw json.RawMe
 		}
 
 		user, err := p.parseUser(format, members)
+		if errors.Is(err, ErrUnsupportedSubject) {
+			// A session member can still name the session.
+			return false, nil
+		}
+
 		if err != nil {
 			return false, err
 		}

@@ -2,6 +2,8 @@ package ssf_test
 
 import (
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -157,11 +159,22 @@ func TestVerify(t *testing.T) {
 			err:  ssf.ErrUnsupportedSubject,
 		},
 		{
-			name: "email disabled in a complex user member",
+			name: "email disabled in a complex user member with a session",
 			token: func(t *testing.T) string {
 				t.Helper()
 
 				return transmitter.Sign(t, transmitter.NewSessionRevoked(ssftest.UserSession(ssftest.Email("alice@example.com"), session)))
+			},
+			subject: ssf.Subject{SessionID: "sid-1"},
+		},
+		{
+			name: "email disabled in a complex user member without a session",
+			token: func(t *testing.T) string {
+				t.Helper()
+
+				return transmitter.Sign(t, transmitter.NewSessionRevoked(ssftest.Complex(map[string]ssftest.Subject{
+					"user": ssftest.Email("alice@example.com"),
+				})))
 			},
 			code: ssf.ErrorCodeInvalidRequest,
 			err:  ssf.ErrUnsupportedSubject,
@@ -611,6 +624,27 @@ func TestVerifyKeyRotation(t *testing.T) {
 
 	_, err = verifier.Verify(t.Context(), transmitter.Sign(t, transmitter.NewSessionRevoked(subject)))
 	require.NoError(t, err, "an unknown kid must trigger a JWK Set refresh")
+}
+
+func TestVerifyKeysUnavailable(t *testing.T) {
+	t.Parallel()
+
+	transmitter := ssftest.New(t)
+	unavailable := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, "unavailable", http.StatusServiceUnavailable)
+	}))
+	t.Cleanup(unavailable.Close)
+
+	verifier := newVerifier(t, transmitter, func(conf *ssf.VerifierConfig) {
+		conf.KeySet = rp.NewRemoteKeySet(unavailable.Client(), unavailable.URL)
+	})
+
+	_, err := verifier.Verify(t.Context(), transmitter.Sign(t, transmitter.NewSessionRevoked(ssftest.IssSub("https://idp.example.com", "user-1"))))
+	require.ErrorIs(t, err, ssf.ErrKeysUnavailable)
+
+	var verifyErr *ssf.Error
+
+	assert.NotErrorAs(t, err, &verifyErr, "a SET that can be verified later must not be rejected")
 }
 
 func TestErrorMessage(t *testing.T) {
