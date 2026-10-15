@@ -77,7 +77,11 @@ survives configuration reloads, like the refresh-token data.
 packages. `Verifier.Verify` does not record the `jti`; call
 `Verifier.Processed` only after the revocation was enforced, otherwise a SET
 whose enforcement failed is rejected as a replay when the transmitter
-redelivers it. Verification errors are `*ssf.Error` values carrying the RFC 8935
+redelivers it. `ssf.Receiver` follows that rule: it acknowledges a
+SET only after the handler succeeded, reports failed verification in
+`setErrs`, and leaves a SET unacknowledged when the handler fails so the
+transmitter redelivers it. The receiver is wired in `daemon.setupSSFReceiver`;
+discovery errors stop the startup on purpose. Verification errors are `*ssf.Error` values carrying the RFC 8935
 code for `setErrs`. Signature checks go through zitadel/oidc
 (`oidc.CheckSignature` with `rp.NewRemoteKeySet`); the `typ`, `iss`, `aud`,
 `iat`, `jti`, `sub`/`exp` and subject checks are ours. Do not use

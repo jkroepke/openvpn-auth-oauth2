@@ -31,6 +31,11 @@ func TestMetricsWrite(t *testing.T) {
 	appMetrics.SessionsRevoked(metrics.RevocationScopeUser, 3)
 	appMetrics.SessionsRevoked(metrics.RevocationScopeSession, 1)
 	appMetrics.SessionsRevoked(metrics.RevocationScopeSession, 0)
+	appMetrics.SSFEvent("revoked")
+	appMetrics.SSFEvent("revoked")
+	appMetrics.SSFEvent("invalid")
+	appMetrics.SSFPollError()
+	appMetrics.SSFPollSucceeded(time.Unix(1_700_000_000, 0))
 	appMetrics.ObserveCodeExchange(300 * time.Millisecond)
 	appMetrics.ObserveCommand("client-deny", 3*time.Millisecond)
 	appMetrics.ObserveCommand("client-auth-nt", 20*time.Second)
@@ -56,6 +61,12 @@ func TestMetricsWrite(t *testing.T) {
 		"# TYPE openvpn_auth_oauth2_ssf_sessions_revoked_total counter\n",
 		`openvpn_auth_oauth2_ssf_sessions_revoked_total{scope="session"} 1` + "\n",
 		`openvpn_auth_oauth2_ssf_sessions_revoked_total{scope="user"} 3` + "\n",
+		"# TYPE openvpn_auth_oauth2_ssf_events_total counter\n",
+		`openvpn_auth_oauth2_ssf_events_total{outcome="invalid"} 1` + "\n",
+		`openvpn_auth_oauth2_ssf_events_total{outcome="revoked"} 2` + "\n",
+		"openvpn_auth_oauth2_ssf_poll_errors_total 1\n",
+		"# TYPE openvpn_auth_oauth2_ssf_last_successful_poll_timestamp_seconds gauge\n",
+		"openvpn_auth_oauth2_ssf_last_successful_poll_timestamp_seconds 1700000000\n",
 		"# TYPE openvpn_auth_oauth2_oauth2_code_exchange_duration_seconds histogram\n",
 		`openvpn_auth_oauth2_oauth2_code_exchange_duration_seconds_bucket{le="0.25"} 0` + "\n",
 		`openvpn_auth_oauth2_oauth2_code_exchange_duration_seconds_bucket{le="0.5"} 1` + "\n",
@@ -103,6 +114,9 @@ func TestMetricsNilReceiver(t *testing.T) {
 		appMetrics.ClientDenied("client rejected")
 		appMetrics.SilentReAuth(metrics.SilentReAuthError)
 		appMetrics.SessionsRevoked(metrics.RevocationScopeUser, 1)
+		appMetrics.SSFEvent("revoked")
+		appMetrics.SSFPollError()
+		appMetrics.SSFPollSucceeded(time.Now())
 		appMetrics.ObserveCodeExchange(time.Second)
 		appMetrics.ObserveCommand("client-deny", time.Second)
 		appMetrics.ClientQueued()

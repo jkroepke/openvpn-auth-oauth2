@@ -80,7 +80,7 @@
 #    socket-mode: "0660"
 #  reauthentication: true
 #ssf:
-#  enabled: false  # Not implemented yet; the receiver follows in a later release.
+#  enabled: false  # Receive CAEP session-revoked events by RFC 8936 poll delivery and terminate the matching sessions
 #  issuer: ""  # Defaults to oauth2.issuer. Must start with https://. Discovery reads <issuer>/.well-known/ssf-configuration
 #  poll:  # The poll endpoint and audience are read from the SSF stream configuration
 #    token: "file:///etc/openvpn-auth-oauth2/ssf-token"
