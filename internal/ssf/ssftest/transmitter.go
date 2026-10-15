@@ -74,7 +74,11 @@ type options struct {
 // WithIssuerPath adds a path to the issuer, for example "/realms/vpn".
 func WithIssuerPath(path string) Option {
 	return func(o *options) {
-		o.issuerPath = "/" + strings.Trim(path, "/")
+		o.issuerPath = ""
+
+		if trimmed := strings.Trim(path, "/"); trimmed != "" {
+			o.issuerPath = "/" + trimmed
+		}
 	}
 }
 
@@ -326,11 +330,13 @@ func (t *Transmitter) EmitSessionRevoked(tb testing.TB, subject Subject) string 
 }
 
 // EmitToken queues an already encoded SET under jti, for example one that
-// Sign built with missing claims or a wrong key.
+// Sign built with missing claims or a wrong key. A SET that is still queued
+// under the same jti is replaced.
 func (t *Transmitter) EmitToken(jti, token string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
+	t.queue = slices.DeleteFunc(t.queue, func(set queuedSET) bool { return set.jti == jti })
 	t.queue = append(t.queue, queuedSET{jti: jti, token: token})
 	t.wakeLocked()
 }
@@ -377,7 +383,7 @@ func (t *Transmitter) SetErrs() map[string]SetErr {
 }
 
 // PollRequests returns every poll request with a valid token, including
-// failed ones, in arrival order.
+// injected failures, in arrival order.
 func (t *Transmitter) PollRequests() []PollRequest {
 	t.mu.Lock()
 	defer t.mu.Unlock()

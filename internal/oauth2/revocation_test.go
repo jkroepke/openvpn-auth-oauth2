@@ -20,7 +20,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
-	xoauth2 "golang.org/x/oauth2"
 )
 
 type revocationSuite struct {
@@ -140,10 +139,6 @@ func (s *revocationSuite) revoke(t *testing.T, killed ...uint64) int {
 	}
 }
 
-func staticToken(token string) xoauth2.TokenSource {
-	return xoauth2.StaticTokenSource(&xoauth2.Token{AccessToken: token})
-}
-
 func u64(value uint64) string {
 	return strconv.FormatUint(value, 10)
 }
@@ -201,7 +196,7 @@ func TestSSFSessionRevocation(t *testing.T) {
 	issuer, err := url.Parse(transmitter.Issuer())
 	require.NoError(t, err)
 
-	discovery, err := ssf.Discover(t.Context(), transmitter.Client(), issuer, staticToken(transmitter.Token()))
+	discovery, err := ssf.Discover(t.Context(), transmitter.Client(), issuer, ssf.StaticToken(transmitter.Token()))
 	require.NoError(t, err)
 
 	receiver := ssf.NewReceiver(slog.New(slog.DiscardHandler), ssf.ReceiverConfig{
@@ -214,7 +209,7 @@ func TestSSFSessionRevocation(t *testing.T) {
 		}),
 		Handler:     suite.enforcer,
 		Endpoint:    discovery.Stream.Delivery.EndpointURL,
-		TokenSource: staticToken(transmitter.Token()),
+		TokenSource: ssf.StaticToken(transmitter.Token()),
 		Interval:    10 * time.Millisecond,
 		MaxEvents:   10,
 	})

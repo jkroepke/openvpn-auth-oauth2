@@ -10,10 +10,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-jose/go-jose/v4"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/ssf"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/ssf/ssftest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/zitadel/oidc/v3/pkg/client/rp"
+	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
 const (
@@ -400,4 +403,100 @@ func TestReceiverRecoversFromTokenErrors(t *testing.T) {
 	cancel()
 	require.NoError(t, <-done)
 	assert.Equal(t, 2, metrics.errors())
+}
+
+// unavailableKeySet fails like an unreachable jwks_uri while failures is
+// positive, then verifies with keys.
+type unavailableKeySet struct {
+	keys     oidc.KeySet
+	failures int
+	mu       sync.Mutex
+}
+
+func (k *unavailableKeySet) VerifySignature(ctx context.Context, jws *jose.JSONWebSignature) ([]byte, error) {
+	k.mu.Lock()
+	failing := k.failures > 0
+	k.failures--
+	k.mu.Unlock()
+
+	if failing {
+		return nil, errors.New("unable to fetch key for signature validation: 503 Service Unavailable")
+	}
+
+	return k.keys.VerifySignature(ctx, jws)
+}
+
+func TestReceiverRetriesWhileKeysAreUnavailable(t *testing.T) {
+	t.Parallel()
+
+	transmitter := ssftest.New(t)
+	eventHandler := &handler{revoked: 1}
+	metrics := &receiverMetrics{outcomes: make(map[string]int)}
+	keySet := &unavailableKeySet{keys: rp.NewRemoteKeySet(transmitter.Client(), transmitter.JWKSURI()), failures: 2}
+
+	receiver := ssf.NewReceiver(slog.New(slog.DiscardHandler), ssf.ReceiverConfig{
+		Client: transmitter.Client(),
+		Verifier: newVerifier(t, transmitter, func(conf *ssf.VerifierConfig) {
+			conf.KeySet = keySet
+		}),
+		Handler:     eventHandler,
+		Metrics:     metrics,
+		Endpoint:    transmitter.PollEndpoint(),
+		TokenSource: staticToken(transmitter.Token()),
+		Interval:    testInterval,
+		MaxEvents:   100,
+	})
+
+	ctx, cancel := context.WithCancel(t.Context())
+	done := make(chan error, 1)
+
+	go func() { done <- receiver.Run(ctx) }()
+
+	t.Cleanup(func() {
+		cancel()
+		require.NoError(t, <-done)
+	})
+
+	jti := transmitter.EmitSessionRevoked(t, revokedSubject())
+
+	require.EventuallyWithT(t, func(collect *assert.CollectT) {
+		assert.Contains(collect, transmitter.Acked(), jti)
+	}, waitFor, tick)
+
+	assert.Empty(t, transmitter.SetErrs(), "a SET must not be rejected while the keys can't be fetched")
+	assert.Len(t, eventHandler.handled(), 1)
+	assert.Equal(t, 2, metrics.outcome(ssf.OutcomeError))
+}
+
+// cancelingHandler cancels the receiver once it handled an event.
+type cancelingHandler struct {
+	cancel context.CancelFunc
+}
+
+func (h cancelingHandler) HandleEvent(context.Context, ssf.Event) (int, error) {
+	h.cancel()
+
+	return 1, nil
+}
+
+func TestReceiverAcknowledgesWhenStopping(t *testing.T) {
+	t.Parallel()
+
+	transmitter := ssftest.New(t)
+	ctx, cancel := context.WithCancel(t.Context())
+
+	receiver := ssf.NewReceiver(slog.New(slog.DiscardHandler), ssf.ReceiverConfig{
+		Client:      transmitter.Client(),
+		Verifier:    newVerifier(t, transmitter),
+		Handler:     cancelingHandler{cancel: cancel},
+		Endpoint:    transmitter.PollEndpoint(),
+		TokenSource: staticToken(transmitter.Token()),
+		Interval:    time.Hour,
+		MaxEvents:   100,
+	})
+
+	jti := transmitter.EmitSessionRevoked(t, revokedSubject())
+
+	require.NoError(t, receiver.Run(ctx))
+	assert.Contains(t, transmitter.Acked(), jti, "the handled event is acknowledged before Run returns")
 }

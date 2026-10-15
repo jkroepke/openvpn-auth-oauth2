@@ -106,7 +106,9 @@ func NewVerifier(conf VerifierConfig) *Verifier {
 }
 
 // Verify checks the signature and claims of the SET token and returns the
-// event it carries. A returned error is an *Error with the RFC 8935 error code.
+// event it carries. A returned error is an *Error with the RFC 8935 error
+// code, or wraps ErrKeysUnavailable if the signing keys could not be fetched.
+// Such a SET can be verified again later and must not be rejected.
 //
 // Verify does not record the jti. Call Processed once the event has been
 // acted on, so a SET that could not be processed is accepted again when the
@@ -160,6 +162,10 @@ func (v *Verifier) verifySignature(ctx context.Context, token string) (*setClaim
 	payload := jws.UnsafePayloadWithoutVerification()
 
 	if err = oidc.CheckSignature(ctx, token, payload, claims, SignatureAlgorithms(), v.conf.KeySet); err != nil {
+		if keysUnavailable(err) {
+			return nil, fmt.Errorf("%w: %w", ErrKeysUnavailable, err)
+		}
+
 		return nil, newError(ErrorCodeInvalidKey, fmt.Errorf("verify signature: %w", err))
 	}
 
@@ -168,6 +174,16 @@ func (v *Verifier) verifySignature(ctx context.Context, token string) (*setClaim
 	}
 
 	return claims, nil
+}
+
+// keysUnavailable reports whether err from oidc.CheckSignature means that
+// the key set could not be fetched, rather than that no key matches or the
+// signature is wrong.
+func keysUnavailable(err error) bool {
+	return errors.Is(err, oidc.ErrSignatureInvalid) &&
+		!errors.Is(err, oidc.ErrKeyNone) &&
+		!errors.Is(err, oidc.ErrKeyMultiple) &&
+		!errors.Is(err, jose.ErrCryptoFailure)
 }
 
 // verifyClaims checks the claims other than iss and aud and builds the event.

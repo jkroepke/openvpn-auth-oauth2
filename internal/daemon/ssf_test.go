@@ -3,7 +3,9 @@ package daemon
 
 import (
 	"context"
+	"errors"
 	"log/slog"
+	"net/http"
 	"sync"
 	"testing"
 	"time"
@@ -61,7 +63,7 @@ func TestSetupSSFReceiver(t *testing.T) {
 
 	conf := ssfConfig(t, transmitter)
 
-	receiver, err := setupSSFReceiver(t.Context(), slog.New(slog.DiscardHandler), conf, transmitter.Client(), ssfTokenSource(t.Context(), conf, nil), recorder, nil)
+	receiver, err := setupSSFReceiver(t.Context(), slog.New(slog.DiscardHandler), conf, transmitter.Client(), ssfTokenSource(conf, nil), recorder, nil)
 	require.NoError(t, err)
 
 	ctx, cancel := context.WithCancel(t.Context())
@@ -90,7 +92,7 @@ func TestSetupSSFReceiverDiscoveryError(t *testing.T) {
 	conf := ssfConfig(t, transmitter)
 	conf.SSF.Poll.Token = "wrong"
 
-	_, err := setupSSFReceiver(t.Context(), slog.New(slog.DiscardHandler), conf, transmitter.Client(), ssfTokenSource(t.Context(), conf, nil), &eventRecorder{}, nil)
+	_, err := setupSSFReceiver(t.Context(), slog.New(slog.DiscardHandler), conf, transmitter.Client(), ssfTokenSource(conf, nil), &eventRecorder{}, nil)
 	require.ErrorContains(t, err, "discover SSF transmitter")
 	require.ErrorContains(t, err, "401")
 }
@@ -113,19 +115,92 @@ func TestSSFTokenSource(t *testing.T) {
 	conf := config.Defaults
 	conf.SSF.Poll.Token = "static"
 
-	token, err := ssfTokenSource(t.Context(), &conf, nil).Token()
+	token, err := ssfTokenSource(&conf, nil).Token(t.Context())
 	require.NoError(t, err)
 	assert.Equal(t, "static", token.AccessToken)
 
 	recorder := &credentialsRecorder{}
-	tokens := xoauth2.ReuseTokenSource(nil, clientCredentialsTokenSource{ctx: t.Context(), client: recorder, scopes: config.Defaults.SSF.Poll.Scopes})
+	tokens := ssfTokenSource(&config.Defaults, recorder)
 
 	for range 3 {
-		token, err = tokens.Token()
+		token, err = tokens.Token(t.Context())
 		require.NoError(t, err)
 		assert.Equal(t, "client-credentials", token.AccessToken)
 	}
 
 	assert.Equal(t, 1, recorder.calls, "a token is reused until it expires")
 	assert.Equal(t, []string{"ssf.read"}, recorder.scopes)
+}
+
+// failingTransport fails the first failures requests, like a transmitter
+// that is unreachable for a moment.
+type failingTransport struct {
+	next     http.RoundTripper
+	failures int
+	mu       sync.Mutex
+}
+
+func (f *failingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	f.mu.Lock()
+	failing := f.failures > 0
+	f.failures--
+	f.mu.Unlock()
+
+	if failing {
+		return nil, errors.New("connection refused")
+	}
+
+	return f.next.RoundTrip(req)
+}
+
+func TestSSFReceiverService(t *testing.T) {
+	t.Parallel()
+
+	t.Run("first start fails on discovery errors", func(t *testing.T) {
+		t.Parallel()
+
+		transmitter := ssftest.New(t)
+		client := *transmitter.Client()
+		client.Transport = &failingTransport{next: client.Transport, failures: 1}
+		conf := ssfConfig(t, transmitter)
+
+		_, err := ssfReceiverService(t.Context(), slog.New(slog.DiscardHandler), conf, nil, false,
+			func(ctx context.Context) (*ssf.Receiver, error) {
+				return setupSSFReceiver(ctx, slog.New(slog.DiscardHandler), conf, &client, ssf.StaticToken(transmitter.Token()), &eventRecorder{}, nil)
+			},
+		)
+		require.ErrorContains(t, err, "connection refused")
+	})
+
+	t.Run("reload retries discovery", func(t *testing.T) {
+		t.Parallel()
+
+		transmitter := ssftest.New(t)
+		client := *transmitter.Client()
+		client.Transport = &failingTransport{next: client.Transport, failures: 3}
+		conf := ssfConfig(t, transmitter)
+		recorder := &eventRecorder{}
+
+		run, err := ssfReceiverService(t.Context(), slog.New(slog.DiscardHandler), conf, nil, true,
+			func(ctx context.Context) (*ssf.Receiver, error) {
+				return setupSSFReceiver(ctx, slog.New(slog.DiscardHandler), conf, &client, ssf.StaticToken(transmitter.Token()), recorder, nil)
+			},
+		)
+		require.NoError(t, err)
+
+		ctx, cancel := context.WithCancel(t.Context())
+		done := make(chan error, 1)
+
+		go func() { done <- run(ctx) }()
+
+		jti := transmitter.EmitSessionRevoked(t, ssftest.IssSub("https://idp.example.com", "user-1"))
+
+		require.EventuallyWithT(t, func(collect *assert.CollectT) {
+			assert.Contains(collect, transmitter.Acked(), jti)
+		}, 5*time.Second, 10*time.Millisecond)
+
+		cancel()
+		require.NoError(t, <-done)
+		assert.Len(t, recorder.handled(), 1)
+	})
 }
