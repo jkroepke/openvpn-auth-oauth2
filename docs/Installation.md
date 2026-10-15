@@ -42,6 +42,21 @@ Replace `<package_file>` with the name of the downloaded file.
 
 ### For RedHat based distributions:
 
+openvpn-auth-oauth2 provides a YUM/DNF repository for RedHat based distributions. You can add the repository to your system and install the package using the following commands:
+
+```bash
+curl -L https://raw.githubusercontent.com/jkroepke/openvpn-auth-oauth2/refs/heads/main/packaging/rpm/openvpn-auth-oauth2.repo | sudo tee /etc/yum.repos.d/openvpn-auth-oauth2.repo
+sudo dnf install openvpn-auth-oauth2
+```
+
+> [!NOTE]
+> The YUM/DNF repository tracks the latest release. The repository metadata is
+> hosted on GitHub Pages, while the RPM packages are downloaded from the GitHub
+> release. To install a specific version, install the RPM package from the
+> releases page directly.
+
+**Alternatively, you can install the RPM package manually:**
+
 1. Download the RPM package from the releases page.
 2. Open a terminal.
 3. Navigate to the directory where you downloaded the package.

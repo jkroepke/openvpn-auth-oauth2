@@ -1,0 +1,7 @@
+[openvpn-auth-oauth2]
+name=openvpn-auth-oauth2
+baseurl=https://jkroepke.github.io/openvpn-auth-oauth2/rpm/
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://raw.githubusercontent.com/jkroepke/openvpn-auth-oauth2/refs/heads/main/packaging/rpm/RPM-GPG-KEY-openvpn-auth-oauth2
