@@ -53,10 +53,10 @@ type ReceiverConfig struct {
 	Verifier *Verifier
 	Handler  Handler
 	Metrics  Metrics
+	// TokenSource provides the bearer token for the poll endpoint.
+	TokenSource TokenSource
 	// Endpoint is the poll endpoint, delivery.endpoint_url of the stream.
 	Endpoint string
-	// Token is the bearer token for the poll endpoint.
-	Token string
 	// Interval is the minimum time between two polls that return no events,
 	// and the first backoff delay after an error.
 	Interval time.Duration
@@ -145,7 +145,7 @@ func (r *Receiver) flush(ctx context.Context) {
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), flushTimeout)
 	defer cancel()
 
-	_, err := poll(ctx, r.conf.Client, r.conf.Endpoint, r.conf.Token, pollRequest{
+	_, err := poll(ctx, r.conf.Client, r.conf.Endpoint, r.conf.TokenSource, pollRequest{
 		Ack:               r.ack,
 		SetErrs:           r.setErrs,
 		ReturnImmediately: true,
@@ -163,7 +163,7 @@ func (r *Receiver) poll(ctx context.Context) (pollResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, PollTimeout)
 	defer cancel()
 
-	response, err := poll(ctx, r.conf.Client, r.conf.Endpoint, r.conf.Token, pollRequest{
+	response, err := poll(ctx, r.conf.Client, r.conf.Endpoint, r.conf.TokenSource, pollRequest{
 		Ack:       r.ack,
 		SetErrs:   r.setErrs,
 		MaxEvents: r.conf.MaxEvents,
@@ -195,7 +195,7 @@ func (r *Receiver) backoff(ctx context.Context, err error, failures int) time.Du
 
 		if statusErr.StatusCode == http.StatusUnauthorized || statusErr.StatusCode == http.StatusForbidden {
 			level = slog.LevelError
-			message = "SSF poll was rejected; check ssf.poll.token"
+			message = "SSF poll was rejected; check ssf.poll.token, or the client credentials and ssf.poll.scopes of oauth2.client"
 		}
 	}
 

@@ -423,11 +423,11 @@ func TestValidateSSF(t *testing.T) {
 			"ssf.issuer: invalid URL. host is missing",
 		},
 		{
-			"missing poll token",
+			"client credentials instead of a poll token",
 			func(conf *config.Config) {
 				conf.SSF.Poll.Token = ""
 			},
-			"ssf.poll.token is required",
+			"",
 		},
 		{
 			"poll interval below 1s",

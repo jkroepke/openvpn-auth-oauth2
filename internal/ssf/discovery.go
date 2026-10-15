@@ -60,8 +60,8 @@ type Discovery struct {
 
 // Discover reads the transmitter configuration metadata of issuer, checks
 // that its JWK Set can be fetched, and reads the one stream configuration
-// token can see. Every discovered URL must use https.
-func Discover(ctx context.Context, client *http.Client, issuer *url.URL, token string) (Discovery, error) {
+// the access tokens from tokens can see. Every discovered URL must use https.
+func Discover(ctx context.Context, client *http.Client, issuer *url.URL, tokens TokenSource) (Discovery, error) {
 	metadata, err := fetchMetadata(ctx, client, issuer)
 	if err != nil {
 		return Discovery{}, err
@@ -71,7 +71,7 @@ func Discover(ctx context.Context, client *http.Client, issuer *url.URL, token s
 		return Discovery{}, err
 	}
 
-	stream, err := fetchStream(ctx, client, metadata, token)
+	stream, err := fetchStream(ctx, client, metadata, tokens)
 	if err != nil {
 		return Discovery{}, err
 	}
@@ -108,7 +108,7 @@ func fetchMetadata(ctx context.Context, client *http.Client, issuer *url.URL) (T
 	for _, location := range MetadataURLs(issuer) {
 		var metadata TransmitterMetadata
 
-		if err := getJSON(ctx, client, location, "", &metadata); err != nil {
+		if err := getJSON(ctx, client, location, nil, &metadata); err != nil {
 			errs = append(errs, err)
 
 			continue
@@ -153,7 +153,7 @@ func (m TransmitterMetadata) validate(issuer string) error {
 func checkKeySet(ctx context.Context, client *http.Client, jwksURI string) error {
 	var keySet jose.JSONWebKeySet
 
-	if err := getJSON(ctx, client, jwksURI, "", &keySet); err != nil {
+	if err := getJSON(ctx, client, jwksURI, nil, &keySet); err != nil {
 		return fmt.Errorf("fetch transmitter JWK Set: %w", err)
 	}
 
@@ -164,10 +164,10 @@ func checkKeySet(ctx context.Context, client *http.Client, jwksURI string) error
 	return nil
 }
 
-func fetchStream(ctx context.Context, client *http.Client, metadata TransmitterMetadata, token string) (StreamConfiguration, error) {
+func fetchStream(ctx context.Context, client *http.Client, metadata TransmitterMetadata, tokens TokenSource) (StreamConfiguration, error) {
 	var raw json.RawMessage
 
-	if err := getJSON(ctx, client, metadata.ConfigurationEndpoint, token, &raw); err != nil {
+	if err := getJSON(ctx, client, metadata.ConfigurationEndpoint, tokens, &raw); err != nil {
 		return StreamConfiguration{}, fmt.Errorf("fetch stream configuration: %w", err)
 	}
 
@@ -241,9 +241,9 @@ func requireHTTPS(name, value string) error {
 	return nil
 }
 
-// getJSON GETs location and decodes the JSON response into target. A
-// non-empty token is sent as a bearer token.
-func getJSON(ctx context.Context, client *http.Client, location, token string, target any) error {
+// getJSON GETs location and decodes the JSON response into target. With a
+// non-nil tokens, the request carries a bearer token from it.
+func getJSON(ctx context.Context, client *http.Client, location string, tokens TokenSource, target any) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, location, nil)
 	if err != nil {
 		return fmt.Errorf("create request: %w", err)
@@ -251,8 +251,10 @@ func getJSON(ctx context.Context, client *http.Client, location, token string, t
 
 	req.Header.Set("Accept", "application/json")
 
-	if token != "" {
-		req.Header.Set("Authorization", "Bearer "+token)
+	if tokens != nil {
+		if err = setBearerToken(ctx, req, tokens); err != nil {
+			return err
+		}
 	}
 
 	resp, err := client.Do(req)
@@ -263,6 +265,10 @@ func getJSON(ctx context.Context, client *http.Client, location, token string, t
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
+		if tokens != nil {
+			invalidateRejectedToken(tokens, resp.StatusCode)
+		}
+
 		return &StatusError{URL: location, StatusCode: resp.StatusCode}
 	}
 
@@ -271,4 +277,24 @@ func getJSON(ctx context.Context, client *http.Client, location, token string, t
 	}
 
 	return nil
+}
+
+// setBearerToken sets the Authorization header of req to an access token from tokens.
+func setBearerToken(ctx context.Context, req *http.Request, tokens TokenSource) error {
+	token, err := tokens.Token(ctx)
+	if err != nil {
+		return fmt.Errorf("obtain access token for the SSF transmitter: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+token.AccessToken)
+
+	return nil
+}
+
+// invalidateRejectedToken drops the cached token if the transmitter rejected
+// it, so the next request gets a new one.
+func invalidateRejectedToken(tokens TokenSource, statusCode int) {
+	if statusCode == http.StatusUnauthorized || statusCode == http.StatusForbidden {
+		tokens.Invalidate()
+	}
 }

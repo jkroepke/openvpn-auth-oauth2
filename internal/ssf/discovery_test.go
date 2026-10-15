@@ -1,15 +1,45 @@
 package ssf_test
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"net/url"
+	"sync"
 	"testing"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/ssf"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/ssf/ssftest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/oauth2"
 )
+
+func staticToken(token string) ssf.TokenSource {
+	return ssf.StaticToken(token)
+}
+
+// failingTokens fails the first failures calls, then returns a token.
+type failingTokens struct {
+	token    string
+	failures int
+	mu       sync.Mutex
+}
+
+func (f *failingTokens) Invalidate() {}
+
+func (f *failingTokens) Token(context.Context) (*oauth2.Token, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	if f.failures > 0 {
+		f.failures--
+
+		return nil, errors.New("token endpoint unavailable")
+	}
+
+	return &oauth2.Token{AccessToken: f.token}, nil
+}
 
 func mustParseURL(t *testing.T, raw string) *url.URL {
 	t.Helper()
@@ -61,7 +91,7 @@ func TestDiscover(t *testing.T) {
 
 			transmitter := ssftest.New(t, tc.opts...)
 
-			discovery, err := ssf.Discover(t.Context(), transmitter.Client(), mustParseURL(t, transmitter.Issuer()), transmitter.Token())
+			discovery, err := ssf.Discover(t.Context(), transmitter.Client(), mustParseURL(t, transmitter.Issuer()), staticToken(transmitter.Token()))
 			require.NoError(t, err)
 
 			assert.Equal(t, transmitter.Issuer(), discovery.Metadata.Issuer)
@@ -141,7 +171,7 @@ func TestDiscoverErrors(t *testing.T) {
 				token = tc.token
 			}
 
-			_, err := ssf.Discover(t.Context(), transmitter.Client(), mustParseURL(t, issuer), token)
+			_, err := ssf.Discover(t.Context(), transmitter.Client(), mustParseURL(t, issuer), staticToken(token))
 			require.ErrorContains(t, err, tc.contains)
 		})
 	}
@@ -150,6 +180,15 @@ func TestDiscoverErrors(t *testing.T) {
 func TestDiscoverUnreachable(t *testing.T) {
 	t.Parallel()
 
-	_, err := ssf.Discover(t.Context(), http.DefaultClient, mustParseURL(t, "https://127.0.0.1:1"), "token")
+	_, err := ssf.Discover(t.Context(), http.DefaultClient, mustParseURL(t, "https://127.0.0.1:1"), staticToken("token"))
 	require.ErrorContains(t, err, "fetch transmitter configuration metadata")
+}
+
+func TestDiscoverTokenError(t *testing.T) {
+	t.Parallel()
+
+	transmitter := ssftest.New(t)
+
+	_, err := ssf.Discover(t.Context(), transmitter.Client(), mustParseURL(t, transmitter.Issuer()), &failingTokens{failures: 1})
+	require.ErrorContains(t, err, "obtain access token for the SSF transmitter")
 }

@@ -83,7 +83,8 @@
 #  enabled: false  # Receive CAEP session-revoked events by RFC 8936 poll delivery and terminate the matching sessions
 #  issuer: ""  # Defaults to oauth2.issuer. Must start with https://. Discovery reads <issuer>/.well-known/ssf-configuration
 #  poll:  # The poll endpoint and audience are read from the SSF stream configuration
-#    token: "file:///etc/openvpn-auth-oauth2/ssf-token"
+#    token: ""  # Static bearer token. If empty, oauth2.client gets one with the client credentials grant
+#    scopes: ["ssf.read"]
 #    interval: 30s
 #    max-events: 100
 #  max-age: 1h0m0s

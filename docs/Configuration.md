@@ -198,8 +198,10 @@ Usage of openvpn-auth-oauth2:
         Time to wait between polls when the SSF transmitter returns without events. Must be at least 1s. (env: OPENVPN_AUTH_OAUTH2_SSF_POLL_INTERVAL) (default 30s)
   --ssf.poll.max-events int
         Maximum number of Security Event Tokens requested per poll. (env: OPENVPN_AUTH_OAUTH2_SSF_POLL_MAX_EVENTS) (default 100)
+  --ssf.poll.scopes value
+        Scopes of the client credentials access token for the SSF transmitter, if ssf.poll.token is empty. Comma separated list. (env: OPENVPN_AUTH_OAUTH2_SSF_POLL_SCOPES) (default ssf.read)
   --ssf.poll.token value
-        Bearer token for the SSF poll and stream configuration endpoints. If argument starts with file:// it reads the secret from a file. (env: OPENVPN_AUTH_OAUTH2_SSF_POLL_TOKEN)
+        Static bearer token for the SSF poll and stream configuration endpoints. If empty, an access token is requested with the client credentials grant of oauth2.client and ssf.poll.scopes. If argument starts with file:// it reads the secret from a file. (env: OPENVPN_AUTH_OAUTH2_SSF_POLL_TOKEN)
   --ssf.subject.allow-email
         If true, events with an email subject identifier are accepted. Email addresses are not stable identifiers; prefer iss_sub subjects. (env: OPENVPN_AUTH_OAUTH2_SSF_SUBJECT_ALLOW_EMAIL)
   --ssf.user-level-revocation

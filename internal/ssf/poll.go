@@ -52,7 +52,7 @@ type pollResponse struct {
 }
 
 // poll sends one poll request to endpoint.
-func poll(ctx context.Context, client *http.Client, endpoint, token string, request pollRequest) (pollResponse, error) {
+func poll(ctx context.Context, client *http.Client, endpoint string, tokens TokenSource, request pollRequest) (pollResponse, error) {
 	body, err := json.Marshal(request)
 	if err != nil {
 		return pollResponse{}, fmt.Errorf("encode poll request: %w", err)
@@ -65,7 +65,10 @@ func poll(ctx context.Context, client *http.Client, endpoint, token string, requ
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token)
+
+	if err = setBearerToken(ctx, req, tokens); err != nil {
+		return pollResponse{}, err
+	}
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -76,6 +79,7 @@ func poll(ctx context.Context, client *http.Client, endpoint, token string, requ
 
 	if resp.StatusCode != http.StatusOK {
 		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, maxDiscoveryResponseSize))
+		invalidateRejectedToken(tokens, resp.StatusCode)
 
 		return pollResponse{}, &StatusError{
 			URL:        endpoint,

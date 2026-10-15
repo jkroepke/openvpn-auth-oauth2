@@ -196,7 +196,7 @@ func TestSSFSessionRevocation(t *testing.T) {
 	issuer, err := url.Parse(transmitter.Issuer())
 	require.NoError(t, err)
 
-	discovery, err := ssf.Discover(t.Context(), transmitter.Client(), issuer, transmitter.Token())
+	discovery, err := ssf.Discover(t.Context(), transmitter.Client(), issuer, ssf.StaticToken(transmitter.Token()))
 	require.NoError(t, err)
 
 	receiver := ssf.NewReceiver(slog.New(slog.DiscardHandler), ssf.ReceiverConfig{
@@ -207,11 +207,11 @@ func TestSSFSessionRevocation(t *testing.T) {
 			Audience: discovery.Stream.Audience,
 			MaxAge:   time.Hour,
 		}),
-		Handler:   suite.enforcer,
-		Endpoint:  discovery.Stream.Delivery.EndpointURL,
-		Token:     transmitter.Token(),
-		Interval:  10 * time.Millisecond,
-		MaxEvents: 10,
+		Handler:     suite.enforcer,
+		Endpoint:    discovery.Stream.Delivery.EndpointURL,
+		TokenSource: ssf.StaticToken(transmitter.Token()),
+		Interval:    10 * time.Millisecond,
+		MaxEvents:   10,
 	})
 
 	ctx, cancel := context.WithCancel(t.Context())

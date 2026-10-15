@@ -120,14 +120,14 @@ func startReceiver(t *testing.T, transmitter *ssftest.Transmitter, eventHandler 
 	}
 
 	receiver := ssf.NewReceiver(slog.New(slog.DiscardHandler), ssf.ReceiverConfig{
-		Client:    transmitter.Client(),
-		Verifier:  suite.verifier,
-		Handler:   eventHandler,
-		Metrics:   suite.metrics,
-		Endpoint:  transmitter.PollEndpoint(),
-		Token:     transmitter.Token(),
-		Interval:  testInterval,
-		MaxEvents: maxEvents,
+		Client:      transmitter.Client(),
+		Verifier:    suite.verifier,
+		Handler:     eventHandler,
+		Metrics:     suite.metrics,
+		Endpoint:    transmitter.PollEndpoint(),
+		TokenSource: staticToken(transmitter.Token()),
+		Interval:    testInterval,
+		MaxEvents:   maxEvents,
 	})
 
 	ctx, cancel := context.WithCancel(t.Context())
@@ -345,13 +345,13 @@ func TestReceiverStopsWhenCanceled(t *testing.T) {
 	transmitter := ssftest.New(t, ssftest.WithLongPollHold(time.Minute))
 	verifier := newVerifier(t, transmitter)
 	receiver := ssf.NewReceiver(slog.New(slog.DiscardHandler), ssf.ReceiverConfig{
-		Client:    transmitter.Client(),
-		Verifier:  verifier,
-		Handler:   &handler{},
-		Endpoint:  transmitter.PollEndpoint(),
-		Token:     transmitter.Token(),
-		Interval:  time.Hour,
-		MaxEvents: 1,
+		Client:      transmitter.Client(),
+		Verifier:    verifier,
+		Handler:     &handler{},
+		Endpoint:    transmitter.PollEndpoint(),
+		TokenSource: staticToken(transmitter.Token()),
+		Interval:    time.Hour,
+		MaxEvents:   1,
 	})
 
 	ctx, cancel := context.WithCancel(t.Context())
@@ -371,6 +371,38 @@ func TestReceiverStopsWhenCanceled(t *testing.T) {
 	case <-time.After(waitFor):
 		t.Fatal("receiver did not stop while a long poll was held")
 	}
+}
+
+func TestReceiverRecoversFromTokenErrors(t *testing.T) {
+	t.Parallel()
+
+	transmitter := ssftest.New(t)
+	jti := transmitter.EmitSessionRevoked(t, revokedSubject())
+
+	metrics := &receiverMetrics{outcomes: make(map[string]int)}
+	receiver := ssf.NewReceiver(slog.New(slog.DiscardHandler), ssf.ReceiverConfig{
+		Client:      transmitter.Client(),
+		Verifier:    newVerifier(t, transmitter),
+		Handler:     &handler{revoked: 1},
+		Metrics:     metrics,
+		Endpoint:    transmitter.PollEndpoint(),
+		TokenSource: &failingTokens{token: transmitter.Token(), failures: 2},
+		Interval:    testInterval,
+		MaxEvents:   10,
+	})
+
+	ctx, cancel := context.WithCancel(t.Context())
+	done := make(chan error, 1)
+
+	go func() { done <- receiver.Run(ctx) }()
+
+	require.EventuallyWithT(t, func(collect *assert.CollectT) {
+		assert.Contains(collect, transmitter.Acked(), jti)
+	}, waitFor, tick)
+
+	cancel()
+	require.NoError(t, <-done)
+	assert.Equal(t, 2, metrics.errors())
 }
 
 // unavailableKeySet fails like an unreachable jwks_uri while failures is
@@ -407,12 +439,12 @@ func TestReceiverRetriesWhileKeysAreUnavailable(t *testing.T) {
 		Verifier: newVerifier(t, transmitter, func(conf *ssf.VerifierConfig) {
 			conf.KeySet = keySet
 		}),
-		Handler:   eventHandler,
-		Metrics:   metrics,
-		Endpoint:  transmitter.PollEndpoint(),
-		Token:     transmitter.Token(),
-		Interval:  testInterval,
-		MaxEvents: 100,
+		Handler:     eventHandler,
+		Metrics:     metrics,
+		Endpoint:    transmitter.PollEndpoint(),
+		TokenSource: staticToken(transmitter.Token()),
+		Interval:    testInterval,
+		MaxEvents:   100,
 	})
 
 	ctx, cancel := context.WithCancel(t.Context())
@@ -454,13 +486,13 @@ func TestReceiverAcknowledgesWhenStopping(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 
 	receiver := ssf.NewReceiver(slog.New(slog.DiscardHandler), ssf.ReceiverConfig{
-		Client:    transmitter.Client(),
-		Verifier:  newVerifier(t, transmitter),
-		Handler:   cancelingHandler{cancel: cancel},
-		Endpoint:  transmitter.PollEndpoint(),
-		Token:     transmitter.Token(),
-		Interval:  time.Hour,
-		MaxEvents: 100,
+		Client:      transmitter.Client(),
+		Verifier:    newVerifier(t, transmitter),
+		Handler:     cancelingHandler{cancel: cancel},
+		Endpoint:    transmitter.PollEndpoint(),
+		TokenSource: staticToken(transmitter.Token()),
+		Interval:    time.Hour,
+		MaxEvents:   100,
 	})
 
 	jti := transmitter.EmitSessionRevoked(t, revokedSubject())

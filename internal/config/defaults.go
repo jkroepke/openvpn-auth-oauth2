@@ -106,6 +106,7 @@ var Defaults = Config{
 	SSF: SSF{
 		Enabled: false,
 		Poll: SSFPoll{
+			Scopes:    types.StringSlice{"ssf.read"},
 			Interval:  30 * time.Second,
 			MaxEvents: 100,
 		},
