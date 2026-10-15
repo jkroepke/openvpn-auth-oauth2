@@ -273,11 +273,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GPG_PASSPHRASE: ${{ secrets.NFPM_PASSPHRASE }}
 
-      - name: Publish Release
-        run: gh release edit "${GITHUB_REF_NAME}" --draft=false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Release YUM repository
         run: |
           set -x
@@ -285,30 +280,32 @@ jobs:
           sudo apt-get install -y -qq createrepo-c
           gh release download "${GITHUB_REF_NAME}" -p "*.rpm" -D tmp-rpm
           mkdir -p yum-repo
-          # dnf always requests <baseurl>/repodata/repomd.xml. With baseurl .../releases/download/,
-          # the metadata lives in the release tagged "repodata", while xml:base points the
-          # package locations to the versioned release.
+          # dnf always requests <baseurl>/repodata/repomd.xml, but release asset names cannot contain a slash.
+          # The metadata is published in the companion release rpm/<tag>/repodata instead. The mirrorlist asset
+          # of this release points dnf to it, and xml:base points the package locations back to this release.
           createrepo_c --baseurl "https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/" --outputdir yum-repo tmp-rpm
-          pushd yum-repo/repodata
-            gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --armor --detach-sign --sign -o repomd.xml.asc repomd.xml
-            if ! gh release view repodata > /dev/null 2>&1; then
-              gh release create repodata --title repodata --notes "YUM/DNF repository metadata. See docs/Installation.md." --prerelease --latest=false
-            fi
-            stale=$(gh release view repodata --json assets -q '.assets[].name' | grep -vxF -f <(printf '%s\n' *) || true)
-            metadata=()
-            for file in *; do
-              [[ "$file" == repomd.xml* ]] || metadata+=("$file")
-            done
-            # Upload repomd.xml last, so it never references metadata that is not uploaded yet.
-            gh release upload repodata "${metadata[@]}" --clobber
-            gh release upload repodata repomd.xml repomd.xml.asc --clobber
-            for asset in $stale; do
-              gh release delete-asset repodata "$asset" --yes
-            done
-          popd
+          gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --armor --detach-sign --sign -o yum-repo/repodata/repomd.xml.asc yum-repo/repodata/repomd.xml
+          echo "https://github.com/${GITHUB_REPOSITORY}/releases/download/rpm/${GITHUB_REF_NAME}/" > mirrorlist
+          gh release upload "${GITHUB_REF_NAME}" mirrorlist --clobber
+          if gh release view "${REPODATA_TAG}" > /dev/null 2>&1; then
+            gh release upload "${REPODATA_TAG}" yum-repo/repodata/* --clobber
+          else
+            gh release create "${REPODATA_TAG}" yum-repo/repodata/* --draft --prerelease --latest=false --target "${GITHUB_SHA}" \
+              --title "${GITHUB_REF_NAME} YUM repository metadata" \
+              --notes "YUM/DNF repository metadata for ${GITHUB_REF_NAME}. See docs/Installation.md."
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GPG_PASSPHRASE: ${{ secrets.NFPM_PASSPHRASE }}
+          REPODATA_TAG: rpm/${{ github.ref_name }}/repodata
+
+      - name: Publish Release
+        run: |
+          gh release edit "${REPODATA_TAG}" --draft=false
+          gh release edit "${GITHUB_REF_NAME}" --draft=false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPODATA_TAG: rpm/${{ github.ref_name }}/repodata
 
       - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:

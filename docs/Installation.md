@@ -50,10 +50,9 @@ sudo dnf install openvpn-auth-oauth2
 ```
 
 > [!NOTE]
-> The YUM/DNF repository tracks the latest release. The repository metadata is
-> stored in the `repodata` release, while the RPM packages are downloaded from
-> the versioned GitHub release. To install a specific version, install the RPM
-> package from the releases page directly.
+> The YUM/DNF repository tracks the latest release. To pin a specific version,
+> replace the `mirrorlist` line in the repo file with
+> `baseurl=https://github.com/jkroepke/openvpn-auth-oauth2/releases/download/rpm/vX.Y.Z/`.
 
 **Alternatively, you can install the RPM package manually:**
 
