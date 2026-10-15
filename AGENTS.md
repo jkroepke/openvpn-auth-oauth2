@@ -87,6 +87,12 @@ code for `setErrs`. Signature checks go through zitadel/oidc
 `iat`, `jti`, `sub`/`exp` and subject checks are ours. Do not use
 `oidc.Audience` to decode `aud`: it panics on a non-string array element.
 
+Without `ssf.poll.token`, the receiver authenticates to the transmitter with an
+access token from the client credentials grant of `oauth2.client`
+(`oauth2.Client.ClientCredentialsToken`, wrapped in an `oauth2.ReuseTokenSource`
+in `daemon.ssfTokenSource`). Keycloak and Okta issue only short-lived tokens
+for their SSF endpoints, so a static token is the exception, not the default.
+
 ## OpenVPN management command size
 
 For `client-pending-auth` URL validation:

@@ -143,6 +143,7 @@ ssf:
     issuer: "https://idp.example.com/realms/vpn"
     poll:
         token: "ssf-token"
+        scopes: ["ssf.read", "ssf.manage"]
         interval: 45s
         max-events: 25
     max-age: 30m
@@ -268,6 +269,7 @@ ssf:
 					Issuer:  types.URL{URL: &url.URL{Scheme: "https", Host: "idp.example.com", Path: "/realms/vpn"}},
 					Poll: config.SSFPoll{
 						Token:     "ssf-token",
+						Scopes:    types.StringSlice{"ssf.read", "ssf.manage"},
 						Interval:  45 * time.Second,
 						MaxEvents: 25,
 					},

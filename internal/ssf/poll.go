@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+
+	"golang.org/x/oauth2"
 )
 
 const maxPollResponseSize = 16 << 20
@@ -52,7 +54,7 @@ type pollResponse struct {
 }
 
 // poll sends one poll request to endpoint.
-func poll(ctx context.Context, client *http.Client, endpoint, token string, request pollRequest) (pollResponse, error) {
+func poll(ctx context.Context, client *http.Client, endpoint string, tokens oauth2.TokenSource, request pollRequest) (pollResponse, error) {
 	body, err := json.Marshal(request)
 	if err != nil {
 		return pollResponse{}, fmt.Errorf("encode poll request: %w", err)
@@ -65,7 +67,10 @@ func poll(ctx context.Context, client *http.Client, endpoint, token string, requ
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token)
+
+	if err = setBearerToken(req, tokens); err != nil {
+		return pollResponse{}, err
+	}
 
 	resp, err := client.Do(req)
 	if err != nil {

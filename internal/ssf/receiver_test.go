@@ -122,7 +122,7 @@ func startReceiver(t *testing.T, transmitter *ssftest.Transmitter, eventHandler 
 		Handler:   eventHandler,
 		Metrics:   suite.metrics,
 		Endpoint:  transmitter.PollEndpoint(),
-		Token:     transmitter.Token(),
+		TokenSource: staticToken(transmitter.Token()),
 		Interval:  testInterval,
 		MaxEvents: maxEvents,
 	})
@@ -346,7 +346,7 @@ func TestReceiverStopsWhenCanceled(t *testing.T) {
 		Verifier:  verifier,
 		Handler:   &handler{},
 		Endpoint:  transmitter.PollEndpoint(),
-		Token:     transmitter.Token(),
+		TokenSource: staticToken(transmitter.Token()),
 		Interval:  time.Hour,
 		MaxEvents: 1,
 	})
@@ -368,4 +368,36 @@ func TestReceiverStopsWhenCanceled(t *testing.T) {
 	case <-time.After(waitFor):
 		t.Fatal("receiver did not stop while a long poll was held")
 	}
+}
+
+func TestReceiverRecoversFromTokenErrors(t *testing.T) {
+	t.Parallel()
+
+	transmitter := ssftest.New(t)
+	jti := transmitter.EmitSessionRevoked(t, revokedSubject())
+
+	metrics := &receiverMetrics{outcomes: make(map[string]int)}
+	receiver := ssf.NewReceiver(slog.New(slog.DiscardHandler), ssf.ReceiverConfig{
+		Client:      transmitter.Client(),
+		Verifier:    newVerifier(t, transmitter),
+		Handler:     &handler{revoked: 1},
+		Metrics:     metrics,
+		Endpoint:    transmitter.PollEndpoint(),
+		TokenSource: &failingTokens{token: transmitter.Token(), failures: 2},
+		Interval:    testInterval,
+		MaxEvents:   10,
+	})
+
+	ctx, cancel := context.WithCancel(t.Context())
+	done := make(chan error, 1)
+
+	go func() { done <- receiver.Run(ctx) }()
+
+	require.EventuallyWithT(t, func(collect *assert.CollectT) {
+		assert.Contains(collect, transmitter.Acked(), jti)
+	}, waitFor, tick)
+
+	cancel()
+	require.NoError(t, <-done)
+	assert.Equal(t, 2, metrics.errors())
 }

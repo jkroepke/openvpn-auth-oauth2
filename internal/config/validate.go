@@ -46,10 +46,6 @@ func validateSSFConfig(mode int, conf *Config) error {
 		return fmt.Errorf("ssf.issuer: %w", err)
 	}
 
-	if conf.SSF.Poll.Token.String() == "" {
-		return fmt.Errorf("ssf.poll.token is %w", ErrRequired)
-	}
-
 	if conf.SSF.Poll.Interval <= 0 {
 		return errors.New("ssf.poll.interval must be greater than 0")
 	}

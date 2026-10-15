@@ -450,8 +450,15 @@ func (c *Config) flagSetSSF(flagSet *flag.FlagSet) {
 	flagSet.Var(
 		newSecretFlagValue(&c.SSF.Poll.Token),
 		"ssf.poll.token",
-		"Bearer token for the SSF poll and stream configuration endpoints. "+
+		"Static bearer token for the SSF poll and stream configuration endpoints. "+
+			"If empty, an access token is requested with the client credentials grant of oauth2.client and ssf.poll.scopes. "+
 			"If argument starts with file:// it reads the secret from a file.",
+	)
+	flagSet.TextVar(
+		&c.SSF.Poll.Scopes,
+		"ssf.poll.scopes",
+		c.SSF.Poll.Scopes,
+		"Scopes of the client credentials access token for the SSF transmitter, if ssf.poll.token is empty. Comma separated list.",
 	)
 	flagSet.DurationVar(
 		&c.SSF.Poll.Interval,

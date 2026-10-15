@@ -161,9 +161,10 @@ type SSF struct {
 
 // SSFPoll configures RFC 8936 poll delivery from the SSF transmitter.
 type SSFPoll struct {
-	Token     types.Secret  `json:"token"      yaml:"token"`
-	Interval  time.Duration `json:"interval"   yaml:"interval"`
-	MaxEvents int           `json:"max-events" yaml:"max-events"`
+	Token     types.Secret      `json:"token"      yaml:"token"`
+	Scopes    types.StringSlice `json:"scopes"     yaml:"scopes"`
+	Interval  time.Duration     `json:"interval"   yaml:"interval"`
+	MaxEvents int               `json:"max-events" yaml:"max-events"`
 }
 
 // SSFSubject configures which subject identifier formats are accepted.

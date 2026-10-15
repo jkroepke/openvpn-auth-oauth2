@@ -14,6 +14,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/ssf/ssftest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	xoauth2 "golang.org/x/oauth2"
 )
 
 type eventRecorder struct {
@@ -58,7 +59,9 @@ func TestSetupSSFReceiver(t *testing.T) {
 	transmitter := ssftest.New(t, ssftest.WithIssuerPath("/realms/vpn"))
 	recorder := &eventRecorder{}
 
-	receiver, err := setupSSFReceiver(t.Context(), slog.New(slog.DiscardHandler), ssfConfig(t, transmitter), transmitter.Client(), recorder, nil)
+	conf := ssfConfig(t, transmitter)
+
+	receiver, err := setupSSFReceiver(t.Context(), slog.New(slog.DiscardHandler), conf, transmitter.Client(), ssfTokenSource(t.Context(), conf, nil), recorder, nil)
 	require.NoError(t, err)
 
 	ctx, cancel := context.WithCancel(t.Context())
@@ -87,7 +90,42 @@ func TestSetupSSFReceiverDiscoveryError(t *testing.T) {
 	conf := ssfConfig(t, transmitter)
 	conf.SSF.Poll.Token = "wrong"
 
-	_, err := setupSSFReceiver(t.Context(), slog.New(slog.DiscardHandler), conf, transmitter.Client(), &eventRecorder{}, nil)
+	_, err := setupSSFReceiver(t.Context(), slog.New(slog.DiscardHandler), conf, transmitter.Client(), ssfTokenSource(t.Context(), conf, nil), &eventRecorder{}, nil)
 	require.ErrorContains(t, err, "discover SSF transmitter")
 	require.ErrorContains(t, err, "401")
+}
+
+type credentialsRecorder struct {
+	scopes []string
+	calls  int
+}
+
+func (r *credentialsRecorder) ClientCredentialsToken(_ context.Context, scopes ...string) (*xoauth2.Token, error) {
+	r.calls++
+	r.scopes = scopes
+
+	return &xoauth2.Token{AccessToken: "client-credentials", Expiry: time.Now().Add(time.Hour)}, nil
+}
+
+func TestSSFTokenSource(t *testing.T) {
+	t.Parallel()
+
+	conf := config.Defaults
+	conf.SSF.Poll.Token = "static"
+
+	token, err := ssfTokenSource(t.Context(), &conf, nil).Token()
+	require.NoError(t, err)
+	assert.Equal(t, "static", token.AccessToken)
+
+	recorder := &credentialsRecorder{}
+	tokens := xoauth2.ReuseTokenSource(nil, clientCredentialsTokenSource{ctx: t.Context(), client: recorder, scopes: config.Defaults.SSF.Poll.Scopes})
+
+	for range 3 {
+		token, err = tokens.Token()
+		require.NoError(t, err)
+		assert.Equal(t, "client-credentials", token.AccessToken)
+	}
+
+	assert.Equal(t, 1, recorder.calls, "a token is reused until it expires")
+	assert.Equal(t, []string{"ssf.read"}, recorder.scopes)
 }

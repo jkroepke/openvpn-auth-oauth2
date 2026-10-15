@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"slices"
 	"time"
+
+	"golang.org/x/oauth2"
 )
 
 // Outcomes of a received SET, as reported to Metrics.SSFEvent.
@@ -50,10 +52,10 @@ type ReceiverConfig struct {
 	Verifier *Verifier
 	Handler  Handler
 	Metrics  Metrics
+	// TokenSource provides the bearer token for the poll endpoint.
+	TokenSource oauth2.TokenSource
 	// Endpoint is the poll endpoint, delivery.endpoint_url of the stream.
 	Endpoint string
-	// Token is the bearer token for the poll endpoint.
-	Token string
 	// Interval is the minimum time between two polls that return no events,
 	// and the first backoff delay after an error.
 	Interval time.Duration
@@ -137,7 +139,7 @@ func (r *Receiver) poll(ctx context.Context) (pollResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, PollTimeout)
 	defer cancel()
 
-	response, err := poll(ctx, r.conf.Client, r.conf.Endpoint, r.conf.Token, pollRequest{
+	response, err := poll(ctx, r.conf.Client, r.conf.Endpoint, r.conf.TokenSource, pollRequest{
 		Ack:       r.ack,
 		SetErrs:   r.setErrs,
 		MaxEvents: r.conf.MaxEvents,

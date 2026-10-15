@@ -1,6 +1,7 @@
 package testsuite
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
@@ -20,7 +21,7 @@ func (s *Suite) SetupSSFTransmitter(tb testing.TB, opts ...ssftest.Option) *ssft
 	issuer, err := types.NewURL(transmitter.Issuer())
 	require.NoError(tb, err)
 
-	if s.conf.SSF == (config.SSF{}) {
+	if reflect.ValueOf(s.conf.SSF).IsZero() {
 		s.conf.SSF = config.Defaults.SSF
 	}
 
