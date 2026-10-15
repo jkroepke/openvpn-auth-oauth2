@@ -430,11 +430,11 @@ func TestValidateSSF(t *testing.T) {
 			"",
 		},
 		{
-			"zero poll interval",
+			"poll interval below 1s",
 			func(conf *config.Config) {
-				conf.SSF.Poll.Interval = 0
+				conf.SSF.Poll.Interval = 500 * time.Millisecond
 			},
-			"ssf.poll.interval must be greater than 0",
+			"ssf.poll.interval must be at least 1s",
 		},
 		{
 			"zero poll max events",

@@ -379,7 +379,15 @@ func (c *Client) deleteRefreshToken(ctx context.Context, logger *slog.Logger, cl
 			return nil
 		}
 
-		return fmt.Errorf("error from token store: %w", err)
+		// The token can't be read or revoked at the provider, but it must
+		// not stay in the store either.
+		if deleteErr := c.storage.Delete(ctx, clientID); deleteErr != nil {
+			return errors.Join(fmt.Errorf("error from token store: %w", err), deleteErr)
+		}
+
+		logger.LogAttrs(ctx, slog.LevelWarn, fmt.Errorf("deleted unreadable refresh token: %w", err).Error())
+
+		return nil
 	}
 
 	if err = c.storage.Delete(ctx, clientID); err != nil {

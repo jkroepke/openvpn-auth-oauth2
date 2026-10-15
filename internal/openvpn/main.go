@@ -209,8 +209,15 @@ func (c *Client) checkManagementInterfaceVersion(ctx context.Context) error {
 
 	c.logger.LogAttrs(ctx, slog.LevelInfo, strings.Join(versionParts[0:1], " - "))
 
-	if c.conf.OpenVPN.EnforceUniqueUser && strings.HasPrefix(versionParts[0], managementPluginVersionPrefix) {
-		return ErrEnforceUniqueUserUnsupported
+	if strings.HasPrefix(versionParts[0], managementPluginVersionPrefix) {
+		// The plugin shim can't kill clients.
+		if c.conf.OpenVPN.EnforceUniqueUser {
+			return ErrEnforceUniqueUserUnsupported
+		}
+
+		if c.conf.SSF.Enabled {
+			return ErrSSFUnsupported
+		}
 	}
 
 	managementInterfaceVersion, err := parseManagementInterfaceVersion(versionParts[1])

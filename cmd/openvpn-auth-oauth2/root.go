@@ -76,8 +76,8 @@ func runLoop(args []string, stdout io.Writer, termCh <-chan os.Signal) int {
 		return loadedConfig{conf: conf, logger: logger}, err
 	}
 
-	for {
-		returnCode, next := run(ctx, current, tokenDataStorage, sessions, termCh, loadConfig)
+	for reload := false; ; reload = true {
+		returnCode, next := run(ctx, current, tokenDataStorage, sessions, termCh, loadConfig, reload)
 		if returnCode != ReturnCodeReload {
 			return returnCode
 		}
@@ -92,9 +92,10 @@ func runLoop(args []string, stdout io.Writer, termCh <-chan os.Signal) int {
 
 // run runs the main program logic of openvpn-auth-oauth2 for one loaded configuration.
 // On a configuration reload, it returns ReturnCodeReload and the already validated next configuration.
+// reload is true for every configuration after the first one.
 func run(
 	ctx context.Context, current loadedConfig, tokenDataStorage tokenstorage.DataMap, sessions *sessionregistry.Registry,
-	termCh <-chan os.Signal, loadConfig configLoader,
+	termCh <-chan os.Signal, loadConfig configLoader, reload bool,
 ) (ReturnCode, loadedConfig) {
 	conf, logger := current.conf, current.logger
 
@@ -125,7 +126,7 @@ func run(
 		return ReturnCodeError, loadedConfig{}
 	}
 
-	appRuntime, err := daemon.New(ctx, logger, conf, tokenStorage, sessions)
+	appRuntime, err := daemon.New(ctx, logger, conf, tokenStorage, sessions, reload)
 	if err != nil {
 		logger.LogAttrs(
 			ctx, slog.LevelError, err.Error(),
