@@ -21,9 +21,9 @@ type Config struct {
 	Debug    Debug    `json:"debug"    yaml:"debug"`
 	HTTP     HTTP     `json:"http"     yaml:"http"`
 	Log      Log      `json:"log"      yaml:"log"`
+	SSF      SSF      `json:"ssf"      yaml:"ssf"`
 	OAuth2   OAuth2   `json:"oauth2"   yaml:"oauth2"`
 	OpenVPN  OpenVPN  `json:"openvpn"  yaml:"openvpn"`
-	SSF      SSF      `json:"ssf"      yaml:"ssf"`
 	Provider Provider `json:"provider" yaml:"provider"`
 }
 
@@ -154,7 +154,6 @@ type SSF struct {
 	Issuer              types.URL     `json:"issuer"                yaml:"issuer"`
 	Poll                SSFPoll       `json:"poll"                  yaml:"poll"`
 	MaxAge              time.Duration `json:"max-age"               yaml:"max-age"`
-	RevocationTTL       time.Duration `json:"revocation-ttl"        yaml:"revocation-ttl"`
 	Subject             SSFSubject    `json:"subject"               yaml:"subject"`
 	Enabled             bool          `json:"enabled"               yaml:"enabled"`
 	UserLevelRevocation bool          `json:"user-level-revocation" yaml:"user-level-revocation"`
