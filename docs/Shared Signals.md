@@ -183,6 +183,7 @@ nightly build of October 2026:
 | Action in Keycloak                                                    | Effect                                         |
 |-----------------------------------------------------------------------|------------------------------------------------|
 | An administrator signs out the offline session of the VPN login.     | The VPN connection of that session ends.       |
+| An administrator signs the user out of all sessions.                 | All VPN connections of the user end, if `ssf.user-level-revocation` is true. Keycloak sends the session ID `ALL`, which `openvpn-auth-oauth2` treats as a user-level revocation. |
 | Logging out of other applications.                                   | No effect. The VPN login creates only the offline session, no browser single sign-on session. |
 | Revoking the offline access of the client in the account console or the **Consents** tab. | No event; the VPN connection stays up until its next reauthentication. |
 
