@@ -71,6 +71,18 @@ no token on refresh, so the identity travels in the stored refresh state; keep
 it there when changing that format. The registry is created in `runLoop` and
 survives configuration reloads, like the refresh-token data.
 
+## SSF event verification
+
+`internal/ssf` verifies Security Event Tokens and must not import OpenVPN
+packages. `Verifier.Verify` does not record the `jti`; call
+`Verifier.Processed` only after the revocation was enforced, otherwise a SET
+whose enforcement failed is rejected as a replay when the transmitter
+redelivers it. Verification errors are `*ssf.Error` values carrying the RFC 8935
+code for `setErrs`. Signature checks go through zitadel/oidc
+(`oidc.CheckSignature` with `rp.NewRemoteKeySet`); the `typ`, `iss`, `aud`,
+`iat`, `jti`, `sub`/`exp` and subject checks are ours. Do not use
+`oidc.Audience` to decode `aud`: it panics on a non-string array element.
+
 ## OpenVPN management command size
 
 For `client-pending-auth` URL validation:
