@@ -2,7 +2,9 @@ package oauth2_test
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -12,9 +14,12 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/revocation"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/sessionregistry"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/ssf"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/ssf/ssftest"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/test/testsuite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/zitadel/oidc/v3/pkg/client/rp"
 )
 
 type revocationSuite struct {
@@ -178,4 +183,62 @@ func TestSessionRevocation(t *testing.T) {
 			suite.connect(t, 2, 1, "AuthenticatedEmptyUser")
 		})
 	}
+}
+
+// TestSSFSessionRevocation runs the receiver against the mock transmitter:
+// a session-revoked event for the logged-in user terminates the client.
+func TestSSFSessionRevocation(t *testing.T) {
+	t.Parallel()
+
+	suite := newRevocationSuite(t, true, false)
+	transmitter := ssftest.New(t)
+
+	issuer, err := url.Parse(transmitter.Issuer())
+	require.NoError(t, err)
+
+	discovery, err := ssf.Discover(t.Context(), transmitter.Client(), issuer, transmitter.Token())
+	require.NoError(t, err)
+
+	receiver := ssf.NewReceiver(slog.New(slog.DiscardHandler), ssf.ReceiverConfig{
+		Client: transmitter.Client(),
+		Verifier: ssf.NewVerifier(ssf.VerifierConfig{
+			KeySet:   rp.NewRemoteKeySet(transmitter.Client(), discovery.Metadata.JWKSURI),
+			Issuer:   discovery.Metadata.Issuer,
+			Audience: discovery.Stream.Audience,
+			MaxAge:   time.Hour,
+		}),
+		Handler:   suite.enforcer,
+		Endpoint:  discovery.Stream.Delivery.EndpointURL,
+		Token:     transmitter.Token(),
+		Interval:  10 * time.Millisecond,
+		MaxEvents: 10,
+	})
+
+	ctx, cancel := context.WithCancel(t.Context())
+	done := make(chan error, 1)
+
+	go func() { done <- receiver.Run(ctx) }()
+
+	t.Cleanup(func() {
+		cancel()
+		require.NoError(t, <-done)
+	})
+
+	authURL := suite.connect(t, 1, 2, "Initial")
+	status := suite.login(t, authURL, func() {
+		suite.ExpectMessage(t, "client-auth-nt 1 2")
+		suite.SendMessagef(t, "SUCCESS: client-auth command succeeded")
+	})
+	require.Equal(t, http.StatusOK, status)
+
+	jti := transmitter.EmitSessionRevoked(t, ssftest.IssSub(suite.user.Issuer, suite.user.Subject))
+
+	suite.ExpectMessage(t, "client-kill 1 HALT")
+	suite.SendMessagef(t, "SUCCESS: client-kill command succeeded")
+
+	require.EventuallyWithT(t, func(collect *assert.CollectT) {
+		assert.Contains(collect, transmitter.Acked(), jti)
+	}, 5*time.Second, 10*time.Millisecond)
+
+	assert.Equal(t, 0, suite.GetSessionRegistry().Len())
 }

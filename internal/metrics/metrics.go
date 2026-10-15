@@ -51,12 +51,15 @@ type Metrics struct {
 	clientDenied    *counterVec
 	silentReAuth    *counterVec
 	revoked         *counterVec
+	ssfEvents       *counterVec
 	codeExchange    *histogram
 	commandDuration *histogramVec
 	version         string
 	commit          string
 	clientAccepted  atomic.Uint64
 	clientQueue     atomic.Int64
+	ssfPollErrors   atomic.Uint64
+	ssfLastPoll     atomic.Int64
 }
 
 // New returns an empty metrics collection. version and commit are exposed
@@ -66,6 +69,7 @@ func New(version, commit string) *Metrics {
 		clientDenied:    newCounterVec(),
 		silentReAuth:    newCounterVec(),
 		revoked:         newCounterVec(),
+		ssfEvents:       newCounterVec(),
 		codeExchange:    newHistogram(),
 		commandDuration: newHistogramVec(),
 		version:         version,
@@ -112,6 +116,34 @@ func (m *Metrics) SessionsRevoked(scope string, count int) {
 	}
 
 	m.revoked.add(scope, uint64(count))
+}
+
+// SSFEvent counts a Security Event Token received from the SSF transmitter,
+// by outcome. outcome must be one of the ssf.Outcome constants.
+func (m *Metrics) SSFEvent(outcome string) {
+	if m == nil {
+		return
+	}
+
+	m.ssfEvents.inc(outcome)
+}
+
+// SSFPollError counts a failed SSF poll request.
+func (m *Metrics) SSFPollError() {
+	if m == nil {
+		return
+	}
+
+	m.ssfPollErrors.Add(1)
+}
+
+// SSFPollSucceeded records the time of the last successful SSF poll request.
+func (m *Metrics) SSFPollSucceeded(at time.Time) {
+	if m == nil {
+		return
+	}
+
+	m.ssfLastPoll.Store(at.Unix())
 }
 
 // ObserveCodeExchange records the duration of a successful OAuth2 authorization code exchange.
@@ -183,6 +215,16 @@ func (m *Metrics) Write(w io.Writer) error {
 	writeHeader(buf, "ssf_sessions_revoked_total", "counter",
 		"Total number of OpenVPN sessions revoked by a Shared Signals security event, by scope.")
 	m.revoked.write(buf, "ssf_sessions_revoked_total", "scope")
+
+	writeHeader(buf, "ssf_events_total", "counter", "Total number of Shared Signals security events received, by outcome.")
+	m.ssfEvents.write(buf, "ssf_events_total", "outcome")
+
+	writeHeader(buf, "ssf_poll_errors_total", "counter", "Total number of failed Shared Signals poll requests.")
+	_, _ = fmt.Fprintf(buf, "%sssf_poll_errors_total %d\n", namespace, m.ssfPollErrors.Load())
+
+	writeHeader(buf, "ssf_last_successful_poll_timestamp_seconds", "gauge",
+		"Unix time of the last successful Shared Signals poll request, or 0 if none succeeded yet.")
+	_, _ = fmt.Fprintf(buf, "%sssf_last_successful_poll_timestamp_seconds %d\n", namespace, m.ssfLastPoll.Load())
 
 	writeHeader(buf, "oauth2_code_exchange_duration_seconds", "histogram",
 		"Duration of successful OAuth2 authorization code exchanges, including token validation and userinfo requests.")

@@ -14,6 +14,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/metrics"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/revocation"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/sessionregistry"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/ssf"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -226,4 +227,19 @@ func TestRevokeWithoutSubject(t *testing.T) {
 	_, err := enforcer.Revoke(t.Context(), sessionregistry.Identity{})
 	require.Error(t, err)
 	assert.Empty(t, rec.recorded())
+}
+
+func TestHandleEvent(t *testing.T) {
+	t.Parallel()
+
+	enforcer, sessions, rec, _ := newEnforcer(t, true)
+
+	count, err := enforcer.HandleEvent(t.Context(), ssf.Event{
+		Type:    ssf.EventTypeSessionRevoked,
+		Subject: ssf.Subject{Issuer: issuer, Subject: "alice-sub", SessionID: "sid-2"},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 1, count)
+	assert.Equal(t, []string{"refresh 2", "kill 2"}, rec.recorded())
+	assert.Equal(t, 3, sessions.Len())
 }

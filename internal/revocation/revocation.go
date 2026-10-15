@@ -24,6 +24,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/metrics"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/sessionregistry"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/ssf"
 )
 
 // RefreshStateRevoker deletes the stored refresh state of a session.
@@ -125,6 +126,17 @@ func (e *Enforcer) Revoke(ctx context.Context, subject sessionregistry.Identity)
 	e.metrics.SessionsRevoked(scope, revoked)
 
 	return revoked, errors.Join(errs...)
+}
+
+// HandleEvent applies a verified SSF session-revoked event. It implements
+// [ssf.Handler].
+func (e *Enforcer) HandleEvent(ctx context.Context, event ssf.Event) (int, error) {
+	return e.Revoke(ctx, sessionregistry.Identity{
+		Issuer:    event.Subject.Issuer,
+		Subject:   event.Subject.Subject,
+		SessionID: event.Subject.SessionID,
+		Email:     event.Subject.Email,
+	})
 }
 
 func (e *Enforcer) revokeEntry(ctx context.Context, logger *slog.Logger, entry sessionregistry.Entry) error {
