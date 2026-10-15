@@ -108,6 +108,37 @@ func (e *Enforcer) Revoke(ctx context.Context, subject sessionregistry.Identity)
 	return revoked, err
 }
 
+// maxLookups bounds how often [Enforcer.Revoke] looks up entries that
+// changed while it ran.
+const maxLookups = 3
+
+// entryKey identifies a registry entry: a connected client by its CID, a
+// dormant one by its OpenVPN session ID.
+type entryKey struct {
+	sessionID string
+	cid       uint64
+	connected bool
+}
+
+func keyOf(entry sessionregistry.Entry) entryKey {
+	if entry.Connected {
+		return entryKey{connected: true, cid: entry.CID}
+	}
+
+	return entryKey{sessionID: entry.OpenVPNSessionID}
+}
+
+// HandleEvent applies a verified SSF session-revoked event. It implements
+// [ssf.Handler].
+func (e *Enforcer) HandleEvent(ctx context.Context, event ssf.Event) (int, error) {
+	return e.Revoke(ctx, sessionregistry.Identity{
+		Issuer:    event.Subject.Issuer,
+		Subject:   event.Subject.Subject,
+		SessionID: event.Subject.SessionID,
+		Email:     event.Subject.Email,
+	})
+}
+
 // revokeMatching revokes every entry that matches subject and returns how
 // many entries matched and how many were revoked.
 func (e *Enforcer) revokeMatching(ctx context.Context, logger *slog.Logger, subject sessionregistry.Identity) (int, int, error) {
@@ -153,37 +184,6 @@ func (e *Enforcer) revokeMatching(ctx context.Context, logger *slog.Logger, subj
 	}
 
 	return len(attempted), revoked, errors.Join(errs...)
-}
-
-// maxLookups bounds how often [Enforcer.Revoke] looks up entries that
-// changed while it ran.
-const maxLookups = 3
-
-// entryKey identifies a registry entry: a connected client by its CID, a
-// dormant one by its OpenVPN session ID.
-type entryKey struct {
-	sessionID string
-	cid       uint64
-	connected bool
-}
-
-func keyOf(entry sessionregistry.Entry) entryKey {
-	if entry.Connected {
-		return entryKey{connected: true, cid: entry.CID}
-	}
-
-	return entryKey{sessionID: entry.OpenVPNSessionID}
-}
-
-// HandleEvent applies a verified SSF session-revoked event. It implements
-// [ssf.Handler].
-func (e *Enforcer) HandleEvent(ctx context.Context, event ssf.Event) (int, error) {
-	return e.Revoke(ctx, sessionregistry.Identity{
-		Issuer:    event.Subject.Issuer,
-		Subject:   event.Subject.Subject,
-		SessionID: event.Subject.SessionID,
-		Email:     event.Subject.Email,
-	})
 }
 
 func (e *Enforcer) revokeEntry(ctx context.Context, logger *slog.Logger, entry sessionregistry.Entry) error {
