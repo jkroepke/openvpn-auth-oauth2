@@ -28,6 +28,9 @@ const (
 	MaxRetryAfter = time.Hour
 	// PollTimeout bounds one poll request, including a long-poll hold.
 	PollTimeout = 2 * time.Minute
+	// flushTimeout bounds the poll that sends pending acknowledgements when
+	// the receiver stops.
+	flushTimeout = 5 * time.Second
 )
 
 // Handler acts on a verified session-revoked event. It returns the number of
@@ -103,6 +106,8 @@ func (r *Receiver) Run(ctx context.Context) error {
 
 		response, err := r.poll(ctx)
 		if ctx.Err() != nil {
+			r.flush(ctx)
+
 			return nil //nolint:nilerr // a poll error after cancellation is the cancellation itself
 		}
 
@@ -114,21 +119,42 @@ func (r *Receiver) Run(ctx context.Context) error {
 		} else {
 			failures = 0
 
-			if retry := r.process(ctx, response.Sets); retry || !r.pollAgain(response) {
+			// Poll again at once to settle new events and fetch more. A
+			// transmitter that sends nothing new must not make the receiver
+			// spin.
+			if retry, fresh := r.process(ctx, response.Sets); retry || fresh == 0 {
 				wait = r.conf.Interval - time.Since(started)
 			}
 		}
 
 		if !sleep(ctx, wait) {
+			r.flush(ctx)
+
 			return nil
 		}
 	}
 }
 
-// pollAgain reports whether the next poll should follow at once: more events
-// are waiting, or acknowledgements are pending.
-func (r *Receiver) pollAgain(response pollResponse) bool {
-	return response.MoreAvailable || len(r.ack) > 0 || len(r.setErrs) > 0
+// flush sends pending acknowledgements and errors once more when the
+// receiver stops, so the transmitter doesn't deliver handled events again.
+func (r *Receiver) flush(ctx context.Context) {
+	if len(r.ack) == 0 && len(r.setErrs) == 0 {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), flushTimeout)
+	defer cancel()
+
+	_, err := poll(ctx, r.conf.Client, r.conf.Endpoint, r.conf.Token, pollRequest{
+		Ack:               r.ack,
+		SetErrs:           r.setErrs,
+		ReturnImmediately: true,
+	})
+	if err != nil {
+		r.logger.LogAttrs(ctx, slog.LevelWarn, "unable to acknowledge SSF events before stopping; they will be delivered again",
+			slog.Any("err", err),
+		)
+	}
 }
 
 // poll sends the pending acknowledgements and errors and returns the next
@@ -182,27 +208,37 @@ func (r *Receiver) backoff(ctx context.Context, err error, failures int) time.Du
 	return wait
 }
 
-// process verifies and handles a batch of SETs. It reports whether a handler
-// failed, in which case the next poll waits for the interval.
-func (r *Receiver) process(ctx context.Context, sets map[string]string) bool {
-	var failed bool
+// process verifies and handles a batch of SETs. It reports whether a SET
+// has to be delivered again, in which case the next poll waits for the
+// interval, and how many SETs were not replays.
+func (r *Receiver) process(ctx context.Context, sets map[string]string) (bool, int) {
+	var (
+		failed bool
+		fresh  int
+	)
 
 	for _, jti := range slices.Sorted(maps.Keys(sets)) {
 		if ctx.Err() != nil {
-			return true
+			return true, fresh
 		}
 
-		if !r.processSET(ctx, jti, sets[jti]) {
+		settled, replay := r.processSET(ctx, jti, sets[jti])
+		if !settled {
 			failed = true
+		}
+
+		if !replay {
+			fresh++
 		}
 	}
 
-	return failed
+	return failed, fresh
 }
 
-// processSET handles one SET and records how to settle it. It returns false
-// if the SET has to be delivered again.
-func (r *Receiver) processSET(ctx context.Context, jti, token string) bool {
+// processSET handles one SET and records how to settle it. It reports
+// whether the SET was settled, or has to be delivered again, and whether it
+// was a replay.
+func (r *Receiver) processSET(ctx context.Context, jti, token string) (bool, bool) {
 	logger := r.logger.With(slog.String("jti", jti))
 
 	event, err := r.conf.Verifier.Verify(ctx, token)
@@ -211,13 +247,20 @@ func (r *Receiver) processSET(ctx context.Context, jti, token string) bool {
 	}
 
 	if ctx.Err() != nil {
-		return false
+		return false, false
 	}
 
 	switch {
 	case errors.Is(err, ErrReplay):
 		logger.LogAttrs(ctx, slog.LevelDebug, "SSF event was already processed")
 		r.settle(jti, OutcomeReplay)
+
+		return true, true
+	case errors.Is(err, ErrKeysUnavailable):
+		logger.LogAttrs(ctx, slog.LevelWarn, "unable to verify SSF event; it will be retried", slog.Any("err", err))
+		r.conf.Metrics.SSFEvent(OutcomeError)
+
+		return false, false
 	case errors.Is(err, ErrUnsupportedSubject):
 		logger.LogAttrs(ctx, slog.LevelInfo, "ignoring SSF event with an unsupported subject", slog.Any("err", err))
 		r.settle(jti, OutcomeIgnored)
@@ -227,10 +270,10 @@ func (r *Receiver) processSET(ctx context.Context, jti, token string) bool {
 		logger.LogAttrs(ctx, slog.LevelInfo, "ignoring unsupported SSF event type", slog.String("type", event.Type))
 		r.settle(jti, OutcomeIgnored)
 	default:
-		return r.handle(ctx, logger, event)
+		return r.handle(ctx, logger, event), false
 	}
 
-	return true
+	return true, false
 }
 
 // reject records a SET that failed verification in setErrs.

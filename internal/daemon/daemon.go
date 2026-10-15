@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/pprof"
 	"slices"
+	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/crypto"
@@ -27,8 +28,10 @@ import (
 
 // New wires the daemon services for one loaded configuration.
 // tokenStorage and sessions are shared across configuration reloads.
+// reload is true for every configuration after the first one.
 func New(
 	ctx context.Context, logger *slog.Logger, conf *config.Config, tokenStorage tokenstorage.Storage, sessions *sessionregistry.Registry,
+	reload bool,
 ) (*Runtime, error) {
 	var appMetrics *metrics.Metrics
 	if conf.Debug.Metrics {
@@ -57,14 +60,14 @@ func New(
 	if conf.SSF.Enabled {
 		enforcer := revocation.New(logger, conf, sessions, oAuth2Client, openvpnClient, appMetrics)
 
-		receiver, err := setupSSFReceiver(ctx, logger, conf, httpClient, enforcer, appMetrics)
+		run, err := ssfReceiverService(ctx, logger, conf, httpClient, enforcer, appMetrics, reload)
 		if err != nil {
 			return nil, fmt.Errorf("error setting up SSF receiver: %w", err)
 		}
 
 		services = append(services, service{
 			errPrefix: "ssf receiver",
-			run:       receiver.Run,
+			run:       run,
 		})
 	}
 
@@ -129,6 +132,58 @@ func setupOpenVPNClient(
 	openvpnClient.SetOAuth2Client(oAuth2Client)
 
 	return openvpnClient, oAuth2Client, httphandler.New(conf, oAuth2Client, openvpnClient.Ready), nil
+}
+
+// ssfReceiverService returns the run function of the SSF receiver.
+//
+// At the first start, a discovery error stops the startup, so a
+// misconfigured receiver is noticed at once. After a reload, a transmitter
+// that is unreachable for a moment must not end the VPN logins, so discovery
+// is retried in the background instead.
+func ssfReceiverService(
+	ctx context.Context, logger *slog.Logger, conf *config.Config, httpClient *http.Client, handler ssf.Handler, appMetrics *metrics.Metrics,
+	reload bool,
+) (func(context.Context) error, error) {
+	if !reload {
+		receiver, err := setupSSFReceiver(ctx, logger, conf, httpClient, handler, appMetrics)
+		if err != nil {
+			return nil, err
+		}
+
+		return receiver.Run, nil
+	}
+
+	return func(ctx context.Context) error {
+		wait := conf.SSF.Poll.Interval
+
+		for {
+			receiver, err := setupSSFReceiver(ctx, logger, conf, httpClient, handler, appMetrics)
+			if err == nil {
+				return receiver.Run(ctx)
+			}
+
+			if ctx.Err() != nil {
+				return nil //nolint:nilerr // a discovery error after cancellation is the cancellation itself
+			}
+
+			if appMetrics != nil {
+				appMetrics.SSFPollError()
+			}
+
+			logger.LogAttrs(ctx, slog.LevelError, "unable to set up the SSF receiver after a reload; retrying",
+				slog.Any("err", err),
+				slog.Duration("retry_in", wait),
+			)
+
+			select {
+			case <-ctx.Done():
+				return nil
+			case <-time.After(wait):
+			}
+
+			wait = min(wait*2, ssf.MaxBackoff)
+		}
+	}, nil
 }
 
 // setupSSFReceiver discovers the SSF transmitter and its stream and returns
