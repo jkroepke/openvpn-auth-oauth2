@@ -49,9 +49,10 @@ delay of up to 5 minutes.
 | `iss_sub` subject, or `complex` with only a `user` member | All sessions of the user, if `ssf.user-level-revocation` is true.  |
 | `email` subject                                         | All sessions with that email address, if `ssf.subject.allow-email` and `ssf.user-level-revocation` are true. |
 
-Most transmitters send `iss_sub` subjects, so keep `ssf.user-level-revocation`
-enabled. The issuer and subject of the event must equal the `iss` and `sub`
-claims of the ID token the client logged in with.
+The issuer and subject of the event must equal the `iss` and `sub` claims of
+the ID token the client logged in with, and the session must equal its `sid`
+claim. Keep `ssf.user-level-revocation` enabled unless the transmitter always
+names a session.
 
 Clients that connected without OIDC authentication, for example through
 `openvpn.bypass.common-names`, aren't tracked and never revoked.
@@ -152,12 +153,17 @@ Keycloak's SSF support is experimental and not recommended for production yet.
 3. Open the OIDC client used by `openvpn-auth-oauth2`. Enable
    **Client authentication** and **Service accounts roles**, then switch on
    **SSF enabled**.
-4. In the **SSF** → **Receiver** tab, allow **Poll delivery**, select the
-   `session-revoked` event under **Supported events**, and keep the
-   **User subject format** `iss_sub`.
-5. In the **SSF** → **Stream** tab, create a stream with the delivery method
+4. In the **Client scopes** tab of the client, add the `ssf.read` client scope
+   as **Optional**. Without it, Keycloak rejects the client credentials
+   request with `invalid_scope`.
+5. In the **SSF** → **Receiver** tab, allow **Poll delivery**, select the
+   `session-revoked` event under **Supported events**, set
+   **Default subjects** to `ALL`, and keep the **User subject format**
+   `iss_sub`. With `NONE`, Keycloak only sends events about users that were
+   subscribed to the stream.
+6. In the **SSF** → **Stream** tab, create a stream with the delivery method
    **Poll**.
-6. Configure `openvpn-auth-oauth2`:
+7. Configure `openvpn-auth-oauth2`:
 
    ```yaml
    ssf:
@@ -166,10 +172,22 @@ Keycloak's SSF support is experimental and not recommended for production yet.
 
    The default scope `ssf.read` is sufficient to read the stream and poll it.
 
-Keycloak allows one stream per receiver client. Keycloak's documentation
-doesn't list which actions emit `session-revoked`; check the behavior of your
-Keycloak version, for example by ending a user session in the admin console
-and watching the `openvpn-auth-oauth2` log.
+Keycloak allows one stream per receiver client.
+
+Keycloak sends `session-revoked` events with a `complex` subject that names the
+user and the Keycloak session, so they end exactly the VPN connection that
+logged in with that session. `openvpn-auth-oauth2` requests `offline_access`,
+so the session in the ID token is an offline session. Tested with the Keycloak
+nightly build of October 2026:
+
+| Action in Keycloak                                                    | Effect                                         |
+|-----------------------------------------------------------------------|------------------------------------------------|
+| An administrator signs out the offline session of the VPN login.     | The VPN connection of that session ends.       |
+| Logging out of other applications.                                   | No effect. The VPN login creates only the offline session, no browser single sign-on session. |
+| Revoking the offline access of the client in the account console or the **Consents** tab. | No event; the VPN connection stays up until its next reauthentication. |
+
+Events of other types, such as RISC `account-disabled`, are acknowledged and
+ignored.
 
 ### Other providers
 
