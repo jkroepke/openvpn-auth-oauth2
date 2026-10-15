@@ -5,6 +5,7 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -17,8 +18,10 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
 	oauth2types "github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn/connection"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/sessionregistry"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/test/testsuite"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -226,6 +229,17 @@ func TestSilentReAuthenticationUsesStoredSelectedProfile(t *testing.T) {
 		"END")
 	suite.SendMessagef(t, "SUCCESS: client-auth command succeeded")
 	require.Zero(t, oauth2Client.resolveCalls.Load())
+	require.EventuallyWithT(t, func(collect *assert.CollectT) {
+		registered := oauth2Client.registeredClients()
+		if !assert.Len(collect, registered, 1) {
+			return
+		}
+
+		assert.Equal(collect, storedProfileIdentity(), registered[0].identity)
+		assert.Equal(collect, "alice", registered[0].username)
+		assert.Equal(collect, uint64(1), registered[0].client.CID)
+		assert.Equal(collect, "session_id", registered[0].client.SessionID)
+	}, time.Second, 10*time.Millisecond)
 
 	require.NoError(t, suite.GetManagementInterfaceConn().Close())
 
@@ -267,18 +281,23 @@ func (c *blockingRefreshOAuth2Client) RefreshClientAuth(
 	ctx context.Context,
 	_ *slog.Logger,
 	client connection.Client,
-) (oauth2types.UserInfo, *idtoken.IDToken, []string, bool, error) {
+) (oauth2types.RefreshResult, bool, error) {
 	if client.CID == 1 && c.firstBlocked.CompareAndSwap(false, true) {
 		close(c.blockedFirst)
 
 		select {
 		case <-ctx.Done():
-			return oauth2types.UserInfo{}, nil, nil, false, ctx.Err()
+			return oauth2types.RefreshResult{}, false, ctx.Err()
 		case <-c.releaseFirst:
 		}
 	}
 
-	return oauth2types.UserInfo{}, nil, nil, false, nil
+	return oauth2types.RefreshResult{}, false, nil
+}
+
+func (c *blockingRefreshOAuth2Client) RegisterClient(
+	context.Context, *slog.Logger, state.ClientIdentifier, string, sessionregistry.Identity,
+) {
 }
 
 func (c *blockingRefreshOAuth2Client) ResolveClientConfigNames(
@@ -303,18 +322,42 @@ func (c *blockingRefreshOAuth2Client) release() {
 	})
 }
 
+type registeredClient struct {
+	identity sessionregistry.Identity
+	username string
+	client   state.ClientIdentifier
+}
+
 type storedProfileOAuth2Client struct {
+	registered   []registeredClient
+	mu           sync.Mutex
 	resolveCalls atomic.Int32
+}
+
+func storedProfileIdentity() sessionregistry.Identity {
+	return sessionregistry.Identity{Issuer: "https://idp.example.com", Subject: "alice-sub", SessionID: "sid-1"}
 }
 
 func (c *storedProfileOAuth2Client) RefreshClientAuth(
 	context.Context,
 	*slog.Logger,
 	connection.Client,
-) (oauth2types.UserInfo, *idtoken.IDToken, []string, bool, error) {
-	return oauth2types.UserInfo{Username: "alice"}, &idtoken.IDToken{
-		IDTokenClaims: &idtoken.Claims{Claims: map[string]any{}},
-	}, []string{"selected"}, true, nil
+) (oauth2types.RefreshResult, bool, error) {
+	return oauth2types.RefreshResult{
+		Tokens:            &idtoken.IDToken{IDTokenClaims: &idtoken.Claims{Claims: map[string]any{}}},
+		Identity:          storedProfileIdentity(),
+		User:              oauth2types.UserInfo{Username: "alice"},
+		ClientConfigNames: []string{"selected"},
+	}, true, nil
+}
+
+func (c *storedProfileOAuth2Client) RegisterClient(
+	_ context.Context, _ *slog.Logger, client state.ClientIdentifier, username string, identity sessionregistry.Identity,
+) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.registered = append(c.registered, registeredClient{identity: identity, username: username, client: client})
 }
 
 func (c *storedProfileOAuth2Client) ResolveClientConfigNames(
@@ -333,4 +376,11 @@ func (c *storedProfileOAuth2Client) ClientDisconnect(context.Context, *slog.Logg
 
 func (c *storedProfileOAuth2Client) EncryptState(state.State) (state.EncryptedState, error) {
 	return "", nil
+}
+
+func (c *storedProfileOAuth2Client) registeredClients() []registeredClient {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return slices.Clone(c.registered)
 }

@@ -59,6 +59,18 @@ are needed only until five minutes after the last old instance stops issuing
 ciphertext. For rolling deployments, stage the switch because old instances
 cannot read the new format.
 
+## Session registry
+
+`internal/sessionregistry` maps accepted OpenVPN clients to the OIDC identity
+(iss, sub, sid, email) they logged in with, so SSF events can be resolved to
+clients. Every path that accepts a client after OIDC authentication must call
+`oauth2.Client.RegisterClient` once `AcceptClient` succeeds: the OAuth2
+callback, profile submit and silent re-authentication do today. Bypassed
+clients are not registered. With `oauth2.refresh.validate-user=false` there is
+no token on refresh, so the identity travels in the stored refresh state; keep
+it there when changing that format. The registry is created in `runLoop` and
+survives configuration reloads, like the refresh-token data.
+
 ## OpenVPN management command size
 
 For `client-pending-auth` URL validation:

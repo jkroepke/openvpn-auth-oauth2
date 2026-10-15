@@ -19,6 +19,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/deny"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/sessionregistry"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
 )
@@ -247,7 +248,12 @@ func (c *Client) OAuth2ProfileSubmit() http.Handler {
 			return
 		}
 
-		c.storeSelectedProfileRefreshState(ctx, logger, oAuth2State, clientID, username, clientConfigName)
+		c.RegisterClient(ctx, logger, oAuth2State.Client, username, token.Identity)
+		c.storeSelectedProfileRefreshState(ctx, logger, oAuth2State, clientID, internalRefreshToken{
+			Identity:          token.Identity,
+			Username:          username,
+			ClientConfigNames: []string{clientConfigName},
+		})
 
 		c.writeHTTPSuccess(ctx, w, logger)
 	})
@@ -263,14 +269,14 @@ func (c *Client) getClientID(session state.State) string {
 }
 
 func (c *Client) storeSelectedProfileRefreshState(
-	ctx context.Context, logger *slog.Logger, session state.State, clientID, username, clientConfigName string,
+	ctx context.Context, logger *slog.Logger, session state.State, clientID string, selected internalRefreshToken,
 ) {
 	if !c.conf.OAuth2.Refresh.Enabled {
 		return
 	}
 
 	if !c.conf.OAuth2.Refresh.ValidateUser {
-		c.postCodeExchangeHandlerStoreRefreshToken(ctx, logger, session, clientID, username, nil, []string{clientConfigName})
+		c.postCodeExchangeHandlerStoreRefreshToken(ctx, logger, session, clientID, nil, selected)
 
 		return
 	}
@@ -282,14 +288,17 @@ func (c *Client) storeSelectedProfileRefreshState(
 		return
 	}
 
-	refreshToken, _, err = decodeProviderRefreshToken(refreshToken)
+	storedToken, err := decodeProviderRefreshToken(refreshToken)
 	if err != nil {
 		logger.LogAttrs(ctx, slog.LevelWarn, err.Error())
 
 		return
 	}
 
-	refreshToken, err = encodeProviderRefreshToken(refreshToken, []string{clientConfigName})
+	storedToken.ClientConfigNames = selected.ClientConfigNames
+	storedToken.Identity = storedToken.Identity.Merge(selected.Identity)
+
+	refreshToken, err = encodeProviderRefreshToken(storedToken)
 	if err != nil {
 		logger.LogAttrs(ctx, slog.LevelWarn, err.Error())
 
@@ -517,7 +526,10 @@ func (c *Client) handleClientConfigSelector(ctx context.Context, w http.Response
 		return true
 	default:
 		if c.conf.OAuth2.Refresh.ValidateUser {
-			c.postCodeExchangeHandlerStoreRefreshToken(ctx, req.logger, req.session, req.clientID, req.username, req.tokens, nil)
+			c.postCodeExchangeHandlerStoreRefreshToken(ctx, req.logger, req.session, req.clientID, req.tokens, internalRefreshToken{
+				Identity: identityFromTokens(req.tokens, req.user),
+				Username: req.username,
+			})
 		}
 
 		if err := c.renderClientConfigProfileSelector(ctx, w, req, clientConfigProfiles); err != nil {
@@ -535,7 +547,9 @@ func (c *Client) renderClientConfigProfileSelector(
 	req codeExchangeRequest,
 	clientConfigProfiles []string,
 ) *denialError {
-	clientConfigSelectorToken, err := c.createProfileSelectorToken(req.encryptedState, req.username, clientConfigProfiles)
+	clientConfigSelectorToken, err := c.createProfileSelectorToken(
+		req.encryptedState, req.username, identityFromTokens(req.tokens, req.user), clientConfigProfiles,
+	)
 	if err != nil {
 		return &denialError{
 			err:       err,
@@ -600,25 +614,34 @@ func (c *Client) acceptOAuth2Client(
 		return
 	}
 
-	c.postCodeExchangeHandlerStoreRefreshToken(ctx, req.logger, req.session, req.clientID, req.username, req.tokens, clientConfigNames)
+	identity := identityFromTokens(req.tokens, req.user)
+
+	c.RegisterClient(ctx, req.logger, req.session.Client, req.username, identity)
+	c.postCodeExchangeHandlerStoreRefreshToken(ctx, req.logger, req.session, req.clientID, req.tokens, internalRefreshToken{
+		Identity:          identity,
+		Username:          req.username,
+		ClientConfigNames: clientConfigNames,
+	})
 	c.writeHTTPSuccess(ctx, w, req.logger)
 }
 
 // postCodeExchangeHandlerStoreRefreshToken stores refresh data for future non-interactive authentication.
+// With oauth2.refresh.validate-user, the provider refresh token is stored
+// with the identity only; the client config names are resolved again on refresh.
 func (c *Client) postCodeExchangeHandlerStoreRefreshToken(
 	ctx context.Context,
 	logger *slog.Logger,
 	session state.State,
-	clientID, username string,
+	clientID string,
 	tokens *idtoken.IDToken,
-	clientConfigNames []string,
+	refreshState internalRefreshToken,
 ) {
 	if !c.conf.OAuth2.Refresh.Enabled {
 		return
 	}
 
 	if !c.conf.OAuth2.Refresh.ValidateUser {
-		c.storeInternalRefreshToken(ctx, logger, clientID, username, clientConfigNames)
+		c.storeInternalRefreshToken(ctx, logger, clientID, refreshState)
 
 		return
 	}
@@ -638,6 +661,13 @@ func (c *Client) postCodeExchangeHandlerStoreRefreshToken(
 
 	if refreshToken == "" {
 		logger.LogAttrs(ctx, slog.LevelWarn, "refresh token is empty")
+
+		return
+	}
+
+	refreshToken, err = encodeProviderRefreshToken(providerRefreshToken{RefreshToken: refreshToken, Identity: refreshState.Identity})
+	if err != nil {
+		logger.LogAttrs(ctx, slog.LevelWarn, err.Error())
 	} else if err = c.storage.Set(ctx, clientID, refreshToken); err != nil {
 		logger.LogAttrs(
 			ctx, slog.LevelWarn, "unable to store refresh token",
@@ -649,9 +679,9 @@ func (c *Client) postCodeExchangeHandlerStoreRefreshToken(
 }
 
 func (c *Client) storeInternalRefreshToken(
-	ctx context.Context, logger *slog.Logger, clientID, username string, clientConfigNames []string,
+	ctx context.Context, logger *slog.Logger, clientID string, refreshState internalRefreshToken,
 ) {
-	internalToken, err := encodeInternalRefreshToken(username, clientConfigNames)
+	internalToken, err := encodeInternalRefreshToken(refreshState)
 	if err != nil {
 		logger.LogAttrs(ctx, slog.LevelWarn, err.Error())
 	} else if err := c.storage.Set(ctx, clientID, internalToken); err != nil {
@@ -675,12 +705,15 @@ func (c *Client) storeProfileSelectorToken(ctx context.Context, encryptedToken, 
 }
 
 // createProfileSelectorToken creates an encrypted token containing the available client configuration profiles.
-func (c *Client) createProfileSelectorToken(encryptedState state.EncryptedState, username string, profiles []string) (string, error) {
+func (c *Client) createProfileSelectorToken(
+	encryptedState state.EncryptedState, username string, identity sessionregistry.Identity, profiles []string,
+) (string, error) {
 	if username == "" {
 		username = profileSelectorEmptyUsername
 	}
 
 	tokenContent := clientConfigToken{
+		Identity:             identity,
 		Username:             username,
 		Profiles:             profiles,
 		EncryptedOAuth2State: encryptedState,

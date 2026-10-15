@@ -18,6 +18,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/metrics"
 	oauth2types "github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/sessionregistry"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/test/testsuite"
 	"github.com/stretchr/testify/require"
@@ -843,6 +844,14 @@ func TestHandler(t *testing.T) {
 			default:
 				require.Contains(t, string(body), "Access granted")
 			}
+
+			entries := suite.GetSessionRegistry().Lookup(sessionregistry.Identity{
+				Issuer:  suite.GetConfig().OAuth2.Issuer.String(),
+				Subject: "id1",
+			})
+			require.Len(t, entries, 1, suite.Logs())
+			require.Equal(t, tc.state.Client.CID, entries[0].CID)
+			require.True(t, entries[0].Connected)
 		})
 	}
 }

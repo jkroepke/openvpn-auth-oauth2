@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/sessionregistry"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/tokenstorage"
 	"github.com/stretchr/testify/require"
@@ -18,6 +19,8 @@ func TestStoreSelectedProfileRefreshState(t *testing.T) {
 	ctx := context.Background()
 	logger := slog.New(slog.DiscardHandler)
 	session := state.State{Client: state.ClientIdentifier{CID: 7}}
+	identity := sessionregistry.Identity{Issuer: "https://idp.example.com", Subject: "alice-sub", SessionID: "sid-1"}
+	selected := internalRefreshToken{Identity: identity, Username: "alice", ClientConfigNames: []string{"selected"}}
 
 	t.Run("disabled refresh does not store token", func(t *testing.T) {
 		t.Parallel()
@@ -27,7 +30,7 @@ func TestStoreSelectedProfileRefreshState(t *testing.T) {
 		storage := newInMemoryStorage(t)
 		client := Client{conf: &conf, storage: storage}
 
-		client.storeSelectedProfileRefreshState(ctx, logger, session, "7", "alice", "selected")
+		client.storeSelectedProfileRefreshState(ctx, logger, session, "7", selected)
 
 		_, err := storage.Get(ctx, "7")
 		require.ErrorIs(t, err, tokenstorage.ErrNotExists)
@@ -42,15 +45,14 @@ func TestStoreSelectedProfileRefreshState(t *testing.T) {
 		storage := newInMemoryStorage(t)
 		client := Client{conf: &conf, storage: storage}
 
-		client.storeSelectedProfileRefreshState(ctx, logger, session, "7", "alice", "selected")
+		client.storeSelectedProfileRefreshState(ctx, logger, session, "7", selected)
 
 		refreshToken, err := storage.Get(ctx, "7")
 		require.NoError(t, err)
 
-		username, clientConfigNames, err := decodeInternalRefreshToken(refreshToken)
+		decoded, err := decodeInternalRefreshToken(refreshToken)
 		require.NoError(t, err)
-		require.Equal(t, "alice", username)
-		require.Equal(t, []string{"selected"}, clientConfigNames)
+		require.Equal(t, selected, decoded)
 	})
 
 	t.Run("provider refresh token stores selected profile", func(t *testing.T) {
@@ -60,20 +62,27 @@ func TestStoreSelectedProfileRefreshState(t *testing.T) {
 		conf.OAuth2.Refresh.Enabled = true
 		conf.OAuth2.Refresh.ValidateUser = true
 		storage := newInMemoryStorage(t)
-		storedToken, err := encodeProviderRefreshToken("provider-refresh-token", []string{"previous"})
+		storedToken, err := encodeProviderRefreshToken(providerRefreshToken{
+			RefreshToken:      "provider-refresh-token",
+			ClientConfigNames: []string{"previous"},
+			Identity:          sessionregistry.Identity{Email: "alice@example.com"},
+		})
 		require.NoError(t, err)
 		require.NoError(t, storage.Set(ctx, "7", storedToken))
 
 		client := Client{conf: &conf, storage: storage}
-		client.storeSelectedProfileRefreshState(ctx, logger, session, "7", "alice", "selected")
+		client.storeSelectedProfileRefreshState(ctx, logger, session, "7", selected)
 
 		refreshToken, err := storage.Get(ctx, "7")
 		require.NoError(t, err)
 
-		providerRefreshToken, clientConfigNames, err := decodeProviderRefreshToken(refreshToken)
+		decoded, err := decodeProviderRefreshToken(refreshToken)
 		require.NoError(t, err)
-		require.Equal(t, "provider-refresh-token", providerRefreshToken)
-		require.Equal(t, []string{"selected"}, clientConfigNames)
+		require.Equal(t, providerRefreshToken{
+			RefreshToken:      "provider-refresh-token",
+			ClientConfigNames: []string{"selected"},
+			Identity:          sessionregistry.Identity{Issuer: identity.Issuer, Subject: identity.Subject, SessionID: identity.SessionID, Email: "alice@example.com"},
+		}, decoded)
 	})
 
 	t.Run("storage get failure does not store token", func(t *testing.T) {
@@ -85,7 +94,7 @@ func TestStoreSelectedProfileRefreshState(t *testing.T) {
 		storage := &profileRefreshStorage{getErr: errors.New("get failed")}
 		client := Client{conf: &conf, storage: storage}
 
-		client.storeSelectedProfileRefreshState(ctx, logger, session, "7", "alice", "selected")
+		client.storeSelectedProfileRefreshState(ctx, logger, session, "7", selected)
 
 		require.False(t, storage.setCalled)
 	})
@@ -100,7 +109,7 @@ func TestStoreSelectedProfileRefreshState(t *testing.T) {
 		require.NoError(t, storage.Set(ctx, "7", providerRefreshTokenPrefix+"{"))
 
 		client := Client{conf: &conf, storage: storage}
-		client.storeSelectedProfileRefreshState(ctx, logger, session, "7", "alice", "selected")
+		client.storeSelectedProfileRefreshState(ctx, logger, session, "7", selected)
 
 		refreshToken, err := storage.Get(ctx, "7")
 		require.NoError(t, err)
@@ -110,7 +119,11 @@ func TestStoreSelectedProfileRefreshState(t *testing.T) {
 	t.Run("storage set failure is handled", func(t *testing.T) {
 		t.Parallel()
 
-		storedToken, err := encodeProviderRefreshToken("provider-refresh-token", []string{"previous"})
+		storedToken, err := encodeProviderRefreshToken(providerRefreshToken{
+			RefreshToken:      "provider-refresh-token",
+			ClientConfigNames: []string{"previous"},
+			Identity:          sessionregistry.Identity{Email: "alice@example.com"},
+		})
 		require.NoError(t, err)
 
 		conf := config.Defaults
@@ -122,14 +135,17 @@ func TestStoreSelectedProfileRefreshState(t *testing.T) {
 		}
 		client := Client{conf: &conf, storage: storage}
 
-		client.storeSelectedProfileRefreshState(ctx, logger, session, "7", "alice", "selected")
+		client.storeSelectedProfileRefreshState(ctx, logger, session, "7", selected)
 
 		require.True(t, storage.setCalled)
 
-		providerRefreshToken, clientConfigNames, err := decodeProviderRefreshToken(storage.setToken)
+		decoded, err := decodeProviderRefreshToken(storage.setToken)
 		require.NoError(t, err)
-		require.Equal(t, "provider-refresh-token", providerRefreshToken)
-		require.Equal(t, []string{"selected"}, clientConfigNames)
+		require.Equal(t, providerRefreshToken{
+			RefreshToken:      "provider-refresh-token",
+			ClientConfigNames: []string{"selected"},
+			Identity:          sessionregistry.Identity{Issuer: identity.Issuer, Subject: identity.Subject, SessionID: identity.SessionID, Email: "alice@example.com"},
+		}, decoded)
 	})
 }
 

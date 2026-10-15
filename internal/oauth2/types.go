@@ -10,6 +10,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/metrics"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/sessionregistry"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/tokenstorage"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
@@ -25,6 +26,7 @@ type Client struct {
 	configsCELPrg    cel.Program
 	logger           *slog.Logger
 	stateCrypto      *crypto.Cipher
+	sessions         *sessionregistry.Registry
 	metrics          *metrics.Metrics
 	conf             *types2.Config
 	authorizeParams  []rp.URLParamOpt
@@ -44,7 +46,8 @@ type Provider interface {
 
 // clientConfigToken is used to store additional information on the client side.
 type clientConfigToken struct {
-	Username             string               `json:"username,omitempty"`
-	EncryptedOAuth2State state.EncryptedState `json:"state,omitempty"`
-	Profiles             []string             `json:"profiles,omitempty"`
+	Identity             sessionregistry.Identity `json:"identity,omitzero"`
+	Username             string                   `json:"username,omitempty"`
+	EncryptedOAuth2State state.EncryptedState     `json:"state,omitempty"`
+	Profiles             []string                 `json:"profiles,omitempty"`
 }

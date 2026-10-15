@@ -15,6 +15,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/types"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/openvpn/connection"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/sessionregistry"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
 )
 
@@ -56,7 +57,8 @@ type clientAddress struct {
 }
 
 type oauth2Client interface {
-	RefreshClientAuth(ctx context.Context, logger *slog.Logger, client connection.Client) (types.UserInfo, *idtoken.IDToken, []string, bool, error)
+	RefreshClientAuth(ctx context.Context, logger *slog.Logger, client connection.Client) (types.RefreshResult, bool, error)
+	RegisterClient(ctx context.Context, logger *slog.Logger, client state.ClientIdentifier, username string, identity sessionregistry.Identity)
 	ResolveClientConfigNames(
 		authMode types.AuthMode,
 		session state.State,
