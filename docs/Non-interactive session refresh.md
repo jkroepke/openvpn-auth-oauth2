@@ -36,6 +36,9 @@ Example: If the user opens a VPN connection and the user is deleted from the OID
 until the connection lifetime is reached. Restarting the OpenVPN server will invalidate the connection unless
 [non-interactive session refresh across disconnects](#non-interactive-session-refresh-across-disconnects) is configured.
 
+If the OIDC provider transmits [Shared Signals](Shared%20Signals) `session-revoked` events, enable `ssf.enabled` to end
+revoked sessions immediately, independent of `oauth2.refresh.validate-user`.
+
 # Non-interactive session refresh across disconnects
 
 To facilitate non-interactive session refresh across disconnects,
@@ -49,6 +52,9 @@ you must enable `auth-gen-token [lifetime] external-auth` on the OpenVPN server.
 
 - Setting the lifetime to 0 disables the lifetime check,
   which can be beneficial for mobile devices with unstable connections or during device sleep cycles.
+
+The `external-auth` flag is also required for [Shared Signals session revocation](Shared%20Signals): without it,
+OpenVPN accepts a revoked client that reconnects with a valid auth-token without asking `openvpn-auth-oauth2`.
 
 If `auth-gen-token-secret [keyfile]` is configured, OpenVPN access server restarts can verify auth-tokens.
 To generate a new secret, utilize `openvpn --genkey auth-token [keyfile]`.

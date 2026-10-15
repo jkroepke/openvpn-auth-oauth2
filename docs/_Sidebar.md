@@ -23,6 +23,7 @@
 - [CEL language features](CEL%20Language%20Features)
 - [Client-specific configuration](Client%20specific%20configuration)
 - [Non-interactive session refresh](Non-interactive%20session%20refresh)
+- [Shared Signals session revocation](Shared%20Signals)
 
 **Advanced integration and customization**
 

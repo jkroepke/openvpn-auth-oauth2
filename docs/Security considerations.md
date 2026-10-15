@@ -15,6 +15,16 @@ This approach provides:
 
 An encryption key must not protect more than `2^32` messages.
 
+## Revoked Identity Provider Sessions
+
+A VPN connection stays up until OpenVPN asks for reauthentication, even if the
+identity provider ends the user's session or disables the user earlier. To end
+VPN connections as soon as the identity provider revokes a session, enable
+[Shared Signals session revocation](Shared%20Signals) with a provider that
+transmits CAEP `session-revoked` events. Otherwise, keep `reneg-sec` short and
+`oauth2.refresh.validate-user` enabled, so revoked users are noticed at the next
+renegotiation.
+
 ## Potential Risks Caused by State Reuse
 
 There is a potential risk that an attacker could forge state parameters and hijack an OpenVPN session through phishing attacks. To do this, the attacker would need to know both the state encryption key, and the OpenVPN session ID. While the encryption key is a static value, the session ID is a randomly generated incrementing number that changes with each new session.
