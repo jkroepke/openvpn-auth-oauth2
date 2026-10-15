@@ -19,6 +19,12 @@ const namespace = "openvpn_auth_oauth2_"
 // ContentType is the Prometheus text exposition format version 0.0.4.
 const ContentType = "text/plain; version=0.0.4; charset=utf-8"
 
+// Scopes of a session revocation.
+const (
+	RevocationScopeSession = "session"
+	RevocationScopeUser    = "user"
+)
+
 // Results of a silent re-authentication attempt.
 const (
 	SilentReAuthSuccess  = "success"
@@ -44,6 +50,7 @@ var defaultBuckets = []float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10}
 type Metrics struct {
 	clientDenied    *counterVec
 	silentReAuth    *counterVec
+	revoked         *counterVec
 	codeExchange    *histogram
 	commandDuration *histogramVec
 	version         string
@@ -58,6 +65,7 @@ func New(version, commit string) *Metrics {
 	return &Metrics{
 		clientDenied:    newCounterVec(),
 		silentReAuth:    newCounterVec(),
+		revoked:         newCounterVec(),
 		codeExchange:    newHistogram(),
 		commandDuration: newHistogramVec(),
 		version:         version,
@@ -94,6 +102,16 @@ func (m *Metrics) SilentReAuth(result string) {
 	}
 
 	m.silentReAuth.inc(result)
+}
+
+// SessionsRevoked counts OpenVPN sessions revoked by a security event.
+// scope should be RevocationScopeSession or RevocationScopeUser.
+func (m *Metrics) SessionsRevoked(scope string, count int) {
+	if m == nil || count <= 0 {
+		return
+	}
+
+	m.revoked.add(scope, uint64(count))
 }
 
 // ObserveCodeExchange records the duration of a successful OAuth2 authorization code exchange.
@@ -162,6 +180,10 @@ func (m *Metrics) Write(w io.Writer) error {
 		"Total number of silent re-authentication attempts using a stored refresh token, by result.")
 	m.silentReAuth.write(buf, "oauth2_silent_reauth_total", "result")
 
+	writeHeader(buf, "ssf_sessions_revoked_total", "counter",
+		"Total number of OpenVPN sessions revoked by a Shared Signals security event, by scope.")
+	m.revoked.write(buf, "ssf_sessions_revoked_total", "scope")
+
 	writeHeader(buf, "oauth2_code_exchange_duration_seconds", "histogram",
 		"Duration of successful OAuth2 authorization code exchanges, including token validation and userinfo requests.")
 	m.codeExchange.write(buf, "oauth2_code_exchange_duration_seconds", "")
@@ -224,8 +246,12 @@ func newCounterVec() *counterVec {
 }
 
 func (c *counterVec) inc(label string) {
+	c.add(label, 1)
+}
+
+func (c *counterVec) add(label string, delta uint64) {
 	c.mu.Lock()
-	c.values[label]++
+	c.values[label] += delta
 	c.mu.Unlock()
 }
 

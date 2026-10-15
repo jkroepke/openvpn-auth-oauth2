@@ -28,6 +28,9 @@ func TestMetricsWrite(t *testing.T) {
 	appMetrics.SilentReAuth(metrics.SilentReAuthSuccess)
 	appMetrics.SilentReAuth(metrics.SilentReAuthFallback)
 	appMetrics.SilentReAuth(metrics.SilentReAuthFallback)
+	appMetrics.SessionsRevoked(metrics.RevocationScopeUser, 3)
+	appMetrics.SessionsRevoked(metrics.RevocationScopeSession, 1)
+	appMetrics.SessionsRevoked(metrics.RevocationScopeSession, 0)
 	appMetrics.ObserveCodeExchange(300 * time.Millisecond)
 	appMetrics.ObserveCommand("client-deny", 3*time.Millisecond)
 	appMetrics.ObserveCommand("client-auth-nt", 20*time.Second)
@@ -50,6 +53,9 @@ func TestMetricsWrite(t *testing.T) {
 		`openvpn_auth_oauth2_openvpn_client_denied_total{reason="other"} 2` + "\n",
 		`openvpn_auth_oauth2_oauth2_silent_reauth_total{result="fallback"} 2` + "\n",
 		`openvpn_auth_oauth2_oauth2_silent_reauth_total{result="success"} 1` + "\n",
+		"# TYPE openvpn_auth_oauth2_ssf_sessions_revoked_total counter\n",
+		`openvpn_auth_oauth2_ssf_sessions_revoked_total{scope="session"} 1` + "\n",
+		`openvpn_auth_oauth2_ssf_sessions_revoked_total{scope="user"} 3` + "\n",
 		"# TYPE openvpn_auth_oauth2_oauth2_code_exchange_duration_seconds histogram\n",
 		`openvpn_auth_oauth2_oauth2_code_exchange_duration_seconds_bucket{le="0.25"} 0` + "\n",
 		`openvpn_auth_oauth2_oauth2_code_exchange_duration_seconds_bucket{le="0.5"} 1` + "\n",
@@ -96,6 +102,7 @@ func TestMetricsNilReceiver(t *testing.T) {
 		appMetrics.ClientAccepted()
 		appMetrics.ClientDenied("client rejected")
 		appMetrics.SilentReAuth(metrics.SilentReAuthError)
+		appMetrics.SessionsRevoked(metrics.RevocationScopeUser, 1)
 		appMetrics.ObserveCodeExchange(time.Second)
 		appMetrics.ObserveCommand("client-deny", time.Second)
 		appMetrics.ClientQueued()

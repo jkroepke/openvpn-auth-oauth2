@@ -2,7 +2,9 @@ package oauth2
 
 import (
 	"context"
+	"errors"
 	"log/slog"
+	"strconv"
 	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2/idtoken"
@@ -41,6 +43,26 @@ func (c *Client) RegisterClient(
 		Username:         username,
 		CID:              client.CID,
 	})
+}
+
+// RevokeRefreshState deletes the stored refresh state of a session registry
+// entry, so the session cannot resume without an interactive login. With
+// oauth2.refresh.validate-user, the refresh token is also revoked at the
+// provider.
+func (c *Client) RevokeRefreshState(ctx context.Context, logger *slog.Logger, entry sessionregistry.Entry) error {
+	if !c.conf.OAuth2.Refresh.Enabled {
+		return nil
+	}
+
+	if c.conf.OAuth2.Refresh.UseSessionID && entry.OpenVPNSessionID != "" {
+		return c.deleteRefreshToken(ctx, logger, entry.OpenVPNSessionID)
+	}
+
+	if !entry.Connected {
+		return errors.New("dormant session registry entry has no OpenVPN session ID")
+	}
+
+	return c.deleteRefreshToken(ctx, logger, strconv.FormatUint(entry.CID, 10))
 }
 
 // unregisterClient removes a disconnected client from the session registry.

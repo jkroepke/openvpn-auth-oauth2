@@ -405,6 +405,11 @@ func (s *Suite) GetConfig() *config.Config {
 	return s.conf
 }
 
+// GetOAuth2Client returns the OAuth2 client created by SetupOpenVPNOAuth2Clients.
+func (s *Suite) GetOAuth2Client() *oauth2.Client {
+	return s.oAuth2Client
+}
+
 // GetSessionRegistry returns the session registry of the clients created by
 // SetupOpenVPNOAuth2Clients.
 func (s *Suite) GetSessionRegistry() *sessionregistry.Registry {
