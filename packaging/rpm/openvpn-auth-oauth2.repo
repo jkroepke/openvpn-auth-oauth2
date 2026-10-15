@@ -1,6 +1,6 @@
 [openvpn-auth-oauth2]
 name=openvpn-auth-oauth2
-baseurl=https://jkroepke.github.io/openvpn-auth-oauth2/rpm/
+baseurl=https://github.com/jkroepke/openvpn-auth-oauth2/releases/download/
 enabled=1
 gpgcheck=1
 repo_gpgcheck=1

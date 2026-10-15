@@ -273,46 +273,39 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GPG_PASSPHRASE: ${{ secrets.NFPM_PASSPHRASE }}
 
+      - name: Publish Release
+        run: gh release edit "${GITHUB_REF_NAME}" --draft=false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Release YUM repository
         run: |
           set -x
           sudo apt-get update -qq
           sudo apt-get install -y -qq createrepo-c
           gh release download "${GITHUB_REF_NAME}" -p "*.rpm" -D tmp-rpm
-          mkdir -p yum-repo/rpm
-          # RPMs stay release assets; only the repository metadata is served from GitHub Pages.
-          createrepo_c --baseurl "https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/" --outputdir yum-repo/rpm tmp-rpm
-          gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --armor --detach-sign --sign -o yum-repo/rpm/repodata/repomd.xml.asc yum-repo/rpm/repodata/repomd.xml
-          cp packaging/rpm/openvpn-auth-oauth2.repo packaging/rpm/RPM-GPG-KEY-openvpn-auth-oauth2 yum-repo/rpm/
+          mkdir -p yum-repo
+          # dnf always requests <baseurl>/repodata/repomd.xml. With baseurl .../releases/download/,
+          # the metadata lives in the release tagged "repodata", while xml:base points the
+          # package locations to the versioned release.
+          createrepo_c --baseurl "https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/" --outputdir yum-repo tmp-rpm
+          pushd yum-repo/repodata
+            gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --armor --detach-sign --sign -o repomd.xml.asc repomd.xml
+            if ! gh release view repodata > /dev/null 2>&1; then
+              gh release create repodata --title repodata --notes "YUM/DNF repository metadata. See docs/Installation.md." --prerelease --latest=false
+            fi
+            stale=$(gh release view repodata --json assets -q '.assets[].name' | grep -vxF -f <(ls) || true)
+            # Upload repomd.xml last, so it never references metadata that is not uploaded yet.
+            gh release upload repodata $(ls | grep -vx -e repomd.xml -e repomd.xml.asc) --clobber
+            gh release upload repodata repomd.xml repomd.xml.asc --clobber
+            for asset in $stale; do
+              gh release delete-asset repodata "$asset" --yes
+            done
+          popd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GPG_PASSPHRASE: ${{ secrets.NFPM_PASSPHRASE }}
 
-      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
-        with:
-          path: yum-repo/
-
-      - name: Publish Release
-        run: gh release edit "${GITHUB_REF_NAME}" --draft=false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-checksums: ./dist/checksums.txt
-
-  pages:
-    name: Publish YUM repository
-    needs:
-      - publish
-    runs-on: ubuntu-24.04
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

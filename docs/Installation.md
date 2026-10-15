@@ -51,9 +51,9 @@ sudo dnf install openvpn-auth-oauth2
 
 > [!NOTE]
 > The YUM/DNF repository tracks the latest release. The repository metadata is
-> hosted on GitHub Pages, while the RPM packages are downloaded from the GitHub
-> release. To install a specific version, install the RPM package from the
-> releases page directly.
+> stored in the `repodata` release, while the RPM packages are downloaded from
+> the versioned GitHub release. To install a specific version, install the RPM
+> package from the releases page directly.
 
 **Alternatively, you can install the RPM package manually:**
 
