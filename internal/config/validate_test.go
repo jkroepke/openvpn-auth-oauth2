@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"testing"
 	"testing/fstest"
+	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config/types"
@@ -360,4 +361,120 @@ func TestValidateEnforceUniqueUserRequiresManagementClient(t *testing.T) {
 	err := config.Validate(config.Plugin, &conf)
 
 	require.EqualError(t, err, "openvpn.enforce-unique-user requires the OpenVPN management interface")
+}
+
+func validSSFConfig() config.Config {
+	conf := validConfig()
+	conf.SSF = config.Defaults.SSF
+	conf.SSF.Enabled = true
+	conf.SSF.Issuer = types.URL{URL: &url.URL{Scheme: "https", Host: "idp.example.com", Path: "/realms/vpn"}}
+	conf.SSF.Poll.Token = "token"
+
+	return conf
+}
+
+func TestValidateSSF(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		name   string
+		modify func(conf *config.Config)
+		err    string
+	}{
+		{
+			"valid",
+			func(*config.Config) {},
+			"",
+		},
+		{
+			"disabled ignores missing settings",
+			func(conf *config.Config) {
+				conf.SSF = config.SSF{}
+			},
+			"",
+		},
+		{
+			"issuer falls back to oauth2.issuer",
+			func(conf *config.Config) {
+				conf.SSF.Issuer = types.URL{}
+				conf.OAuth2.Issuer = types.URL{URL: &url.URL{Scheme: "https", Host: "idp.example.com", Path: "/realms/vpn"}}
+			},
+			"",
+		},
+		{
+			"issuer falls back to http oauth2.issuer",
+			func(conf *config.Config) {
+				conf.SSF.Issuer = types.URL{}
+			},
+			"ssf.issuer is empty, falling back to oauth2.issuer: invalid URL. only https:// scheme supported",
+		},
+		{
+			"http issuer",
+			func(conf *config.Config) {
+				conf.SSF.Issuer = types.URL{URL: &url.URL{Scheme: "http", Host: "idp.example.com"}}
+			},
+			"ssf.issuer: invalid URL. only https:// scheme supported",
+		},
+		{
+			"issuer without host",
+			func(conf *config.Config) {
+				conf.SSF.Issuer = types.URL{URL: &url.URL{Scheme: "https", Path: "/realms/vpn"}}
+			},
+			"ssf.issuer: invalid URL. host is missing",
+		},
+		{
+			"missing poll token",
+			func(conf *config.Config) {
+				conf.SSF.Poll.Token = ""
+			},
+			"ssf.poll.token is required",
+		},
+		{
+			"poll interval below 1s",
+			func(conf *config.Config) {
+				conf.SSF.Poll.Interval = 500 * time.Millisecond
+			},
+			"ssf.poll.interval must be at least 1s",
+		},
+		{
+			"zero poll max events",
+			func(conf *config.Config) {
+				conf.SSF.Poll.MaxEvents = 0
+			},
+			"ssf.poll.max-events must be greater than 0",
+		},
+		{
+			"negative max age",
+			func(conf *config.Config) {
+				conf.SSF.MaxAge = -time.Second
+			},
+			"ssf.max-age must be greater than 0",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			conf := validSSFConfig()
+			tc.modify(&conf)
+
+			err := config.Validate(config.ManagementClient, &conf)
+			if tc.err == "" {
+				require.NoError(t, err)
+
+				return
+			}
+
+			require.EqualError(t, err, tc.err)
+		})
+	}
+}
+
+func TestValidateSSFRequiresManagementClient(t *testing.T) {
+	t.Parallel()
+
+	conf := validSSFConfig()
+
+	err := config.Validate(config.Plugin, &conf)
+
+	require.EqualError(t, err, "ssf.enabled requires the OpenVPN management interface")
 }

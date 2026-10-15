@@ -7,6 +7,7 @@ import (
 	"net/netip"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config/types"
 )
@@ -21,7 +22,48 @@ func Validate(mode int, conf *Config) error {
 		return err
 	}
 
-	return validateOpenVPNConfig(mode, conf)
+	if err := validateOpenVPNConfig(mode, conf); err != nil {
+		return err
+	}
+
+	return validateSSFConfig(mode, conf)
+}
+
+// validateSSFConfig validates the OpenID Shared Signals Framework receiver configuration.
+func validateSSFConfig(mode int, conf *Config) error {
+	if !conf.SSF.Enabled {
+		return nil
+	}
+
+	if mode != ManagementClient {
+		return errors.New("ssf.enabled requires the OpenVPN management interface")
+	}
+
+	if err := validateHTTPSURL(conf.SSFIssuer()); err != nil {
+		if conf.SSF.Issuer.IsEmpty() {
+			return fmt.Errorf("ssf.issuer is empty, falling back to oauth2.issuer: %w", err)
+		}
+
+		return fmt.Errorf("ssf.issuer: %w", err)
+	}
+
+	if conf.SSF.Poll.Token.String() == "" {
+		return fmt.Errorf("ssf.poll.token is %w", ErrRequired)
+	}
+
+	if conf.SSF.Poll.Interval < time.Second {
+		return errors.New("ssf.poll.interval must be at least 1s")
+	}
+
+	if conf.SSF.Poll.MaxEvents <= 0 {
+		return errors.New("ssf.poll.max-events must be greater than 0")
+	}
+
+	if conf.SSF.MaxAge <= 0 {
+		return errors.New("ssf.max-age must be greater than 0")
+	}
+
+	return nil
 }
 
 func validateOpenVPNConfig(mode int, conf *Config) error {
@@ -157,6 +199,23 @@ func validateURL(uri types.URL) error {
 
 	if !slices.Contains([]string{SchemeHTTP, SchemeHTTPS}, uri.Scheme) {
 		return errors.New("invalid URL. only http:// or https:// scheme supported")
+	}
+
+	return nil
+}
+
+// validateHTTPSURL accepts an empty URL or an absolute https:// URL with a host.
+func validateHTTPSURL(uri types.URL) error {
+	if uri.IsEmpty() {
+		return nil
+	}
+
+	if uri.Scheme != SchemeHTTPS {
+		return errors.New("invalid URL. only https:// scheme supported")
+	}
+
+	if uri.Host == "" {
+		return errors.New("invalid URL. host is missing")
 	}
 
 	return nil

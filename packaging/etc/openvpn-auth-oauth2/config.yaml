@@ -79,3 +79,14 @@
 #    socket-group: ""
 #    socket-mode: "0660"
 #  reauthentication: true
+#ssf:
+#  enabled: false  # Not implemented yet; the receiver follows in a later release.
+#  issuer: ""  # Defaults to oauth2.issuer. Must start with https://. Discovery reads <issuer>/.well-known/ssf-configuration
+#  poll:  # The poll endpoint and audience are read from the SSF stream configuration
+#    token: "file:///etc/openvpn-auth-oauth2/ssf-token"
+#    interval: 30s
+#    max-events: 100
+#  max-age: 1h0m0s
+#  user-level-revocation: true
+#  subject:
+#    allow-email: false

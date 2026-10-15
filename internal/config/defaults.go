@@ -103,6 +103,18 @@ var Defaults = Config{
 			Groups: make([]string, 0),
 		},
 	},
+	SSF: SSF{
+		Enabled: false,
+		Poll: SSFPoll{
+			Interval:  30 * time.Second,
+			MaxEvents: 100,
+		},
+		MaxAge:              time.Hour,
+		UserLevelRevocation: true,
+		Subject: SSFSubject{
+			AllowEmail: false,
+		},
+	},
 	Provider: Provider{
 		Google: ProviderGoogle{
 			Validate: ProviderGoogleValidate{

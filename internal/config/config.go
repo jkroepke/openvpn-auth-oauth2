@@ -129,6 +129,7 @@ func (c *Config) newFlagSet(writer io.Writer) *flag.FlagSet {
 	c.flagSetOpenVPN(flagSet)
 	c.flagSetOAuth2(flagSet)
 	c.flagSetProvider(flagSet)
+	c.flagSetSSF(flagSet)
 
 	flagSet.VisitAll(func(flag *flag.Flag) {
 		if flag.Name == versionArgument {
