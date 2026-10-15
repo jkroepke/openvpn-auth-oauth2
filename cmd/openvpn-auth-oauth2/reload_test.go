@@ -90,7 +90,7 @@ func TestReload(t *testing.T) {
 		}
 	}
 
-	t.Cleanup(func() {
+	stopDaemon := func() {
 		select {
 		case <-runDone:
 		case termCh <- syscall.SIGTERM:
@@ -106,7 +106,9 @@ func TestReload(t *testing.T) {
 		case <-time.After(5 * time.Second):
 			t.Errorf("daemon did not terminate after SIGTERM:\n%s", buf.String())
 		}
-	})
+	}
+
+	t.Cleanup(stopDaemon)
 
 	managementInterfaceConn, err := managementInterface.Accept()
 	require.NoError(t, err)
@@ -269,6 +271,9 @@ func TestReload(t *testing.T) {
 	response := managementConn.ReadLine(t)
 	require.Equal(t, "client-auth 0 2", response, buf.String())
 	managementConn.SendMessagef(t, "SUCCESS: client-pending-auth command succeeded")
+
+	// Stop the daemon before the cleanups close the management connection.
+	stopDaemon()
 }
 
 func TestReloadKeepsRunningOnInvalidConfig(t *testing.T) {
@@ -327,7 +332,7 @@ func TestReloadKeepsRunningOnInvalidConfig(t *testing.T) {
 		}
 	}
 
-	t.Cleanup(func() {
+	stopDaemon := func() {
 		select {
 		case <-runDone:
 		case termCh <- syscall.SIGTERM:
@@ -343,7 +348,9 @@ func TestReloadKeepsRunningOnInvalidConfig(t *testing.T) {
 		case <-time.After(5 * time.Second):
 			t.Errorf("daemon did not terminate after SIGTERM:\n%s", buf.String())
 		}
-	})
+	}
+
+	t.Cleanup(stopDaemon)
 
 	tcpListener, ok := managementInterface.(*net.TCPListener)
 	require.True(t, ok, "expected TCP listener")
@@ -383,10 +390,16 @@ func TestReloadKeepsRunningOnInvalidConfig(t *testing.T) {
 
 	managementConn = testsuite.NewConn(managementInterfaceConn)
 	managementConn.ExpectVersionAndReleaseHold(t)
+
+	// Stop the daemon before the cleanups close the management connection.
+	stopDaemon()
 }
 
 // closeOnCleanup closes conn when the test ends. The cleanup keeps conn reachable,
 // so the garbage collector cannot close the socket while the daemon still uses it.
+// Cleanups run in reverse order, so it closes conn before an earlier
+// t.Cleanup(stopDaemon) sends SIGTERM. A daemon that loses its management
+// connection exits with an error, so tests stop the daemon themselves first.
 func closeOnCleanup(tb testing.TB, conn net.Conn) {
 	tb.Helper()
 
