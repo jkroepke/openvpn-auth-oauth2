@@ -457,7 +457,7 @@ func (c *Config) flagSetSSF(flagSet *flag.FlagSet) {
 		&c.SSF.Poll.Interval,
 		"ssf.poll.interval",
 		c.SSF.Poll.Interval,
-		"Time to wait between polls when the SSF transmitter returns without events.",
+		"Time to wait between polls when the SSF transmitter returns without events. Must be at least 1s.",
 	)
 	flagSet.IntVar(
 		&c.SSF.Poll.MaxEvents,
