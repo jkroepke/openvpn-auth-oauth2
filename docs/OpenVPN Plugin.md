@@ -19,7 +19,8 @@ Use the plugin when:
 - you prefer to isolate authentication from general management commands.
 
 Use the [direct management interface](Configuration#direct-management-interface)
-instead when `openvpn.enforce-unique-user` is required.
+instead when `openvpn.enforce-unique-user` or
+[Shared Signals session revocation](Shared%20Signals) is required.
 
 | Capability | Plugin |
 | --- | --- |
@@ -28,6 +29,7 @@ instead when `openvpn.enforce-unique-user` is required.
 | `openvpn.override-username` | Supported on OpenVPN 2.7 or later |
 | Built-in client-specific configuration | Supported |
 | `openvpn.enforce-unique-user` | Not supported; use the direct management interface |
+| `ssf.enabled` | Not supported; use the direct management interface |
 | General OpenVPN management commands | Use OpenVPN's separate, real management interface |
 
 > [!IMPORTANT]
@@ -35,7 +37,8 @@ instead when `openvpn.enforce-unique-user` is required.
 > queries `status 3` and sends `client-kill` before accepting a connection. The
 > plugin socket deliberately implements only the authentication-related
 > management protocol, so `openvpn-auth-oauth2` rejects this combination during
-> startup.
+> startup. The same applies to `ssf.enabled`, which terminates revoked clients
+> with `client-kill`.
 
 ## Architecture
 

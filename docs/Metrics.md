@@ -34,6 +34,10 @@ All metrics use the `openvpn_auth_oauth2_` prefix.
 | `openvpn_auth_oauth2_oauth2_code_exchange_duration_seconds` | histogram |                                   | Time from the OAuth2 callback request until tokens, and user info if `oauth2.user-info` is enabled, have been received and validated. |
 | `openvpn_auth_oauth2_openvpn_command_duration_seconds`      | histogram | `command`                         | Round-trip time of answered commands sent to the OpenVPN management interface, for example `client-auth` or `client-deny`. Timed-out or canceled commands aren't recorded. |
 | `openvpn_auth_oauth2_openvpn_client_queue_length`           | gauge     |                                   | OpenVPN client events waiting for a worker.                                                                                      |
+| `openvpn_auth_oauth2_ssf_events_total`                      | counter   | `outcome`                         | [Shared Signals](Shared%20Signals) security events received.                                                                     |
+| `openvpn_auth_oauth2_ssf_sessions_revoked_total`            | counter   | `scope`                           | OpenVPN sessions revoked by a Shared Signals event. `scope` is `session` or `user`.                                             |
+| `openvpn_auth_oauth2_ssf_poll_errors_total`                 | counter   |                                   | Failed Shared Signals poll requests.                                                                                             |
+| `openvpn_auth_oauth2_ssf_last_successful_poll_timestamp_seconds` | gauge |                                   | Unix time of the last successful Shared Signals poll, or `0` if none succeeded yet.                                             |
 
 ### Deny reasons
 
@@ -54,6 +58,17 @@ underscores, so `client re-authentication not enabled` is reported as
 Commands that external management clients send through the
 [management interface pass-through](Management%20Interface%20pass-through)
 aren't measured.
+
+### Shared Signals event outcomes
+
+| Outcome    | Meaning                                                                                                   |
+|------------|-----------------------------------------------------------------------------------------------------------|
+| `revoked`  | A `session-revoked` event matched and ended at least one OpenVPN session.                                 |
+| `no_match` | A `session-revoked` event matched no OpenVPN session, or it names a whole user while `ssf.user-level-revocation` is disabled. |
+| `ignored`  | The event type or subject isn't supported. The event was acknowledged.                                    |
+| `invalid`  | The event failed verification and was reported to the transmitter as an error.                            |
+| `replay`   | The event was already processed.                                                                          |
+| `error`    | Ending a matched session failed, or the signing keys couldn't be fetched to verify the event. The event wasn't acknowledged, so the transmitter delivers it again. |
 
 ## Reset behavior
 
