@@ -15,30 +15,21 @@ jobs:
     runs-on: ubuntu-24.04
     name: Create Tag
     if: startsWith(inputs.tag, 'v')
+    permissions:
+      actions: write
+      contents: write
     steps:
-      # Using a GitHub App token, because GitHub Actions doesn't run on commits from github-actions bot
-      # Used App:
-      # https://github.com/organizations/prometheus-community/settings/apps/helm-charts-renovate-helper.
-      # Ref: https://github.com/prometheus-community/helm-charts/issues/5213.
-      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
-        id: app-token
-        with:
-          client-id: 1248576
-          private-key: ${{ secrets.AUTOMATION_APP_PRIVATE_KEY }}
-          permission-contents: 'write'
-
+      # A tag created with GITHUB_TOKEN does not trigger the tag push run of CI,
+      # but a workflow_dispatch does. Dispatch CI on the new tag, so it runs
+      # exactly once without a GitHub App token.
       - name: Create Tag
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
           TAG: ${{ inputs.tag }}
-        with:
-          github-token: ${{ steps.app-token.outputs.token }}
-          script: |
-            const tag = process.env.TAG;
+        run: |
+          gh api --method POST "repos/$GH_REPO/git/refs" \
+            -f "ref=refs/tags/$TAG" \
+            -f "sha=$GITHUB_SHA"
 
-            github.rest.git.createRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: 'refs/tags/' + tag,
-              sha: context.sha,
-            });
+          gh workflow run ci.yaml --ref "$TAG"
