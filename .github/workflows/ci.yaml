@@ -186,8 +186,9 @@ jobs:
   publish:
     name: Publish package
     environment: Publish
+    # Tags created by the Create Tag workflow start CI by workflow_dispatch.
     if: >-
-      github.event_name == 'push'
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
       && startsWith(github.ref, 'refs/tags/v')
     needs:
       - build
