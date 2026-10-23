@@ -213,6 +213,11 @@ func (p *PluginHandle) handleAuthUserPassVerify(clientEnvList **c.Char, perClien
 				}
 
 				resp.Acknowledge(nil)
+			case management.ClientAuthPending:
+				// A deferred auth decision must be final; a second pending response is a protocol error.
+				err := fmt.Errorf("unexpected auth state while waiting for deferred auth: %s", resp.ClientAuth)
+				resp.Acknowledge(err)
+				logger.ErrorContext(p.ctx, "unexpected auth state", slog.Any("err", err))
 			default:
 				err := fmt.Errorf("unknown auth state: %s", resp.ClientAuth)
 				resp.Acknowledge(err)
