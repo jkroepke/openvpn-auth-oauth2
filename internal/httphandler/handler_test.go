@@ -96,10 +96,20 @@ func TestCustomAssets(t *testing.T) {
 			"index.txt": &fstest.MapFile{
 				Data: []byte("index"),
 			},
+			"style.css": &fstest.MapFile{
+				Data: []byte("custom-style"),
+			},
 		},
 	}
 
 	handler := httphandler.New(&conf, oAuth2Client)
 
 	require.HTTPBodyContains(t, handler.ServeHTTP, http.MethodGet, "/custom/assets/index.txt", nil, "index")
+	require.HTTPBodyContains(t, handler.ServeHTTP, http.MethodGet, "/custom/assets/style.css", nil, "custom-style")
+	require.HTTPBodyNotContains(t, handler.ServeHTTP, http.MethodGet, "/custom/assets/style.css", nil, "--color-primary")
+
+	// Files missing in http.assets-path fall back to the embedded assets.
+	require.HTTPSuccess(t, handler.ServeHTTP, http.MethodGet, "/custom/assets/favicon.svg", nil)
+	require.HTTPSuccess(t, handler.ServeHTTP, http.MethodGet, "/custom/assets/i18n/de.json", nil)
+	require.HTTPStatusCode(t, handler.ServeHTTP, http.MethodGet, "/custom/assets/missing.txt", nil, http.StatusNotFound)
 }

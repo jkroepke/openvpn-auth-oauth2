@@ -7,6 +7,7 @@ import (
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/oauth2"
+	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/ui/assets"
 )
 
 // New returns a ServeMux with all HTTP endpoints for the management listener.
@@ -14,9 +15,10 @@ import (
 // The handlers are mounted under the base path from conf.HTTP.BaseURL and
 // register the following routes:
 //   - GET <basePath>/ready           readiness probe responding with "OK".
-//   - GET <basePath>/assets/*        serves embedded or custom static files.
+//   - GET <basePath>/assets/*        serves custom static files, falling back to embedded ones.
 //   - GET <basePath>/oauth2/start    initiates the OAuth2 login flow.
 //   - GET <basePath>/oauth2/callback handles the OAuth2 redirect.
+//
 // All other paths respond with 404 via http.NotFoundHandler.
 // The returned mux can be passed to an HTTP server directly.
 // readyCheck is optional for existing test harnesses; production passes the
@@ -45,7 +47,9 @@ func New(conf *config.Config, oAuth2Client *oauth2.Client, readyCheck ...func() 
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("OK"))
 	}))
-	mux.Handle(fmt.Sprintf("GET %s/assets/", basePath), http.StripPrefix(basePath+"/assets/", http.FileServerFS(conf.HTTP.AssetPath)))
+
+	assetsFS := overlayFS{upper: conf.HTTP.AssetPath, lower: assets.FS}
+	mux.Handle(fmt.Sprintf("GET %s/assets/", basePath), http.StripPrefix(basePath+"/assets/", http.FileServerFS(assetsFS)))
 	mux.Handle(fmt.Sprintf("GET %s/oauth2/start", basePath), noCacheHeaders(oAuth2Client.OAuth2Start()))
 	mux.Handle(fmt.Sprintf("GET %s/oauth2/callback", basePath), noCacheHeaders(oAuth2Client.OAuth2Callback()))
 	mux.Handle(fmt.Sprintf("POST %s/oauth2/profile-submit", basePath), noCacheHeaders(oAuth2Client.OAuth2ProfileSubmit()))

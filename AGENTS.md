@@ -24,6 +24,14 @@ This Go application bridges OpenVPN's webauth protocol with OIDC providers. It
 communicates with the OpenVPN management interface and serves the browser-based
 authentication flow over HTTP.
 
+## HTTP assets
+
+`http.assets-path` overlays the embedded assets in `internal/ui/assets`: a file
+in the configured directory replaces the embedded file with the same path, and
+missing files fall back to the embedded ones (`internal/httphandler/overlayfs.go`).
+Custom templates rely on this to change single files. The fallback was lost once
+in a refactoring (#378); keep it and its test in `TestCustomAssets`.
+
 ## Client-visible error classification
 
 Preserve broad failure classes without exposing implementation details:
