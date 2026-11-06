@@ -134,6 +134,7 @@ The following string functions are available through the [CEL strings extension]
 - `size()` - Get the size of a list or map
 - `exists(var, predicate)` - Check if any element matches
   - Example: `user.groups.exists(g, g == 'vpn-users')`
+  - To match against a fixed set of values, `hasAny` (see below) is shorter: `user.groups.hasAny(['vpn-users', 'vpn-admins'])`
 - `all(var, predicate)` - Check if every element matches
   - Example: `user.groups.all(g, g.startsWith('vpn-'))`
 - `exists_one(var, predicate)` - Check if exactly one element matches

@@ -123,14 +123,26 @@ oauth2:
 
 ### Group-Based Validation
 
-Allow access only if the user belongs to specific groups:
+Allow access only if the user belongs to at least one of the listed groups:
 
 ```yaml
 oauth2:
   validate:
     expression: |
-      'vpn-users' in user.groups || 'administrators' in user.groups
+      user.groups.hasAny(['vpn-users', 'administrators'])
 ```
+
+Require membership in all listed groups with `hasAll`:
+
+```yaml
+oauth2:
+  validate:
+    expression: |
+      user.groups.hasAll(['vpn-users', 'mfa-enrolled'])
+```
+
+See [CEL Language Features](CEL%20Language%20Features.md#list-functions) for
+`hasOnly` and `hasExactly`.
 
 ### IP Address Claim Validation
 
