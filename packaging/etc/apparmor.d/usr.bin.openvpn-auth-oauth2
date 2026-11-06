@@ -8,7 +8,17 @@ include <tunables/global>
   include <abstractions/base>
   include <abstractions/nameservice>
 
+  # The binary reads itself at startup (google.golang.org/protobuf/internal/detrand
+  # hashes the executable, pulled in via CEL).
+  /usr/bin/openvpn-auth-oauth2 mr,
+
   @{PROC}/sys/kernel/core_pattern r,
+  # Go runtime: listen backlog size (net package).
+  @{PROC}/sys/net/core/somaxconn r,
+
+  # Go runtime (>= 1.25): container-aware GOMAXPROCS reads the CPU limit of the cgroup.
+  @{PROC}/@{pid}/{cgroup,mountinfo} r,
+  @{sys}/fs/cgroup/{,**} r,
 
   @{etc_ro}/openvpn-auth-oauth2/** r,
 
