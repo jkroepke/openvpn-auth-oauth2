@@ -207,7 +207,7 @@ If `oauth2.refresh.enabled` is set to `true`, Google SSO will always ask for per
 this is because the `approval_prompt=force` is set on URL to obtain a refresh token. openvpn-auth-oauth2 requires a
 refresh token to validate the user on re-auth.
 
-To avoid this, you can set `oauth2.refresh.validate-user` to `false`. Read more about this in the [Configuration](Configuration.md#non-interactive-session-refresh) page.
+To avoid this, you can set `oauth2.refresh.validate-user` to `false`. Read more about this in the [Configuration](Configuration#non-interactive-session-refresh) page.
 
 </details>
 
@@ -518,7 +518,7 @@ oauth2:
    - **Signing Key**: Select an appropriate certificate
    - **Subject Mode**: Based on the User's hashed ID
    - **Issuer Mode**: Each provider has a different issuer, based on the application slug
-5. Under **Advanced protocol settings**, add `offline_access` to the **Scopes** list (defaults are typically email, openid, and profile). This is only needed if you intend to use [non-interactive session refresh](Non-interactive%20session%20refresh.md)
+5. Under **Advanced protocol settings**, add `offline_access` to the **Scopes** list (defaults are typically email, openid, and profile). This is only needed if you intend to use [non-interactive session refresh](Non-interactive%20session%20refresh)
 6. Save and note the **Client ID** and **Client Secret**
 7. Create an Application:
    - Navigate to **Applications** → **Applications**
@@ -617,7 +617,7 @@ Reference: https://help.okta.com/en-us/content/topics/provisioning/lcm/lcm-assig
 ### Non-interactive session refresh (optional)
 
 The refresh token grant enabled during the registration above is required for
-[non-interactive session refresh](Non-interactive%20session%20refresh.md).
+[non-interactive session refresh](Non-interactive%20session%20refresh).
 
 Keep `oauth2.refresh.expires` aligned with the `auth-gen-token` lifetime of your OpenVPN server configuration.
 

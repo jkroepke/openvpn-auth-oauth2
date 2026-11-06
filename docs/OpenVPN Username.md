@@ -125,7 +125,7 @@ Example configurations:
 ```
 
 The complete `auth`, `openvpn`, `token`, and `user` context is available. For
-more details, see [CEL Language Features](CEL%20Language%20Features.md).
+more details, see [CEL Language Features](CEL%20Language%20Features).
 
 #### Important limitations
 
@@ -135,7 +135,7 @@ more details, see [CEL Language Features](CEL%20Language%20Features.md).
 > username is replaced after OpenVPN reads its client configuration.
 
 Use openvpn-auth-oauth2's built-in
-[Client-specific configuration](Client%20specific%20configuration.md) instead.
+[Client-specific configuration](Client%20specific%20configuration) instead.
 It:
 
 - works with `openvpn.override-username`;

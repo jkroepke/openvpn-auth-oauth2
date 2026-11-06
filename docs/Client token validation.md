@@ -59,7 +59,7 @@ provider.
 
 Prefer `user.*` for rules that should work with generic OIDC, UserInfo, GitHub,
 and refresh authentication. Use `token.claims.*` for provider-specific claims.
-See [CEL Language Features](CEL%20Language%20Features.md) for the normalization
+See [CEL Language Features](CEL%20Language%20Features) for the normalization
 rules and the context shared by all CEL settings.
 
 ## Expression Requirements
@@ -141,7 +141,7 @@ oauth2:
       user.groups.hasAll(['vpn-users', 'mfa-enrolled'])
 ```
 
-See [CEL Language Features](CEL%20Language%20Features.md#list-functions) for
+See [CEL Language Features](CEL%20Language%20Features#list-functions) for
 `hasOnly` and `hasExactly`.
 
 ### IP Address Claim Validation
