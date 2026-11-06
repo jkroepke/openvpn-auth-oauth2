@@ -22,7 +22,16 @@ include <tunables/global>
 
   @{etc_ro}/openvpn-auth-oauth2/** r,
 
-  @{run}/openvpn{,-server}/* rw,
+  # Management interface and plugin sockets. @{run} covers /run and /var/run.
+  # Runtime directories of the Debian/Ubuntu openvpn@.service, openvpn-server@.service
+  # and the openvpn-auth-oauth2.service (RuntimeDirectory=).
+  @{run}/openvpn{,-server,-auth-oauth2}/ r,
+  @{run}/openvpn{,-server,-auth-oauth2}/* rw,
+  # Sockets placed directly in /run, e.g. unix:///run/openvpn.sock or unix:///var/run/openvpn-oauth2.sock
+  @{run}/openvpn{,-server,-oauth2,-auth-oauth2}.sock rw,
+  # Relative "management <file> unix" paths resolve against the working directory
+  # of the Debian/Ubuntu units: /etc/openvpn (openvpn@) and /etc/openvpn/server (openvpn-server@).
+  @{etc_ro}/openvpn/{,server/}*.sock rw,
 
   @{etc_ro}/mime.types r,
   /usr/share/mime/* r,
