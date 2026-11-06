@@ -98,7 +98,7 @@ func verify(tb testing.TB, transmitter *ssftest.Transmitter, token string) (jose
 	resp := getJSON(tb, transmitter, transmitter.JWKSURI(), "", &keySet)
 	require.Equal(tb, http.StatusOK, resp.status)
 
-	jws, err := jose.ParseSigned(token, []jose.SignatureAlgorithm{jose.RS256})
+	jws, err := jose.ParseSignedCompact(token, []jose.SignatureAlgorithm{jose.RS256})
 	require.NoError(tb, err)
 
 	header := jws.Signatures[0].Header

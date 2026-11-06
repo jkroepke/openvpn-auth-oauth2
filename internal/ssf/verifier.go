@@ -144,7 +144,7 @@ func (v *Verifier) Processed(event Event) {
 // verifySignature checks the typ header and the signature of token and
 // returns its claims.
 func (v *Verifier) verifySignature(ctx context.Context, token string) (*setClaims, error) {
-	jws, err := jose.ParseSigned(token, joseSignatureAlgorithms())
+	jws, err := jose.ParseSignedCompact(token, joseSignatureAlgorithms())
 	if err != nil {
 		return nil, newError(ErrorCodeInvalidRequest, fmt.Errorf("parse SET: %w", err))
 	}
