@@ -27,7 +27,7 @@ to deny the client instead.
 ## Resolver
 
 Client config names are resolved with
-`openvpn.client-config.expression`. The expression is [CEL](CEL%20Language%20Features.md) and must return
+`openvpn.client-config.expression`. The expression is [CEL](CEL%20Language%20Features) and must return
 an ordered string list.
 
 The resolver receives the same normalized context as the other CEL settings.
@@ -40,7 +40,7 @@ The most useful fields are:
 - `token.claims`: the raw OAuth2 ID token claims.
 
 The `auth`, `openvpn`, `token`, and `user` namespaces are all available. See
-[CEL Language Features](CEL%20Language%20Features.md) for the complete
+[CEL Language Features](CEL%20Language%20Features) for the complete
 contract.
 
 Example:

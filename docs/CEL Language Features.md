@@ -134,6 +134,7 @@ The following string functions are available through the [CEL strings extension]
 - `size()` - Get the size of a list or map
 - `exists(var, predicate)` - Check if any element matches
   - Example: `user.groups.exists(g, g == 'vpn-users')`
+  - To match against a fixed set of values, `hasAny` (see below) is shorter: `user.groups.hasAny(['vpn-users', 'vpn-admins'])`
 - `all(var, predicate)` - Check if every element matches
   - Example: `user.groups.all(g, g.startsWith('vpn-'))`
 - `exists_one(var, predicate)` - Check if exactly one element matches
@@ -160,6 +161,16 @@ The CEL lists extension adds more list helpers:
   - Example: `['base', 'admin'].reverse()` returns `['admin', 'base']`
 - `distinct()` - Remove duplicate list elements while keeping first occurrence
   - Example: `['base', 'admin', 'base'].distinct()` returns `['base', 'admin']`
+- `lists.range(<int>)` - Return a list of integers from `0` to `n-1`
+  - Example: `lists.range(3)` returns `[0, 1, 2]`
+- `hasAny(<list>)` - Check if the list shares at least one element with the argument list
+  - Example: `user.groups.hasAny(['vpn-users', 'vpn-admins'])`
+- `hasAll(<list>)` - Check if the list contains every element of the argument list
+  - Example: `user.groups.hasAll(['vpn-users', 'mfa-enrolled'])`
+- `hasOnly(<list>)` - Check if every element of the list is contained in the argument list
+  - Example: `user.roles.hasOnly(['vpn-user', 'vpn-admin'])`
+- `hasExactly(<list>)` - Check if both lists contain the same elements, ignoring order and duplicates
+  - Example: `['admin', 'base', 'base'].hasExactly(['base', 'admin'])` returns `true`
 
 Example for client configuration:
 

@@ -169,7 +169,12 @@ func TestCELContextEvaluation(t *testing.T) {
 		user.email == "alice@example.com" &&
 		user.groups == ["vpn-users"] &&
 		user.roles == ["vpn-admin"] &&
-		user.subject == "user-123"
+		user.subject == "user-123" &&
+		user.groups.hasAny(["vpn-users", "vpn-admins"]) &&
+		!user.groups.hasAny(["other"]) &&
+		["vpn-users", "mfa"].hasAll(user.groups) &&
+		user.roles.hasOnly(["vpn-user", "vpn-admin"]) &&
+		user.groups.hasExactly(["vpn-users", "vpn-users"])
 	`, cel.BoolType)
 	require.NoError(t, err)
 

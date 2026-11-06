@@ -83,7 +83,7 @@ func newCELEnvironment() (*cel.Env, error) {
 		cel.VariableWithDoc("token", cel.ObjectType(celTokenContextTypeName), "OAuth2 token context"),
 		cel.VariableWithDoc("user", cel.ObjectType(celUserContextTypeName), "Normalized user context"),
 		ext.Strings(ext.StringsVersion(5)),
-		ext.Lists(ext.ListsVersion(4)),
+		ext.Lists(ext.ListsVersion(5)),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("create CEL environment: %w", err)

@@ -21,7 +21,7 @@ written to the rendered HTML.
 
 ## Client Profile Selector
 
-If the [Client Profile Selector](Client%20specific%20configuration.md#client-profile-selector) is enabled and multiple
+If the [Client Profile Selector](Client%20specific%20configuration#client-profile-selector) is enabled and multiple
 profiles are available for the user, a profile selection screen is shown. The custom template must handle this case by itself.
 
 Minimal example to render the profile selector:
