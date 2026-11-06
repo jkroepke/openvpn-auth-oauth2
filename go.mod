@@ -3,7 +3,7 @@ module github.com/jkroepke/openvpn-auth-oauth2/v2
 go 1.27.3
 
 require (
-	cel.dev/cel-go v0.33.1
+	cel.dev/cel-go v0.33.2
 	github.com/containerd/errdefs v1.0.0
 	github.com/go-jose/go-jose/v4 v4.1.6
 	github.com/madflojo/testcerts v1.5.1
