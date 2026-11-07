@@ -9,7 +9,7 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.yaml.in/yaml/v3"
+	"go.yaml.in/yaml/v4"
 )
 
 func TestSliceUnmarshalText(t *testing.T) {
@@ -94,5 +94,6 @@ func TestRegexpSliceUnmarshalYAML(t *testing.T) {
 
 	slice := types.RegexpSlice{}
 
-	require.EqualError(t, yaml.NewDecoder(strings.NewReader("- \"^(a\"\n- b\n- c\n- d\n")).Decode(&slice), "error parsing regexp: missing closing ): `^(?:^(a)$`")
+	// yaml/v4 wraps errors returned by custom unmarshalers with position information.
+	require.ErrorContains(t, yaml.NewDecoder(strings.NewReader("- \"^(a\"\n- b\n- c\n- d\n")).Decode(&slice), "line 1: error parsing regexp: missing closing ): `^(?:^(a)$`")
 }
