@@ -5,7 +5,7 @@ go 1.27.3
 require (
 	cel.dev/cel-go v0.33.2
 	github.com/containerd/errdefs v1.0.0
-	github.com/go-jose/go-jose/v4 v4.1.7
+	github.com/go-jose/go-jose/v4 v4.1.9
 	github.com/madflojo/testcerts v1.5.1
 	github.com/moby/moby/api v1.56.1
 	github.com/moby/moby/client v0.6.2
