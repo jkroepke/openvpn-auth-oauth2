@@ -77,6 +77,12 @@ func (c *Client) OAuth2Start() http.Handler {
 			}
 		}
 
+		if c.conf.OAuth2.Nonce && session.Nonce == "" {
+			c.writeHTTPError(ctx, w, logger, http.StatusBadRequest, "Invalid State", "state does not contain a nonce")
+
+			return
+		}
+
 		logger.LogAttrs(ctx, slog.LevelInfo, "initialize authorization via oauth2")
 
 		authorizeParams := c.requestAuthorizeParams(session)
@@ -92,7 +98,7 @@ func (c *Client) requestAuthorizeParams(session state.State) []rp.URLParamOpt {
 	authorizeParams := slices.Clone(c.authorizeParams)
 
 	if c.conf.OAuth2.Nonce {
-		authorizeParams = append(authorizeParams, rp.WithURLParam("nonce", c.getNonce(c.getClientID(session))))
+		authorizeParams = append(authorizeParams, rp.WithURLParam("nonce", session.Nonce))
 	}
 
 	return authorizeParams
@@ -125,7 +131,13 @@ func (c *Client) OAuth2Callback() http.Handler {
 		clientID := c.getClientID(oAuth2State)
 
 		if c.conf.OAuth2.Nonce {
-			r = r.WithContext(context.WithValue(ctx, types.CtxNonce{}, c.getNonce(clientID)))
+			if oAuth2State.Nonce == "" {
+				c.writeHTTPError(ctx, w, logger, http.StatusBadRequest, "Invalid State", "state does not contain a nonce")
+
+				return
+			}
+
+			r = r.WithContext(context.WithValue(ctx, types.CtxNonce{}, oAuth2State.Nonce))
 		}
 
 		postCodeExchangeHandler := c.observeCodeExchange(time.Now(), c.postCodeExchangeHandler(logger, encryptedOAuth2State, oAuth2State, clientID))
@@ -665,7 +677,11 @@ func (c *Client) postCodeExchangeHandlerStoreRefreshToken(
 		return
 	}
 
-	refreshToken, err = encodeProviderRefreshToken(providerRefreshToken{RefreshToken: refreshToken, Identity: refreshState.Identity})
+	refreshToken, err = encodeProviderRefreshToken(providerRefreshToken{
+		RefreshToken: refreshToken,
+		Identity:     refreshState.Identity,
+		Nonce:        session.Nonce,
+	})
 	if err != nil {
 		logger.LogAttrs(ctx, slog.LevelWarn, err.Error())
 	} else if err = c.storage.Set(ctx, clientID, refreshToken); err != nil {

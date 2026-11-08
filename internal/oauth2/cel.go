@@ -4,6 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"cel.dev/cel-go/cel"
 	celtypes "cel.dev/cel-go/common/types"
@@ -213,7 +216,24 @@ func (c *Client) resolveUsername(
 		return session.Client.CommonName, nil
 	}
 
+	if usernameUnsafe(username) {
+		return "", fmt.Errorf("%w: username %q contains non-printable characters", ErrInvalidUsername, username)
+	}
+
 	return username, nil
+}
+
+// usernameUnsafe reports whether username contains characters that cannot be
+// passed to OpenVPN unchanged: control characters, other non-printable runes
+// and invalid UTF-8. OpenVPN strips such characters from its own environment
+// variables, and the override-username directive quotes the name with Go
+// syntax, which OpenVPN does not understand for escaped non-printable runes.
+func usernameUnsafe(username string) bool {
+	if !utf8.ValidString(username) {
+		return true
+	}
+
+	return strings.ContainsFunc(username, func(r rune) bool { return !unicode.IsPrint(r) })
 }
 
 // CheckIdentityCEL checks the normalized identity against the configured CEL expression.

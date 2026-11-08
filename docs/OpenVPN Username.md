@@ -111,6 +111,10 @@ The same expression is applied during interactive authentication, UserInfo
 authentication, and refresh validation. If the setting is empty, or if the
 expression returns an empty string, the OpenVPN common name is used.
 
+The resolved username is passed to OpenVPN unchanged, so it must consist of
+printable characters. Authentication is denied when the expression returns a
+value with control characters, such as a line break, or invalid UTF-8.
+
 Example configurations:
 
 ```bash

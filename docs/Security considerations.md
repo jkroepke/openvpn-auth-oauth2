@@ -15,6 +15,12 @@ This approach provides:
 
 An encryption key must not protect more than `2^32` messages.
 
+## OIDC Nonce
+
+With `oauth2.nonce` enabled (the default), every login gets a random nonce. It
+travels inside the encrypted state and is stored with the refresh token, so the
+ID token returned for a login or a refresh must carry the nonce of that login.
+
 ## Revoked Identity Provider Sessions
 
 A VPN connection stays up until OpenVPN asks for reauthentication, even if the

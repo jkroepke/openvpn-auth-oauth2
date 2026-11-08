@@ -19,16 +19,18 @@ func TestEncodeStateUsesCompactBinaryPayload(t *testing.T) {
 		IPAddr:       "127.0.0.1",
 		IPPort:       "12345",
 		SessionState: sessionStateReverseMap[SessionStateAuthenticated],
+		Nonce:        "abcd",
 	})
 
 	require.Equal(t, []byte{
 		binaryStateVersion,
-		flagCommonName | flagIPAddrV4 | flagIPPort,
+		flagCommonName | flagIPAddrV4 | flagIPPort | flagNonce,
 		'3',
 		1,
 		2,
 		4, 't', 'e', 's', 't',
 		127, 0, 0, 1,
 		5, '1', '2', '3', '4', '5',
+		4, 'a', 'b', 'c', 'd',
 	}, payload)
 }

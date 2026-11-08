@@ -34,9 +34,12 @@ type internalRefreshToken struct {
 // providerRefreshToken wraps a provider refresh token with the state that
 // cannot be read from a refreshed token set.
 type providerRefreshToken struct {
-	Identity          sessionregistry.Identity `json:"identity,omitzero"`
-	RefreshToken      string                   `json:"refresh-token"`
-	ClientConfigNames []string                 `json:"client-config-names,omitempty"`
+	Identity     sessionregistry.Identity `json:"identity,omitzero"`
+	RefreshToken string                   `json:"refresh-token"`
+	// Nonce is the nonce of the interactive login that issued the refresh
+	// token. A refreshed ID token that carries a nonce must carry this one.
+	Nonce             string   `json:"nonce,omitempty"`
+	ClientConfigNames []string `json:"client-config-names,omitempty"`
 }
 
 // RefreshClientAuth initiates non-interactive authentication against the SSO provider.
@@ -81,7 +84,7 @@ func (c *Client) RefreshClientAuth(
 		return types.RefreshResult{}, false, err
 	}
 
-	ctx = c.withRefreshNonce(ctx, clientID)
+	ctx = c.withRefreshNonce(ctx, storedToken.Nonce)
 
 	tokens, err := c.refreshTokens(ctx, logger, storedToken.RefreshToken)
 	if err != nil {
@@ -103,6 +106,7 @@ func (c *Client) RefreshClientAuth(
 
 	c.storeRotatedRefreshToken(ctx, logger, oAuth2State, clientID, tokens, providerRefreshToken{
 		Identity:          identity,
+		Nonce:             storedToken.Nonce,
 		ClientConfigNames: storedToken.ClientConfigNames,
 	})
 
@@ -150,7 +154,7 @@ func decodeInternalRefreshToken(refreshToken string) (internalRefreshToken, erro
 // encodeProviderRefreshToken returns token.RefreshToken as is when there is no
 // state to wrap with it.
 func encodeProviderRefreshToken(token providerRefreshToken) (string, error) {
-	if len(token.ClientConfigNames) == 0 && token.Identity.IsZero() {
+	if len(token.ClientConfigNames) == 0 && token.Identity.IsZero() && token.Nonce == "" {
 		return token.RefreshToken, nil
 	}
 
@@ -217,13 +221,14 @@ func (c *Client) loadRefreshToken(ctx context.Context, logger *slog.Logger, clie
 	return refreshToken, true, nil
 }
 
-// withRefreshNonce adds a nonce to the refresh context when nonce validation is configured.
-func (c *Client) withRefreshNonce(ctx context.Context, clientID string) context.Context {
+// withRefreshNonce adds the nonce of the initial login to the refresh context
+// when nonce validation is configured.
+func (c *Client) withRefreshNonce(ctx context.Context, nonce string) context.Context {
 	if !c.conf.OAuth2.Nonce {
 		return ctx
 	}
 
-	return context.WithValue(ctx, types.CtxNonce{}, c.getNonce(clientID))
+	return context.WithValue(ctx, types.CtxNonce{}, nonce)
 }
 
 // refreshTokens exchanges a stored refresh token for fresh OAuth2 tokens.

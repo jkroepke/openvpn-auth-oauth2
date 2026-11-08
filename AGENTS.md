@@ -61,6 +61,10 @@ ciphertext is process-local, is lost on restart, and survives only in-process
 configuration reloads. Do not add refresh-token migration or background
 re-encryption solely for a format change.
 
+The state carries the OIDC nonce of the login (`state.State.Nonce`); the
+callback and the stored refresh token use it, never a value derived from the
+client. Keep it when changing the state or refresh-token format.
+
 Switch formats directly if affected users may retry authentication. Otherwise,
 temporarily read legacy ciphertext while writing the new version. Legacy reads
 are needed only until five minutes after the last old instance stops issuing

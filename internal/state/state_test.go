@@ -21,6 +21,7 @@ func TestState(t *testing.T) {
 		ipAddr       string
 		ipPort       string
 		sessionState string
+		nonce        string
 	}{
 		{name: "empty session state", commonName: "foobar", ipAddr: "127.0.0.1", ipPort: "12345", sessionState: ""},
 		{name: "non-empty session state", commonName: "", ipAddr: "127.0.0.1", ipPort: "12345", sessionState: "Authenticated"},
@@ -32,6 +33,8 @@ func TestState(t *testing.T) {
 		{name: "with unicode characters", commonName: "foo bar/baz@qux 你好", ipAddr: "127.0.0.1", ipPort: "12345", sessionState: "ExpiredEmptyUser"},
 		{name: "all packed strings", sessionID: "session-123", commonName: "foobar", ipAddr: "127.0.0.1", ipPort: "12345", sessionState: "Authenticated"},
 		{name: "larger than encoding scratch", commonName: strings.Repeat("a", 512), ipAddr: "::", ipPort: "12345", sessionState: "Authenticated"},
+		{name: "with nonce", sessionID: "session-123", commonName: "foobar", ipAddr: "127.0.0.1", ipPort: "12345", sessionState: "Authenticated", nonce: "0123456789abcdef0123456789abcdef"},
+		{name: "nonce larger than string scratch", commonName: strings.Repeat("a", 100), ipAddr: "127.0.0.1", ipPort: "12345", nonce: strings.Repeat("f", 32)},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -46,6 +49,7 @@ func TestState(t *testing.T) {
 				IPAddr:       tc.ipAddr,
 				IPPort:       tc.ipPort,
 				SessionState: tc.sessionState,
+				Nonce:        tc.nonce,
 			}
 
 			encryptedToken, err := state.Encrypt(cipher, sessionState)

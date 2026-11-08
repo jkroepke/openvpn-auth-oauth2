@@ -49,7 +49,7 @@ func New(conf *config.Config, oAuth2Client *oauth2.Client, readyCheck ...func() 
 	}))
 
 	assetsFS := overlayFS{upper: conf.HTTP.AssetPath, lower: assets.FS}
-	mux.Handle(fmt.Sprintf("GET %s/assets/", basePath), http.StripPrefix(basePath+"/assets/", http.FileServerFS(assetsFS)))
+	mux.Handle(fmt.Sprintf("GET %s/assets/", basePath), securityHeaders(http.StripPrefix(basePath+"/assets/", http.FileServerFS(assetsFS))))
 	mux.Handle(fmt.Sprintf("GET %s/oauth2/start", basePath), noCacheHeaders(oAuth2Client.OAuth2Start()))
 	mux.Handle(fmt.Sprintf("GET %s/oauth2/callback", basePath), noCacheHeaders(oAuth2Client.OAuth2Callback()))
 	mux.Handle(fmt.Sprintf("POST %s/oauth2/profile-submit", basePath), noCacheHeaders(oAuth2Client.OAuth2ProfileSubmit()))
@@ -57,11 +57,34 @@ func New(conf *config.Config, oAuth2Client *oauth2.Client, readyCheck ...func() 
 	return mux
 }
 
-func noCacheHeaders(h http.Handler) http.Handler {
+// securityHeaders sets defensive response headers. Pages set their content
+// security policy in the HTML template; these headers cover what a meta tag
+// cannot express and responses that are not HTML.
+func securityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-		w.Header().Set("Pragma", "no-cache")
-		w.Header().Set("Expires", "0")
-		h.ServeHTTP(w, r)
+		setSecurityHeaders(w.Header())
+		next.ServeHTTP(w, r)
 	})
+}
+
+// noCacheHeaders sets the defensive response headers and forbids caching;
+// the OAuth2 responses carry per-login state and error details.
+func noCacheHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		header := w.Header()
+		setSecurityHeaders(header)
+		header.Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		header.Set("Pragma", "no-cache")
+		header.Set("Expires", "0")
+		next.ServeHTTP(w, r)
+	})
+}
+
+// setSecurityHeaders adds headers that stop browsers from sniffing content
+// types, framing the login pages, or leaking the callback URL as a referrer.
+func setSecurityHeaders(header http.Header) {
+	header.Set("X-Content-Type-Options", "nosniff")
+	header.Set("X-Frame-Options", "DENY")
+	header.Set("Referrer-Policy", "no-referrer")
+	header.Set("Content-Security-Policy", "frame-ancestors 'none'")
 }
