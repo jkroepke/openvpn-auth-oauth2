@@ -52,6 +52,12 @@ Or via environment variable:
 OPENVPN_AUTH_OAUTH2_OPENVPN_COMMON_NAME_ENVIRONMENT_VARIABLE_NAME=username
 ```
 
+> [!NOTE]
+> `openvpn.bypass.common-names` keeps matching the common name of the client
+> certificate (`common_name`) in this mode. The `username` environment variable
+> is chosen by the connecting client, so it must never decide whether
+> authentication is skipped.
+
 ### Why This Configuration Is Required
 
 This configuration is essential because `username-as-common-name` functions **post-authentication**. By aligning the environment variable name with `username`, you ensure smooth operation.

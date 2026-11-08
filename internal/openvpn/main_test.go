@@ -185,6 +185,41 @@ func TestClientFull(t *testing.T) {
 			nil,
 		},
 		{
+			"client bypass username-as-common-name matches certificate CN",
+			func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
+				conf.HTTP.Secret = testsuite.Secret
+				conf.OpenVPN.CommonName.EnvironmentVariableName = "username"
+				conf.OpenVPN.Bypass = config.OpenVPNBypass{CommonNames: types.RegexpSlice{regexp.MustCompile(`^bypass$`)}}
+				conf.OpenVPN.Password = testsuite.Password
+				conf.OpenVPN.AuthTokenUser = false
+
+				return conf
+			}(),
+			">CLIENT:CONNECT,0,1\r\n>CLIENT:ENV,common_name=bypass\r\n>CLIENT:ENV,username=user\r\n>CLIENT:ENV,END\r\n",
+			"client-auth-nt 0 1",
+			nil,
+		},
+		{
+			// A client-chosen username must never satisfy a bypass rule.
+			"client bypass username-as-common-name ignores username",
+			func() config.Config {
+				conf := config.Defaults
+				conf.HTTP.BaseURL = types.URL{URL: &url.URL{Scheme: "http", Host: "localhost"}}
+				conf.HTTP.Secret = testsuite.Secret
+				conf.OpenVPN.CommonName.EnvironmentVariableName = "username"
+				conf.OpenVPN.Bypass = config.OpenVPNBypass{CommonNames: types.RegexpSlice{regexp.MustCompile(`^bypass$`)}}
+				conf.OpenVPN.Password = testsuite.Password
+				conf.OpenVPN.AuthTokenUser = false
+
+				return conf
+			}(),
+			">CLIENT:CONNECT,0,1\r\n>CLIENT:ENV,common_name=client\r\n>CLIENT:ENV,username=bypass\r\n>CLIENT:ENV,END\r\n",
+			`client-deny 0 1 "OpenVPN Client does not support SSO authentication via webauth"`,
+			nil,
+		},
+		{
 			name: "client password mask",
 			conf: func() config.Config {
 				conf := config.Defaults

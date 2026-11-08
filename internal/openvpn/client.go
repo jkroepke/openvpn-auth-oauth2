@@ -17,7 +17,12 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/state"
 )
 
-const openVPNManagementCommandBodyLimit = 1023
+const (
+	openVPNManagementCommandBodyLimit = 1023
+
+	// usernameEnv is the environment variable holding the username sent by the client.
+	usernameEnv = "username"
+)
 
 func (c *Client) processClient(ctx context.Context, client connection.Client) error {
 	logger := slog.New(c.logger.Handler().WithAttrs([]slog.Attr{
@@ -278,13 +283,37 @@ func buildClientPendingAuthCommand(client connection.Client, startURL string, ti
 // checkAuthBypass checks if the client is allowed to bypass authentication based on its common name.
 // It returns true if the client is allowed to bypass authentication, false otherwise.
 func (c *Client) checkAuthBypass(client connection.Client) bool {
+	if len(c.conf.OpenVPN.Bypass.CommonNames) == 0 {
+		return false
+	}
+
+	commonName := c.bypassCommonName(client)
+	if commonName == "" {
+		return false
+	}
+
 	for _, pattern := range c.conf.OpenVPN.Bypass.CommonNames {
-		if pattern.MatchString(client.CommonName) {
+		if pattern.MatchString(commonName) {
 			return true
 		}
 	}
 
 	return false
+}
+
+// bypassCommonName returns the name that openvpn.bypass.common-names is matched against.
+//
+// Bypass rules must only match values that come from the client certificate.
+// With openvpn.common-name.environment-variable-name=username, client.CommonName
+// is the username typed by the connecting client, which any certificate holder
+// can choose freely. In that mode the certificate common name is used instead,
+// so a client cannot skip authentication by sending a matching username.
+func (c *Client) bypassCommonName(client connection.Client) string {
+	if c.conf.OpenVPN.CommonName.EnvironmentVariableName == usernameEnv {
+		return client.CertificateCommonName
+	}
+
+	return client.CommonName
 }
 
 // silentReAuthentication attempts to silently re-authenticate the client using a refresh token if available.

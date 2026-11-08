@@ -155,6 +155,8 @@ func (c *Config) flagSetOpenVPN(flagSet *flag.FlagSet) {
 		"openvpn.bypass.common-names",
 		c.OpenVPN.Bypass.CommonNames,
 		"Skip OAuth authentication for client certificate common names (CNs) matching any of the given regular expressions. "+
+			"The patterns are matched against the value of openvpn.common-name.environment-variable-name, "+
+			"except when that is 'username': the username is chosen by the client, so the certificate common name is used instead. "+
 			"Multiple expressions can be provided as a comma-separated list. "+
 			"Regular expressions are automatically anchored (^…$) by default, so \"client\" matches only \"client\". "+
 			"To allow partial matches, specify explicitly (e.g. \"client.*\").",
