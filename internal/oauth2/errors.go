@@ -14,4 +14,6 @@ var (
 	ErrCELNoBooleanResult  = errors.New("cel expression did not evaluate to a boolean value")
 
 	ErrClientRejected = errors.New("client rejected")
+
+	ErrInvalidUsername = errors.New("invalid username")
 )

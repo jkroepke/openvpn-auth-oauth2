@@ -65,6 +65,34 @@ func TestResolveUsername(t *testing.T) {
 			authMode:   CELAuthModeInteractive,
 			expected:   "client-cn",
 		},
+		{
+			name:       "printable unicode is kept",
+			expression: "user.username",
+			authMode:   CELAuthModeInteractive,
+			user:       types.UserInfo{Username: `Jörg O'Brien "jr" \ 你好`},
+			expected:   `Jörg O'Brien "jr" \ 你好`,
+		},
+		{
+			name:       "newline is rejected",
+			expression: "user.username",
+			authMode:   CELAuthModeInteractive,
+			user:       types.UserInfo{Username: "alice\nclient-kill 1"},
+			err:        "invalid username",
+		},
+		{
+			name:       "control character is rejected",
+			expression: "user.username",
+			authMode:   CELAuthModeInteractive,
+			user:       types.UserInfo{Username: "alice\x00"},
+			err:        "invalid username",
+		},
+		{
+			name:       "invalid UTF-8 is rejected",
+			expression: "user.username",
+			authMode:   CELAuthModeInteractive,
+			user:       types.UserInfo{Username: "alice\xff"},
+			err:        "invalid username",
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
