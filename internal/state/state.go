@@ -244,26 +244,14 @@ func decodeState(data []byte) (State, error) {
 
 // decodeStateFields reads the optional fields controlled by the state flags.
 func decodeStateFields(state State, flags byte, data []byte) (State, error) {
-	var (
-		sessionID  []byte
-		commonName []byte
-		ipPort     []byte
-		nonce      []byte
-		err        error
-	)
-
-	if flags&flagSessionID != 0 {
-		sessionID, data, err = readStringBytes(data)
-		if err != nil {
-			return State{}, fmt.Errorf("read SessionID: %w", err)
-		}
+	sessionID, data, err := readFlaggedString(flags, flagSessionID, data, "SessionID")
+	if err != nil {
+		return State{}, err
 	}
 
-	if flags&flagCommonName != 0 {
-		commonName, data, err = readStringBytes(data)
-		if err != nil {
-			return State{}, fmt.Errorf("read CommonName: %w", err)
-		}
+	commonName, data, err := readFlaggedString(flags, flagCommonName, data, "CommonName")
+	if err != nil {
+		return State{}, err
 	}
 
 	var ipAddrScratch [ipAddrTextScratchSize]byte
@@ -273,18 +261,14 @@ func decodeStateFields(state State, flags byte, data []byte) (State, error) {
 		return State{}, fmt.Errorf("read IPAddr: %w", err)
 	}
 
-	if flags&flagIPPort != 0 {
-		ipPort, data, err = readStringBytes(data)
-		if err != nil {
-			return State{}, fmt.Errorf("read IPPort: %w", err)
-		}
+	ipPort, data, err := readFlaggedString(flags, flagIPPort, data, "IPPort")
+	if err != nil {
+		return State{}, err
 	}
 
-	if flags&flagNonce != 0 {
-		nonce, data, err = readStringBytes(data)
-		if err != nil {
-			return State{}, fmt.Errorf("read Nonce: %w", err)
-		}
+	nonce, data, err := readFlaggedString(flags, flagNonce, data, "Nonce")
+	if err != nil {
+		return State{}, err
 	}
 
 	if len(data) != 0 {
@@ -294,6 +278,21 @@ func decodeStateFields(state State, flags byte, data []byte) (State, error) {
 	setStateStrings(&state, sessionID, commonName, ipAddr, ipPort, nonce)
 
 	return state, nil
+}
+
+// readFlaggedString reads the length-prefixed string field named name when
+// flag is set in flags, and returns nil otherwise.
+func readFlaggedString(flags, flag byte, data []byte, name string) ([]byte, []byte, error) {
+	if flags&flag == 0 {
+		return nil, data, nil
+	}
+
+	value, data, err := readStringBytes(data)
+	if err != nil {
+		return nil, nil, fmt.Errorf("read %s: %w", name, err)
+	}
+
+	return value, data, nil
 }
 
 // readIPAddr reads the IP address field indicated by the state flags.

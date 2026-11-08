@@ -60,23 +60,23 @@ func New(conf *config.Config, oAuth2Client *oauth2.Client, readyCheck ...func() 
 // securityHeaders sets defensive response headers. Pages set their content
 // security policy in the HTML template; these headers cover what a meta tag
 // cannot express and responses that are not HTML.
-func securityHeaders(h http.Handler) http.Handler {
+func securityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setSecurityHeaders(w.Header())
-		h.ServeHTTP(w, r)
+		next.ServeHTTP(w, r)
 	})
 }
 
 // noCacheHeaders sets the defensive response headers and forbids caching;
 // the OAuth2 responses carry per-login state and error details.
-func noCacheHeaders(h http.Handler) http.Handler {
+func noCacheHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		header := w.Header()
 		setSecurityHeaders(header)
 		header.Set("Cache-Control", "no-cache, no-store, must-revalidate")
 		header.Set("Pragma", "no-cache")
 		header.Set("Expires", "0")
-		h.ServeHTTP(w, r)
+		next.ServeHTTP(w, r)
 	})
 }
 
