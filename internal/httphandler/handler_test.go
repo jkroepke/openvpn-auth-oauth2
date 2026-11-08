@@ -2,6 +2,7 @@ package httphandler_test
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"testing"
 	"testing/fstest"
@@ -112,4 +113,19 @@ func TestCustomAssets(t *testing.T) {
 	require.HTTPSuccess(t, handler.ServeHTTP, http.MethodGet, "/custom/assets/favicon.svg", nil)
 	require.HTTPSuccess(t, handler.ServeHTTP, http.MethodGet, "/custom/assets/i18n/de.json", nil)
 	require.HTTPStatusCode(t, handler.ServeHTTP, http.MethodGet, "/custom/assets/missing.txt", nil, http.StatusNotFound)
+
+	for _, path := range []string{"/custom/assets/style.css", "/custom/oauth2/start", "/custom/"} {
+		recorder := httptest.NewRecorder()
+		handler.ServeHTTP(recorder, httptest.NewRequestWithContext(t.Context(), http.MethodGet, path, nil))
+
+		require.Equal(t, "nosniff", recorder.Header().Get("X-Content-Type-Options"), path)
+		require.Equal(t, "DENY", recorder.Header().Get("X-Frame-Options"), path)
+		require.Equal(t, "no-referrer", recorder.Header().Get("Referrer-Policy"), path)
+		require.Equal(t, "frame-ancestors 'none'", recorder.Header().Get("Content-Security-Policy"), path)
+	}
+
+	// Directories are not listed, neither from http.assets-path nor from the embedded assets.
+	require.HTTPStatusCode(t, handler.ServeHTTP, http.MethodGet, "/custom/assets/", nil, http.StatusNotFound)
+	require.HTTPStatusCode(t, handler.ServeHTTP, http.MethodGet, "/custom/assets/i18n/", nil, http.StatusNotFound)
+	require.HTTPBodyNotContains(t, handler.ServeHTTP, http.MethodGet, "/custom/assets/i18n/", nil, "de.json")
 }
