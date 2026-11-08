@@ -247,6 +247,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # ubuntu-26.04 runner images no longer ship apt-utils (apt-ftparchive).
+      # Install it before GoReleaser publishes anything, so a missing tool
+      # can't leave a half-published release behind.
+      - name: Install apt-ftparchive
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends apt-utils
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7.3.0
         with:
