@@ -8,18 +8,28 @@ import (
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/config"
 )
 
+// certificateCommonNameEnv is the environment variable OpenVPN sets to the
+// common name of the client certificate.
+const certificateCommonNameEnv = "common_name"
+
 type Client struct {
-	Reason            string
-	IPAddr            string
-	IPPort            string
-	VPNAddress        string
-	CommonName        string
-	SessionID         string
-	SessionState      string
-	IvSSO             string
-	KID               uint64
-	CID               uint64
-	UsernameIsDefined int
+	Reason     string
+	IPAddr     string
+	IPPort     string
+	VPNAddress string
+	// CommonName is the value of the environment variable configured by
+	// openvpn.common-name.environment-variable-name.
+	CommonName string
+	// CertificateCommonName is the common_name environment variable: the
+	// common name of the client certificate. Unlike CommonName, a client
+	// cannot choose it, so it is the value authentication bypass rules match.
+	CertificateCommonName string
+	SessionID             string
+	SessionState          string
+	IvSSO                 string
+	KID                   uint64
+	CID                   uint64
+	UsernameIsDefined     int
 }
 
 // NewClient parses a multi-line message from the OpenVPN management interface
@@ -49,6 +59,10 @@ func NewClient(conf *config.Config, message string) (Client, error) { //nolint:c
 			envKey, envValue := parseClientEnv(line)
 			if envKey == "" || envValue == "" {
 				continue
+			}
+
+			if envKey == certificateCommonNameEnv {
+				client.CertificateCommonName = envValue
 			}
 
 			switch envKey {

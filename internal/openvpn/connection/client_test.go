@@ -34,7 +34,7 @@ func TestNewClientConnection(t *testing.T) {
 				">CLIENT:ENV,END",
 			},
 			connection.Client{
-				CID: 0, KID: 1, Reason: "CONNECT", CommonName: "common_name",
+				CID: 0, KID: 1, Reason: "CONNECT", CommonName: "common_name", CertificateCommonName: "common_name",
 				IPAddr: "127.0.0.1", IPPort: "12345",
 				IvSSO:     "webauth",
 				SessionID: "K3waLcCGyUuzkdXh", UsernameIsDefined: 1,
@@ -54,7 +54,7 @@ func TestNewClientConnection(t *testing.T) {
 				">CLIENT:ENV,END",
 			},
 			connection.Client{
-				CID: 0, KID: 1, Reason: "CONNECT", CommonName: "common_name",
+				CID: 0, KID: 1, Reason: "CONNECT", CommonName: "common_name", CertificateCommonName: "common_name",
 				IPAddr: "::1", IvSSO: "webauth", SessionID: "K3waLcCGyUuzkdXh", UsernameIsDefined: 1,
 			},
 			"",
@@ -76,7 +76,8 @@ func TestNewClientConnection(t *testing.T) {
 				">CLIENT:ENV,END",
 			},
 			connection.Client{
-				CID: 0, KID: 1, Reason: "CONNECT", CommonName: "username", IPAddr: "127.0.0.1", IvSSO: "webauth", UsernameIsDefined: 1,
+				CID: 0, KID: 1, Reason: "CONNECT", CommonName: "username", CertificateCommonName: "common_name",
+				IPAddr: "127.0.0.1", IvSSO: "webauth", UsernameIsDefined: 1,
 			},
 			"",
 		},
@@ -98,7 +99,7 @@ func TestNewClientConnection(t *testing.T) {
 			"client REAUTH",
 			config.Defaults,
 			[]string{">CLIENT:REAUTH,1,2", ">CLIENT:ENV,common_name=common_name", ">CLIENT:ENV,name2=", ">CLIENT:ENV,END"},
-			connection.Client{CID: 1, KID: 2, Reason: "REAUTH", CommonName: "common_name"},
+			connection.Client{CID: 1, KID: 2, Reason: "REAUTH", CommonName: "common_name", CertificateCommonName: "common_name"},
 			"",
 		},
 		{
