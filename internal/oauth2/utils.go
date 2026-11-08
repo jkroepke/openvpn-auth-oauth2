@@ -1,7 +1,7 @@
 package oauth2
 
 import (
-	"crypto/sha256"
+	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"net"
@@ -16,6 +16,9 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
 	"golang.org/x/oauth2"
 )
+
+// nonceSize is the number of random bytes in an OIDC nonce.
+const nonceSize = 16
 
 // checkClientIPAddr verifies that the HTTP client address matches the VPN client address from the OAuth2 state.
 func checkClientIPAddr(r *http.Request, conf *config.Config, session state.State) error {
@@ -109,13 +112,16 @@ func getAuthorizeParams(authorizeParams string) ([]rp.URLParamOpt, error) {
 	return params, nil
 }
 
-// getNonce returns OAuth2 nonce for the given client ID.
-func (c *Client) getNonce(id string) string {
-	nonce := sha256.New()
-	nonce.Write([]byte(id))
-	nonce.Write([]byte(c.conf.HTTP.Secret.String()))
+// newNonce returns a random OIDC nonce. It is stored in the encrypted state and
+// with the refresh token, so it cannot be predicted from the OpenVPN session.
+func newNonce() (string, error) {
+	var nonce [nonceSize]byte
 
-	return hex.EncodeToString(nonce.Sum(nil))
+	if _, err := rand.Read(nonce[:]); err != nil {
+		return "", fmt.Errorf("generate nonce: %w", err)
+	}
+
+	return hex.EncodeToString(nonce[:]), nil
 }
 
 // OAuthConfig returns the underlying [oauth2.Config] used by the relying party.
@@ -126,7 +132,17 @@ func (c *Client) OAuthConfig() *oauth2.Config {
 }
 
 // EncryptState encrypts an OAuth2 state payload for use in authorization redirects.
+// When oauth2.nonce is enabled, it adds a fresh nonce to the state.
 func (c *Client) EncryptState(oidcState state.State) (state.EncryptedState, error) {
+	if c.conf.OAuth2.Nonce {
+		nonce, err := newNonce()
+		if err != nil {
+			return "", err
+		}
+
+		oidcState.Nonce = nonce
+	}
+
 	encryptedState, err := state.Encrypt(c.stateCrypto, oidcState)
 	if err != nil {
 		return "", fmt.Errorf("encrypt state: %w", err)

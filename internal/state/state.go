@@ -31,6 +31,7 @@ const (
 	flagIPAddrText        = 1 << 4
 	flagIPPort            = 1 << 5
 	flagUsernameIsDefined = 1 << 6
+	flagNonce             = 1 << 7
 )
 
 // State represents the context and security information associated with an OAuth2 login flow.
@@ -45,7 +46,10 @@ type State struct {
 	IPAddr       string
 	IPPort       string
 	SessionState string
-	Client       ClientIdentifier
+	// Nonce is the OIDC nonce sent with the authorization request. It is
+	// random per login and the ID token returned for this state must carry it.
+	Nonce  string
+	Client ClientIdentifier
 }
 
 type EncryptedState = string
@@ -140,6 +144,10 @@ func encodeState(data []byte, state State) []byte {
 		data = appendString(data, state.IPPort)
 	}
 
+	if flags&flagNonce != 0 {
+		data = appendString(data, state.Nonce)
+	}
+
 	return data
 }
 
@@ -164,6 +172,10 @@ func encodeStateFlags(state State) (byte, netip.Addr) {
 
 	if state.IPPort != "" {
 		flags |= flagIPPort
+	}
+
+	if state.Nonce != "" {
+		flags |= flagNonce
 	}
 
 	if state.IPAddr == "" {
@@ -236,6 +248,7 @@ func decodeStateFields(state State, flags byte, data []byte) (State, error) {
 		sessionID  []byte
 		commonName []byte
 		ipPort     []byte
+		nonce      []byte
 		err        error
 	)
 
@@ -267,11 +280,18 @@ func decodeStateFields(state State, flags byte, data []byte) (State, error) {
 		}
 	}
 
+	if flags&flagNonce != 0 {
+		nonce, data, err = readStringBytes(data)
+		if err != nil {
+			return State{}, fmt.Errorf("read Nonce: %w", err)
+		}
+	}
+
 	if len(data) != 0 {
 		return State{}, fmt.Errorf("unexpected trailing state data: %d bytes", len(data))
 	}
 
-	setStateStrings(&state, sessionID, commonName, ipAddr, ipPort)
+	setStateStrings(&state, sessionID, commonName, ipAddr, ipPort, nonce)
 
 	return state, nil
 }
@@ -291,15 +311,16 @@ func readIPAddr(flags byte, data, scratch []byte) ([]byte, []byte, error) {
 }
 
 // setStateStrings stores all decoded string fields in one immutable backing string.
-func setStateStrings(state *State, sessionID, commonName, ipAddr, ipPort []byte) {
+func setStateStrings(state *State, sessionID, commonName, ipAddr, ipPort, nonce []byte) {
 	sessionIDEnd := len(sessionID)
 	commonNameEnd := sessionIDEnd + len(commonName)
 	ipAddrEnd := commonNameEnd + len(ipAddr)
 	ipPortEnd := ipAddrEnd + len(ipPort)
+	nonceEnd := ipPortEnd + len(nonce)
 
 	var packedStrings string
 
-	if ipPortEnd <= stateStringScratchSize {
+	if nonceEnd <= stateStringScratchSize {
 		var scratch [stateStringScratchSize]byte
 
 		packed := scratch[:0]
@@ -307,16 +328,18 @@ func setStateStrings(state *State, sessionID, commonName, ipAddr, ipPort []byte)
 		packed = append(packed, commonName...)
 		packed = append(packed, ipAddr...)
 		packed = append(packed, ipPort...)
+		packed = append(packed, nonce...)
 		packedStrings = string(packed)
 	} else {
 		var builder strings.Builder
 
-		builder.Grow(ipPortEnd)
+		builder.Grow(nonceEnd)
 
 		_, _ = builder.Write(sessionID)
 		_, _ = builder.Write(commonName)
 		_, _ = builder.Write(ipAddr)
 		_, _ = builder.Write(ipPort)
+		_, _ = builder.Write(nonce)
 
 		packedStrings = builder.String()
 	}
@@ -325,6 +348,7 @@ func setStateStrings(state *State, sessionID, commonName, ipAddr, ipPort []byte)
 	state.Client.CommonName = packedStrings[sessionIDEnd:commonNameEnd]
 	state.IPAddr = packedStrings[commonNameEnd:ipAddrEnd]
 	state.IPPort = packedStrings[ipAddrEnd:ipPortEnd]
+	state.Nonce = packedStrings[ipPortEnd:nonceEnd]
 }
 
 // appendString appends a length-prefixed string to the binary state payload.

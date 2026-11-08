@@ -139,6 +139,35 @@ func TestProviderRefreshTokenStoresClientConfigNames(t *testing.T) {
 	require.Equal(t, token, decoded)
 }
 
+func TestProviderRefreshTokenStoresNonce(t *testing.T) {
+	t.Parallel()
+
+	token := providerRefreshToken{RefreshToken: "provider-refresh-token", Nonce: "0123456789abcdef0123456789abcdef"}
+
+	encoded, err := encodeProviderRefreshToken(token)
+	require.NoError(t, err)
+	require.NotEqual(t, token.RefreshToken, encoded)
+
+	decoded, err := decodeProviderRefreshToken(encoded)
+	require.NoError(t, err)
+	require.Equal(t, token, decoded)
+}
+
+func TestWithRefreshNonceUsesStoredNonce(t *testing.T) {
+	t.Parallel()
+
+	conf := config.Defaults
+	conf.OAuth2.Nonce = true
+	client := &Client{conf: &conf}
+
+	ctx := client.withRefreshNonce(t.Context(), "stored-nonce")
+	require.Equal(t, "stored-nonce", ctx.Value(types.CtxNonce{}))
+
+	conf.OAuth2.Nonce = false
+	ctx = client.withRefreshNonce(t.Context(), "stored-nonce")
+	require.Nil(t, ctx.Value(types.CtxNonce{}))
+}
+
 func TestProviderRefreshTokenKeepsLegacyRawToken(t *testing.T) {
 	t.Parallel()
 

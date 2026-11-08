@@ -26,6 +26,31 @@ import (
 
 const invalid = "invalid"
 
+func TestOAuth2StartRejectsStateWithoutNonce(t *testing.T) {
+	t.Parallel()
+
+	conf := config.Defaults
+	conf.HTTP.Secret = testsuite.Secret
+	conf.HTTP.Check.IPAddr = false
+	conf.OAuth2.Endpoints = config.OAuth2Endpoints{}
+
+	suite := testsuite.New(&conf)
+	suite.SetupMockEnvironment(t.Context(), t, nil)
+
+	// The suite enables oauth2.nonce; a state without a nonce cannot be verified later.
+	session, err := state.Encrypt(testsuite.NewCipher(t), state.State{
+		Client: state.ClientIdentifier{CID: 0, KID: 1, CommonName: "name"},
+		IPAddr: "127.0.0.1",
+		IPPort: "12345",
+	})
+	require.NoError(t, err)
+
+	resp, _, err := suite.DoHTTPRequest(t, http.MethodGet, "/oauth2/start?state="+session, nil, http.NoBody) //nolint:bodyclose
+	require.NoError(t, err)
+	require.Equal(t, http.StatusBadRequest, resp.StatusCode, suite.Logs())
+	require.Contains(t, suite.Logs(), "state does not contain a nonce")
+}
+
 func TestHandler(t *testing.T) {
 	t.Parallel()
 
@@ -653,7 +678,10 @@ func TestHandler(t *testing.T) {
 			case tc.state == (state.State{}):
 				session = ""
 			default:
-				session, err = state.Encrypt(testsuite.NewCipher(t), tc.state)
+				sessionState := tc.state
+				sessionState.Nonce = "test-nonce"
+
+				session, err = state.Encrypt(testsuite.NewCipher(t), sessionState)
 				require.NoError(t, err)
 			}
 
