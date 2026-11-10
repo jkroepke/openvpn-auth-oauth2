@@ -91,7 +91,7 @@ Usage of openvpn-auth-oauth2:
   --http.trusted-proxies value
         Trusted reverse proxy CIDRs allowed to set X-Forwarded-For. Multiple values can be provided as a comma-separated list. (env: OPENVPN_AUTH_OAUTH2_HTTP_TRUSTED_PROXIES)
   --log.format string
-        log format. json or console (env: OPENVPN_AUTH_OAUTH2_LOG_FORMAT) (default "console")
+        log format: json, console, or syslog (local syslog, daemon facility) (env: OPENVPN_AUTH_OAUTH2_LOG_FORMAT) (default "console")
   --log.level value
         log level. Can be one of: debug, info, warn, error (env: OPENVPN_AUTH_OAUTH2_LOG_LEVEL) (default INFO)
   --log.vpn-client-ip
