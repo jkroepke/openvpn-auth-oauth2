@@ -129,7 +129,7 @@ func run(
 	appRuntime, err := daemon.New(ctx, logger, conf, tokenStorage, sessions, reload)
 	if err != nil {
 		logger.LogAttrs(
-			ctx, slog.LevelError, err.Error(),
+			ctx, slog.LevelError, "daemon initialization failed",
 			slog.Any("err", err),
 		)
 
