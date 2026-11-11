@@ -186,6 +186,8 @@ func setupLogger(conf *config.Config, writer io.Writer) (*slog.Logger, error) {
 		return slog.New(slog.NewJSONHandler(writer, opts)), nil
 	case "console":
 		return slog.New(slog.NewTextHandler(writer, opts)), nil
+	case "syslog":
+		return newSyslogLogger(conf.Log.Level)
 	default:
 		return nil, fmt.Errorf("unknown log format: %s", conf.Log.Format)
 	}

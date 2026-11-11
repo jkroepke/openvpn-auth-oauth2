@@ -38,7 +38,7 @@ func (c *Config) flagSetLog(flagSet *flag.FlagSet) {
 		&c.Log.Format,
 		"log.format",
 		c.Log.Format,
-		"log format. json or console",
+		"log format: json, console, or syslog (local syslog, daemon facility)",
 	)
 	flagSet.TextVar(
 		&c.Log.Level,
