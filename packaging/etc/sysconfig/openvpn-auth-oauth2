@@ -39,3 +39,6 @@ OPENVPN_AUTH_OAUTH2_OPENVPN_ADDR=unix:///run/openvpn/server.sock
 
 ## Define the public http endpoint here.
 #OPENVPN_AUTH_OAUTH2_HTTP_BASEURL=http://localhost:9000
+
+## Log format: console, json, syslog.
+#OPENVPN_AUTH_OAUTH2_LOG_FORMAT=syslog

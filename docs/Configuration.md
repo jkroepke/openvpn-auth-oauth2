@@ -37,6 +37,23 @@ Environment values are validated at startup. Boolean values must be exactly
 `OPENVPN_AUTH_OAUTH2_` environment variables stop startup with an error.
 Command-line positional arguments are not supported.
 
+## Logging
+
+The systemd service defaults to `syslog` logging, sending messages to the local
+syslog socket (typically handled by systemd-journald). This allows logs to be
+managed and forwarded through the system's existing logging infrastructure.
+
+Logs can be viewed with:
+
+```sh
+journalctl -u openvpn-auth-oauth2
+```
+
+To use a different format, set `OPENVPN_AUTH_OAUTH2_LOG_FORMAT` in
+`/etc/sysconfig/openvpn-auth-oauth2` to `console` or `json`.
+
+When running outside systemd, the default format remains `console`.
+
 ## Reload the configuration
 
 Send `SIGUSR1` to reload the configuration without restarting the process. The
