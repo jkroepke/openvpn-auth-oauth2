@@ -1,6 +1,6 @@
 name: 🐞 Bug
 description: Something is not working as indented.
-labels: [ 🐞 bug ]
+type: Bug
 body:
   - type: markdown
     attributes:
