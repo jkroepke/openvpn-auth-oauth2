@@ -1,6 +1,6 @@
 name: ❓ Question
 description: Something is not clear.
-labels: [ ❓ question ]
+type: Question
 body:
   - type: markdown
     attributes:
