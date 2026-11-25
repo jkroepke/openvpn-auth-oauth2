@@ -155,10 +155,7 @@ func encodeState(data []byte, state State) []byte {
 
 // encodeStateFlags derives the optional-field bitset and parsed IP address for binary state encoding.
 func encodeStateFlags(state State) (byte, netip.Addr) {
-	var (
-		flags  byte
-		ipAddr netip.Addr
-	)
+	var flags byte
 
 	if state.Client.SessionID != "" {
 		flags |= flagSessionID
@@ -180,33 +177,35 @@ func encodeStateFlags(state State) (byte, netip.Addr) {
 		flags |= flagNonce
 	}
 
-	if state.IPAddr == "" {
-		return flags, ipAddr
+	ipFlag, ipAddr := encodeIPAddrFlag(state.IPAddr)
+
+	return flags | ipFlag, ipAddr
+}
+
+// encodeIPAddrFlag returns the flag for how the IP address is stored and the
+// parsed address for the binary forms.
+func encodeIPAddrFlag(text string) (byte, netip.Addr) {
+	if text == "" {
+		return 0, netip.Addr{}
 	}
 
-	addr, err := netip.ParseAddr(state.IPAddr)
+	addr, err := netip.ParseAddr(text)
 	if err != nil {
-		flags |= flagIPAddrText
-
-		return flags, ipAddr
+		return flagIPAddrText, netip.Addr{}
 	}
 
 	var scratch [ipAddrTextScratchSize]byte
 
 	// Binary fields cannot hold an IPv6 zone, so zoned addresses stay text.
-	if addr.Zone() != "" || string(addr.AppendTo(scratch[:0])) != state.IPAddr {
-		flags |= flagIPAddrText
-
-		return flags, ipAddr
+	if addr.Zone() != "" || string(addr.AppendTo(scratch[:0])) != text {
+		return flagIPAddrText, netip.Addr{}
 	}
 
 	if addr.Is4() {
-		flags |= flagIPAddrV4
-	} else {
-		flags |= flagIPAddrV6
+		return flagIPAddrV4, addr
 	}
 
-	return flags, addr
+	return flagIPAddrV6, addr
 }
 
 // decodeState parses a compact binary state payload after cryptographic verification.
