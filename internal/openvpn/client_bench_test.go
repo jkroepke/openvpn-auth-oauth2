@@ -24,7 +24,8 @@ func BenchmarkBuildOAuth2StartURL(b *testing.B) {
 
 func BenchmarkBuildClientPendingAuthCommand(b *testing.B) {
 	client := connection.Client{CID: 12345, KID: 67890}
-	startURL := "https://vpn.example.com/oauth2/start?state=" + strings.Repeat("a", 256)
+	// The longest state that still fits into OpenVPN's 256-character WEB_AUTH parameter.
+	startURL := "https://vpn.example.com/oauth2/start?state=" + strings.Repeat("a", 203)
 
 	var (
 		command string
