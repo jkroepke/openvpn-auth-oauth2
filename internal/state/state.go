@@ -2,6 +2,7 @@ package state
 
 import (
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -12,7 +13,12 @@ import (
 )
 
 const (
-	binaryStateVersion = 2
+	// binaryStateVersion is written by Encrypt. Version 3 stores a hexadecimal
+	// nonce as raw bytes, see appendNonce.
+	binaryStateVersion = 3
+	// binaryStateVersionTextNonce is still accepted by Decrypt, so states
+	// issued by an older release before an upgrade remain valid.
+	binaryStateVersionTextNonce = 2
 
 	// stateEncodingScratchSize covers typical states while retaining a heap fallback for larger values.
 	stateEncodingScratchSize = 128
@@ -145,10 +151,65 @@ func encodeState(data []byte, state State) []byte {
 	}
 
 	if flags&flagNonce != 0 {
-		data = appendString(data, state.Nonce)
+		data = appendNonce(data, state.Nonce)
 	}
 
 	return data
+}
+
+// appendNonce appends the nonce field. Its uvarint header holds the length
+// shifted left by one; the low bit marks a nonce stored as raw bytes. A
+// lowercase hexadecimal nonce, as generated for OIDC logins, is stored raw at
+// half its text size, which matters because the encrypted state must fit into a
+// single OpenVPN management parameter. Any other value is stored as text.
+func appendNonce(data []byte, nonce string) []byte {
+	if !isLowerHex(nonce) {
+		data = appendUvarint(data, uint64(len(nonce))<<1)
+
+		return append(data, nonce...)
+	}
+
+	data = appendUvarint(data, uint64(len(nonce)/2)<<1|1)
+
+	// isLowerHex guarantees valid input, so decoding cannot fail.
+	data, _ = hex.AppendDecode(data, []byte(nonce))
+
+	return data
+}
+
+// isLowerHex reports whether text is a non-empty, even-length, lowercase hexadecimal string.
+func isLowerHex(text string) bool {
+	if text == "" || len(text)%2 != 0 {
+		return false
+	}
+
+	for i := range len(text) {
+		if c := text[i]; (c < '0' || c > '9') && (c < 'a' || c > 'f') {
+			return false
+		}
+	}
+
+	return true
+}
+
+// readNonce reads the nonce field written by appendNonce into scratch.
+func readNonce(data, scratch []byte) ([]byte, []byte, error) {
+	header, data, err := readUvarint(data)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	length := header >> 1
+
+	if uint64(len(data)) < length {
+		return nil, nil, fmt.Errorf("nonce length %d exceeds remaining data %d", length, len(data))
+	}
+
+	if header&1 == 0 {
+		return data[:length], data[length:], nil
+	}
+
+	return hex.AppendEncode(scratch, data[:length]), data[length:], nil
 }
 
 // encodeStateFlags derives the optional-field bitset and parsed IP address for binary state encoding.
@@ -212,8 +273,9 @@ func decodeState(data []byte) (State, error) {
 		return State{}, fmt.Errorf("state is too short: %d bytes", len(data))
 	}
 
-	if data[0] != binaryStateVersion {
-		return State{}, fmt.Errorf("unsupported state version: %d", data[0])
+	version := data[0]
+	if version != binaryStateVersion && version != binaryStateVersionTextNonce {
+		return State{}, fmt.Errorf("unsupported state version: %d", version)
 	}
 
 	flags := data[1]
@@ -239,11 +301,11 @@ func decodeState(data []byte) (State, error) {
 		SessionState: sessionState,
 	}
 
-	return decodeStateFields(state, flags, data)
+	return decodeStateFields(state, version, flags, data)
 }
 
 // decodeStateFields reads the optional fields controlled by the state flags.
-func decodeStateFields(state State, flags byte, data []byte) (State, error) {
+func decodeStateFields(state State, version, flags byte, data []byte) (State, error) {
 	sessionID, data, err := readFlaggedString(flags, flagSessionID, data, "SessionID")
 	if err != nil {
 		return State{}, err
@@ -266,9 +328,12 @@ func decodeStateFields(state State, flags byte, data []byte) (State, error) {
 		return State{}, err
 	}
 
-	nonce, data, err := readFlaggedString(flags, flagNonce, data, "Nonce")
+	// Holds the hexadecimal text of the usual 16-byte nonce on the stack.
+	var nonceScratch [32]byte
+
+	nonce, data, err := readNonceField(version, flags, data, nonceScratch[:0])
 	if err != nil {
-		return State{}, err
+		return State{}, fmt.Errorf("read Nonce: %w", err)
 	}
 
 	if len(data) != 0 {
@@ -293,6 +358,18 @@ func readFlaggedString(flags, flag byte, data []byte, name string) ([]byte, []by
 	}
 
 	return value, data, nil
+}
+
+// readNonceField reads the nonce field in the encoding of the given state version.
+func readNonceField(version, flags byte, data, scratch []byte) ([]byte, []byte, error) {
+	switch {
+	case flags&flagNonce == 0:
+		return nil, data, nil
+	case version == binaryStateVersionTextNonce:
+		return readStringBytes(data)
+	default:
+		return readNonce(data, scratch)
+	}
 }
 
 // readIPAddr reads the IP address field indicated by the state flags.

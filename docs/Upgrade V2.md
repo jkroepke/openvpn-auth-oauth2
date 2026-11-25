@@ -107,16 +107,18 @@ unchanged in the OAuth2 state. Remove every configured form of the option:
 | Version 1 environment | `CONFIG_OPENVPN_COMMON__NAME_MODE` |
 
 If you previously used `mode: omit` to keep the web authentication URL short,
-verify that the complete `client-pending-auth` command remains within OpenVPN's
-1023-byte management command limit.
+verify that the `WEB_AUTH::<url>` parameter of the `client-pending-auth`
+command stays within OpenVPN's limit of 256 characters per management
+parameter.
 
 #### Short URL
 
 The `http.short-url` option and the `/?s=` redirect endpoint have been removed.
 Version 2 always uses `/oauth2/start?state=` for the authentication URL. Remove
-every configured form of the option. The complete `client-pending-auth` command,
-including the URL and client identifiers, must fit within OpenVPN's 1023-byte
-management command limit.
+every configured form of the option. The `WEB_AUTH::<url>` parameter of the
+`client-pending-auth` command must fit within OpenVPN's limit of 256 characters
+per management parameter, so the URL itself can be at most 246 characters.
+openvpn-auth-oauth2 logs an error instead of sending a longer command.
 
 | Source | Removed setting |
 | --- | --- |

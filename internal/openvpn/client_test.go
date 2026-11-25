@@ -78,10 +78,11 @@ func TestBuildClientPendingAuthCommandLimit(t *testing.T) {
 
 	client := connection.Client{CID: 12345, KID: 0}
 
-	command, err := buildClientPendingAuthCommand(client, strings.Repeat("a", 979), 300*time.Second)
+	// "WEB_AUTH::" is 10 characters, leaving 246 for the URL.
+	command, err := buildClientPendingAuthCommand(client, strings.Repeat("a", 246), 300*time.Second)
 	require.NoError(t, err)
-	require.Len(t, command, openVPNManagementCommandBodyLimit)
+	require.Contains(t, command, `"WEB_AUTH::`+strings.Repeat("a", 246)+`"`)
 
-	_, err = buildClientPendingAuthCommand(client, strings.Repeat("a", 980), 300*time.Second)
-	require.EqualError(t, err, "client-pending-auth command is 1024 bytes; OpenVPN accepts at most 1023 bytes")
+	_, err = buildClientPendingAuthCommand(client, strings.Repeat("a", 247), 300*time.Second)
+	require.ErrorContains(t, err, "client-pending-auth parameter WEB_AUTH::<url> is 257 characters; OpenVPN accepts at most 256 characters per parameter")
 }

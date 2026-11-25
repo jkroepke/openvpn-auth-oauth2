@@ -31,6 +31,50 @@ func TestEncodeStateUsesCompactBinaryPayload(t *testing.T) {
 		4, 't', 'e', 's', 't',
 		127, 0, 0, 1,
 		5, '1', '2', '3', '4', '5',
-		4, 'a', 'b', 'c', 'd',
+		2<<1 | 1, 0xab, 0xcd,
 	}, payload)
+}
+
+func TestEncodeStateStoresNonHexNonceAsText(t *testing.T) {
+	t.Parallel()
+
+	for _, nonce := range []string{"abc", "ABCD", "zz", "0123456789abcdeg", "nonce with spaces"} {
+		payload := encodeState(nil, State{Nonce: nonce})
+
+		state, err := decodeState(payload)
+		require.NoError(t, err, nonce)
+		require.Equal(t, nonce, state.Nonce)
+	}
+}
+
+func TestEncodeStateStoresHexNonceRaw(t *testing.T) {
+	t.Parallel()
+
+	nonce := "0123456789abcdef0123456789abcdef"
+
+	withNonce := encodeState(nil, State{Nonce: nonce})
+	withoutNonce := encodeState(nil, State{})
+
+	// One header byte plus the 16 raw bytes, instead of 1 + 32 as text.
+	require.Len(t, withNonce, len(withoutNonce)+17)
+
+	state, err := decodeState(withNonce)
+	require.NoError(t, err)
+	require.Equal(t, nonce, state.Nonce)
+}
+
+func TestDecodeStateAcceptsTextNonceVersion(t *testing.T) {
+	t.Parallel()
+
+	state, err := decodeState([]byte{
+		binaryStateVersionTextNonce,
+		flagNonce,
+		'3',
+		1,
+		2,
+		4, 'a', 'b', 'c', 'd',
+	})
+	require.NoError(t, err)
+	require.Equal(t, "abcd", state.Nonce)
+	require.Equal(t, uint64(1), state.Client.CID)
 }
