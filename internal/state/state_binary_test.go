@@ -93,3 +93,20 @@ func TestDecodeStateRejectsTruncatedNonce(t *testing.T) {
 	_, err = decodeState([]byte{binaryStateVersion, flagNonce, '3', 1, 2})
 	require.ErrorContains(t, err, "read Nonce: invalid uvarint")
 }
+
+func FuzzCompactString(f *testing.F) {
+	for _, seed := range []string{"", "0", "007", "12345", "0a", "ab:cd", "0a:1b:f", "ABCD", "foo bar"} {
+		f.Add(seed)
+	}
+
+	f.Fuzz(func(t *testing.T, text string) {
+		var scratch [4]byte
+
+		encoded := appendCompactString(scratch[:0], text)
+
+		decoded, rest, err := readCompactString(encoded, scratch[:0])
+		require.NoError(t, err)
+		require.Empty(t, rest)
+		require.Equal(t, text, string(decoded))
+	})
+}

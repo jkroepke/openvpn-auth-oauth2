@@ -193,7 +193,8 @@ func encodeStateFlags(state State) (byte, netip.Addr) {
 
 	var scratch [ipAddrTextScratchSize]byte
 
-	if string(addr.AppendTo(scratch[:0])) != state.IPAddr {
+	// Binary fields cannot hold an IPv6 zone, so zoned addresses stay text.
+	if addr.Zone() != "" || string(addr.AppendTo(scratch[:0])) != state.IPAddr {
 		flags |= flagIPAddrText
 
 		return flags, ipAddr
