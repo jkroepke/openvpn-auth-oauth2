@@ -18,7 +18,15 @@ import (
 )
 
 const (
-	openVPNManagementCommandBodyLimit = 1023
+	// openVPNManagementParameterLimit is the longest single parameter OpenVPN
+	// accepts on the management interface. parse_line() copies each parameter
+	// into a fixed buffer of OPTION_PARM_SIZE (256, see options.h) bytes and
+	// rejects longer ones with "Parameter at TCP:0 is too long". The quoted "WEB_AUTH::<url>"
+	// argument of client-pending-auth is one parameter, so this is the effective
+	// URL limit. The whole command line may be up to 1023 bytes
+	// (command_line_new(1024) in manage.c), but a command whose WEB_AUTH
+	// parameter fits is always far below that.
+	openVPNManagementParameterLimit = 256
 
 	// usernameEnv is the environment variable holding the username sent by the client.
 	usernameEnv = "username"
@@ -241,8 +249,18 @@ func buildClientPendingAuthCommand(client connection.Client, startURL string, ti
 	const (
 		commandPrefix = "client-pending-auth "
 		webAuthPrefix = ` "WEB_AUTH::`
+		webAuthExtra  = "WEB_AUTH::"
 		commandSuffix = `" `
 	)
+
+	if parameterSize := len(webAuthExtra) + len(startURL); parameterSize > openVPNManagementParameterLimit {
+		return "", fmt.Errorf(
+			"client-pending-auth parameter WEB_AUTH::<url> is %d characters; OpenVPN accepts at most %d characters per parameter. "+
+				"Shorten http.baseurl or the data stored in the state, such as the common name",
+			parameterSize,
+			openVPNManagementParameterLimit,
+		)
+	}
 
 	// Keep the numeric fields in stack-backed scratch buffers so building a valid
 	// command requires only the returned string's allocation.
@@ -257,14 +275,6 @@ func buildClientPendingAuthCommand(client connection.Client, startURL string, ti
 	timeoutSeconds := strconv.AppendFloat(timeoutBuffer[:0], timeout.Seconds(), 'f', 0, 64)
 	commandSize := len(commandPrefix) + len(cid) + 1 + len(kid) + len(webAuthPrefix) +
 		len(startURL) + len(commandSuffix) + len(timeoutSeconds)
-
-	if commandSize > openVPNManagementCommandBodyLimit {
-		return "", fmt.Errorf(
-			"client-pending-auth command is %d bytes; OpenVPN accepts at most %d bytes",
-			commandSize,
-			openVPNManagementCommandBodyLimit,
-		)
-	}
 
 	var command strings.Builder
 	command.Grow(commandSize)

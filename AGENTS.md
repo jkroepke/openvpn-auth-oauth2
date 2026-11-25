@@ -65,6 +65,13 @@ The state carries the OIDC nonce of the login (`state.State.Nonce`); the
 callback and the stored refresh token use it, never a value derived from the
 client. Keep it when changing the state or refresh-token format.
 
+The state size is bounded by OpenVPN, not by the 1023-byte management line:
+`"WEB_AUTH::<url>"` is one management parameter, and OpenVPN rejects any
+parameter over 256 characters (`OPTION_PARM_SIZE` in `options.h`, "Parameter at
+TCP:0 is too long"). Every byte added to the state costs about 1.33 URL
+characters of that budget. See
+[issue #1304](https://github.com/jkroepke/openvpn-auth-oauth2/issues/1304).
+
 Switch formats directly if affected users may retry authentication. Otherwise,
 temporarily read legacy ciphertext while writing the new version. Legacy reads
 are needed only until five minutes after the last old instance stops issuing

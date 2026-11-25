@@ -5,8 +5,8 @@ import (
 	"crypto/aes"
 	stdcipher "crypto/cipher"
 	"encoding/base64"
+	"encoding/binary"
 	"io"
-	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -323,8 +323,8 @@ func TestDecryptBytesWithTimeMaxAge(t *testing.T) {
 	const key = "test-key"
 
 	issued := time.Now().Add(-3 * time.Minute).Unix()
-	plainText := strconv.AppendInt(nil, issued, 10)
-	plainText = append(plainText, " payload"...)
+	plainText := binary.BigEndian.AppendUint32(nil, uint32(issued)) //nolint:gosec // Unix seconds fit until 2106
+	plainText = append(plainText, "payload"...)
 	cipher := newCipher(t, key)
 	encrypted, err := cipher.EncryptBytes(plainText)
 	require.NoError(t, err)

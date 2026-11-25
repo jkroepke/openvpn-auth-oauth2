@@ -28,6 +28,9 @@ func TestState(t *testing.T) {
 		{name: "empty ip address and port", commonName: "foobar", ipAddr: "", ipPort: "", sessionState: "Authenticated"},
 		{name: "ipv6 address", commonName: "foobar", ipAddr: "2001:db8::1", ipPort: "12345", sessionState: "Authenticated"},
 		{name: "maximum length ipv6 address", commonName: "foobar", ipAddr: "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", ipPort: "12345", sessionState: "Authenticated"},
+		{name: "ipv6 address with zone", commonName: "foobar", ipAddr: "fe80::1%eth0", ipPort: "12345", sessionState: "Authenticated"},
+		{name: "certificate serial and digest", sessionID: "K3waLcCGyUuzkdXh", commonName: "ab:cd:01", ipAddr: "127.0.0.1", ipPort: "1194", nonce: "0123456789abcdef0123456789abcdef"},
+		{name: "decimal common name", commonName: "1234567890123456789012345678901234567890123456", ipAddr: "127.0.0.1", ipPort: "0"},
 		{name: "noncanonical ipv6 address", commonName: "foobar", ipAddr: "2001:0DB8:0:0:0:0:0:1", ipPort: "12345", sessionState: "Authenticated"},
 		{name: "with special characters", commonName: "foo bar/baz@qux", ipAddr: "127.0.0.1", ipPort: "12345", sessionState: "AuthenticatedEmptyUser"},
 		{name: "with unicode characters", commonName: "foo bar/baz@qux 你好", ipAddr: "127.0.0.1", ipPort: "12345", sessionState: "ExpiredEmptyUser"},
@@ -96,7 +99,7 @@ func TestStateInvalid(t *testing.T) {
 		{
 			name: "state too short",
 			encodedToken: func() (state.EncryptedState, error) {
-				encrypted, err := cipher.EncryptBytesWithTime([]byte{2, 0})
+				encrypted, err := cipher.EncryptBytesWithTime([]byte{3, 0})
 				if err != nil {
 					return "", err
 				}
@@ -120,7 +123,7 @@ func TestStateInvalid(t *testing.T) {
 		{
 			name: "invalid CID",
 			encodedToken: func() (state.EncryptedState, error) {
-				encrypted, err := cipher.EncryptBytesWithTime([]byte{2, 0, '0'})
+				encrypted, err := cipher.EncryptBytesWithTime([]byte{3, 0, '0'})
 				if err != nil {
 					return "", err
 				}
@@ -132,7 +135,7 @@ func TestStateInvalid(t *testing.T) {
 		{
 			name: "invalid KID",
 			encodedToken: func() (state.EncryptedState, error) {
-				encrypted, err := cipher.EncryptBytesWithTime([]byte{2, 0, '0', 1})
+				encrypted, err := cipher.EncryptBytesWithTime([]byte{3, 0, '0', 1})
 				if err != nil {
 					return "", err
 				}
@@ -144,7 +147,7 @@ func TestStateInvalid(t *testing.T) {
 		{
 			name: "truncated common name",
 			encodedToken: func() (state.EncryptedState, error) {
-				encrypted, err := cipher.EncryptBytesWithTime([]byte{2, 2, '0', 1, 1, 5, 'a'})
+				encrypted, err := cipher.EncryptBytesWithTime([]byte{3, 2, '0', 1, 1, 5 << 2, 'a'})
 				if err != nil {
 					return "", err
 				}
@@ -156,7 +159,7 @@ func TestStateInvalid(t *testing.T) {
 		{
 			name: "trailing data",
 			encodedToken: func() (state.EncryptedState, error) {
-				encrypted, err := cipher.EncryptBytesWithTime([]byte{2, 0, '0', 1, 1, 'x'})
+				encrypted, err := cipher.EncryptBytesWithTime([]byte{3, 0, '0', 1, 1, 'x'})
 				if err != nil {
 					return "", err
 				}

@@ -11,7 +11,8 @@
 // client-controlled data is rejected before it is interpreted. The AEAD key is
 // derived from the configured secret with HKDF-SHA256.
 //
-// EncryptBytesWithTime wraps the encrypted payload with an issued timestamp and
+// EncryptBytesWithTime prefixes the payload with a 4-byte issued timestamp
+// (Unix seconds, big endian) before encryption, and
 // encodes the result using unpadded URL-safe base64. DecryptBytesWithTime and
 // DecryptStringWithTime only accept that raw URL-base64 form, reject oversized
 // input, verify integrity, and reject data older than the cipher's configured

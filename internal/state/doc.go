@@ -8,13 +8,17 @@
 // which protects the OpenVPN client identifiers, client address, and session
 // state from undetected manipulation.
 //
-// The representation is intentionally compact. OpenVPN accepts at most 1023
-// bytes for the complete client-pending-auth management command. The encrypted
-// state shares that budget with command metadata, the configured base URL, and
-// the callback path. Encrypt therefore uses a versioned binary payload with
+// The representation is intentionally compact. The state travels inside the
+// "WEB_AUTH::<url>" argument of the client-pending-auth management command,
+// and OpenVPN accepts at most 256 characters for a single management parameter
+// (OPTION_PARM_SIZE in OpenVPN's options.h). The encrypted state shares that
+// budget with the "WEB_AUTH::" prefix, the configured base URL, and the
+// callback path. Encrypt therefore uses a versioned binary payload with
 // varint client identifiers, flag-controlled optional fields, compact
-// session-state codes, binary IP address fields, unpadded URL-safe base64, and
-// an AES-256-GCM envelope. This keeps the command inside the OpenVPN
-// management interface constraint while preserving integrity and expiry checks
-// for untrusted input.
+// session-state codes, binary IP address fields, compact binary forms for
+// decimal and hexadecimal strings such as certificate serials, digests and the
+// OIDC nonce, a 4-byte issued timestamp,
+// unpadded URL-safe base64, and an AES-256-GCM envelope. This keeps the
+// parameter inside the OpenVPN management interface constraint while
+// preserving integrity and expiry checks for untrusted input.
 package state
