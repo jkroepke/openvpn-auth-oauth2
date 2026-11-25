@@ -1,16 +1,15 @@
 package crypto
 
 import (
-	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/hkdf"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -22,6 +21,8 @@ const (
 	aesGCMTagSize     = 16
 	keyDerivationInfo = "aes-256-gcm"
 	defaultMaxAge     = 2 * time.Minute
+	// issuedTimestampSize is the length of the binary issued timestamp prefix.
+	issuedTimestampSize = 4
 
 	// timedPlainTextScratchSize covers typical authentication payloads while append retains a heap fallback.
 	timedPlainTextScratchSize = 128
@@ -218,8 +219,8 @@ func (c *Cipher) encryptTimedBytes(dst, plainText []byte) ([]byte, error) {
 
 	var scratch [timedPlainTextScratchSize]byte
 
-	timedPlainText := strconv.AppendInt(scratch[:0], issued, 10)
-	timedPlainText = append(timedPlainText, ' ')
+	// Unix seconds fit into 32 bits until 2106.
+	timedPlainText := binary.BigEndian.AppendUint32(scratch[:0], uint32(issued)) //nolint:gosec // see above
 	timedPlainText = append(timedPlainText, plainText...)
 
 	return c.encryptBytesInto(dst, timedPlainText)
@@ -323,23 +324,15 @@ func checkTokenSize(encodedLength int) error {
 }
 
 // extractIssued extracts the issued timestamp from the decrypted data.
-// The timestamp is stored as a string followed by a space at the beginning of the data.
+// The timestamp is stored as a 4-byte big-endian count of Unix seconds at the
+// beginning of the data. Its binary form keeps encrypted values short enough
+// for the OpenVPN WEB_AUTH parameter.
 func extractIssued(data []byte) (int64, []byte, error) {
-	// Find the space separator
-	before, after, ok := bytes.Cut(data, []byte{' '})
-
-	if !ok {
+	if len(data) < issuedTimestampSize {
 		return 0, nil, errors.New("invalid data format: no timestamp found")
 	}
 
-	// Parse the timestamp
-	issued, err := strconv.ParseInt(string(before), 10, 64)
-	if err != nil {
-		return 0, nil, fmt.Errorf("parse issued timestamp: %w", err)
-	}
-
-	// Return the timestamp and the remaining data (after the space)
-	return issued, after, nil
+	return int64(binary.BigEndian.Uint32(data)), data[issuedTimestampSize:], nil
 }
 
 // validateIssued checks that the issued timestamp is within the accepted clock window.

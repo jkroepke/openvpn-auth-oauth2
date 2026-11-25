@@ -2,20 +2,18 @@ package state
 
 import (
 	"encoding/binary"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
 	"net/netip"
-	"strings"
 
 	"github.com/jkroepke/openvpn-auth-oauth2/v2/internal/crypto"
 )
 
 const (
-	// binaryStateVersion is written by Encrypt. Version 3 stores a hexadecimal
-	// nonce as raw bytes, see appendNonce. Older versions are rejected: states
-	// expire within minutes, so in-flight logins only need a retry.
+	// binaryStateVersion is written by Encrypt. Version 3 stores string fields
+	// in compact binary forms, see appendCompactString. Older versions are
+	// rejected: states expire within minutes, so in-flight logins only need a retry.
 	binaryStateVersion = 3
 
 	// stateEncodingScratchSize covers typical states while retaining a heap fallback for larger values.
@@ -126,11 +124,11 @@ func encodeState(data []byte, state State) []byte {
 	data = appendUvarint(data, state.Client.KID)
 
 	if flags&flagSessionID != 0 {
-		data = appendString(data, state.Client.SessionID)
+		data = appendCompactString(data, state.Client.SessionID)
 	}
 
 	if flags&flagCommonName != 0 {
-		data = appendString(data, state.Client.CommonName)
+		data = appendCompactString(data, state.Client.CommonName)
 	}
 
 	switch {
@@ -141,73 +139,18 @@ func encodeState(data []byte, state State) []byte {
 		ipBytes := ipAddr.As16()
 		data = append(data, ipBytes[:]...)
 	case flags&flagIPAddrText != 0:
-		data = appendString(data, state.IPAddr)
+		data = appendCompactString(data, state.IPAddr)
 	}
 
 	if flags&flagIPPort != 0 {
-		data = appendString(data, state.IPPort)
+		data = appendCompactString(data, state.IPPort)
 	}
 
 	if flags&flagNonce != 0 {
-		data = appendNonce(data, state.Nonce)
+		data = appendCompactString(data, state.Nonce)
 	}
 
 	return data
-}
-
-// appendNonce appends the nonce field. Its uvarint header holds the length
-// shifted left by one; the low bit marks a nonce stored as raw bytes. A
-// lowercase hexadecimal nonce, as generated for OIDC logins, is stored raw at
-// half its text size, which matters because the encrypted state must fit into a
-// single OpenVPN management parameter. Any other value is stored as text.
-func appendNonce(data []byte, nonce string) []byte {
-	if !isLowerHex(nonce) {
-		data = appendUvarint(data, uint64(len(nonce))<<1)
-
-		return append(data, nonce...)
-	}
-
-	data = appendUvarint(data, uint64(len(nonce)/2)<<1|1)
-
-	// isLowerHex guarantees valid input, so decoding cannot fail.
-	data, _ = hex.AppendDecode(data, []byte(nonce))
-
-	return data
-}
-
-// isLowerHex reports whether text is a non-empty, even-length, lowercase hexadecimal string.
-func isLowerHex(text string) bool {
-	if text == "" || len(text)%2 != 0 {
-		return false
-	}
-
-	for i := range len(text) {
-		if c := text[i]; (c < '0' || c > '9') && (c < 'a' || c > 'f') {
-			return false
-		}
-	}
-
-	return true
-}
-
-// readNonce reads the nonce field written by appendNonce into scratch.
-func readNonce(data, scratch []byte) ([]byte, []byte, error) {
-	header, data, err := readUvarint(data)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	length := header >> 1
-
-	if uint64(len(data)) < length {
-		return nil, nil, fmt.Errorf("nonce length %d exceeds remaining data %d", length, len(data))
-	}
-
-	if header&1 == 0 {
-		return data[:length], data[length:], nil
-	}
-
-	return hex.AppendEncode(scratch, data[:length]), data[length:], nil
 }
 
 // encodeStateFlags derives the optional-field bitset and parsed IP address for binary state encoding.
@@ -302,130 +245,90 @@ func decodeState(data []byte) (State, error) {
 }
 
 // decodeStateFields reads the optional fields controlled by the state flags.
+// All decoded string fields share one immutable backing string.
 func decodeStateFields(state State, flags byte, data []byte) (State, error) {
-	sessionID, data, err := readFlaggedString(flags, flagSessionID, data, "SessionID")
+	var (
+		scratch [stateStringScratchSize]byte
+		err     error
+	)
+
+	text := scratch[:0]
+
+	text, data, err = readFlaggedString(flags, flagSessionID, data, text, "SessionID")
 	if err != nil {
 		return State{}, err
 	}
 
-	commonName, data, err := readFlaggedString(flags, flagCommonName, data, "CommonName")
+	sessionIDEnd := len(text)
+
+	text, data, err = readFlaggedString(flags, flagCommonName, data, text, "CommonName")
 	if err != nil {
 		return State{}, err
 	}
 
-	var ipAddrScratch [ipAddrTextScratchSize]byte
+	commonNameEnd := len(text)
 
-	ipAddr, data, err := readIPAddr(flags, data, ipAddrScratch[:0])
+	text, data, err = readIPAddr(flags, data, text)
 	if err != nil {
 		return State{}, fmt.Errorf("read IPAddr: %w", err)
 	}
 
-	ipPort, data, err := readFlaggedString(flags, flagIPPort, data, "IPPort")
+	ipAddrEnd := len(text)
+
+	text, data, err = readFlaggedString(flags, flagIPPort, data, text, "IPPort")
 	if err != nil {
 		return State{}, err
 	}
 
-	// Holds the hexadecimal text of the usual 16-byte nonce on the stack.
-	var nonceScratch [32]byte
+	ipPortEnd := len(text)
 
-	nonce, data, err := readNonceField(flags, data, nonceScratch[:0])
+	text, data, err = readFlaggedString(flags, flagNonce, data, text, "Nonce")
 	if err != nil {
-		return State{}, fmt.Errorf("read Nonce: %w", err)
+		return State{}, err
 	}
 
 	if len(data) != 0 {
 		return State{}, fmt.Errorf("unexpected trailing state data: %d bytes", len(data))
 	}
 
-	setStateStrings(&state, sessionID, commonName, ipAddr, ipPort, nonce)
+	packed := string(text)
+
+	state.Client.SessionID = packed[:sessionIDEnd]
+	state.Client.CommonName = packed[sessionIDEnd:commonNameEnd]
+	state.IPAddr = packed[commonNameEnd:ipAddrEnd]
+	state.IPPort = packed[ipAddrEnd:ipPortEnd]
+	state.Nonce = packed[ipPortEnd:]
 
 	return state, nil
 }
 
-// readFlaggedString reads the length-prefixed string field named name when
-// flag is set in flags, and returns nil otherwise.
-func readFlaggedString(flags, flag byte, data []byte, name string) ([]byte, []byte, error) {
+// readFlaggedString appends the string field named name to dst when flag is
+// set in flags, and returns dst unchanged otherwise.
+func readFlaggedString(flags, flag byte, data, dst []byte, name string) ([]byte, []byte, error) {
 	if flags&flag == 0 {
-		return nil, data, nil
+		return dst, data, nil
 	}
 
-	value, data, err := readStringBytes(data)
+	dst, data, err := readCompactString(data, dst)
 	if err != nil {
 		return nil, nil, fmt.Errorf("read %s: %w", name, err)
 	}
 
-	return value, data, nil
+	return dst, data, nil
 }
 
-// readNonceField reads the nonce field when it is present in flags.
-func readNonceField(flags byte, data, scratch []byte) ([]byte, []byte, error) {
-	if flags&flagNonce == 0 {
-		return nil, data, nil
-	}
-
-	return readNonce(data, scratch)
-}
-
-// readIPAddr reads the IP address field indicated by the state flags.
-func readIPAddr(flags byte, data, scratch []byte) ([]byte, []byte, error) {
+// readIPAddr appends the IP address field indicated by the state flags to dst.
+func readIPAddr(flags byte, data, dst []byte) ([]byte, []byte, error) {
 	switch {
 	case flags&flagIPAddrV4 != 0:
-		return readIPAddrV4(data, scratch)
+		return readIPAddrV4(data, dst)
 	case flags&flagIPAddrV6 != 0:
-		return readIPAddrV6(data, scratch)
+		return readIPAddrV6(data, dst)
 	case flags&flagIPAddrText != 0:
-		return readStringBytes(data)
+		return readCompactString(data, dst)
 	default:
-		return nil, data, nil
+		return dst, data, nil
 	}
-}
-
-// setStateStrings stores all decoded string fields in one immutable backing string.
-func setStateStrings(state *State, sessionID, commonName, ipAddr, ipPort, nonce []byte) {
-	sessionIDEnd := len(sessionID)
-	commonNameEnd := sessionIDEnd + len(commonName)
-	ipAddrEnd := commonNameEnd + len(ipAddr)
-	ipPortEnd := ipAddrEnd + len(ipPort)
-	nonceEnd := ipPortEnd + len(nonce)
-
-	var packedStrings string
-
-	if nonceEnd <= stateStringScratchSize {
-		var scratch [stateStringScratchSize]byte
-
-		packed := scratch[:0]
-		packed = append(packed, sessionID...)
-		packed = append(packed, commonName...)
-		packed = append(packed, ipAddr...)
-		packed = append(packed, ipPort...)
-		packed = append(packed, nonce...)
-		packedStrings = string(packed)
-	} else {
-		var builder strings.Builder
-
-		builder.Grow(nonceEnd)
-
-		_, _ = builder.Write(sessionID)
-		_, _ = builder.Write(commonName)
-		_, _ = builder.Write(ipAddr)
-		_, _ = builder.Write(ipPort)
-		_, _ = builder.Write(nonce)
-
-		packedStrings = builder.String()
-	}
-
-	state.Client.SessionID = packedStrings[:sessionIDEnd]
-	state.Client.CommonName = packedStrings[sessionIDEnd:commonNameEnd]
-	state.IPAddr = packedStrings[commonNameEnd:ipAddrEnd]
-	state.IPPort = packedStrings[ipAddrEnd:ipPortEnd]
-	state.Nonce = packedStrings[ipPortEnd:nonceEnd]
-}
-
-// appendString appends a length-prefixed string to the binary state payload.
-func appendString(data []byte, text string) []byte {
-	data = appendUvarint(data, uint64(len(text)))
-
-	return append(data, text...)
 }
 
 // appendUvarint appends a uint64 using Go's compact unsigned varint encoding.

@@ -931,13 +931,11 @@ func TestOAuth2ProfileSubmit(t *testing.T) {
 			func(t *testing.T) *http.Request {
 				t.Helper()
 
-				token := fmt.Sprintf("%d -", time.Now().Unix())
-
-				encryptedToken, err := testsuite.NewCipher(t).EncryptBytes([]byte(token))
+				encryptedToken, err := testsuite.NewCipher(t).EncryptStringWithTime([]byte("-"))
 				require.NoError(t, err)
 
 				req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth2/profile-submit",
-					strings.NewReader("token="+url.QueryEscape(base64.RawURLEncoding.EncodeToString(encryptedToken))))
+					strings.NewReader("token="+url.QueryEscape(encryptedToken)))
 				require.NoError(t, err)
 
 				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -952,13 +950,11 @@ func TestOAuth2ProfileSubmit(t *testing.T) {
 			func(t *testing.T) *http.Request {
 				t.Helper()
 
-				token := fmt.Sprintf(`%d {}`, time.Now().Unix())
-
-				encryptedToken, err := testsuite.NewCipher(t).EncryptBytes([]byte(token))
+				encryptedToken, err := testsuite.NewCipher(t).EncryptStringWithTime([]byte(`{}`))
 				require.NoError(t, err)
 
 				req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth2/profile-submit",
-					strings.NewReader("token="+url.QueryEscape(base64.RawURLEncoding.EncodeToString(encryptedToken))))
+					strings.NewReader("token="+url.QueryEscape(encryptedToken)))
 
 				require.NoError(t, err)
 
@@ -979,13 +975,11 @@ func TestOAuth2ProfileSubmit(t *testing.T) {
 				encryptedState, err := state.Encrypt(testsuite.NewCipher(t), sessionState)
 				require.NoError(t, err)
 
-				token := fmt.Sprintf(`%d {"state": %q}`, time.Now().Unix(), encryptedState)
-
-				encryptedToken, err := testsuite.NewCipher(t).EncryptBytes([]byte(token))
+				encryptedToken, err := testsuite.NewCipher(t).EncryptStringWithTime([]byte(fmt.Sprintf(`{"state": %q}`, encryptedState)))
 				require.NoError(t, err)
 
 				req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth2/profile-submit",
-					strings.NewReader("token="+url.QueryEscape(base64.RawURLEncoding.EncodeToString(encryptedToken))))
+					strings.NewReader("token="+url.QueryEscape(encryptedToken)))
 				require.NoError(t, err)
 				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 

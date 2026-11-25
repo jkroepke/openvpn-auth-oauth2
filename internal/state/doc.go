@@ -15,7 +15,9 @@
 // budget with the "WEB_AUTH::" prefix, the configured base URL, and the
 // callback path. Encrypt therefore uses a versioned binary payload with
 // varint client identifiers, flag-controlled optional fields, compact
-// session-state codes, binary IP address fields, a raw-byte OIDC nonce,
+// session-state codes, binary IP address fields, compact binary forms for
+// decimal and hexadecimal strings such as certificate serials, digests and the
+// OIDC nonce, a 4-byte issued timestamp,
 // unpadded URL-safe base64, and an AES-256-GCM envelope. This keeps the
 // parameter inside the OpenVPN management interface constraint while
 // preserving integrity and expiry checks for untrusted input.

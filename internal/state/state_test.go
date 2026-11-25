@@ -144,7 +144,7 @@ func TestStateInvalid(t *testing.T) {
 		{
 			name: "truncated common name",
 			encodedToken: func() (state.EncryptedState, error) {
-				encrypted, err := cipher.EncryptBytesWithTime([]byte{3, 2, '0', 1, 1, 5, 'a'})
+				encrypted, err := cipher.EncryptBytesWithTime([]byte{3, 2, '0', 1, 1, 5 << 2, 'a'})
 				if err != nil {
 					return "", err
 				}
