@@ -63,18 +63,19 @@ func TestEncodeStateStoresHexNonceRaw(t *testing.T) {
 	require.Equal(t, nonce, state.Nonce)
 }
 
-func TestDecodeStateAcceptsTextNonceVersion(t *testing.T) {
+func TestDecodeStateRejectsOlderVersion(t *testing.T) {
 	t.Parallel()
 
-	state, err := decodeState([]byte{
-		binaryStateVersionTextNonce,
-		flagNonce,
-		'3',
-		1,
-		2,
-		4, 'a', 'b', 'c', 'd',
-	})
-	require.NoError(t, err)
-	require.Equal(t, "abcd", state.Nonce)
-	require.Equal(t, uint64(1), state.Client.CID)
+	_, err := decodeState([]byte{2, 0, '3', 1, 2})
+	require.EqualError(t, err, "unsupported state version: 2")
+}
+
+func TestDecodeStateRejectsTruncatedNonce(t *testing.T) {
+	t.Parallel()
+
+	_, err := decodeState([]byte{binaryStateVersion, flagNonce, '3', 1, 2, 16<<1 | 1, 0xab})
+	require.ErrorContains(t, err, "nonce length 16 exceeds remaining data 1")
+
+	_, err = decodeState([]byte{binaryStateVersion, flagNonce, '3', 1, 2})
+	require.ErrorContains(t, err, "read Nonce: invalid uvarint")
 }
