@@ -20,8 +20,8 @@ import (
 const (
 	// openVPNManagementParameterLimit is the longest single parameter OpenVPN
 	// accepts on the management interface. parse_line() copies each parameter
-	// into char parm[OPTION_PARM_SIZE] (256, see options.h) and rejects longer
-	// ones with "Parameter at TCP:0 is too long". The quoted "WEB_AUTH::<url>"
+	// into a fixed buffer of OPTION_PARM_SIZE (256, see options.h) bytes and
+	// rejects longer ones with "Parameter at TCP:0 is too long". The quoted "WEB_AUTH::<url>"
 	// argument of client-pending-auth is one parameter, so this is the effective
 	// URL limit. The whole command line may be up to 1023 bytes
 	// (command_line_new(1024) in manage.c), but a command whose WEB_AUTH
