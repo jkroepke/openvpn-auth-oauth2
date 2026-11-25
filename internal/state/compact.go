@@ -22,7 +22,9 @@ const (
 	compactKindDecimal
 	compactKindHex
 	compactKindColonHex
+)
 
+const (
 	compactKindBits = 2
 	compactKindMask = 1<<compactKindBits - 1
 )
@@ -55,7 +57,8 @@ func appendCompactString(data []byte, text string) []byte {
 
 		return data
 	default:
-		data = appendUvarint(data, uint64(len(text))<<compactKindBits|compactKindText)
+		// compactKindText is zero, so the header is just the shifted length.
+		data = appendUvarint(data, uint64(len(text))<<compactKindBits)
 
 		return append(data, text...)
 	}

@@ -340,20 +340,6 @@ func appendUvarint(data []byte, value uint64) []byte {
 	return append(data, scratch[:n]...)
 }
 
-// readStringBytes reads a length-prefixed string from a binary state payload.
-func readStringBytes(data []byte) ([]byte, []byte, error) {
-	length, data, err := readUvarint(data)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if uint64(len(data)) < length {
-		return nil, nil, fmt.Errorf("string length %d exceeds remaining data %d", length, len(data))
-	}
-
-	return data[:length], data[length:], nil
-}
-
 // readUvarint reads an unsigned varint and returns the remaining payload.
 func readUvarint(data []byte) (uint64, []byte, error) {
 	value, readLen := binary.Uvarint(data)

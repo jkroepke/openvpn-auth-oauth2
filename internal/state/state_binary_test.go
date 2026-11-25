@@ -28,7 +28,7 @@ func TestEncodeStateUsesCompactBinaryPayload(t *testing.T) {
 		'3',
 		1,
 		2,
-		4<<compactKindBits | compactKindText, 't', 'e', 's', 't',
+		4 << compactKindBits, 't', 'e', 's', 't', // compactKindText
 		127, 0, 0, 1,
 		2<<compactKindBits | compactKindDecimal, 0x30, 0x39,
 		2<<compactKindBits | compactKindHex, 0xab, 0xcd,
