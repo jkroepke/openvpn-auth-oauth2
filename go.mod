@@ -13,7 +13,7 @@ require (
 	github.com/testcontainers/testcontainers-go v0.45.0
 	github.com/zitadel/oidc/v3 v3.51.17
 	go.yaml.in/yaml/v4 v4.0.0
-	golang.org/x/net v0.62.0
+	golang.org/x/net v0.63.0
 	golang.org/x/oauth2 v0.38.0
 	golang.org/x/text v0.44.0
 )
