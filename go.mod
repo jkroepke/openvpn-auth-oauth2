@@ -11,7 +11,7 @@ require (
 	github.com/moby/moby/client v0.6.2
 	github.com/stretchr/testify v1.12.1
 	github.com/testcontainers/testcontainers-go v0.45.0
-	github.com/zitadel/oidc/v3 v3.51.17
+	github.com/zitadel/oidc/v3 v3.52.0
 	go.yaml.in/yaml/v4 v4.0.0
 	golang.org/x/net v0.62.0
 	golang.org/x/oauth2 v0.38.0
